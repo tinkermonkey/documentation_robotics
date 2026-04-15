@@ -80,8 +80,8 @@ dr scan session start [--workspace <path>]
 
 **What happens:**
 
-1. Spawns CodePrism as a detached background process
-2. Waits for repository indexing to complete
+1. Spawns CodePrism process and caches the connection in memory
+2. Polls for repository indexing to complete
 3. Stores session metadata in `documentation-robotics/.scan-session`
 4. Returns session status with indexed file count
 
@@ -191,11 +191,10 @@ dr scan session stop [--workspace <path>]
 
 **What happens:**
 
-1. Sends SIGTERM to CodePrism process
-2. Waits up to 5 seconds for graceful shutdown
-3. Sends SIGKILL if process doesn't respond
-4. Removes session metadata file
-5. Returns success regardless (cleanup is always attempted)
+1. Disconnects the CodePrism MCP client connection
+2. This closes the stdio transport and terminates the CodePrism process
+3. Removes session metadata file and cache entry
+4. Returns success regardless (cleanup is always attempted)
 
 **Error handling:**
 

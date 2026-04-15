@@ -350,7 +350,7 @@ Indicates that a pattern requires an active CodePrism session with indexed repos
 **Graceful Degradation Behavior:**
 
 - If `requires_index: true` and no active session exists, the pattern is skipped with a warning
-- Users are instructed to run `dr scan index` to start a session
+- Users are instructed to run `dr scan session start` to start a session
 - The scan falls back to any co-existing regex patterns with the same produces type
 
 ```yaml
@@ -486,13 +486,13 @@ Semantic patterns require an active CodePrism session:
 
 ```bash
 # Start indexing the repository
-dr scan index
+dr scan session start
 
 # Check session status
-dr scan status
+dr scan session status
 
 # Stop the session
-dr scan stop
+dr scan session stop
 ```
 
 **When Session is Active:**
@@ -505,7 +505,7 @@ dr scan stop
 
 - Semantic patterns skipped with warnings
 - Regex fallback patterns execute (if present)
-- Users guided to run `dr scan index` for better results
+- Users guided to run `dr scan session start` for better results
 
 ### Testing Patterns
 
@@ -528,18 +528,18 @@ dr scan --layer api --dry-run
 
 **Error: "Pattern requires active session but no session is active"**
 
-1. Start a session: `dr scan index`
+1. Start a session: `dr scan session start`
 2. Wait for indexing to complete
 3. Resume scanning: `dr scan`
-4. Check session status: `dr scan status`
+4. Check session status: `dr scan session status`
 
 **Semantic patterns are being skipped**
 
 If semantic patterns (high confidence) are showing as skipped in verbose output:
 
-1. Verify session is active: `dr scan status`
+1. Verify session is active: `dr scan session status`
 2. Check session.status is "ready" (not "indexing")
-3. If stale, refresh: `dr scan stop` then `dr scan index`
+3. If stale, refresh: `dr scan session stop` then `dr scan session start`
 
 ### CodePrism Connection Issues
 

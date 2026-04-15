@@ -18,14 +18,14 @@ The current scanning workflow requires spawning a new CodePrism process on each 
 
 Implement an **explicit session lifecycle** where developers:
 
-1. **Opt into sessions** via `dr scan session start` - spawn CodePrism once, keep it alive
+1. **Opt into sessions** via `dr scan session start` - spawn CodePrism once, keep it cached and alive
 2. **Reuse the session** for subsequent queries via `dr scan session query` (and future `dr index`, `dr ref validate`, etc.)
 3. **Explicitly end sessions** via `dr scan session stop` - developers have full control
 
-This design enforces **intentional session management** rather than hidden background processes:
+This design enforces **intentional session management** with in-memory caching:
 
 - Sessions don't start automatically
-- Sessions don't persist across terminal/session restarts (by design)
+- Sessions are **cache-based within a single CLI process** - not persisted across separate CLI invocations
 - Session state is always visible via `dr scan session status`
 - Session lifecycle is explicit in commands and visible in documentation
 
@@ -37,22 +37,26 @@ This design enforces **intentional session management** rather than hidden backg
 Developer              CLI                    CodePrism Process
    |                  |                              |
    |--session start--->|                              |
-   |                  |--spawn (detached)----------->|
+   |                  |--create MCP client---------->|
+   |                  |      (spawn process)         |
+   |                  |<--stdio transport----------|
    |                  |                              |
-   |                  |--poll repository_stats------>|
-   |                  |<-ready/indexed_files---------|
-   |                  |<--PID, status, timestamp-----|
+   |                  |--call repository_stats------>|
+   |                  |<-indexed_files response------|
+   |                  |                              |
+   |                  |--cache client in memory------|
    |<-session ready---|                              |
    |                  |                              |
    |--session query--->|                              |
-   |                  |--call tool (e.g., search)---->|
+   |                  |--call tool (from cache)----->|
    |                  |<---tool result----------------|
    |<-result----------|                              |
    |                  |                              |
    |--session stop---->|                              |
-   |                  |--SIGTERM + poll for exit---->|
-   |                  |--SIGKILL if not responsive-->|
+   |                  |--disconnect client---------->|
+   |                  |   (closes stdio, kills proc) |
    |                  |<-process exited-------------|
+   |                  |--remove session file---------|
    |<-stopped---------|                              |
 ```
 
@@ -90,7 +94,7 @@ Sessions are persisted in a metadata file at `documentation-robotics/.scan-sessi
 
 ```json
 {
-  "pid": 12345,
+  "pid": -1,
   "workspace": "/home/user/my-project",
   "status": "ready",
   "indexed_files": 1250,
@@ -102,28 +106,34 @@ Sessions are persisted in a metadata file at `documentation-robotics/.scan-sessi
 **Validation**: JSON Schema validated on read/write using Zod
 **Location**: One session per workspace at `{workspace}/documentation-robotics/.scan-session`
 **Cleanup**: Automatically removed when session is stopped
+**PID Field**: Set to `-1` when using cache-based model (indicates session is managed by in-memory cache, not cross-process PID). If a positive PID is stored, it may be used as a fallback liveness indicator.
 
 ### Process Lifecycle
 
-1. **Start**: Spawn CodePrism as **detached background process**
-   - `spawn(..., { detached: true, stdio: 'pipe' })`
-   - `child.unref()` so Node doesn't wait for exit
-   - Process survives CLI process exit
+1. **Start**: Spawn CodePrism via MCP client and cache the connection
+   - Create MCPClient instance which spawns CodePrism process
+   - Store client in `activeSessions` map keyed by workspace path
+   - Write session metadata file with PID = -1 (cache-managed marker)
+   - Polling: Poll `repository_stats` tool until indexing complete
+     - Default timeout: 60 seconds
+     - Default poll interval: 1 second
+     - Configurable via test options
 
-2. **Polling**: Poll `repository_stats` tool until indexing complete
-   - Default timeout: 60 seconds
-   - Default poll interval: 1 second
-   - Configurable via test options
+2. **Liveness Check**: In-memory cache or PID-based fallback
+   - For sessions with PID = -1: Check if client is in `activeSessions` map
+   - For sessions with positive PID: Use `process.kill(pid, 0)` as fallback
+   - Status command verifies session is still alive using appropriate method
 
-3. **Liveness Check**: PID-based process detection
-   - `process.kill(pid, 0)` to check if process exists
-   - Used by status command to verify session is still alive
+3. **Shutdown**: Disconnect MCP client
+   - Call `client.disconnect()` to close stdio transport
+   - This automatically terminates the CodePrism child process
+   - Remove session file and cache entry regardless of disconnect success
+   - Session is immediately invalidated
 
-4. **Shutdown**: Graceful SIGTERM + forced SIGKILL fallback
-   - Send SIGTERM
-   - Wait up to 5 seconds
-   - Send SIGKILL if not responsive
-   - Remove session file regardless
+4. **Session Persistence Model**
+   - **Within same CLI process**: Session is cached in-memory, available for multiple queries
+   - **Across separate CLI invocations**: Not persisted (new process has empty cache)
+   - This means: `dr scan session query` in the same process will reuse the cached connection, but a new terminal with fresh `dr` process won't see the session (must use session file + fallback PID check for cross-process scenarios)
 
 ### Error Handling
 
@@ -146,8 +156,8 @@ To start a session, run: dr scan session start
 
 1. **Explicit Session Lifecycle** - Sessions don't start automatically
 2. **Single Session Per Workspace** - Only one session per `documentation-robotics/` directory
-3. **Detached Background Process** - Session survives CLI exit and terminal closure
-4. **Liveness Verification** - Session status uses PID-based process detection
+3. **In-Memory Cache Model** - Session is cached within a single CLI process, not persisted across invocations
+4. **Liveness Verification** - Session status uses cache lookup (PID = -1) or PID-based detection (positive PID) as fallback
 5. **Graceful Degradation** - All commands work when session exists or report clear errors when it doesn't
 6. **Configuration Reuse** - Session uses same CodePrism config as `dr scan` command
 
@@ -293,22 +303,25 @@ This session model enables:
 - Resource consumption is explicit and controllable
 - Manual control allows for development workflows (e.g., restart session for config changes)
 
-### Chosen Detached Over Managed
+### In-Memory Cache Over Persistent Daemon
 
-**Why not manage process with Node process manager?**
+**Why cache-based instead of persistent background daemon?**
 
-- Session survives terminal closure and CLI process exit
-- Developers can work with session across multiple terminal windows
-- Simpler implementation (no need to track child processes across CLI invocations)
+- Simpler implementation: no daemon lifecycle management needed
+- Clear resource ownership: CodePrism process terminates with CLI process
+- Matches developer expectations: explicit `dr scan session start` spawns process
+- Trade-off: Session not available across separate CLI invocations (each process has empty cache)
+- Cross-invocation persistence possible via session file + PID fallback for same workspace
 
-### Chosen PID-Based Over Socket-Based
+### Hybrid Approach: In-Memory Cache + Session File
 
-**Why not use named pipes or sockets?**
+**Why cache within process + session file?**
 
-- PID-based detection is simpler and platform-independent
-- Session file contains all needed metadata
-- Works across terminal/process boundaries
-- Matches existing CodePrism MCP communication model
+- **Within-process cache**: Eliminates re-indexing cost for multiple queries in same CLI invocation
+- **Session file + PID marker**: Enables cross-invocation liveness checks in same workspace
+- **Simpler than sockets**: No need to manage named pipes or TCP connections
+- **Clear semantics**: PID = -1 explicitly marks cache-managed sessions vs. actual process PIDs
+- **Graceful fallback**: If cache is empty (new process), PID liveness check still works
 
 ## See Also
 
