@@ -9,6 +9,7 @@ import {
   renderTemplate,
   type ElementCandidate,
   type PatternSet,
+  type SessionContext,
 } from "../../../src/scan/pattern-loader.js";
 import { z } from "zod";
 
@@ -182,6 +183,117 @@ describe("Pattern Loader", () => {
       expect(() => PatternDefinitionSchema.parse(minConfidence)).not.toThrow();
       expect(() => PatternDefinitionSchema.parse(maxConfidence)).not.toThrow();
     });
+
+    it("accepts pattern with requires_index: true (semantic patterns)", () => {
+      const semanticPattern = {
+        id: "express.route.handler",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "analyze_api_surface", params: { framework: "express" } },
+        confidence: 0.95,
+        mapping: { id: "api.endpoint.{match.path|kebab}", name: "{match.path}" },
+        requires_index: true,
+      };
+
+      expect(() => PatternDefinitionSchema.parse(semanticPattern)).not.toThrow();
+    });
+
+    it("accepts pattern with requires_index: false (default)", () => {
+      const regexPattern = {
+        id: "express.route.handler.regex",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code", params: { pattern: "app\\.get" } },
+        confidence: 0.75,
+        mapping: { id: "api.endpoint.{match.path|kebab}" },
+        requires_index: false,
+      };
+
+      expect(() => PatternDefinitionSchema.parse(regexPattern)).not.toThrow();
+    });
+
+    it("omitting requires_index defaults to false", () => {
+      const pattern = {
+        id: "test.pattern",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code" },
+        confidence: 0.85,
+        mapping: { id: "api.endpoint.test" },
+      };
+
+      const parsed = PatternDefinitionSchema.parse(pattern);
+      expect(parsed.requires_index).toBe(false);
+    });
+
+    it("accepts pattern with depends_on array of pattern IDs", () => {
+      const dependentPattern = {
+        id: "nestjs.service.dependency",
+        produces: { type: "relationship", layer: "application", elementType: "dependency", relationshipType: "depends-on" },
+        query: { tool: "find_dependencies", params: { framework: "nestjs" } },
+        confidence: 0.92,
+        mapping: { source: "application.service.{match.source|kebab}", target: "application.service.{match.target|kebab}" },
+        requires_index: true,
+        depends_on: ["nestjs.service.injectable"],
+      };
+
+      expect(() => PatternDefinitionSchema.parse(dependentPattern)).not.toThrow();
+    });
+
+    it("accepts pattern with empty depends_on array", () => {
+      const pattern = {
+        id: "test.pattern",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code" },
+        confidence: 0.85,
+        mapping: { id: "api.endpoint.test" },
+        depends_on: [],
+      };
+
+      expect(() => PatternDefinitionSchema.parse(pattern)).not.toThrow();
+    });
+
+    it("omitting depends_on defaults to empty array", () => {
+      const pattern = {
+        id: "test.pattern",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code" },
+        confidence: 0.85,
+        mapping: { id: "api.endpoint.test" },
+      };
+
+      const parsed = PatternDefinitionSchema.parse(pattern);
+      expect(parsed.depends_on).toEqual([]);
+    });
+
+    it("accepts pattern with multiple depends_on IDs", () => {
+      const complexPattern = {
+        id: "pattern.complex",
+        produces: { type: "relationship", layer: "api", elementType: "dependency", relationshipType: "calls" },
+        query: { tool: "find_dependencies" },
+        confidence: 0.85,
+        mapping: { source: "api.endpoint.{match.source}", target: "application.service.{match.target}" },
+        depends_on: ["api.endpoint.discover", "application.service.discover"],
+      };
+
+      const parsed = PatternDefinitionSchema.parse(complexPattern);
+      expect(parsed.depends_on).toHaveLength(2);
+      expect(parsed.depends_on).toContain("api.endpoint.discover");
+      expect(parsed.depends_on).toContain("application.service.discover");
+    });
+
+    it("accepts pattern combining requires_index and depends_on", () => {
+      const fullSemanticPattern = {
+        id: "typeorm.entity.relationship",
+        produces: { type: "relationship", layer: "data-model", elementType: "link", relationshipType: "references" },
+        query: { tool: "find_dependencies", params: { framework: "typeorm", scope: "relationship" } },
+        confidence: 0.91,
+        mapping: { source: "data-model.entity.{match.source|kebab}", target: "data-model.entity.{match.target|kebab}" },
+        requires_index: true,
+        depends_on: ["typeorm.entity.definition"],
+      };
+
+      const parsed = PatternDefinitionSchema.parse(fullSemanticPattern);
+      expect(parsed.requires_index).toBe(true);
+      expect(parsed.depends_on).toContain("typeorm.entity.definition");
+    });
   });
 
   describe("loadBuiltinPatterns()", () => {
@@ -247,6 +359,42 @@ describe("Pattern Loader", () => {
     it("loads all built-in patterns successfully", async () => {
       const patterns = await loadBuiltinPatterns();
       expect(patterns.length).toBeGreaterThan(0); // Proves files were found
+    });
+
+    it("validates all patterns have valid requires_index and depends_on fields (semantic patterns)", async () => {
+      const patterns = await loadBuiltinPatterns();
+
+      for (const patternSet of patterns) {
+        for (const pattern of patternSet.patterns) {
+          // requires_index should be a boolean (or undefined, which defaults to false)
+          if (pattern.requires_index !== undefined) {
+            expect(typeof pattern.requires_index).toBe("boolean");
+          }
+          // depends_on should be an array of strings (or undefined, which defaults to [])
+          if (pattern.depends_on !== undefined) {
+            expect(Array.isArray(pattern.depends_on)).toBe(true);
+            for (const dep of pattern.depends_on) {
+              expect(typeof dep).toBe("string");
+            }
+          }
+        }
+      }
+    });
+
+    it("semantic patterns have requires_index: true and reasonable confidence", async () => {
+      const patterns = await loadBuiltinPatterns();
+      const semanticPatterns = patterns
+        .flatMap((set) => set.patterns)
+        .filter((p) => p.requires_index === true);
+
+      // Semantic patterns should have reasonable confidence (>= 0.75)
+      // Most semantic patterns have high confidence (0.90+) but some specializations may be lower
+      if (semanticPatterns.length > 0) {
+        for (const pattern of semanticPatterns) {
+          expect(pattern.confidence).toBeGreaterThanOrEqual(0.75);
+          expect(pattern.confidence).toBeLessThanOrEqual(1.0);
+        }
+      }
     });
 
     it("throws error with descriptive message when pattern has invalid schema", () => {
@@ -745,6 +893,238 @@ describe("Pattern Loader", () => {
       expect(id1).not.toBe(id2);
       expect(id1).toBe("api.endpoint.get-user");
       expect(id2).toBe("api.endpoint.create-user");
+    });
+  });
+
+  describe("renderTemplate() with SessionContext (Multi-Pass Interpolation)", () => {
+    it("resolves session.discovered placeholders with single element", () => {
+      const template = "{session.discovered.api.endpoint}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users", name: "GET /users" }],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("api.endpoint.get-users");
+    });
+
+    it("resolves session.discovered placeholders with multiple elements using default join-ids", () => {
+      const template = "{session.discovered.api.endpoint}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+              { id: "api.endpoint.delete-users", name: "DELETE /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("api.endpoint.get-users,api.endpoint.post-users,api.endpoint.delete-users");
+    });
+
+    it("applies join-ids transform to session.discovered elements", () => {
+      const template = "{session.discovered.api.endpoint|join-ids}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("api.endpoint.get-users,api.endpoint.post-users");
+    });
+
+    it("applies join-names transform to session.discovered elements", () => {
+      const template = "{session.discovered.api.endpoint|join-names}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+              { id: "api.endpoint.delete-users", name: "DELETE /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("GET /users,POST /users,DELETE /users");
+    });
+
+    it("handles join-names with missing name property by falling back to id", () => {
+      const template = "{session.discovered.api.endpoint|join-names}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users" }, // No name property
+              { id: "api.endpoint.delete-users", name: "DELETE /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("GET /users,api.endpoint.post-users,DELETE /users");
+    });
+
+    it("combines session.discovered with standard match interpolation", () => {
+      const template = "application.service.{match.serviceName|kebab}::depends-on::{session.discovered.api.endpoint|join-ids}";
+      const data = { match: { serviceName: "UserService" } };
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("application.service.user-service::depends-on::api.endpoint.get-users,api.endpoint.post-users");
+    });
+
+    it("throws error when session context is missing for session.discovered placeholder", () => {
+      const template = "{session.discovered.api.endpoint}";
+      const data = {};
+
+      expect(() => renderTemplate(template, data)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*session\.discovered\.api\.endpoint/
+      );
+    });
+
+    it("throws error when referenced layer doesn't exist in session context", () => {
+      const template = "{session.discovered.unknown-layer.element}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*no discovered elements found.*unknown-layer.*element/
+      );
+    });
+
+    it("throws error when referenced element type doesn't exist in session context", () => {
+      const template = "{session.discovered.api.unknown-type}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*no discovered elements found.*api.*unknown-type/
+      );
+    });
+
+    it("throws error for invalid session.discovered path format (too few parts)", () => {
+      const template = "{session.discovered.api}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*invalid session\.discovered path.*Expected format.*session\.discovered\.layer\.elementType/
+      );
+    });
+
+    it("throws error for unknown session-specific transform", () => {
+      const template = "{session.discovered.api.endpoint|unknown-transform}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*unknown transform.*unknown-transform.*supported transforms are: join-ids, join-names/
+      );
+    });
+
+    it("handles empty discovered elements array gracefully", () => {
+      const template = "{session.discovered.api.endpoint|join-ids}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("");
+    });
+
+    it("works with multiple session.discovered placeholders in single template", () => {
+      const template = "source::{session.discovered.api.endpoint|join-ids}::target::{session.discovered.application.service|join-ids}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+            ],
+          },
+          application: {
+            service: [
+              { id: "application.service.user-service", name: "UserService" },
+              { id: "application.service.auth-service", name: "AuthService" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe(
+        "source::api.endpoint.get-users,api.endpoint.post-users::target::application.service.user-service,application.service.auth-service"
+      );
     });
   });
 

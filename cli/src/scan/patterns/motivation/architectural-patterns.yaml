@@ -1,0 +1,98 @@
+# Architectural Pattern Detection Patterns
+# Semantic pattern evolution using CodePrism's detect_patterns tool
+# Maps detected code patterns to motivation.constraint elements
+layer: motivation
+framework: architectural-patterns
+version: "1.0"
+patterns:
+  # Semantic pattern: Detect MVC/MVVM architectural patterns
+  - id: pattern.mvc.architecture
+    produces:
+      type: node
+      layer: motivation
+      elementType: constraint
+    query:
+      tool: detect_patterns
+      params:
+        patternTypes: ["mvc", "mvvm", "mvp"]
+        language: typescript
+    requires_index: true
+    confidence: 0.85
+    mapping:
+      id: "motivation.constraint.{match.patternType|lower}-architecture"
+      name: "{match.patternType|upper} Architecture Pattern Detected"
+      description: "Codebase follows {match.patternType} architectural pattern"
+
+  # Semantic pattern: Detect layered architecture patterns
+  - id: pattern.layered.architecture
+    produces:
+      type: node
+      layer: motivation
+      elementType: constraint
+    query:
+      tool: detect_patterns
+      params:
+        patternTypes: ["layered", "hexagonal", "onion"]
+        language: typescript
+    requires_index: true
+    confidence: 0.80
+    mapping:
+      id: "motivation.constraint.{match.patternType|lower}-architecture"
+      name: "{match.patternType|upper} Layered Architecture Detected"
+      description: "Codebase exhibits {match.patternType} layer structure"
+
+  # Semantic pattern: Detect microservices patterns
+  - id: pattern.microservices
+    produces:
+      type: node
+      layer: motivation
+      elementType: constraint
+    query:
+      tool: detect_patterns
+      params:
+        patternTypes: ["microservices", "service-oriented", "event-driven"]
+        language: typescript
+    requires_index: true
+    confidence: 0.82
+    mapping:
+      id: "motivation.constraint.{match.patternType|lower}-pattern"
+      name: "{match.patternType|upper} Pattern Detected"
+      description: "Codebase uses {match.patternType} architectural pattern"
+
+  # Semantic pattern: Detect design patterns (Factory, Singleton, Observer, etc.)
+  - id: pattern.design.patterns
+    produces:
+      type: node
+      layer: motivation
+      elementType: constraint
+    query:
+      tool: detect_patterns
+      params:
+        patternTypes:
+          ["factory", "singleton", "observer", "strategy", "decorator"]
+        language: typescript
+    requires_index: true
+    confidence: 0.75
+    mapping:
+      id: "motivation.constraint.design-pattern-{match.patternType|kebab}"
+      name: "{match.patternType|upper} Design Pattern Usage"
+      description: "Found usage of {match.patternType} design pattern in codebase"
+
+  # Semantic pattern: Detect concurrency patterns
+  - id: pattern.concurrency
+    produces:
+      type: node
+      layer: motivation
+      elementType: constraint
+    query:
+      tool: detect_patterns
+      params:
+        patternTypes:
+          ["async-await", "promises", "callbacks", "reactive", "streams"]
+        language: typescript
+    requires_index: true
+    confidence: 0.78
+    mapping:
+      id: "motivation.constraint.concurrency-{match.patternType|kebab}"
+      name: "Concurrency Pattern: {match.patternType|upper}"
+      description: "Codebase uses {match.patternType} for concurrency handling"

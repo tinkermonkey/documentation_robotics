@@ -22,20 +22,42 @@
  */
 
 import ansis from "ansis";
-import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
+import { Command } from "commander";
+import { createMcpClient, validateConnection, disconnectMcpClient, isTransportError, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
-import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
+import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate, type SessionContext } from "../scan/pattern-loader.js";
+import { buildScanIndex, saveScanIndex, loadScanIndex, isIndexFresh } from "../scan/index-builder.js";
 import { LAYER_MAP, isValidLayerName, CANONICAL_LAYER_NAMES, extractLayerFromId } from "../core/layers.js";
 import { getErrorMessage, handleError, CLIError, ErrorCategory } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { RelationshipInferenceEngine } from "../scan/relationship-inference.js";
+import { validateElementReferences, formatValidationResult, type ElementValidationResult } from "../scan/ref-validator.js";
+import { loadSessionFile, querySession, createSessionClient } from "../scan/session-manager.js";
 
 export interface ScanOptions {
   config?: boolean;
   dryRun?: boolean;
   layer?: string;
   verbose?: boolean;
+}
+
+/**
+ * Options for the scan index command
+ */
+export interface ScanIndexOptions {
+  workspace?: string;
+  verbose?: boolean;
+  output?: string;
+}
+
+/**
+ * Query specification for batch analysis dispatch
+ */
+interface BatchQuery {
+  patternId: string;
+  tool: string;
+  params: Record<string, unknown>;
 }
 
 /**
@@ -139,6 +161,87 @@ export function expandWildcardElementId(elementId: string, availableElements: Ar
 }
 
 /**
+ * Execute the scan index command
+ *
+ * Runs CodePrism's three orientation tools and persists the results as a scan index.
+ * The index provides repository context for subsequent scan operations.
+ *
+ * @param options - Command options
+ */
+export async function scanIndexCommand(options: ScanIndexOptions): Promise<void> {
+  let client: MCPClient | null = null;
+
+  try {
+    // Determine workspace path
+    const workspace = options.workspace || process.cwd();
+
+    // Load scan configuration
+    const config = await loadScanConfig();
+
+    console.log("Initializing CodePrism connection for indexing...");
+    client = await createMcpClient(config);
+
+    // Validate connection to CodePrism server
+    console.log("Validating CodePrism server connection...");
+    await validateConnection(client);
+
+    console.log(ansis.green("✓ Connected to CodePrism"));
+
+    // Build the scan index
+    console.log("\nRunning repository analysis...");
+    console.log("  • Analyzing repository structure and statistics");
+    console.log("  • Detecting architectural patterns");
+    console.log("  • Suggesting analysis workflow");
+
+    const index = await buildScanIndex(client, workspace);
+
+    // Save the index
+    console.log("\nSaving scan index...");
+    const savedIndexPath = await saveScanIndex(index, workspace, options.output);
+
+    // Print summary
+    console.log(ansis.green("\n✓ Scan index created successfully"));
+    console.log(`  Index timestamp: ${index.indexed_at}`);
+    console.log(`  Repository files: ${index.repository.total_files}`);
+    console.log(`  Languages: ${index.repository.languages.join(", ")}`);
+    if (index.repository.primary_language) {
+      console.log(`  Primary language: ${index.repository.primary_language}`);
+    }
+    console.log(`  Frameworks: ${index.repository.frameworks.join(", ")}`);
+
+    if (options.verbose) {
+      console.log(`\nDetected patterns:`);
+      const categories = Object.entries(index.detected_patterns);
+      for (const [category, patterns] of categories) {
+        if (patterns.length > 0) {
+          console.log(`  ${category}:`);
+          for (const pattern of patterns) {
+            console.log(`    • ${pattern.name} (${(pattern.confidence * 100).toFixed(0)}%)`);
+          }
+        }
+      }
+
+      console.log(`\nSuggested workflow:`);
+      console.log(`  Tools: ${index.suggested_workflow.recommended_tools.join(", ")}`);
+      console.log(`  Rationale: ${index.suggested_workflow.rationale}`);
+    }
+
+    console.log(`\nIndex saved to: ${savedIndexPath}`);
+  } catch (error) {
+    handleError(error);
+  } finally {
+    // Always disconnect MCP client
+    if (client) {
+      try {
+        await disconnectMcpClient(client);
+      } catch (error) {
+        console.warn(ansis.yellow(`⚠ Warning: Failed to disconnect from CodePrism: ${getErrorMessage(error)}`));
+      }
+    }
+  }
+}
+
+/**
  * Execute the scan command
  *
  * @param options - Command options
@@ -181,6 +284,24 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(ansis.green("✓ Connected to CodePrism"));
     console.log(`  Endpoint: ${client.endpoint}`);
     console.log(`  Confidence threshold: ${config.confidence_threshold}`);
+
+    // Check for fresh scan index
+    try {
+      const loadedIndex = await loadScanIndex(process.cwd());
+      if (loadedIndex) {
+        const indexFresh = await isIndexFresh(loadedIndex, process.cwd());
+        if (indexFresh) {
+          console.log(ansis.cyan(`\n✓ Using cached repository index from ${loadedIndex.indexed_at}`));
+          console.log(`  Repository has ${loadedIndex.repository.total_files} files in ${loadedIndex.repository.languages.join(", ")}`);
+        } else {
+          console.log(ansis.yellow(`\n⚠ Repository index is stale (source files newer than ${loadedIndex.indexed_at})`));
+          console.log(`  Recommend refreshing with: dr scan index`);
+        }
+      }
+    } catch (error) {
+      // Log warning but continue - index loading failure shouldn't stop scan
+      warnings.push(`Failed to check index freshness: ${getErrorMessage(error)}`);
+    }
 
     // Load built-in and project patterns
     console.log("\nLoading pattern library...");
@@ -447,12 +568,66 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 }
 
 /**
+ * Process pattern results and map them to element/relationship candidates
+ *
+ * Handles the common logic of parsing results, calling mapToElementCandidate or
+ * mapToRelationshipCandidate based on pattern type, and collecting error counts.
+ *
+ * @param pattern - Pattern definition
+ * @param matches - Array of match objects from CodePrism results
+ * @param elementCandidates - Array to accumulate element candidates
+ * @param relationshipCandidates - Array to accumulate relationship candidates
+ * @param warnings - Array to collect warnings
+ * @param verbose - Show detailed output
+ * @param session - Optional session context for multi-pass interpolation
+ */
+function processPatternResults(
+  pattern: PatternDefinition & { frameworkId: string },
+  matches: Array<Record<string, unknown>>,
+  elementCandidates: ElementCandidate[],
+  relationshipCandidates: RelationshipCandidate[],
+  warnings: string[],
+  verbose: boolean,
+  session?: SessionContext
+): void {
+  let matchErrorCount = 0;
+  for (const match of matches) {
+    try {
+      if (pattern.produces.type === "relationship") {
+        const candidate = mapToRelationshipCandidate(pattern, match as Record<string, string>, warnings, session);
+        if (candidate) {
+          relationshipCandidates.push(candidate);
+        }
+      } else {
+        const candidate = mapToElementCandidate(pattern, match as Record<string, string>, warnings, session);
+        if (candidate) {
+          elementCandidates.push(candidate);
+        }
+      }
+    } catch (matchError) {
+      const errorMsg = getErrorMessage(matchError);
+      const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
+      warnings.push(errorDetail);
+      matchErrorCount++;
+    }
+  }
+  if (matchErrorCount > 0 && verbose) {
+    console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
+  }
+}
+
+/**
  * Execute all patterns and collect element and relationship candidates
  *
  * FR-1: Pattern Execution Engine Implementation
  *
  * Invokes each pattern's CodePrism query tool via MCP and maps results to DR candidates.
  * This is the core functional requirement that was previously a hardcoded stub.
+ *
+ * Supports multi-pass pattern execution with {session.discovered.*} interpolation:
+ * - Independent patterns execute first and register their discovered elements in the session
+ * - Dependent patterns execute after their dependencies, accessing discovered elements via {session.discovered.*}
+ * - Session context tracks all discovered elements for interpolation in subsequent patterns
  *
  * @param client - MCP client for tool invocation
  * @param patterns - Pattern sets to execute
@@ -471,93 +646,293 @@ export async function executePatterns(
   const elementCandidates: ElementCandidate[] = [];
   const relationshipCandidates: RelationshipCandidate[] = [];
 
+  // Session context for multi-pass pattern execution
+  // Tracks discovered elements from prior pattern passes for interpolation via {session.discovered.*}
+  const sessionContext: SessionContext = {
+    discovered: {},
+  };
+
+  // Helper function to register discovered elements in the session context
+  function registerDiscoveredElements(candidates: ElementCandidate[]): void {
+    if (!sessionContext.discovered) {
+      sessionContext.discovered = {};
+    }
+    for (const candidate of candidates) {
+      const layer = candidate.layer;
+      const elementType = candidate.type;
+
+      if (!sessionContext.discovered[layer]) {
+        sessionContext.discovered[layer] = {};
+      }
+      if (!sessionContext.discovered[layer][elementType]) {
+        sessionContext.discovered[layer][elementType] = [];
+      }
+
+      sessionContext.discovered[layer][elementType].push({
+        id: candidate.id,
+        name: candidate.name,
+      });
+    }
+  }
+
+  // Check if a session is active (for requires_index patterns)
+  let sessionActive = false;
+  try {
+    const session = await loadSessionFile(process.cwd());
+    sessionActive = session !== null && session.status === "ready";
+  } catch (error) {
+    // Log the error before defaulting - includes corrupted session file diagnostics
+    if (verbose) {
+      console.warn(ansis.yellow(`⚠ Could not load session file: ${getErrorMessage(error)}`));
+    }
+    // If session check fails, assume no session is active
+    sessionActive = false;
+  }
+
+  // Flatten all patterns from pattern sets for dependency analysis
+  const allPatterns: Array<PatternDefinition & { frameworkId: string }> = [];
   for (const patternSet of patterns) {
     for (const pattern of patternSet.patterns) {
-      if (verbose) {
-        console.log(`  Executing pattern: ${pattern.id}`);
+      allPatterns.push({ ...pattern, frameworkId: patternSet.framework });
+    }
+  }
+
+  // Build pattern ID map for dependency validation
+  const patternIdMap = new Map(allPatterns.map((p) => [p.id, p]));
+
+  // Separate independent patterns (no depends_on or empty) from dependent patterns
+  const independentPatterns: typeof allPatterns = [];
+  const dependentPatterns: typeof allPatterns = [];
+  const skippedPatterns: typeof allPatterns = [];
+
+  for (const pattern of allPatterns) {
+    const hasDependencies = pattern.depends_on && pattern.depends_on.length > 0;
+
+    // Check if pattern requires index but no session is active
+    if (pattern.requires_index && !sessionActive) {
+      warnings.push(
+        `Pattern '${pattern.id}' requires an active CodePrism session (requires_index: true) but no session is active. ` +
+        `This pattern will be skipped. Run 'dr scan session start' to start a session.`
+      );
+      skippedPatterns.push(pattern);
+      continue;
+    }
+
+    if (hasDependencies) {
+      // Validate dependencies exist
+      let hasMissingDependency = false;
+      for (const depId of pattern.depends_on!) {
+        if (!patternIdMap.has(depId)) {
+          warnings.push(`Pattern '${pattern.id}' depends on non-existent pattern '${depId}'. This pattern will be skipped.`);
+          skippedPatterns.push(pattern);
+          hasMissingDependency = true;
+          break;
+        }
       }
-
-      // Invoke the pattern's CodePrism tool via MCP
-      const toolName = pattern.query.tool;
-      const toolParams = pattern.query.params || {};
-
-      if (verbose) {
-        console.log(`    Tool: ${toolName}`);
-        console.log(`    Params: ${JSON.stringify(toolParams)}`);
+      if (!hasMissingDependency) {
+        dependentPatterns.push(pattern);
       }
+    } else {
+      independentPatterns.push(pattern);
+    }
+  }
 
-      // Call the tool via MCP client. Transport/infrastructure errors are thrown
-      // (connection lost, server crash) and will bubble up to fail the entire scan.
-      // Tool-level errors (tool runs but fails) are returned as ToolResult with type: "error"
-      // and can be handled gracefully.
-      const results = await client.callTool(toolName, toolParams);
+  // Execute independent patterns via batch_analysis dispatch
+  if (independentPatterns.length > 0) {
+    if (verbose) {
+      console.log(`  Dispatching ${independentPatterns.length} independent patterns via batch_analysis...`);
+    }
 
-      // Parse results - each result should be parseable JSON containing match data
-      const matches: Array<{ [key: string]: string }> = [];
-      for (const result of results) {
-        if (result.type === "error") {
-          // Tool-level errors (tool ran but failed) are logged as warnings.
-          // These are recoverable; we can continue with remaining patterns.
-          // Always log tool errors as warnings, not just in verbose mode.
-          // Tool failures should be visible to the user regardless of verbosity.
-          warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
-          if (verbose) {
-            console.log(`    Warning: Tool returned error: ${result.text}`);
-          }
-          continue;
+    // Prepare batch analysis queries
+    const batchQueries: BatchQuery[] = independentPatterns.map((pattern) => ({
+      patternId: pattern.id,
+      tool: pattern.query.tool,
+      params: pattern.query.params || {},
+    }));
+
+    try {
+      // Call batch_analysis with all independent patterns at once
+      const batchResults = await client.callTool("batch_analysis", {
+        queries: batchQueries,
+      });
+
+      // Process results from batch_analysis
+      // Results should come back as an array of objects, one per query in the same order
+      let resultIndex = 0;
+      const independentElementCandidates: ElementCandidate[] = [];
+      for (const pattern of independentPatterns) {
+        if (verbose) {
+          console.log(`  Processing pattern: ${pattern.id}`);
         }
 
-        if (result.type === "text" && result.text) {
-          try {
-            // Attempt to parse as JSON array of matches
-            const parsed = JSON.parse(result.text);
-            if (Array.isArray(parsed)) {
-              matches.push(...parsed);
-            } else if (typeof parsed === "object" && parsed !== null) {
-              // Single match object
-              matches.push(parsed);
+        // Get the results for this pattern from the batch response
+        let patternResults = [];
+        if (resultIndex < batchResults.length) {
+          const result = batchResults[resultIndex];
+          if (result.type === "text" && "text" in result && result.text) {
+            try {
+              const parsed = JSON.parse(result.text);
+              if (Array.isArray(parsed)) {
+                patternResults = parsed;
+              } else if (typeof parsed === "object" && parsed !== null) {
+                patternResults = [parsed];
+              }
+            } catch (parseError) {
+              warnings.push(
+                `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`
+              );
             }
-          } catch (parseError) {
-            // If not JSON, treat the text as unparseable tool output.
-            // Always add to warnings so user knows tool ran but output couldn't be interpreted.
-            const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
-            warnings.push(parseMsg);
+          } else if (result.type === "error" && "text" in result) {
+            warnings.push(
+              `Tool '${pattern.query.tool}' returned error: ${result.text}`
+            );
           }
+        }
+        resultIndex++;
+
+        if (verbose) {
+          console.log(`    Found ${patternResults.length} matches`);
+        }
+
+        // Map matches to candidates (without session context - independent patterns don't use it)
+        const prevElementCount = elementCandidates.length;
+        processPatternResults(pattern, patternResults, elementCandidates, relationshipCandidates, warnings, verbose);
+
+        // Register discovered element candidates from this pattern for use in dependent patterns
+        if (pattern.produces.type === "node") {
+          const newCandidates = elementCandidates.slice(prevElementCount);
+          independentElementCandidates.push(...newCandidates);
         }
       }
 
-      if (verbose) {
-        console.log(`    Found ${matches.length} matches`);
+      // After all independent patterns execute, register their discovered elements in the session context
+      registerDiscoveredElements(independentElementCandidates);
+    } catch (error) {
+      // Transport errors (connection lost, process crash, timeout) should not trigger fallback
+      // as remaining patterns would be unreliable. Rethrow immediately.
+      if (isTransportError(error)) {
+        throw error;
       }
 
-      // Map matches to candidates based on pattern produces type
-      // Wrap each match individually so one error doesn't break the entire pattern
-      let matchErrorCount = 0;
-      for (const match of matches) {
+      // If batch_analysis fails, fall back to individual pattern execution
+      console.warn(ansis.yellow(`⚠ Batch analysis failed, falling back to sequential execution (this may be slower): ${getErrorMessage(error)}`));
+
+      // Fall back to sequential execution of independent patterns
+      const independentElementCandidates: ElementCandidate[] = [];
+      for (const pattern of independentPatterns) {
+        if (verbose) {
+          console.log(`  Executing pattern (fallback): ${pattern.id}`);
+        }
+
+        const toolName = pattern.query.tool;
+        const toolParams = pattern.query.params || {};
+
+        if (verbose) {
+          console.log(`    Tool: ${toolName}`);
+          console.log(`    Params: ${JSON.stringify(toolParams)}`);
+        }
+
+        const results = await client.callTool(toolName, toolParams);
+
+        const matches: Array<{ [key: string]: string }> = [];
+        for (const result of results) {
+          if (result.type === "error") {
+            warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
+            if (verbose) {
+              console.log(`    Warning: Tool returned error: ${result.text}`);
+            }
+            continue;
+          }
+
+          if (result.type === "text" && result.text) {
+            try {
+              const parsed = JSON.parse(result.text);
+              if (Array.isArray(parsed)) {
+                matches.push(...parsed);
+              } else if (typeof parsed === "object" && parsed !== null) {
+                matches.push(parsed);
+              }
+            } catch (parseError) {
+              const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
+              warnings.push(parseMsg);
+            }
+          }
+        }
+
+        if (verbose) {
+          console.log(`    Found ${matches.length} matches`);
+        }
+
+        // Map matches to candidates (without session context - independent patterns don't use it)
+        const prevElementCount = elementCandidates.length;
+        processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose);
+
+        // Register discovered element candidates from this pattern for use in dependent patterns
+        if (pattern.produces.type === "node") {
+          const newCandidates = elementCandidates.slice(prevElementCount);
+          independentElementCandidates.push(...newCandidates);
+        }
+      }
+
+      // After all independent patterns execute, register their discovered elements in the session context
+      registerDiscoveredElements(independentElementCandidates);
+    }
+  }
+
+  // Execute dependent patterns sequentially (after their dependencies)
+  // For now, execute them in order (simplified - full dependency resolution would be more complex)
+  for (const pattern of dependentPatterns) {
+    if (verbose) {
+      console.log(`  Executing dependent pattern: ${pattern.id}`);
+    }
+
+    const toolName = pattern.query.tool;
+    const toolParams = pattern.query.params || {};
+
+    if (verbose) {
+      console.log(`    Tool: ${toolName}`);
+      console.log(`    Params: ${JSON.stringify(toolParams)}`);
+    }
+
+    const results = await client.callTool(toolName, toolParams);
+
+    const matches: Array<{ [key: string]: string }> = [];
+    for (const result of results) {
+      if (result.type === "error") {
+        warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
+        if (verbose) {
+          console.log(`    Warning: Tool returned error: ${result.text}`);
+        }
+        continue;
+      }
+
+      if (result.type === "text" && result.text) {
         try {
-          if (pattern.produces.type === "relationship") {
-            const candidate = mapToRelationshipCandidate(pattern, match, warnings);
-            if (candidate) {
-              relationshipCandidates.push(candidate);
-            }
-          } else {
-            const candidate = mapToElementCandidate(pattern, match, warnings);
-            if (candidate) {
-              elementCandidates.push(candidate);
-            }
+          const parsed = JSON.parse(result.text);
+          if (Array.isArray(parsed)) {
+            matches.push(...parsed);
+          } else if (typeof parsed === "object" && parsed !== null) {
+            matches.push(parsed);
           }
-        } catch (matchError) {
-          // Unexpected errors during match processing (programming errors, not expected validation errors)
-          // Tracked as warnings to preserve partial results and report issues to the user
-          const errorMsg = getErrorMessage(matchError);
-          const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
-          warnings.push(errorDetail);
-          matchErrorCount++;
+        } catch (parseError) {
+          const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
+          warnings.push(parseMsg);
         }
       }
-      if (matchErrorCount > 0 && verbose) {
-        console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
-      }
+    }
+
+    if (verbose) {
+      console.log(`    Found ${matches.length} matches`);
+    }
+
+    // Map matches to candidates - pass session context for {session.discovered.*} interpolation
+    const prevElementCount = elementCandidates.length;
+    processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose, sessionContext);
+
+    // Register discovered element candidates from this pattern for use in subsequent dependent patterns
+    if (pattern.produces.type === "node") {
+      const newCandidates = elementCandidates.slice(prevElementCount);
+      registerDiscoveredElements(newCandidates);
     }
   }
 
@@ -574,12 +949,14 @@ export async function executePatterns(
  * @param pattern - Pattern definition
  * @param match - Match data from CodePrism
  * @param warnings - Array to collect mapping errors as warnings
+ * @param session - Optional session context for multi-pass interpolation
  * @returns Element candidate or null if mapping fails
  */
 export function mapToElementCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>,
-  warnings: string[]
+  warnings: string[],
+  session?: SessionContext
 ): ElementCandidate | null {
   try {
     // Get ID template from mapping - must be a string (not nested object)
@@ -591,7 +968,7 @@ export function mapToElementCandidate(
     if (!idTemplate) {
       idTemplate = `${pattern.produces.layer}.${pattern.produces.elementType}.{match.name|kebab}`;
     }
-    const id = renderTemplate(idTemplate, { match });
+    const id = renderTemplate(idTemplate, { match }, session);
 
     // Get name template from mapping - must be a string (not nested object)
     let nameTemplate: string | undefined;
@@ -602,14 +979,14 @@ export function mapToElementCandidate(
     if (!nameTemplate) {
       nameTemplate = "{match.name}";
     }
-    const name = renderTemplate(nameTemplate, { match });
+    const name = renderTemplate(nameTemplate, { match }, session);
 
     // Collect other attributes from mapping
     const attributes: Record<string, string> = {};
     for (const [key, value] of Object.entries(pattern.mapping)) {
       if (key === "id" || key === "name") continue;
       if (typeof value === "string") {
-        attributes[key] = renderTemplate(value, { match });
+        attributes[key] = renderTemplate(value, { match }, session);
       }
     }
 
@@ -643,15 +1020,21 @@ export function mapToElementCandidate(
  * Wildcard patterns (e.g., "api.endpoint.*") are handled separately during wildcard expansion
  * in the scan command and are valid for both source and target.
  *
+ * Multi-pass interpolation allows patterns to reference discovered elements from prior passes:
+ * - source: "{session.discovered.api.endpoints|join-ids}"
+ * - target: "application.service.{match.serviceName|kebab}"
+ *
  * @param pattern - Relationship pattern definition
  * @param match - Match data from CodePrism
  * @param warnings - Array to collect mapping errors as warnings
+ * @param session - Optional session context for multi-pass interpolation
  * @returns Relationship candidate or null if mapping fails
  */
 export function mapToRelationshipCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>,
-  warnings: string[]
+  warnings: string[],
+  session?: SessionContext
 ): RelationshipCandidate | null {
   try {
     // Type guard: this function should only be called with relationship patterns
@@ -668,7 +1051,7 @@ export function mapToRelationshipCandidate(
     if (!sourceIdTemplate) {
       throw new Error("Relationship pattern must define 'source' or 'sourceId' in mapping");
     }
-    let sourceId = renderTemplate(sourceIdTemplate, { match });
+    let sourceId = renderTemplate(sourceIdTemplate, { match }, session);
 
     // Get targetId template from mapping - support both "target" and "targetId" keys
     let targetIdTemplate: string | undefined;
@@ -679,7 +1062,7 @@ export function mapToRelationshipCandidate(
     if (!targetIdTemplate) {
       throw new Error("Relationship pattern must define 'target' or 'targetId' in mapping");
     }
-    let targetId = renderTemplate(targetIdTemplate, { match });
+    let targetId = renderTemplate(targetIdTemplate, { match }, session);
 
     // Get relationshipType from pattern definition
     const relationshipType = pattern.produces.relationshipType;
@@ -717,7 +1100,7 @@ export function mapToRelationshipCandidate(
     for (const [key, value] of Object.entries(pattern.mapping)) {
       if (key === "source" || key === "target" || key === "sourceId" || key === "targetId") continue;
       if (typeof value === "string") {
-        attributes[key] = renderTemplate(value, { match });
+        attributes[key] = renderTemplate(value, { match }, session);
       }
     }
 
@@ -899,4 +1282,583 @@ export async function stageChangeset(
     }
   }
   return { warnings, changesetSaved };
+}
+
+/**
+ * Session subcommands for managing persistent CodePrism lifecycle
+ */
+
+import {
+  startSession,
+  stopSession,
+  getSessionState,
+} from "../scan/session-manager.js";
+import { findProjectRoot } from "../utils/project-paths.js";
+
+/**
+ * dr scan session start [--workspace <path>]
+ * Spawn CodePrism as background process and poll until ready
+ */
+export async function sessionStartCommand(options: {
+  workspace?: string;
+}): Promise<void> {
+  try {
+    const workspace = options.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session start --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    console.log(`Starting CodePrism session for workspace: ${workspace}`);
+
+    const config = await loadScanConfig();
+    const session = await startSession(workspace, config, {
+      maxWaitMs: 60000,
+      pollIntervalMs: 1000,
+    });
+
+    // Try to load scan index to get detected frameworks
+    let frameworksText = "";
+    try {
+      const scanIndex = await loadScanIndex(workspace);
+      if (scanIndex && scanIndex.repository.frameworks.length > 0) {
+        frameworksText = `${scanIndex.repository.frameworks.join("/")} detected, `;
+      }
+    } catch {
+      // If scan index doesn't exist or can't be loaded, continue without frameworks
+    }
+
+    console.log(ansis.green(`✓ Ready. ${frameworksText}${session.indexed_files.toLocaleString()} files indexed.`));
+    console.log(`  Workspace: ${session.workspace}`);
+    console.log(`\nSession is ready for queries. Use 'dr scan session query' to interact.`);
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * dr scan session status
+ * Check if session is active and report status
+ */
+export async function sessionStatusCommand(options?: {
+  workspace?: string;
+}): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session status --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    const state = await getSessionState(workspace);
+
+    if (!state) {
+      throw new CLIError(
+        "No session found",
+        ErrorCategory.USER,
+        [`Start a session with: dr scan session start --workspace ${workspace}`]
+      );
+    }
+
+    if (state.isActive) {
+      console.log(ansis.green(`✓ running (${state.status})`));
+      console.log(`  PID: ${state.pid}`);
+      console.log(`  Workspace: ${state.workspace}`);
+      console.log(`  Indexed files: ${state.indexedFiles}`);
+      console.log(`  Uptime: ${state.uptime}`);
+    } else {
+      throw new CLIError(
+        `Session has stopped (Last PID: ${state.pid})`,
+        ErrorCategory.USER,
+        [`Start a new session with: dr scan session start --workspace ${workspace}`]
+      );
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * dr scan session query <tool> [--params <json>] [--format json|text]
+ * Forward a tool call to the running CodePrism session
+ */
+export async function sessionQueryCommand(
+  tool: string,
+  options?: {
+    params?: string;
+    format?: "json" | "text";
+    workspace?: string;
+  }
+): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session query <tool> --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    // Parse tool parameters
+    let toolParams: Record<string, unknown> = {};
+    if (options?.params) {
+      try {
+        const parsed = JSON.parse(options.params);
+        // Validate that parsed value is an object (not array, string, null, etc.)
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          throw new CLIError(
+            "--params must be a JSON object",
+            ErrorCategory.USER,
+            [
+              `Provided: ${options.params}`,
+              `Got type: ${Array.isArray(parsed) ? "array" : typeof parsed}`,
+              `Expected: {"key": "value", ...}`,
+              `Example: dr scan session query repository_stats --params '{"limit": 10}'`,
+            ]
+          );
+        }
+        toolParams = parsed;
+      } catch (error) {
+        // If it's already a CLIError from the object check, rethrow it
+        if (error instanceof CLIError) {
+          throw error;
+        }
+        // Otherwise it's a JSON parse error
+        throw new CLIError(
+          "Invalid JSON in --params",
+          ErrorCategory.USER,
+          [
+            `Provided: ${options.params}`,
+            `Error: ${getErrorMessage(error)}`,
+            `Example: dr scan session query repository_stats --params '{"limit": 10}'`,
+          ]
+        );
+      }
+    }
+
+    const results = await querySession(workspace, tool, toolParams);
+
+    const format = options?.format || "json";
+
+    if (format === "json") {
+      console.log(JSON.stringify(results, null, 2));
+    } else {
+      // Text format: print each result
+      for (const result of results) {
+        if (result.type === "text") {
+          console.log(result.text);
+        } else if (result.type === "error") {
+          console.error(ansis.red(`Error: ${result.text}`));
+        } else if (result.type === "image") {
+          console.log(`[Image data: ${result.data.substring(0, 50)}...]`);
+        }
+      }
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * dr scan session stop [--workspace <path>]
+ * Send graceful shutdown to CodePrism and remove session file
+ */
+export async function sessionStopCommand(options?: {
+  workspace?: string;
+}): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session stop --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    console.log(`Stopping CodePrism session in workspace: ${workspace}`);
+
+    await stopSession(workspace);
+
+    console.log(ansis.green("✓ Session stopped"));
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Validate source references for elements in the model
+ * Checks that source_reference fields still point to real, unchanged code
+ */
+export interface ValidateRefsOptions {
+  layer?: string;
+  verbose?: boolean;
+  fix?: boolean;
+  workspace?: string;
+}
+
+/**
+ * dr scan validate-refs [--layer <layer>] [--verbose] [--fix]
+ * Validate that source references in the model still point to real code
+ */
+export async function validateRefsCommand(options?: ValidateRefsOptions): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan validate-refs --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    // Check for active session
+    const sessionFile = await loadSessionFile(workspace);
+    if (!sessionFile || sessionFile.status !== "ready") {
+      throw new CLIError(
+        "No active CodePrism session",
+        ErrorCategory.USER,
+        ["Start a session with: dr scan session start"]
+      );
+    }
+
+    // Load model
+    const modelOptions = options?.layer ? { layers: [options.layer] } : {};
+    const model = await Model.load(workspace, modelOptions);
+
+    console.log("");
+    console.log(ansis.bold("Validating source references..."));
+    console.log("");
+
+    // Reuse cached session client instead of spawning a new MCP connection
+    let client: MCPClient | null = null;
+    // Declare validation counters in outer scope so they're accessible after inner try-catch
+    let validCount = 0;
+    let warningCount = 0;
+    let errorCount = 0;
+
+    try {
+      client = createSessionClient(workspace);
+
+      // Validate each element with source references
+      const results: ElementValidationResult[] = [];
+
+      for (const [, layer] of model.layers) {
+        for (const element of layer.listElements()) {
+          if (!element.source_reference) {
+            continue;
+          }
+
+          const result = await validateElementReferences(client, element);
+          results.push(result);
+
+          if (options?.verbose) {
+            console.log(formatValidationResult(result));
+          }
+
+          if (result.overallStatus === "ok") {
+            validCount++;
+          } else if (result.overallStatus === "warning") {
+            warningCount++;
+          } else {
+            errorCount++;
+          }
+        }
+      }
+
+      // Print summary
+      console.log("");
+      if (validCount > 0 || warningCount > 0 || errorCount > 0) {
+        console.log(ansis.bold("Reference Validation Summary:"));
+        if (validCount > 0) {
+          console.log(ansis.green(`  ✓ Valid: ${validCount}`));
+        }
+        if (warningCount > 0) {
+          console.log(ansis.yellow(`  ⚠ Warnings: ${warningCount}`));
+        }
+        if (errorCount > 0) {
+          console.log(ansis.red(`  ✗ Errors: ${errorCount}`));
+        }
+      } else {
+        console.log(ansis.dim("  No elements with source references found"));
+      }
+
+      // Show moved references that can be auto-fixed
+      const movedRefs = results.filter((r) => r.locations.some((l) => l.status === "symbol_moved"));
+      if (movedRefs.length > 0 && options?.fix) {
+        console.log("");
+        console.log(ansis.bold(`Generating fixes for ${movedRefs.length} moved reference(s)...`));
+
+        try {
+          const changesetStorage = new StagedChangesetStorage(workspace);
+          const changesetId = `fix-refs-${Date.now()}`;
+
+          // Create a new changeset with a reasonable base snapshot ID
+          const changeset = await changesetStorage.create(
+            changesetId,
+            `Fix moved source references`,
+            `Auto-fixes ${movedRefs.length} moved source references detected by dr scan validate-refs`,
+            "HEAD" // Use HEAD as base snapshot
+          );
+
+          let fixCount = 0;
+          for (const ref of movedRefs) {
+            // Find the element directly using its ID
+            const element = model.getElementById(ref.elementId);
+            if (element && element.source_reference) {
+              // Extract layer name from element ID (format: {layer}.{type}.{name})
+              const elementIdParts = ref.elementId.split(".");
+              const layerName = elementIdParts[0];
+
+              // Update locations with new positions
+              const updatedLocations = ref.locations.map((loc) => {
+                if (loc.status === "symbol_moved" && loc.newLocation) {
+                  return loc.newLocation;
+                }
+                return { file: loc.file, ...(loc.symbol && { symbol: loc.symbol }) };
+              });
+
+              // Create before and after snapshots
+              const before = element.toSpecNode();
+              const after = {
+                ...before,
+                source_reference: {
+                  ...element.source_reference,
+                  locations: updatedLocations,
+                },
+              };
+
+              // Add modification change to changeset
+              changeset.addChange("update", ref.elementId, layerName, before, after);
+
+              fixCount++;
+            }
+          }
+
+          if (fixCount > 0) {
+            // Save the changeset
+            await changesetStorage.save(changeset);
+            console.log(ansis.green(`✓ Generated changeset for ${fixCount} moved reference(s)`));
+            console.log(ansis.dim(`  Changeset ID: ${changesetId}`));
+            console.log(ansis.dim(`  Run 'dr changeset apply ${changesetId}' to apply fixes`));
+          } else {
+            console.log(ansis.yellow(`⚠ No moved references could be fixed`));
+          }
+        } catch (error) {
+          console.log(ansis.yellow(`⚠ Could not generate changeset: ${getErrorMessage(error)}`));
+        }
+      }
+    } catch (error) {
+      throw error;
+    }
+
+    // Check validation results and throw if needed (outside inner try-catch to avoid double-printing)
+    if (errorCount > 0) {
+      throw new CLIError(
+        `Validation failed: ${errorCount} error(s) found in source references`,
+        ErrorCategory.VALIDATION,
+        ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
+      );
+    } else if (warningCount > 0) {
+      throw new CLIError(
+        `Validation completed with warnings: ${warningCount} warning(s) found in source references`,
+        ErrorCategory.VALIDATION,
+        ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
+      );
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Register scan commands with commander
+ * Includes main scan command and session subcommands
+ */
+export function scanCommands(program: Command): void {
+  const scanCmd = program
+    .command("scan")
+    .description("Scan codebase using CodePrism MCP server or manage persistent sessions");
+
+  // Main scan action
+  scanCmd
+    .option("--config", "Validate configuration without connecting to CodePrism")
+    .option("--dry-run", "Print candidates without creating a changeset")
+    .option("--layer <layer>", "Restrict scan to one layer (e.g., api, application)")
+    .option("--verbose", "Show detailed scanning output")
+    .addHelpText(
+      "after",
+      `
+Configuration location: ~/.dr-config.yaml (scan section)
+
+Example config:
+  scan:
+    codeprism:
+      command: codeprism
+      args: ["--mcp"]
+      timeout: 5000
+    confidence_threshold: 0.6
+
+Examples:
+  $ dr scan --config              # Validate configuration
+  $ dr scan                       # Start scanning the codebase
+  $ dr scan --dry-run             # Preview candidates without staging
+  $ dr scan --layer api           # Scan only API layer patterns
+  $ dr scan --verbose             # Show detailed output`
+    )
+    .action(async (options) => {
+      await scanCommand({
+        config: options.config,
+        dryRun: options.dryRun,
+        layer: options.layer,
+        verbose: options.verbose,
+      });
+    });
+
+  // Index subcommand
+  scanCmd
+    .command("index")
+    .description("Index repository for codebase orientation (runs repository_stats, detect_patterns, suggest_analysis_workflow)")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .option("--output <path>", "Output path for scan index (default: documentation-robotics/scan-index.json)")
+    .option("--verbose", "Show detailed indexing output")
+    .addHelpText(
+      "after",
+      `
+The index command analyzes your repository structure and caches the results
+in documentation-robotics/scan-index.json. This cache is used by 'dr scan' to
+avoid re-indexing on subsequent runs.
+
+Examples:
+  $ dr scan index                 # Index the current workspace
+  $ dr scan index --verbose       # Show detailed pattern detection
+  $ dr scan index --workspace /path/to/project
+  $ dr scan index --output ./custom-index.json  # Save to custom location`
+    )
+    .action(async (options) => {
+      await scanIndexCommand({
+        workspace: options.workspace,
+        verbose: options.verbose,
+        output: options.output,
+      });
+    });
+
+  // Validate-refs subcommand
+  scanCmd
+    .command("validate-refs")
+    .description("Validate that source references point to real, unchanged code")
+    .option("--layer <layer>", "Restrict validation to one layer")
+    .option("--verbose", "Show detailed validation results")
+    .option("--fix", "Generate changeset to fix moved references")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .addHelpText(
+      "after",
+      `
+The validate-refs command checks that source_reference fields on model elements
+still point to real code. It detects:
+- Stale references (file deleted)
+- Missing symbols (moved or renamed)
+- Type mismatches (class → function)
+- Dead references (no inbound references)
+
+Requires an active CodePrism session. Start one with: dr scan session start
+
+Examples:
+  $ dr scan validate-refs              # Validate all references
+  $ dr scan validate-refs --layer api  # Validate only API layer
+  $ dr scan validate-refs --verbose    # Show detailed results
+  $ dr scan validate-refs --fix        # Auto-fix moved references`
+    )
+    .action((options) =>
+      validateRefsCommand({
+        layer: options.layer,
+        verbose: options.verbose,
+        fix: options.fix,
+        workspace: options.workspace,
+      })
+    );
+
+  // Session subcommands
+  const sessionCmd = scanCmd
+    .command("session")
+    .description("Manage persistent CodePrism sessions");
+
+  sessionCmd
+    .command("start")
+    .description("Start a new CodePrism session")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .action((options) =>
+      sessionStartCommand({
+        workspace: options.workspace,
+      })
+    );
+
+  sessionCmd
+    .command("status")
+    .description("Check status of current session")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .action((options) =>
+      sessionStatusCommand({
+        workspace: options.workspace,
+      })
+    );
+
+  sessionCmd
+    .command("query <tool>")
+    .description("Query a running session with a CodePrism tool")
+    .option("--params <json>", "Tool parameters as JSON object")
+    .option("--format <format>", "Output format: json or text (default: json)")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr scan session query repository_stats
+  $ dr scan session query search_code --params '{"pattern":"class.*User","language":"typescript"}'
+  $ dr scan session query repository_stats --format text`
+    )
+    .action((tool, options) =>
+      sessionQueryCommand(tool, {
+        params: options.params,
+        format: options.format,
+        workspace: options.workspace,
+      })
+    );
+
+  sessionCmd
+    .command("stop")
+    .description("Stop the current CodePrism session")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .action((options) =>
+      sessionStopCommand({
+        workspace: options.workspace,
+      })
+    );
 }

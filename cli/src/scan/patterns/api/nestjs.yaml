@@ -1,9 +1,29 @@
 # NestJS API Layer Patterns
+# Semantic pattern evolution using CodePrism's analyze_api_surface and analyze_decorators
 layer: api
 framework: nestjs
-version: "1.0"
+version: "2.0"
 patterns:
+  # Semantic pattern: Discover NestJS controller routes using analyze_api_surface
   - id: nestjs.controller.route
+    produces:
+      type: node
+      layer: api
+      elementType: endpoint
+    query:
+      tool: analyze_api_surface
+      params:
+        framework: nestjs
+        language: typescript
+    requires_index: true
+    confidence: 0.96
+    mapping:
+      id: "api.endpoint.{match.controller|kebab}-{match.route|kebab}"
+      name: "{match.route}"
+      description: "{match.method|upper} {match.path}"
+
+  # Regex fallback for NestJS routes
+  - id: nestjs.controller.route.regex
     produces:
       type: node
       layer: api
@@ -13,26 +33,32 @@ patterns:
       params:
         pattern: "@(Get|Post|Put|Delete|Patch|Options|Head)\\(['\"]?([^'\"\\)]*)['\"]?\\)"
         language: typescript
-    confidence: 0.85
+    confidence: 0.72
     mapping:
       id: "api.endpoint.{match.controller|kebab}-{match.route|kebab}"
       name: "{match.route}"
-  - id: nestjs.controller.dependency
+
+  # Semantic pattern: Discover NestJS decorators (guards, interceptors)
+  - id: nestjs.controller.decorator
     produces:
       type: relationship
       layer: api
-      elementType: dependency
-      relationshipType: depends-on
+      elementType: protection
+      relationshipType: protected-by
     query:
-      tool: search_code
+      tool: analyze_decorators
       params:
-        pattern: "constructor\\([^)]*@Inject\\(['\"]?([^'\"\\)]+)['\"]?\\)\\s+private\\s+\\w+\\s*:"
+        framework: nestjs
         language: typescript
-    confidence: 0.75
+        decoratorTypes: ["UseGuards", "UseInterceptors", "UseFilters"]
+    requires_index: true
+    confidence: 0.92
     mapping:
-      source: "api.controller.{match.controller}"
-      target: "application.service.{match.serviceName|kebab}"
-  - id: nestjs.controller.guard
+      source: "api.endpoint.{match.target|kebab}"
+      target: "security.guard.{match.decoratorArg|kebab}"
+
+  # Regex fallback for decorators
+  - id: nestjs.controller.decorator.regex
     produces:
       type: relationship
       layer: api
@@ -43,22 +69,44 @@ patterns:
       params:
         pattern: "@UseGuards\\(([^)]+)\\)"
         language: typescript
-    confidence: 0.8
+    confidence: 0.65
     mapping:
       source: "api.endpoint.{match.endpoint}"
       target: "security.guard.{match.guardName|kebab}"
-  - id: nestjs.module.provider
+
+  # Semantic pattern: Discover module dependencies
+  - id: nestjs.controller.dependency
     produces:
       type: relationship
       layer: api
-      elementType: provision
-      relationshipType: provides
+      elementType: dependency
+      relationshipType: depends-on
+    query:
+      tool: find_dependencies
+      params:
+        framework: nestjs
+        language: typescript
+        scope: constructor
+    requires_index: true
+    depends_on: ["nestjs.controller.route"]
+    confidence: 0.88
+    mapping:
+      source: "api.controller.{match.source|kebab}"
+      target: "application.service.{match.target|kebab}"
+
+  # Regex fallback for dependencies
+  - id: nestjs.controller.dependency.regex
+    produces:
+      type: relationship
+      layer: api
+      elementType: dependency
+      relationshipType: depends-on
     query:
       tool: search_code
       params:
-        pattern: "@Module\\([^)]*providers\\s*:\\s*\\[([^\\]]+)\\]"
+        pattern: "constructor\\([^)]*@Inject\\(['\"]?([^'\"\\)]+)['\"]?\\)\\s+private\\s+\\w+\\s*:"
         language: typescript
-    confidence: 0.8
+    confidence: 0.68
     mapping:
-      source: "api.module.{match.module}"
-      target: "application.service.{match.provider|kebab}"
+      source: "api.controller.{match.controller}"
+      target: "application.service.{match.serviceName|kebab}"

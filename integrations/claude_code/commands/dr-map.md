@@ -28,6 +28,52 @@ Analyze an existing codebase and automatically generate a Documentation Robotics
 /dr-map <path> [--layers <layers>] [--tech <technology>]
 ```
 
+## Agent Grounding: Verification Against Live Codebase
+
+If a CodePrism session is active, the extraction agent can verify proposed elements against the live semantic graph before proposing them to the model.
+
+**See `/cli/docs/SCAN_ARCHITECTURE.md#agent-grounding-workflow` for the complete agent grounding workflow**, including:
+
+- **Orientation Step**: How to use `repository_stats` and `detect_patterns` to understand the codebase before extraction
+- **Per-Element Verification Loop**: Detailed 6-step walkthrough with example CodePrism responses
+- **Discrepancy Handling**: How agents investigate when CodePrism contradicts inference
+- **Graceful Degradation**: Extraction behavior when no session is active
+
+The following summarizes the essential steps:
+
+### Quick Reference: Element Verification Loop
+
+1. **Identify candidate**: Agent proposes an element from static analysis
+2. **Query CodePrism**: `dr scan session query explain_symbol --params '{"symbol":"OrderService","language":"typescript"}'`
+3. **Evaluate response**: Confirm type, location, decorators match expectations
+4. **Populate source_reference**: Add `--source-file`, `--source-symbol`, `--source-provenance extracted`
+5. **Discover dependencies**: `dr scan session query find_dependencies --params '{"symbol":"OrderService","language":"typescript","type":"all"}'`
+6. **Emit dr add**: Wire cross-layer references and create element
+
+When CodePrism contradicts, agents investigate (use `search_code`, retry with corrected location) rather than blindly proposing.
+
+### Graceful Degradation: No Session Available
+
+If no CodePrism session is active, extraction proceeds with **static code analysis only**:
+
+- Agent uses regex and pattern matching (no semantic queries)
+- All elements use `--source-provenance inferred`
+- Cross-layer references inferred from type names and patterns
+- Model validates successfully but confidence is lower
+
+**Example (no session):**
+
+```bash
+# Static regex found a class matching "Service" pattern
+dr add application service "Order Service" \
+  --description "Service class for order operations (inferred from static analysis)" \
+  --source-file "src/services/OrderService.ts" \
+  --source-symbol "OrderService" \
+  --source-provenance inferred  # Not confirmed by CodePrism
+```
+
+---
+
 ## Instructions for Claude Code
 
 This command launches a specialized model extraction agent to analyze code and generate the architecture model. Follow this workflow:
@@ -280,21 +326,48 @@ Task(
 **Target Layers:** {layers}
 **Technology:** {technology}
 **Baseline Element Counts (captured before extraction):** {baseline_counts}
+**CodePrism Session Active:** {"Yes" if session_is_active else "No"}
+
+**CodePrism Session Tools** (if active):
+
+Essential tools for verification (see `/dr-scan-session` for full reference):
+- `repository_stats` → Understand repo structure and frameworks
+- `detect_patterns` → Discover architectural patterns
+- `explain_symbol` → Verify element type and location
+- `find_dependencies` → Discover cross-layer dependencies
+- `search_code` → Find code matching patterns (for conflict resolution)
+
+**Verification Strategy** (if session active):
+
+For each proposed element: (1) query `explain_symbol` with candidate symbol/language, (2) validate type and location match, (3) populate `--source-provenance extracted` when confirmed, (4) use `find_dependencies` to discover cross-layer references.
+
+When CodePrism contradicts inference: investigate using `search_code` to find actual location; do not blindly propose.
+
+See `/cli/docs/SCAN_ARCHITECTURE.md#agent-grounding-workflow` for the complete workflow including orientation step, per-element verification loop, and discrepancy handling.
+
+**Graceful Degradation** (if no session is active):
+
+Proceed with static code analysis:
+- Use `--source-provenance inferred` for all elements
+- Inference strategy: regex + import analysis for candidates, type names + usage patterns for cross-layer references
+- Model will validate but confidence is lower
 
 **Your Task:**
-1. Analyze the codebase structure
-2. Identify architectural elements:
+1. [If session active] Gather orientation information (repository_stats, detect_patterns)
+2. Analyze the codebase structure
+3. Identify architectural elements:
    - Services and components
    - API endpoints and operations
    - Data models and schemas
    - Database tables (if applicable)
    - Business capabilities (infer from code)
 
-3. Create DR model elements with **mandatory source provenance**:
+4. Create DR model elements with **mandatory source provenance**:
    - Use `dr add` commands for each element
    - **Always** pass `--source-file <relative-path>` pointing to the file the element was extracted from (relative to the repository root, e.g. `src/services/OrderService.ts`)
    - Pass `--source-symbol <name>` when the element maps to a specific class, function, or exported symbol
-   - Pass `--source-provenance extracted` for all elements identified directly from code; use `inferred` for elements reasoned from patterns rather than a specific file
+   - Pass `--source-provenance extracted` for elements verified against CodePrism (if session active); use `inferred` for elements reasoned from patterns or when no session is active
+   - [If session active] Use the verification loop above to confirm each element
    - Establish cross-layer references (realizes, exposes, stores, etc.)
    - Set appropriate properties (criticality, descriptions, etc.)
 
@@ -305,31 +378,37 @@ Task(
 
    Example `dr add` invocations with provenance:
    ```bash
+   # With CodePrism verification (provenance: extracted)
+   dr scan session query explain_symbol --params '{"symbol":"OrderService","language":"typescript"}'
+   # → Confirmed: class OrderService at src/services/OrderService.ts
    dr add application service "Order Service" \
      --description "Handles order lifecycle" \
      --source-file "src/services/OrderService.ts" \
      --source-symbol "OrderService" \
      --source-provenance extracted
 
+   # Without CodePrism or unconfirmed (provenance: inferred)
    dr add api operation "Create Order" \
      --description "POST /api/v1/orders" \
      --source-file "src/routes/orders.ts" \
      --source-symbol "createOrder" \
-     --source-provenance extracted
+     --source-provenance inferred
 
+   # Inferred business capability
    dr add business capability "Order Management" \
      --description "Inferred from OrderService and order routes" \
      --source-provenance inferred
-````
+   ```
 
-4. Validate the extracted model:
+5. Validate the extracted model:
    - Run `dr validate` after extraction
    - Fix any obvious issues
 
-5. Provide extraction report:
+6. Provide extraction report:
    - Elements created per layer
    - Source files referenced (list unique files)
    - Confidence scores (high/medium/low)
+   - Number of elements verified via CodePrism (if session was active)
    - Warnings about uncertain mappings or missing provenance
    - Recommendations for manual review
 
@@ -415,7 +494,7 @@ Recommendations:
   """
   )
 
-```
+````
 
 ### Step 5: Process Agent Results
 
@@ -459,7 +538,7 @@ Files Modified:
 - documentation-robotics/model/06_api/operations.yaml (25 elements)
 - documentation-robotics/model/07_data-model/schemas.yaml (12 elements)
 
-````
+```
 
 ### Step 6: Validation & Review
 
@@ -467,7 +546,7 @@ After extraction, run validation:
 
 ```bash
 dr validate --strict
-````
+```
 
 Present results and ask user to review:
 

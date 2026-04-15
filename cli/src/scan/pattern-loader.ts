@@ -97,6 +97,17 @@ export type Mapping = Record<string, string>;
 
 /**
  * Individual pattern definition within a pattern set
+ *
+ * Semantic pattern fields:
+ * - `requires_index` (boolean, optional, default false) - Pattern requires an active CodePrism session
+ *   Semantic patterns that need repository indexing should set this to true. When no session is
+ *   active, patterns with this flag are skipped with a warning, and the scan falls back to
+ *   co-existing regex patterns.
+ * - `depends_on` (array of pattern IDs, optional, default []) - For multi-pass patterns that
+ *   consume results from prior patterns. Patterns are grouped by dependencies:
+ *   - Independent patterns (no depends_on) are dispatched in a single batch_analysis call
+ *   - Dependent patterns are executed after their dependencies complete
+ *   - Invalid dependencies (referring to non-existent patterns) are treated as errors
  */
 export const PatternDefinitionSchema = z.object({
   id: z.string(),
@@ -104,6 +115,8 @@ export const PatternDefinitionSchema = z.object({
   query: QuerySpecSchema,
   confidence: z.number().min(0).max(1),
   mapping: MappingSchema,
+  requires_index: z.boolean().optional().default(false),
+  depends_on: z.array(z.string()).optional().default([]),
 });
 
 export type PatternDefinition = z.infer<typeof PatternDefinitionSchema>;
@@ -500,16 +513,52 @@ export function filterByConfidence<T extends ElementCandidate | RelationshipCand
 }
 
 /**
+ * Session context for multi-pass pattern interpolation
+ *
+ * Stores discovered elements from prior pattern execution passes.
+ * Used to support {session.discovered.*} placeholder interpolation in dependent patterns.
+ *
+ * @example
+ * ```typescript
+ * const context = {
+ *   discovered: {
+ *     api: {
+ *       endpoints: [
+ *         { id: "api.endpoint.get-users", name: "GET /users" },
+ *         { id: "api.endpoint.post-users", name: "POST /users" }
+ *       ]
+ *     }
+ *   }
+ * };
+ *
+ * // In pattern template:
+ * // "target: {session.discovered.api.endpoints|join-ids}"
+ * // Renders to comma-separated list of endpoint IDs
+ * ```
+ */
+export interface SessionContext {
+  discovered?: {
+    [layer: string]: {
+      [elementType: string]: Array<{ id: string; name?: string; [key: string]: unknown }>;
+    };
+  };
+}
+
+/**
  * Extract properties from template string
  *
- * Supports transformations:
- * - {match.field} - Direct field access
+ * Supports placeholders and transformations:
+ * - {match.field} - Direct field access from match data
  * - {match.field|kebab} - Convert to kebab-case
  * - {match.field|upper} - Convert to UPPERCASE
  * - {match.field|lower} - Convert to lowercase
+ * - {session.discovered.layer.elementType} - Access discovered elements from prior passes
+ * - {session.discovered.layer.elementType|join-ids} - Join element IDs with commas
+ * - {session.discovered.layer.elementType|join-names} - Join element names with commas
  *
  * @param template - Template string with placeholders
- * @param data - Data object for substitution
+ * @param data - Data object for substitution (match data)
+ * @param session - Optional session context for multi-pass interpolation
  * @returns Rendered string
  * @throws Error if template contains a placeholder that cannot be resolved in the data or an unrecognized transform is used
  *
@@ -517,11 +566,70 @@ export function filterByConfidence<T extends ElementCandidate | RelationshipCand
  * ```typescript
  * const id = renderTemplate("api.endpoint.{match.name|kebab}", { match: { name: "CreateUser" } });
  * // => "api.endpoint.create-user"
+ *
+ * const multiPass = renderTemplate(
+ *   "application.service.{match.serviceName|kebab}::depends-on::{session.discovered.api.endpoints|join-ids}",
+ *   { match: { serviceName: "UserService" } },
+ *   { discovered: { api: { endpoints: [{ id: "api.endpoint.get-users" }, ...] } } }
+ * );
+ * // => "application.service.user-service::depends-on::api.endpoint.get-users,api.endpoint.post-users,..."
  * ```
  */
-export function renderTemplate(template: string, data: Record<string, unknown>): string {
+export function renderTemplate(
+  template: string,
+  data: Record<string, unknown>,
+  session?: SessionContext
+): string {
   return template.replace(/\{([^}]+)\}/g, (match, key) => {
     const [path, ...transforms] = key.split("|");
+
+    // Check if this is a session.discovered placeholder
+    if (path.startsWith("session.discovered.")) {
+      // Parse session.discovered.layer.elementType
+      const parts = path.split(".");
+      if (parts.length < 4) {
+        throw new Error(
+          `Template rendering failed: invalid session.discovered path '${path}'. ` +
+          `Expected format: session.discovered.layer.elementType (e.g., session.discovered.api.endpoints)`
+        );
+      }
+
+      const layer = parts[2];
+      const elementType = parts[3];
+
+      if (!session?.discovered?.[layer]?.[elementType]) {
+        throw new Error(
+          `Template rendering failed: cannot resolve placeholder '${match}' - ` +
+          `no discovered elements found for layer '${layer}' and type '${elementType}'. ` +
+          `Ensure this pattern has a depends_on dependency on patterns that discover these elements.`
+        );
+      }
+
+      const elements = session.discovered[layer][elementType];
+      let result: string;
+
+      // Apply session-specific transformations
+      if (transforms.length > 0) {
+        const transform = transforms[0].trim().toLowerCase();
+        if (transform === "join-ids") {
+          result = elements.map((el) => el.id).join(",");
+        } else if (transform === "join-names") {
+          result = elements.map((el) => el.name || el.id).join(",");
+        } else {
+          throw new Error(
+            `Template rendering failed: unknown transform '${transform}' for session.discovered - ` +
+            `supported transforms are: join-ids, join-names`
+          );
+        }
+      } else {
+        // Default to join-ids if no transform specified
+        result = elements.map((el) => el.id).join(",");
+      }
+
+      return result;
+    }
+
+    // Standard match.* placeholder handling
     const parts = path.split(".");
     let value: unknown = data;
 

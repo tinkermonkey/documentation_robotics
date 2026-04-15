@@ -234,6 +234,7 @@ export function isTransportError(error: unknown): boolean {
 export interface MCPClient {
   readonly isConnected: boolean;
   endpoint?: string;
+  processId?: number;
   disconnect: () => Promise<void>;
   callTool: (toolName: string, toolArgs: Record<string, unknown>) => Promise<ToolResult[]>;
   listTools: () => Promise<Tool[]>;
@@ -361,6 +362,19 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
     throw error;
   }
 
+  // Try to extract the child process PID from the transport
+  // The MCP SDK's StdioClientTransport wraps a child process, but exposes it through
+  // a private property. We attempt to access it here for session tracking.
+  let processId: number | undefined;
+  try {
+    const transportWithProcess = transport as unknown as { process?: { pid?: number } };
+    if (transportWithProcess.process?.pid) {
+      processId = transportWithProcess.process.pid;
+    }
+  } catch {
+    // PID extraction is optional; if it fails, we continue without it
+  }
+
   // Wrapper client object
   const client: MCPClient = {
     get isConnected(): boolean {
@@ -368,6 +382,7 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
       return actualClient !== null;
     },
     endpoint: `${command}:${args.join(" ")}`,
+    processId,
 
     async callTool(toolName: string, toolArgs: Record<string, unknown>): Promise<ToolResult[]> {
       if (!actualClient) {
