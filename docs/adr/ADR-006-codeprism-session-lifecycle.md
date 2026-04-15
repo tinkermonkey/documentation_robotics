@@ -184,7 +184,6 @@ export async function getSessionState(
 // Queries
 export async function querySession(
   workspace: string,
-  config: LoadedScanConfig,
   toolName: string,
   toolParams: Record<string, unknown>
 ): Promise<ToolResult[]>;

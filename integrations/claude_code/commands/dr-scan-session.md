@@ -199,7 +199,7 @@ dr scan session stop [--workspace <path>]
 **Error handling:**
 
 - If no session found: reports clearly and suggests `dr scan session start` if you meant to query
-- If process doesn't respond to signals: forces kill (no error reported; cleanup succeeds anyway)
+- If disconnect fails: cleanup proceeds regardless, session file and cache entry are removed
 
 ## Usage Examples
 
