@@ -15,13 +15,18 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTempWorkdir, runDr, stripAnsi } from "../helpers/cli-runner.js";
 import { existsSync } from "node:fs";
 
-let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
+let tempDir: { path: string; cleanup: () => Promise<void> } = {
+  path: "",
+  cleanup: async () => {}
+};
 
 describe("scan session lifecycle", () => {
   beforeEach(async () => {
     tempDir = await createTempWorkdir();
     // Initialize a model to have a valid workspace
-    const initResult = await runDr(["init", "--name", "Session Test"], { cwd: tempDir.path });
+    const initResult = await runDr(["init", "--name", "Session Test"], {
+      cwd: tempDir.path
+    });
     if (initResult.exitCode !== 0) {
       throw new Error(`Failed to initialize model: ${initResult.stderr}`);
     }
@@ -41,19 +46,13 @@ describe("scan session lifecycle", () => {
     // This test verifies graceful error handling when CodePrism is not installed
     // by using an invalid command path
     const withBadConfig = await runDr(
-      [
-        "scan",
-        "session",
-        "start",
-        "--workspace",
-        tempDir.path,
-      ],
+      ["scan", "session", "start", "--workspace", tempDir.path],
       {
         cwd: tempDir.path,
         env: {
           ...process.env,
-          SCAN_CODEPRISM_COMMAND: "/nonexistent/codeprism",
-        },
+          SCAN_CODEPRISM_COMMAND: "/nonexistent/codeprism"
+        }
       }
     );
 
@@ -63,10 +62,14 @@ describe("scan session lifecycle", () => {
   });
 
   it("should report no session when none is active", async () => {
-    const result = await runDr(["scan", "session", "status"], { cwd: tempDir.path });
+    const result = await runDr(["scan", "session", "status"], {
+      cwd: tempDir.path
+    });
 
     expect(result.exitCode).not.toBe(0);
-    expect(stripAnsi(result.stdout)).toContain("No session found");
+    expect(stripAnsi(result.stdout + result.stderr)).toContain(
+      "No session found"
+    );
   });
 
   it("should fail to query when no session is active", async () => {
@@ -76,26 +79,25 @@ describe("scan session lifecycle", () => {
     );
 
     expect(result.exitCode).not.toBe(0);
-    expect(stripAnsi(result.stdout + result.stderr)).toContain("No active session");
+    expect(stripAnsi(result.stdout + result.stderr)).toContain(
+      "No active session"
+    );
   });
 
   it("should fail to stop when no session is active", async () => {
-    const result = await runDr(["scan", "session", "stop"], { cwd: tempDir.path });
+    const result = await runDr(["scan", "session", "stop"], {
+      cwd: tempDir.path
+    });
 
     expect(result.exitCode).not.toBe(0);
-    expect(stripAnsi(result.stdout + result.stderr)).toContain("No active session");
+    expect(stripAnsi(result.stdout + result.stderr)).toContain(
+      "No active session"
+    );
   });
 
   it("should handle invalid parameters to query", async () => {
     const result = await runDr(
-      [
-        "scan",
-        "session",
-        "query",
-        "search_code",
-        "--params",
-        "not-json",
-      ],
+      ["scan", "session", "query", "search_code", "--params", "not-json"],
       { cwd: tempDir.path }
     );
 
@@ -122,7 +124,7 @@ describe("scan session lifecycle", () => {
         "session",
         "status",
         "--workspace",
-        "/nonexistent/path/that/does/not/exist",
+        "/nonexistent/path/that/does/not/exist"
       ],
       { cwd: tempDir.path }
     );
@@ -136,22 +138,22 @@ describe("scan session lifecycle", () => {
     // by checking help text or parameter parsing
 
     const startHelp = await runDr(["scan", "session", "start", "--help"], {
-      cwd: tempDir.path,
+      cwd: tempDir.path
     });
     expect(startHelp.stdout).toContain("--workspace");
 
     const statusHelp = await runDr(["scan", "session", "status", "--help"], {
-      cwd: tempDir.path,
+      cwd: tempDir.path
     });
     expect(statusHelp.stdout).toContain("--workspace");
 
     const queryHelp = await runDr(["scan", "session", "query", "--help"], {
-      cwd: tempDir.path,
+      cwd: tempDir.path
     });
     expect(queryHelp.stdout).toContain("--workspace");
 
     const stopHelp = await runDr(["scan", "session", "stop", "--help"], {
-      cwd: tempDir.path,
+      cwd: tempDir.path
     });
     expect(stopHelp.stdout).toContain("--workspace");
   });
@@ -170,7 +172,7 @@ describe("scan session lifecycle", () => {
 
   it("should display session command help with examples", async () => {
     const result = await runDr(["scan", "session", "query", "--help"], {
-      cwd: tempDir.path,
+      cwd: tempDir.path
     });
 
     expect(result.stdout).toContain("Examples");
