@@ -39,10 +39,6 @@ export interface ValidateOptions {
 }
 
 /**
- * Validate schema synchronization between spec/ and cli/src/schemas/bundled/
- * @throws {Error} if schema synchronization validation fails
- */
-/**
  * Recursively find all JSON schema files in a directory
  * Excludes 'layers' subdirectory since layer instances are not schemas
  */
@@ -65,6 +61,10 @@ async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string
   return files;
 }
 
+/**
+ * Validate schema synchronization between spec/ and cli/src/schemas/bundled/
+ * @throws {Error} if schema synchronization validation fails
+ */
 async function validateSchemaSynchronization(): Promise<void> {
   console.log("");
   console.log(ansis.bold("Validating schema synchronization..."));
@@ -85,7 +85,7 @@ async function validateSchemaSynchronization(): Promise<void> {
   const bundledSchemaFiles = await findJsonFiles(bundledSchemaDir);
 
   if (specSchemaFiles.length === 0) {
-    throw new Error("No schema files found in spec/schemas/");
+    throw new Error(`No schema files found in ${specSchemaDir}`);
   }
 
   let mismatches: string[] = [];
