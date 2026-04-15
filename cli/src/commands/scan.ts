@@ -648,7 +648,7 @@ export async function executePatterns(
 
   // Session context for multi-pass pattern execution
   // Tracks discovered elements from prior pattern passes for interpolation via {session.discovered.*}
-  let sessionContext: SessionContext = {
+  const sessionContext: SessionContext = {
     discovered: {},
   };
 
@@ -795,11 +795,12 @@ export async function executePatterns(
         }
 
         // Map matches to candidates (without session context - independent patterns don't use it)
+        const prevElementCount = elementCandidates.length;
         processPatternResults(pattern, patternResults, elementCandidates, relationshipCandidates, warnings, verbose);
 
         // Register discovered element candidates from this pattern for use in dependent patterns
         if (pattern.produces.type === "node") {
-          const newCandidates = elementCandidates.slice(elementCandidates.length - patternResults.length);
+          const newCandidates = elementCandidates.slice(prevElementCount);
           independentElementCandidates.push(...newCandidates);
         }
       }

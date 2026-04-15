@@ -9,6 +9,7 @@ import {
   renderTemplate,
   type ElementCandidate,
   type PatternSet,
+  type SessionContext,
 } from "../../../src/scan/pattern-loader.js";
 import { z } from "zod";
 
@@ -892,6 +893,238 @@ describe("Pattern Loader", () => {
       expect(id1).not.toBe(id2);
       expect(id1).toBe("api.endpoint.get-user");
       expect(id2).toBe("api.endpoint.create-user");
+    });
+  });
+
+  describe("renderTemplate() with SessionContext (Multi-Pass Interpolation)", () => {
+    it("resolves session.discovered placeholders with single element", () => {
+      const template = "{session.discovered.api.endpoint}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users", name: "GET /users" }],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("api.endpoint.get-users");
+    });
+
+    it("resolves session.discovered placeholders with multiple elements using default join-ids", () => {
+      const template = "{session.discovered.api.endpoint}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+              { id: "api.endpoint.delete-users", name: "DELETE /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("api.endpoint.get-users,api.endpoint.post-users,api.endpoint.delete-users");
+    });
+
+    it("applies join-ids transform to session.discovered elements", () => {
+      const template = "{session.discovered.api.endpoint|join-ids}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("api.endpoint.get-users,api.endpoint.post-users");
+    });
+
+    it("applies join-names transform to session.discovered elements", () => {
+      const template = "{session.discovered.api.endpoint|join-names}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+              { id: "api.endpoint.delete-users", name: "DELETE /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("GET /users,POST /users,DELETE /users");
+    });
+
+    it("handles join-names with missing name property by falling back to id", () => {
+      const template = "{session.discovered.api.endpoint|join-names}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users" }, // No name property
+              { id: "api.endpoint.delete-users", name: "DELETE /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("GET /users,api.endpoint.post-users,DELETE /users");
+    });
+
+    it("combines session.discovered with standard match interpolation", () => {
+      const template = "application.service.{match.serviceName|kebab}::depends-on::{session.discovered.api.endpoint|join-ids}";
+      const data = { match: { serviceName: "UserService" } };
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("application.service.user-service::depends-on::api.endpoint.get-users,api.endpoint.post-users");
+    });
+
+    it("throws error when session context is missing for session.discovered placeholder", () => {
+      const template = "{session.discovered.api.endpoint}";
+      const data = {};
+
+      expect(() => renderTemplate(template, data)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*session\.discovered\.api\.endpoint/
+      );
+    });
+
+    it("throws error when referenced layer doesn't exist in session context", () => {
+      const template = "{session.discovered.unknown-layer.element}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*no discovered elements found.*unknown-layer.*element/
+      );
+    });
+
+    it("throws error when referenced element type doesn't exist in session context", () => {
+      const template = "{session.discovered.api.unknown-type}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*no discovered elements found.*api.*unknown-type/
+      );
+    });
+
+    it("throws error for invalid session.discovered path format (too few parts)", () => {
+      const template = "{session.discovered.api}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*invalid session\.discovered path.*Expected format.*session\.discovered\.layer\.elementType/
+      );
+    });
+
+    it("throws error for unknown session-specific transform", () => {
+      const template = "{session.discovered.api.endpoint|unknown-transform}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [{ id: "api.endpoint.get-users" }],
+          },
+        },
+      };
+
+      expect(() => renderTemplate(template, data, session)).toThrow(
+        /Template rendering failed.*unknown transform.*unknown-transform.*supported transforms are: join-ids, join-names/
+      );
+    });
+
+    it("handles empty discovered elements array gracefully", () => {
+      const template = "{session.discovered.api.endpoint|join-ids}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe("");
+    });
+
+    it("works with multiple session.discovered placeholders in single template", () => {
+      const template = "source::{session.discovered.api.endpoint|join-ids}::target::{session.discovered.application.service|join-ids}";
+      const data = {};
+      const session: SessionContext = {
+        discovered: {
+          api: {
+            endpoint: [
+              { id: "api.endpoint.get-users", name: "GET /users" },
+              { id: "api.endpoint.post-users", name: "POST /users" },
+            ],
+          },
+          application: {
+            service: [
+              { id: "application.service.user-service", name: "UserService" },
+              { id: "application.service.auth-service", name: "AuthService" },
+            ],
+          },
+        },
+      };
+
+      const result = renderTemplate(template, data, session);
+
+      expect(result).toBe(
+        "source::api.endpoint.get-users,api.endpoint.post-users::target::application.service.user-service,application.service.auth-service"
+      );
     });
   });
 

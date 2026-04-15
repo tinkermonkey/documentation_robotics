@@ -30,8 +30,8 @@ patterns:
       - nestjs.service.injectable
     confidence: 0.75
     mapping:
-      # Source is a wildcard that expands to all discovered API endpoints
-      # Wildcard expansion happens after pattern execution in the scan command
-      source: "api.endpoint.*"
+      # Source uses session interpolation to reference all discovered API endpoints from prior passes
+      # join-ids combines all discovered endpoint IDs into a comma-separated list for multi-element targeting
+      source: "{session.discovered.api.endpoint|join-ids}"
       # Target is derived from the dependency discovered by find_dependencies
       target: "application.service.{match.serviceName|kebab}"
