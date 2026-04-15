@@ -759,9 +759,6 @@ export async function executePatterns(
     } catch (error) {
       // If batch_analysis fails, fall back to individual pattern execution
       console.warn(ansis.yellow(`⚠ Batch analysis failed, falling back to sequential execution (this may be slower): ${getErrorMessage(error)}`));
-      if (verbose) {
-        console.log(`  Batch analysis failed, falling back to individual pattern execution: ${getErrorMessage(error)}`);
-      }
 
       // Fall back to sequential execution of independent patterns
       for (const pattern of independentPatterns) {
@@ -1460,14 +1457,16 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
 
     // Reuse cached session client instead of spawning a new MCP connection
     let client: MCPClient | null = null;
+    // Declare validation counters in outer scope so they're accessible after inner try-catch
+    let validCount = 0;
+    let warningCount = 0;
+    let errorCount = 0;
+
     try {
       client = createSessionClient(workspace);
 
       // Validate each element with source references
       const results: ElementValidationResult[] = [];
-      let validCount = 0;
-      let warningCount = 0;
-      let errorCount = 0;
 
       for (const [, layer] of model.layers) {
         for (const element of layer.listElements()) {
@@ -1574,22 +1573,23 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
           console.log(ansis.yellow(`⚠ Could not generate changeset: ${getErrorMessage(error)}`));
         }
       }
-
-      if (errorCount > 0) {
-        throw new CLIError(
-          `Validation failed: ${errorCount} error(s) found in source references`,
-          ErrorCategory.VALIDATION,
-          ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
-        );
-      } else if (warningCount > 0) {
-        throw new CLIError(
-          `Validation completed with warnings: ${warningCount} warning(s) found in source references`,
-          ErrorCategory.VALIDATION,
-          ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
-        );
-      }
     } catch (error) {
       handleError(error);
+    }
+
+    // Check validation results and throw if needed (outside inner try-catch to avoid double-printing)
+    if (errorCount > 0) {
+      throw new CLIError(
+        `Validation failed: ${errorCount} error(s) found in source references`,
+        ErrorCategory.VALIDATION,
+        ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
+      );
+    } else if (warningCount > 0) {
+      throw new CLIError(
+        `Validation completed with warnings: ${warningCount} warning(s) found in source references`,
+        ErrorCategory.VALIDATION,
+        ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
+      );
     }
   } catch (error) {
     handleError(error);
