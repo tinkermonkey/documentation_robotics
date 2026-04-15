@@ -796,14 +796,16 @@ dr scan session query search_code \
 
 ### Verification Confidence Scoring
 
-Agents should maintain a confidence score for each proposed element based on verification:
+Agents should assess confidence for each proposed element based on verification status:
 
 | Verification Status | Confidence | Provenance | Recommendation |
 |---|---|---|---|
-| CodePrism verified ✓ | High (90%+) | `extracted` | Safe to emit immediately |
-| Partially verified | Medium (70-90%) | `extracted` | Review dependencies, emit with notes |
-| Not verified (no session) | Low (50-70%) | `inferred` | Mark as needing manual review |
-| CodePrism contradicts | Very Low (<50%) | `inferred` | Investigate discrepancy before emitting |
+| CodePrism verified ✓ | High | `extracted` | Safe to emit immediately |
+| Partially verified | Medium | `extracted` | Review dependencies, emit with notes |
+| Not verified (no session) | Low | `inferred` | Mark as needing manual review |
+| CodePrism contradicts | Investigate | `inferred` | Research discrepancy before emitting |
+
+These are qualitative assessments based on verification status, not computed percentages.
 
 ### Graceful Degradation: No Active Session
 

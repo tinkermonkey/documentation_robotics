@@ -30,119 +30,38 @@ Analyze an existing codebase and automatically generate a Documentation Robotics
 
 ## Agent Grounding: Verification Against Live Codebase
 
-If a CodePrism session is active, the extraction agent can verify proposed elements against the live semantic graph before proposing them to the model. This section describes that workflow.
+If a CodePrism session is active, the extraction agent can verify proposed elements against the live semantic graph before proposing them to the model.
 
-### Orientation: Start with Repository Understanding
+**See `/cli/docs/SCAN_ARCHITECTURE.md#agent-grounding-workflow` for the complete agent grounding workflow**, including:
 
-When a session is active, before analyzing any code files, the agent should gather orientation information:
+- **Orientation Step**: How to use `repository_stats` and `detect_patterns` to understand the codebase before extraction
+- **Per-Element Verification Loop**: Detailed 6-step walkthrough with example CodePrism responses
+- **Discrepancy Handling**: How agents investigate when CodePrism contradicts inference
+- **Graceful Degradation**: Extraction behavior when no session is active
 
-```bash
-# Understand repository structure and technology hints
-dr scan session query repository_stats --format text
+The following summarizes the essential steps:
 
-# Detect architectural patterns in the codebase
-dr scan session query detect_patterns --format text
-```
+### Quick Reference: Element Verification Loop
 
-**What to do with this information:**
+1. **Identify candidate**: Agent proposes an element from static analysis
+2. **Query CodePrism**: `dr scan session query explain_symbol --params '{"symbol":"OrderService","language":"typescript"}'`
+3. **Evaluate response**: Confirm type, location, decorators match expectations
+4. **Populate source_reference**: Add `--source-file`, `--source-symbol`, `--source-provenance extracted`
+5. **Discover dependencies**: `dr scan session query find_dependencies --params '{"symbol":"OrderService","language":"typescript","type":"all"}'`
+6. **Emit dr add**: Wire cross-layer references and create element
 
-From `repository_stats`, the agent learns:
-- Primary and secondary languages
-- Detected frameworks and libraries
-- Code organization (package structure, top modules)
-- Module count and estimated complexity
-
-From `detect_patterns`, the agent learns:
-- Architectural style (MVC, microservices, layering, etc.)
-- Design patterns used (singleton, factory, builder, etc.)
-- Framework-specific patterns (Spring @Configuration, NestJS @Module, etc.)
-- Suggested layer focus for extraction
-
-**Use this to focus extraction strategy:**
-- If TypeScript + NestJS detected → expect @Injectable services, @Controller endpoints, @Entity models
-- If Python + FastAPI detected → expect @app decorators, Pydantic models, SQLAlchemy ORM
-- If Java + Spring detected → expect @Service, @RestController, @Entity annotations
-
-### Element Verification: The CodePrism Grounding Loop
-
-For each proposed element, the agent should verify it exists before emitting a `dr add` command:
-
-**Loop for each candidate element:**
-
-```
-1. Agent identifies candidate: "OrderService class at src/services/OrderService.ts"
-
-2. Verify with explain_symbol:
-   dr scan session query explain_symbol \
-     --params '{"symbol":"OrderService","language":"typescript"}'
-
-3. CodePrism response confirms or contradicts:
-   ✓ Type matches (it's a class, not interface)
-   ✓ Location matches (src/services/OrderService.ts)
-   ✓ Additional info: decorators, methods, dependencies
-
-4. Agent populates source_reference with confirmed location:
-   --source-file "src/services/OrderService.ts" \
-   --source-symbol "OrderService" \
-   --source-provenance extracted
-
-5. Agent discovers cross-layer dependencies:
-   dr scan session query find_dependencies \
-     --params '{"symbol":"OrderService","language":"typescript",'type':'all'}'
-
-6. CodePrism returns dependency graph → agent wires cross-layer references
-
-7. Emit: dr add <layer> <type> <name> \
-     --source-file ... \
-     --source-symbol ... \
-     --source-provenance extracted
-```
-
-**When CodePrism contradicts inference:**
-
-If CodePrism reveals the element doesn't exist or is different than expected:
-
-```
-Agent inference: OrderService is a class in src/services/OrderService.ts
-
-CodePrism says: No symbol "OrderService" at that location.
-
-Agent investigates:
-  → Query: dr scan session query search_code \
-     --params '{"pattern":"class.*OrderService","language":"typescript"}'
-  → CodePrism reveals: Found at src/order/service.ts (different location)
-  → Agent re-evaluates: Is this the same element or a different one?
-  → Corrects location and retries explain_symbol
-  → Or: Revises candidate and tries again
-```
-
-Agents must investigate rather than blindly proposing when CodePrism disagrees.
+When CodePrism contradicts, agents investigate (use `search_code`, retry with corrected location) rather than blindly proposing.
 
 ### Graceful Degradation: No Session Available
 
 If no CodePrism session is active, extraction proceeds with **static code analysis only**:
 
-```bash
-$ dr map ./src
+- Agent uses regex and pattern matching (no semantic queries)
+- All elements use `--source-provenance inferred`
+- Cross-layer references inferred from type names and patterns
+- Model validates successfully but confidence is lower
 
-...
-Note: CodePrism session not active.
-Source references will be inferred from static analysis.
-For more accurate element verification, start a session first:
-  dr scan session start
-
-Proceeding with static analysis extraction...
-```
-
-**Extraction behavior when degraded:**
-
-- Agent uses **regex and pattern matching** to identify candidates (no semantic analysis)
-- All elements must still include `--source-file` when possible
-- Source provenance: Use `inferred` instead of `extracted` for elements not semantically confirmed
-- Cross-layer references: Inferred from type names and usage patterns, not confirmed dependencies
-- Model will validate successfully but confidence will be lower
-
-**Example degraded extraction:**
+**Example (no session):**
 
 ```bash
 # Static regex found a class matching "Service" pattern
@@ -409,60 +328,29 @@ Task(
 **Baseline Element Counts (captured before extraction):** {baseline_counts}
 **CodePrism Session Active:** {"Yes" if session_is_active else "No"}
 
-**Session Query Commands Available** (if session is active):
+**CodePrism Session Tools** (if active):
 
-If a CodePrism session is active, you have access to semantic code analysis tools.
-See `/dr-scan-session` command documentation for full details.
+Essential tools for verification (see `/dr-scan-session` for full reference):
+- `repository_stats` → Understand repo structure and frameworks
+- `detect_patterns` → Discover architectural patterns
+- `explain_symbol` → Verify element type and location
+- `find_dependencies` → Discover cross-layer dependencies
+- `search_code` → Find code matching patterns (for conflict resolution)
 
-Core tools:
-- \`dr scan session query repository_stats\` → Understand repo structure and frameworks
-- \`dr scan session query detect_patterns\` → Discover architectural patterns
-- \`dr scan session query explain_symbol\` → Verify element exists and get metadata
-- \`dr scan session query find_dependencies\` → Discover cross-layer dependencies
-- \`dr scan session query search_code\` → Find code matching patterns
-- \`dr scan session query analyze_decorators\` → Find decorated symbols
-- \`dr scan session query analyze_api_surface\` → Discover API endpoints
+**Verification Strategy** (if session active):
 
-**Orientation Step** (only if session active):
+For each proposed element: (1) query `explain_symbol` with candidate symbol/language, (2) validate type and location match, (3) populate `--source-provenance extracted` when confirmed, (4) use `find_dependencies` to discover cross-layer references.
 
-Before analyzing code files, gather repository context:
-\`\`\`bash
-dr scan session query repository_stats --format text
-dr scan session query detect_patterns --format text
-\`\`\`
+When CodePrism contradicts inference: investigate using `search_code` to find actual location; do not blindly propose.
 
-Use this information to focus your extraction strategy. For example:
-- NestJS detected? Look for @Injectable services and @Controller endpoints
-- FastAPI detected? Look for @app decorators and Pydantic models
-- Spring detected? Look for @Service and @RestController annotations
-
-**Per-Element Verification Loop** (only if session active):
-
-For each proposed element, verify it exists before emitting \`dr add\`:
-
-1. Identify candidate: "OrderService class at src/services/OrderService.ts"
-2. Verify: \`dr scan session query explain_symbol --params '{"symbol":"OrderService","language":"typescript"}'\`
-3. Confirm location and metadata match
-4. Discover dependencies: \`dr scan session query find_dependencies --params '{"symbol":"OrderService","language":"typescript","type":"all"}'\`
-5. Populate source_reference with confirmed location:
-   - \`--source-file "src/services/OrderService.ts"\`
-   - \`--source-symbol "OrderService"\`
-   - \`--source-provenance extracted\` (confirms via CodePrism)
-6. Emit: \`dr add application service "Order Service" ...\`
-
-**When CodePrism contradicts your inference:**
-
-If CodePrism reveals an element doesn't exist or is at a different location:
-- Investigate using \`search_code\` to find the actual location
-- Correct your candidate and retry
-- Do not blindly propose elements CodePrism contradicts
+See `/cli/docs/SCAN_ARCHITECTURE.md#agent-grounding-workflow` for the complete workflow including orientation step, per-element verification loop, and discrepancy handling.
 
 **Graceful Degradation** (if no session is active):
 
-If a session is NOT active, proceed with static code analysis:
-- Use \`--source-provenance inferred\` instead of \`extracted\` for elements not confirmed
-- Still provide \`--source-file\` and \`--source-symbol\` when possible
-- Cross-layer references will be less complete (inferred from type names and usage patterns)
+Proceed with static code analysis:
+- Use `--source-provenance inferred` for all elements
+- Inference strategy: regex + import analysis for candidates, type names + usage patterns for cross-layer references
+- Model will validate but confidence is lower
 
 **Your Task:**
 1. [If session active] Gather orientation information (repository_stats, detect_patterns)
@@ -475,45 +363,45 @@ If a session is NOT active, proceed with static code analysis:
    - Business capabilities (infer from code)
 
 4. Create DR model elements with **mandatory source provenance**:
-   - Use \`dr add\` commands for each element
-   - **Always** pass \`--source-file <relative-path>\` pointing to the file the element was extracted from (relative to the repository root, e.g. \`src/services/OrderService.ts\`)
-   - Pass \`--source-symbol <name>\` when the element maps to a specific class, function, or exported symbol
-   - Pass \`--source-provenance extracted\` for elements verified against CodePrism (if session active); use \`inferred\` for elements reasoned from patterns or when no session is active
+   - Use `dr add` commands for each element
+   - **Always** pass `--source-file <relative-path>` pointing to the file the element was extracted from (relative to the repository root, e.g. `src/services/OrderService.ts`)
+   - Pass `--source-symbol <name>` when the element maps to a specific class, function, or exported symbol
+   - Pass `--source-provenance extracted` for elements verified against CodePrism (if session active); use `inferred` for elements reasoned from patterns or when no session is active
    - [If session active] Use the verification loop above to confirm each element
    - Establish cross-layer references (realizes, exposes, stores, etc.)
    - Set appropriate properties (criticality, descriptions, etc.)
 
    Source provenance is not optional metadata — it is the traceability link that makes the model useful:
-   - \`/dr-sync\` uses \`source_reference\` to detect drift when code changes
-   - \`dr validate\` can verify referenced files still exist
+   - `/dr-sync` uses `source_reference` to detect drift when code changes
+   - `dr validate` can verify referenced files still exist
    - Without provenance, the model is a snapshot with no connection back to the code that produced it
 
-   Example \`dr add\` invocations with provenance:
-   \`\`\`bash
+   Example `dr add` invocations with provenance:
+   ```bash
    # With CodePrism verification (provenance: extracted)
    dr scan session query explain_symbol --params '{"symbol":"OrderService","language":"typescript"}'
    # → Confirmed: class OrderService at src/services/OrderService.ts
-   dr add application service "Order Service" \\
-     --description "Handles order lifecycle" \\
-     --source-file "src/services/OrderService.ts" \\
-     --source-symbol "OrderService" \\
+   dr add application service "Order Service" \
+     --description "Handles order lifecycle" \
+     --source-file "src/services/OrderService.ts" \
+     --source-symbol "OrderService" \
      --source-provenance extracted
 
    # Without CodePrism or unconfirmed (provenance: inferred)
-   dr add api operation "Create Order" \\
-     --description "POST /api/v1/orders" \\
-     --source-file "src/routes/orders.ts" \\
-     --source-symbol "createOrder" \\
+   dr add api operation "Create Order" \
+     --description "POST /api/v1/orders" \
+     --source-file "src/routes/orders.ts" \
+     --source-symbol "createOrder" \
      --source-provenance inferred
 
    # Inferred business capability
-   dr add business capability "Order Management" \\
-     --description "Inferred from OrderService and order routes" \\
+   dr add business capability "Order Management" \
+     --description "Inferred from OrderService and order routes" \
      --source-provenance inferred
-   \`\`\`
+   ```
 
 5. Validate the extracted model:
-   - Run \`dr validate\` after extraction
+   - Run `dr validate` after extraction
    - Fix any obvious issues
 
 6. Provide extraction report:

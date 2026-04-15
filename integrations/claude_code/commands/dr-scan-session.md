@@ -46,17 +46,19 @@ dr scan session query find_dependencies --params '{"symbol":"OrderService","lang
 dr scan session stop
 ```
 
-### Codeprism Query Pattern (for Agents)
+### CodePrism Query Pattern (for Agents)
 
-When proposing a new architectural element:
+For the complete agent grounding workflow, including orientation step, per-element verification loop, discrepancy handling, and graceful degradation, see `/cli/docs/SCAN_ARCHITECTURE.md#agent-grounding-workflow`.
+
+Quick reference for each proposed element:
 
 ```
-1. Agent identifies candidate (e.g., "OrderService class exists at src/services/OrderService.ts")
+1. Agent identifies candidate (e.g., "OrderService class at src/services/OrderService.ts")
 2. Call: dr scan session query explain_symbol --params '{"symbol":"OrderService","language":"typescript"}'
 3. CodePrism responds with: {type, location, scope, dependencies, decorators, ...}
 4. Agent compares: expected vs actual. If match → confirm with source_reference
-5. If mismatch: investigate. Call find_dependencies to understand the discrepancy
-6. Emit: dr add with confirmed source_reference and locations
+5. If mismatch: investigate via search_code to find actual location
+6. Emit: dr add with confirmed source_reference and `--source-provenance extracted`
 ```
 
 ## Commands
