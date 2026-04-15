@@ -167,11 +167,11 @@ await client.disconnect();
 
 Patterns invoke CodePrism tools via the MCP interface. Both regex-based and semantic tools are supported:
 
-#### Regex-Based Tools (Phase 1-3)
+#### Regex-Based Tools
 
 - **search_code** — Find code matching regex patterns for extracting architectural elements and relationships
 
-#### Semantic Tools (Phase 4+)
+#### Semantic Tools
 
 - **analyze_api_surface** — Discover API endpoints, routes, and operations using AST analysis (framework-aware)
 - **analyze_decorators** — Identify decorated classes and methods (e.g., @Injectable, @Entity, @UseGuards)
@@ -324,14 +324,14 @@ patterns:
       # For relationships only:
       # relationshipType: calls
     query: # CodePrism query specification
-      tool: analyze_api_surface # Semantic tool (Phase 4+) or search_code (Phase 1-3)
+      tool: analyze_api_surface # Semantic tool or search_code for regex
       params:
         framework: express # For semantic tools
         language: javascript
         # Additional CodePrism-specific params
     confidence: 0.95 # Confidence score (0-1)
-    requires_index: false # (Optional, Phase 4+) Pattern needs active CodePrism session
-    depends_on: [] # (Optional, Phase 4+) Array of pattern IDs this depends on
+    requires_index: false # (Optional) Pattern needs active CodePrism session
+    depends_on: [] # (Optional) Array of pattern IDs this depends on
     mapping: # Template-based mapping
       id: "api.endpoint.{match.path|kebab}"
       name: "{match.path}"
@@ -341,7 +341,7 @@ patterns:
       # target: "api.endpoint.{match.target}"
 ```
 
-### Phase 4: New Pattern Fields
+### New Pattern Fields
 
 #### `requires_index` (boolean, optional, default false)
 
@@ -455,7 +455,7 @@ mapping:
   name: "{match.method|upper} {match.path}"
 ```
 
-## Execution Flow (Phase 4 Semantic Dispatch)
+## Execution Flow (Semantic Dispatch)
 
 ### Pattern Execution Strategy
 
@@ -520,7 +520,7 @@ dr scan --layer api --dry-run
 
 ## Troubleshooting
 
-### Session Management Issues (Phase 4)
+### Session Management Issues
 
 **Error: "Pattern requires active session but no session is active"**
 
