@@ -154,20 +154,21 @@ export class MigrationRegistry {
       },
     });
 
-    // Migration from v0.8.2 to v0.8.3: Enhanced Spec Analyzer Infrastructure
+    // Migration from v0.8.2 to v0.8.3: Inter-layer Relationship Schemas and APM Node Types
     this.migrations.push({
       fromVersion: "0.8.2",
       toVersion: "0.8.3",
-      description: "Enhanced Spec Analyzer Infrastructure (Spec v0.8.3)",
+      description: "Inter-layer Relationship Schemas and APM Node Types (Spec v0.8.3)",
       apply: async () => {
-        // Introduces SpecAnalyzer infrastructure for advanced specification analysis
-        // - New spec-analyzer.schema.json for analyzer definitions
-        // - Support for semantic analysis across specification layers
+        // Major expansion of inter-layer relationship coverage and APM layer:
+        // - 495 new inter-layer relationship schemas across all 12 layers
+        // - Total relationship count increased from 969 to 1,447
+        // - 2 new APM node types: apm.alert and apm.dashboard
         // - Backward compatible - existing models continue to work without modification
         return {
           migrationsApplied: 1,
           filesModified: 0,
-          description: "Spec version updated to 0.8.3 (Enhanced Spec Analyzer Infrastructure)",
+          description: "Spec version updated to 0.8.3 (Inter-layer Relationship Schemas and APM Node Types)",
         };
       },
     });
