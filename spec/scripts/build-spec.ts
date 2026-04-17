@@ -19,6 +19,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import prettier from "prettier";
+import Ajv from "ajv";
+import { default as ajvFormats } from "ajv-formats";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -167,37 +169,116 @@ interface ManifestDistFile {
   };
 }
 
+interface AttributeMapping {
+  analyzer_field: string;
+  dr_attribute: string;
+  transform?: string;
+}
+
 interface AnalyzerNodeMapping {
   analyzer_node_type: string;
-  dr_layer: string;
+  dr_layer: "motivation" | "business" | "security" | "application" | "technology" | "api" | "data-model" | "data-store" | "ux" | "navigation" | "apm" | "testing";
   dr_node_type: string;
-  confidence: string;
-  [key: string]: unknown;
+  confidence: "high" | "medium" | "low";
+  description?: string;
+  attribute_mappings?: AttributeMapping[];
+  conditions?: Record<string, unknown>;
+}
+
+interface UnmappedLabel {
+  analyzer_node_type: string;
+  reason?: string;
+}
+
+interface AnalyzerNodeMappingFile {
+  mappings: AnalyzerNodeMapping[];
+  unmapped_labels?: UnmappedLabel[];
 }
 
 interface AnalyzerEdgeMapping {
   analyzer_edge_type: string;
   dr_relationship: string | null;
-  confidence: string;
-  [key: string]: unknown;
-}
-
-interface AnalyzerNodeMappingFile {
-  mappings: AnalyzerNodeMapping[];
-  unmapped_labels?: string[];
+  confidence: "high" | "medium" | "low";
+  directionality_transform?: "invert" | "bidirectional" | "symmetric" | null;
+  description?: string;
+  conditions?: Record<string, unknown>;
 }
 
 interface AnalyzerEdgeMappingFile {
   mappings: AnalyzerEdgeMapping[];
 }
 
+interface ToolContract {
+  version: string;
+  input_type: "codebase" | "file" | "directory" | "ast" | "semantic_graph";
+  output_type: "semantic_graph" | "ast" | "csv" | "json" | "structured_output";
+}
+
+interface ProjectIdentification {
+  method: "package.json" | "pyproject.toml" | "pom.xml" | "build.gradle" | "go.mod" | "cargo.toml" | "directory_structure" | "custom";
+  fields?: string[];
+  validation_rules?: Record<string, unknown>;
+}
+
+interface AnalyzerMetadata {
+  version?: string;
+  author?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface AnalyzerSpec {
   name: string;
-  [key: string]: unknown;
+  display_name: string;
+  mcp_server_name: string;
+  supported_tool_contract: ToolContract;
+  supported_languages: string[];
+  project_identification: ProjectIdentification;
+  description?: string;
+  configuration?: Record<string, unknown>;
+  metadata?: AnalyzerMetadata;
+}
+
+interface Heuristic {
+  name: string;
+  description: string;
+  applies_to?: string[];
+  rule?: string;
+  conditions?: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
+  confidence_adjustment?: number;
+}
+
+interface InferenceRule {
+  name: string;
+  description: string;
+  pattern: string;
+  confidence: "high" | "medium" | "low";
+  enabled?: boolean;
+}
+
+interface FilteringRule {
+  name: string;
+  description: string;
+  pattern?: string;
+  action?: string;
+  threshold?: number;
+  enabled?: boolean;
+}
+
+interface DeduplicationRule {
+  name: string;
+  description: string;
+  strategy?: string;
+  priority?: string;
+  enabled?: boolean;
 }
 
 interface AnalyzerHeuristics {
-  [key: string]: unknown;
+  heuristics?: Heuristic[];
+  inference_rules?: InferenceRule[];
+  filtering_rules?: FilteringRule[];
+  deduplication_rules?: DeduplicationRule[];
 }
 
 interface PackedAnalyzer {
@@ -432,6 +513,73 @@ function ensureAnalyzersDistDir(): void {
   }
 }
 
+// ─── JSON Schema Validation ────────────────────────────────────────────────────
+
+/**
+ * Create a validator for the analyzer schemas
+ */
+function createAnalyzerValidator() {
+  const ajv = new Ajv({ strict: false });
+  ajvFormats(ajv);
+
+  return {
+    validateSpec: (data: unknown) => {
+      const schema = {
+        type: "object",
+        required: ["name", "display_name", "mcp_server_name", "supported_tool_contract", "supported_languages", "project_identification"],
+        properties: {
+          name: { type: "string" },
+          display_name: { type: "string" },
+          mcp_server_name: { type: "string" },
+          supported_tool_contract: { type: "object" },
+          supported_languages: { type: "array" },
+          project_identification: { type: "object" },
+        },
+      };
+      const validate = ajv.compile(schema);
+      return validate(data);
+    },
+    validateNodeMapping: (data: unknown) => {
+      const schema = {
+        type: "object",
+        required: ["mappings"],
+        properties: {
+          mappings: { type: "array" },
+          unmapped_labels: { type: "array" },
+        },
+      };
+      const validate = ajv.compile(schema);
+      return validate(data);
+    },
+    validateEdgeMapping: (data: unknown) => {
+      const schema = {
+        type: "object",
+        required: ["mappings"],
+        properties: {
+          mappings: { type: "array" },
+        },
+      };
+      const validate = ajv.compile(schema);
+      return validate(data);
+    },
+    validateHeuristics: (data: unknown) => {
+      const schema = {
+        type: "object",
+        properties: {
+          heuristics: { type: "array" },
+          inference_rules: { type: "array" },
+          filtering_rules: { type: "array" },
+          deduplication_rules: { type: "array" },
+        },
+      };
+      const validate = ajv.compile(schema);
+      return validate(data);
+    },
+  };
+}
+
+const schemaValidator = createAnalyzerValidator();
+
 // ─── Analyzer validation and compilation ───────────────────────────────────────
 
 /**
@@ -496,49 +644,72 @@ function loadAndValidateAnalyzer(
     }
   }
 
-  // Load all files
+  // Load all files with individual error handling
   let analyzerSpec: AnalyzerSpec | null = null;
   let nodeMapping: AnalyzerNodeMappingFile | null = null;
   let edgeMapping: AnalyzerEdgeMappingFile | null = null;
   let heuristics: AnalyzerHeuristics | null = null;
 
+  const analyzerPath = path.join(analyzerDir, "analyzer.json");
   try {
-    const analyzerPath = path.join(analyzerDir, "analyzer.json");
     analyzerSpec = JSON.parse(fs.readFileSync(analyzerPath, "utf-8"));
+  } catch (err: any) {
+    console.error(`[ERROR] Failed to parse analyzer.json in '${analyzerName}': ${err.message}`);
+    return null;
+  }
 
-    const nodeMappingPath = path.join(analyzerDir, "node-mapping.json");
+  const nodeMappingPath = path.join(analyzerDir, "node-mapping.json");
+  try {
     nodeMapping = JSON.parse(fs.readFileSync(nodeMappingPath, "utf-8"));
+  } catch (err: any) {
+    console.error(`[ERROR] Failed to parse node-mapping.json in '${analyzerName}': ${err.message}`);
+    return null;
+  }
 
-    const edgeMappingPath = path.join(analyzerDir, "edge-mapping.json");
+  const edgeMappingPath = path.join(analyzerDir, "edge-mapping.json");
+  try {
     edgeMapping = JSON.parse(fs.readFileSync(edgeMappingPath, "utf-8"));
+  } catch (err: any) {
+    console.error(`[ERROR] Failed to parse edge-mapping.json in '${analyzerName}': ${err.message}`);
+    return null;
+  }
 
-    const heuristicsPath = path.join(analyzerDir, "extraction-heuristics.json");
+  const heuristicsPath = path.join(analyzerDir, "extraction-heuristics.json");
+  try {
     heuristics = JSON.parse(fs.readFileSync(heuristicsPath, "utf-8"));
   } catch (err: any) {
-    console.error(`[ERROR] Failed to parse analyzer files in '${analyzerName}': ${err.message}`);
+    console.error(`[ERROR] Failed to parse extraction-heuristics.json in '${analyzerName}': ${err.message}`);
     return null;
   }
 
-  // Validate each file against its base schema
-  // Note: We're doing basic validation by checking required fields rather than full JSON schema validation
-  // to keep the build script lightweight
-  if (!analyzerSpec || !analyzerSpec.name) {
-    console.error(`[ERROR] analyzer.json in '${analyzerName}' missing required 'name' field`);
+  // Validate each file against its schema structure
+  if (!analyzerSpec || !schemaValidator.validateSpec(analyzerSpec)) {
+    console.error(`[ERROR] analyzer.json in '${analyzerName}' does not match schema (missing required fields: name, display_name, mcp_server_name, supported_tool_contract, supported_languages, project_identification)`);
     return null;
   }
 
-  if (!nodeMapping || !Array.isArray(nodeMapping.mappings)) {
+  if (!nodeMapping || !schemaValidator.validateNodeMapping(nodeMapping)) {
+    console.error(`[ERROR] node-mapping.json in '${analyzerName}' does not match schema`);
+    return null;
+  }
+
+  if (!edgeMapping || !schemaValidator.validateEdgeMapping(edgeMapping)) {
+    console.error(`[ERROR] edge-mapping.json in '${analyzerName}' does not match schema`);
+    return null;
+  }
+
+  if (!heuristics || !schemaValidator.validateHeuristics(heuristics)) {
+    console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' does not match schema`);
+    return null;
+  }
+
+  if (!Array.isArray(nodeMapping.mappings)) {
     console.error(`[ERROR] node-mapping.json in '${analyzerName}' missing required 'mappings' array`);
     return null;
   }
 
-  if (!edgeMapping || !Array.isArray(edgeMapping.mappings)) {
+  if (!Array.isArray(edgeMapping.mappings)) {
     console.error(`[ERROR] edge-mapping.json in '${analyzerName}' missing required 'mappings' array`);
-    return null;
-  }
-
-  if (!heuristics) {
-    console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' failed to load`);
     return null;
   }
 
@@ -558,32 +729,52 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
-  // Get version from analyzer.json metadata
+  // Get version from analyzer.json metadata with warning if missing/invalid
   let version = "1.0";
   if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
-    const metadata = analyzerSpec.metadata as Record<string, unknown>;
+    const metadata = analyzerSpec.metadata as AnalyzerMetadata;
     if (metadata.version && typeof metadata.version === "string") {
       version = metadata.version;
+    } else if (!metadata.version) {
+      console.warn(`[WARN] analyzer '${analyzerName}' has no metadata.version — defaulting to "1.0"`);
+    } else if (typeof metadata.version !== "string") {
+      console.warn(`[WARN] analyzer '${analyzerName}' metadata.version is not a string (got ${typeof metadata.version}) — defaulting to "1.0"`);
     }
+  } else {
+    console.warn(`[WARN] analyzer '${analyzerName}' has no metadata.version — defaulting to "1.0"`);
   }
 
-  // Build nodes_by_label index (using capitalized analyzer_node_type as the label/key)
+  // Build nodes_by_label index and detect duplicates (including case-collisions)
   const nodesByLabel: Record<string, AnalyzerNodeMapping> = {};
+  const labelLookup = new Map<string, string>(); // Maps lowercase label to original label for collision detection
+
   for (const mapping of nodeMapping.mappings) {
-    // Capitalize first letter of analyzer_node_type for PascalCase keys
+    // Capitalize first letter only (e.g., "test_node" → "Test_node", not "TestNode")
     const labelKey = mapping.analyzer_node_type.charAt(0).toUpperCase() + mapping.analyzer_node_type.slice(1);
+    const lowerLabel = labelKey.toLowerCase();
+
+    if (labelLookup.has(lowerLabel)) {
+      const existingLabel = labelLookup.get(lowerLabel)!;
+      console.warn(`[WARN] analyzer '${analyzerName}': nodes_by_label index has duplicate/case-collision for '${labelKey}' (existing: '${existingLabel}') — overwriting`);
+    }
+
     nodesByLabel[labelKey] = mapping;
+    labelLookup.set(lowerLabel, labelKey);
   }
 
-  // Build edges_by_type index (using analyzer_edge_type as the key)
+  // Build edges_by_type index and detect duplicates
   const edgesByType: Record<string, AnalyzerEdgeMapping> = {};
+
   for (const mapping of edgeMapping.mappings) {
+    if (edgesByType.hasOwnProperty(mapping.analyzer_edge_type)) {
+      console.warn(`[WARN] analyzer '${analyzerName}': edges_by_type index has duplicate key '${mapping.analyzer_edge_type}' — overwriting`);
+    }
     edgesByType[mapping.analyzer_edge_type] = mapping;
   }
 
   // Build packed analyzer artifact
   const packed: PackedAnalyzer = {
-    name: analyzerSpec.name as string,
+    name: analyzerSpec.name,
     version,
     source_version: loadSpecVersion(), // Get current spec version
     analyzer: analyzerSpec,

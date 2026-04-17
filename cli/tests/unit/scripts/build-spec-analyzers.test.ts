@@ -279,11 +279,22 @@ function createTestAnalyzer(testName: string): string {
   // Create test analyzer directory
   mkdirSync(testAnalyzerDir, { recursive: true });
 
-  // Create test analyzer files
+  // Create test analyzer files with all required fields per analyzer-spec.schema.json
   writeFileSync(
     join(testAnalyzerDir, "analyzer.json"),
     JSON.stringify({
       name: testName,
+      display_name: testName,
+      mcp_server_name: testName,
+      supported_tool_contract: {
+        version: "1.0",
+        input_type: "codebase",
+        output_type: "semantic_graph",
+      },
+      supported_languages: ["typescript"],
+      project_identification: {
+        method: "package.json",
+      },
       metadata: {
         version: "1.0",
       },
