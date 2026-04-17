@@ -93,7 +93,7 @@
             "description": "Mapping confidence level indicating reliability of this mapping"
           },
           "directionality_transform": {
-            "type": "string",
+            "type": ["string", "null"],
             "enum": ["invert", "bidirectional", "symmetric", null],
             "description": "Optional transformation to apply to relationship directionality. 'invert' reverses the direction, 'bidirectional' treats as two-way, 'symmetric' makes relationship symmetric, null = no transform",
             "default": null

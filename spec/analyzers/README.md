@@ -20,7 +20,7 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
 **Example:**
 ```json
 {
-  "name": "codeprise",
+  "name": "codeprism",
   "display_name": "CodePrism",
   "mcp_server_name": "codeprism",
   "supported_tool_contract": {
