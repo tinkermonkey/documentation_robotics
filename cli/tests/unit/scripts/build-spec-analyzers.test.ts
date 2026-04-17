@@ -8,10 +8,12 @@
  * - Invalid dr_relationship values cause build failure
  */
 
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { join, resolve } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, cpSync } from "fs";
+import { mkdtempSync } from "fs";
 import { execSync } from "child_process";
+import { tmpdir } from "os";
 
 // Path to the actual compiled analyzer artifacts from the build
 const SPEC_DIST_DIR = resolve(import.meta.dir, "../../../../spec/dist");
@@ -19,25 +21,28 @@ const SPEC_DIR = resolve(import.meta.dir, "../../../../spec");
 const REPO_ROOT = resolve(import.meta.dir, "../../../../");
 const ANALYZERS_DIR = join(SPEC_DIR, "analyzers");
 
+// Track temp directories created during tests for cleanup
+let testTempDirs: string[] = [];
+
 describe("build-spec.ts Analyzer Compilation", () => {
-  // Clean up any stale test directories from previous runs before tests execute
   beforeEach(() => {
-    if (existsSync(ANALYZERS_DIR)) {
-      try {
-        const entries = readdirSync(ANALYZERS_DIR, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory() && entry.name.startsWith("test-")) {
-            try {
-              rmSync(join(ANALYZERS_DIR, entry.name), { recursive: true, force: true });
-            } catch (error) {
-              console.warn(`Failed to clean stale test directory ${entry.name}:`, error);
-            }
-          }
+    // Clear any leftover temp directories from previous test failures
+    testTempDirs = [];
+  });
+
+  afterEach(() => {
+    // Clean up all temp directories created by this test
+    // Rethrow errors to fail the test if cleanup fails
+    for (const tempDir of testTempDirs) {
+      if (existsSync(tempDir)) {
+        try {
+          rmSync(tempDir, { recursive: true, force: true });
+        } catch (error) {
+          throw new Error(`Failed to clean up test temp directory ${tempDir}: ${error}`);
         }
-      } catch (error) {
-        console.warn(`Failed to read analyzers directory for cleanup:`, error);
       }
     }
+    testTempDirs = [];
   });
 
   describe("Scenario (a): Valid analyzer artifacts", () => {
@@ -145,78 +150,94 @@ describe("build-spec.ts Analyzer Compilation", () => {
 
   describe("Scenario (b): Missing required files cause build failure", () => {
     it("should fail when analyzer.json is missing", () => {
-      const testAnalyzerDir = createTestAnalyzer("test-missing-analyzer");
-      try {
-        // Remove analyzer.json
-        const analyzerJsonPath = join(testAnalyzerDir, "analyzer.json");
-        rmSync(analyzerJsonPath, { force: true });
+      const analyzerName = "test-missing-analyzer";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
 
+      // Remove analyzer.json from the temp directory
+      const analyzerJsonPath = join(testAnalyzerDir, "analyzer.json");
+      rmSync(analyzerJsonPath, { force: true });
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
         // Run build and expect failure
         const result = runBuildAndCapture();
         expect(result.exitCode).not.toBe(0);
         expect(result.stderr).toContain("Required file missing");
         expect(result.stderr).toContain("analyzer.json");
       } finally {
-        cleanupTestAnalyzer(testAnalyzerDir);
+        uninstallTestAnalyzer(installedDir);
       }
     });
 
     it("should fail when node-mapping.json is missing", () => {
-      const testAnalyzerDir = createTestAnalyzer("test-missing-node-mapping");
-      try {
-        // Remove node-mapping.json
-        const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
-        rmSync(nodeMappingPath, { force: true });
+      const analyzerName = "test-missing-node-mapping";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
 
+      // Remove node-mapping.json from the temp directory
+      const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
+      rmSync(nodeMappingPath, { force: true });
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
         // Run build and expect failure
         const result = runBuildAndCapture();
         expect(result.exitCode).not.toBe(0);
         expect(result.stderr).toContain("Required file missing");
         expect(result.stderr).toContain("node-mapping.json");
       } finally {
-        cleanupTestAnalyzer(testAnalyzerDir);
+        uninstallTestAnalyzer(installedDir);
       }
     });
   });
 
   describe("Scenario (c): Invalid dr_layer values cause build failure", () => {
     it("should fail when dr_layer has an invalid canonical layer name", () => {
-      const testAnalyzerDir = createTestAnalyzer("test-invalid-dr-layer");
-      try {
-        // Modify node-mapping.json with invalid dr_layer
-        const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
-        const nodeMapping = JSON.parse(readFileSync(nodeMappingPath, "utf-8"));
-        nodeMapping.mappings[0].dr_layer = "invalid-layer-name";
-        writeFileSync(nodeMappingPath, JSON.stringify(nodeMapping, null, 2));
+      const analyzerName = "test-invalid-dr-layer";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
 
+      // Modify node-mapping.json in the temp directory with invalid dr_layer
+      const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
+      const nodeMapping = JSON.parse(readFileSync(nodeMappingPath, "utf-8"));
+      nodeMapping.mappings[0].dr_layer = "invalid-layer-name";
+      writeFileSync(nodeMappingPath, JSON.stringify(nodeMapping, null, 2));
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
         // Run build and expect failure (caught by schema validation)
         const result = runBuildAndCapture();
         expect(result.exitCode).not.toBe(0);
         expect(result.stderr).toContain("does not match schema");
         expect(result.stderr).toContain("node-mapping.json");
       } finally {
-        cleanupTestAnalyzer(testAnalyzerDir);
+        uninstallTestAnalyzer(installedDir);
       }
     });
   });
 
   describe("Scenario (d): Invalid dr_relationship values cause build failure", () => {
     it("should fail when dr_relationship references a non-existent predicate", () => {
-      const testAnalyzerDir = createTestAnalyzer("test-invalid-dr-relationship");
-      try {
-        // Modify edge-mapping.json with invalid dr_relationship
-        const edgeMappingPath = join(testAnalyzerDir, "edge-mapping.json");
-        const edgeMapping = JSON.parse(readFileSync(edgeMappingPath, "utf-8"));
-        edgeMapping.mappings[0].dr_relationship = "non_existent_predicate_xyz";
-        writeFileSync(edgeMappingPath, JSON.stringify(edgeMapping, null, 2));
+      const analyzerName = "test-invalid-dr-relationship";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
 
+      // Modify edge-mapping.json in the temp directory with invalid dr_relationship
+      const edgeMappingPath = join(testAnalyzerDir, "edge-mapping.json");
+      const edgeMapping = JSON.parse(readFileSync(edgeMappingPath, "utf-8"));
+      edgeMapping.mappings[0].dr_relationship = "non_existent_predicate_xyz";
+      writeFileSync(edgeMappingPath, JSON.stringify(edgeMapping, null, 2));
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
         // Run build and expect failure (caught by schema validation - dr_relationship must be in enum)
         const result = runBuildAndCapture();
         expect(result.exitCode).not.toBe(0);
         expect(result.stderr).toContain("does not match schema");
         expect(result.stderr).toContain("edge-mapping.json");
       } finally {
-        cleanupTestAnalyzer(testAnalyzerDir);
+        uninstallTestAnalyzer(installedDir);
       }
     });
   });
@@ -291,17 +312,20 @@ describe("build-spec.ts Analyzer Compilation", () => {
 });
 
 /**
- * Backup a test analyzer directory, create a new one with test data
+ * Create a test analyzer in a temporary directory with all required files.
+ * The temporary directory is tracked for cleanup in afterEach.
+ *
+ * @param testName - Name of the test analyzer (used as the analyzer name)
+ * @returns Path to the temporary test analyzer directory
  */
 function createTestAnalyzer(testName: string): string {
-  const testAnalyzerDir = join(ANALYZERS_DIR, testName);
-
-  // Create test analyzer directory
-  mkdirSync(testAnalyzerDir, { recursive: true });
+  // Create a temporary directory for this test analyzer
+  const tempDir = mkdtempSync(join(tmpdir(), "dr-test-analyzer-"));
+  testTempDirs.push(tempDir);
 
   // Create test analyzer files with all required fields per analyzer-spec.schema.json
   writeFileSync(
-    join(testAnalyzerDir, "analyzer.json"),
+    join(tempDir, "analyzer.json"),
     JSON.stringify({
       name: testName,
       display_name: testName,
@@ -322,7 +346,7 @@ function createTestAnalyzer(testName: string): string {
   );
 
   writeFileSync(
-    join(testAnalyzerDir, "node-mapping.json"),
+    join(tempDir, "node-mapping.json"),
     JSON.stringify({
       mappings: [
         {
@@ -336,7 +360,7 @@ function createTestAnalyzer(testName: string): string {
   );
 
   writeFileSync(
-    join(testAnalyzerDir, "edge-mapping.json"),
+    join(tempDir, "edge-mapping.json"),
     JSON.stringify({
       mappings: [
         {
@@ -349,23 +373,51 @@ function createTestAnalyzer(testName: string): string {
   );
 
   writeFileSync(
-    join(testAnalyzerDir, "extraction-heuristics.json"),
+    join(tempDir, "extraction-heuristics.json"),
     JSON.stringify({}, null, 2)
   );
 
-  return testAnalyzerDir;
+  return tempDir;
 }
 
 /**
- * Remove a test analyzer directory
+ * Copy a test analyzer from a temporary directory into spec/analyzers/
+ * so the build script can find and compile it.
+ *
+ * This is used for tests that need to run the actual build script.
+ * The copied directory is still tracked for cleanup via the temp directory tracking.
+ *
+ * @param testAnalyzerTempDir - Path to the temporary test analyzer directory
+ * @param analyzerName - Name to use when copying into spec/analyzers/
+ * @returns Path where the analyzer was copied in spec/analyzers/
  */
-function cleanupTestAnalyzer(analyzerDir: string): void {
-  try {
-    if (existsSync(analyzerDir)) {
+function installTestAnalyzerForBuild(testAnalyzerTempDir: string, analyzerName: string): string {
+  // Create spec/analyzers if it doesn't exist
+  if (!existsSync(ANALYZERS_DIR)) {
+    mkdirSync(ANALYZERS_DIR, { recursive: true });
+  }
+
+  const targetDir = join(ANALYZERS_DIR, analyzerName);
+
+  // Copy the temp analyzer into spec/analyzers/
+  cpSync(testAnalyzerTempDir, targetDir, { recursive: true });
+
+  return targetDir;
+}
+
+/**
+ * Clean up a test analyzer that was installed in spec/analyzers/.
+ * This rethrows errors to ensure cleanup failures are caught by tests.
+ *
+ * @param analyzerDir - Path to the analyzer directory to remove
+ */
+function uninstallTestAnalyzer(analyzerDir: string): void {
+  if (existsSync(analyzerDir)) {
+    try {
       rmSync(analyzerDir, { recursive: true, force: true });
+    } catch (error) {
+      throw new Error(`Failed to clean up test analyzer directory ${analyzerDir}: ${error}`);
     }
-  } catch (error) {
-    console.error(`Failed to clean up test analyzer directory ${analyzerDir}:`, error);
   }
 }
 
