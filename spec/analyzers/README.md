@@ -135,11 +135,11 @@ Defines heuristics and rules for post-processing analyzer output to improve mapp
 
 When analyzer mappings are added to this directory:
 
-1. **Validation** — Each analyzer's four JSON files are validated for basic structure and required fields
-   - `analyzer.json` — existence check
-   - `node-mapping.json` — existence check
-   - `edge-mapping.json` — existence check; validates `dr_relationship` values exist in `predicates.json`
-   - `extraction-heuristics.json` — existence check; validates canonical `dr_layer` names
+1. **Validation** — Each analyzer's four JSON files are validated against their respective JSON schemas using Ajv, plus semantic validations:
+   - `analyzer.json` — validated against `analyzer-spec.schema.json`
+   - `node-mapping.json` — validated against `analyzer-node-mapping.schema.json`; additionally validates all `dr_layer` values use canonical layer names
+   - `edge-mapping.json` — validated against `analyzer-edge-mapping.schema.json`; additionally validates all `dr_relationship` values exist in `predicates.json` (null allowed for unmappable edges)
+   - `extraction-heuristics.json` — validated against `analyzer-heuristics.schema.json`
 
 2. **Compilation** — The spec build process compiles all analyzer mappings into:
    - `spec/dist/analyzers/manifest.json` — index of all compiled analyzers
