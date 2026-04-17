@@ -1,0 +1,115 @@
+{
+  "mappings": [
+    {
+      "analyzer_edge_type": "http_calls",
+      "dr_relationship": "consumes",
+      "confidence": "high",
+      "description": "HTTP API call between services maps to consumes relationship"
+    },
+    {
+      "analyzer_edge_type": "handles",
+      "dr_relationship": "provides",
+      "confidence": "high",
+      "description": "HTTP request handler maps to provides relationship"
+    },
+    {
+      "analyzer_edge_type": "calls",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Function/method call within codebase",
+      "conditions": {
+        "usage": "intra-layer behavioral"
+      }
+    },
+    {
+      "analyzer_edge_type": "imports",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Module/file import dependency",
+      "conditions": {
+        "usage": "intra-layer structural"
+      }
+    },
+    {
+      "analyzer_edge_type": "depends_on",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Runtime dependency relationship",
+      "conditions": {
+        "usage": "intra-layer dependency"
+      }
+    },
+    {
+      "analyzer_edge_type": "inherits",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Class inheritance relationship",
+      "conditions": {
+        "usage": "intra-layer structural"
+      }
+    },
+    {
+      "analyzer_edge_type": "implements",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Interface implementation relationship",
+      "conditions": {
+        "usage": "intra-layer structural"
+      }
+    },
+    {
+      "analyzer_edge_type": "creates",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Object instantiation or component creation",
+      "conditions": {
+        "usage": "intra-layer behavioral"
+      }
+    },
+    {
+      "analyzer_edge_type": "uses",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "General usage relationship",
+      "conditions": {
+        "usage": "intra-layer dependency"
+      }
+    },
+    {
+      "analyzer_edge_type": "extends",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Class or interface extension",
+      "conditions": {
+        "usage": "intra-layer structural"
+      }
+    },
+    {
+      "analyzer_edge_type": "references",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Reference to variable, field, or constant",
+      "conditions": {
+        "usage": "intra-layer dependency"
+      }
+    },
+    {
+      "analyzer_edge_type": "returns",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Return type relationship (type information only)",
+      "conditions": {
+        "usage": "type-level metadata"
+      }
+    },
+    {
+      "analyzer_edge_type": "modifies",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "State modification relationship",
+      "conditions": {
+        "usage": "intra-layer behavioral"
+      }
+    }
+  ]
+}

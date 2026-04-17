@@ -1,0 +1,117 @@
+{
+  "mappings": [
+    {
+      "analyzer_node_type": "route",
+      "dr_layer": "api",
+      "dr_node_type": "operation",
+      "confidence": "high",
+      "description": "HTTP route maps to API operation with high confidence",
+      "conditions": {
+        "verify_role": "primary",
+        "dr_element_fields": {
+          "attributes": [
+            {
+              "dr_attribute": "operationId",
+              "from": "route_handler",
+              "transform": "kebab-case"
+            },
+            {
+              "dr_attribute": "summary",
+              "from": "route_description",
+              "default": ""
+            },
+            {
+              "dr_attribute": "tags",
+              "from": "route_tags",
+              "template": "array",
+              "default": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "analyzer_node_type": "function",
+      "dr_layer": "application",
+      "dr_node_type": "applicationfunction",
+      "confidence": "medium",
+      "description": "Function maps to application function; may be promoted to service via heuristics",
+      "attribute_mappings": [
+        {
+          "analyzer_field": "name",
+          "dr_attribute": "name"
+        }
+      ],
+      "conditions": {
+        "promotion_eligible": true,
+        "promotion_target": "applicationservice",
+        "promotion_attributes": {
+          "serviceType": {
+            "from": "parent_class_name",
+            "default": "utility"
+          }
+        },
+        "evidence_fields": [
+          "fan_in",
+          "fan_out",
+          "is_exported",
+          "argument_types",
+          "return_type"
+        ]
+      }
+    },
+    {
+      "analyzer_node_type": "method",
+      "dr_layer": "application",
+      "dr_node_type": "applicationfunction",
+      "confidence": "medium",
+      "description": "Class method maps to application function; may be promoted to service via heuristics",
+      "attribute_mappings": [
+        {
+          "analyzer_field": "name",
+          "dr_attribute": "name"
+        }
+      ],
+      "conditions": {
+        "promotion_eligible": true,
+        "promotion_target": "applicationservice",
+        "promotion_attributes": {
+          "serviceType": {
+            "from": "parent_class_name",
+            "default": "domain"
+          }
+        },
+        "evidence_fields": [
+          "visibility",
+          "is_static",
+          "is_abstract",
+          "parent_class",
+          "overrides"
+        ]
+      }
+    },
+    {
+      "analyzer_node_type": "class",
+      "dr_layer": "application",
+      "dr_node_type": "applicationcomponent",
+      "confidence": "medium",
+      "description": "Class maps to application component",
+      "conditions": {
+        "evidence_fields": [
+          "abstract",
+          "interfaces",
+          "parent_class",
+          "methods_count",
+          "properties_count"
+        ]
+      }
+    },
+    {
+      "analyzer_node_type": "module",
+      "dr_layer": "application",
+      "dr_node_type": "applicationcomponent",
+      "confidence": "low",
+      "description": "Module (file/namespace) maps to application component with low confidence"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "cbm",
+  "display_name": "Codebase Memory",
+  "description": "Codebase Memory MCP analyzer that extracts semantic graphs from source code, mapping code structures to architecture model elements",
+  "mcp_server_name": "codebase-memory-mcp",
+  "supported_tool_contract": {
+    "version": "1.0",
+    "input_type": "codebase",
+    "output_type": "semantic_graph"
+  },
+  "supported_languages": [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "go",
+    "rust",
+    "csharp",
+    "php",
+    "ruby"
+  ],
+  "project_identification": {
+    "method": "package.json",
+    "fields": [
+      "name",
+      "version"
+    ]
+  },
+  "metadata": {
+    "version": "1.0",
+    "author": "Anthropic",
+    "created_at": "2026-04-17T00:00:00Z",
+    "updated_at": "2026-04-17T00:00:00Z"
+  }
+}
