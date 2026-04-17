@@ -167,6 +167,59 @@ interface ManifestDistFile {
   };
 }
 
+interface AnalyzerNodeMapping {
+  analyzer_node_type: string;
+  dr_layer: string;
+  dr_node_type: string;
+  confidence: string;
+  [key: string]: unknown;
+}
+
+interface AnalyzerEdgeMapping {
+  analyzer_edge_type: string;
+  dr_relationship: string | null;
+  confidence: string;
+  [key: string]: unknown;
+}
+
+interface AnalyzerNodeMappingFile {
+  mappings: AnalyzerNodeMapping[];
+  unmapped_labels?: string[];
+}
+
+interface AnalyzerEdgeMappingFile {
+  mappings: AnalyzerEdgeMapping[];
+}
+
+interface AnalyzerSpec {
+  name: string;
+  [key: string]: unknown;
+}
+
+interface AnalyzerHeuristics {
+  [key: string]: unknown;
+}
+
+interface PackedAnalyzer {
+  name: string;
+  version: string;
+  source_version: string;
+  analyzer: AnalyzerSpec;
+  nodes_by_label: Record<string, AnalyzerNodeMapping>;
+  edges_by_type: Record<string, AnalyzerEdgeMapping>;
+  heuristics: AnalyzerHeuristics;
+}
+
+interface AnalyzerManifestEntry {
+  name: string;
+  version: string;
+}
+
+interface AnalyzerManifestFile {
+  specVersion: string;
+  analyzers: AnalyzerManifestEntry[];
+}
+
 // ─── $ref rewriting ────────────────────────────────────────────────────────────
 
 /**
@@ -372,6 +425,206 @@ function ensureDistDir(): void {
   }
 }
 
+function ensureAnalyzersDistDir(): void {
+  const analyzersDir = path.join(DIST_DIR, "analyzers");
+  if (!fs.existsSync(analyzersDir)) {
+    fs.mkdirSync(analyzersDir, { recursive: true });
+  }
+}
+
+// ─── Analyzer validation and compilation ───────────────────────────────────────
+
+/**
+ * Validate that all dr_relationship values in edge mappings exist in predicates
+ */
+function validateDrRelationships(edgeMappings: AnalyzerEdgeMappingFile, predicates: unknown): string[] {
+  const errors: string[] = [];
+  const predicateDict = (predicates as Record<string, unknown>) || {};
+
+  for (const mapping of edgeMappings.mappings) {
+    // null is allowed (unmappable relationships)
+    if (mapping.dr_relationship !== null && !predicateDict[mapping.dr_relationship]) {
+      errors.push(
+        `Invalid dr_relationship '${mapping.dr_relationship}' in analyzer_edge_type '${mapping.analyzer_edge_type}' — not found in predicates.json`
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Load analyzer files from a directory and validate them against base schemas.
+ * Returns the packed analyzer artifact or null if validation fails.
+ */
+function loadAndValidateAnalyzer(
+  analyzerDir: string,
+  analyzerName: string,
+  baseSchemas: Record<string, unknown>,
+  predicates: unknown
+): PackedAnalyzer | null {
+  const requiredFiles = [
+    { name: "analyzer.json", schemaKey: "analyzer-spec" },
+    { name: "node-mapping.json", schemaKey: "analyzer-node-mapping" },
+    { name: "edge-mapping.json", schemaKey: "analyzer-edge-mapping" },
+    { name: "extraction-heuristics.json", schemaKey: "analyzer-heuristics" },
+  ];
+
+  const loadedFiles: Record<string, unknown> = {};
+
+  // Check that all required files exist
+  for (const { name } of requiredFiles) {
+    const filepath = path.join(analyzerDir, name);
+    if (!fs.existsSync(filepath)) {
+      console.error(`[ERROR] Required file missing in analyzer '${analyzerName}': ${name}`);
+      return null;
+    }
+  }
+
+  // Load all files
+  let analyzerSpec: AnalyzerSpec | null = null;
+  let nodeMapping: AnalyzerNodeMappingFile | null = null;
+  let edgeMapping: AnalyzerEdgeMappingFile | null = null;
+  let heuristics: AnalyzerHeuristics | null = null;
+
+  try {
+    const analyzerPath = path.join(analyzerDir, "analyzer.json");
+    analyzerSpec = JSON.parse(fs.readFileSync(analyzerPath, "utf-8"));
+    loadedFiles["analyzer.json"] = analyzerSpec;
+
+    const nodeMappingPath = path.join(analyzerDir, "node-mapping.json");
+    nodeMapping = JSON.parse(fs.readFileSync(nodeMappingPath, "utf-8"));
+    loadedFiles["node-mapping.json"] = nodeMapping;
+
+    const edgeMappingPath = path.join(analyzerDir, "edge-mapping.json");
+    edgeMapping = JSON.parse(fs.readFileSync(edgeMappingPath, "utf-8"));
+    loadedFiles["edge-mapping.json"] = edgeMapping;
+
+    const heuristicsPath = path.join(analyzerDir, "extraction-heuristics.json");
+    heuristics = JSON.parse(fs.readFileSync(heuristicsPath, "utf-8"));
+    loadedFiles["extraction-heuristics.json"] = heuristics;
+  } catch (err: any) {
+    console.error(`[ERROR] Failed to parse analyzer files in '${analyzerName}': ${err.message}`);
+    return null;
+  }
+
+  // Validate each file against its base schema
+  // Note: We're doing basic validation by checking required fields rather than full JSON schema validation
+  // to keep the build script lightweight
+  if (!analyzerSpec || !analyzerSpec.name) {
+    console.error(`[ERROR] analyzer.json in '${analyzerName}' missing required 'name' field`);
+    return null;
+  }
+
+  if (!nodeMapping || !Array.isArray(nodeMapping.mappings)) {
+    console.error(`[ERROR] node-mapping.json in '${analyzerName}' missing required 'mappings' array`);
+    return null;
+  }
+
+  if (!edgeMapping || !Array.isArray(edgeMapping.mappings)) {
+    console.error(`[ERROR] edge-mapping.json in '${analyzerName}' missing required 'mappings' array`);
+    return null;
+  }
+
+  if (!heuristics) {
+    console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' failed to load`);
+    return null;
+  }
+
+  // Validate dr_relationship values against predicates
+  const relationshipErrors = validateDrRelationships(edgeMapping, predicates);
+  if (relationshipErrors.length > 0) {
+    console.error(`[ERROR] Invalid dr_relationship values in '${analyzerName}':`);
+    relationshipErrors.forEach((err) => console.error(`  ${err}`));
+    return null;
+  }
+
+  // Get version from node-mapping.json (should have version in metadata or analyzer.json)
+  let version = "1.0";
+  if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
+    const metadata = analyzerSpec.metadata as Record<string, unknown>;
+    if (metadata.version && typeof metadata.version === "string") {
+      version = metadata.version;
+    }
+  }
+
+  // Build nodes_by_label index (using analyzer_node_type as the label/key)
+  const nodesByLabel: Record<string, AnalyzerNodeMapping> = {};
+  for (const mapping of nodeMapping.mappings) {
+    nodesByLabel[mapping.analyzer_node_type] = mapping;
+  }
+
+  // Build edges_by_type index (using analyzer_edge_type as the key)
+  const edgesByType: Record<string, AnalyzerEdgeMapping> = {};
+  for (const mapping of edgeMapping.mappings) {
+    edgesByType[mapping.analyzer_edge_type] = mapping;
+  }
+
+  // Build packed analyzer artifact
+  const packed: PackedAnalyzer = {
+    name: analyzerSpec.name as string,
+    version,
+    source_version: loadSpecVersion(), // Get current spec version
+    analyzer: analyzerSpec,
+    nodes_by_label: nodesByLabel,
+    edges_by_type: edgesByType,
+    heuristics,
+  };
+
+  return packed;
+}
+
+/**
+ * Discover and compile all analyzers in spec/analyzers/
+ */
+async function buildAnalyzers(baseSchemas: Record<string, unknown>, predicates: unknown): Promise<AnalyzerManifestEntry[]> {
+  const analyzersRootDir = path.join(SPEC_DIR, "analyzers");
+
+  if (!fs.existsSync(analyzersRootDir)) {
+    console.log("  No analyzers directory found — skipping analyzer build");
+    return [];
+  }
+
+  ensureAnalyzersDistDir();
+  const analyzersDistDir = path.join(DIST_DIR, "analyzers");
+
+  const entries = fs.readdirSync(analyzersRootDir);
+  const analyzerDirs = entries.filter((entry) => {
+    const fullPath = path.join(analyzersRootDir, entry);
+    return fs.statSync(fullPath).isDirectory();
+  });
+
+  if (analyzerDirs.length === 0) {
+    console.log("  No analyzer subdirectories found");
+    return [];
+  }
+
+  const manifestEntries: AnalyzerManifestEntry[] = [];
+
+  for (const analyzerName of analyzerDirs.sort()) {
+    const analyzerDir = path.join(analyzersRootDir, analyzerName);
+    const packed = loadAndValidateAnalyzer(analyzerDir, analyzerName, baseSchemas, predicates);
+
+    if (!packed) {
+      // Validation failed — propagate error and stop build
+      console.error(`\nFailed to build analyzer '${analyzerName}' — aborting build`);
+      process.exit(1);
+    }
+
+    // Write packed analyzer artifact
+    const analyzerDistFile = path.join(analyzersDistDir, `${analyzerName}.json`);
+    await writeJsonFile(analyzerDistFile, packed);
+    console.log(`  [OK] spec/dist/analyzers/${analyzerName}.json (v${packed.version})`);
+
+    manifestEntries.push({
+      name: packed.name,
+      version: packed.version,
+    });
+  }
+
+  return manifestEntries;
+}
+
 async function build(validate: boolean = false): Promise<void> {
   console.log("Building spec distribution...");
 
@@ -458,6 +711,21 @@ async function build(validate: boolean = false): Promise<void> {
 
   await writeJsonFile(path.join(DIST_DIR, "manifest.json"), manifestOutput);
   console.log(`  [OK] spec/dist/manifest.json`);
+
+  // Phase 6: Build analyzers
+  console.log("");
+  console.log("Building analyzers...");
+  const analyzerManifestEntries = await buildAnalyzers(baseSchemas, predicates);
+
+  if (analyzerManifestEntries.length > 0) {
+    const analyzerManifestOutput: AnalyzerManifestFile = {
+      specVersion,
+      analyzers: analyzerManifestEntries,
+    };
+    const analyzersManifestPath = path.join(DIST_DIR, "analyzers", "manifest.json");
+    await writeJsonFile(analyzersManifestPath, analyzerManifestOutput);
+    console.log(`  [OK] spec/dist/analyzers/manifest.json (${analyzerManifestEntries.length} analyzers)`);
+  }
 
   console.log("");
   console.log(`Build complete: ${totalNodeTypes} node types, ${totalRelationships} relationships`);

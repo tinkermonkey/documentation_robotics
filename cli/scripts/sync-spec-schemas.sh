@@ -36,7 +36,13 @@ fi
 rm -rf "$BUNDLED_DIR"
 mkdir -p "$BUNDLED_DIR"
 
+# Copy all top-level JSON files
 cp "$SPEC_DIST"/*.json "$BUNDLED_DIR/"
+
+# Copy analyzers directory if it exists
+if [ -d "$SPEC_DIST/analyzers" ]; then
+  cp -r "$SPEC_DIST/analyzers" "$BUNDLED_DIR/"
+fi
 
 bundled_count=$(find "$BUNDLED_DIR" -name '*.json' | wc -l | tr -d ' ')
 echo "Copied $bundled_count compiled spec files to bundled/"
