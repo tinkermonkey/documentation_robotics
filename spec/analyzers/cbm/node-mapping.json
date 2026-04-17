@@ -5,9 +5,9 @@
     "dr_layer": "canonical DR layer name (one of 12 layers)",
     "dr_node_type": "node type within the DR layer",
     "confidence": "mapping confidence level (high, medium, low)",
-    "verify_role": "optional role designation for verification scope (primary, secondary, auxiliary)",
-    "evidence_fields": "array of fields from analyzer output used as evidence for mapping confidence",
-    "promotion_heuristics": "conditions and thresholds for promoting nodes to higher-level element types"
+    "conditions.verify_role": "optional role designation for verification scope (primary, secondary, auxiliary) — nested inside conditions object",
+    "conditions.evidence_fields": "array of fields from analyzer output used as evidence for mapping confidence — nested inside conditions object",
+    "conditions.promotion_heuristics": "conditions and thresholds for promoting nodes to higher-level element types — nested inside conditions object"
   },
   "mappings": [
     {

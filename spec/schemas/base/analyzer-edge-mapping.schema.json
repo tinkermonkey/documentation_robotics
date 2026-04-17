@@ -101,7 +101,7 @@
           "directionality_transform": {
             "type": ["string", "null"],
             "enum": ["invert", "bidirectional", "symmetric", null],
-            "description": "Optional transformation to apply to relationship directionality. 'invert' reverses the direction, 'bidirectional' treats as two-way, 'symmetric' makes relationship symmetric, null = no transform",
+            "description": "Optional runtime transformation to apply to relationship directionality during mapping. 'invert' reverses the direction, 'bidirectional' treats as two-way, 'symmetric' makes relationship symmetric, null = no transform. This is independent of the 'direction' field, which specifies the inherent directionality of the relationship itself.",
             "default": null
           },
           "usage": {
@@ -117,7 +117,7 @@
           "direction": {
             "type": "string",
             "enum": ["forward", "backward", "bidirectional"],
-            "description": "Optional directionality of the relationship"
+            "description": "Optional specification of the inherent directionality of the relationship in the source code model (forward = source→target, backward = target→source, bidirectional = both directions). This is independent of 'directionality_transform', which specifies runtime transformations to apply during mapping."
           },
           "confidence_from_property": {
             "type": "string",

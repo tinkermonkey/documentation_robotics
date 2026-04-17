@@ -181,6 +181,11 @@ interface AnalyzerNodeMapping {
   dr_node_type: string;
   confidence: "high" | "medium" | "low";
   description?: string;
+  source_reference?: {
+    provenance: "extracted" | "inferred";
+    file?: { from: string };
+    symbol?: { from: string };
+  };
   attribute_mappings?: AttributeMapping[];
   conditions?: Record<string, unknown>;
 }
@@ -191,6 +196,8 @@ interface UnmappedLabel {
 }
 
 interface AnalyzerNodeMappingFile {
+  version?: string;
+  field_conventions?: Record<string, unknown>;
   mappings: AnalyzerNodeMapping[];
   unmapped_labels?: UnmappedLabel[];
 }
@@ -200,11 +207,19 @@ interface AnalyzerEdgeMapping {
   dr_relationship: string | null;
   confidence: "high" | "medium" | "low";
   directionality_transform?: "invert" | "bidirectional" | "symmetric" | null;
+  usage?: "verification_and_mapping" | "traversal_only";
+  dr_scope?: "intra-layer" | "cross-layer" | "both";
+  direction?: "forward" | "backward" | "bidirectional";
+  confidence_from_property?: string;
+  dr_pattern?: string;
+  implementation_note?: string;
   description?: string;
   conditions?: Record<string, unknown>;
 }
 
 interface AnalyzerEdgeMappingFile {
+  version?: string;
+  field_conventions?: Record<string, unknown>;
   mappings: AnalyzerEdgeMapping[];
 }
 

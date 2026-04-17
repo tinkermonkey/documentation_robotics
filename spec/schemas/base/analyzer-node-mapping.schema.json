@@ -81,6 +81,7 @@
               "file": {
                 "type": "object",
                 "description": "File location information",
+                "required": ["from"],
                 "additionalProperties": false,
                 "properties": {
                   "from": {
@@ -92,6 +93,7 @@
               "symbol": {
                 "type": "object",
                 "description": "Symbol or code element information",
+                "required": ["from"],
                 "additionalProperties": false,
                 "properties": {
                   "from": {
