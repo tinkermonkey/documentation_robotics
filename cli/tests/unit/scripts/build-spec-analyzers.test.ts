@@ -1,24 +1,26 @@
 /**
  * Unit tests for build-spec.ts analyzer compilation logic
  *
- * Tests the build pipeline's analyzer compilation behavior including:
+ * Tests the analyzer compilation behavior in the build pipeline:
  * - Valid analyzer directories compile successfully to packed artifacts
  * - Missing required files cause build failure
+ * - Invalid dr_layer values cause build failure
  * - Invalid dr_relationship values cause build failure
- *
- * Note: These tests use the actual build-spec.ts script to ensure the
- * analyzer compilation pipeline works end-to-end.
  */
 
 import { describe, it, expect } from "bun:test";
 import { join, resolve } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from "fs";
+import { execSync } from "child_process";
 
 // Path to the actual compiled analyzer artifacts from the build
 const SPEC_DIST_DIR = resolve(import.meta.dir, "../../../../spec/dist");
+const SPEC_DIR = resolve(import.meta.dir, "../../../../spec");
+const REPO_ROOT = resolve(import.meta.dir, "../../../../");
+const ANALYZERS_DIR = join(SPEC_DIR, "analyzers");
 
 describe("build-spec.ts Analyzer Compilation", () => {
-  describe("Valid analyzer artifacts", () => {
+  describe("Scenario (a): Valid analyzer artifacts", () => {
     it("should have compiled the cbm analyzer to a packed artifact", () => {
       // The cbm analyzer is in the actual spec directory and should be compiled
       const cbmPath = join(SPEC_DIST_DIR, "analyzers", "cbm.json");
@@ -121,6 +123,84 @@ describe("build-spec.ts Analyzer Compilation", () => {
     });
   });
 
+  describe("Scenario (b): Missing required files cause build failure", () => {
+    it("should fail when analyzer.json is missing", () => {
+      const testAnalyzerDir = createTestAnalyzer("test-missing-analyzer");
+      try {
+        // Remove analyzer.json
+        const analyzerJsonPath = join(testAnalyzerDir, "analyzer.json");
+        rmSync(analyzerJsonPath, { force: true });
+
+        // Run build and expect failure
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("Required file missing");
+        expect(result.stderr).toContain("analyzer.json");
+      } finally {
+        cleanupTestAnalyzer(testAnalyzerDir);
+      }
+    });
+
+    it("should fail when node-mapping.json is missing", () => {
+      const testAnalyzerDir = createTestAnalyzer("test-missing-node-mapping");
+      try {
+        // Remove node-mapping.json
+        const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
+        rmSync(nodeMappingPath, { force: true });
+
+        // Run build and expect failure
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("Required file missing");
+        expect(result.stderr).toContain("node-mapping.json");
+      } finally {
+        cleanupTestAnalyzer(testAnalyzerDir);
+      }
+    });
+  });
+
+  describe("Scenario (c): Invalid dr_layer values cause build failure", () => {
+    it("should fail when dr_layer has an invalid canonical layer name", () => {
+      const testAnalyzerDir = createTestAnalyzer("test-invalid-dr-layer");
+      try {
+        // Modify node-mapping.json with invalid dr_layer
+        const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
+        const nodeMapping = JSON.parse(readFileSync(nodeMappingPath, "utf-8"));
+        nodeMapping.mappings[0].dr_layer = "invalid-layer-name";
+        writeFileSync(nodeMappingPath, JSON.stringify(nodeMapping, null, 2));
+
+        // Run build and expect failure
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("Invalid dr_layer");
+        expect(result.stderr).toContain("invalid-layer-name");
+      } finally {
+        cleanupTestAnalyzer(testAnalyzerDir);
+      }
+    });
+  });
+
+  describe("Scenario (d): Invalid dr_relationship values cause build failure", () => {
+    it("should fail when dr_relationship references a non-existent predicate", () => {
+      const testAnalyzerDir = createTestAnalyzer("test-invalid-dr-relationship");
+      try {
+        // Modify edge-mapping.json with invalid dr_relationship
+        const edgeMappingPath = join(testAnalyzerDir, "edge-mapping.json");
+        const edgeMapping = JSON.parse(readFileSync(edgeMappingPath, "utf-8"));
+        edgeMapping.mappings[0].dr_relationship = "non_existent_predicate_xyz";
+        writeFileSync(edgeMappingPath, JSON.stringify(edgeMapping, null, 2));
+
+        // Run build and expect failure
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("Invalid dr_relationship");
+        expect(result.stderr).toContain("non_existent_predicate_xyz");
+      } finally {
+        cleanupTestAnalyzer(testAnalyzerDir);
+      }
+    });
+  });
+
   describe("Analyzer manifest", () => {
     it("should have created an analyzer manifest listing all analyzers", () => {
       const manifestPath = join(SPEC_DIST_DIR, "analyzers", "manifest.json");
@@ -189,3 +269,88 @@ describe("build-spec.ts Analyzer Compilation", () => {
     });
   });
 });
+
+/**
+ * Backup a test analyzer directory, create a new one with test data
+ */
+function createTestAnalyzer(testName: string): string {
+  const testAnalyzerDir = join(ANALYZERS_DIR, testName);
+
+  // Create test analyzer directory
+  mkdirSync(testAnalyzerDir, { recursive: true });
+
+  // Create test analyzer files
+  writeFileSync(
+    join(testAnalyzerDir, "analyzer.json"),
+    JSON.stringify({
+      name: testName,
+      metadata: {
+        version: "1.0",
+      },
+    }, null, 2)
+  );
+
+  writeFileSync(
+    join(testAnalyzerDir, "node-mapping.json"),
+    JSON.stringify({
+      mappings: [
+        {
+          analyzer_node_type: "TestNode",
+          dr_layer: "api",
+          dr_node_type: "endpoint",
+          confidence: "high",
+        },
+      ],
+    }, null, 2)
+  );
+
+  writeFileSync(
+    join(testAnalyzerDir, "edge-mapping.json"),
+    JSON.stringify({
+      mappings: [
+        {
+          analyzer_edge_type: "test_edge",
+          dr_relationship: "consumes",
+          confidence: "high",
+        },
+      ],
+    }, null, 2)
+  );
+
+  writeFileSync(
+    join(testAnalyzerDir, "extraction-heuristics.json"),
+    JSON.stringify({}, null, 2)
+  );
+
+  return testAnalyzerDir;
+}
+
+/**
+ * Remove a test analyzer directory
+ */
+function cleanupTestAnalyzer(analyzerDir: string): void {
+  try {
+    rmSync(analyzerDir, { recursive: true, force: true });
+  } catch {
+    // Ignore errors
+  }
+}
+
+/**
+ * Run the build-spec script and capture output
+ */
+function runBuildAndCapture(): { exitCode: number; stderr: string } {
+  try {
+    execSync("npm run build:spec", {
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+      stdio: "pipe",
+    });
+    return { exitCode: 0, stderr: "" };
+  } catch (error: any) {
+    return {
+      exitCode: error.status || 1,
+      stderr: error.stderr ? error.stderr.toString() : error.stdout ? error.stdout.toString() : error.toString(),
+    };
+  }
+}

@@ -23,8 +23,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - Edge type mappings: HTTP calls → `consumes`, request handlers → `provides`, with unmappable
     edges (function calls, imports, inheritance) marked with `null` dr_relationship
   - Extraction heuristics for guiding semantic graph generation from source code
-- **Build Pipeline Enhancements** — Extended `spec/scripts/build-spec.ts` with Phase 6 analyzer
-  compilation that validates and compiles all analyzer directories into `spec/dist/analyzers/`:
+- **Build Pipeline Enhancements** — Extended `spec/scripts/build-spec.ts` with analyzer
+  compilation and validation that compiles all analyzer directories into `spec/dist/analyzers/`:
   - Validates required files exist: `analyzer.json`, `node-mapping.json`, `edge-mapping.json`,
     `extraction-heuristics.json`
   - Validates all `dr_relationship` values exist in `predicates.json` (null allowed for unmappable edges)

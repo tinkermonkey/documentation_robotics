@@ -435,6 +435,24 @@ function ensureAnalyzersDistDir(): void {
 // ─── Analyzer validation and compilation ───────────────────────────────────────
 
 /**
+ * Validate that all dr_layer values in node mappings are valid canonical layer IDs
+ */
+function validateDrLayers(nodeMappings: AnalyzerNodeMappingFile): string[] {
+  const errors: string[] = [];
+  const validLayers = new Set(LAYER_ORDER);
+
+  for (const mapping of nodeMappings.mappings) {
+    if (!validLayers.has(mapping.dr_layer)) {
+      errors.push(
+        `Invalid dr_layer '${mapping.dr_layer}' in analyzer_node_type '${mapping.analyzer_node_type}' — must be one of: ${Array.from(validLayers).join(", ")}`
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Validate that all dr_relationship values in edge mappings exist in predicates
  */
 function validateDrRelationships(edgeMappings: AnalyzerEdgeMappingFile, predicates: unknown): string[] {
@@ -521,6 +539,14 @@ function loadAndValidateAnalyzer(
 
   if (!heuristics) {
     console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' failed to load`);
+    return null;
+  }
+
+  // Validate dr_layer values are valid canonical layer IDs
+  const layerErrors = validateDrLayers(nodeMapping);
+  if (layerErrors.length > 0) {
+    console.error(`[ERROR] Invalid dr_layer values in '${analyzerName}':`);
+    layerErrors.forEach((err) => console.error(`  ${err}`));
     return null;
   }
 
