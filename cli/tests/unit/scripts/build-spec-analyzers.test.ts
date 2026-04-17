@@ -10,8 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { join, resolve } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, cpSync } from "fs";
-import { mkdtempSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, mkdtempSync, readdirSync } from "fs";
 import { execSync } from "child_process";
 import { tmpdir } from "os";
 
@@ -24,13 +23,52 @@ const ANALYZERS_DIR = join(SPEC_DIR, "analyzers");
 // Track temp directories created during tests for cleanup
 let testTempDirs: string[] = [];
 
+// Track installed test analyzers in spec/analyzers/ for cleanup
+let installedAnalyzerDirs: string[] = [];
+
 describe("build-spec.ts Analyzer Compilation", () => {
   beforeEach(() => {
     // Clear any leftover temp directories from previous test failures
     testTempDirs = [];
+    // Clear any leftover installed analyzers from previous test failures
+    installedAnalyzerDirs = [];
+
+    // Safety net: scan for and remove any lingering test-* directories from crashed test runs
+    // This prevents orphaned directories from corrupting the next npm run build:spec
+    if (existsSync(ANALYZERS_DIR)) {
+      try {
+        const files = readdirSync(ANALYZERS_DIR);
+        for (const file of files) {
+          if (file.startsWith("test-")) {
+            const staleDir = join(ANALYZERS_DIR, file);
+            try {
+              rmSync(staleDir, { recursive: true, force: true });
+            } catch (error) {
+              // Rethrow to propagate errors, don't swallow them
+              throw new Error(`Failed to clean up stale test analyzer directory ${staleDir}: ${error}`);
+            }
+          }
+        }
+      } catch (error) {
+        // Rethrow to propagate errors during stale directory cleanup
+        throw error;
+      }
+    }
   });
 
   afterEach(() => {
+    // Clean up all installed test analyzers that were copied to spec/analyzers/
+    for (const analyzerDir of installedAnalyzerDirs) {
+      if (existsSync(analyzerDir)) {
+        try {
+          rmSync(analyzerDir, { recursive: true, force: true });
+        } catch (error) {
+          throw new Error(`Failed to clean up test analyzer directory ${analyzerDir}: ${error}`);
+        }
+      }
+    }
+    installedAnalyzerDirs = [];
+
     // Clean up all temp directories created by this test
     // Rethrow errors to fail the test if cleanup fails
     for (const tempDir of testTempDirs) {
@@ -385,7 +423,9 @@ function createTestAnalyzer(testName: string): string {
  * so the build script can find and compile it.
  *
  * This is used for tests that need to run the actual build script.
- * The copied directory is still tracked for cleanup via the temp directory tracking.
+ * The copied directory is tracked for cleanup via installedAnalyzerDirs,
+ * providing a second line of defense against orphaned state if uninstallTestAnalyzer
+ * is not called or throws an error.
  *
  * @param testAnalyzerTempDir - Path to the temporary test analyzer directory
  * @param analyzerName - Name to use when copying into spec/analyzers/
@@ -401,6 +441,9 @@ function installTestAnalyzerForBuild(testAnalyzerTempDir: string, analyzerName: 
 
   // Copy the temp analyzer into spec/analyzers/
   cpSync(testAnalyzerTempDir, targetDir, { recursive: true });
+
+  // Track the installed directory for cleanup in afterEach
+  installedAnalyzerDirs.push(targetDir);
 
   return targetDir;
 }
