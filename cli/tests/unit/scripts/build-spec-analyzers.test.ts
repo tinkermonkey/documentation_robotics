@@ -366,7 +366,6 @@ function cleanupTestAnalyzer(analyzerDir: string): void {
     }
   } catch (error) {
     console.error(`Failed to clean up test analyzer directory ${analyzerDir}:`, error);
-    throw error;
   }
 }
 
