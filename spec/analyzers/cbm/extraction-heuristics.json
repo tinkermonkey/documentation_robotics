@@ -1,4 +1,21 @@
 {
+  "confidence_rubric": {
+    "high": {
+      "min": 0.8,
+      "max": 1.0,
+      "description": "High confidence: mapping is reliable and well-supported by evidence"
+    },
+    "medium": {
+      "min": 0.5,
+      "max": 0.79,
+      "description": "Medium confidence: mapping is reasonably supported but may have ambiguity"
+    },
+    "low": {
+      "min": 0.0,
+      "max": 0.49,
+      "description": "Low confidence: mapping is tentative and may require manual verification"
+    }
+  },
   "heuristics": [
     {
       "name": "min_fan_in",
@@ -122,6 +139,37 @@
       ],
       "rule": "Function/method decorated with @Route, @Handler, or similar HTTP decorator maps to api.operation with high confidence",
       "confidence_adjustment": 0.30
+    },
+    {
+      "name": "datastore_detection",
+      "description": "Patterns and conventions that identify datastore-related elements (tables, schemas, migrations)",
+      "applies_to": [
+        "data-store.table",
+        "data-store.column",
+        "data-model.entity",
+        "data-model.attribute"
+      ],
+      "parameters": {
+        "patterns": [
+          "**/migrations/**",
+          "**/schema/**",
+          "*.sql",
+          "*.migration.*",
+          "*schema.ts",
+          "*model.ts"
+        ],
+        "naming_indicators": [
+          "table",
+          "column",
+          "schema",
+          "migration",
+          "entity",
+          "dto",
+          "model"
+        ]
+      },
+      "rule": "If element resides in datastore-related directories or files, or follows datastore naming conventions, identify as data-store or data-model layer element",
+      "confidence_adjustment": 0.25
     }
   ],
   "inference_rules": [
@@ -130,6 +178,13 @@
       "description": "Qualified functions can be promoted to services via heuristic signals",
       "pattern": "applicationfunction + (min_fan_in >= 5 OR directory_match OR naming_patterns OR is_entry_point) => applicationservice",
       "confidence": "medium",
+      "enabled": true
+    },
+    {
+      "name": "verify_scope_v1",
+      "description": "Scope boundary rule: verify_role=primary applies only to api.operation (Route elements) in v1",
+      "pattern": "verify_role: primary => api.operation only (excludes Function, Method, Class, Module)",
+      "confidence": "high",
       "enabled": true
     }
   ],

@@ -168,6 +168,86 @@
         }
       }
     },
+    "confidence_rubric": {
+      "type": "object",
+      "description": "Defines how numeric confidence scores map to qualitative confidence levels (high/medium/low)",
+      "additionalProperties": false,
+      "required": ["high", "medium", "low"],
+      "properties": {
+        "high": {
+          "type": "object",
+          "description": "Threshold for high confidence mapping",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Minimum score for high confidence"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Maximum score for high confidence"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of high confidence threshold"
+            }
+          }
+        },
+        "medium": {
+          "type": "object",
+          "description": "Threshold for medium confidence mapping",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Minimum score for medium confidence"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Maximum score for medium confidence"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of medium confidence threshold"
+            }
+          }
+        },
+        "low": {
+          "type": "object",
+          "description": "Threshold for low confidence mapping",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Minimum score for low confidence"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Maximum score for low confidence"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of low confidence threshold"
+            }
+          }
+        }
+      }
+    },
     "metadata": {
       "type": "object",
       "description": "Optional metadata about these heuristics",

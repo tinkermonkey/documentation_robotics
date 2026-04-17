@@ -89,6 +89,26 @@
           }
         }
       }
+    },
+    "unmapped_labels": {
+      "type": "array",
+      "description": "Array of analyzer node type labels that could not be mapped to DR model elements",
+      "items": {
+        "type": "object",
+        "required": ["analyzer_node_type"],
+        "additionalProperties": true,
+        "properties": {
+          "analyzer_node_type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Node type identifier from the analyzer output that is not mapped to DR model"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional explanation for why this label is unmapped"
+          }
+        }
+      }
     }
   }
 }
