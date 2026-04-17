@@ -32,6 +32,27 @@
       "pattern": "^[a-z][a-z0-9-]*$",
       "description": "MCP server identifier for this analyzer. Used to locate and invoke the analyzer service."
     },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional URL to the analyzer's homepage or documentation"
+    },
+    "binary_names": {
+      "type": "array",
+      "description": "Optional list of executable or binary names associated with this analyzer",
+      "items": {
+        "type": "string"
+      }
+    },
+    "known_minimum_version": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+)*$",
+      "description": "Optional minimum version of the analyzer tool that is supported"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional implementation notes or additional context about this analyzer"
+    },
     "supported_tool_contract": {
       "type": "object",
       "description": "Specifies the contract version and supported I/O types for this analyzer",

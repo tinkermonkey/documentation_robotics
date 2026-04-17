@@ -1,4 +1,14 @@
 {
+  "version": "1.0",
+  "field_conventions": {
+    "analyzer_node_type": "lowercase_underscore identifier from CBM analyzer output",
+    "dr_layer": "canonical DR layer name (one of 12 layers)",
+    "dr_node_type": "node type within the DR layer",
+    "confidence": "mapping confidence level (high, medium, low)",
+    "verify_role": "optional role designation for verification scope (primary, secondary, auxiliary)",
+    "evidence_fields": "array of fields from analyzer output used as evidence for mapping confidence",
+    "promotion_heuristics": "conditions and thresholds for promoting nodes to higher-level element types"
+  },
   "mappings": [
     {
       "analyzer_node_type": "route",
@@ -6,6 +16,15 @@
       "dr_node_type": "operation",
       "confidence": "high",
       "description": "HTTP route maps to API operation with high confidence",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "decorator_location"
+        },
+        "symbol": {
+          "from": "route_handler"
+        }
+      },
       "conditions": {
         "verify_role": "primary",
         "dr_element_fields": {
@@ -36,6 +55,15 @@
       "dr_node_type": "applicationfunction",
       "confidence": "medium",
       "description": "Function maps to application function; may be promoted to service via heuristics",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_location"
+        },
+        "symbol": {
+          "from": "function_name"
+        }
+      },
       "attribute_mappings": [
         {
           "analyzer_field": "name",
@@ -66,6 +94,15 @@
       "dr_node_type": "applicationfunction",
       "confidence": "medium",
       "description": "Class method maps to application function; may be promoted to service via heuristics",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_location"
+        },
+        "symbol": {
+          "from": "method_name"
+        }
+      },
       "attribute_mappings": [
         {
           "analyzer_field": "name",
@@ -96,6 +133,15 @@
       "dr_node_type": "applicationcomponent",
       "confidence": "medium",
       "description": "Class maps to application component",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_location"
+        },
+        "symbol": {
+          "from": "class_name"
+        }
+      },
       "conditions": {
         "evidence_fields": [
           "abstract",
@@ -111,8 +157,46 @@
       "dr_layer": "application",
       "dr_node_type": "applicationcomponent",
       "confidence": "low",
-      "description": "Module (file/namespace) maps to application component with low confidence"
+      "description": "Module (file/namespace) maps to application component with low confidence",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_location"
+        },
+        "symbol": {
+          "from": "module_path"
+        }
+      }
     }
   ],
-  "unmapped_labels": []
+  "unmapped_labels": [
+    {
+      "analyzer_node_type": "project",
+      "reason": "Project-level artifacts represent codebase metadata, not architecture model elements. Project identification is handled separately via project_identification in analyzer.json."
+    },
+    {
+      "analyzer_node_type": "package",
+      "reason": "Package-level constructs map to technology.stack or technology.platform concepts, not discrete architecture elements. Requires semantic analysis to determine architectural significance."
+    },
+    {
+      "analyzer_node_type": "folder",
+      "reason": "Directory/folder structures are implementation details of code organization, not first-class architecture model elements. Mapping would create noise unless explicitly promoted via heuristics."
+    },
+    {
+      "analyzer_node_type": "file",
+      "reason": "Individual files are too granular for architecture models. File-level structure is captured through source_reference provenance linking, not as elements."
+    },
+    {
+      "analyzer_node_type": "interface",
+      "reason": "Interface definitions are abstraction mechanisms within code (application layer), but not distinct element types in the DR model. Represented implicitly through applicationcomponent relationships."
+    },
+    {
+      "analyzer_node_type": "enum",
+      "reason": "Enumeration types represent constrained value sets, more suitable for data-model layer attributes than standalone elements. Captured through attribute definitions, not as first-class elements."
+    },
+    {
+      "analyzer_node_type": "type",
+      "reason": "Type definitions (aliases, generics, unions) are type-level metadata without semantic architectural significance. Type information flows through attributes and element properties."
+    }
+  ]
 }

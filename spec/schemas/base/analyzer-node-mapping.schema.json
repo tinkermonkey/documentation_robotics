@@ -7,6 +7,16 @@
   "required": ["mappings"],
   "additionalProperties": false,
   "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+)*$",
+      "description": "Optional version identifier for this mapping configuration"
+    },
+    "field_conventions": {
+      "type": "object",
+      "description": "Optional documentation of field naming conventions and semantics used in this mapping",
+      "additionalProperties": true
+    },
     "mappings": {
       "type": "array",
       "description": "Array of node type mapping definitions",
@@ -57,6 +67,40 @@
           "description": {
             "type": "string",
             "description": "Optional explanation of why this mapping exists or any special conditions"
+          },
+          "source_reference": {
+            "type": "object",
+            "description": "Optional provenance configuration for extracting source code location and symbol information",
+            "additionalProperties": false,
+            "properties": {
+              "provenance": {
+                "type": "string",
+                "enum": ["extracted", "inferred"],
+                "description": "How the provenance was determined (extracted directly from code or inferred from patterns)"
+              },
+              "file": {
+                "type": "object",
+                "description": "File location information",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "Field or property in analyzer output that contains file location"
+                  }
+                }
+              },
+              "symbol": {
+                "type": "object",
+                "description": "Symbol or code element information",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "Field or property in analyzer output that contains symbol name or identifier"
+                  }
+                }
+              }
+            }
           },
           "attribute_mappings": {
             "type": "array",
