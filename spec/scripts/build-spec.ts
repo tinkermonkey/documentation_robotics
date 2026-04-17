@@ -568,7 +568,7 @@ function formatAjvErrors(errors: any[] | null | undefined): string {
       if (keyword === "required") {
         message = `missing required fields: ${params.missingProperty}`;
       } else if (keyword === "type") {
-        message = `expected type ${params.type}, got ${typeof err.data}`;
+        message = err.message || `expected type ${params.type}`;
       } else if (keyword === "enum") {
         message = `must be one of: ${params.allowedValues?.join(", ") || "unknown"}`;
       } else if (keyword === "pattern") {
