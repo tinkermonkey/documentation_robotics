@@ -454,26 +454,23 @@ function validateDrRelationships(edgeMappings: AnalyzerEdgeMappingFile, predicat
 }
 
 /**
- * Load analyzer files from a directory and validate them against base schemas.
+ * Load analyzer files from a directory and validate them.
  * Returns the packed analyzer artifact or null if validation fails.
  */
 function loadAndValidateAnalyzer(
   analyzerDir: string,
   analyzerName: string,
-  baseSchemas: Record<string, unknown>,
   predicates: unknown
 ): PackedAnalyzer | null {
   const requiredFiles = [
-    { name: "analyzer.json", schemaKey: "analyzer-spec" },
-    { name: "node-mapping.json", schemaKey: "analyzer-node-mapping" },
-    { name: "edge-mapping.json", schemaKey: "analyzer-edge-mapping" },
-    { name: "extraction-heuristics.json", schemaKey: "analyzer-heuristics" },
+    "analyzer.json",
+    "node-mapping.json",
+    "edge-mapping.json",
+    "extraction-heuristics.json",
   ];
 
-  const loadedFiles: Record<string, unknown> = {};
-
   // Check that all required files exist
-  for (const { name } of requiredFiles) {
+  for (const name of requiredFiles) {
     const filepath = path.join(analyzerDir, name);
     if (!fs.existsSync(filepath)) {
       console.error(`[ERROR] Required file missing in analyzer '${analyzerName}': ${name}`);
@@ -490,19 +487,15 @@ function loadAndValidateAnalyzer(
   try {
     const analyzerPath = path.join(analyzerDir, "analyzer.json");
     analyzerSpec = JSON.parse(fs.readFileSync(analyzerPath, "utf-8"));
-    loadedFiles["analyzer.json"] = analyzerSpec;
 
     const nodeMappingPath = path.join(analyzerDir, "node-mapping.json");
     nodeMapping = JSON.parse(fs.readFileSync(nodeMappingPath, "utf-8"));
-    loadedFiles["node-mapping.json"] = nodeMapping;
 
     const edgeMappingPath = path.join(analyzerDir, "edge-mapping.json");
     edgeMapping = JSON.parse(fs.readFileSync(edgeMappingPath, "utf-8"));
-    loadedFiles["edge-mapping.json"] = edgeMapping;
 
     const heuristicsPath = path.join(analyzerDir, "extraction-heuristics.json");
     heuristics = JSON.parse(fs.readFileSync(heuristicsPath, "utf-8"));
-    loadedFiles["extraction-heuristics.json"] = heuristics;
   } catch (err: any) {
     console.error(`[ERROR] Failed to parse analyzer files in '${analyzerName}': ${err.message}`);
     return null;
@@ -539,7 +532,7 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
-  // Get version from node-mapping.json (should have version in metadata or analyzer.json)
+  // Get version from analyzer.json metadata
   let version = "1.0";
   if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
     const metadata = analyzerSpec.metadata as Record<string, unknown>;
@@ -548,10 +541,12 @@ function loadAndValidateAnalyzer(
     }
   }
 
-  // Build nodes_by_label index (using analyzer_node_type as the label/key)
+  // Build nodes_by_label index (using capitalized analyzer_node_type as the label/key)
   const nodesByLabel: Record<string, AnalyzerNodeMapping> = {};
   for (const mapping of nodeMapping.mappings) {
-    nodesByLabel[mapping.analyzer_node_type] = mapping;
+    // Capitalize first letter of analyzer_node_type for PascalCase keys
+    const labelKey = mapping.analyzer_node_type.charAt(0).toUpperCase() + mapping.analyzer_node_type.slice(1);
+    nodesByLabel[labelKey] = mapping;
   }
 
   // Build edges_by_type index (using analyzer_edge_type as the key)
@@ -577,7 +572,7 @@ function loadAndValidateAnalyzer(
 /**
  * Discover and compile all analyzers in spec/analyzers/
  */
-async function buildAnalyzers(baseSchemas: Record<string, unknown>, predicates: unknown): Promise<AnalyzerManifestEntry[]> {
+async function buildAnalyzers(predicates: unknown): Promise<AnalyzerManifestEntry[]> {
   const analyzersRootDir = path.join(SPEC_DIR, "analyzers");
 
   if (!fs.existsSync(analyzersRootDir)) {
@@ -603,7 +598,7 @@ async function buildAnalyzers(baseSchemas: Record<string, unknown>, predicates: 
 
   for (const analyzerName of analyzerDirs.sort()) {
     const analyzerDir = path.join(analyzersRootDir, analyzerName);
-    const packed = loadAndValidateAnalyzer(analyzerDir, analyzerName, baseSchemas, predicates);
+    const packed = loadAndValidateAnalyzer(analyzerDir, analyzerName, predicates);
 
     if (!packed) {
       // Validation failed — propagate error and stop build
@@ -715,7 +710,7 @@ async function build(validate: boolean = false): Promise<void> {
   // Phase 6: Build analyzers
   console.log("");
   console.log("Building analyzers...");
-  const analyzerManifestEntries = await buildAnalyzers(baseSchemas, predicates);
+  const analyzerManifestEntries = await buildAnalyzers(predicates);
 
   if (analyzerManifestEntries.length > 0) {
     const analyzerManifestOutput: AnalyzerManifestFile = {

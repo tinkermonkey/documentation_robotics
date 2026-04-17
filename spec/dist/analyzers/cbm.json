@@ -35,7 +35,7 @@
     }
   },
   "nodes_by_label": {
-    "route": {
+    "Route": {
       "analyzer_node_type": "route",
       "dr_layer": "api",
       "dr_node_type": "operation",
@@ -65,7 +65,7 @@
         }
       }
     },
-    "function": {
+    "Function": {
       "analyzer_node_type": "function",
       "dr_layer": "application",
       "dr_node_type": "applicationfunction",
@@ -95,7 +95,7 @@
         ]
       }
     },
-    "method": {
+    "Method": {
       "analyzer_node_type": "method",
       "dr_layer": "application",
       "dr_node_type": "applicationfunction",
@@ -125,7 +125,7 @@
         ]
       }
     },
-    "class": {
+    "Class": {
       "analyzer_node_type": "class",
       "dr_layer": "application",
       "dr_node_type": "applicationcomponent",
@@ -141,7 +141,7 @@
         ]
       }
     },
-    "module": {
+    "Module": {
       "analyzer_node_type": "module",
       "dr_layer": "application",
       "dr_node_type": "applicationcomponent",
