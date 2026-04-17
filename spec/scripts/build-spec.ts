@@ -551,7 +551,42 @@ function ensureAnalyzersDistDir(): void {
 // ─── JSON Schema Validation ────────────────────────────────────────────────────
 
 /**
+ * Format Ajv validation errors into a readable string
+ */
+function formatAjvErrors(errors: any[] | null | undefined): string {
+  if (!errors || errors.length === 0) {
+    return "Unknown validation error";
+  }
+  return errors
+    .map((err) => {
+      const path = err.instancePath || "(root)";
+      const keyword = err.keyword;
+      const params = err.params;
+
+      // Build descriptive error message based on keyword
+      let message = "";
+      if (keyword === "required") {
+        message = `missing required fields: ${params.missingProperty}`;
+      } else if (keyword === "type") {
+        message = `expected type ${params.type}, got ${typeof err.data}`;
+      } else if (keyword === "enum") {
+        message = `must be one of: ${params.allowedValues?.join(", ") || "unknown"}`;
+      } else if (keyword === "pattern") {
+        message = `does not match pattern: ${params.pattern}`;
+      } else if (keyword === "additionalProperties") {
+        message = `unexpected property: ${params.additionalProperty}`;
+      } else {
+        message = err.message || "validation failed";
+      }
+
+      return `${path}: ${message}`;
+    })
+    .join("; ");
+}
+
+/**
  * Create a validator for the analyzer schemas by loading actual schema files
+ * Throws if any schema file is missing or malformed (called lazily to not block base schema build)
  */
 function createAnalyzerValidator() {
   const ajv = new Ajv({ strict: false });
@@ -578,14 +613,28 @@ function createAnalyzerValidator() {
   const validateHeuristics = ajv.compile(analyzerHeuristicsSchema);
 
   return {
-    validateSpec: (data: unknown) => validateSpec(data),
-    validateNodeMapping: (data: unknown) => validateNodeMapping(data),
-    validateEdgeMapping: (data: unknown) => validateEdgeMapping(data),
-    validateHeuristics: (data: unknown) => validateHeuristics(data),
+    validateSpec: (data: unknown) => {
+      const valid = validateSpec(data);
+      return { valid, errors: validateSpec.errors };
+    },
+    validateNodeMapping: (data: unknown) => {
+      const valid = validateNodeMapping(data);
+      return { valid, errors: validateNodeMapping.errors };
+    },
+    validateEdgeMapping: (data: unknown) => {
+      const valid = validateEdgeMapping(data);
+      return { valid, errors: validateEdgeMapping.errors };
+    },
+    validateHeuristics: (data: unknown) => {
+      const valid = validateHeuristics(data);
+      return { valid, errors: validateHeuristics.errors };
+    },
   };
 }
 
-const schemaValidator = createAnalyzerValidator();
+// Validator is lazily initialized in buildAnalyzers() to avoid blocking the entire build
+// if analyzer schema files are missing or malformed
+let schemaValidator: ReturnType<typeof createAnalyzerValidator> | null = null;
 
 // ─── Analyzer validation and compilation ───────────────────────────────────────
 
@@ -690,23 +739,43 @@ function loadAndValidateAnalyzer(
   }
 
   // Validate each file against its schema structure
-  if (!analyzerSpec || !schemaValidator.validateSpec(analyzerSpec)) {
-    console.error(`[ERROR] analyzer.json in '${analyzerName}' does not match schema (missing required fields: name, display_name, mcp_server_name, supported_tool_contract, supported_languages, project_identification)`);
+  if (!analyzerSpec) {
+    console.error(`[ERROR] analyzer.json in '${analyzerName}' failed to parse`);
+    return null;
+  }
+  const specValidation = schemaValidator!.validateSpec(analyzerSpec);
+  if (!specValidation.valid) {
+    console.error(`[ERROR] analyzer.json in '${analyzerName}' does not match schema: ${formatAjvErrors(specValidation.errors)}`);
     return null;
   }
 
-  if (!nodeMapping || !schemaValidator.validateNodeMapping(nodeMapping)) {
-    console.error(`[ERROR] node-mapping.json in '${analyzerName}' does not match schema`);
+  if (!nodeMapping) {
+    console.error(`[ERROR] node-mapping.json in '${analyzerName}' failed to parse`);
+    return null;
+  }
+  const nodeMappingValidation = schemaValidator!.validateNodeMapping(nodeMapping);
+  if (!nodeMappingValidation.valid) {
+    console.error(`[ERROR] node-mapping.json in '${analyzerName}' does not match schema: ${formatAjvErrors(nodeMappingValidation.errors)}`);
     return null;
   }
 
-  if (!edgeMapping || !schemaValidator.validateEdgeMapping(edgeMapping)) {
-    console.error(`[ERROR] edge-mapping.json in '${analyzerName}' does not match schema`);
+  if (!edgeMapping) {
+    console.error(`[ERROR] edge-mapping.json in '${analyzerName}' failed to parse`);
+    return null;
+  }
+  const edgeMappingValidation = schemaValidator!.validateEdgeMapping(edgeMapping);
+  if (!edgeMappingValidation.valid) {
+    console.error(`[ERROR] edge-mapping.json in '${analyzerName}' does not match schema: ${formatAjvErrors(edgeMappingValidation.errors)}`);
     return null;
   }
 
-  if (!heuristics || !schemaValidator.validateHeuristics(heuristics)) {
-    console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' does not match schema`);
+  if (!heuristics) {
+    console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' failed to parse`);
+    return null;
+  }
+  const heuristicsValidation = schemaValidator!.validateHeuristics(heuristics);
+  if (!heuristicsValidation.valid) {
+    console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' does not match schema: ${formatAjvErrors(heuristicsValidation.errors)}`);
     return null;
   }
 
@@ -726,24 +795,24 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
-  // Get version from analyzer.json metadata with warning if missing/invalid
-  let version = "1.0";
+  // Get version from analyzer.json metadata — must be present and valid
+  let version: string | null = null;
   if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
     const metadata = analyzerSpec.metadata as AnalyzerMetadata;
     if (metadata.version && typeof metadata.version === "string") {
       version = metadata.version;
-    } else if (!metadata.version) {
-      console.warn(`[WARN] analyzer '${analyzerName}' has no metadata.version — defaulting to "1.0"`);
-    } else if (typeof metadata.version !== "string") {
-      console.warn(`[WARN] analyzer '${analyzerName}' metadata.version is not a string (got ${typeof metadata.version}) — defaulting to "1.0"`);
     }
-  } else {
-    console.warn(`[WARN] analyzer '${analyzerName}' has no metadata.version — defaulting to "1.0"`);
+  }
+
+  if (!version) {
+    console.error(`[ERROR] analyzer '${analyzerName}' is missing metadata.version — must be a non-empty string`);
+    return null;
   }
 
   // Build nodes_by_label index and detect duplicates (including case-collisions)
   const nodesByLabel: Record<string, AnalyzerNodeMapping> = {};
   const labelLookup = new Map<string, string>(); // Maps lowercase label to original label for collision detection
+  const duplicateLabels: Array<{ new: string; existing: string }> = [];
 
   for (const mapping of nodeMapping.mappings) {
     // Capitalize first letter only (e.g., "test_node" → "Test_node", not "TestNode")
@@ -752,21 +821,39 @@ function loadAndValidateAnalyzer(
 
     if (labelLookup.has(lowerLabel)) {
       const existingLabel = labelLookup.get(lowerLabel)!;
-      console.warn(`[WARN] analyzer '${analyzerName}': nodes_by_label index has duplicate/case-collision for '${labelKey}' (existing: '${existingLabel}') — overwriting`);
+      duplicateLabels.push({ new: labelKey, existing: existingLabel });
+    } else {
+      nodesByLabel[labelKey] = mapping;
+      labelLookup.set(lowerLabel, labelKey);
     }
+  }
 
-    nodesByLabel[labelKey] = mapping;
-    labelLookup.set(lowerLabel, labelKey);
+  if (duplicateLabels.length > 0) {
+    console.error(`[ERROR] analyzer '${analyzerName}' has duplicate/case-collision node labels:`);
+    duplicateLabels.forEach(({ new: newLabel, existing }) => {
+      console.error(`  '${newLabel}' conflicts with existing '${existing}'`);
+    });
+    return null;
   }
 
   // Build edges_by_type index and detect duplicates
   const edgesByType: Record<string, AnalyzerEdgeMapping> = {};
+  const duplicateEdges: string[] = [];
 
   for (const mapping of edgeMapping.mappings) {
     if (edgesByType.hasOwnProperty(mapping.analyzer_edge_type)) {
-      console.warn(`[WARN] analyzer '${analyzerName}': edges_by_type index has duplicate key '${mapping.analyzer_edge_type}' — overwriting`);
+      duplicateEdges.push(mapping.analyzer_edge_type);
+    } else {
+      edgesByType[mapping.analyzer_edge_type] = mapping;
     }
-    edgesByType[mapping.analyzer_edge_type] = mapping;
+  }
+
+  if (duplicateEdges.length > 0) {
+    console.error(`[ERROR] analyzer '${analyzerName}' has duplicate edge types:`);
+    duplicateEdges.forEach((edgeType) => {
+      console.error(`  '${edgeType}'`);
+    });
+    return null;
   }
 
   // Build packed analyzer artifact
@@ -792,6 +879,17 @@ async function buildAnalyzers(predicates: unknown): Promise<AnalyzerManifestEntr
   if (!fs.existsSync(analyzersRootDir)) {
     console.log("  No analyzers directory found — skipping analyzer build");
     return [];
+  }
+
+  // Lazily initialize schema validator — only when analyzer build is actually needed
+  // This way, if analyzer schema files are missing, it doesn't block the entire build
+  if (!schemaValidator) {
+    try {
+      schemaValidator = createAnalyzerValidator();
+    } catch (err: any) {
+      console.error(`[ERROR] Failed to initialize analyzer schema validator: ${err.message}`);
+      process.exit(1);
+    }
   }
 
   ensureAnalyzersDistDir();
