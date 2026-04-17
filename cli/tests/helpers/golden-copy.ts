@@ -22,6 +22,11 @@ let initializationPromise: Promise<string> | null = null;
 let initializationError: Error | null = null;
 
 /**
+ * Timeout for golden copy operations (used in Bun test beforeEach hooks)
+ */
+export const GOLDEN_COPY_HOOK_TIMEOUT = 30000; // 30 seconds
+
+/**
  * Initialize the shared golden copy of the baseline test project.
  * This is called once per test suite execution.
  * Thread-safe: subsequent calls return the same path.

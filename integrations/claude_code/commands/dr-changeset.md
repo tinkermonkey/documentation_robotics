@@ -580,7 +580,7 @@ dr changeset status
 
 # 3. Add elements — all dr add/update/delete commands auto-stage in the active changeset
 dr add api endpoint --name "New Endpoint" ...
-dr update api.endpoint.existing --property status=active
+dr update api.endpoint.existing --name "Updated Endpoint"
 dr delete api.endpoint.old --force
 
 # 4. Review what was staged

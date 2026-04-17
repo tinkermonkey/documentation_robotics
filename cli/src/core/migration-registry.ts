@@ -153,6 +153,24 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.8.2 to v0.8.3: Enhanced Spec Analyzer Infrastructure
+    this.migrations.push({
+      fromVersion: "0.8.2",
+      toVersion: "0.8.3",
+      description: "Enhanced Spec Analyzer Infrastructure (Spec v0.8.3)",
+      apply: async () => {
+        // Introduces SpecAnalyzer infrastructure for advanced specification analysis
+        // - New spec-analyzer.schema.json for analyzer definitions
+        // - Support for semantic analysis across specification layers
+        // - Backward compatible - existing models continue to work without modification
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.8.3 (Enhanced Spec Analyzer Infrastructure)",
+        };
+      },
+    });
   }
 
   /**
