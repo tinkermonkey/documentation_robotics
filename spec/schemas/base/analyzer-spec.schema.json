@@ -70,6 +70,8 @@
         "tools": {
           "type": "object",
           "description": "MCP tools and their availability status",
+          "required": ["required"],
+          "additionalProperties": false,
           "properties": {
             "required": {
               "type": "array",

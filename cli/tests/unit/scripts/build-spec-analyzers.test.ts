@@ -369,13 +369,17 @@ function createTestAnalyzer(testName: string): string {
       display_name: testName,
       mcp_server_name: testName,
       supported_tool_contract: {
+        tools: {
+          required: ["test_tool"],
+          optional: [],
+        },
         version: "1.0",
         input_type: "codebase",
         output_type: "semantic_graph",
       },
       supported_languages: ["typescript"],
       project_identification: {
-        method: "package.json",
+        strategy: "absolute_path",
       },
       metadata: {
         version: "1.0",

@@ -238,15 +238,17 @@ interface AnalyzerEdgeMappingFile {
 }
 
 interface ToolContract {
-  version: string;
-  input_type: "codebase" | "file" | "directory" | "ast" | "semantic_graph";
-  output_type: "semantic_graph" | "ast" | "csv" | "json" | "structured_output";
+  tools: {
+    required: string[];
+    optional?: string[];
+  };
+  version?: string;
+  input_type?: "codebase" | "file" | "directory" | "ast" | "semantic_graph";
+  output_type?: "semantic_graph" | "ast" | "csv" | "json" | "structured_output";
 }
 
 interface ProjectIdentification {
-  method: "package.json" | "pyproject.toml" | "pom.xml" | "build.gradle" | "go.mod" | "cargo.toml" | "directory_structure" | "custom";
-  fields?: string[];
-  validation_rules?: Record<string, unknown>;
+  strategy: "absolute_path";
 }
 
 interface AnalyzerMetadata {
@@ -266,7 +268,7 @@ interface AnalyzerSpec {
   description?: string;
   homepage?: string;
   binary_names?: string[];
-  known_minimum_version?: string;
+  known_minimum_version?: string | null;
   notes?: string;
   configuration?: Record<string, unknown>;
   metadata?: AnalyzerMetadata;
