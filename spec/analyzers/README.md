@@ -12,7 +12,7 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
 
 **Required fields:**
 
-- `name` — unique identifier (e.g., `codeprise`)
+- `name` — unique identifier (e.g., `cbm`)
 - `display_name` — human-readable display name
 - `mcp_server_name` — MCP server identifier for this analyzer
 - `supported_tool_contract` — specifies the contract version and input/output types
@@ -23,9 +23,9 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
 
 ```json
 {
-  "name": "codeprism",
-  "display_name": "CodePrism",
-  "mcp_server_name": "codeprism",
+  "name": "cbm",
+  "display_name": "Codebase Memory",
+  "mcp_server_name": "codebase-memory-mcp",
   "supported_tool_contract": {
     "version": "1.0",
     "input_type": "codebase",
@@ -135,21 +135,21 @@ Defines heuristics and rules for post-processing analyzer output to improve mapp
 
 When analyzer mappings are added to this directory:
 
-1. **Validation** — Each analyzer's four JSON files are validated against their respective schemas
-   - `analyzer.json` → `analyzer-spec.schema.json`
-   - `node-mapping.json` → `analyzer-node-mapping.schema.json`
-   - `edge-mapping.json` → `analyzer-edge-mapping.schema.json`
-   - `extraction-heuristics.json` → `analyzer-heuristics.schema.json`
+1. **Validation** — Each analyzer's four JSON files are validated for basic structure and required fields
+   - `analyzer.json` — existence check
+   - `node-mapping.json` — existence check
+   - `edge-mapping.json` — existence check; validates `dr_relationship` values exist in `predicates.json`
+   - `extraction-heuristics.json` — existence check; validates canonical `dr_layer` names
 
 2. **Compilation** — The spec build process compiles all analyzer mappings into:
-   - `spec/dist/analyzers-catalog.json` — consolidated catalog of all analyzers
-   - Per-analyzer compiled outputs in `spec/dist/analyzers/{analyzer_name}/`
+   - `spec/dist/analyzers/manifest.json` — index of all compiled analyzers
+   - `spec/dist/analyzers/{analyzer_name}.json` — flat compiled analyzer file per analyzer
 
-3. **Distribution** — Compiled analyzer catalogs are synced to CLI:
-   - `cli/src/schemas/bundled/analyzers-catalog.json`
-   - `cli/src/analyzers/{analyzer_name}/` (mapping files)
+3. **Distribution** — Compiled analyzer files are synced to CLI:
+   - `cli/src/schemas/bundled/analyzers/manifest.json`
+   - `cli/src/schemas/bundled/analyzers/{analyzer_name}.json` (flat compiled files)
 
-4. **Runtime** — The CLI loads the compiled catalog and uses mappings to:
+4. **Runtime** (Planned) — The CLI will load the compiled catalog and use mappings to:
    - Transform analyzer output into DR model elements
    - Validate analyzer outputs during ingestion
    - Track analyzer metadata and capabilities
