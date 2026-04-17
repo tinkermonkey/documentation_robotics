@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-edge-mapping.schema.json",
+  "title": "AnalyzerEdgeMapping",
+  "description": "Schema for edge (relationship) type mappings. Defines how analyzer relationships are mapped to DR predicate relationships from the predicates catalog.",
+  "type": "object",
+  "required": ["mappings"],
+  "additionalProperties": false,
+  "properties": {
+    "mappings": {
+      "type": "array",
+      "description": "Array of relationship type mapping definitions",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "analyzer_edge_type",
+          "dr_relationship",
+          "confidence"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "analyzer_edge_type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "description": "Relationship type identifier from the analyzer output"
+          },
+          "dr_relationship": {
+            "oneOf": [
+              {
+                "type": "null",
+                "description": "Null when this relationship cannot be mapped to any DR predicate"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "supports",
+                  "realizes",
+                  "fulfills",
+                  "delivers",
+                  "constrains",
+                  "governs",
+                  "owns",
+                  "performs",
+                  "provides",
+                  "consumes",
+                  "requires",
+                  "protects",
+                  "mitigates",
+                  "accesses",
+                  "uses",
+                  "implements",
+                  "composes",
+                  "aggregates",
+                  "triggers",
+                  "flows-to",
+                  "monitors",
+                  "tests",
+                  "specializes",
+                  "assigned-to",
+                  "associated-with",
+                  "influence",
+                  "serves",
+                  "references",
+                  "depends-on",
+                  "supports-goals",
+                  "fulfills-requirements",
+                  "delivers-value",
+                  "measures-outcome",
+                  "governed-by-principles",
+                  "constrained-by",
+                  "enforces-requirement",
+                  "traces",
+                  "measures",
+                  "authenticates",
+                  "authorizes",
+                  "renders",
+                  "binds-to",
+                  "navigates-to",
+                  "maps-to",
+                  "references-table",
+                  "derives-from",
+                  "validates"
+                ],
+                "description": "Predicate name from spec/schemas/base/predicates.json. Must be a valid predicate key or null if not mappable."
+              }
+            ],
+            "description": "DR predicate relationship type or null if unmappable"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Mapping confidence level indicating reliability of this mapping"
+          },
+          "directionality_transform": {
+            "type": "string",
+            "enum": ["invert", "bidirectional", "symmetric", null],
+            "description": "Optional transformation to apply to relationship directionality. 'invert' reverses the direction, 'bidirectional' treats as two-way, 'symmetric' makes relationship symmetric, null = no transform",
+            "default": null
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional explanation of why this mapping exists or any special conditions"
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Optional conditions that must be met for this mapping to apply",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

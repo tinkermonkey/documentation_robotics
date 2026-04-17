@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-spec.schema.json",
+  "title": "AnalyzerSpec",
+  "description": "Schema for analyzer metadata configuration. Defines the analyzer tool, its capabilities, supported languages, and tool contract.",
+  "type": "object",
+  "required": [
+    "name",
+    "display_name",
+    "mcp_server_name",
+    "supported_tool_contract",
+    "supported_languages",
+    "project_identification"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique lowercase identifier for the analyzer (e.g., 'codeprise'). Used in file paths and references."
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable display name for the analyzer (e.g., 'CodePrism')"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional detailed description of what this analyzer does"
+    },
+    "mcp_server_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "MCP server identifier for this analyzer. Used to locate and invoke the analyzer service."
+    },
+    "supported_tool_contract": {
+      "type": "object",
+      "description": "Specifies the contract version and supported I/O types for this analyzer",
+      "required": ["version", "input_type", "output_type"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+          "description": "Tool contract version (e.g., '1.0', '1.2.3')"
+        },
+        "input_type": {
+          "type": "string",
+          "enum": ["codebase", "file", "directory", "ast", "semantic_graph"],
+          "description": "Expected input type for this analyzer"
+        },
+        "output_type": {
+          "type": "string",
+          "enum": ["semantic_graph", "ast", "csv", "json", "structured_output"],
+          "description": "Output format produced by this analyzer"
+        }
+      }
+    },
+    "supported_languages": {
+      "type": "array",
+      "description": "List of programming languages supported by this analyzer",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "minItems": 1,
+      "examples": [
+        ["typescript", "javascript"],
+        ["python", "python3"],
+        ["java", "kotlin"]
+      ]
+    },
+    "project_identification": {
+      "type": "object",
+      "description": "Specifies how this analyzer identifies and validates the project being analyzed",
+      "required": ["method"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["package.json", "pyproject.toml", "pom.xml", "build.gradle", "go.mod", "cargo.toml", "directory_structure", "custom"],
+          "description": "Method used to identify the project (e.g., looking for package.json)"
+        },
+        "fields": {
+          "type": "array",
+          "description": "Optional list of fields to extract from the project identification file",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            ["name", "version"],
+            ["name", "version", "main"]
+          ]
+        },
+        "validation_rules": {
+          "type": "object",
+          "description": "Optional validation rules to apply during project identification",
+          "additionalProperties": true
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Optional analyzer-specific configuration options",
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata about the analyzer (version, author, etc.)",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Analyzer tool version"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author or organization maintaining this analyzer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this analyzer configuration was created"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the last update"
+        }
+      }
+    }
+  }
+}

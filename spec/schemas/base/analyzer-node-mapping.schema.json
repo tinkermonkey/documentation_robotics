@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-node-mapping.schema.json",
+  "title": "AnalyzerNodeMapping",
+  "description": "Schema for node type mappings. Defines how analyzer output node types are mapped to DR model node types across the 12 layers.",
+  "type": "object",
+  "required": ["mappings"],
+  "additionalProperties": false,
+  "properties": {
+    "mappings": {
+      "type": "array",
+      "description": "Array of node type mapping definitions",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "analyzer_node_type",
+          "dr_layer",
+          "dr_node_type",
+          "confidence"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "analyzer_node_type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Node type identifier from the analyzer output"
+          },
+          "dr_layer": {
+            "type": "string",
+            "enum": [
+              "motivation",
+              "business",
+              "security",
+              "application",
+              "technology",
+              "api",
+              "data-model",
+              "data-store",
+              "ux",
+              "navigation",
+              "apm",
+              "testing"
+            ],
+            "description": "Canonical DR layer name. Must be one of the 12 layers with correct naming (e.g., 'data-model' not 'data_model')."
+          },
+          "dr_node_type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Node type within the DR layer (e.g., 'component', 'endpoint', 'table')"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Mapping confidence level indicating reliability of this mapping"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional explanation of why this mapping exists or any special conditions"
+          },
+          "attribute_mappings": {
+            "type": "array",
+            "description": "Optional field-to-attribute mappings from analyzer to DR model",
+            "items": {
+              "type": "object",
+              "required": ["analyzer_field", "dr_attribute"],
+              "additionalProperties": false,
+              "properties": {
+                "analyzer_field": {
+                  "type": "string",
+                  "description": "Field name from analyzer output"
+                },
+                "dr_attribute": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]*$",
+                  "description": "Corresponding DR attribute name"
+                },
+                "transform": {
+                  "type": "string",
+                  "description": "Optional transformation function or rule to apply to the field value"
+                }
+              }
+            }
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Optional conditions that must be met for this mapping to apply",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}
