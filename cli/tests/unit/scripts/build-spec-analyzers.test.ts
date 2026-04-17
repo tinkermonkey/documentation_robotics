@@ -169,11 +169,11 @@ describe("build-spec.ts Analyzer Compilation", () => {
         nodeMapping.mappings[0].dr_layer = "invalid-layer-name";
         writeFileSync(nodeMappingPath, JSON.stringify(nodeMapping, null, 2));
 
-        // Run build and expect failure
+        // Run build and expect failure (caught by schema validation)
         const result = runBuildAndCapture();
         expect(result.exitCode).not.toBe(0);
-        expect(result.stderr).toContain("Invalid dr_layer");
-        expect(result.stderr).toContain("invalid-layer-name");
+        expect(result.stderr).toContain("does not match schema");
+        expect(result.stderr).toContain("node-mapping.json");
       } finally {
         cleanupTestAnalyzer(testAnalyzerDir);
       }
@@ -190,11 +190,11 @@ describe("build-spec.ts Analyzer Compilation", () => {
         edgeMapping.mappings[0].dr_relationship = "non_existent_predicate_xyz";
         writeFileSync(edgeMappingPath, JSON.stringify(edgeMapping, null, 2));
 
-        // Run build and expect failure
+        // Run build and expect failure (caught by schema validation - dr_relationship must be in enum)
         const result = runBuildAndCapture();
         expect(result.exitCode).not.toBe(0);
-        expect(result.stderr).toContain("Invalid dr_relationship");
-        expect(result.stderr).toContain("non_existent_predicate_xyz");
+        expect(result.stderr).toContain("does not match schema");
+        expect(result.stderr).toContain("edge-mapping.json");
       } finally {
         cleanupTestAnalyzer(testAnalyzerDir);
       }
@@ -306,7 +306,7 @@ function createTestAnalyzer(testName: string): string {
     JSON.stringify({
       mappings: [
         {
-          analyzer_node_type: "TestNode",
+          analyzer_node_type: "test_node",
           dr_layer: "api",
           dr_node_type: "endpoint",
           confidence: "high",

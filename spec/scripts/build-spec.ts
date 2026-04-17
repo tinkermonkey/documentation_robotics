@@ -253,7 +253,7 @@ interface InferenceRule {
   name: string;
   description: string;
   pattern: string;
-  confidence: "high" | "medium" | "low";
+  confidence?: "high" | "medium" | "low";
   enabled?: boolean;
 }
 
@@ -261,7 +261,7 @@ interface FilteringRule {
   name: string;
   description: string;
   pattern?: string;
-  action?: string;
+  filter_type?: string;
   threshold?: number;
   enabled?: boolean;
 }
@@ -269,9 +269,27 @@ interface FilteringRule {
 interface DeduplicationRule {
   name: string;
   description: string;
-  strategy?: string;
-  priority?: string;
+  match_strategy?: string;
+  resolution_strategy?: string;
   enabled?: boolean;
+}
+
+interface ConfidenceThreshold {
+  min: number;
+  max: number;
+  description?: string;
+}
+
+interface ConfidenceRubric {
+  high: ConfidenceThreshold;
+  medium: ConfidenceThreshold;
+  low: ConfidenceThreshold;
+}
+
+interface HeuristicsMetadata {
+  version?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AnalyzerHeuristics {
@@ -279,6 +297,8 @@ interface AnalyzerHeuristics {
   inference_rules?: InferenceRule[];
   filtering_rules?: FilteringRule[];
   deduplication_rules?: DeduplicationRule[];
+  confidence_rubric?: ConfidenceRubric;
+  metadata?: HeuristicsMetadata;
 }
 
 interface PackedAnalyzer {
@@ -516,65 +536,37 @@ function ensureAnalyzersDistDir(): void {
 // ─── JSON Schema Validation ────────────────────────────────────────────────────
 
 /**
- * Create a validator for the analyzer schemas
+ * Create a validator for the analyzer schemas by loading actual schema files
  */
 function createAnalyzerValidator() {
   const ajv = new Ajv({ strict: false });
   ajvFormats(ajv);
 
+  // Load the actual schema files from spec/schemas/base/
+  const analyzerSpecSchema = JSON.parse(
+    fs.readFileSync(path.join(SCHEMAS_DIR, "base", "analyzer-spec.schema.json"), "utf-8")
+  );
+  const analyzerNodeMappingSchema = JSON.parse(
+    fs.readFileSync(path.join(SCHEMAS_DIR, "base", "analyzer-node-mapping.schema.json"), "utf-8")
+  );
+  const analyzerEdgeMappingSchema = JSON.parse(
+    fs.readFileSync(path.join(SCHEMAS_DIR, "base", "analyzer-edge-mapping.schema.json"), "utf-8")
+  );
+  const analyzerHeuristicsSchema = JSON.parse(
+    fs.readFileSync(path.join(SCHEMAS_DIR, "base", "analyzer-heuristics.schema.json"), "utf-8")
+  );
+
+  // Compile schemas once during initialization
+  const validateSpec = ajv.compile(analyzerSpecSchema);
+  const validateNodeMapping = ajv.compile(analyzerNodeMappingSchema);
+  const validateEdgeMapping = ajv.compile(analyzerEdgeMappingSchema);
+  const validateHeuristics = ajv.compile(analyzerHeuristicsSchema);
+
   return {
-    validateSpec: (data: unknown) => {
-      const schema = {
-        type: "object",
-        required: ["name", "display_name", "mcp_server_name", "supported_tool_contract", "supported_languages", "project_identification"],
-        properties: {
-          name: { type: "string" },
-          display_name: { type: "string" },
-          mcp_server_name: { type: "string" },
-          supported_tool_contract: { type: "object" },
-          supported_languages: { type: "array" },
-          project_identification: { type: "object" },
-        },
-      };
-      const validate = ajv.compile(schema);
-      return validate(data);
-    },
-    validateNodeMapping: (data: unknown) => {
-      const schema = {
-        type: "object",
-        required: ["mappings"],
-        properties: {
-          mappings: { type: "array" },
-          unmapped_labels: { type: "array" },
-        },
-      };
-      const validate = ajv.compile(schema);
-      return validate(data);
-    },
-    validateEdgeMapping: (data: unknown) => {
-      const schema = {
-        type: "object",
-        required: ["mappings"],
-        properties: {
-          mappings: { type: "array" },
-        },
-      };
-      const validate = ajv.compile(schema);
-      return validate(data);
-    },
-    validateHeuristics: (data: unknown) => {
-      const schema = {
-        type: "object",
-        properties: {
-          heuristics: { type: "array" },
-          inference_rules: { type: "array" },
-          filtering_rules: { type: "array" },
-          deduplication_rules: { type: "array" },
-        },
-      };
-      const validate = ajv.compile(schema);
-      return validate(data);
-    },
+    validateSpec: (data: unknown) => validateSpec(data),
+    validateNodeMapping: (data: unknown) => validateNodeMapping(data),
+    validateEdgeMapping: (data: unknown) => validateEdgeMapping(data),
+    validateHeuristics: (data: unknown) => validateHeuristics(data),
   };
 }
 
@@ -700,16 +692,6 @@ function loadAndValidateAnalyzer(
 
   if (!heuristics || !schemaValidator.validateHeuristics(heuristics)) {
     console.error(`[ERROR] extraction-heuristics.json in '${analyzerName}' does not match schema`);
-    return null;
-  }
-
-  if (!Array.isArray(nodeMapping.mappings)) {
-    console.error(`[ERROR] node-mapping.json in '${analyzerName}' missing required 'mappings' array`);
-    return null;
-  }
-
-  if (!Array.isArray(edgeMapping.mappings)) {
-    console.error(`[ERROR] edge-mapping.json in '${analyzerName}' missing required 'mappings' array`);
     return null;
   }
 
