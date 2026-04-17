@@ -8,9 +8,9 @@
  * - Invalid dr_relationship values cause build failure
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { join, resolve } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from "fs";
 import { execSync } from "child_process";
 
 // Path to the actual compiled analyzer artifacts from the build
@@ -20,6 +20,26 @@ const REPO_ROOT = resolve(import.meta.dir, "../../../../");
 const ANALYZERS_DIR = join(SPEC_DIR, "analyzers");
 
 describe("build-spec.ts Analyzer Compilation", () => {
+  // Clean up any stale test directories from previous runs before tests execute
+  beforeEach(() => {
+    if (existsSync(ANALYZERS_DIR)) {
+      try {
+        const entries = readdirSync(ANALYZERS_DIR, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory() && entry.name.startsWith("test-")) {
+            try {
+              rmSync(join(ANALYZERS_DIR, entry.name), { recursive: true, force: true });
+            } catch (error) {
+              console.warn(`Failed to clean stale test directory ${entry.name}:`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to read analyzers directory for cleanup:`, error);
+      }
+    }
+  });
+
   describe("Scenario (a): Valid analyzer artifacts", () => {
     it("should have compiled the cbm analyzer to a packed artifact", () => {
       // The cbm analyzer is in the actual spec directory and should be compiled
@@ -341,9 +361,12 @@ function createTestAnalyzer(testName: string): string {
  */
 function cleanupTestAnalyzer(analyzerDir: string): void {
   try {
-    rmSync(analyzerDir, { recursive: true, force: true });
-  } catch {
-    // Ignore errors
+    if (existsSync(analyzerDir)) {
+      rmSync(analyzerDir, { recursive: true, force: true });
+    }
+  } catch (error) {
+    console.error(`Failed to clean up test analyzer directory ${analyzerDir}:`, error);
+    throw error;
   }
 }
 
