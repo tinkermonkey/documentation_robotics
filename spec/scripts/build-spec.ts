@@ -32,6 +32,18 @@ const LAYERS_DIR = path.join(SPEC_DIR, "layers");
 const DIST_DIR = path.join(SPEC_DIR, "dist");
 const VERSION_FILE = path.join(SPEC_DIR, "VERSION");
 
+// Helper to extract valid predicate names from predicates.json
+function loadValidPredicateNames(): string[] {
+  const predicatesPath = path.join(SCHEMAS_DIR, "base", "predicates.json");
+  if (!fs.existsSync(predicatesPath)) {
+    console.warn(`[WARN] predicates.json not found at ${predicatesPath}`);
+    return [];
+  }
+  const data = JSON.parse(fs.readFileSync(predicatesPath, "utf-8"));
+  const predicatesObj = data.predicates ?? data;
+  return Object.keys(predicatesObj).sort();
+}
+
 // Base schema filename → URN-style ID mapping
 const BASE_SCHEMA_ID_MAP: Record<string, string> = {
   "spec-node.schema.json": "urn:dr:spec:base:spec-node",
@@ -40,6 +52,7 @@ const BASE_SCHEMA_ID_MAP: Record<string, string> = {
   "attribute-spec.schema.json": "urn:dr:spec:base:attribute-spec",
   "model-node-relationship.schema.json": "urn:dr:spec:base:model-node-relationship",
   "predicate-catalog.schema.json": "urn:dr:spec:base:predicate-catalog",
+  "predicate-enum.schema.json": "urn:dr:spec:base:predicate-enum",
   "spec-layer.schema.json": "urn:dr:spec:base:spec-layer",
 };
 
@@ -204,6 +217,7 @@ interface AnalyzerNodeMappingFile {
 
 interface AnalyzerEdgeMapping {
   analyzer_edge_type: string;
+  // dr_relationship must be one of the predicate names from spec/schemas/base/predicates.json or null
   dr_relationship: string | null;
   confidence: "high" | "medium" | "low";
   directionality_transform?: "invert" | "bidirectional" | "symmetric" | null;
@@ -250,6 +264,10 @@ interface AnalyzerSpec {
   supported_languages: string[];
   project_identification: ProjectIdentification;
   description?: string;
+  homepage?: string;
+  binary_names?: string[];
+  known_minimum_version?: string;
+  notes?: string;
   configuration?: Record<string, unknown>;
   metadata?: AnalyzerMetadata;
 }
@@ -402,7 +420,14 @@ function loadBaseSchemas(): Record<string, unknown> {
       continue;
     }
 
-    const content = JSON.parse(fs.readFileSync(filepath, "utf-8"));
+    let content = JSON.parse(fs.readFileSync(filepath, "utf-8"));
+
+    // For predicate-enum.schema.json, populate the enum from predicates.json
+    if (filename === "predicate-enum.schema.json") {
+      const predicateNames = loadValidPredicateNames();
+      content = { ...content, enum: predicateNames };
+    }
+
     // Rewrite $refs within the base schema itself
     const withRewrittenRefs = rewriteRefs(content) as Record<string, unknown>;
     // Rewrite $id to URN
@@ -591,6 +616,14 @@ function formatAjvErrors(errors: any[] | null | undefined): string {
 function createAnalyzerValidator() {
   const ajv = new Ajv({ strict: false });
   ajvFormats(ajv);
+
+  // Load and register the predicate-enum schema as a dependency for analyzer-edge-mapping
+  const predicateEnumSchema = JSON.parse(
+    fs.readFileSync(path.join(SCHEMAS_DIR, "base", "predicate-enum.schema.json"), "utf-8")
+  );
+  const predicateNames = loadValidPredicateNames();
+  const predicateEnumWithValues = { ...predicateEnumSchema, enum: predicateNames };
+  ajv.addSchema(predicateEnumWithValues, "predicate-enum.schema.json");
 
   // Load the actual schema files from spec/schemas/base/
   const analyzerSpecSchema = JSON.parse(
