@@ -45,9 +45,17 @@
       }
     },
     "known_minimum_version": {
-      "type": "string",
-      "pattern": "^\\d+(\\.\\d+)*$",
-      "description": "Optional minimum version of the analyzer tool that is supported"
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d+)*$",
+          "description": "Minimum version of the analyzer tool that is supported"
+        },
+        {
+          "type": "null",
+          "description": "null indicates the minimum version is unknown or not specified"
+        }
+      ]
     },
     "notes": {
       "type": "string",
@@ -55,10 +63,31 @@
     },
     "supported_tool_contract": {
       "type": "object",
-      "description": "Specifies the contract version and supported I/O types for this analyzer",
-      "required": ["version", "input_type", "output_type"],
+      "description": "Specifies the MCP tools, contract version, and supported I/O types for this analyzer",
+      "required": ["tools"],
       "additionalProperties": false,
       "properties": {
+        "tools": {
+          "type": "object",
+          "description": "MCP tools and their availability status",
+          "properties": {
+            "required": {
+              "type": "array",
+              "description": "Required MCP tools that must be available",
+              "items": {
+                "type": "string"
+              },
+              "examples": [["initialize", "search_graph", "trace_call_path"]]
+            },
+            "optional": {
+              "type": "array",
+              "description": "Optional MCP tools that may be available",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "version": {
           "type": "string",
           "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
@@ -81,50 +110,26 @@
       "description": "List of programming languages supported by this analyzer",
       "items": {
         "type": "string",
-        "pattern": "^[a-z][a-z0-9-]*$"
+        "pattern": "^[a-z][a-z0-9+#-]*$"
       },
       "minItems": 1,
       "examples": [
         ["typescript", "javascript"],
         ["python", "python3"],
-        ["java", "kotlin"]
+        ["java", "kotlin"],
+        ["c++", "c#", "tsx", "lua", "scala"]
       ]
     },
     "project_identification": {
       "type": "object",
       "description": "Specifies how this analyzer identifies and validates the project being analyzed",
-      "required": ["method"],
+      "required": ["strategy"],
       "additionalProperties": false,
       "properties": {
-        "method": {
+        "strategy": {
           "type": "string",
-          "enum": [
-            "package.json",
-            "pyproject.toml",
-            "pom.xml",
-            "build.gradle",
-            "go.mod",
-            "cargo.toml",
-            "directory_structure",
-            "custom"
-          ],
-          "description": "Method used to identify the project (e.g., looking for package.json)"
-        },
-        "fields": {
-          "type": "array",
-          "description": "Optional list of fields to extract from the project identification file",
-          "items": {
-            "type": "string"
-          },
-          "examples": [
-            ["name", "version"],
-            ["name", "version", "main"]
-          ]
-        },
-        "validation_rules": {
-          "type": "object",
-          "description": "Optional validation rules to apply during project identification",
-          "additionalProperties": true
+          "enum": ["absolute_path"],
+          "description": "Strategy used to identify the project. 'absolute_path' uses findProjectRoot() to determine stable project identity."
         }
       }
     },
