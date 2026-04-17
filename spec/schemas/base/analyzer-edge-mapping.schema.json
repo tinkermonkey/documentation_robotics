@@ -13,11 +13,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "analyzer_edge_type",
-          "dr_relationship",
-          "confidence"
-        ],
+        "required": ["analyzer_edge_type", "dr_relationship", "confidence"],
         "additionalProperties": false,
         "properties": {
           "analyzer_edge_type": {

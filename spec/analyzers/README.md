@@ -7,9 +7,11 @@ This directory contains analyzer mapping configurations that define how external
 Each analyzer consists of four JSON files that work together to define how analyzer tool outputs are mapped to DR elements:
 
 ### 1. `analyzer.json` — Analyzer Metadata
+
 Defines the analyzer itself: name, description, tool contract, and supported capabilities.
 
 **Required fields:**
+
 - `name` — unique identifier (e.g., `codeprise`)
 - `display_name` — human-readable display name
 - `mcp_server_name` — MCP server identifier for this analyzer
@@ -18,6 +20,7 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
 - `project_identification` — how this analyzer identifies the project being analyzed
 
 **Example:**
+
 ```json
 {
   "name": "codeprism",
@@ -37,9 +40,11 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
 ```
 
 ### 2. `node-mapping.json` — Node Type Mappings
+
 Maps analyzer output node types to DR model node types across layers.
 
 **Structure:**
+
 - `mappings` — array of node type mappings
 - Each mapping includes:
   - `analyzer_node_type` — type identifier from analyzer output
@@ -49,6 +54,7 @@ Maps analyzer output node types to DR model node types across layers.
   - `attribute_mappings` — optional array of analyzer field → DR attribute mappings
 
 **Example:**
+
 ```json
 {
   "mappings": [
@@ -69,9 +75,11 @@ Maps analyzer output node types to DR model node types across layers.
 ```
 
 ### 3. `edge-mapping.json` — Relationship Mappings
+
 Maps analyzer relationship types to DR predicate relationships.
 
 **Structure:**
+
 - `mappings` — array of edge/relationship mappings
 - Each mapping includes:
   - `analyzer_edge_type` — relationship type from analyzer output
@@ -80,6 +88,7 @@ Maps analyzer relationship types to DR predicate relationships.
   - `confidence` — mapping confidence level (`high`, `medium`, `low`)
 
 **Example:**
+
 ```json
 {
   "mappings": [
@@ -94,15 +103,18 @@ Maps analyzer relationship types to DR predicate relationships.
 ```
 
 ### 4. `extraction-heuristics.json` — Extraction Rules
+
 Defines heuristics and rules for post-processing analyzer output to improve mapping accuracy.
 
 **Structure:**
+
 - `heuristics` — array of extraction rules
 - `inference_rules` — optional rules for inferring implicit relationships
 - `filtering_rules` — optional rules for filtering noise
 - `deduplication_rules` — optional rules for handling duplicate mappings
 
 **Example:**
+
 ```json
 {
   "heuristics": [
@@ -149,6 +161,7 @@ To add a new analyzer to the specification:
 1. **Create subdirectory** — `spec/analyzers/{analyzer_name}/`
 
 2. **Author four mapping files:**
+
    ```bash
    spec/analyzers/{analyzer_name}/
    ├── analyzer.json
@@ -164,11 +177,13 @@ To add a new analyzer to the specification:
    - Confidence values are `high`, `medium`, or `low`
 
 4. **Compile** — Run the build command (once available):
+
    ```bash
    npm run build:spec
    ```
 
 5. **Test** — Validate the compiled output and sync to CLI:
+
    ```bash
    cd cli && npm run build
    ```
@@ -188,6 +203,7 @@ Analyzer mappings reside in the specification layer (not the CLI) because:
 ## Schema References
 
 For detailed schema definitions, see:
+
 - `spec/schemas/base/analyzer-spec.schema.json`
 - `spec/schemas/base/analyzer-node-mapping.schema.json`
 - `spec/schemas/base/analyzer-edge-mapping.schema.json`

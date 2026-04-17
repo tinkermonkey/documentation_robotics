@@ -152,7 +152,12 @@
           },
           "resolution_strategy": {
             "type": "string",
-            "enum": ["keep_first", "keep_last", "keep_highest_confidence", "merge"],
+            "enum": [
+              "keep_first",
+              "keep_last",
+              "keep_highest_confidence",
+              "merge"
+            ],
             "description": "How to resolve conflicts between duplicate mappings"
           },
           "enabled": {

@@ -77,7 +77,16 @@
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["package.json", "pyproject.toml", "pom.xml", "build.gradle", "go.mod", "cargo.toml", "directory_structure", "custom"],
+          "enum": [
+            "package.json",
+            "pyproject.toml",
+            "pom.xml",
+            "build.gradle",
+            "go.mod",
+            "cargo.toml",
+            "directory_structure",
+            "custom"
+          ],
           "description": "Method used to identify the project (e.g., looking for package.json)"
         },
         "fields": {
