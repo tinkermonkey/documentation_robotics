@@ -14,7 +14,7 @@ import ansis from "ansis";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
 import { readSession, writeSession, writeStatus } from "../analyzers/session-state.js";
-import { CLIError, ModelNotFoundError, ErrorCategory } from "../utils/errors.js";
+import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import type { SessionState } from "../analyzers/types.js";
 
@@ -159,7 +159,7 @@ Examples:
 
           for (const opt of analyzerOptions) {
             const name = ansis.bold(opt.backend.displayName);
-            const homepage = opt.metadata?.homepage || "(homepage not available)";
+            const homepage = opt.metadata?.homepage || "https://github.com/search?q=codebase-memory";
             console.log(`  ${name} ${ansis.dim(`(${homepage})`)}`);
           }
 
@@ -215,18 +215,7 @@ Examples:
       } catch (error) {
         if (error instanceof CLIError) throw error;
 
-        // Determine error category based on error type
-        let category = ErrorCategory.USER;
-        if (error instanceof Error) {
-          const errorStr = error.message.toLowerCase();
-          // System errors: permission denied, no space, I/O errors
-          if (errorStr.includes("eacces") || errorStr.includes("permission denied") ||
-              errorStr.includes("enospc") || errorStr.includes("no space") ||
-              errorStr.includes("eio") || errorStr.includes("i/o error")) {
-            category = ErrorCategory.SYSTEM;
-          }
-        }
-
+        const category = categorizeError(error);
         throw new CLIError(
           error instanceof Error ? error.message : String(error),
           category
@@ -350,18 +339,7 @@ Examples:
       } catch (error) {
         if (error instanceof CLIError) throw error;
 
-        // Determine error category based on error type
-        let category = ErrorCategory.USER;
-        if (error instanceof Error) {
-          const errorStr = error.message.toLowerCase();
-          // System errors: permission denied, no space, I/O errors
-          if (errorStr.includes("eacces") || errorStr.includes("permission denied") ||
-              errorStr.includes("enospc") || errorStr.includes("no space") ||
-              errorStr.includes("eio") || errorStr.includes("i/o error")) {
-            category = ErrorCategory.SYSTEM;
-          }
-        }
-
+        const category = categorizeError(error);
         throw new CLIError(
           error instanceof Error ? error.message : String(error),
           category
