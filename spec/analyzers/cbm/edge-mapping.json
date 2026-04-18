@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1",
   "field_conventions": {
     "cbm_edge": "UPPERCASE_SNAKE_CASE identifier from CBM analyzer output (e.g., 'HTTP_CALLS', 'HANDLES')",
     "dr_relationship": "predicate name from predicates.json or null if unmappable",

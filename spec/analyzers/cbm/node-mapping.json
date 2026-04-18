@@ -1,13 +1,13 @@
 {
-  "version": "1.0",
+  "version": "1",
   "field_conventions": {
     "cbm_label": "PascalCase identifier from CBM analyzer output (e.g., 'Route', 'Function')",
     "dr_layer": "canonical DR layer name (one of 12 layers)",
     "dr_element_type": "element type within the DR layer",
     "confidence": "mapping confidence level (high, medium, low)",
-    "conditions.verify_role": "optional role designation for verification scope (primary, secondary, auxiliary) — nested inside conditions object",
-    "conditions.evidence_fields": "array of fields from analyzer output used as evidence for mapping confidence — nested inside conditions object",
-    "conditions.promotion_heuristics": "conditions and thresholds for promoting nodes to higher-level element types — nested inside conditions object"
+    "verify_role": "optional role designation for verification scope (primary, secondary, auxiliary) — top-level field for Route element verification",
+    "promotion_heuristics": "named heuristics for promoting nodes to higher-level element types (array of heuristic names, e.g., 'is_entry_point', 'handles_route')",
+    "evidence_fields": "named-field object with fields from analyzer output used as evidence (keyed by field name with 'from' mapping)"
   },
   "mappings": [
     {
@@ -26,28 +26,19 @@
         }
       },
       "dr_element_fields": {
-        "attributes": [
-          {
-            "dr_attribute": "operationId",
-            "from": "name",
-            "transform": "kebab-case"
-          },
-          {
-            "dr_attribute": "summary",
-            "from": "description",
-            "default": ""
-          },
-          {
-            "dr_attribute": "tags",
-            "from": "tags",
-            "template": "array",
-            "default": []
-          }
-        ]
+        "operationId": {
+          "name_template": "{name}",
+          "id_source": "name",
+          "id_transform": "kebab_case"
+        },
+        "summary": {
+          "template": "{properties.method} {properties.path}"
+        },
+        "tags": {
+          "name_template": "tags"
+        }
       },
-      "conditions": {
-        "verify_role": "primary"
-      }
+      "verify_role": "primary"
     },
     {
       "cbm_label": "Function",
@@ -70,22 +61,33 @@
           "dr_attribute": "name"
         }
       ],
-      "conditions": {
-        "promotion_eligible": true,
-        "promotion_target": "applicationservice",
-        "promotion_attributes": {
-          "serviceType": {
-            "from": "parent_class_name",
-            "default": "utility"
-          }
+      "dr_element_type_promoted": "applicationservice",
+      "promotion_heuristics": [
+        "is_entry_point",
+        "handles_route",
+        "naming_patterns"
+      ],
+      "evidence_fields": {
+        "fan_in": {
+          "from": "fan_in"
         },
-        "evidence_fields": [
-          "fan_in",
-          "fan_out",
-          "is_exported",
-          "argument_types",
-          "return_type"
-        ]
+        "fan_out": {
+          "from": "fan_out"
+        },
+        "is_exported": {
+          "from": "is_exported"
+        },
+        "argument_types": {
+          "from": "argument_types"
+        },
+        "return_type": {
+          "from": "return_type"
+        }
+      },
+      "conditions": {
+        "serviceType": {
+          "default": "synchronous"
+        }
       }
     },
     {
@@ -109,22 +111,33 @@
           "dr_attribute": "name"
         }
       ],
-      "conditions": {
-        "promotion_eligible": true,
-        "promotion_target": "applicationservice",
-        "promotion_attributes": {
-          "serviceType": {
-            "from": "parent_class_name",
-            "default": "domain"
-          }
+      "dr_element_type_promoted": "applicationservice",
+      "promotion_heuristics": [
+        "is_entry_point",
+        "naming_patterns",
+        "directory_match"
+      ],
+      "evidence_fields": {
+        "visibility": {
+          "from": "visibility"
         },
-        "evidence_fields": [
-          "visibility",
-          "is_static",
-          "is_abstract",
-          "parent_class",
-          "overrides"
-        ]
+        "is_static": {
+          "from": "is_static"
+        },
+        "is_abstract": {
+          "from": "is_abstract"
+        },
+        "parent_class": {
+          "from": "parent_class"
+        },
+        "overrides": {
+          "from": "overrides"
+        }
+      },
+      "conditions": {
+        "serviceType": {
+          "default": "synchronous"
+        }
       }
     },
     {
@@ -142,14 +155,22 @@
           "from": "name"
         }
       },
-      "conditions": {
-        "evidence_fields": [
-          "abstract",
-          "interfaces",
-          "parent_class",
-          "methods_count",
-          "properties_count"
-        ]
+      "evidence_fields": {
+        "abstract": {
+          "from": "abstract"
+        },
+        "interfaces": {
+          "from": "interfaces"
+        },
+        "parent_class": {
+          "from": "parent_class"
+        },
+        "methods_count": {
+          "from": "methods_count"
+        },
+        "properties_count": {
+          "from": "properties_count"
+        }
       }
     },
     {

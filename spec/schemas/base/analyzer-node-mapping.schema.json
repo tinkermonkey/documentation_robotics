@@ -101,24 +101,11 @@
           },
           "dr_element_fields": {
             "type": "object",
-            "description": "Optional configuration for shaping DR element fields from analyzer output",
-            "additionalProperties": false,
+            "description": "Optional configuration for shaping DR element fields from analyzer output. Supports both flat object format (keyed by attribute name) and legacy attributes array.",
             "properties": {
-              "name_template": {
-                "type": "string",
-                "description": "Template for generating element name from analyzer fields"
-              },
-              "id_source": {
-                "type": "string",
-                "description": "Field from analyzer output to use as element ID source"
-              },
-              "id_transform": {
-                "type": "string",
-                "description": "Transformation to apply to id_source (e.g., 'kebab-case')"
-              },
               "attributes": {
                 "type": "array",
-                "description": "Field mappings for element attributes",
+                "description": "Legacy format: Field mappings for element attributes",
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
@@ -137,12 +124,34 @@
                     },
                     "transform": {
                       "type": "string",
-                      "description": "Transformation function to apply (e.g., 'kebab-case')"
+                      "description": "Transformation function to apply (e.g., 'kebab_case')"
                     },
                     "default": {
                       "description": "Default value if source field is missing"
                     }
                   }
+                }
+              }
+            },
+            "additionalProperties": {
+              "type": "object",
+              "description": "Flat format: Field mapping keyed by attribute name",
+              "properties": {
+                "name_template": {
+                  "type": "string",
+                  "description": "Template for generating field name or value"
+                },
+                "id_source": {
+                  "type": "string",
+                  "description": "Field from analyzer output to use as ID source"
+                },
+                "id_transform": {
+                  "type": "string",
+                  "description": "Transformation to apply (e.g., 'kebab_case')"
+                },
+                "template": {
+                  "type": "string",
+                  "description": "Template string for deriving the field value"
                 }
               }
             }
@@ -174,6 +183,39 @@
                 },
                 "default": {
                   "description": "Optional default value"
+                }
+              }
+            }
+          },
+          "dr_element_type_promoted": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Target element type for promotion when heuristics are met (e.g., 'applicationservice')"
+          },
+          "promotion_heuristics": {
+            "type": "array",
+            "description": "Named heuristics that qualify this element for promotion to a higher-level type",
+            "items": {
+              "type": "string",
+              "description": "Heuristic name (e.g., 'is_entry_point', 'handles_route', 'naming_patterns')"
+            }
+          },
+          "verify_role": {
+            "type": "string",
+            "enum": ["primary", "secondary", "auxiliary"],
+            "description": "Role designation for verification scope (e.g., 'primary' for Route elements)"
+          },
+          "evidence_fields": {
+            "type": "object",
+            "description": "Named-field object with evidence fields from analyzer output used to support mapping confidence",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Evidence field with source mapping",
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Source field from analyzer output"
                 }
               }
             }
