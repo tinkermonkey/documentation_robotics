@@ -253,7 +253,8 @@ export class StdioClient {
 
         // Schedule SIGKILL fallback after 1 second if process doesn't exit
         setTimeout(() => {
-          if (!procToClose.killed) {
+          // Check if process has actually exited (exitCode is non-null once exit event fires)
+          if (procToClose.exitCode === null) {
             try {
               procToClose.kill("SIGKILL");
             } catch {

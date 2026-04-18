@@ -243,4 +243,108 @@ describe("StdioClient", () => {
       }
     });
   });
+
+  describe("JSON Parse Error Handling", () => {
+    it("should reject pending request on invalid JSON from stdout", async () => {
+      // Spawn a simple process that outputs invalid JSON to stdout
+      client.spawn(process.execPath, [
+        "-e",
+        `
+// After a short delay, output invalid JSON to stdout
+setTimeout(() => {
+  process.stdout.write("not valid json at all\\n");
+}, 50);
+
+// Keep process alive
+setInterval(() => {}, 10000);
+        `,
+      ]);
+
+      // Create a promise that will be waiting for a response
+      // This will trigger a pending request that will be rejected when invalid JSON is received
+      const responsePromise = client.callTool("echo", { test: "data" });
+
+      // The invalid JSON should be sent after 50ms, causing the pending request to be rejected
+      try {
+        await responsePromise;
+        expect.unreachable("Should have rejected with parse error");
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const msg = (error as Error).message;
+        expect(msg).toContain("Failed to parse JSON-RPC response from analyzer");
+      }
+    });
+  });
+
+  describe("SIGKILL Fallback", () => {
+    it("should escalate to SIGKILL when process ignores SIGTERM", async () => {
+      // Spawn a process that ignores SIGTERM
+      const startTime = Date.now();
+      client.spawn(process.execPath, [
+        "-e",
+        `
+        // Ignore SIGTERM — only exit on SIGKILL
+        process.on("SIGTERM", () => {
+          // Ignore SIGTERM
+        });
+        // Keep process alive and send responses
+        const readline = require("readline");
+        const rl = readline.createInterface({
+          input: process.stdin,
+          terminal: false
+        });
+        rl.on("line", (line) => {
+          try {
+            const req = JSON.parse(line);
+            if (req.method === "initialize") {
+              console.log(JSON.stringify({
+                jsonrpc: "2.0",
+                id: req.id,
+                result: { capabilities: {} }
+              }));
+            }
+          } catch (e) {
+            // ignore
+          }
+        });
+        setInterval(() => {}, 1000);
+        `,
+      ]);
+
+      // Initialize to ensure process is responsive
+      await client.initialize({});
+
+      // Close the client, which should trigger SIGTERM then SIGKILL
+      client.close();
+
+      // Wait for process to exit (SIGKILL should terminate it within 2 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const elapsed = Date.now() - startTime;
+
+      // Should have exited within 2-3 seconds (SIGTERM + 1s timeout + SIGKILL)
+      // If SIGKILL wasn't sent, the process would stay alive indefinitely
+      expect(elapsed).toBeLessThan(3000);
+    });
+
+    it("should not send SIGKILL if process exits after SIGTERM", async () => {
+      // Spawn a normal process that handles SIGTERM gracefully
+      client.spawn(process.execPath, [MOCK_ANALYZER_PATH]);
+
+      await client.initialize({});
+
+      // Close the client
+      const startTime = Date.now();
+      client.close();
+
+      // Wait a bit for process to exit
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const elapsed = Date.now() - startTime;
+
+      // Should exit quickly (SIGTERM immediately kills the mock analyzer)
+      // Much faster than 1 second (the SIGKILL timeout)
+      expect(elapsed).toBeLessThan(500);
+    });
+  });
 });
