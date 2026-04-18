@@ -85,8 +85,20 @@ export class StdioClient {
             const message = JSON.parse(line);
             this.handleMessage(message);
           } catch (error) {
-            // Ignore invalid JSON in stdout
-            console.error(`Failed to parse JSON-RPC message: ${line}`);
+            // If we have pending requests, reject the oldest one since it likely
+            // sent the request that produced this invalid response
+            const firstKey = this.pendingRequests.keys().next().value;
+            if (firstKey !== undefined) {
+              const pending = this.pendingRequests.get(firstKey);
+              if (pending) {
+                clearTimeout(pending.timeout);
+                this.pendingRequests.delete(firstKey);
+                pending.reject(new Error(`Failed to parse JSON-RPC response from analyzer: ${line}`));
+              }
+            } else {
+              // No pending requests, just log the error
+              console.error(`Failed to parse JSON-RPC message from analyzer: ${line}`);
+            }
           }
         }
       });
@@ -194,12 +206,16 @@ export class StdioClient {
    * Close the connection and clean up
    *
    * Sends a shutdown notification and terminates the process.
+   * Sends SIGTERM first, then escalates to SIGKILL after 1 second if needed.
    * Cleans up all pending requests and event listeners.
    */
   close(): void {
     if (!this.proc) {
       return;
     }
+
+    const procToClose = this.proc;
+    this.proc = null;
 
     // Send shutdown notification
     try {
@@ -208,7 +224,7 @@ export class StdioClient {
         method: "shutdown",
       };
       const line = JSON.stringify(notification) + "\n";
-      this.proc.stdin?.write(line);
+      procToClose.stdin?.write(line);
     } catch (error) {
       // Ignore write errors during shutdown
     }
@@ -221,25 +237,34 @@ export class StdioClient {
     this.pendingRequests.clear();
 
     // Remove listeners
-    if (this.proc.stdout) {
-      this.proc.stdout.removeAllListeners();
+    if (procToClose.stdout) {
+      procToClose.stdout.removeAllListeners();
     }
-    if (this.proc.stderr) {
-      this.proc.stderr.removeAllListeners();
+    if (procToClose.stderr) {
+      procToClose.stderr.removeAllListeners();
     }
-    this.proc.removeAllListeners();
+    procToClose.removeAllListeners();
 
-    // Terminate process
+    // Terminate process with SIGKILL fallback
     try {
-      this.proc.stdin?.end();
-      if (!this.proc.killed) {
-        this.proc.kill("SIGTERM");
+      procToClose.stdin?.end();
+      if (!procToClose.killed) {
+        procToClose.kill("SIGTERM");
+
+        // Schedule SIGKILL fallback after 1 second if process doesn't exit
+        setTimeout(() => {
+          if (!procToClose.killed) {
+            try {
+              procToClose.kill("SIGKILL");
+            } catch {
+              // Process may have already exited
+            }
+          }
+        }, 1000);
       }
     } catch (error) {
       // Ignore errors during shutdown
     }
-
-    this.proc = null;
   }
 
   /**
