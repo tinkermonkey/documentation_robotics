@@ -143,7 +143,8 @@
     },
     "metadata": {
       "type": "object",
-      "description": "Optional metadata about the analyzer (version, author, etc.)",
+      "description": "Metadata about the analyzer including version, author, etc.",
+      "required": ["version"],
       "additionalProperties": false,
       "properties": {
         "version": {
