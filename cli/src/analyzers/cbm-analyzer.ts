@@ -64,7 +64,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const binaryNames = (metadata?.binary_names as string[] | undefined) ?? [
       "codebase-memory-mcp",
     ];
-    const mcp_server_name = metadata?.mcp_server_name ?? "codebase-memory-mcp";
+    const mcpServerName = metadata?.mcp_server_name ?? "codebase-memory-mcp";
 
     // Check if .mcp.json exists at project root for registration status
     let mcpRegistered = false;
@@ -74,7 +74,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const mcpConfig = JSON.parse(mcpContent);
       // Check if the analyzer's MCP server is registered in .mcp.json
       mcpRegistered =
-        (mcpConfig.mcpServers && mcp_server_name in mcpConfig.mcpServers) ||
+        (mcpConfig.mcpServers && mcpServerName in mcpConfig.mcpServers) ||
         false;
     } catch {
       // .mcp.json not found or not valid JSON - that's OK, not an error
