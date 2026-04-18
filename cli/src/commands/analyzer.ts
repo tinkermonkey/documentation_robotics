@@ -126,29 +126,29 @@ Examples:
 
           // If reselecting, auto-select first available analyzer in non-TTY mode
           if (options.reselect) {
-            if (!process.stdin.isTTY && installed.length > 0) {
-              const firstAnalyzer = installed[0];
+            if (!process.stdin.isTTY && analyzerNames.length > 0) {
+              const selectedName = analyzerNames[0];
               const state: SessionState = {
-                active_analyzer: firstAnalyzer.backend.name,
+                active_analyzer: selectedName,
                 selected_at: new Date().toISOString(),
               };
               await writeSession(state, projectRoot);
-              result.selected = firstAnalyzer.backend.name;
+              result.selected = selectedName;
             }
           } else {
             // If not reselecting, check if session exists
             const session = await readSession(projectRoot);
             if (session) {
               result.selected = session.active_analyzer;
-            } else if (!process.stdin.isTTY && installed.length > 0) {
-              // Auto-select first installed analyzer in non-TTY mode if no session exists
-              const firstAnalyzer = installed[0];
+            } else if (!process.stdin.isTTY && analyzerNames.length > 0) {
+              // Auto-select first registered analyzer in non-TTY mode if no session exists
+              const selectedName = analyzerNames[0];
               const state: SessionState = {
-                active_analyzer: firstAnalyzer.backend.name,
+                active_analyzer: selectedName,
                 selected_at: new Date().toISOString(),
               };
               await writeSession(state, projectRoot);
-              result.selected = firstAnalyzer.backend.name;
+              result.selected = selectedName;
             }
           }
 
