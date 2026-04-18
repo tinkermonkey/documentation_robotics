@@ -20,7 +20,7 @@ import type {
   FilteringRule,
 } from "./types.js";
 
-interface AnalyzerMetadata {
+interface AnalyzerManifestMetadata {
   name: string;
   display_name: string;
   description: string;
@@ -31,7 +31,7 @@ interface AnalyzerMetadata {
 interface PackedArtifact {
   name: string;
   version: string;
-  analyzer?: AnalyzerMetadata;
+  analyzer?: AnalyzerManifestMetadata;
   nodes_by_label: Record<string, AnalyzerNodeMapping>;
   edges_by_type: Record<string, AnalyzerEdgeMapping>;
   heuristics: {
@@ -233,7 +233,7 @@ export class MappingLoader {
    *
    * @returns Analyzer metadata object or undefined if not available
    */
-  getAnalyzerMetadata(): AnalyzerMetadata | undefined {
+  getAnalyzerMetadata(): AnalyzerManifestMetadata | undefined {
     return this.artifact.analyzer;
   }
 }

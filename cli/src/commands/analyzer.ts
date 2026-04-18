@@ -12,6 +12,7 @@ import { Command } from "commander";
 import { intro, outro, select, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
+import { MappingLoader } from "../analyzers/mapping-loader.js";
 import { readSession, writeSession, writeStatus } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
@@ -44,6 +45,9 @@ Examples:
     )
     .action(async (options) => {
       try {
+        // Resolve project root for consistent session state path
+        const projectRoot = (await findProjectRoot()) || process.cwd();
+
         // Initialize registry
         const registry = AnalyzerRegistry.getInstance();
         await registry.initialize();
@@ -59,6 +63,18 @@ Examples:
           );
         }
 
+        // Check if session already exists and not reselecting
+        if (!options.reselect) {
+          const session = await readSession(projectRoot);
+          if (session) {
+            // Already selected and not reselecting
+            console.log(
+              ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
+            );
+            return;
+          }
+        }
+
         // Get metadata for each analyzer
         const analyzerOptions = [];
         for (const name of analyzerNames) {
@@ -66,9 +82,7 @@ Examples:
           if (!backend) continue;
 
           const detection = await backend.detect();
-          const mapper = await (await import("../analyzers/mapping-loader.js")).MappingLoader.load(
-            name
-          );
+          const mapper = await MappingLoader.load(name);
           const metadata = mapper.getAnalyzerMetadata();
 
           analyzerOptions.push({
@@ -106,7 +120,7 @@ Examples:
 
           // If not reselecting and session exists, include selection
           if (!options.reselect) {
-            const session = await readSession();
+            const session = await readSession(projectRoot);
             if (session) {
               result.selected = session.active_analyzer;
             }
@@ -136,18 +150,6 @@ Examples:
           process.exit(0);
         }
 
-        // Multiple installed - prompt for selection (if TTY)
-        if (installed.length > 1 && process.stdin.isTTY && !options.reselect) {
-          const session = await readSession();
-          if (session) {
-            // Already selected and not reselecting
-            console.log(
-              ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
-            );
-            return;
-          }
-        }
-
         // Prompt for selection
         intro(ansis.blue("📊 Analyzer Selection"));
 
@@ -171,7 +173,7 @@ Examples:
             active_analyzer: selectedName as string,
             selected_at: new Date().toISOString(),
           };
-          await writeSession(state);
+          await writeSession(state, projectRoot);
 
           outro(
             ansis.green(
@@ -185,7 +187,7 @@ Examples:
             active_analyzer: firstInstalled.name,
             selected_at: new Date().toISOString(),
           };
-          await writeSession(state);
+          await writeSession(state, projectRoot);
 
           console.log(
             ansis.green(`✓ Selected analyzer: ${firstInstalled.name} (non-interactive mode)`)
@@ -219,10 +221,13 @@ Examples:
     )
     .action(async (options) => {
       try {
+        // Resolve project root for consistent session state path
+        const projectRoot = (await findProjectRoot()) || process.cwd();
+
         // Resolve analyzer name
         let analyzerName = options.name;
         if (!analyzerName) {
-          const session = await readSession();
+          const session = await readSession(projectRoot);
           if (!session) {
             throw new CLIError(
               "No analyzer selected. Run `dr analyzer discover` first.",
@@ -248,11 +253,11 @@ Examples:
         // Get detection result
         const detected = await backend.detect();
 
-        // If no project context, just show detection
-        const projectRoot = await findProjectRoot();
+        // Get status (use project root from findProjectRoot for backend operations)
+        const actualProjectRoot = await findProjectRoot();
         let status;
-        if (projectRoot) {
-          status = await backend.status(projectRoot);
+        if (actualProjectRoot) {
+          status = await backend.status(actualProjectRoot);
         } else {
           status = {
             detected,
@@ -264,8 +269,8 @@ Examples:
         // JSON output
         if (options.json) {
           console.log(JSON.stringify(status, null, 2));
-          if (projectRoot) {
-            await writeStatus(status, projectRoot);
+          if (actualProjectRoot) {
+            await writeStatus(status, actualProjectRoot);
           }
           return;
         }
@@ -287,7 +292,7 @@ Examples:
           console.log(`Version: ${ansis.dim(status.detected.version)}`);
         }
 
-        if (projectRoot) {
+        if (actualProjectRoot) {
           console.log(
             `Indexed: ${status.indexed ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
           );
@@ -308,8 +313,8 @@ Examples:
         console.log("");
 
         // Write status file
-        if (projectRoot) {
-          await writeStatus(status, projectRoot);
+        if (actualProjectRoot) {
+          await writeStatus(status, actualProjectRoot);
         }
       } catch (error) {
         if (error instanceof CLIError) throw error;
