@@ -20,9 +20,18 @@ import type {
   FilteringRule,
 } from "./types.js";
 
+interface AnalyzerMetadata {
+  name: string;
+  display_name: string;
+  description: string;
+  homepage: string;
+  [key: string]: unknown;
+}
+
 interface PackedArtifact {
   name: string;
   version: string;
+  analyzer?: AnalyzerMetadata;
   nodes_by_label: Record<string, AnalyzerNodeMapping>;
   edges_by_type: Record<string, AnalyzerEdgeMapping>;
   heuristics: {
@@ -217,5 +226,14 @@ export class MappingLoader {
    */
   getVersion(): string {
     return this.artifact.version;
+  }
+
+  /**
+   * Get analyzer metadata (display name, description, homepage, etc.)
+   *
+   * @returns Analyzer metadata object or undefined if not available
+   */
+  getAnalyzerMetadata(): AnalyzerMetadata | undefined {
+    return this.artifact.analyzer;
   }
 }

@@ -33,6 +33,7 @@ import { conformanceCommand } from "./commands/conformance.js";
 import { changesetCommands } from "./commands/changeset.js";
 import { claudeCommands } from "./commands/claude.js";
 import { copilotCommands } from "./commands/copilot.js";
+import { analyzerCommands } from "./commands/analyzer.js";
 import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
 import { reportCommand } from "./commands/report.js";
@@ -721,6 +722,9 @@ claudeCommands(program);
 
 // GitHub Copilot integration subcommands
 copilotCommands(program);
+
+// Analyzer integration subcommands
+analyzerCommands(program);
 
 // Execute CLI with proper telemetry span wrapping
 // This creates a root span that all child spans will be linked to
