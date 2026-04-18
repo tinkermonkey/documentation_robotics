@@ -280,6 +280,130 @@ describe("build-spec.ts Analyzer Compilation", () => {
     });
   });
 
+  describe("Scenario (e): Duplicate node label detection (case-collision)", () => {
+    it("should fail when node labels have case-collision (e.g., TestNode and Testnode)", () => {
+      const analyzerName = "test-case-collision-nodes";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
+
+      // Modify node-mapping.json to add a case-collision
+      const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
+      const nodeMapping = JSON.parse(readFileSync(nodeMappingPath, "utf-8"));
+      // Original mapping has "TestNode", add a case variant that still starts with uppercase
+      // "Testnode" differs from "TestNode" only in case (lowercase 'n' vs uppercase 'N')
+      nodeMapping.mappings.push({
+        cbm_label: "Testnode",
+        dr_layer: "api",
+        dr_element_type: "endpoint",
+        confidence: "high",
+      });
+      writeFileSync(nodeMappingPath, JSON.stringify(nodeMapping, null, 2));
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
+        // Run build and expect failure due to duplicate/case-collision detection
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("duplicate/case-collision node labels");
+        expect(result.stderr).toContain("conflicts with existing");
+      } finally {
+        uninstallTestAnalyzer(installedDir);
+      }
+    });
+
+    it("should fail when node labels are exactly duplicate", () => {
+      const analyzerName = "test-exact-duplicate-nodes";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
+
+      // Modify node-mapping.json to add an exact duplicate
+      const nodeMappingPath = join(testAnalyzerDir, "node-mapping.json");
+      const nodeMapping = JSON.parse(readFileSync(nodeMappingPath, "utf-8"));
+      // Original mapping has "TestNode", add exact duplicate
+      nodeMapping.mappings.push({
+        cbm_label: "TestNode",
+        dr_layer: "business",
+        dr_element_type: "service",
+        confidence: "medium",
+      });
+      writeFileSync(nodeMappingPath, JSON.stringify(nodeMapping, null, 2));
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
+        // Run build and expect failure due to duplicate detection
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("duplicate/case-collision node labels");
+      } finally {
+        uninstallTestAnalyzer(installedDir);
+      }
+    });
+  });
+
+  describe("Scenario (f): Duplicate edge type detection", () => {
+    it("should fail when edge types are duplicated", () => {
+      const analyzerName = "test-duplicate-edges";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
+
+      // Modify edge-mapping.json to add a duplicate edge type
+      const edgeMappingPath = join(testAnalyzerDir, "edge-mapping.json");
+      const edgeMapping = JSON.parse(readFileSync(edgeMappingPath, "utf-8"));
+      // Original mapping has "TEST_EDGE", add exact duplicate
+      edgeMapping.mappings.push({
+        cbm_edge: "TEST_EDGE",
+        dr_relationship: "provides",
+        confidence: "medium",
+      });
+      writeFileSync(edgeMappingPath, JSON.stringify(edgeMapping, null, 2));
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
+        // Run build and expect failure due to duplicate edge detection
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("duplicate edge types");
+        expect(result.stderr).toContain("TEST_EDGE");
+      } finally {
+        uninstallTestAnalyzer(installedDir);
+      }
+    });
+
+    it("should fail when edge types are duplicated with multiple occurrences", () => {
+      const analyzerName = "test-multiple-duplicate-edges";
+      const testAnalyzerDir = createTestAnalyzer(analyzerName);
+
+      // Modify edge-mapping.json to add multiple edge mappings with duplicates
+      const edgeMappingPath = join(testAnalyzerDir, "edge-mapping.json");
+      const edgeMapping = JSON.parse(readFileSync(edgeMappingPath, "utf-8"));
+      // Original mapping has "TEST_EDGE", add two more duplicates with different predicates
+      edgeMapping.mappings.push(
+        {
+          cbm_edge: "TEST_EDGE",
+          dr_relationship: "provides",
+          confidence: "medium",
+        },
+        {
+          cbm_edge: "TEST_EDGE",
+          dr_relationship: null,
+          confidence: "low",
+        }
+      );
+      writeFileSync(edgeMappingPath, JSON.stringify(edgeMapping, null, 2));
+
+      // Copy the modified test analyzer into spec/analyzers for the build
+      const installedDir = installTestAnalyzerForBuild(testAnalyzerDir, analyzerName);
+      try {
+        // Run build and expect failure due to duplicate edge detection
+        const result = runBuildAndCapture();
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("duplicate edge types");
+      } finally {
+        uninstallTestAnalyzer(installedDir);
+      }
+    });
+  });
+
   describe("Analyzer manifest", () => {
     it("should have created an analyzer manifest listing all analyzers", () => {
       const manifestPath = join(SPEC_DIST_DIR, "analyzers", "manifest.json");
