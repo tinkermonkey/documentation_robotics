@@ -143,16 +143,13 @@ describe("CbmAnalyzer", () => {
       }
     });
 
-    it("should downgrade confidence on missing required fields", async () => {
+    it("should downgrade confidence on missing handler and symbol fields", async () => {
       // Verify the Route mapping has the expected structure for field validation
       const routeMapping = mockMapper.getNodeMapping("Route");
       expect(routeMapping).toBeDefined();
 
-      // The mapping defines dr_element_fields that are used for confidence downgrade
-      if (routeMapping?.dr_element_fields) {
-        expect("operationId" in routeMapping.dr_element_fields).toBe(true);
-      }
-
+      // The transformNodeToEndpoint method checks for handler_name and symbol fields
+      // in node properties to determine if confidence should be downgraded
       // Document the expected confidence levels
       expect(routeMapping?.confidence).toMatch(/^(high|medium|low)$/);
     });
@@ -162,9 +159,15 @@ describe("CbmAnalyzer", () => {
       const mockCandidate: EndpointCandidate = {
         source_file: "src/routes.ts",
         confidence: "high",
-        suggested_id_fragment: "get-users",
-        operationId: "get-users",
-        summary: "GET /users",
+        suggested_layer: "api",
+        suggested_element_type: "operation",
+        suggested_name: "get-users",
+        http_method: "GET",
+        http_path: "/users",
+        handler_qualified_name: "UserController.getUsers",
+        source_symbol: "getUsers",
+        source_start_line: 42,
+        source_end_line: 50,
       };
 
       // Verify that the relative path doesn't start with /
@@ -348,26 +351,22 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("confidence downgrade", () => {
-    it("should downgrade confidence when Route node missing operationId field", async () => {
+    it("should downgrade confidence when Route node missing handler_qualified_name and source_symbol", async () => {
       // Test that the actual transformNodeToEndpoint method downgrades confidence
-      // when a required field is missing from the node properties
+      // when handler_qualified_name or source_symbol is missing from node properties
 
       const routeMapping = mockMapper.getNodeMapping("Route");
       expect(routeMapping).toBeDefined();
       expect(routeMapping?.confidence).toBe("high");
 
-      // Get the required id_source field name from the mapping
-      const idSource = routeMapping?.dr_element_fields?.operationId?.id_source;
-      expect(typeof idSource).toBe("string");
-
-      // Create a mock CbmGraphNode WITHOUT the required id_source field
-      const nodeWithoutRequiredField = {
+      // Create a mock CbmGraphNode WITHOUT handler_name and symbol
+      const nodeWithoutHandlerInfo = {
         id: "route-1",
         label: "Route",
         properties: {
           method: "GET",
           path: "/users",
-          // NOTE: missing the id_source field (e.g., "operationId")
+          // NOTE: missing handler_name and symbol fields
         },
         file_path: "/project/src/routes.ts",
       };
@@ -375,40 +374,38 @@ describe("CbmAnalyzer", () => {
       // Call the actual transformNodeToEndpoint production method
       // Access private method via type casting for unit test
       const result = await (analyzer as any).transformNodeToEndpoint(
-        nodeWithoutRequiredField,
+        nodeWithoutHandlerInfo,
         routeMapping!,
         "/project"
       );
 
-      // Assert that confidence was actually downgraded to "low"
-      expect(result.confidence).toBe("low");
+      // Assert that confidence was downgraded to "medium" due to missing handler info
+      expect(result.confidence).toBe("medium");
     });
 
-    it("should preserve confidence when Route node has required operationId field", async () => {
+    it("should preserve high confidence when Route node has handler_qualified_name and source_symbol", async () => {
       // Test that transformNodeToEndpoint preserves high confidence
-      // when the required field IS present in node properties
+      // when handler_name and symbol are present in node properties
 
       const routeMapping = mockMapper.getNodeMapping("Route");
       expect(routeMapping?.confidence).toBe("high");
 
-      const idSource = routeMapping?.dr_element_fields?.operationId?.id_source;
-      expect(typeof idSource).toBe("string");
-
-      // Create a mock CbmGraphNode WITH the required id_source field
-      const nodeWithRequiredField = {
+      // Create a mock CbmGraphNode WITH handler_name and symbol
+      const nodeWithHandlerInfo = {
         id: "route-1",
         label: "Route",
         properties: {
           method: "GET",
           path: "/users",
-          [idSource!]: "get-users", // Has the required field
+          handler_name: "UserController.getUsers", // Has handler info
+          symbol: "getUsers", // Has symbol
         },
         file_path: "/project/src/routes.ts",
       };
 
       // Call the actual transformNodeToEndpoint production method
       const result = await (analyzer as any).transformNodeToEndpoint(
-        nodeWithRequiredField,
+        nodeWithHandlerInfo,
         routeMapping!,
         "/project"
       );

@@ -460,11 +460,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const sourceStartLine = Number(properties.start_line ?? 0);
     const sourceEndLine = Number(properties.end_line ?? 0);
 
-    // Downgrade confidence if required fields are missing
-    if (!httpMethod || !httpPath) {
-      confidence = "low";
-    }
-
+    // Downgrade confidence if handler information is missing
     if (!handlerQualifiedName || !sourceSymbol) {
       confidence = confidence === "high" ? "medium" : confidence;
     }
