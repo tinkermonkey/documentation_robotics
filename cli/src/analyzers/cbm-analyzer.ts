@@ -280,8 +280,26 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      // The CBM server handles idempotency via project path matching,
-      // so we don't need to check list_projects before indexing
+      // Check if project is already indexed using list_projects
+      // This validates the acceptance criterion and prevents duplicate project creation
+      const listProjectsResponse = (await client.callTool(
+        "list_projects"
+      )) as {
+        projects?: Array<{ path: string; indexed?: boolean }>;
+        [key: string]: unknown;
+      };
+
+      const projects = (listProjectsResponse.projects as
+        | Array<{ path: string; indexed?: boolean }>
+        | undefined) ?? [];
+      const projectExists = projects.some((p) => p.path === projectRoot);
+
+      if (projectExists) {
+        handleWarning(
+          "Project already indexed in CBM backend.",
+          ["Use --force to re-index the project"]
+        );
+      }
 
       // Index the repository
       const indexResponse = (await client.callTool("index_repository", {
@@ -292,15 +310,26 @@ export class CbmAnalyzer implements AnalyzerBackend {
         [key: string]: unknown;
       };
 
-      // Get current git HEAD
+      // Get current git HEAD - fail if git is not available
       const headResult = spawnSync("git", ["rev-parse", "HEAD"], {
         cwd: projectRoot,
         stdio: "pipe",
         encoding: "utf-8",
       });
 
-      const gitHead =
-        headResult.status === 0 ? headResult.stdout.trim() : "unknown";
+      if (headResult.status !== 0) {
+        throw new CLIError(
+          "Failed to get git HEAD",
+          ErrorCategory.VALIDATION,
+          [
+            "Ensure the project is a git repository",
+            "Verify git is installed and functional",
+            `Error: ${headResult.stderr?.trim() || "unknown error"}`,
+          ]
+        );
+      }
+
+      const gitHead = headResult.stdout.trim();
 
       const timestamp = new Date().toISOString();
       const nodeCount = (indexResponse.node_count as number) ?? 0;
