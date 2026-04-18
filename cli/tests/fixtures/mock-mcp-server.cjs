@@ -225,9 +225,9 @@ rl.on("line", (line) => {
             inputSchema: {
               type: "object",
               properties: {
-                path: { type: "string", description: "Repository path" },
+                repo_path: { type: "string", description: "Repository path" },
               },
-              required: ["path"],
+              required: ["repo_path"],
             },
           },
           {
@@ -236,10 +236,10 @@ rl.on("line", (line) => {
             inputSchema: {
               type: "object",
               properties: {
-                path: { type: "string", description: "Project path" },
-                query: { type: "string", description: "Search query" },
+                project: { type: "string", description: "Project path" },
+                label: { type: "string", description: "Node label to search for" },
               },
-              required: ["path"],
+              required: ["project"],
             },
           },
           {
