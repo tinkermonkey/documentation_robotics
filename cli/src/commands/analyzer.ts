@@ -67,10 +67,17 @@ Examples:
         if (!options.reselect) {
           const session = await readSession(projectRoot);
           if (session) {
-            // Already selected and not reselecting
-            console.log(
-              ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
-            );
+            // Already selected and not reselecting - output format depends on --json flag
+            if (options.json) {
+              const result = {
+                selected: session.active_analyzer,
+              };
+              console.log(JSON.stringify(result, null, 2));
+            } else {
+              console.log(
+                ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
+              );
+            }
             return;
           }
         }
