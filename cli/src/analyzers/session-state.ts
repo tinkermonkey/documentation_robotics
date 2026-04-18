@@ -47,7 +47,7 @@ function validateSessionState(data: unknown): SessionState {
 
 /**
  * Validate IndexMeta structure
- * @throws Error if data is missing required fields
+ * @throws Error if data is missing required fields or optional fields have wrong types
  */
 function validateIndexMeta(data: unknown): IndexMeta {
   if (!data || typeof data !== "object") {
@@ -64,6 +64,15 @@ function validateIndexMeta(data: unknown): IndexMeta {
     throw new Error("IndexMeta.timestamp must be a string");
   }
 
+  // Validate optional numeric fields if present
+  if (obj.node_count !== undefined && typeof obj.node_count !== "number") {
+    throw new Error("IndexMeta.node_count must be a number");
+  }
+
+  if (obj.edge_count !== undefined && typeof obj.edge_count !== "number") {
+    throw new Error("IndexMeta.edge_count must be a number");
+  }
+
   return {
     git_head: obj.git_head,
     timestamp: obj.timestamp,
@@ -74,7 +83,7 @@ function validateIndexMeta(data: unknown): IndexMeta {
 
 /**
  * Validate AnalyzerStatus structure
- * @throws Error if data is missing required fields
+ * @throws Error if data is missing required fields or optional fields have wrong types
  */
 function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
   if (!data || typeof data !== "object") {
@@ -92,6 +101,23 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
     throw new Error("AnalyzerStatus.detected.installed must be a boolean");
   }
 
+  // Validate optional fields in detected if present
+  if (detected.binary_path !== undefined && typeof detected.binary_path !== "string") {
+    throw new Error("AnalyzerStatus.detected.binary_path must be a string");
+  }
+
+  if (detected.version !== undefined && typeof detected.version !== "string") {
+    throw new Error("AnalyzerStatus.detected.version must be a string");
+  }
+
+  if (detected.mcp_registered !== undefined && typeof detected.mcp_registered !== "boolean") {
+    throw new Error("AnalyzerStatus.detected.mcp_registered must be a boolean");
+  }
+
+  if (detected.contract_ok !== undefined && typeof detected.contract_ok !== "boolean") {
+    throw new Error("AnalyzerStatus.detected.contract_ok must be a boolean");
+  }
+
   if (typeof obj.indexed !== "boolean") {
     throw new Error("AnalyzerStatus.indexed must be a boolean");
   }
@@ -100,16 +126,26 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
     throw new Error("AnalyzerStatus.fresh must be a boolean");
   }
 
+  // Validate optional index_meta if present
+  if (obj.index_meta !== undefined && (typeof obj.index_meta !== "object" || obj.index_meta === null)) {
+    throw new Error("AnalyzerStatus.index_meta must be an object");
+  }
+
+  // Validate optional last_indexed if present
+  if (obj.last_indexed !== undefined && typeof obj.last_indexed !== "string") {
+    throw new Error("AnalyzerStatus.last_indexed must be a string");
+  }
+
   return {
     detected: {
-      installed: detected.installed,
+      installed: detected.installed as boolean,
       binary_path: detected.binary_path as string | undefined,
       version: detected.version as string | undefined,
       mcp_registered: detected.mcp_registered as boolean | undefined,
       contract_ok: detected.contract_ok as boolean | undefined,
     },
-    indexed: obj.indexed,
-    fresh: obj.fresh,
+    indexed: obj.indexed as boolean,
+    fresh: obj.fresh as boolean,
     index_meta: obj.index_meta as IndexMeta | undefined,
     last_indexed: obj.last_indexed as string | undefined,
   };
@@ -202,8 +238,8 @@ export async function writeSession(state: SessionState, baseDir?: string): Promi
  * @throws Error if file exists but is malformed JSON or invalid structure
  */
 export async function readIndexMeta(
-  baseDir?: string,
-  analyzerName?: string
+  baseDir: string | undefined,
+  analyzerName: string
 ): Promise<IndexMeta | null> {
   const filePath = getStatePath("index-meta.json", baseDir, analyzerName);
   try {
@@ -230,8 +266,8 @@ export async function readIndexMeta(
  */
 export async function writeIndexMeta(
   meta: IndexMeta,
-  baseDir?: string,
-  analyzerName?: string
+  baseDir: string | undefined,
+  analyzerName: string
 ): Promise<void> {
   await ensureStateDir(baseDir, analyzerName);
   const filePath = getStatePath("index-meta.json", baseDir, analyzerName);
@@ -248,8 +284,8 @@ export async function writeIndexMeta(
  * @throws Error if file exists but is malformed JSON or invalid structure
  */
 export async function readStatus(
-  baseDir?: string,
-  analyzerName?: string
+  baseDir: string | undefined,
+  analyzerName: string
 ): Promise<AnalyzerStatus | null> {
   const filePath = getStatePath("status.json", baseDir, analyzerName);
   try {
@@ -276,8 +312,8 @@ export async function readStatus(
  */
 export async function writeStatus(
   status: AnalyzerStatus,
-  baseDir?: string,
-  analyzerName?: string
+  baseDir: string | undefined,
+  analyzerName: string
 ): Promise<void> {
   await ensureStateDir(baseDir, analyzerName);
   const filePath = getStatePath("status.json", baseDir, analyzerName);
