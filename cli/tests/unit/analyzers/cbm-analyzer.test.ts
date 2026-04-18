@@ -113,59 +113,60 @@ describe("CbmAnalyzer", () => {
         (rule) => rule.name === "test_code_exclusion" && rule.enabled
       );
 
-      // This analyzer has a test_code_exclusion rule with pattern: ^.*(.test.|_test.|spec.|__tests__)
-      if (testCodeRule && testCodeRule.pattern) {
-        // Test files matching the rule pattern
-        const testFilesMatchingRule = [
-          "src/routes.test.ts",
-          "src_test.routes.ts",
-          "src/routes.spec.ts",
-        ];
+      // Preconditions: ensure the test_code_exclusion rule exists and has a pattern
+      expect(testCodeRule).toBeDefined();
+      expect(testCodeRule!.pattern).toBeDefined();
 
-        for (const sourceFile of testFilesMatchingRule) {
-          const candidate: EndpointCandidate = {
-            source_file: sourceFile,
-            confidence: "high",
-            suggested_layer: "api",
-            suggested_element_type: "operation",
-            suggested_name: "get-users",
-            http_method: "GET",
-            http_path: "/users",
-            handler_qualified_name: "UserController.getUsers",
-            source_symbol: "getUsers",
-            source_start_line: 42,
-            source_end_line: 50,
-          };
+      // Test files matching the rule pattern
+      const testFilesMatchingRule = [
+        "src/routes.test.ts",
+        "src_test.routes.ts",
+        "src/routes.spec.ts",
+      ];
 
-          const isTest = (analyzer as any).isTestCode(candidate);
-          expect(isTest).toBe(true);
-        }
+      for (const sourceFile of testFilesMatchingRule) {
+        const candidate: EndpointCandidate = {
+          source_file: sourceFile,
+          confidence: "high",
+          suggested_layer: "api",
+          suggested_element_type: "operation",
+          suggested_name: "get-users",
+          http_method: "GET",
+          http_path: "/users",
+          handler_qualified_name: "UserController.getUsers",
+          source_symbol: "getUsers",
+          source_start_line: 42,
+          source_end_line: 50,
+        };
 
-        // Test files NOT matching the rule pattern
-        const productionFiles = [
-          "src/routes.ts",
-          "src/api/endpoints.ts",
-          "lib/helpers.ts",
-        ];
+        const isTest = (analyzer as any).isTestCode(candidate);
+        expect(isTest).toBe(true);
+      }
 
-        for (const sourceFile of productionFiles) {
-          const candidate: EndpointCandidate = {
-            source_file: sourceFile,
-            confidence: "high",
-            suggested_layer: "api",
-            suggested_element_type: "operation",
-            suggested_name: "get-users",
-            http_method: "GET",
-            http_path: "/users",
-            handler_qualified_name: "UserController.getUsers",
-            source_symbol: "getUsers",
-            source_start_line: 42,
-            source_end_line: 50,
-          };
+      // Test files NOT matching the rule pattern
+      const productionFiles = [
+        "src/routes.ts",
+        "src/api/endpoints.ts",
+        "lib/helpers.ts",
+      ];
 
-          const isTest = (analyzer as any).isTestCode(candidate);
-          expect(isTest).toBe(false);
-        }
+      for (const sourceFile of productionFiles) {
+        const candidate: EndpointCandidate = {
+          source_file: sourceFile,
+          confidence: "high",
+          suggested_layer: "api",
+          suggested_element_type: "operation",
+          suggested_name: "get-users",
+          http_method: "GET",
+          http_path: "/users",
+          handler_qualified_name: "UserController.getUsers",
+          source_symbol: "getUsers",
+          source_start_line: 42,
+          source_end_line: 50,
+        };
+
+        const isTest = (analyzer as any).isTestCode(candidate);
+        expect(isTest).toBe(false);
       }
     });
 
