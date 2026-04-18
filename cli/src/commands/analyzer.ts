@@ -159,15 +159,13 @@ Examples:
 
           for (const opt of analyzerOptions) {
             const name = ansis.bold(opt.backend.displayName);
-            const homepage = opt.metadata?.homepage
-              ? ansis.dim(`(${opt.metadata.homepage})`)
-              : "";
-            console.log(`  ${name} ${homepage}`);
+            const homepage = opt.metadata?.homepage || "(homepage not available)";
+            console.log(`  ${name} ${ansis.dim(`(${homepage})`)}`);
           }
 
           console.log("");
           outro(ansis.dim("To install: follow the links above or use your package manager"));
-          process.exit(0);
+          return;
         }
 
         // Prompt for selection
@@ -185,7 +183,7 @@ Examples:
 
           if (isCancel(selectedName)) {
             outro(ansis.dim("Cancelled"));
-            process.exit(0);
+            return;
           }
 
           // Write session
@@ -216,9 +214,22 @@ Examples:
         }
       } catch (error) {
         if (error instanceof CLIError) throw error;
+
+        // Determine error category based on error type
+        let category = ErrorCategory.USER;
+        if (error instanceof Error) {
+          const errorStr = error.message.toLowerCase();
+          // System errors: permission denied, no space, I/O errors
+          if (errorStr.includes("eacces") || errorStr.includes("permission denied") ||
+              errorStr.includes("enospc") || errorStr.includes("no space") ||
+              errorStr.includes("eio") || errorStr.includes("i/o error")) {
+            category = ErrorCategory.SYSTEM;
+          }
+        }
+
         throw new CLIError(
           error instanceof Error ? error.message : String(error),
-          ErrorCategory.USER
+          category
         );
       }
     });
@@ -338,9 +349,22 @@ Examples:
         }
       } catch (error) {
         if (error instanceof CLIError) throw error;
+
+        // Determine error category based on error type
+        let category = ErrorCategory.USER;
+        if (error instanceof Error) {
+          const errorStr = error.message.toLowerCase();
+          // System errors: permission denied, no space, I/O errors
+          if (errorStr.includes("eacces") || errorStr.includes("permission denied") ||
+              errorStr.includes("enospc") || errorStr.includes("no space") ||
+              errorStr.includes("eio") || errorStr.includes("i/o error")) {
+            category = ErrorCategory.SYSTEM;
+          }
+        }
+
         throw new CLIError(
           error instanceof Error ? error.message : String(error),
-          ErrorCategory.USER
+          category
         );
       }
     });
@@ -398,10 +422,18 @@ Examples:
         // Check if installed
         const detection = await backend.detect();
         if (!detection.installed) {
+          // Get analyzer metadata for suggestions
+          const mapper = await MappingLoader.load(analyzerName);
+          const metadata = mapper.getAnalyzerMetadata();
+          const homepageUrl = metadata?.homepage || "https://github.com/search?q=codebase-memory";
+
           throw new CLIError(
             `Analyzer not installed: ${analyzerName}`,
             ErrorCategory.USER,
-            ["Install the analyzer and run `dr analyzer discover`"]
+            [
+              "Run `dr analyzer discover` to find available analyzers and installation instructions",
+              `Visit: ${homepageUrl}`,
+            ]
           );
         }
 
