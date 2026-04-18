@@ -67,7 +67,12 @@
           },
           "direction": {
             "type": "string",
-            "enum": ["forward", "backward", "bidirectional", "caller_to_callee"],
+            "enum": [
+              "forward",
+              "backward",
+              "bidirectional",
+              "caller_to_callee"
+            ],
             "description": "Optional specification of the inherent directionality of the relationship in the source code model (forward = source→target, backward = target→source, bidirectional = both directions, caller_to_callee = from caller to callee). This is independent of 'directionality_transform', which specifies runtime transformations to apply during mapping."
           },
           "confidence_from_property": {

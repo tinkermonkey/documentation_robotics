@@ -23,12 +23,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "cbm_label",
-          "dr_layer",
-          "dr_element_type",
-          "confidence"
-        ],
+        "required": ["cbm_label", "dr_layer", "dr_element_type", "confidence"],
         "additionalProperties": false,
         "properties": {
           "cbm_label": {
