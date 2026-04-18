@@ -11,6 +11,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { promises as fs } from "fs";
 import * as path from "path";
+import { randomUUID } from "crypto";
+import * as os from "os";
 import {
   readSession,
   writeSession,
@@ -18,30 +20,27 @@ import {
   writeIndexMeta,
   readStatus,
   writeStatus,
-} from "@/analyzers/session-state";
-import type { SessionState, IndexMeta, AnalyzerStatus } from "@/analyzers/types";
+} from "../../../src/analyzers/session-state.js";
+import type { SessionState, IndexMeta, AnalyzerStatus } from "../../../src/analyzers/types.js";
 
-// Helper to get state directory path
-function getStateDir(): string {
-  return path.join(process.cwd(), ".dr", "analyzers");
-}
-
-// Helper to cleanup state files
-async function cleanupStateDir(): Promise<void> {
-  try {
-    await fs.rm(getStateDir(), { recursive: true, force: true });
-  } catch {
-    // Ignore if directory doesn't exist
-  }
+// Helper to create a unique temp directory for each test
+function createTempDir(): string {
+  return path.join(os.tmpdir(), `session-state-test-${randomUUID()}`);
 }
 
 describe("Session State Persistence", () => {
-  beforeEach(async () => {
-    await cleanupStateDir();
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = createTempDir();
   });
 
   afterEach(async () => {
-    await cleanupStateDir();
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore if directory doesn't exist
+    }
   });
 
   describe("readSession() / writeSession()", () => {
@@ -51,14 +50,14 @@ describe("Session State Persistence", () => {
         selected_at: "2025-01-01T00:00:00Z",
       };
 
-      await writeSession(session);
-      const read = await readSession();
+      await writeSession(session, tempDir);
+      const read = await readSession(tempDir);
 
       expect(read).toEqual(session);
     });
 
     it("should return null when session file does not exist", async () => {
-      const result = await readSession();
+      const result = await readSession(tempDir);
       expect(result).toBeNull();
     });
 
@@ -73,32 +72,23 @@ describe("Session State Persistence", () => {
         selected_at: "2025-01-02T00:00:00Z",
       };
 
-      await writeSession(session1);
-      await writeSession(session2);
-      const read = await readSession();
+      await writeSession(session1, tempDir);
+      await writeSession(session2, tempDir);
+      const read = await readSession(tempDir);
 
       expect(read).toEqual(session2);
     });
 
     it("should create state directory if it does not exist", async () => {
-      const stateDir = getStateDir();
-      const exists = await fs
-        .access(stateDir)
-        .then(() => true)
-        .catch(() => false);
-
-      if (exists) {
-        await fs.rm(stateDir, { recursive: true, force: true });
-      }
-
       const session: SessionState = {
         active_analyzer: "test",
         selected_at: "2025-01-01T00:00:00Z",
       };
 
-      await writeSession(session);
+      await writeSession(session, tempDir);
 
       // Verify directory was created
+      const stateDir = path.join(tempDir, ".dr", "analyzers");
       const dirExists = await fs
         .access(stateDir)
         .then(() => true)
@@ -113,9 +103,9 @@ describe("Session State Persistence", () => {
         selected_at: "2025-01-01T00:00:00Z",
       };
 
-      await writeSession(session);
+      await writeSession(session, tempDir);
 
-      const filePath = path.join(getStateDir(), "session.json");
+      const filePath = path.join(tempDir, ".dr", "analyzers", "session.json");
       const content = await fs.readFile(filePath, "utf-8");
 
       // Pretty-printed JSON should have newlines and indentation
@@ -133,14 +123,14 @@ describe("Session State Persistence", () => {
         edge_count: 250,
       };
 
-      await writeIndexMeta(meta);
-      const read = await readIndexMeta();
+      await writeIndexMeta(meta, tempDir);
+      const read = await readIndexMeta(tempDir);
 
       expect(read).toEqual(meta);
     });
 
     it("should return null when index meta file does not exist", async () => {
-      const result = await readIndexMeta();
+      const result = await readIndexMeta(tempDir);
       expect(result).toBeNull();
     });
 
@@ -150,8 +140,8 @@ describe("Session State Persistence", () => {
         timestamp: "2025-01-01T00:00:00Z",
       };
 
-      await writeIndexMeta(meta);
-      const read = await readIndexMeta();
+      await writeIndexMeta(meta, tempDir);
+      const read = await readIndexMeta(tempDir);
 
       expect(read).toEqual(meta);
       expect(read?.node_count).toBeUndefined();
@@ -173,32 +163,23 @@ describe("Session State Persistence", () => {
         edge_count: 150,
       };
 
-      await writeIndexMeta(meta1);
-      await writeIndexMeta(meta2);
-      const read = await readIndexMeta();
+      await writeIndexMeta(meta1, tempDir);
+      await writeIndexMeta(meta2, tempDir);
+      const read = await readIndexMeta(tempDir);
 
       expect(read).toEqual(meta2);
     });
 
     it("should create state directory if it does not exist", async () => {
-      const stateDir = getStateDir();
-      const exists = await fs
-        .access(stateDir)
-        .then(() => true)
-        .catch(() => false);
-
-      if (exists) {
-        await fs.rm(stateDir, { recursive: true, force: true });
-      }
-
       const meta: IndexMeta = {
         git_head: "test123",
         timestamp: "2025-01-01T00:00:00Z",
       };
 
-      await writeIndexMeta(meta);
+      await writeIndexMeta(meta, tempDir);
 
       // Verify directory was created
+      const stateDir = path.join(tempDir, ".dr", "analyzers");
       const dirExists = await fs
         .access(stateDir)
         .then(() => true)
@@ -213,9 +194,9 @@ describe("Session State Persistence", () => {
         timestamp: "2025-01-01T00:00:00Z",
       };
 
-      await writeIndexMeta(meta);
+      await writeIndexMeta(meta, tempDir);
 
-      const filePath = path.join(getStateDir(), "index.meta.json");
+      const filePath = path.join(tempDir, ".dr", "analyzers", "index.meta.json");
       const content = await fs.readFile(filePath, "utf-8");
 
       // Pretty-printed JSON should have newlines and indentation
@@ -241,14 +222,14 @@ describe("Session State Persistence", () => {
         last_indexed: "2025-01-01T00:00:00Z",
       };
 
-      await writeStatus(status);
-      const read = await readStatus();
+      await writeStatus(status, tempDir);
+      const read = await readStatus(tempDir);
 
       expect(read).toEqual(status);
     });
 
     it("should return null when status file does not exist", async () => {
-      const result = await readStatus();
+      const result = await readStatus(tempDir);
       expect(result).toBeNull();
     });
 
@@ -261,8 +242,8 @@ describe("Session State Persistence", () => {
         fresh: false,
       };
 
-      await writeStatus(status);
-      const read = await readStatus();
+      await writeStatus(status, tempDir);
+      const read = await readStatus(tempDir);
 
       expect(read).toEqual(status);
       expect(read?.index_meta).toBeUndefined();
@@ -282,33 +263,24 @@ describe("Session State Persistence", () => {
         fresh: false,
       };
 
-      await writeStatus(status1);
-      await writeStatus(status2);
-      const read = await readStatus();
+      await writeStatus(status1, tempDir);
+      await writeStatus(status2, tempDir);
+      const read = await readStatus(tempDir);
 
       expect(read).toEqual(status2);
     });
 
     it("should create state directory if it does not exist", async () => {
-      const stateDir = getStateDir();
-      const exists = await fs
-        .access(stateDir)
-        .then(() => true)
-        .catch(() => false);
-
-      if (exists) {
-        await fs.rm(stateDir, { recursive: true, force: true });
-      }
-
       const status: AnalyzerStatus = {
         detected: { installed: true },
         indexed: false,
         fresh: false,
       };
 
-      await writeStatus(status);
+      await writeStatus(status, tempDir);
 
       // Verify directory was created
+      const stateDir = path.join(tempDir, ".dr", "analyzers");
       const dirExists = await fs
         .access(stateDir)
         .then(() => true)
@@ -324,9 +296,9 @@ describe("Session State Persistence", () => {
         fresh: false,
       };
 
-      await writeStatus(status);
+      await writeStatus(status, tempDir);
 
-      const filePath = path.join(getStateDir(), "status.json");
+      const filePath = path.join(tempDir, ".dr", "analyzers", "status.json");
       const content = await fs.readFile(filePath, "utf-8");
 
       // Pretty-printed JSON should have newlines and indentation
@@ -353,20 +325,20 @@ describe("Session State Persistence", () => {
         fresh: true,
       };
 
-      await writeSession(session);
-      await writeIndexMeta(meta);
-      await writeStatus(status);
+      await writeSession(session, tempDir);
+      await writeIndexMeta(meta, tempDir);
+      await writeStatus(status, tempDir);
 
-      const readSession_result = await readSession();
-      const readIndexMeta_result = await readIndexMeta();
-      const readStatus_result = await readStatus();
+      const readSession_result = await readSession(tempDir);
+      const readIndexMeta_result = await readIndexMeta(tempDir);
+      const readStatus_result = await readStatus(tempDir);
 
       expect(readSession_result).toEqual(session);
       expect(readIndexMeta_result).toEqual(meta);
       expect(readStatus_result).toEqual(status);
 
       // Verify all files exist
-      const stateDir = getStateDir();
+      const stateDir = path.join(tempDir, ".dr", "analyzers");
       const files = await fs.readdir(stateDir);
       expect(files).toContain("session.json");
       expect(files).toContain("index.meta.json");
@@ -381,8 +353,8 @@ describe("Session State Persistence", () => {
         timestamp: "",
       };
 
-      await writeIndexMeta(meta);
-      const read = await readIndexMeta();
+      await writeIndexMeta(meta, tempDir);
+      const read = await readIndexMeta(tempDir);
 
       expect(read).toEqual(meta);
     });
@@ -393,8 +365,8 @@ describe("Session State Persistence", () => {
         selected_at: "2025-01-01T00:00:00Z",
       };
 
-      await writeSession(session);
-      const read = await readSession();
+      await writeSession(session, tempDir);
+      const read = await readSession(tempDir);
 
       expect(read?.active_analyzer).toBe(session.active_analyzer);
     });
@@ -407,12 +379,12 @@ describe("Session State Persistence", () => {
           writeSession({
             active_analyzer: `analyzer-${i}`,
             selected_at: new Date().toISOString(),
-          })
+          }, tempDir)
         );
       }
 
       await Promise.all(promises);
-      const read = await readSession();
+      const read = await readSession(tempDir);
 
       expect(read).toBeDefined();
       expect(read?.active_analyzer).toMatch(/^analyzer-/);

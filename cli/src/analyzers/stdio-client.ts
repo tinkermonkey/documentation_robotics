@@ -43,18 +43,29 @@ export class StdioClient {
    * Spawn an analyzer process
    *
    * @param binaryPath Path to the analyzer binary
+   * @param args Optional command-line arguments (or env object for backwards compatibility)
    * @param env Optional environment variables (merged with process.env)
    * @throws Error if spawn fails
    */
-  spawn(binaryPath: string, env?: Record<string, string>): void {
+  spawn(binaryPath: string, args?: string[] | Record<string, string>, env?: Record<string, string>): void {
     if (this.proc) {
       throw new Error("Process already spawned");
     }
 
-    const envVars = { ...process.env, ...env };
-    this.proc = spawn(binaryPath, [], {
+    // Handle backwards compatibility: if args is an object, treat it as env
+    let actualArgs: string[] = [];
+    let actualEnv = process.env as Record<string, string>;
+
+    if (Array.isArray(args)) {
+      actualArgs = args;
+      actualEnv = { ...actualEnv, ...env };
+    } else if (args && typeof args === "object") {
+      actualEnv = { ...actualEnv, ...args };
+    }
+
+    this.proc = spawn(binaryPath, actualArgs, {
       stdio: ["pipe", "pipe", "pipe"],
-      env: envVars,
+      env: actualEnv,
     });
 
     // Set up stdout listener for responses
@@ -165,9 +176,10 @@ export class StdioClient {
       try {
         const line = JSON.stringify(request) + "\n";
         if (!this.proc!.stdin!.write(line)) {
-          // If write buffer is full, wait for drain
+          // Write returned false (backpressure), but data is already in the buffer.
+          // No action needed — the data will be flushed automatically.
           this.proc!.stdin!.once("drain", () => {
-            // Request already written
+            // Drain event listener registered but no action needed
           });
         }
       } catch (error) {
@@ -265,11 +277,11 @@ export class StdioClient {
     // Check for error response
     if ("error" in msg && msg.error !== null && typeof msg.error === "object") {
       const error = msg.error as Record<string, unknown>;
-      const message = (error.message as string) || "Unknown error";
+      const errMessage = (error.message as string) || "Unknown error";
       const code = (error.code as number) ?? -1;
       const data = error.data;
 
-      const errorMessage = data ? `${message}: ${JSON.stringify(data)}` : message;
+      const errorMessage = data ? `${errMessage}: ${JSON.stringify(data)}` : errMessage;
       reject(new Error(`[Error ${code}] ${errorMessage}`));
       return;
     }
