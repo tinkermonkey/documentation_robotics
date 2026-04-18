@@ -14,9 +14,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { runDr } from "../../helpers/cli-runner.js";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
-import { mkdir, writeFile, rm, access } from "fs/promises";
+import { mkdir, writeFile, rm, access, chmod } from "fs/promises";
 import { join } from "path";
-import { spawn } from "child_process";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -299,7 +298,24 @@ describe("analyzer end-to-end workflow", () => {
   });
 
   describe("mock MCP server integration", () => {
-    it("should start mock MCP server and handle basic protocol", async () => {
+    let mockBinDir: string;
+
+    beforeEach(async () => {
+      // Create a mock bin directory in the test workspace
+      mockBinDir = join(tempDir.path, ".mock-bin");
+      await mkdir(mockBinDir, { recursive: true });
+
+      // Create a wrapper script that calls the mock server
+      const mockBinaryPath = join(mockBinDir, "codebase-memory-mcp");
+      const wrapperContent = `#!/bin/sh
+node "${MOCK_MCP_SERVER_PATH}"
+`;
+
+      await writeFile(mockBinaryPath, wrapperContent);
+      await chmod(mockBinaryPath, 0o755);
+    });
+
+    it("should complete discover → status → index → endpoints workflow with mock server", async () => {
       // Initialize project
       await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
 
@@ -308,25 +324,14 @@ describe("analyzer end-to-end workflow", () => {
       await mkdir(srcDir, { recursive: true });
       await writeFile(join(srcDir, "routes.ts"), "export const routes = [];");
 
-      // Verify the mock server file exists
-      try {
-        await access(MOCK_MCP_SERVER_PATH);
-        expect(true).toBe(true);
-      } catch {
-        // Mock server file not found, but that's OK for this test
-        // The file exists during development, may not during isolated testing
-        expect(true).toBe(true);
-      }
-    });
+      // Prepare environment with mock binary in PATH
+      const customPath = `${mockBinDir}:${process.env.PATH || ""}`;
+      const env = { ...process.env, PATH: customPath };
 
-    it("should complete discover → status → endpoints workflow", async () => {
-      // Initialize project
-      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
-
-      // Step 1: Discover analyzers
+      // Step 1: Discover analyzers (should find cbm)
       const discoverResult = await runDr(["analyzer", "discover", "--json"], {
         cwd: tempDir.path,
-        env: { CI: "true" },
+        env: { ...env, CI: "true" },
       });
 
       expect(discoverResult.exitCode).toBe(0);
@@ -334,32 +339,82 @@ describe("analyzer end-to-end workflow", () => {
       expect(discoverOutput).toHaveProperty("found");
       expect(Array.isArray(discoverOutput.found)).toBe(true);
 
-      // Step 2: Check status for each available analyzer
-      for (const analyzer of discoverOutput.found) {
-        const statusResult = await runDr(["analyzer", "status", "--name", analyzer.name, "--json"], {
-          cwd: tempDir.path,
-        });
+      // Verify cbm analyzer is found
+      const cbmAnalyzer = discoverOutput.found.find((a: any) => a.name === "cbm");
+      expect(cbmAnalyzer).toBeDefined();
+      expect(cbmAnalyzer?.installed).toBe(true);
 
-        // Status should succeed for all analyzers
-        expect(typeof statusResult.exitCode).toBe("number");
-
-        if (statusResult.exitCode === 0) {
-          const statusOutput = JSON.parse(statusResult.stdout);
-          expect(statusOutput).toHaveProperty("detected");
-          expect(statusOutput.detected).toHaveProperty("installed");
-        }
-      }
-
-      // Step 3: Verify endpoints command structure (will fail without real index)
-      const endpointsResult = await runDr(["analyzer", "endpoints", "--name", "cbm", "--json"], {
+      // Step 2: Check status
+      const statusResult = await runDr(["analyzer", "status", "--name", "cbm", "--json"], {
         cwd: tempDir.path,
+        env,
       });
 
-      // Should fail with helpful message about needing to index first
-      if (endpointsResult.exitCode !== 0) {
-        const output = endpointsResult.stdout + endpointsResult.stderr;
-        expect(output.toLowerCase()).toMatch(/indexed|index/i);
+      expect(statusResult.exitCode).toBe(0);
+      const statusOutput = JSON.parse(statusResult.stdout);
+      expect(statusOutput).toHaveProperty("detected");
+      expect(statusOutput.detected.installed).toBe(true);
+      expect(statusOutput.indexed).toBe(false); // Not indexed yet
+
+      // Step 3: Index the project with mock server
+      const indexResult = await runDr(["analyzer", "index", "--name", "cbm"], {
+        cwd: tempDir.path,
+        env,
+      });
+
+      // Index should succeed with mock server
+      expect(indexResult.exitCode).toBe(0);
+
+      // Step 4: Verify endpoints can be extracted
+      const endpointsResult = await runDr(["analyzer", "endpoints", "--name", "cbm", "--json"], {
+        cwd: tempDir.path,
+        env,
+      });
+
+      // Should succeed and return endpoint candidates
+      expect(endpointsResult.exitCode).toBe(0);
+      const endpoints = JSON.parse(endpointsResult.stdout);
+      expect(Array.isArray(endpoints)).toBe(true);
+
+      // Verify endpoint candidate structure
+      for (const candidate of endpoints) {
+        expect(candidate).toHaveProperty("source_file");
+        expect(candidate).toHaveProperty("confidence");
+        expect(["high", "medium", "low"]).toContain(candidate.confidence);
+        expect(candidate).toHaveProperty("operationId");
       }
+    });
+
+    it("should verify status shows indexed=true after indexing", async () => {
+      // Initialize project
+      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+
+      // Create project structure
+      const srcDir = join(tempDir.path, "src");
+      await mkdir(srcDir, { recursive: true });
+      await writeFile(join(srcDir, "routes.ts"), "export const routes = [];");
+
+      const customPath = `${mockBinDir}:${process.env.PATH || ""}`;
+      const env = { ...process.env, PATH: customPath };
+
+      // Index the project
+      await runDr(["analyzer", "index", "--name", "cbm"], {
+        cwd: tempDir.path,
+        env,
+      });
+
+      // Check status after indexing
+      const statusResult = await runDr(["analyzer", "status", "--name", "cbm", "--json"], {
+        cwd: tempDir.path,
+        env,
+      });
+
+      expect(statusResult.exitCode).toBe(0);
+      const statusOutput = JSON.parse(statusResult.stdout);
+      expect(statusOutput.indexed).toBe(true); // Should be indexed now
+      expect(statusOutput).toHaveProperty("index_meta");
+      expect(statusOutput.index_meta).toHaveProperty("node_count");
+      expect(statusOutput.index_meta).toHaveProperty("edge_count");
     });
   });
 });
