@@ -781,7 +781,7 @@ analyzerCommands(program);
             if (error instanceof CommanderError) {
               // Commander handled its own output; nothing to print
             } else if (error instanceof CLIError) {
-              console.error(error.message);
+              console.error(error.format());
             } else if (error instanceof Error) {
               console.error(error.message);
             } else {
@@ -814,8 +814,10 @@ analyzerCommands(program);
         // Extract exit code from CLIError if available
         // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
         const { CLIError } = await import("./utils/errors.js");
-        if (error instanceof CommanderError || error instanceof CLIError) {
-          // Output already handled by Commander or CLIError internals
+        if (error instanceof CommanderError) {
+          // Commander handled its own output; nothing to print
+        } else if (error instanceof CLIError) {
+          console.error(error.format());
         } else {
           // Unexpected exceptions need to be printed
           if (error instanceof Error) {

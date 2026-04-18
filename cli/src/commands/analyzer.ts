@@ -63,21 +63,14 @@ Examples:
           );
         }
 
-        // Check if session already exists and not reselecting
-        if (!options.reselect) {
+        // Check if session already exists and not reselecting (but only for non-JSON output)
+        if (!options.reselect && !options.json) {
           const session = await readSession(projectRoot);
           if (session) {
-            // Already selected and not reselecting - output format depends on --json flag
-            if (options.json) {
-              const result = {
-                selected: session.active_analyzer,
-              };
-              console.log(JSON.stringify(result, null, 2));
-            } else {
-              console.log(
-                ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
-              );
-            }
+            // Already selected and not reselecting - text output
+            console.log(
+              ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
+            );
             return;
           }
         }
@@ -125,11 +118,31 @@ Examples:
             installed_count: installed.length,
           };
 
-          // If not reselecting and session exists, include selection
-          if (!options.reselect) {
+          // If reselecting, auto-select first available analyzer in non-TTY mode
+          if (options.reselect) {
+            if (!process.stdin.isTTY && analyzerOptions.length > 0) {
+              const firstAnalyzer = analyzerOptions[0];
+              const state: SessionState = {
+                active_analyzer: firstAnalyzer.name,
+                selected_at: new Date().toISOString(),
+              };
+              await writeSession(state, projectRoot);
+              result.selected = firstAnalyzer.name;
+            }
+          } else {
+            // If not reselecting, check if session exists
             const session = await readSession(projectRoot);
             if (session) {
               result.selected = session.active_analyzer;
+            } else if (!process.stdin.isTTY && analyzerOptions.length > 0) {
+              // Auto-select first analyzer in non-TTY mode if no session exists
+              const firstAnalyzer = analyzerOptions[0];
+              const state: SessionState = {
+                active_analyzer: firstAnalyzer.name,
+                selected_at: new Date().toISOString(),
+              };
+              await writeSession(state, projectRoot);
+              result.selected = firstAnalyzer.name;
             }
           }
 
