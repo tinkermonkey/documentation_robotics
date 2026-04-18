@@ -38,7 +38,7 @@ export class MappingLoader {
   private artifact: PackedArtifact;
   private analyzerName: string;
 
-  constructor(artifact: PackedArtifact, analyzerName: string) {
+  private constructor(artifact: PackedArtifact, analyzerName: string) {
     this.artifact = artifact;
     this.analyzerName = analyzerName;
   }

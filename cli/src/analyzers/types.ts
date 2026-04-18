@@ -213,14 +213,3 @@ export interface FilteringRule {
   pattern?: string;
   enabled: boolean;
 }
-
-/**
- * Inference rule for mapping transformations
- */
-export interface InferenceRule {
-  name: string;
-  description: string;
-  pattern: string;
-  confidence: ConfidenceLevel;
-  enabled: boolean;
-}
