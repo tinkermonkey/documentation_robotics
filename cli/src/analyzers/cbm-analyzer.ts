@@ -289,9 +289,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
         [key: string]: unknown;
       };
 
-      const projects = (listProjectsResponse.projects as
-        | Array<{ path: string; indexed?: boolean }>
-        | undefined) ?? [];
+      // Validate response structure
+      if (!listProjectsResponse || typeof listProjectsResponse !== "object") {
+        throw new CLIError(
+          "Invalid response from list_projects",
+          ErrorCategory.SYSTEM,
+          ["Ensure codebase-memory-mcp is properly installed and functional"]
+        );
+      }
+
+      const projects = Array.isArray(listProjectsResponse.projects)
+        ? (listProjectsResponse.projects as Array<{
+            path: string;
+            indexed?: boolean;
+          }>)
+        : [];
       const projectExists = projects.some((p) => p.path === projectRoot);
 
       // Prevent re-indexing unless forced (mirroring freshness gate pattern)
@@ -340,9 +352,24 @@ export class CbmAnalyzer implements AnalyzerBackend {
         [key: string]: unknown;
       };
 
+      // Validate response structure
+      if (!indexResponse || typeof indexResponse !== "object") {
+        throw new CLIError(
+          "Invalid response from index_repository",
+          ErrorCategory.SYSTEM,
+          ["Ensure codebase-memory-mcp is properly installed and functional"]
+        );
+      }
+
       const timestamp = new Date().toISOString();
-      const nodeCount = (indexResponse.node_count as number) ?? 0;
-      const edgeCount = (indexResponse.edge_count as number) ?? 0;
+      const nodeCount =
+        typeof indexResponse.node_count === "number"
+          ? indexResponse.node_count
+          : 0;
+      const edgeCount =
+        typeof indexResponse.edge_count === "number"
+          ? indexResponse.edge_count
+          : 0;
 
       // Write index metadata
       const meta: IndexMeta = {
@@ -415,13 +442,24 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Search for Route nodes
       const searchResponse = (await client.callTool("search_graph", {
         label: "Route",
-        project_root: projectRoot,
+        project: projectRoot,
       })) as {
         nodes?: CbmGraphNode[];
         [key: string]: unknown;
       };
 
-      const nodes = (searchResponse.nodes as CbmGraphNode[]) ?? [];
+      // Validate response structure
+      if (!searchResponse || typeof searchResponse !== "object") {
+        throw new CLIError(
+          "Invalid response from search_graph",
+          ErrorCategory.SYSTEM,
+          ["Ensure codebase-memory-mcp is properly installed and functional"]
+        );
+      }
+
+      const nodes = Array.isArray(searchResponse.nodes)
+        ? (searchResponse.nodes as CbmGraphNode[])
+        : [];
 
       // Get the Route mapping
       const routeMapping = this.mapper.getNodeMapping("Route");
@@ -506,8 +544,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
     suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
 
     // Required fields for dr add api operation
-    const httpMethod = String(properties.method ?? "GET").toUpperCase();
-    const httpPath = String(properties.path ?? "/");
+    // Validate that method is a string before using it
+    const httpMethod =
+      typeof properties.method === "string"
+        ? properties.method.toUpperCase()
+        : "GET";
+    // Validate that path is a string before using it
+    const httpPath =
+      typeof properties.path === "string" ? properties.path : "/";
 
     // Handler information (from node properties)
     const handlerQualifiedName = String(properties.handler_name ?? "");
@@ -554,17 +598,44 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @private
    */
   private isTestCode(candidate: EndpointCandidate): boolean {
-    // Apply test code exclusion rule: filter out test files
-    const testPatterns = [
-      /\.test\./,
-      /\.spec\./,
-      /\/tests?\//,
-      /\/__tests__\//,
-      /\/test-/,
-    ];
+    // Get filtering rules from the analyzer mapping
+    const filteringRules = this.mapper.getFilteringRules();
 
-    return testPatterns.some((pattern) =>
-      pattern.test(candidate.source_file)
+    // Find the test_code_exclusion rule
+    const testCodeRule = filteringRules.find(
+      (rule) => rule.name === "test_code_exclusion" && rule.enabled
     );
+
+    // If no test_code_exclusion rule found, apply default patterns as fallback
+    if (!testCodeRule || !testCodeRule.pattern) {
+      const testPatterns = [
+        /\.test\./,
+        /\.spec\./,
+        /\/tests?\//,
+        /\/__tests__\//,
+        /\/test-/,
+      ];
+      return testPatterns.some((pattern) =>
+        pattern.test(candidate.source_file)
+      );
+    }
+
+    // Apply the pattern from the filtering rule
+    try {
+      const testCodePattern = new RegExp(testCodeRule.pattern);
+      return testCodePattern.test(candidate.source_file);
+    } catch {
+      // If regex is invalid, fall back to default patterns
+      const testPatterns = [
+        /\.test\./,
+        /\.spec\./,
+        /\/tests?\//,
+        /\/__tests__\//,
+        /\/test-/,
+      ];
+      return testPatterns.some((pattern) =>
+        pattern.test(candidate.source_file)
+      );
+    }
   }
 }
