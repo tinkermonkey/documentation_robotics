@@ -10,7 +10,8 @@
     "mcp_server_name",
     "supported_tool_contract",
     "supported_languages",
-    "project_identification"
+    "project_identification",
+    "metadata"
   ],
   "additionalProperties": false,
   "properties": {

@@ -38,12 +38,20 @@ const VERSION_FILE = path.join(SPEC_DIR, "VERSION");
 function loadValidPredicateNames(): string[] {
   const predicatesPath = path.join(SCHEMAS_DIR, "base", "predicates.json");
   if (!fs.existsSync(predicatesPath)) {
-    console.warn(`[WARN] predicates.json not found at ${predicatesPath}`);
-    return [];
+    console.error(`[ERROR] predicates.json not found at ${predicatesPath} — aborting build`);
+    process.exit(1);
   }
-  const data = JSON.parse(fs.readFileSync(predicatesPath, "utf-8"));
-  const predicatesObj = data.predicates ?? data;
-  return Object.keys(predicatesObj).sort();
+
+  let data: unknown;
+  try {
+    data = JSON.parse(fs.readFileSync(predicatesPath, "utf-8"));
+  } catch (err: any) {
+    console.error(`[ERROR] Failed to parse predicates.json: ${err.message} — aborting build`);
+    process.exit(1);
+  }
+
+  const predicatesObj = (data as Record<string, unknown>).predicates ?? data;
+  return Object.keys(predicatesObj as Record<string, unknown>).sort();
 }
 
 // Base schema filename → URN-style ID mapping
@@ -461,12 +469,20 @@ function loadBaseSchemas(): Record<string, unknown> {
 function loadPredicates(): unknown {
   const predicatesPath = path.join(SCHEMAS_DIR, "base", "predicates.json");
   if (!fs.existsSync(predicatesPath)) {
-    console.warn(`[WARN] predicates.json not found at ${predicatesPath}`);
-    return {};
+    console.error(`[ERROR] predicates.json not found at ${predicatesPath} — aborting build`);
+    process.exit(1);
   }
-  const data = JSON.parse(fs.readFileSync(predicatesPath, "utf-8"));
+
+  let data: unknown;
+  try {
+    data = JSON.parse(fs.readFileSync(predicatesPath, "utf-8"));
+  } catch (err: any) {
+    console.error(`[ERROR] Failed to parse predicates.json: ${err.message} — aborting build`);
+    process.exit(1);
+  }
+
   // predicates.json has { predicates: {...} } — store only the inner dict
-  return data.predicates ?? data;
+  return (data as Record<string, unknown>).predicates ?? data;
 }
 
 function loadLayerInstance(layerFile: string): LayerInstance {
@@ -765,6 +781,14 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
+  // Validate that analyzerSpec.name matches the directory name
+  if (analyzerSpec && analyzerSpec.name !== analyzerName) {
+    console.error(
+      `[ERROR] Analyzer name mismatch in '${analyzerName}': analyzer.json has name='${analyzerSpec.name}' but directory name is '${analyzerName}' — these must match`
+    );
+    return null;
+  }
+
   const nodeMappingPath = path.join(analyzerDir, "node-mapping.json");
   try {
     nodeMapping = JSON.parse(fs.readFileSync(nodeMappingPath, "utf-8"));
@@ -846,7 +870,7 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
-  // Get version from analyzer.json metadata — must be present and valid
+  // Extract and validate version from analyzer.json metadata
   let version: string | null = null;
   if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
     const metadata = analyzerSpec.metadata as AnalyzerMetadata;
@@ -856,7 +880,7 @@ function loadAndValidateAnalyzer(
   }
 
   if (!version) {
-    console.error(`[ERROR] analyzer '${analyzerName}' is missing metadata.version — must be a non-empty string`);
+    console.error(`[ERROR] analyzer '${analyzerName}' has metadata but is missing metadata.version — must be a non-empty string`);
     return null;
   }
 
