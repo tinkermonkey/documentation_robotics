@@ -86,7 +86,7 @@ rl.on("line", (line) => {
       return;
     }
 
-    // Handle tool calls
+    // Handle tool calls via tools/call wrapper
     if (method === "tools/call") {
       const { name, arguments: args } = params || {};
 
@@ -114,6 +114,32 @@ rl.on("line", (line) => {
         sendError(id, errorCode, errorMsg, errorData);
         return;
       }
+    }
+
+    // Handle direct tool calls (e.g., "echo", "delay", "error" as method names)
+    if (method === "echo") {
+      sendResponse(id, { echoed: params });
+      return;
+    }
+
+    if (method === "delay") {
+      const delay = (params?.delay || 100);
+      // Store for later response
+      pendingRequests.set(id, { method, params, delay, timestamp: Date.now() });
+
+      setTimeout(() => {
+        sendResponse(id, { delayed: true, delayMs: delay });
+        pendingRequests.delete(id);
+      }, delay);
+      return;
+    }
+
+    if (method === "error") {
+      const errorCode = params?.code || -32000;
+      const errorMsg = params?.message || "Test error";
+      const errorData = params?.data;
+      sendError(id, errorCode, errorMsg, errorData);
+      return;
     }
 
     // Default: unknown method
