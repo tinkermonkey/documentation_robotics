@@ -159,7 +159,7 @@ Examples:
 
           for (const opt of analyzerOptions) {
             const name = ansis.bold(opt.backend.displayName);
-            const homepage = opt.metadata?.homepage || "https://github.com/search?q=codebase-memory";
+            const homepage = opt.metadata?.homepage || "(homepage not available)";
             console.log(`  ${name} ${ansis.dim(`(${homepage})`)}`);
           }
 
