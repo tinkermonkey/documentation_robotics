@@ -7,6 +7,8 @@
  * - The mapping loader
  */
 
+import type { SourceReference } from "../types/source-reference.js";
+
 /**
  * Binary detection result - whether an analyzer is installed and functional
  */
@@ -24,29 +26,37 @@ export interface DetectionResult {
 export type ConfidenceLevel = "high" | "medium" | "low";
 
 /**
+ * Valid HTTP methods
+ */
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS" | "TRACE" | "CONNECT";
+
+/**
  * An API endpoint candidate discovered from code analysis
  * Maps to `dr add api operation` command arguments
  *
- * These 9 fields directly support the downstream extraction workflow:
+ * These 13 fields directly support the downstream extraction workflow:
  * - Layer: api
  * - Element type: operation
  * - Name: constructed from suggested_name
+ * - ID fragment: suggested_id_fragment (kebab-case for element ID)
  * - HTTP method/path: required for OpenAPI compliance
- * - Source information: for traceability
+ * - Source information: for traceability and provenance
  */
 export interface EndpointCandidate {
   /** Relative path from project root */
   source_file: string;
   /** Confidence in the detection (high, medium, low) */
   confidence: ConfidenceLevel;
-  /** Suggested DR layer for this endpoint (typically "api") */
-  suggested_layer: string;
-  /** Suggested element type for this endpoint (e.g., "operation") */
-  suggested_element_type: string;
+  /** Suggested DR layer for this endpoint (must be "api") */
+  suggested_layer: "api";
+  /** Suggested element type for this endpoint (must be "operation") */
+  suggested_element_type: "operation";
   /** Suggested kebab-case name for the endpoint */
   suggested_name: string;
+  /** Suggested kebab-case ID fragment for constructing element ID */
+  suggested_id_fragment: string;
   /** HTTP method (GET, POST, PUT, DELETE, etc.) - REQUIRED */
-  http_method: string;
+  http_method: HttpMethod;
   /** HTTP path or resource identifier - REQUIRED */
   http_path: string;
   /** Qualified name of the handler/implementation */
@@ -57,6 +67,8 @@ export interface EndpointCandidate {
   source_start_line: number;
   /** Ending line number of handler in source file */
   source_end_line: number;
+  /** Source reference linking this endpoint to its implementation */
+  source_reference: SourceReference;
 }
 
 /**

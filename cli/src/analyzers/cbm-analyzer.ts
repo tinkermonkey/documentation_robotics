@@ -23,6 +23,7 @@ import type {
   IndexResult,
   IndexMeta,
   AnalyzerNodeMapping,
+  HttpMethod,
 } from "./types.js";
 import { StdioClient } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
@@ -554,12 +555,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
     let suggestedName = String(properties.name ?? node.id).toLowerCase();
     suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
 
+    // Suggested ID fragment (same as name for endpoints)
+    const suggestedIdFragment = suggestedName;
+
     // Required fields for dr add api operation
-    // Validate that method is a string before using it
-    const httpMethod =
+    // Validate that method is a string before using it, cast to HttpMethod
+    const rawMethod =
       typeof properties.method === "string"
         ? properties.method.toUpperCase()
         : "GET";
+    // Validate against valid HTTP methods
+    const validMethods = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"]);
+    const httpMethod: HttpMethod = validMethods.has(rawMethod)
+      ? (rawMethod as HttpMethod)
+      : "GET";
+
     // Validate that path is a string before using it
     const httpPath =
       typeof properties.path === "string" ? properties.path : "/";
@@ -591,12 +601,24 @@ export class CbmAnalyzer implements AnalyzerBackend {
       suggested_layer: "api",
       suggested_element_type: "operation",
       suggested_name: suggestedName,
+      suggested_id_fragment: suggestedIdFragment,
       http_method: httpMethod,
       http_path: httpPath,
       handler_qualified_name: handlerQualifiedName,
       source_symbol: sourceSymbol,
       source_start_line: sourceStartLine,
       source_end_line: sourceEndLine,
+      source_reference: {
+        provenance: "extracted",
+        locations: sourceFile
+          ? [
+              {
+                file: sourceFile,
+                symbol: sourceSymbol || undefined,
+              },
+            ]
+          : undefined,
+      },
     };
   }
 
