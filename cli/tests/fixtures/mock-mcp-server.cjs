@@ -64,11 +64,15 @@ function generateEndpointCandidates(projectPath) {
     candidates.push({
       source_file: `src/routes${i > 0 ? i : ""}.ts`,
       confidence: i === 0 ? "high" : "medium",
-      suggested_id_fragment: `route-${i}`,
-      operationId: `route-${i}`,
-      summary: `GET /api/endpoint-${i}`,
-      method: "GET",
-      path: `/api/endpoint-${i}`,
+      suggested_layer: "api",
+      suggested_element_type: "operation",
+      suggested_name: `route-${i}`,
+      http_method: "GET",
+      http_path: `/api/endpoint-${i}`,
+      handler_qualified_name: `Handler${i}`,
+      source_symbol: `route${i}`,
+      source_start_line: 10 + i * 10,
+      source_end_line: 20 + i * 10,
     });
   }
 

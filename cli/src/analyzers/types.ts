@@ -25,35 +25,38 @@ export type ConfidenceLevel = "high" | "medium" | "low";
 
 /**
  * An API endpoint candidate discovered from code analysis
- * 13 fields as specified in FR-4.3
+ * Maps to `dr add api operation` command arguments
+ *
+ * These 9 fields directly support the downstream extraction workflow:
+ * - Layer: api
+ * - Element type: operation
+ * - Name: constructed from suggested_name
+ * - HTTP method/path: required for OpenAPI compliance
+ * - Source information: for traceability
  */
 export interface EndpointCandidate {
   /** Relative path from project root */
   source_file: string;
-  /** Confidence in the detection */
+  /** Confidence in the detection (high, medium, low) */
   confidence: ConfidenceLevel;
-  /** Suggested fragment for element ID (kebab-case) */
-  suggested_id_fragment: string;
-  /** Operation ID from the code */
-  operationId: string;
-  /** One-line summary (e.g., "GET /users/{id}") */
-  summary: string;
-  /** Longer description if available */
-  description?: string;
-  /** Tags/categories for the endpoint */
-  tags?: string[];
-  /** HTTP method if applicable */
-  method?: string;
-  /** URL path or resource identifier */
-  path?: string;
-  /** Parameters (query, path, header) */
-  parameters?: Record<string, unknown>;
-  /** Request body schema if applicable */
-  request_body?: Record<string, unknown>;
-  /** Response schemas by status code */
-  responses?: Record<string, unknown>;
-  /** Security requirements */
-  security?: Record<string, unknown>;
+  /** Suggested DR layer for this endpoint (typically "api") */
+  suggested_layer: string;
+  /** Suggested element type for this endpoint (e.g., "operation") */
+  suggested_element_type: string;
+  /** Suggested kebab-case name for the endpoint */
+  suggested_name: string;
+  /** HTTP method (GET, POST, PUT, DELETE, etc.) - REQUIRED */
+  http_method: string;
+  /** HTTP path or resource identifier - REQUIRED */
+  http_path: string;
+  /** Qualified name of the handler/implementation */
+  handler_qualified_name: string;
+  /** Source symbol or identifier where handler is defined */
+  source_symbol: string;
+  /** Starting line number of handler in source file */
+  source_start_line: number;
+  /** Ending line number of handler in source file */
+  source_end_line: number;
 }
 
 /**

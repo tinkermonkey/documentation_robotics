@@ -84,17 +84,24 @@ describe("CbmAnalyzer", () => {
       const mockCandidate: EndpointCandidate = {
         source_file: "src/routes.ts",
         confidence: "high",
-        suggested_id_fragment: "get-users",
-        operationId: "get-users",
-        summary: "GET /users",
-        method: "GET",
-        path: "/users",
+        suggested_layer: "api",
+        suggested_element_type: "operation",
+        suggested_name: "get-users",
+        http_method: "GET",
+        http_path: "/users",
+        handler_qualified_name: "UserController.getUsers",
+        source_symbol: "getUsers",
+        source_start_line: 42,
+        source_end_line: 50,
       };
 
       expect(mockCandidate).toBeDefined();
       expect(mockCandidate.confidence).toMatch(/^(high|medium|low)$/);
       expect(typeof mockCandidate.source_file).toBe("string");
-      expect(typeof mockCandidate.operationId).toBe("string");
+      expect(mockCandidate.suggested_layer).toBe("api");
+      expect(mockCandidate.suggested_element_type).toBe("operation");
+      expect(typeof mockCandidate.http_method).toBe("string");
+      expect(typeof mockCandidate.http_path).toBe("string");
     });
   });
 

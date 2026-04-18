@@ -421,8 +421,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
   /**
    * Transform a CBM graph node to an endpoint candidate
    *
-   * Applies field mappings from the analyzer's mapping configuration.
-   * Downgrades confidence if required fields are missing rather than throwing.
+   * Maps CBM Route node properties to DR EndpointCandidate contract:
+   * - suggested_layer: always "api" for endpoints
+   * - suggested_element_type: always "operation" for routes
+   * - suggested_name: from node properties or id (kebab-case)
+   * - http_method: from properties.method or defaults to "GET"
+   * - http_path: from properties.path or defaults to "/"
+   * - handler_qualified_name: from properties.handler_name or empty string
+   * - source_symbol: from properties.symbol or empty string
+   * - source_start_line: from properties.start_line or 0
+   * - source_end_line: from properties.end_line or 0
+   *
+   * Downgrades confidence if required fields are missing.
    *
    * @private
    */
@@ -435,36 +445,28 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Extract base fields
     let confidence = mapping.confidence as "high" | "medium" | "low";
-    let suggestedIdFragment = String(properties.name ?? node.id).toLowerCase();
-    suggestedIdFragment = suggestedIdFragment.replace(/[^a-z0-9-]/g, "-");
 
-    let operationId = suggestedIdFragment;
-    let summary = String(properties.method ?? "")
-      ? `${properties.method} ${properties.path ?? "/"}`
-      : String(properties.path ?? "/");
-    let method = String(properties.method ?? "GET");
-    let pathStr = String(properties.path ?? "/");
+    // Suggested name in kebab-case (from node name or id)
+    let suggestedName = String(properties.name ?? node.id).toLowerCase();
+    suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
 
-    // Apply field templates from mapping
-    const drFields = mapping.dr_element_fields ?? {};
+    // Required fields for dr add api operation
+    const httpMethod = String(properties.method ?? "GET").toUpperCase();
+    const httpPath = String(properties.path ?? "/");
 
-    if (drFields.operationId) {
-      const idField = drFields.operationId.id_source;
-      if (idField && !(idField in properties)) {
-        confidence = "low"; // Downgrade confidence if required field missing
-      } else if (idField) {
-        operationId = String(properties[idField] ?? operationId)
-          .toLowerCase()
-          .replace(/[^a-z0-9-]/g, "-");
-      }
+    // Handler information (from node properties)
+    const handlerQualifiedName = String(properties.handler_name ?? "");
+    const sourceSymbol = String(properties.symbol ?? "");
+    const sourceStartLine = Number(properties.start_line ?? 0);
+    const sourceEndLine = Number(properties.end_line ?? 0);
+
+    // Downgrade confidence if required fields are missing
+    if (!httpMethod || !httpPath) {
+      confidence = "low";
     }
 
-    if (drFields.summary) {
-      const template = drFields.summary.template;
-      if (template) {
-        // Simple template expansion: {field} -> value
-        summary = this.expandTemplate(template, properties);
-      }
+    if (!handlerQualifiedName || !sourceSymbol) {
+      confidence = confidence === "high" ? "medium" : confidence;
     }
 
     // Extract source file (relative to project root)
@@ -480,50 +482,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
     return {
       source_file: sourceFile,
       confidence,
-      suggested_id_fragment: suggestedIdFragment,
-      operationId,
-      summary,
-      method,
-      path: pathStr,
-      description: mapping.description,
-      tags: Array.isArray(properties.tags) ? (properties.tags as string[]) : undefined,
-      parameters: properties.parameters as Record<string, unknown>,
-      request_body: properties.request_body as Record<string, unknown>,
-      responses: properties.responses as Record<string, unknown>,
-      security: properties.security as Record<string, unknown>,
+      suggested_layer: "api",
+      suggested_element_type: "operation",
+      suggested_name: suggestedName,
+      http_method: httpMethod,
+      http_path: httpPath,
+      handler_qualified_name: handlerQualifiedName,
+      source_symbol: sourceSymbol,
+      source_start_line: sourceStartLine,
+      source_end_line: sourceEndLine,
     };
   }
 
-  /**
-   * Expand a template string with properties
-   *
-   * Simple template expansion: {field} -> value
-   *
-   * @private
-   */
-  private expandTemplate(
-    template: string,
-    properties: Record<string, unknown>
-  ): string {
-    let result = template;
-    const regex = /{([^}]+)}/g;
-    result = result.replace(regex, (match, key) => {
-      const parts = key.split(".");
-      let value: unknown = properties;
-
-      for (const part of parts) {
-        if (value && typeof value === "object" && part in value) {
-          value = (value as Record<string, unknown>)[part];
-        } else {
-          return match; // Leave unresolved
-        }
-      }
-
-      return String(value ?? match);
-    });
-
-    return result;
-  }
 
   /**
    * Check if an endpoint candidate is in test code

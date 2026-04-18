@@ -523,8 +523,8 @@ Examples:
 
         // Print each endpoint
         for (const endpoint of endpoints) {
-          const method = endpoint.method ? endpoint.method.padEnd(methodWidth) : "—".padEnd(methodWidth);
-          const path = (endpoint.path || endpoint.summary || "—").substring(0, pathWidth).padEnd(pathWidth);
+          const method = endpoint.http_method.padEnd(methodWidth);
+          const path = endpoint.http_path.substring(0, pathWidth).padEnd(pathWidth);
           const confidence = endpoint.confidence.toUpperCase().padEnd(confidenceWidth);
           const file = endpoint.source_file.substring(0, fileWidth);
 
