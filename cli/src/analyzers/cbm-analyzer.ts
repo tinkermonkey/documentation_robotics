@@ -84,20 +84,47 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Reads .mcp.json from the project root and checks if the analyzer's MCP server
    * is registered there. This is extracted into a separate method for easier testing.
    *
+   * @param projectRoot Absolute path to the project root
    * @returns True if the MCP server is registered, false otherwise
+   * @throws CLIError if .mcp.json exists but is unreadable or malformed
    */
-  async checkMcpRegistration(): Promise<boolean> {
+  async checkMcpRegistration(projectRoot: string): Promise<boolean> {
     try {
-      const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
+      const mcpJsonPath = path.join(projectRoot, ".mcp.json");
       const mcpContent = await readFile(mcpJsonPath, "utf-8");
       const mcpConfig = JSON.parse(mcpContent);
       const metadata = this.mapper.getAnalyzerMetadata();
       const mcpServerName = metadata?.mcp_server_name ?? "codebase-memory-mcp";
       // Check if the analyzer's MCP server is registered in .mcp.json
       return (mcpConfig.mcpServers && mcpServerName in mcpConfig.mcpServers) || false;
-    } catch {
-      // .mcp.json not found or not valid JSON - that's OK, not an error
-      return false;
+    } catch (error) {
+      // ENOENT (file not found) is expected - MCP registration is optional
+      const err = error as NodeJS.ErrnoException;
+      if (err.code === "ENOENT") {
+        return false;
+      }
+
+      // Other errors indicate actionable problems
+      if (err.code === "EACCES") {
+        throw new CLIError(
+          "Permission denied reading .mcp.json",
+          ErrorCategory.SYSTEM,
+          [
+            `Cannot read ${path.join(projectRoot, ".mcp.json")}`,
+            "Check file permissions",
+          ]
+        );
+      }
+
+      // SyntaxError during JSON.parse or other read/parse errors
+      throw new CLIError(
+        "Invalid .mcp.json format",
+        ErrorCategory.VALIDATION,
+        [
+          `Check that ${path.join(projectRoot, ".mcp.json")} contains valid JSON`,
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ]
+      );
     }
   }
 
@@ -107,9 +134,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Checks for the presence of the analyzer binary, reads .mcp.json for registration info,
    * and validates the required tool contract by calling initialize.
    *
+   * @param projectRoot Optional absolute path to project root (defaults to cwd)
    * @returns Detection result with binary path, version, and MCP registration status
    */
-  async detect(): Promise<DetectionResult> {
+  async detect(projectRoot?: string): Promise<DetectionResult> {
     // Get binary names from the analyzer metadata
     const metadata = this.mapper.getAnalyzerMetadata();
     const binaryNames = (metadata?.binary_names as string[] | undefined) ?? [
@@ -117,7 +145,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
     ];
 
     // Check if .mcp.json exists at project root for registration status
-    const mcpRegistered = await this.checkMcpRegistration();
+    // Use provided projectRoot or fallback to cwd
+    let mcpRegistered = false;
+    try {
+      mcpRegistered = await this.checkMcpRegistration(projectRoot || process.cwd());
+    } catch {
+      // If MCP registration check fails with permission or format errors,
+      // assume not registered and continue with detection
+      mcpRegistered = false;
+    }
 
     for (const binaryName of binaryNames) {
       // Check if binary is available using 'which'
@@ -189,7 +225,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @returns Current status including detection, index state, and freshness
    */
   async status(projectRoot: string): Promise<AnalyzerStatus> {
-    const detected = await this.detect();
+    const detected = await this.detect(projectRoot);
 
     // Read index metadata if it exists
     const analyzerName = this.mapper.getAnalyzerName();
@@ -218,9 +254,22 @@ export class CbmAnalyzer implements AnalyzerBackend {
       if (currentHeadResult.status === 0) {
         const currentHead = currentHeadResult.stdout.trim();
         fresh = currentHead === indexMeta.git_head;
+      } else {
+        // Git command failed - log diagnostic info
+        const gitError = currentHeadResult.stderr?.trim() || "git returned non-zero status";
+        handleWarning("Failed to check git freshness", [
+          `Git error: ${gitError}`,
+          "Index freshness cannot be determined - treating as stale",
+        ]);
+        fresh = false;
       }
     } catch (error) {
-      // If git fails, assume not fresh
+      // Git spawn failed completely - log diagnostic info
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      handleWarning("Failed to spawn git process", [
+        `Error: ${errorMsg}`,
+        "Index freshness cannot be determined - treating as stale",
+      ]);
       fresh = false;
     }
 
@@ -325,12 +374,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
           "Project already indexed in CBM backend.",
           ["Use --force to re-index the project"]
         );
+
+        // Return actual index metadata instead of fabricated zeros
+        // This ensures the command layer prints accurate counts to the user
+        const meta = status.index_meta!;
         return {
           success: true,
-          node_count: 0,
-          edge_count: 0,
-          git_head: "unknown",
-          timestamp: new Date().toISOString(),
+          node_count: meta.node_count ?? 0,
+          edge_count: meta.edge_count ?? 0,
+          git_head: meta.git_head,
+          timestamp: meta.timestamp,
         };
       }
 
@@ -425,7 +478,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         `Project not indexed: ${projectRoot}`,
         ErrorCategory.NOT_FOUND,
         [
-          "Run `dr analyze index` to index the project",
+          "Run `dr analyzer index` to index the project",
           "Ensure codebase-memory-mcp is installed and working",
         ]
       );
@@ -628,6 +681,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Check if an endpoint candidate is in test code
    *
    * Applies the test_code_exclusion filtering rule from the analyzer mapping.
+   * If the configured regex pattern is invalid, warns the user and falls back to defaults.
    *
    * @private
    */
@@ -651,8 +705,17 @@ export class CbmAnalyzer implements AnalyzerBackend {
     try {
       const testCodePattern = new RegExp(testCodeRule.pattern);
       return testCodePattern.test(candidate.source_file);
-    } catch {
-      // If regex is invalid, fall back to default patterns
+    } catch (error) {
+      // If regex is invalid, warn user and fall back to default patterns
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      handleWarning(
+        "Invalid test_code_exclusion regex pattern in analyzer mapping",
+        [
+          `Pattern: ${testCodeRule.pattern}`,
+          `Error: ${errorMsg}`,
+          "Falling back to default test code patterns",
+        ]
+      );
       return CbmAnalyzer.DEFAULT_TEST_PATTERNS.some((pattern) =>
         pattern.test(candidate.source_file)
       );

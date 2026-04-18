@@ -525,7 +525,8 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("checkMcpRegistration()", () => {
-    const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
+    const projectRoot = process.cwd();
+    const mcpJsonPath = path.join(projectRoot, ".mcp.json");
 
     afterEach(async () => {
       // Clean up temp .mcp.json file if it exists
@@ -550,7 +551,7 @@ describe("CbmAnalyzer", () => {
 
       await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfigContent));
 
-      const isRegistered = await analyzer.checkMcpRegistration();
+      const isRegistered = await analyzer.checkMcpRegistration(projectRoot);
 
       expect(isRegistered).toBe(true);
     });
@@ -565,7 +566,7 @@ describe("CbmAnalyzer", () => {
         // Already doesn't exist
       }
 
-      const isRegistered = await analyzer.checkMcpRegistration();
+      const isRegistered = await analyzer.checkMcpRegistration(projectRoot);
 
       expect(isRegistered).toBe(false);
     });
@@ -583,18 +584,26 @@ describe("CbmAnalyzer", () => {
 
       await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfigContent));
 
-      const isRegistered = await analyzer.checkMcpRegistration();
+      const isRegistered = await analyzer.checkMcpRegistration(projectRoot);
 
       expect(isRegistered).toBe(false);
     });
 
-    it("should return false when .mcp.json is invalid JSON", async () => {
-      // This test verifies checkMcpRegistration() handles malformed JSON gracefully
+    it("should throw CLIError when .mcp.json is invalid JSON", async () => {
+      // This test verifies checkMcpRegistration() throws an error for malformed JSON
+      // Invalid JSON is a configuration problem that needs user attention
       await fs.writeFile(mcpJsonPath, "{ invalid json");
 
-      const isRegistered = await analyzer.checkMcpRegistration();
+      let error: CLIError | undefined;
+      try {
+        await analyzer.checkMcpRegistration(projectRoot);
+      } catch (e) {
+        error = e as CLIError;
+      }
 
-      expect(isRegistered).toBe(false);
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("Invalid .mcp.json format");
     });
   });
 
