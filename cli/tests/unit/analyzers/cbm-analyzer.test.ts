@@ -411,7 +411,7 @@ describe("CbmAnalyzer", () => {
     });
   });
 
-  describe(".mcp.json parsing and MCP registration check", () => {
+  describe("checkMcpRegistration()", () => {
     const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
 
     afterEach(async () => {
@@ -423,8 +423,8 @@ describe("CbmAnalyzer", () => {
       }
     });
 
-    it("should detect mcp_registered:true when .mcp.json contains the MCP server", async () => {
-      // This test verifies fix #3: detect() actually reads and parses .mcp.json
+    it("should return true when .mcp.json contains the MCP server", async () => {
+      // This test verifies that checkMcpRegistration() reads and parses .mcp.json
       // Create a .mcp.json with the server registered
       const mcpConfigContent = {
         mcpServers: {
@@ -437,17 +437,14 @@ describe("CbmAnalyzer", () => {
 
       await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfigContent));
 
-      const result = await analyzer.detect();
+      const isRegistered = await analyzer.checkMcpRegistration();
 
-      // If binary is installed, mcp_registered should be true (because .mcp.json has the server)
-      if (result.installed) {
-        expect(result.mcp_registered).toBe(true);
-      }
+      expect(isRegistered).toBe(true);
     });
 
-    it("should detect mcp_registered:false when .mcp.json is missing", async () => {
-      // This test verifies detect() gracefully handles missing .mcp.json
-      // by setting mcp_registered to false
+    it("should return false when .mcp.json is missing", async () => {
+      // This test verifies checkMcpRegistration() gracefully handles missing .mcp.json
+      // by returning false
       // Ensure .mcp.json doesn't exist
       try {
         await fs.unlink(mcpJsonPath);
@@ -455,21 +452,14 @@ describe("CbmAnalyzer", () => {
         // Already doesn't exist
       }
 
-      const result = await analyzer.detect();
+      const isRegistered = await analyzer.checkMcpRegistration();
 
-      // Result should be valid even if .mcp.json is missing
-      expect(result).toBeDefined();
-      expect("installed" in result).toBe(true);
-
-      // If binary is installed, mcp_registered should be false (no .mcp.json)
-      if (result.installed) {
-        expect(result.mcp_registered).toBe(false);
-      }
+      expect(isRegistered).toBe(false);
     });
 
-    it("should detect mcp_registered:false when .mcp.json contains different server", async () => {
-      // This test verifies detect() reads the SPECIFIC server name from metadata
-      // and only sets mcp_registered:true if that specific server is found
+    it("should return false when .mcp.json contains different server", async () => {
+      // This test verifies checkMcpRegistration() checks for the SPECIFIC server name
+      // and returns false if a different server is registered
       const mcpConfigContent = {
         mcpServers: {
           "some-other-mcp": {
@@ -480,34 +470,40 @@ describe("CbmAnalyzer", () => {
 
       await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfigContent));
 
-      const result = await analyzer.detect();
+      const isRegistered = await analyzer.checkMcpRegistration();
 
-      // If binary is installed, mcp_registered should be false (different server)
-      if (result.installed) {
-        expect(result.mcp_registered).toBe(false);
-      }
+      expect(isRegistered).toBe(false);
+    });
+
+    it("should return false when .mcp.json is invalid JSON", async () => {
+      // This test verifies checkMcpRegistration() handles malformed JSON gracefully
+      await fs.writeFile(mcpJsonPath, "{ invalid json");
+
+      const isRegistered = await analyzer.checkMcpRegistration();
+
+      expect(isRegistered).toBe(false);
     });
   });
 
   describe("metadata-driven binary names", () => {
     it("should use binary_names from analyzer metadata in detect()", async () => {
-      // This test verifies fix #4: detect() uses metadata.binary_names instead of hardcoding
-      // Call detect() which internally reads binary_names from metadata
-      const result = await analyzer.detect();
-
-      // Verify detect() executed the code path that reads metadata
-      expect(result).toBeDefined();
-      expect("installed" in result).toBe(true);
-
+      // This test verifies that detect() reads and uses metadata.binary_names
       // The metadata should define binary_names
       const metadata = mockMapper.getAnalyzerMetadata();
       expect(metadata?.binary_names).toBeDefined();
       expect(Array.isArray(metadata?.binary_names)).toBe(true);
 
-      // If binary is installed, it means detect() tried the metadata-defined names
+      // Call detect() which internally reads binary_names from metadata
+      const result = await analyzer.detect();
+
+      // Verify detect() executed and returned valid structure
+      expect(result).toBeDefined();
+      expect("installed" in result).toBe(true);
+      expect(typeof result.installed).toBe("boolean");
+
+      // If binary is available, verify it found a path
       if (result.installed) {
         expect(result.binary_path).toBeDefined();
-        // The binary path should exist (it found one of the metadata-defined binaries)
         expect(typeof result.binary_path).toBe("string");
       }
     });
@@ -527,6 +523,7 @@ describe("CbmAnalyzer", () => {
 
       // Result should be consistent: either installed with a binary_path, or not installed
       expect(result).toBeDefined();
+      expect(typeof result.installed).toBe("boolean");
       if (result.installed) {
         expect(result.binary_path).toBeDefined();
         expect(typeof result.binary_path).toBe("string");
@@ -552,6 +549,7 @@ describe("CbmAnalyzer", () => {
       // Call detect() to exercise the code path with these names
       const result = await analyzer.detect();
       expect(result).toBeDefined();
+      expect(typeof result.installed).toBe("boolean");
     });
   });
 
@@ -617,54 +615,4 @@ describe("CbmAnalyzer", () => {
     });
   });
 
-  describe("mcp_registered conditional behavior", () => {
-    const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
-
-    afterEach(async () => {
-      // Clean up temp .mcp.json file if it exists
-      try {
-        await fs.unlink(mcpJsonPath);
-      } catch {
-        // File doesn't exist
-      }
-    });
-
-    it("should set mcp_registered conditional on .mcp.json content", async () => {
-      // This test verifies that mcp_registered is NOT always true,
-      // but depends on whether .mcp.json contains the server registration
-
-      // Scenario 1: .mcp.json is missing - mcp_registered should be false (if binary found)
-      try {
-        await fs.unlink(mcpJsonPath);
-      } catch {
-        // Already doesn't exist
-      }
-
-      const resultWithoutMcpJson = await analyzer.detect();
-
-      // If binary is installed, mcp_registered must be false when .mcp.json is missing
-      if (resultWithoutMcpJson.installed) {
-        expect(resultWithoutMcpJson.mcp_registered).toBe(false);
-      }
-
-      // Scenario 2: .mcp.json exists with the server - mcp_registered should be true
-      const mcpConfig = {
-        mcpServers: {
-          "codebase-memory-mcp": {
-            command: "codebase-memory-mcp",
-            args: ["--mode", "stdio"],
-          },
-        },
-      };
-
-      await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfig));
-
-      const resultWithMcpJson = await analyzer.detect();
-
-      // If binary is installed, mcp_registered must be true when .mcp.json has it
-      if (resultWithMcpJson.installed) {
-        expect(resultWithMcpJson.mcp_registered).toBe(true);
-      }
-    });
-  });
 });

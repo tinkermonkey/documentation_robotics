@@ -51,6 +51,29 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
+   * Check if the MCP server is registered in .mcp.json
+   *
+   * Reads .mcp.json from the project root and checks if the analyzer's MCP server
+   * is registered there. This is extracted into a separate method for easier testing.
+   *
+   * @returns True if the MCP server is registered, false otherwise
+   */
+  async checkMcpRegistration(): Promise<boolean> {
+    try {
+      const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
+      const mcpContent = await readFile(mcpJsonPath, "utf-8");
+      const mcpConfig = JSON.parse(mcpContent);
+      const metadata = this.mapper.getAnalyzerMetadata();
+      const mcpServerName = metadata?.mcp_server_name ?? "codebase-memory-mcp";
+      // Check if the analyzer's MCP server is registered in .mcp.json
+      return (mcpConfig.mcpServers && mcpServerName in mcpConfig.mcpServers) || false;
+    } catch {
+      // .mcp.json not found or not valid JSON - that's OK, not an error
+      return false;
+    }
+  }
+
+  /**
    * Detect if the analyzer is installed and functional
    *
    * Checks for the presence of the analyzer binary, reads .mcp.json for registration info,
@@ -64,22 +87,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const binaryNames = (metadata?.binary_names as string[] | undefined) ?? [
       "codebase-memory-mcp",
     ];
-    const mcpServerName = metadata?.mcp_server_name ?? "codebase-memory-mcp";
 
     // Check if .mcp.json exists at project root for registration status
-    let mcpRegistered = false;
-    try {
-      const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
-      const mcpContent = await readFile(mcpJsonPath, "utf-8");
-      const mcpConfig = JSON.parse(mcpContent);
-      // Check if the analyzer's MCP server is registered in .mcp.json
-      mcpRegistered =
-        (mcpConfig.mcpServers && mcpServerName in mcpConfig.mcpServers) ||
-        false;
-    } catch {
-      // .mcp.json not found or not valid JSON - that's OK, not an error
-      mcpRegistered = false;
-    }
+    const mcpRegistered = await this.checkMcpRegistration();
 
     for (const binaryName of binaryNames) {
       // Check if binary is available using 'which'
