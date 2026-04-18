@@ -360,12 +360,14 @@ program
   .command("info")
   .description("Show model information")
   .option("--layer <layer>", "Show specific layer details")
+  .option("--verbose", "Show detailed breakdown by element type")
   .addHelpText(
     "after",
     `
 Examples:
   $ dr info
-  $ dr info --layer business`
+  $ dr info --layer business
+  $ dr info --layer api --verbose`
   )
   .action(infoCommand);
 

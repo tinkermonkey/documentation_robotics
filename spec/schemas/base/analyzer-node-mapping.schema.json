@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-node-mapping.schema.json",
+  "title": "AnalyzerNodeMapping",
+  "description": "Schema for node type mappings. Defines how analyzer output node types are mapped to DR model node types across the 12 layers.",
+  "type": "object",
+  "required": ["mappings"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+)*$",
+      "description": "Optional version identifier for this mapping configuration"
+    },
+    "field_conventions": {
+      "type": "object",
+      "description": "Optional documentation of field naming conventions and semantics used in this mapping",
+      "additionalProperties": true
+    },
+    "mappings": {
+      "type": "array",
+      "description": "Array of node type mapping definitions",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cbm_label", "dr_layer", "dr_element_type", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "cbm_label": {
+            "type": "string",
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "description": "Node type label from CBM analyzer output (PascalCase, e.g., 'Route', 'Function')"
+          },
+          "dr_layer": {
+            "type": "string",
+            "enum": [
+              "motivation",
+              "business",
+              "security",
+              "application",
+              "technology",
+              "api",
+              "data-model",
+              "data-store",
+              "ux",
+              "navigation",
+              "apm",
+              "testing"
+            ],
+            "description": "Canonical DR layer name. Must be one of the 12 layers with correct naming (e.g., 'data-model' not 'data_model')."
+          },
+          "dr_element_type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Element type within the DR layer (e.g., 'component', 'endpoint', 'table')"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Mapping confidence level indicating reliability of this mapping"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional explanation of why this mapping exists or any special conditions"
+          },
+          "source_reference": {
+            "type": "object",
+            "description": "Optional provenance configuration for extracting source code location and symbol information",
+            "additionalProperties": false,
+            "properties": {
+              "provenance": {
+                "type": "string",
+                "enum": ["extracted", "inferred"],
+                "description": "How the provenance was determined (extracted directly from code or inferred from patterns)"
+              },
+              "file": {
+                "type": "object",
+                "description": "File location information",
+                "required": ["from"],
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "Field or property in analyzer output that contains file location"
+                  }
+                }
+              },
+              "symbol": {
+                "type": "object",
+                "description": "Symbol or code element information",
+                "required": ["from"],
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "Field or property in analyzer output that contains symbol name or identifier"
+                  }
+                }
+              }
+            }
+          },
+          "dr_element_fields": {
+            "type": "object",
+            "description": "Optional configuration for shaping DR element fields from analyzer output. Supports both flat object format (keyed by attribute name) and legacy attributes array.",
+            "properties": {
+              "attributes": {
+                "type": "array",
+                "description": "Legacy format: Field mappings for element attributes",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "dr_attribute": {
+                      "type": "string",
+                      "description": "Target DR attribute name"
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Source field from analyzer output"
+                    },
+                    "template": {
+                      "type": "string",
+                      "description": "Data type template (e.g., 'array', 'object')"
+                    },
+                    "transform": {
+                      "type": "string",
+                      "description": "Transformation function to apply (e.g., 'kebab_case')"
+                    },
+                    "default": {
+                      "description": "Default value if source field is missing"
+                    }
+                  }
+                }
+              }
+            },
+            "additionalProperties": {
+              "type": "object",
+              "description": "Flat format: Field mapping keyed by attribute name",
+              "properties": {
+                "name_template": {
+                  "type": "string",
+                  "description": "Template for generating field name or value"
+                },
+                "id_source": {
+                  "type": "string",
+                  "description": "Field from analyzer output to use as ID source"
+                },
+                "id_transform": {
+                  "type": "string",
+                  "description": "Transformation to apply (e.g., 'kebab_case')"
+                },
+                "template": {
+                  "type": "string",
+                  "description": "Template string for deriving the field value"
+                }
+              }
+            }
+          },
+          "attribute_mappings": {
+            "type": "array",
+            "description": "Optional field-to-attribute mappings from analyzer to DR model",
+            "items": {
+              "type": "object",
+              "required": ["from", "dr_attribute"],
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Field name from analyzer output"
+                },
+                "dr_attribute": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]*$",
+                  "description": "Corresponding DR attribute name"
+                },
+                "transform": {
+                  "type": "string",
+                  "description": "Optional transformation function or rule to apply to the field value"
+                },
+                "template": {
+                  "type": "string",
+                  "description": "Optional data type template"
+                },
+                "default": {
+                  "description": "Optional default value"
+                }
+              }
+            }
+          },
+          "dr_element_type_promoted": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Target element type for promotion when heuristics are met (e.g., 'applicationservice')"
+          },
+          "promotion_heuristics": {
+            "type": "array",
+            "description": "Named heuristics that qualify this element for promotion to a higher-level type",
+            "items": {
+              "type": "string",
+              "description": "Heuristic name (e.g., 'is_entry_point', 'handles_route', 'naming_patterns')"
+            }
+          },
+          "verify_role": {
+            "type": "string",
+            "enum": ["primary", "secondary", "auxiliary"],
+            "description": "Role designation for verification scope (e.g., 'primary' for Route elements)"
+          },
+          "evidence_fields": {
+            "type": "object",
+            "description": "Named-field object with evidence fields from analyzer output used to support mapping confidence",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Evidence field with source mapping",
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Source field from analyzer output"
+                }
+              }
+            }
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Optional conditions that must be met for this mapping to apply",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "unmapped_labels": {
+      "type": "object",
+      "description": "Node type labels from CBM analyzer that could not be mapped to DR model elements",
+      "required": ["labels"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Overall description of unmapped labels and rationale"
+        },
+        "labels": {
+          "type": "array",
+          "description": "Array of PascalCase CBM node type labels that are not mapped",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "description": "PascalCase CBM label (e.g., 'Project', 'Package')"
+          }
+        }
+      }
+    }
+  }
+}

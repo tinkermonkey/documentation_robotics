@@ -10,6 +10,7 @@ Show an overview of the Documentation Robotics model: project metadata, layer na
 ## What This Command Does
 
 Displays:
+
 - Project name, version, spec version, author, description
 - List of all 12 layers with their element counts
 - With `--layer <name>`: detailed view of a single layer
@@ -33,14 +34,14 @@ Run `dr info` as the **first orientation step** when starting any modeling sessi
 
 ### Decision Flowchart: `dr info` vs. Related Commands
 
-| Goal | Command |
-|------|---------|
-| Model overview (counts per layer) | `dr info` |
-| Per-type breakdown within a layer | `dr info --layer <name> --verbose` |
-| Health metrics (orphans, coverage) | `dr stats` |
-| List actual element IDs in a layer | `dr list <layer>` |
-| Find an element by name/type | `dr search <term>` |
-| Inspect a single element | `dr show <element-id>` |
+| Goal                               | Command                            |
+| ---------------------------------- | ---------------------------------- |
+| Model overview (counts per layer)  | `dr info`                          |
+| Per-type breakdown within a layer  | `dr info --layer <name> --verbose` |
+| Health metrics (orphans, coverage) | `dr stats`                         |
+| List actual element IDs in a layer | `dr list <layer>`                  |
+| Find an element by name/type       | `dr search <term>`                 |
+| Inspect a single element           | `dr show <element-id>`             |
 
 ### Recommended Session Start Sequence
 

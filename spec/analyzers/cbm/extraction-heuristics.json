@@ -1,0 +1,208 @@
+{
+  "confidence_rubric": {
+    "high": {
+      "min": 0.8,
+      "max": 1.0,
+      "description": "High confidence: mapping is reliable and well-supported by evidence"
+    },
+    "medium": {
+      "min": 0.5,
+      "max": 0.79,
+      "description": "Medium confidence: mapping is reasonably supported but may have ambiguity"
+    },
+    "low": {
+      "min": 0.0,
+      "max": 0.49,
+      "description": "Low confidence: mapping is tentative and may require manual verification"
+    }
+  },
+  "heuristics": [
+    {
+      "name": "min_fan_in",
+      "description": "Function/method with high fan-in (many callers) may be a service",
+      "applies_to": ["application.applicationfunction"],
+      "parameters": {
+        "threshold": 5,
+        "source_types": ["function", "method"]
+      },
+      "rule": "If a function/method is called by 5+ other functions/methods, it exhibits service-like behavior and is eligible for promotion to applicationservice",
+      "confidence_adjustment": 0.15
+    },
+    {
+      "name": "directory_match",
+      "description": "Element location in canonical service directories indicates service-level component",
+      "applies_to": [
+        "application.applicationfunction",
+        "application.applicationcomponent"
+      ],
+      "parameters": {
+        "patterns": [
+          "**/services/**",
+          "**/service/**",
+          "**/service.ts",
+          "**/service.js",
+          "**/service.py"
+        ]
+      },
+      "rule": "If element resides in directory matching service-level patterns, promote eligible functions to applicationservice",
+      "confidence_adjustment": 0.2
+    },
+    {
+      "name": "naming_patterns",
+      "description": "Naming conventions indicate service-level components",
+      "applies_to": [
+        "application.applicationfunction",
+        "application.applicationcomponent"
+      ],
+      "parameters": {
+        "service_suffixes": [
+          "Service",
+          "Manager",
+          "Repository",
+          "Factory",
+          "Handler"
+        ]
+      },
+      "rule": "If function/class name ends with service-indicating suffix (Service, Manager, Repository, etc.), promote eligible functions to applicationservice",
+      "confidence_adjustment": 0.25
+    },
+    {
+      "name": "class_is_service",
+      "description": "Class structure and interface patterns indicate service behavior",
+      "applies_to": ["application.applicationcomponent"],
+      "parameters": {
+        "indicators": [
+          "implements_interface",
+          "dependency_injection",
+          "public_methods_count"
+        ]
+      },
+      "rule": "If class implements interfaces, uses dependency injection, or has 3+ public methods, it may represent a service abstraction",
+      "conditions": {
+        "public_methods_threshold": 3
+      }
+    },
+    {
+      "name": "service_class_naming",
+      "description": "Class names following service patterns within classes indicate service methods",
+      "applies_to": ["application.applicationfunction"],
+      "parameters": {
+        "service_method_prefixes": [
+          "create",
+          "fetch",
+          "get",
+          "update",
+          "delete",
+          "list",
+          "search",
+          "process",
+          "handle",
+          "execute"
+        ]
+      },
+      "rule": "If method within service-named class uses CRUD or action-oriented prefix, it exhibits service operation behavior",
+      "confidence_adjustment": 0.2
+    },
+    {
+      "name": "is_entry_point",
+      "description": "Functions that serve as entry points (main, handler, endpoint) indicate service potential",
+      "applies_to": ["application.applicationfunction"],
+      "parameters": {
+        "entry_point_patterns": [
+          "main",
+          "handler",
+          "endpoint",
+          "route",
+          "controller",
+          "listener"
+        ]
+      },
+      "rule": "If function name or type suggests it serves as entry point (handler, endpoint, listener), it may represent service operation",
+      "confidence_adjustment": 0.15
+    },
+    {
+      "name": "handles_route",
+      "description": "Functions that handle HTTP routes map directly to API operations",
+      "applies_to": ["api.operation"],
+      "rule": "Function/method decorated with @Route, @Handler, or similar HTTP decorator maps to api.operation with high confidence",
+      "confidence_adjustment": 0.3
+    },
+    {
+      "name": "datastore_detection",
+      "description": "Patterns and conventions that identify datastore-related elements (tables, schemas, migrations)",
+      "applies_to": [
+        "data-store.table",
+        "data-store.column",
+        "data-model.entity",
+        "data-model.attribute"
+      ],
+      "parameters": {
+        "patterns": [
+          "**/migrations/**",
+          "**/schema/**",
+          "*.sql",
+          "*.migration.*",
+          "*schema.ts",
+          "*model.ts"
+        ],
+        "naming_indicators": [
+          "table",
+          "column",
+          "schema",
+          "migration",
+          "entity",
+          "dto",
+          "model"
+        ]
+      },
+      "rule": "If element resides in datastore-related directories or files, or follows datastore naming conventions, identify as data-store or data-model layer element",
+      "confidence_adjustment": 0.25
+    }
+  ],
+  "inference_rules": [
+    {
+      "name": "function-promotion-to-service",
+      "description": "Qualified functions can be promoted to services via heuristic signals",
+      "pattern": "applicationfunction + (min_fan_in >= 5 OR directory_match OR naming_patterns OR is_entry_point) => applicationservice",
+      "confidence": "medium",
+      "enabled": true
+    },
+    {
+      "name": "verify_scope_v1",
+      "description": "Scope boundary rule: verify_role=primary applies only to api.operation (Route elements) in v1",
+      "pattern": "verify_role: primary => api.operation only (excludes Function, Method, Class, Module)",
+      "confidence": "high",
+      "enabled": true
+    }
+  ],
+  "filtering_rules": [
+    {
+      "name": "confidence_floor",
+      "description": "Filter mappings below confidence threshold to reduce noise",
+      "filter_type": "confidence",
+      "threshold": 0.35,
+      "enabled": true
+    },
+    {
+      "name": "test_code_exclusion",
+      "description": "Exclude test files and test-related code from mapping",
+      "filter_type": "pattern",
+      "pattern": "^.*(\\.test\\.|_test\\.|spec\\.|__tests__)",
+      "enabled": true
+    }
+  ],
+  "deduplication_rules": [
+    {
+      "name": "semantic-duplicate-detection",
+      "description": "Detect and merge semantically equivalent mappings",
+      "match_strategy": "semantic",
+      "resolution_strategy": "keep_highest_confidence",
+      "enabled": true
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-04-17T00:00:00Z",
+    "updated_at": "2026-04-17T00:00:00Z"
+  }
+}

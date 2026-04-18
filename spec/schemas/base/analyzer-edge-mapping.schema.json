@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-edge-mapping.schema.json",
+  "title": "AnalyzerEdgeMapping",
+  "description": "Schema for edge (relationship) type mappings. Defines how analyzer relationships are mapped to DR predicate relationships from the predicates catalog.",
+  "type": "object",
+  "required": ["mappings"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+)*$",
+      "description": "Optional version identifier for this mapping configuration"
+    },
+    "field_conventions": {
+      "type": "object",
+      "description": "Optional documentation of field naming conventions and semantics used in this mapping",
+      "additionalProperties": true
+    },
+    "mappings": {
+      "type": "array",
+      "description": "Array of relationship type mapping definitions",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cbm_edge", "dr_relationship", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "cbm_edge": {
+            "type": "string",
+            "pattern": "^[A-Z_]+$",
+            "description": "Edge type identifier from CBM analyzer output (UPPERCASE_SNAKE_CASE, e.g., 'HTTP_CALLS', 'HANDLES')"
+          },
+          "dr_relationship": {
+            "oneOf": [
+              {
+                "type": "null",
+                "description": "Null when this relationship cannot be mapped to any DR predicate"
+              },
+              {
+                "$ref": "predicate-enum.schema.json",
+                "description": "Predicate name from spec/schemas/base/predicates.json. Enum is dynamically populated at build time."
+              }
+            ],
+            "description": "DR predicate relationship type or null if unmappable. Valid values are sourced from spec/schemas/base/predicates.json"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Mapping confidence level indicating reliability of this mapping"
+          },
+          "directionality_transform": {
+            "type": ["string", "null"],
+            "enum": ["invert", "bidirectional", "symmetric", null],
+            "description": "Optional runtime transformation to apply to relationship directionality during mapping. 'invert' reverses the direction, 'bidirectional' treats as two-way, 'symmetric' makes relationship symmetric, null = no transform. This is independent of the 'direction' field, which specifies the inherent directionality of the relationship itself.",
+            "default": null
+          },
+          "usage": {
+            "type": "string",
+            "enum": ["verification_and_mapping", "traversal_only"],
+            "description": "Edge classification: 'verification_and_mapping' for edges that create DR predicates, 'traversal_only' for edges used for semantic analysis but not directly mapped"
+          },
+          "dr_scope": {
+            "type": "string",
+            "enum": ["intra-layer", "cross-layer", "both"],
+            "description": "Optional scope of the relationship (whether it operates within a single layer or across layers)"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "forward",
+              "backward",
+              "bidirectional",
+              "caller_to_callee"
+            ],
+            "description": "Optional specification of the inherent directionality of the relationship in the source code model (forward = source→target, backward = target→source, bidirectional = both directions, caller_to_callee = from caller to callee). This is independent of 'directionality_transform', which specifies runtime transformations to apply during mapping."
+          },
+          "confidence_from_property": {
+            "type": "string",
+            "description": "Optional code property or flag that determines confidence level"
+          },
+          "dr_pattern": {
+            "type": "string",
+            "description": "Optional pattern description showing typical source and target element types"
+          },
+          "implementation_note": {
+            "type": "string",
+            "description": "Optional implementation guidance or special handling requirements"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional explanation of why this mapping exists or any special conditions"
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Optional conditions that must be met for this mapping to apply",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

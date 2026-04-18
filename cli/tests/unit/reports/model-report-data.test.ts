@@ -70,7 +70,7 @@ describe('ModelReportDataCollector', () => {
     expect(data.statistics.outboundRelationshipCount).toBe(0);
   });
 
-  it('should correctly return layer number from LAYER_MAP', () => {
+  it('should correctly return layer number from getLayerOrder', () => {
     const model = createMockModel();
     const collector = new ModelReportDataCollector();
 

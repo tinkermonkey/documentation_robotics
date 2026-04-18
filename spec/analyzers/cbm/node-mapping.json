@@ -1,0 +1,205 @@
+{
+  "version": "1",
+  "field_conventions": {
+    "cbm_label": "PascalCase identifier from CBM analyzer output (e.g., 'Route', 'Function')",
+    "dr_layer": "canonical DR layer name (one of 12 layers)",
+    "dr_element_type": "element type within the DR layer",
+    "confidence": "mapping confidence level (high, medium, low)",
+    "verify_role": "optional role designation for verification scope (primary, secondary, auxiliary) — top-level field for Route element verification",
+    "promotion_heuristics": "named heuristics for promoting nodes to higher-level element types (array of heuristic names, e.g., 'is_entry_point', 'handles_route')",
+    "evidence_fields": "named-field object with fields from analyzer output used as evidence (keyed by field name with 'from' mapping)"
+  },
+  "mappings": [
+    {
+      "cbm_label": "Route",
+      "dr_layer": "api",
+      "dr_element_type": "operation",
+      "confidence": "high",
+      "description": "HTTP route maps to API operation with high confidence",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "dr_element_fields": {
+        "operationId": {
+          "name_template": "{name}",
+          "id_source": "name",
+          "id_transform": "kebab_case"
+        },
+        "summary": {
+          "template": "{properties.method} {properties.path}"
+        },
+        "tags": {
+          "name_template": "tags"
+        }
+      },
+      "verify_role": "primary"
+    },
+    {
+      "cbm_label": "Function",
+      "dr_layer": "application",
+      "dr_element_type": "applicationfunction",
+      "confidence": "medium",
+      "description": "Function maps to application function; may be promoted to service via heuristics",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "attribute_mappings": [
+        {
+          "from": "name",
+          "dr_attribute": "name"
+        }
+      ],
+      "dr_element_type_promoted": "applicationservice",
+      "promotion_heuristics": [
+        "is_entry_point",
+        "handles_route",
+        "naming_patterns"
+      ],
+      "evidence_fields": {
+        "fan_in": {
+          "from": "fan_in"
+        },
+        "fan_out": {
+          "from": "fan_out"
+        },
+        "is_exported": {
+          "from": "is_exported"
+        },
+        "argument_types": {
+          "from": "argument_types"
+        },
+        "return_type": {
+          "from": "return_type"
+        }
+      },
+      "conditions": {
+        "serviceType": {
+          "default": "synchronous"
+        }
+      }
+    },
+    {
+      "cbm_label": "Method",
+      "dr_layer": "application",
+      "dr_element_type": "applicationfunction",
+      "confidence": "medium",
+      "description": "Class method maps to application function; may be promoted to service via heuristics",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "attribute_mappings": [
+        {
+          "from": "name",
+          "dr_attribute": "name"
+        }
+      ],
+      "dr_element_type_promoted": "applicationservice",
+      "promotion_heuristics": [
+        "is_entry_point",
+        "naming_patterns",
+        "directory_match"
+      ],
+      "evidence_fields": {
+        "visibility": {
+          "from": "visibility"
+        },
+        "is_static": {
+          "from": "is_static"
+        },
+        "is_abstract": {
+          "from": "is_abstract"
+        },
+        "parent_class": {
+          "from": "parent_class"
+        },
+        "overrides": {
+          "from": "overrides"
+        }
+      },
+      "conditions": {
+        "serviceType": {
+          "default": "synchronous"
+        }
+      }
+    },
+    {
+      "cbm_label": "Class",
+      "dr_layer": "application",
+      "dr_element_type": "applicationcomponent",
+      "confidence": "medium",
+      "description": "Class maps to application component",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "abstract": {
+          "from": "abstract"
+        },
+        "interfaces": {
+          "from": "interfaces"
+        },
+        "parent_class": {
+          "from": "parent_class"
+        },
+        "methods_count": {
+          "from": "methods_count"
+        },
+        "properties_count": {
+          "from": "properties_count"
+        }
+      }
+    },
+    {
+      "cbm_label": "Module",
+      "dr_layer": "application",
+      "dr_element_type": "applicationcomponent",
+      "confidence": "low",
+      "description": "Module (file/namespace) maps to application component with low confidence",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      }
+    }
+  ],
+  "unmapped_labels": {
+    "description": "CBM node type labels that are not mapped to DR architecture model elements. These labels represent implementation-level or metadata constructs that do not have direct architectural significance in the 12-layer model.",
+    "labels": [
+      "Project",
+      "Package",
+      "Folder",
+      "File",
+      "Interface",
+      "Enum",
+      "Type"
+    ]
+  }
+}

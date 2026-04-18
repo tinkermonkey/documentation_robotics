@@ -415,7 +415,7 @@ Recommendations:
   """
   )
 
-```
+````
 
 ### Step 5: Process Agent Results
 
@@ -423,7 +423,7 @@ When the agent completes, read the current element counts (the "after" state) an
 
 ```bash
 dr list --json 2>/dev/null | jq -r 'group_by(.layer) | map("\(.[0].layer): \(length)") | .[]'
-```
+````
 
 ```
 
@@ -459,7 +459,7 @@ Files Modified:
 - documentation-robotics/model/06_api/operations.yaml (25 elements)
 - documentation-robotics/model/07_data-model/schemas.yaml (12 elements)
 
-````
+```
 
 ### Step 6: Validation & Review
 
@@ -467,7 +467,7 @@ After extraction, run validation:
 
 ```bash
 dr validate --strict
-````
+```
 
 Present results and ask user to review:
 

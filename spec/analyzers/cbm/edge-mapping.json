@@ -1,0 +1,170 @@
+{
+  "version": "1",
+  "field_conventions": {
+    "cbm_edge": "UPPERCASE_SNAKE_CASE identifier from CBM analyzer output (e.g., 'HTTP_CALLS', 'HANDLES')",
+    "dr_relationship": "predicate name from predicates.json or null if unmappable",
+    "confidence": "mapping confidence level (high, medium, low)",
+    "usage": "edge classification: 'verification_and_mapping' for cross-layer edges that create DR predicates, 'traversal_only' for intra-layer edges used for semantic analysis but not mapped to DR predicates",
+    "dr_scope": "scope of the relationship (intra-layer, cross-layer, both)",
+    "direction": "relationship direction (forward, backward, bidirectional, or caller_to_callee)",
+    "confidence_from_property": "code property that determines confidence level (e.g., visibility, export status)"
+  },
+  "mappings": [
+    {
+      "cbm_edge": "HTTP_CALLS",
+      "dr_relationship": "consumes",
+      "confidence": "high",
+      "description": "HTTP API call between services maps to consumes relationship",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "confidence_from_property": "confidence",
+      "dr_pattern": "application.applicationservice → api.operation",
+      "implementation_note": "Requires HTTP verb and endpoint analysis to create cross-layer reference"
+    },
+    {
+      "cbm_edge": "HANDLES",
+      "dr_relationship": "provides",
+      "confidence": "high",
+      "description": "HTTP request handler maps to provides relationship",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "forward",
+      "confidence_from_property": "handler_decorator",
+      "dr_pattern": "application.applicationfunction → api.operation",
+      "implementation_note": "HTTP handler decoration indicates implementation relationship"
+    },
+    {
+      "cbm_edge": "CALLS",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Function/method call within codebase",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer behavioral"
+      }
+    },
+    {
+      "cbm_edge": "IMPORTS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Module/file import dependency",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer structural"
+      }
+    },
+    {
+      "cbm_edge": "DEPENDS_ON",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Runtime dependency relationship",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer dependency"
+      }
+    },
+    {
+      "cbm_edge": "INHERITS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Class inheritance relationship",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer structural"
+      }
+    },
+    {
+      "cbm_edge": "IMPLEMENTS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Interface implementation relationship",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer structural"
+      }
+    },
+    {
+      "cbm_edge": "CREATES",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Object instantiation or component creation",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer behavioral"
+      }
+    },
+    {
+      "cbm_edge": "USES",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "General usage relationship",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer dependency"
+      }
+    },
+    {
+      "cbm_edge": "EXTENDS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Class or interface extension",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer structural"
+      }
+    },
+    {
+      "cbm_edge": "REFERENCES",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Reference to variable, field, or constant",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer dependency"
+      }
+    },
+    {
+      "cbm_edge": "RETURNS",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Return type relationship (type information only)",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "type-level metadata"
+      }
+    },
+    {
+      "cbm_edge": "MODIFIES",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "State modification relationship",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "conditions": {
+        "usage_detail": "intra-layer behavioral"
+      }
+    }
+  ]
+}

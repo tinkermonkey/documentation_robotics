@@ -20,6 +20,7 @@
     "test:fs-compatibility:low": "cd cli-validation/test-suite && npm run test:compatibility:low"
   },
   "devDependencies": {
+    "ajv": "^8.17.1",
     "ajv-cli": "^5.0.0",
     "ajv-formats": "^3.0.1",
     "ansis": "^3.0.0",

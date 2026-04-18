@@ -1,7 +1,7 @@
 import type { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
-import { LAYER_MAP, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
+import { getLayerOrder, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 
 /**
  * Statistics about relationships in a layer
@@ -43,7 +43,7 @@ export class ModelReportDataCollector {
    */
   collectLayerData(model: Model, layerName: CanonicalLayerName): ModelLayerReportData {
     // Get the layer number for file naming
-    const layerNumber = LAYER_MAP[layerName];
+    const layerNumber = getLayerOrder(layerName);
 
     // Get all elements in this layer using GraphModel's indexed lookup for O(1) layer-scoped access
     // Convert GraphNodes to Elements for report-friendly shape
