@@ -340,76 +340,72 @@ describe("CbmAnalyzer", () => {
 
   describe("confidence downgrade", () => {
     it("should downgrade confidence when Route node missing operationId field", async () => {
-      // Test that a Route node missing a required field produces downgraded confidence
-      // The transformNodeToEndpoint method checks if the id_source field from the mapping
-      // exists in the node's properties. If it's missing, confidence is downgraded to "low".
+      // Test that the actual transformNodeToEndpoint method downgrades confidence
+      // when a required field is missing from the node properties
 
       const routeMapping = mockMapper.getNodeMapping("Route");
       expect(routeMapping).toBeDefined();
       expect(routeMapping?.confidence).toBe("high");
 
-      // Verify the mapping specifies operationId.id_source
-      const operationIdMapping = routeMapping?.dr_element_fields?.operationId;
-      expect(operationIdMapping).toBeDefined();
-      expect(operationIdMapping?.id_source).toBeDefined();
-
-      const idSource = operationIdMapping?.id_source;
+      // Get the required id_source field name from the mapping
+      const idSource = routeMapping?.dr_element_fields?.operationId?.id_source;
       expect(typeof idSource).toBe("string");
 
-      // Simulate the node transformation logic:
-      // When transformNodeToEndpoint encounters a node that lacks the field specified
-      // by dr_element_fields.operationId.id_source, it should downgrade confidence
+      // Create a mock CbmGraphNode WITHOUT the required id_source field
+      const nodeWithoutRequiredField = {
+        id: "route-1",
+        label: "Route",
+        properties: {
+          method: "GET",
+          path: "/users",
+          // NOTE: missing the id_source field (e.g., "operationId")
+        },
+        file_path: "/project/src/routes.ts",
+      };
 
-      // Create mock Route node without the required id_source field
-      const nodePropertiesWithoutField = { method: "GET", path: "/users" };
-      const missingRequiredField = !(idSource && idSource in nodePropertiesWithoutField);
-      expect(missingRequiredField).toBe(true);
+      // Call the actual transformNodeToEndpoint production method
+      // Access private method via type casting for unit test
+      const result = await (analyzer as any).transformNodeToEndpoint(
+        nodeWithoutRequiredField,
+        routeMapping!,
+        "/project"
+      );
 
-      // When the required field is missing, confidence should be downgraded to "low"
-      const expectedDowngradedConfidence = "low";
-      expect(expectedDowngradedConfidence).toBe("low");
-
-      // Create mock Route node with the required id_source field
-      const nodePropertiesWithField = { method: "GET", path: "/users", [idSource!]: "get-users" };
-      const hasRequiredField = idSource && idSource in nodePropertiesWithField;
-      expect(hasRequiredField).toBe(true);
-
-      // When the required field is present, confidence should remain at mapping default
-      expect(routeMapping?.confidence).toBe("high");
+      // Assert that confidence was actually downgraded to "low"
+      expect(result.confidence).toBe("low");
     });
 
-    it("should verify operationId field transformation logic", async () => {
-      // This test verifies the actual transformation logic:
-      // If Route mapping has dr_element_fields.operationId.id_source = "operationId"
-      // and a node's properties don't have "operationId",
-      // then transformNodeToEndpoint downgrades confidence to "low"
+    it("should preserve confidence when Route node has required operationId field", async () => {
+      // Test that transformNodeToEndpoint preserves high confidence
+      // when the required field IS present in node properties
 
       const routeMapping = mockMapper.getNodeMapping("Route");
       expect(routeMapping?.confidence).toBe("high");
 
-      // Get the id_source that will be checked
       const idSource = routeMapping?.dr_element_fields?.operationId?.id_source;
       expect(typeof idSource).toBe("string");
 
-      // Test case 1: Node has the required field -> confidence stays high
-      const candidateWithField = {
-        confidence: routeMapping?.confidence || "high",
-        [idSource!]: "get-users",
+      // Create a mock CbmGraphNode WITH the required id_source field
+      const nodeWithRequiredField = {
+        id: "route-1",
+        label: "Route",
+        properties: {
+          method: "GET",
+          path: "/users",
+          [idSource!]: "get-users", // Has the required field
+        },
+        file_path: "/project/src/routes.ts",
       };
-      // Field is present in properties
-      expect(idSource! in candidateWithField).toBe(true);
-      // Confidence should not be downgraded
-      expect(candidateWithField.confidence).toBe("high");
 
-      // Test case 2: Node missing the required field -> confidence downgraded to low
-      const candidateWithoutField = {
-        confidence: "low", // Downgraded because field was missing
-        other_field: "value",
-      };
-      // Field is NOT present in properties
-      expect(idSource! in candidateWithoutField).toBe(false);
-      // Confidence was downgraded to low
-      expect(candidateWithoutField.confidence).toBe("low");
+      // Call the actual transformNodeToEndpoint production method
+      const result = await (analyzer as any).transformNodeToEndpoint(
+        nodeWithRequiredField,
+        routeMapping!,
+        "/project"
+      );
+
+      // Assert that confidence remains at the mapping's default (high)
+      expect(result.confidence).toBe("high");
     });
   });
 });

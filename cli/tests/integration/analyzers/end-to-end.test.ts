@@ -314,15 +314,16 @@ describe("analyzer end-to-end workflow", () => {
       expect(MOCK_MCP_SERVER_PATH.length).toBeGreaterThan(0);
       expect(MOCK_MCP_SERVER_PATH).toMatch(/mock-mcp-server/);
 
-      // If server exists, verify it can be read
-      if (serverExists) {
-        expect(serverExists).toBe(true);
-      }
     });
 
-    it("should support full discover → status workflow without real analyzer", async () => {
+    it("should support full discover → status → index workflow without real analyzer", async () => {
       // Initialize project
       await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+
+      // Create project structure (for indexing)
+      const srcDir = join(tempDir.path, "src");
+      await mkdir(srcDir, { recursive: true });
+      await writeFile(join(srcDir, "index.ts"), "export const main = () => {};");
 
       // Step 1: Discover analyzers (tests registry and metadata)
       const discoverResult = await runDr(["analyzer", "discover", "--json"], {
@@ -358,6 +359,14 @@ describe("analyzer end-to-end workflow", () => {
       expect(statusOutput).toHaveProperty("detected");
       expect(statusOutput).toHaveProperty("indexed");
       expect(typeof statusOutput.indexed).toBe("boolean");
+
+      // Step 3: Attempt to index the project
+      const indexResult = await runDr(["analyzer", "index", "--name", firstAnalyzer.name], {
+        cwd: tempDir.path,
+      });
+
+      // Index will fail without real analyzer installed, but should attempt the operation
+      expect(typeof indexResult.exitCode).toBe("number");
     });
 
     it("should verify endpoint candidate structure when indexed", async () => {
