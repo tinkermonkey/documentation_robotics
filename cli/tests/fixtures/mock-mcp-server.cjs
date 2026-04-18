@@ -137,9 +137,9 @@ rl.on("line", (line) => {
 
     // Handle index_repository tool
     if (method === "index_repository") {
-      const projectPath = params?.path;
+      const projectPath = params?.repo_path || params?.path;
       if (!projectPath) {
-        sendError(id, -32600, "Missing path parameter");
+        sendError(id, -32600, "Missing repo_path parameter");
         return;
       }
 
@@ -181,9 +181,9 @@ rl.on("line", (line) => {
 
     // Handle search_graph tool
     if (method === "search_graph") {
-      const projectPath = params?.path;
+      const projectPath = params?.project || params?.path;
       if (!projectPath) {
-        sendError(id, -32600, "Missing path parameter");
+        sendError(id, -32600, "Missing project parameter");
         return;
       }
 

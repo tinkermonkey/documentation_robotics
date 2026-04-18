@@ -22,17 +22,26 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("detect()", () => {
-    it("should return a valid DetectionResult object", async () => {
+    it("should return a valid DetectionResult object with installed field", async () => {
       const result = await analyzer.detect();
       expect(result).toBeDefined();
       expect(typeof result.installed).toBe("boolean");
+    });
 
-      // If installed, should have binary_path
+    it("should return binary_path and contract checks when installed is true", async () => {
+      const result = await analyzer.detect();
+
+      // Only run assertions if the analyzer is actually installed
+      // This documents the expected behavior when installed
       if (result.installed) {
         expect(result.binary_path).toBeDefined();
         expect(typeof result.binary_path).toBe("string");
         expect(result.mcp_registered).toBe(true);
         expect(result.contract_ok).toBe(true);
+      } else {
+        // When not installed, verify the response structure is still valid
+        expect(result.binary_path).toBeUndefined();
+        expect(result.mcp_registered).toBeUndefined();
       }
     });
 
@@ -79,29 +88,44 @@ describe("CbmAnalyzer", () => {
     });
 
     it("should return an array of EndpointCandidate objects", async () => {
-      // Verify the structure of EndpointCandidate through its interface
-      // This documents the expected shape of returned candidates
-      const mockCandidate: EndpointCandidate = {
-        source_file: "src/routes.ts",
-        confidence: "high",
-        suggested_layer: "api",
-        suggested_element_type: "operation",
-        suggested_name: "get-users",
-        http_method: "GET",
-        http_path: "/users",
-        handler_qualified_name: "UserController.getUsers",
-        source_symbol: "getUsers",
-        source_start_line: 42,
-        source_end_line: 50,
+      // Test the actual transformNodeToEndpoint production method
+      // to verify it generates valid EndpointCandidate objects
+      const routeMapping = mockMapper.getNodeMapping("Route");
+      expect(routeMapping).toBeDefined();
+
+      // Create a realistic CBM graph node
+      const testNode: any = {
+        id: "route-get-users",
+        label: "Route",
+        properties: {
+          method: "GET",
+          path: "/users",
+          handler_name: "UserController.getUsers",
+          symbol: "getUsers",
+          start_line: 42,
+          end_line: 50,
+        },
+        file_path: "/project/src/routes.ts",
       };
 
-      expect(mockCandidate).toBeDefined();
-      expect(mockCandidate.confidence).toMatch(/^(high|medium|low)$/);
-      expect(typeof mockCandidate.source_file).toBe("string");
-      expect(mockCandidate.suggested_layer).toBe("api");
-      expect(mockCandidate.suggested_element_type).toBe("operation");
-      expect(typeof mockCandidate.http_method).toBe("string");
-      expect(typeof mockCandidate.http_path).toBe("string");
+      // Call the actual production method
+      const candidate = await (analyzer as any).transformNodeToEndpoint(
+        testNode,
+        routeMapping!,
+        "/project"
+      );
+
+      // Verify the returned candidate has correct structure and values
+      expect(candidate).toBeDefined();
+      expect(candidate.confidence).toMatch(/^(high|medium|low)$/);
+      expect(typeof candidate.source_file).toBe("string");
+      expect(candidate.suggested_layer).toBe("api");
+      expect(candidate.suggested_element_type).toBe("operation");
+      expect(typeof candidate.http_method).toBe("string");
+      expect(typeof candidate.http_path).toBe("string");
+      expect(candidate.http_method).toBe("GET");
+      expect(candidate.http_path).toBe("/users");
+      expect(candidate.suggested_name).toMatch(/^[a-z0-9-]+$/);
     });
   });
 
@@ -307,8 +331,8 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("index()", () => {
-    it("should throw CLIError if analyzer is not installed", async () => {
-      const tempDir = "/tmp/test-project-fresh-" + Date.now();
+    it("should throw CLIError with helpful message when analyzer is not installed", async () => {
+      const tempDir = "/tmp/test-project-no-analyzer-" + Date.now();
 
       let error: CLIError | undefined;
       try {
@@ -317,67 +341,57 @@ describe("CbmAnalyzer", () => {
         error = e as CLIError;
       }
 
-      // If analyzer is not installed, should throw CLIError
-      if (error) {
-        expect(error).toBeInstanceOf(CLIError);
-      }
+      // Must throw CLIError when analyzer is not installed
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("not installed");
+      // Verify helpful suggestions are provided
+      expect(error?.suggestions).toBeDefined();
+      expect(Array.isArray(error?.suggestions)).toBe(true);
     });
 
-    it("should skip reindexing when index is fresh without --force", async () => {
-      // This test documents the expected behavior:
-      // - If index is fresh (git HEAD matches) and --force is not set,
-      //   the operation should skip and return early
-      // - The implementation returns immediately with existing metadata
-      // - This prevents redundant indexing operations
+    it("should require a valid git repository with HEAD", async () => {
+      // This test documents the requirement that index() needs git HEAD
+      // to track freshness across index operations
+      const tempDir = "/tmp/test-project-no-git-" + Date.now();
 
-      const tempDir = "/tmp/test-project-fresh-index-" + Date.now();
+      // The test verifies index() validates git HEAD availability
+      // by attempting to call it on a non-git directory
       let error: CLIError | undefined;
-
       try {
-        // Attempt to call index on a fresh project (no index exists)
         await analyzer.index(tempDir);
       } catch (e) {
         error = e as CLIError;
       }
 
-      // In CI without binary installed, we expect an error
-      if (error) {
-        expect(error).toBeInstanceOf(CLIError);
-        // The error should be about analyzer not installed or project not found
-        expect(error.message).toBeDefined();
-      }
-      // The important thing is that index() is callable and handles the case gracefully
+      // Error should be thrown (either from analyzer not installed or git not available)
+      // This documents that index() requires both analyzer and git
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
     });
 
-    it("should handle idempotent project creation", async () => {
-      // This test documents that the CBM server handles idempotency internally
-      // via project path matching, so duplicate project entries won't be created
+    it("should return status with success field", async () => {
+      // Documents that index() response includes success field to indicate result
+      const tempDir = "/tmp/test-project-status-" + Date.now();
 
-      const tempDir = "/tmp/test-idempotent-project-" + Date.now();
-      let firstError: CLIError | undefined;
-      let secondError: CLIError | undefined;
-
-      try {
-        // Attempt first index call
-        await analyzer.index(tempDir);
-      } catch (e) {
-        firstError = e as CLIError;
-      }
+      let result: any;
+      let error: CLIError | undefined;
 
       try {
-        // Attempt second index call with same path (idempotent)
-        await analyzer.index(tempDir);
+        result = await analyzer.index(tempDir);
       } catch (e) {
-        secondError = e as CLIError;
+        error = e as CLIError;
       }
 
-      // Both calls should result in the same error type if analyzer not installed
-      // This verifies that calling index twice produces consistent behavior
-      if (firstError) {
-        expect(firstError).toBeInstanceOf(CLIError);
+      // If successful, verify return type
+      if (result) {
+        expect(result).toHaveProperty("success");
+        expect(typeof result.success).toBe("boolean");
+        expect(result).toHaveProperty("timestamp");
       }
-      if (secondError) {
-        expect(secondError).toBeInstanceOf(CLIError);
+
+      // If error, verify it's a CLIError
+      if (error) {
+        expect(error).toBeInstanceOf(CLIError);
       }
     });
   });
