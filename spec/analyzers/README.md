@@ -27,14 +27,17 @@ Defines the analyzer itself: name, description, tool contract, and supported cap
   "display_name": "Codebase Memory",
   "mcp_server_name": "codebase-memory-mcp",
   "supported_tool_contract": {
+    "tools": {
+      "required": ["initialize", "search_graph", "trace_call_path"],
+      "optional": []
+    },
     "version": "1.0",
     "input_type": "codebase",
     "output_type": "semantic_graph"
   },
   "supported_languages": ["typescript", "javascript", "python"],
   "project_identification": {
-    "method": "package.json",
-    "fields": ["name", "version"]
+    "strategy": "absolute_path"
   }
 }
 ```
@@ -49,7 +52,7 @@ Maps analyzer output node types to DR model node types across layers.
 - Each mapping includes:
   - `cbm_label` — node type label from analyzer output (PascalCase, e.g., `Function`, `Route`)
   - `dr_layer` — canonical DR layer (`motivation`, `business`, `security`, `application`, `technology`, `api`, `data-model`, `data-store`, `ux`, `navigation`, `apm`, `testing`)
-  - `dr_element_type` — element type within that layer (kebab-case, e.g., `component`, `endpoint`)
+  - `dr_element_type` — element type within that layer (lowercase, e.g., `operation`, `applicationfunction`, `applicationcomponent`)
   - `confidence` — mapping confidence level (`high`, `medium`, `low`)
   - `attribute_mappings` — optional array of analyzer field → DR attribute mappings
 
@@ -61,8 +64,8 @@ Maps analyzer output node types to DR model node types across layers.
     {
       "cbm_label": "Function",
       "dr_layer": "application",
-      "dr_element_type": "component",
-      "confidence": "high",
+      "dr_element_type": "applicationfunction",
+      "confidence": "medium",
       "attribute_mappings": [
         {
           "from": "name",
@@ -117,9 +120,9 @@ Defines heuristics and rules for post-processing analyzer output to improve mapp
 {
   "heuristics": [
     {
-      "name": "infer-module-composition",
-      "description": "Infer composition relationships between modules based on file structure",
-      "applies_to": ["application.module"],
+      "name": "infer-component-composition",
+      "description": "Infer composition relationships between components based on file structure",
+      "applies_to": ["application.applicationcomponent"],
       "rule": "if file_a contains file_b, then composition relationship"
     }
   ],
