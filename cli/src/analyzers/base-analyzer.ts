@@ -19,6 +19,16 @@ import type {
 
 export interface AnalyzerBackend {
   /**
+   * Unique identifier for this analyzer
+   */
+  readonly name: string;
+
+  /**
+   * Human-readable display name for this analyzer
+   */
+  readonly displayName: string;
+
+  /**
    * Check if the analyzer is installed and functional
    *
    * @returns Detection result with binary path, version, and MCP registration status

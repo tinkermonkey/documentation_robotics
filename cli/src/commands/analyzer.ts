@@ -86,7 +86,7 @@ Examples:
           const metadata = mapper.getAnalyzerMetadata();
 
           analyzerOptions.push({
-            name,
+            backend,
             detection,
             metadata,
           });
@@ -109,8 +109,8 @@ Examples:
             selected?: string;
           } = {
             found: analyzerOptions.map((a) => ({
-              name: a.name,
-              display_name: a.metadata?.display_name || a.name,
+              name: a.backend.name,
+              display_name: a.backend.displayName,
               description: a.metadata?.description || "",
               homepage: a.metadata?.homepage || "",
               installed: a.detection.installed,
@@ -123,11 +123,11 @@ Examples:
             if (!process.stdin.isTTY && analyzerOptions.length > 0) {
               const firstAnalyzer = analyzerOptions[0];
               const state: SessionState = {
-                active_analyzer: firstAnalyzer.name,
+                active_analyzer: firstAnalyzer.backend.name,
                 selected_at: new Date().toISOString(),
               };
               await writeSession(state, projectRoot);
-              result.selected = firstAnalyzer.name;
+              result.selected = firstAnalyzer.backend.name;
             }
           } else {
             // If not reselecting, check if session exists
@@ -138,11 +138,11 @@ Examples:
               // Auto-select first analyzer in non-TTY mode if no session exists
               const firstAnalyzer = analyzerOptions[0];
               const state: SessionState = {
-                active_analyzer: firstAnalyzer.name,
+                active_analyzer: firstAnalyzer.backend.name,
                 selected_at: new Date().toISOString(),
               };
               await writeSession(state, projectRoot);
-              result.selected = firstAnalyzer.name;
+              result.selected = firstAnalyzer.backend.name;
             }
           }
 
@@ -158,7 +158,7 @@ Examples:
           console.log("");
 
           for (const opt of analyzerOptions) {
-            const name = ansis.bold(opt.metadata?.display_name || opt.name);
+            const name = ansis.bold(opt.backend.displayName);
             const homepage = opt.metadata?.homepage
               ? ansis.dim(`(${opt.metadata.homepage})`)
               : "";
@@ -177,8 +177,8 @@ Examples:
           const selectedName = await select({
             message: "Select an analyzer",
             options: installed.map((a) => ({
-              value: a.name,
-              label: a.metadata?.display_name || a.name,
+              value: a.backend.name,
+              label: a.backend.displayName,
               hint: a.metadata?.description || "",
             })),
           });
@@ -204,13 +204,13 @@ Examples:
           // Non-TTY: use first installed analyzer
           const firstInstalled = installed[0];
           const state: SessionState = {
-            active_analyzer: firstInstalled.name,
+            active_analyzer: firstInstalled.backend.name,
             selected_at: new Date().toISOString(),
           };
           await writeSession(state, projectRoot);
 
           console.log(
-            ansis.green(`✓ Selected analyzer: ${firstInstalled.name} (non-interactive mode)`)
+            ansis.green(`✓ Selected analyzer: ${firstInstalled.backend.name} (non-interactive mode)`)
           );
           outro(ansis.dim("Saved to .dr/analyzers/session.json"));
         }

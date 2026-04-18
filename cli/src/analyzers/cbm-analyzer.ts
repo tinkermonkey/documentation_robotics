@@ -51,6 +51,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
+   * Get the analyzer name
+   */
+  get name(): string {
+    return this.mapper.getAnalyzerName();
+  }
+
+  /**
+   * Get the analyzer display name
+   */
+  get displayName(): string {
+    const metadata = this.mapper.getAnalyzerMetadata();
+    return metadata?.display_name || this.mapper.getAnalyzerName();
+  }
+
+  /**
    * Check if the MCP server is registered in .mcp.json
    *
    * Reads .mcp.json from the project root and checks if the analyzer's MCP server
