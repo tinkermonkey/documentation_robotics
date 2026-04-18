@@ -54,6 +54,18 @@ export class AnalyzerRegistry {
     return AnalyzerRegistry.instance;
   }
 
+  /**
+   * Reset the registry singleton for testing
+   *
+   * This method clears the singleton instance and all cached state.
+   * Use this in test teardown to ensure a clean registry for each test.
+   *
+   * @internal For testing only
+   */
+  static resetForTesting(): void {
+    AnalyzerRegistry.instance = null;
+  }
+
   private constructor() {}
 
   /**

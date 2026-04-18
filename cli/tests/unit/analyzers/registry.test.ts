@@ -13,7 +13,8 @@ describe("AnalyzerRegistry", () => {
   let registry: AnalyzerRegistry;
 
   beforeEach(() => {
-    // Create a fresh instance for each test
+    // Reset the singleton for each test to get a clean instance
+    AnalyzerRegistry.resetForTesting();
     registry = AnalyzerRegistry.getInstance();
   });
 
@@ -65,8 +66,11 @@ describe("AnalyzerRegistry", () => {
     });
 
     it("should throw CLIError if not initialized", () => {
-      // Create a new registry instance that hasn't been initialized
-      const newRegistry = new (AnalyzerRegistry as any)();
+      // Create a fresh registry instance that hasn't been initialized
+      AnalyzerRegistry.resetForTesting();
+      const newRegistry = AnalyzerRegistry.getInstance();
+
+      // Before initialize(), getAnalyzerNames() should throw
       expect(() => newRegistry.getAnalyzerNames()).toThrow();
     });
   });

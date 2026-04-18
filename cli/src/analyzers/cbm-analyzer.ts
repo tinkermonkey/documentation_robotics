@@ -26,6 +26,7 @@ import type {
 import { StdioClient } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
+import { getCliVersion } from "./version.js";
 
 /**
  * Graph node from CBM search results
@@ -83,9 +84,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
         client.spawn(binaryPath);
 
         try {
+          const version = await getCliVersion();
           await client.initialize({
             name: "dr-cli",
-            version: "0.1.3",
+            version,
           });
 
           client.close();
@@ -203,8 +205,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       };
     }
 
-    // Spawn the analyzer to perform indexing
-    const detection = await this.detect();
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
     if (!detection.installed || !detection.binary_path) {
       throw new CLIError(
         "CBM analyzer not installed",
@@ -221,19 +223,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
     try {
       client.spawn(detection.binary_path);
 
+      const version = await getCliVersion();
       await client.initialize({
         name: "dr-cli",
-        version: "0.1.3",
+        version,
       });
 
-      // First, check if the project is already listed to avoid duplicates
-      try {
-        // Call list_projects to check for existing project; if found, we can reuse it
-        // The analyzer handles idempotency via project path matching
-        await client.callTool("list_projects", {});
-      } catch (error) {
-        // list_projects may not be available; skip duplicate check
-      }
+      // The CBM server handles idempotency via project path matching,
+      // so we don't need to check list_projects before indexing
 
       // Index the repository
       const indexResponse = (await client.callTool("index_repository", {
@@ -304,8 +301,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
 
-    // Get the analyzer binary
-    const detection = await this.detect();
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
     if (!detection.installed || !detection.binary_path) {
       throw new CLIError(
         "CBM analyzer not installed",
@@ -319,9 +316,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
     try {
       client.spawn(detection.binary_path);
 
+      const version = await getCliVersion();
       await client.initialize({
         name: "dr-cli",
-        version: "0.1.3",
+        version,
       });
 
       // Search for Route nodes
