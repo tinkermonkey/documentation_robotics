@@ -28,7 +28,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - Validates required files exist: `analyzer.json`, `node-mapping.json`, `edge-mapping.json`,
     `extraction-heuristics.json`
   - Validates all `dr_layer` values use canonical layer names and `dr_relationship` values exist in `predicates.json` (null allowed for unmappable edges)
-  - Generates packed analyzer artifacts with indexed node mappings (PascalCase keys) and edge types
+  - Generates packed analyzer artifacts with indexed node mappings and edge types
   - Creates `spec/dist/analyzers/manifest.json` listing all compiled analyzers with versions
 
 ### Changed

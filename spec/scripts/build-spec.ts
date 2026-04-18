@@ -3,11 +3,13 @@
 /**
  * build-spec.ts — Spec compiler
  *
- * Compiles spec source files (spec/schemas/, spec/layers/) into a compact
+ * Compiles spec source files (spec/schemas/, spec/layers/, spec/analyzers/) into a compact
  * distribution format in spec/dist/:
- *   - manifest.json          — index of all layers with counts
- *   - base.json              — all base schemas + predicates
- *   - {layer}.json (x12)     — per-layer: metadata + nodeSchemas + relationshipSchemas
+ *   - manifest.json                      — index of all layers with counts
+ *   - base.json                          — all base schemas + predicates
+ *   - {layer}.json (x12)                 — per-layer: metadata + nodeSchemas + relationshipSchemas
+ *   - analyzers/manifest.json            — index of all compiled analyzers
+ *   - analyzers/{analyzer_name}.json     — per-analyzer: compiled analyzer mappings
  *
  * $ref values are rewritten from relative filesystem paths to URN-style IDs:
  *   "../../base/spec-node.schema.json" → "urn:dr:spec:base:spec-node"

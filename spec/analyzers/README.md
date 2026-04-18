@@ -92,8 +92,8 @@ Maps analyzer relationship types to DR predicate relationships.
 {
   "mappings": [
     {
-      "cbm_edge": "CALLS",
-      "dr_relationship": "uses",
+      "cbm_edge": "HTTP_CALLS",
+      "dr_relationship": "consumes",
       "confidence": "high"
     }
   ]
@@ -174,7 +174,7 @@ To add a new analyzer to the specification:
    - Edge mappings reference existing predicates from `predicates.json`
    - Confidence values are `high`, `medium`, or `low`
 
-4. **Compile** — Run the build command (once available):
+4. **Compile** — Run the build command:
 
    ```bash
    npm run build:spec
