@@ -1,38 +1,17 @@
 /**
- * CLI Version - imported from package.json
+ * CLI Version - used by analyzers for MCP client initialization
  *
- * Used by analyzers for MCP client initialization.
- * This ensures the version is always in sync with package.json.
+ * Re-exports the CLI version from spec-version.ts, which is the single source of truth.
+ * This ensures consistency across all components (CLI commands, integrations, analyzers).
  */
 
-// Version is read from package.json at runtime via dynamic import
-let cliVersion: string | null = null;
+import { getCliVersion as getCliVersionImpl } from "../utils/spec-version.js";
 
 /**
- * Get the CLI version from package.json
- * Cached after first read for performance
+ * Get the CLI version for analyzer initialization
+ * Wrapped as async for compatibility with existing analyzer code,
+ * but delegates to the synchronous source-of-truth in spec-version.ts
  */
 export async function getCliVersion(): Promise<string> {
-  if (cliVersion) {
-    return cliVersion;
-  }
-
-  try {
-    // Import package.json as a module
-    const pkg = await import("../../package.json", { assert: { type: "json" } });
-    cliVersion = pkg.default.version || "0.1.3";
-    return cliVersion;
-  } catch (error) {
-    // Fallback to default if import fails
-    cliVersion = "0.1.3";
-    return cliVersion;
-  }
-}
-
-/**
- * Synchronously get the CLI version (uses cached value or default)
- * Call getCliVersion() first to ensure the cache is populated
- */
-export function getCliVersionSync(): string {
-  return cliVersion || "0.1.3";
+  return getCliVersionImpl();
 }
