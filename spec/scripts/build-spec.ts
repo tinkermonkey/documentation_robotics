@@ -870,8 +870,12 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
+  // Load spec version for use as fallback and source tracking
+  const source_version = loadSpecVersion();
+
   // Extract and validate version from analyzer.json metadata (optional)
-  let version: string | null = null;
+  // Default to source_version (spec version) if not provided in metadata
+  let version: string = source_version;
   if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
     const metadata = analyzerSpec.metadata as AnalyzerMetadata;
     if (metadata.version && typeof metadata.version === "string") {
@@ -930,7 +934,7 @@ function loadAndValidateAnalyzer(
   const packed: PackedAnalyzer = {
     name: analyzerSpec.name,
     version,
-    source_version: loadSpecVersion(), // Get current spec version
+    source_version, // Already loaded above
     analyzer: analyzerSpec,
     nodes_by_label: nodesByLabel,
     edges_by_type: edgesByType,

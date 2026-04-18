@@ -6,8 +6,22 @@
   "mcp_server_name": "codebase-memory-mcp",
   "binary_names": ["codebase-memory-mcp"],
   "supported_tool_contract": {
-    "required_tools": ["initialize", "search_graph", "trace_call_path", "get_node_details", "analyze_dependencies", "extract_metrics", "find_references"],
-    "optional_tools": ["batch_analyze", "cache_status", "optimize_index", "export_graph", "reset_cache"]
+    "required_tools": [
+      "initialize",
+      "search_graph",
+      "trace_call_path",
+      "get_node_details",
+      "analyze_dependencies",
+      "extract_metrics",
+      "find_references"
+    ],
+    "optional_tools": [
+      "batch_analyze",
+      "cache_status",
+      "optimize_index",
+      "export_graph",
+      "reset_cache"
+    ]
   },
   "supported_languages": [
     "typescript",

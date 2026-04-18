@@ -1,6 +1,6 @@
 {
   "name": "cbm",
-  "version": null,
+  "version": "0.8.3",
   "source_version": "0.8.3",
   "analyzer": {
     "name": "cbm",
