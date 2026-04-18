@@ -189,9 +189,9 @@ interface AttributeMapping {
 }
 
 interface AnalyzerNodeMapping {
-  analyzer_node_type: string;
+  cbm_label: string;
   dr_layer: "motivation" | "business" | "security" | "application" | "technology" | "api" | "data-model" | "data-store" | "ux" | "navigation" | "apm" | "testing";
-  dr_node_type: string;
+  dr_element_type: string;
   confidence: "high" | "medium" | "low";
   description?: string;
   source_reference?: {
@@ -199,31 +199,43 @@ interface AnalyzerNodeMapping {
     file?: { from: string };
     symbol?: { from: string };
   };
+  dr_element_fields?: {
+    name_template?: string;
+    id_source?: string;
+    id_transform?: string;
+    attributes?: Array<{
+      dr_attribute: string;
+      from: string;
+      template?: string;
+      transform?: string;
+      default?: unknown;
+    }>;
+  };
   attribute_mappings?: AttributeMapping[];
   conditions?: Record<string, unknown>;
 }
 
-interface UnmappedLabel {
-  analyzer_node_type: string;
-  reason?: string;
+interface UnmappedLabels {
+  description?: string;
+  labels: string[];
 }
 
 interface AnalyzerNodeMappingFile {
   version?: string;
   field_conventions?: Record<string, unknown>;
   mappings: AnalyzerNodeMapping[];
-  unmapped_labels?: UnmappedLabel[];
+  unmapped_labels?: UnmappedLabels;
 }
 
 interface AnalyzerEdgeMapping {
-  analyzer_edge_type: string;
+  cbm_edge: string;
   // dr_relationship must be one of the predicate names from spec/schemas/base/predicates.json or null
   dr_relationship: string | null;
   confidence: "high" | "medium" | "low";
   directionality_transform?: "invert" | "bidirectional" | "symmetric" | null;
   usage?: "verification_and_mapping" | "traversal_only";
   dr_scope?: "intra-layer" | "cross-layer" | "both";
-  direction?: "forward" | "backward" | "bidirectional";
+  direction?: "forward" | "backward" | "bidirectional" | "caller_to_callee";
   confidence_from_property?: string;
   dr_pattern?: string;
   implementation_note?: string;
@@ -683,7 +695,7 @@ function validateDrLayers(nodeMappings: AnalyzerNodeMappingFile): string[] {
   for (const mapping of nodeMappings.mappings) {
     if (!validLayers.has(mapping.dr_layer)) {
       errors.push(
-        `Invalid dr_layer '${mapping.dr_layer}' in analyzer_node_type '${mapping.analyzer_node_type}' — must be one of: ${Array.from(validLayers).join(", ")}`
+        `Invalid dr_layer '${mapping.dr_layer}' in cbm_label '${mapping.cbm_label}' — must be one of: ${Array.from(validLayers).join(", ")}`
       );
     }
   }
@@ -702,7 +714,7 @@ function validateDrRelationships(edgeMappings: AnalyzerEdgeMappingFile, predicat
     // null is allowed (unmappable relationships)
     if (mapping.dr_relationship !== null && !predicateDict[mapping.dr_relationship]) {
       errors.push(
-        `Invalid dr_relationship '${mapping.dr_relationship}' in analyzer_edge_type '${mapping.analyzer_edge_type}' — not found in predicates.json`
+        `Invalid dr_relationship '${mapping.dr_relationship}' in cbm_edge '${mapping.cbm_edge}' — not found in predicates.json`
       );
     }
   }
@@ -850,8 +862,8 @@ function loadAndValidateAnalyzer(
   const duplicateLabels: Array<{ new: string; existing: string }> = [];
 
   for (const mapping of nodeMapping.mappings) {
-    // Capitalize first letter only (e.g., "test_node" → "Test_node", not "TestNode")
-    const labelKey = mapping.analyzer_node_type.charAt(0).toUpperCase() + mapping.analyzer_node_type.slice(1);
+    // Use cbm_label directly (already in PascalCase)
+    const labelKey = mapping.cbm_label;
     const lowerLabel = labelKey.toLowerCase();
 
     if (labelLookup.has(lowerLabel)) {
@@ -876,10 +888,10 @@ function loadAndValidateAnalyzer(
   const duplicateEdges: string[] = [];
 
   for (const mapping of edgeMapping.mappings) {
-    if (edgesByType.hasOwnProperty(mapping.analyzer_edge_type)) {
-      duplicateEdges.push(mapping.analyzer_edge_type);
+    if (edgesByType.hasOwnProperty(mapping.cbm_edge)) {
+      duplicateEdges.push(mapping.cbm_edge);
     } else {
-      edgesByType[mapping.analyzer_edge_type] = mapping;
+      edgesByType[mapping.cbm_edge] = mapping;
     }
   }
 

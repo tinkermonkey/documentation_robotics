@@ -1,29 +1,29 @@
 {
   "version": "1.0",
   "field_conventions": {
-    "analyzer_edge_type": "lowercase_underscore identifier from CBM analyzer output",
+    "cbm_edge": "UPPERCASE_SNAKE_CASE identifier from CBM analyzer output (e.g., 'HTTP_CALLS', 'HANDLES')",
     "dr_relationship": "predicate name from predicates.json or null if unmappable",
     "confidence": "mapping confidence level (high, medium, low)",
     "usage": "edge classification: 'verification_and_mapping' for cross-layer edges that create DR predicates, 'traversal_only' for intra-layer edges used for semantic analysis but not mapped to DR predicates",
     "dr_scope": "scope of the relationship (intra-layer, cross-layer, both)",
-    "direction": "relationship direction (forward, backward, bidirectional)",
+    "direction": "relationship direction (forward, backward, bidirectional, or caller_to_callee)",
     "confidence_from_property": "code property that determines confidence level (e.g., visibility, export status)"
   },
   "mappings": [
     {
-      "analyzer_edge_type": "http_calls",
+      "cbm_edge": "HTTP_CALLS",
       "dr_relationship": "consumes",
       "confidence": "high",
       "description": "HTTP API call between services maps to consumes relationship",
       "usage": "verification_and_mapping",
       "dr_scope": "cross-layer",
-      "direction": "forward",
-      "confidence_from_property": "is_external_endpoint",
-      "dr_pattern": "api.operation -> application.applicationservice",
+      "direction": "caller_to_callee",
+      "confidence_from_property": "confidence",
+      "dr_pattern": "application.applicationservice → api.operation",
       "implementation_note": "Requires HTTP verb and endpoint analysis to create cross-layer reference"
     },
     {
-      "analyzer_edge_type": "handles",
+      "cbm_edge": "HANDLES",
       "dr_relationship": "provides",
       "confidence": "high",
       "description": "HTTP request handler maps to provides relationship",
@@ -31,11 +31,11 @@
       "dr_scope": "cross-layer",
       "direction": "forward",
       "confidence_from_property": "handler_decorator",
-      "dr_pattern": "application.applicationservice -> api.operation",
+      "dr_pattern": "application.applicationfunction → api.operation",
       "implementation_note": "HTTP handler decoration indicates implementation relationship"
     },
     {
-      "analyzer_edge_type": "calls",
+      "cbm_edge": "CALLS",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Function/method call within codebase",
@@ -47,7 +47,7 @@
       }
     },
     {
-      "analyzer_edge_type": "imports",
+      "cbm_edge": "IMPORTS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Module/file import dependency",
@@ -59,7 +59,7 @@
       }
     },
     {
-      "analyzer_edge_type": "depends_on",
+      "cbm_edge": "DEPENDS_ON",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Runtime dependency relationship",
@@ -71,7 +71,7 @@
       }
     },
     {
-      "analyzer_edge_type": "inherits",
+      "cbm_edge": "INHERITS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Class inheritance relationship",
@@ -83,7 +83,7 @@
       }
     },
     {
-      "analyzer_edge_type": "implements",
+      "cbm_edge": "IMPLEMENTS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Interface implementation relationship",
@@ -95,7 +95,7 @@
       }
     },
     {
-      "analyzer_edge_type": "creates",
+      "cbm_edge": "CREATES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Object instantiation or component creation",
@@ -107,7 +107,7 @@
       }
     },
     {
-      "analyzer_edge_type": "uses",
+      "cbm_edge": "USES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "General usage relationship",
@@ -119,7 +119,7 @@
       }
     },
     {
-      "analyzer_edge_type": "extends",
+      "cbm_edge": "EXTENDS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Class or interface extension",
@@ -131,7 +131,7 @@
       }
     },
     {
-      "analyzer_edge_type": "references",
+      "cbm_edge": "REFERENCES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Reference to variable, field, or constant",
@@ -143,7 +143,7 @@
       }
     },
     {
-      "analyzer_edge_type": "returns",
+      "cbm_edge": "RETURNS",
       "dr_relationship": null,
       "confidence": "low",
       "description": "Return type relationship (type information only)",
@@ -155,7 +155,7 @@
       }
     },
     {
-      "analyzer_edge_type": "modifies",
+      "cbm_edge": "MODIFIES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "State modification relationship",

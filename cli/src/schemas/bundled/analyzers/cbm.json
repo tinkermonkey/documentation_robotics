@@ -47,62 +47,62 @@
   },
   "nodes_by_label": {
     "Route": {
-      "analyzer_node_type": "route",
+      "cbm_label": "Route",
       "dr_layer": "api",
-      "dr_node_type": "operation",
+      "dr_element_type": "operation",
       "confidence": "high",
       "description": "HTTP route maps to API operation with high confidence",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "decorator_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "route_handler"
+          "from": "name"
         }
       },
+      "dr_element_fields": {
+        "attributes": [
+          {
+            "dr_attribute": "operationId",
+            "from": "name",
+            "transform": "kebab-case"
+          },
+          {
+            "dr_attribute": "summary",
+            "from": "description",
+            "default": ""
+          },
+          {
+            "dr_attribute": "tags",
+            "from": "tags",
+            "template": "array",
+            "default": []
+          }
+        ]
+      },
       "conditions": {
-        "verify_role": "primary",
-        "dr_element_fields": {
-          "attributes": [
-            {
-              "dr_attribute": "operationId",
-              "from": "route_handler",
-              "transform": "kebab-case"
-            },
-            {
-              "dr_attribute": "summary",
-              "from": "route_description",
-              "default": ""
-            },
-            {
-              "dr_attribute": "tags",
-              "from": "route_tags",
-              "template": "array",
-              "default": []
-            }
-          ]
-        }
+        "verify_role": "primary"
       }
     },
     "Function": {
-      "analyzer_node_type": "function",
+      "cbm_label": "Function",
       "dr_layer": "application",
-      "dr_node_type": "applicationfunction",
+      "dr_element_type": "applicationfunction",
       "confidence": "medium",
       "description": "Function maps to application function; may be promoted to service via heuristics",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "function_name"
+          "from": "name"
         }
       },
       "attribute_mappings": [
         {
-          "analyzer_field": "name",
+          "from": "name",
           "dr_attribute": "name"
         }
       ],
@@ -125,23 +125,23 @@
       }
     },
     "Method": {
-      "analyzer_node_type": "method",
+      "cbm_label": "Method",
       "dr_layer": "application",
-      "dr_node_type": "applicationfunction",
+      "dr_element_type": "applicationfunction",
       "confidence": "medium",
       "description": "Class method maps to application function; may be promoted to service via heuristics",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "method_name"
+          "from": "name"
         }
       },
       "attribute_mappings": [
         {
-          "analyzer_field": "name",
+          "from": "name",
           "dr_attribute": "name"
         }
       ],
@@ -164,18 +164,18 @@
       }
     },
     "Class": {
-      "analyzer_node_type": "class",
+      "cbm_label": "Class",
       "dr_layer": "application",
-      "dr_node_type": "applicationcomponent",
+      "dr_element_type": "applicationcomponent",
       "confidence": "medium",
       "description": "Class maps to application component",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "class_name"
+          "from": "name"
         }
       },
       "conditions": {
@@ -189,37 +189,37 @@
       }
     },
     "Module": {
-      "analyzer_node_type": "module",
+      "cbm_label": "Module",
       "dr_layer": "application",
-      "dr_node_type": "applicationcomponent",
+      "dr_element_type": "applicationcomponent",
       "confidence": "low",
       "description": "Module (file/namespace) maps to application component with low confidence",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "module_path"
+          "from": "name"
         }
       }
     }
   },
   "edges_by_type": {
-    "http_calls": {
-      "analyzer_edge_type": "http_calls",
+    "HTTP_CALLS": {
+      "cbm_edge": "HTTP_CALLS",
       "dr_relationship": "consumes",
       "confidence": "high",
       "description": "HTTP API call between services maps to consumes relationship",
       "usage": "verification_and_mapping",
       "dr_scope": "cross-layer",
-      "direction": "forward",
-      "confidence_from_property": "is_external_endpoint",
-      "dr_pattern": "api.operation -> application.applicationservice",
+      "direction": "caller_to_callee",
+      "confidence_from_property": "confidence",
+      "dr_pattern": "application.applicationservice → api.operation",
       "implementation_note": "Requires HTTP verb and endpoint analysis to create cross-layer reference"
     },
-    "handles": {
-      "analyzer_edge_type": "handles",
+    "HANDLES": {
+      "cbm_edge": "HANDLES",
       "dr_relationship": "provides",
       "confidence": "high",
       "description": "HTTP request handler maps to provides relationship",
@@ -227,11 +227,11 @@
       "dr_scope": "cross-layer",
       "direction": "forward",
       "confidence_from_property": "handler_decorator",
-      "dr_pattern": "application.applicationservice -> api.operation",
+      "dr_pattern": "application.applicationfunction → api.operation",
       "implementation_note": "HTTP handler decoration indicates implementation relationship"
     },
-    "calls": {
-      "analyzer_edge_type": "calls",
+    "CALLS": {
+      "cbm_edge": "CALLS",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Function/method call within codebase",
@@ -242,8 +242,8 @@
         "usage_detail": "intra-layer behavioral"
       }
     },
-    "imports": {
-      "analyzer_edge_type": "imports",
+    "IMPORTS": {
+      "cbm_edge": "IMPORTS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Module/file import dependency",
@@ -254,8 +254,8 @@
         "usage_detail": "intra-layer structural"
       }
     },
-    "depends_on": {
-      "analyzer_edge_type": "depends_on",
+    "DEPENDS_ON": {
+      "cbm_edge": "DEPENDS_ON",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Runtime dependency relationship",
@@ -266,8 +266,8 @@
         "usage_detail": "intra-layer dependency"
       }
     },
-    "inherits": {
-      "analyzer_edge_type": "inherits",
+    "INHERITS": {
+      "cbm_edge": "INHERITS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Class inheritance relationship",
@@ -278,8 +278,8 @@
         "usage_detail": "intra-layer structural"
       }
     },
-    "implements": {
-      "analyzer_edge_type": "implements",
+    "IMPLEMENTS": {
+      "cbm_edge": "IMPLEMENTS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Interface implementation relationship",
@@ -290,8 +290,8 @@
         "usage_detail": "intra-layer structural"
       }
     },
-    "creates": {
-      "analyzer_edge_type": "creates",
+    "CREATES": {
+      "cbm_edge": "CREATES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Object instantiation or component creation",
@@ -302,8 +302,8 @@
         "usage_detail": "intra-layer behavioral"
       }
     },
-    "uses": {
-      "analyzer_edge_type": "uses",
+    "USES": {
+      "cbm_edge": "USES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "General usage relationship",
@@ -314,8 +314,8 @@
         "usage_detail": "intra-layer dependency"
       }
     },
-    "extends": {
-      "analyzer_edge_type": "extends",
+    "EXTENDS": {
+      "cbm_edge": "EXTENDS",
       "dr_relationship": null,
       "confidence": "high",
       "description": "Class or interface extension",
@@ -326,8 +326,8 @@
         "usage_detail": "intra-layer structural"
       }
     },
-    "references": {
-      "analyzer_edge_type": "references",
+    "REFERENCES": {
+      "cbm_edge": "REFERENCES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "Reference to variable, field, or constant",
@@ -338,8 +338,8 @@
         "usage_detail": "intra-layer dependency"
       }
     },
-    "returns": {
-      "analyzer_edge_type": "returns",
+    "RETURNS": {
+      "cbm_edge": "RETURNS",
       "dr_relationship": null,
       "confidence": "low",
       "description": "Return type relationship (type information only)",
@@ -350,8 +350,8 @@
         "usage_detail": "type-level metadata"
       }
     },
-    "modifies": {
-      "analyzer_edge_type": "modifies",
+    "MODIFIES": {
+      "cbm_edge": "MODIFIES",
       "dr_relationship": null,
       "confidence": "medium",
       "description": "State modification relationship",

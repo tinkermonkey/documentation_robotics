@@ -1,9 +1,9 @@
 {
   "version": "1.0",
   "field_conventions": {
-    "analyzer_node_type": "lowercase_underscore identifier from CBM analyzer output",
+    "cbm_label": "PascalCase identifier from CBM analyzer output (e.g., 'Route', 'Function')",
     "dr_layer": "canonical DR layer name (one of 12 layers)",
-    "dr_node_type": "node type within the DR layer",
+    "dr_element_type": "element type within the DR layer",
     "confidence": "mapping confidence level (high, medium, low)",
     "conditions.verify_role": "optional role designation for verification scope (primary, secondary, auxiliary) — nested inside conditions object",
     "conditions.evidence_fields": "array of fields from analyzer output used as evidence for mapping confidence — nested inside conditions object",
@@ -11,62 +11,62 @@
   },
   "mappings": [
     {
-      "analyzer_node_type": "route",
+      "cbm_label": "Route",
       "dr_layer": "api",
-      "dr_node_type": "operation",
+      "dr_element_type": "operation",
       "confidence": "high",
       "description": "HTTP route maps to API operation with high confidence",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "decorator_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "route_handler"
+          "from": "name"
         }
       },
+      "dr_element_fields": {
+        "attributes": [
+          {
+            "dr_attribute": "operationId",
+            "from": "name",
+            "transform": "kebab-case"
+          },
+          {
+            "dr_attribute": "summary",
+            "from": "description",
+            "default": ""
+          },
+          {
+            "dr_attribute": "tags",
+            "from": "tags",
+            "template": "array",
+            "default": []
+          }
+        ]
+      },
       "conditions": {
-        "verify_role": "primary",
-        "dr_element_fields": {
-          "attributes": [
-            {
-              "dr_attribute": "operationId",
-              "from": "route_handler",
-              "transform": "kebab-case"
-            },
-            {
-              "dr_attribute": "summary",
-              "from": "route_description",
-              "default": ""
-            },
-            {
-              "dr_attribute": "tags",
-              "from": "route_tags",
-              "template": "array",
-              "default": []
-            }
-          ]
-        }
+        "verify_role": "primary"
       }
     },
     {
-      "analyzer_node_type": "function",
+      "cbm_label": "Function",
       "dr_layer": "application",
-      "dr_node_type": "applicationfunction",
+      "dr_element_type": "applicationfunction",
       "confidence": "medium",
       "description": "Function maps to application function; may be promoted to service via heuristics",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "function_name"
+          "from": "name"
         }
       },
       "attribute_mappings": [
         {
-          "analyzer_field": "name",
+          "from": "name",
           "dr_attribute": "name"
         }
       ],
@@ -89,23 +89,23 @@
       }
     },
     {
-      "analyzer_node_type": "method",
+      "cbm_label": "Method",
       "dr_layer": "application",
-      "dr_node_type": "applicationfunction",
+      "dr_element_type": "applicationfunction",
       "confidence": "medium",
       "description": "Class method maps to application function; may be promoted to service via heuristics",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "method_name"
+          "from": "name"
         }
       },
       "attribute_mappings": [
         {
-          "analyzer_field": "name",
+          "from": "name",
           "dr_attribute": "name"
         }
       ],
@@ -128,18 +128,18 @@
       }
     },
     {
-      "analyzer_node_type": "class",
+      "cbm_label": "Class",
       "dr_layer": "application",
-      "dr_node_type": "applicationcomponent",
+      "dr_element_type": "applicationcomponent",
       "confidence": "medium",
       "description": "Class maps to application component",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "class_name"
+          "from": "name"
         }
       },
       "conditions": {
@@ -153,50 +153,32 @@
       }
     },
     {
-      "analyzer_node_type": "module",
+      "cbm_label": "Module",
       "dr_layer": "application",
-      "dr_node_type": "applicationcomponent",
+      "dr_element_type": "applicationcomponent",
       "confidence": "low",
       "description": "Module (file/namespace) maps to application component with low confidence",
       "source_reference": {
         "provenance": "extracted",
         "file": {
-          "from": "file_location"
+          "from": "file_path"
         },
         "symbol": {
-          "from": "module_path"
+          "from": "name"
         }
       }
     }
   ],
-  "unmapped_labels": [
-    {
-      "analyzer_node_type": "project",
-      "reason": "Project-level artifacts represent codebase metadata, not architecture model elements. Project identification is handled separately via project_identification in analyzer.json."
-    },
-    {
-      "analyzer_node_type": "package",
-      "reason": "Package-level constructs map to technology.stack or technology.platform concepts, not discrete architecture elements. Requires semantic analysis to determine architectural significance."
-    },
-    {
-      "analyzer_node_type": "folder",
-      "reason": "Directory/folder structures are implementation details of code organization, not first-class architecture model elements. Mapping would create noise unless explicitly promoted via heuristics."
-    },
-    {
-      "analyzer_node_type": "file",
-      "reason": "Individual files are too granular for architecture models. File-level structure is captured through source_reference provenance linking, not as elements."
-    },
-    {
-      "analyzer_node_type": "interface",
-      "reason": "Interface definitions are abstraction mechanisms within code (application layer), but not distinct element types in the DR model. Represented implicitly through applicationcomponent relationships."
-    },
-    {
-      "analyzer_node_type": "enum",
-      "reason": "Enumeration types represent constrained value sets, more suitable for data-model layer attributes than standalone elements. Captured through attribute definitions, not as first-class elements."
-    },
-    {
-      "analyzer_node_type": "type",
-      "reason": "Type definitions (aliases, generics, unions) are type-level metadata without semantic architectural significance. Type information flows through attributes and element properties."
-    }
-  ]
+  "unmapped_labels": {
+    "description": "CBM node type labels that are not mapped to DR architecture model elements. These labels represent implementation-level or metadata constructs that do not have direct architectural significance in the 12-layer model.",
+    "labels": [
+      "Project",
+      "Package",
+      "Folder",
+      "File",
+      "Interface",
+      "Enum",
+      "Type"
+    ]
+  }
 }

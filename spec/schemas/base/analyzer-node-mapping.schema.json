@@ -24,17 +24,17 @@
       "items": {
         "type": "object",
         "required": [
-          "analyzer_node_type",
+          "cbm_label",
           "dr_layer",
-          "dr_node_type",
+          "dr_element_type",
           "confidence"
         ],
         "additionalProperties": false,
         "properties": {
-          "analyzer_node_type": {
+          "cbm_label": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "description": "Node type identifier from the analyzer output"
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "description": "Node type label from CBM analyzer output (PascalCase, e.g., 'Route', 'Function')"
           },
           "dr_layer": {
             "type": "string",
@@ -54,10 +54,10 @@
             ],
             "description": "Canonical DR layer name. Must be one of the 12 layers with correct naming (e.g., 'data-model' not 'data_model')."
           },
-          "dr_node_type": {
+          "dr_element_type": {
             "type": "string",
             "pattern": "^[a-z][a-z0-9-]*$",
-            "description": "Node type within the DR layer (e.g., 'component', 'endpoint', 'table')"
+            "description": "Element type within the DR layer (e.g., 'component', 'endpoint', 'table')"
           },
           "confidence": {
             "type": "string",
@@ -104,15 +104,63 @@
               }
             }
           },
+          "dr_element_fields": {
+            "type": "object",
+            "description": "Optional configuration for shaping DR element fields from analyzer output",
+            "additionalProperties": false,
+            "properties": {
+              "name_template": {
+                "type": "string",
+                "description": "Template for generating element name from analyzer fields"
+              },
+              "id_source": {
+                "type": "string",
+                "description": "Field from analyzer output to use as element ID source"
+              },
+              "id_transform": {
+                "type": "string",
+                "description": "Transformation to apply to id_source (e.g., 'kebab-case')"
+              },
+              "attributes": {
+                "type": "array",
+                "description": "Field mappings for element attributes",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "dr_attribute": {
+                      "type": "string",
+                      "description": "Target DR attribute name"
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Source field from analyzer output"
+                    },
+                    "template": {
+                      "type": "string",
+                      "description": "Data type template (e.g., 'array', 'object')"
+                    },
+                    "transform": {
+                      "type": "string",
+                      "description": "Transformation function to apply (e.g., 'kebab-case')"
+                    },
+                    "default": {
+                      "description": "Default value if source field is missing"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "attribute_mappings": {
             "type": "array",
             "description": "Optional field-to-attribute mappings from analyzer to DR model",
             "items": {
               "type": "object",
-              "required": ["analyzer_field", "dr_attribute"],
+              "required": ["from", "dr_attribute"],
               "additionalProperties": false,
               "properties": {
-                "analyzer_field": {
+                "from": {
                   "type": "string",
                   "description": "Field name from analyzer output"
                 },
@@ -124,6 +172,13 @@
                 "transform": {
                   "type": "string",
                   "description": "Optional transformation function or rule to apply to the field value"
+                },
+                "template": {
+                  "type": "string",
+                  "description": "Optional data type template"
+                },
+                "default": {
+                  "description": "Optional default value"
                 }
               }
             }
@@ -137,21 +192,22 @@
       }
     },
     "unmapped_labels": {
-      "type": "array",
-      "description": "Array of analyzer node type labels that could not be mapped to DR model elements",
-      "items": {
-        "type": "object",
-        "required": ["analyzer_node_type"],
-        "additionalProperties": true,
-        "properties": {
-          "analyzer_node_type": {
+      "type": "object",
+      "description": "Node type labels from CBM analyzer that could not be mapped to DR model elements",
+      "required": ["labels"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Overall description of unmapped labels and rationale"
+        },
+        "labels": {
+          "type": "array",
+          "description": "Array of PascalCase CBM node type labels that are not mapped",
+          "items": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "description": "Node type identifier from the analyzer output that is not mapped to DR model"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Optional explanation for why this label is unmapped"
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "description": "PascalCase CBM label (e.g., 'Project', 'Package')"
           }
         }
       }
