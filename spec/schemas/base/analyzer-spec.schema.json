@@ -10,8 +10,7 @@
     "mcp_server_name",
     "supported_tool_contract",
     "supported_languages",
-    "project_identification",
-    "metadata"
+    "project_identification"
   ],
   "additionalProperties": false,
   "properties": {
@@ -64,47 +63,24 @@
     },
     "supported_tool_contract": {
       "type": "object",
-      "description": "Specifies the MCP tools, contract version, and supported I/O types for this analyzer",
-      "required": ["tools"],
+      "description": "Specifies the MCP tools required and optional for this analyzer",
+      "required": ["required_tools"],
       "additionalProperties": false,
       "properties": {
-        "tools": {
-          "type": "object",
-          "description": "MCP tools and their availability status",
-          "required": ["required"],
-          "additionalProperties": false,
-          "properties": {
-            "required": {
-              "type": "array",
-              "description": "Required MCP tools that must be available",
-              "items": {
-                "type": "string"
-              },
-              "examples": [["initialize", "search_graph", "trace_call_path"]]
-            },
-            "optional": {
-              "type": "array",
-              "description": "Optional MCP tools that may be available",
-              "items": {
-                "type": "string"
-              }
-            }
+        "required_tools": {
+          "type": "array",
+          "description": "Required MCP tools that must be available",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["initialize", "search_graph", "trace_call_path"]]
+        },
+        "optional_tools": {
+          "type": "array",
+          "description": "Optional MCP tools that may be available",
+          "items": {
+            "type": "string"
           }
-        },
-        "version": {
-          "type": "string",
-          "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
-          "description": "Tool contract version (e.g., '1.0', '1.2.3')"
-        },
-        "input_type": {
-          "type": "string",
-          "enum": ["codebase", "file", "directory", "ast", "semantic_graph"],
-          "description": "Expected input type for this analyzer"
-        },
-        "output_type": {
-          "type": "string",
-          "enum": ["semantic_graph", "ast", "csv", "json", "structured_output"],
-          "description": "Output format produced by this analyzer"
         }
       }
     },
@@ -144,32 +120,6 @@
       "type": "object",
       "description": "Optional analyzer-specific configuration options",
       "additionalProperties": true
-    },
-    "metadata": {
-      "type": "object",
-      "description": "Metadata about the analyzer including version, author, etc.",
-      "required": ["version"],
-      "additionalProperties": false,
-      "properties": {
-        "version": {
-          "type": "string",
-          "description": "Analyzer tool version"
-        },
-        "author": {
-          "type": "string",
-          "description": "Author or organization maintaining this analyzer"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "ISO 8601 timestamp when this analyzer configuration was created"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "ISO 8601 timestamp of the last update"
-        }
-      }
     }
   }
 }

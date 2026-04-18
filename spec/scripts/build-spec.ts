@@ -870,18 +870,13 @@ function loadAndValidateAnalyzer(
     return null;
   }
 
-  // Extract and validate version from analyzer.json metadata
+  // Extract and validate version from analyzer.json metadata (optional)
   let version: string | null = null;
   if (analyzerSpec.metadata && typeof analyzerSpec.metadata === "object") {
     const metadata = analyzerSpec.metadata as AnalyzerMetadata;
     if (metadata.version && typeof metadata.version === "string") {
       version = metadata.version;
     }
-  }
-
-  if (!version) {
-    console.error(`[ERROR] analyzer '${analyzerName}' has metadata but is missing metadata.version — must be a non-empty string`);
-    return null;
   }
 
   // Build nodes_by_label index and detect duplicates (including case-collisions)
