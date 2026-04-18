@@ -61,7 +61,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
   async detect(): Promise<DetectionResult> {
     // Get binary names from the analyzer metadata
     const metadata = this.mapper.getAnalyzerMetadata();
-    const binaryNames = metadata?.binary_names ?? ["codebase-memory-mcp"];
+    const binaryNames = (metadata?.binary_names as string[] | undefined) ?? [
+      "codebase-memory-mcp",
+    ];
+    const mcp_server_name = metadata?.mcp_server_name ?? "codebase-memory-mcp";
 
     // Check if .mcp.json exists at project root for registration status
     let mcpRegistered = false;
@@ -69,9 +72,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
       const mcpContent = await readFile(mcpJsonPath, "utf-8");
       const mcpConfig = JSON.parse(mcpContent);
-      // Check if codebase-memory-mcp is registered in .mcp.json
+      // Check if the analyzer's MCP server is registered in .mcp.json
       mcpRegistered =
-        (mcpConfig.mcpServers && "codebase-memory-mcp" in mcpConfig.mcpServers) ||
+        (mcpConfig.mcpServers && mcp_server_name in mcpConfig.mcpServers) ||
         false;
     } catch {
       // .mcp.json not found or not valid JSON - that's OK, not an error
@@ -126,7 +129,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       } finally {
         // Always close the client to prevent orphan processes
         try {
-          await client.close();
+          client.close();
         } catch {
           // Ignore errors during cleanup
         }

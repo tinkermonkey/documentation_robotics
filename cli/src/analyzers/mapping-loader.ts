@@ -25,6 +25,8 @@ interface AnalyzerManifestMetadata {
   display_name: string;
   description: string;
   homepage: string;
+  binary_names?: string[];
+  mcp_server_name?: string;
   [key: string]: unknown;
 }
 
