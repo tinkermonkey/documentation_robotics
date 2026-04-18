@@ -133,6 +133,10 @@
           "type": "string",
           "enum": ["absolute_path"],
           "description": "Strategy used to identify the project. 'absolute_path' uses findProjectRoot() to determine stable project identity."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed explanation of how the DR CLI passes the project root and how the analyzer uses it for identification"
         }
       }
     },
