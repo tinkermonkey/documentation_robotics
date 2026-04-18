@@ -46,6 +46,17 @@ interface CbmGraphNode {
 export class CbmAnalyzer implements AnalyzerBackend {
   private mapper: MappingLoader;
 
+  /**
+   * Default regex patterns for test code detection
+   */
+  private static readonly DEFAULT_TEST_PATTERNS = [
+    /\.test\./,
+    /\.spec\./,
+    /\/tests?\//,
+    /\/__tests__\//,
+    /\/test-/,
+  ];
+
   constructor(mapper: MappingLoader) {
     this.mapper = mapper;
   }
@@ -608,14 +619,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // If no test_code_exclusion rule found, apply default patterns as fallback
     if (!testCodeRule || !testCodeRule.pattern) {
-      const testPatterns = [
-        /\.test\./,
-        /\.spec\./,
-        /\/tests?\//,
-        /\/__tests__\//,
-        /\/test-/,
-      ];
-      return testPatterns.some((pattern) =>
+      return CbmAnalyzer.DEFAULT_TEST_PATTERNS.some((pattern) =>
         pattern.test(candidate.source_file)
       );
     }
@@ -626,14 +630,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       return testCodePattern.test(candidate.source_file);
     } catch {
       // If regex is invalid, fall back to default patterns
-      const testPatterns = [
-        /\.test\./,
-        /\.spec\./,
-        /\/tests?\//,
-        /\/__tests__\//,
-        /\/test-/,
-      ];
-      return testPatterns.some((pattern) =>
+      return CbmAnalyzer.DEFAULT_TEST_PATTERNS.some((pattern) =>
         pattern.test(candidate.source_file)
       );
     }

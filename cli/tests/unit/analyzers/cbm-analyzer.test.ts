@@ -106,41 +106,139 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("endpoints() field transformation", () => {
-    it("should apply test code exclusion filtering", async () => {
-      // Test the test code exclusion patterns that are applied in endpoints()
-      const testPatterns = [
-        /\.test\./,
-        /\.spec\./,
-        /\/tests?\//,
-        /\/__tests__\//,
-        /\/test-/,
-      ];
+    it("should apply test code exclusion filtering rule when present", async () => {
+      // Test that isTestCode applies the filtering rule from the mapping
+      const filteringRules = mockMapper.getFilteringRules();
+      const testCodeRule = filteringRules.find(
+        (rule) => rule.name === "test_code_exclusion" && rule.enabled
+      );
 
-      const testFiles = [
-        "src/routes.test.ts",
-        "src/routes.spec.ts",
-        "src/tests/routes.ts",
-        "src/__tests__/routes.ts",
-        "src/test-routes.ts",
-      ];
+      // This analyzer has a test_code_exclusion rule with pattern: ^.*(.test.|_test.|spec.|__tests__)
+      if (testCodeRule && testCodeRule.pattern) {
+        // Test files matching the rule pattern
+        const testFilesMatchingRule = [
+          "src/routes.test.ts",
+          "src_test.routes.ts",
+          "src/routes.spec.ts",
+        ];
 
-      const productionFiles = [
-        "src/routes.ts",
-        "src/api/endpoints.ts",
-        "lib/helpers.ts",
-      ];
+        for (const sourceFile of testFilesMatchingRule) {
+          const candidate: EndpointCandidate = {
+            source_file: sourceFile,
+            confidence: "high",
+            suggested_layer: "api",
+            suggested_element_type: "operation",
+            suggested_name: "get-users",
+            http_method: "GET",
+            http_path: "/users",
+            handler_qualified_name: "UserController.getUsers",
+            source_symbol: "getUsers",
+            source_start_line: 42,
+            source_end_line: 50,
+          };
 
-      // Verify test patterns match test files
-      for (const file of testFiles) {
-        const isTest = testPatterns.some((pattern) => pattern.test(file));
-        expect(isTest).toBe(true);
+          const isTest = (analyzer as any).isTestCode(candidate);
+          expect(isTest).toBe(true);
+        }
+
+        // Test files NOT matching the rule pattern
+        const productionFiles = [
+          "src/routes.ts",
+          "src/api/endpoints.ts",
+          "lib/helpers.ts",
+        ];
+
+        for (const sourceFile of productionFiles) {
+          const candidate: EndpointCandidate = {
+            source_file: sourceFile,
+            confidence: "high",
+            suggested_layer: "api",
+            suggested_element_type: "operation",
+            suggested_name: "get-users",
+            http_method: "GET",
+            http_path: "/users",
+            handler_qualified_name: "UserController.getUsers",
+            source_symbol: "getUsers",
+            source_start_line: 42,
+            source_end_line: 50,
+          };
+
+          const isTest = (analyzer as any).isTestCode(candidate);
+          expect(isTest).toBe(false);
+        }
       }
+    });
 
-      // Verify test patterns don't match production files
-      for (const file of productionFiles) {
-        const isTest = testPatterns.some((pattern) => pattern.test(file));
-        expect(isTest).toBe(false);
-      }
+    it("should fall back to default patterns when rule pattern is invalid", async () => {
+      // Create a mock mapper with an invalid regex pattern in the test_code_exclusion rule
+      const mockMapperWithInvalidRegex = {
+        ...mockMapper,
+        getFilteringRules: () => [
+          {
+            name: "test_code_exclusion",
+            description: "Test exclusion",
+            filter_type: "pattern",
+            pattern: "[invalid(regex",
+            enabled: true,
+          },
+        ],
+      } as any;
+
+      const analyzerWithInvalidRegex = new CbmAnalyzer(mockMapperWithInvalidRegex);
+
+      // When regex is invalid, should fall back to default patterns
+      const candidate: EndpointCandidate = {
+        source_file: "src/routes.test.ts",
+        confidence: "high",
+        suggested_layer: "api",
+        suggested_element_type: "operation",
+        suggested_name: "get-users",
+        http_method: "GET",
+        http_path: "/users",
+        handler_qualified_name: "UserController.getUsers",
+        source_symbol: "getUsers",
+        source_start_line: 42,
+        source_end_line: 50,
+      };
+
+      const isTest = (analyzerWithInvalidRegex as any).isTestCode(candidate);
+      expect(isTest).toBe(true);
+    });
+
+    it("should use default patterns when no test_code_exclusion rule exists", async () => {
+      // Create a mock mapper with no test_code_exclusion rule
+      const mockMapperWithoutRule = {
+        ...mockMapper,
+        getFilteringRules: () => [
+          {
+            name: "confidence_floor",
+            description: "Confidence filter",
+            filter_type: "confidence",
+            threshold: 0.35,
+            enabled: true,
+          },
+        ],
+      } as any;
+
+      const analyzerWithoutRule = new CbmAnalyzer(mockMapperWithoutRule);
+
+      // Without a test_code_exclusion rule, should use default patterns
+      const candidate: EndpointCandidate = {
+        source_file: "src/routes.test.ts",
+        confidence: "high",
+        suggested_layer: "api",
+        suggested_element_type: "operation",
+        suggested_name: "get-users",
+        http_method: "GET",
+        http_path: "/users",
+        handler_qualified_name: "UserController.getUsers",
+        source_symbol: "getUsers",
+        source_start_line: 42,
+        source_end_line: 50,
+      };
+
+      const isTest = (analyzerWithoutRule as any).isTestCode(candidate);
+      expect(isTest).toBe(true);
     });
 
     it("should downgrade confidence on missing handler and symbol fields", async () => {
