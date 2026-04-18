@@ -13,6 +13,7 @@
 
 import { spawnSync } from "child_process";
 import * as path from "path";
+import { readFile } from "fs/promises";
 import { CLIError, ErrorCategory, handleWarning } from "../utils/errors.js";
 import type { AnalyzerBackend } from "./base-analyzer.js";
 import type {
@@ -58,56 +59,77 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @returns Detection result with binary path, version, and MCP registration status
    */
   async detect(): Promise<DetectionResult> {
-    // Get binary names from the loader's metadata
-    const binaryNames = ["codebase-memory-mcp"]; // Default binary name
+    // Get binary names from the analyzer metadata
+    const metadata = this.mapper.getAnalyzerMetadata();
+    const binaryNames = metadata?.binary_names ?? ["codebase-memory-mcp"];
+
+    // Check if .mcp.json exists at project root for registration status
+    let mcpRegistered = false;
+    try {
+      const mcpJsonPath = path.join(process.cwd(), ".mcp.json");
+      const mcpContent = await readFile(mcpJsonPath, "utf-8");
+      const mcpConfig = JSON.parse(mcpContent);
+      // Check if codebase-memory-mcp is registered in .mcp.json
+      mcpRegistered =
+        (mcpConfig.mcpServers && "codebase-memory-mcp" in mcpConfig.mcpServers) ||
+        false;
+    } catch {
+      // .mcp.json not found or not valid JSON - that's OK, not an error
+      mcpRegistered = false;
+    }
 
     for (const binaryName of binaryNames) {
       // Check if binary is available using 'which'
-      const result = spawnSync("which", [binaryName], {
+      const whichResult = spawnSync("which", [binaryName], {
         stdio: "pipe",
         encoding: "utf-8",
       });
 
-      if (result.status !== 0) {
+      if (whichResult.status !== 0) {
         continue;
       }
 
-      const binaryPath = result.stdout.trim();
+      const binaryPath = whichResult.stdout.trim();
 
       if (!binaryPath) {
         continue;
       }
 
       // Try to initialize the analyzer to validate the tool contract
+      const client = new StdioClient();
       try {
-        const client = new StdioClient();
         client.spawn(binaryPath);
 
-        try {
-          const version = await getCliVersion();
-          await client.initialize({
-            name: "dr-cli",
-            version,
-          });
+        const version = await getCliVersion();
+        await client.initialize({
+          name: "dr-cli",
+          version,
+        });
 
-          client.close();
-
-          // Successfully initialized
-          return {
-            installed: true,
-            binary_path: binaryPath,
-            version: undefined, // Version could be extracted from --version if needed
-            mcp_registered: true,
-            contract_ok: true,
-          };
-        } catch (error) {
-          client.close();
-          // Initialize failed, continue to next binary
-          continue;
-        }
+        // Successfully initialized
+        return {
+          installed: true,
+          binary_path: binaryPath,
+          version: undefined, // Version could be extracted from --version if needed
+          mcp_registered: mcpRegistered,
+          contract_ok: true,
+        };
       } catch (error) {
-        // Spawn or communication failed, continue to next binary
+        // Initialize failed - log diagnostic info and continue to next binary
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        handleWarning(
+          `Binary ${binaryName} failed initialization: ${errorMessage}`,
+          ["Check that the binary is properly installed and functional"]
+        );
         continue;
+      } finally {
+        // Always close the client to prevent orphan processes
+        try {
+          await client.close();
+        } catch {
+          // Ignore errors during cleanup
+        }
       }
     }
 
