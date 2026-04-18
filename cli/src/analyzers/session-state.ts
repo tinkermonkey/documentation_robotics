@@ -4,8 +4,16 @@
  * Provides file-based storage for analyzer session state, index metadata,
  * and analyzer status information in `.dr/analyzers/` directory.
  *
+ * Per-analyzer files (index-meta.json, status.json) are stored in subdirectories:
+ * - `.dr/analyzers/{analyzerName}/index-meta.json`
+ * - `.dr/analyzers/{analyzerName}/status.json`
+ *
+ * Global files (session.json) are stored at the base level:
+ * - `.dr/analyzers/session.json`
+ *
  * All operations are async and use JSON for serialization.
  * Missing files gracefully return null rather than throwing errors.
+ * Read operations validate JSON structure and throw errors for corrupted files.
  */
 
 import { promises as fs } from "fs";
@@ -13,14 +21,116 @@ import * as path from "path";
 import type { SessionState, IndexMeta, AnalyzerStatus } from "./types.js";
 
 /**
+ * Validate SessionState structure
+ * @throws Error if data is missing required fields
+ */
+function validateSessionState(data: unknown): SessionState {
+  if (!data || typeof data !== "object") {
+    throw new Error("SessionState must be an object");
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (typeof obj.active_analyzer !== "string") {
+    throw new Error("SessionState.active_analyzer must be a string");
+  }
+
+  if (typeof obj.selected_at !== "string") {
+    throw new Error("SessionState.selected_at must be a string");
+  }
+
+  return {
+    active_analyzer: obj.active_analyzer,
+    selected_at: obj.selected_at,
+  };
+}
+
+/**
+ * Validate IndexMeta structure
+ * @throws Error if data is missing required fields
+ */
+function validateIndexMeta(data: unknown): IndexMeta {
+  if (!data || typeof data !== "object") {
+    throw new Error("IndexMeta must be an object");
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (typeof obj.git_head !== "string") {
+    throw new Error("IndexMeta.git_head must be a string");
+  }
+
+  if (typeof obj.timestamp !== "string") {
+    throw new Error("IndexMeta.timestamp must be a string");
+  }
+
+  return {
+    git_head: obj.git_head,
+    timestamp: obj.timestamp,
+    node_count: obj.node_count as number | undefined,
+    edge_count: obj.edge_count as number | undefined,
+  };
+}
+
+/**
+ * Validate AnalyzerStatus structure
+ * @throws Error if data is missing required fields
+ */
+function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
+  if (!data || typeof data !== "object") {
+    throw new Error("AnalyzerStatus must be an object");
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (!obj.detected || typeof obj.detected !== "object") {
+    throw new Error("AnalyzerStatus.detected must be an object");
+  }
+
+  const detected = obj.detected as Record<string, unknown>;
+  if (typeof detected.installed !== "boolean") {
+    throw new Error("AnalyzerStatus.detected.installed must be a boolean");
+  }
+
+  if (typeof obj.indexed !== "boolean") {
+    throw new Error("AnalyzerStatus.indexed must be a boolean");
+  }
+
+  if (typeof obj.fresh !== "boolean") {
+    throw new Error("AnalyzerStatus.fresh must be a boolean");
+  }
+
+  return {
+    detected: {
+      installed: detected.installed,
+      binary_path: detected.binary_path as string | undefined,
+      version: detected.version as string | undefined,
+      mcp_registered: detected.mcp_registered as boolean | undefined,
+      contract_ok: detected.contract_ok as boolean | undefined,
+    },
+    indexed: obj.indexed,
+    fresh: obj.fresh,
+    index_meta: obj.index_meta as IndexMeta | undefined,
+    last_indexed: obj.last_indexed as string | undefined,
+  };
+}
+
+/**
  * Get the base directory for analyzer state files
- * Resolves to `.dr/analyzers/` under the given base directory (defaults to cwd)
+ * Resolves to `.dr/analyzers/` (and optionally `{analyzerName}/` subdirectory)
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
+ * @param analyzerName Optional analyzer name for per-analyzer subdirectory
  */
-function getStateDir(baseDir?: string): string {
+function getStateDir(baseDir?: string, analyzerName?: string): string {
   const base = baseDir ?? process.cwd();
-  return path.join(base, ".dr", "analyzers");
+  const analyzersDir = path.join(base, ".dr", "analyzers");
+
+  if (analyzerName) {
+    return path.join(analyzersDir, analyzerName);
+  }
+
+  return analyzersDir;
 }
 
 /**
@@ -28,9 +138,10 @@ function getStateDir(baseDir?: string): string {
  * Creates intermediate directories with recursive flag
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
+ * @param analyzerName Optional analyzer name for per-analyzer subdirectory
  */
-async function ensureStateDir(baseDir?: string): Promise<void> {
-  await fs.mkdir(getStateDir(baseDir), { recursive: true });
+async function ensureStateDir(baseDir?: string, analyzerName?: string): Promise<void> {
+  await fs.mkdir(getStateDir(baseDir, analyzerName), { recursive: true });
 }
 
 /**
@@ -38,24 +149,26 @@ async function ensureStateDir(baseDir?: string): Promise<void> {
  *
  * @param filename Name of the state file
  * @param baseDir Optional base directory. Defaults to process.cwd()
+ * @param analyzerName Optional analyzer name for per-analyzer subdirectory
  * @returns Full path to the file
  */
-function getStatePath(filename: string, baseDir?: string): string {
-  return path.join(getStateDir(baseDir), filename);
+function getStatePath(filename: string, baseDir?: string, analyzerName?: string): string {
+  return path.join(getStateDir(baseDir, analyzerName), filename);
 }
 
 /**
  * Read session state from `.dr/analyzers/session.json`
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
- * @returns Parsed session state, or null if file does not exist
- * @throws Error if file exists but is malformed JSON
+ * @returns Parsed and validated session state, or null if file does not exist
+ * @throws Error if file exists but is malformed JSON or invalid structure
  */
 export async function readSession(baseDir?: string): Promise<SessionState | null> {
   const filePath = getStatePath("session.json", baseDir);
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(content) as SessionState;
+    const parsed = JSON.parse(content);
+    return validateSessionState(parsed);
   } catch (error) {
     if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
@@ -81,17 +194,22 @@ export async function writeSession(state: SessionState, baseDir?: string): Promi
 }
 
 /**
- * Read index metadata from `.dr/analyzers/index.meta.json`
+ * Read index metadata from `.dr/analyzers/{analyzerName}/index-meta.json`
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
- * @returns Parsed index metadata, or null if file does not exist
- * @throws Error if file exists but is malformed JSON
+ * @param analyzerName Analyzer name for per-analyzer subdirectory (required)
+ * @returns Parsed and validated index metadata, or null if file does not exist
+ * @throws Error if file exists but is malformed JSON or invalid structure
  */
-export async function readIndexMeta(baseDir?: string): Promise<IndexMeta | null> {
-  const filePath = getStatePath("index.meta.json", baseDir);
+export async function readIndexMeta(
+  baseDir?: string,
+  analyzerName?: string
+): Promise<IndexMeta | null> {
+  const filePath = getStatePath("index-meta.json", baseDir, analyzerName);
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(content) as IndexMeta;
+    const parsed = JSON.parse(content);
+    return validateIndexMeta(parsed);
   } catch (error) {
     if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
@@ -101,33 +219,43 @@ export async function readIndexMeta(baseDir?: string): Promise<IndexMeta | null>
 }
 
 /**
- * Write index metadata to `.dr/analyzers/index.meta.json`
+ * Write index metadata to `.dr/analyzers/{analyzerName}/index-meta.json`
  *
- * Creates the state directory if it does not exist.
+ * Creates the state directory (including analyzer subdirectory) if it does not exist.
  * Writes with pretty-printed JSON (2-space indentation).
  *
  * @param meta Index metadata to persist
  * @param baseDir Optional base directory. Defaults to process.cwd()
+ * @param analyzerName Analyzer name for per-analyzer subdirectory (required)
  */
-export async function writeIndexMeta(meta: IndexMeta, baseDir?: string): Promise<void> {
-  await ensureStateDir(baseDir);
-  const filePath = getStatePath("index.meta.json", baseDir);
+export async function writeIndexMeta(
+  meta: IndexMeta,
+  baseDir?: string,
+  analyzerName?: string
+): Promise<void> {
+  await ensureStateDir(baseDir, analyzerName);
+  const filePath = getStatePath("index-meta.json", baseDir, analyzerName);
   const content = JSON.stringify(meta, null, 2);
   await fs.writeFile(filePath, content, "utf-8");
 }
 
 /**
- * Read analyzer status from `.dr/analyzers/status.json`
+ * Read analyzer status from `.dr/analyzers/{analyzerName}/status.json`
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
- * @returns Parsed analyzer status, or null if file does not exist
- * @throws Error if file exists but is malformed JSON
+ * @param analyzerName Analyzer name for per-analyzer subdirectory (required)
+ * @returns Parsed and validated analyzer status, or null if file does not exist
+ * @throws Error if file exists but is malformed JSON or invalid structure
  */
-export async function readStatus(baseDir?: string): Promise<AnalyzerStatus | null> {
-  const filePath = getStatePath("status.json", baseDir);
+export async function readStatus(
+  baseDir?: string,
+  analyzerName?: string
+): Promise<AnalyzerStatus | null> {
+  const filePath = getStatePath("status.json", baseDir, analyzerName);
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(content) as AnalyzerStatus;
+    const parsed = JSON.parse(content);
+    return validateAnalyzerStatus(parsed);
   } catch (error) {
     if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
@@ -137,17 +265,22 @@ export async function readStatus(baseDir?: string): Promise<AnalyzerStatus | nul
 }
 
 /**
- * Write analyzer status to `.dr/analyzers/status.json`
+ * Write analyzer status to `.dr/analyzers/{analyzerName}/status.json`
  *
- * Creates the state directory if it does not exist.
+ * Creates the state directory (including analyzer subdirectory) if it does not exist.
  * Writes with pretty-printed JSON (2-space indentation).
  *
  * @param status Analyzer status to persist
  * @param baseDir Optional base directory. Defaults to process.cwd()
+ * @param analyzerName Analyzer name for per-analyzer subdirectory (required)
  */
-export async function writeStatus(status: AnalyzerStatus, baseDir?: string): Promise<void> {
-  await ensureStateDir(baseDir);
-  const filePath = getStatePath("status.json", baseDir);
+export async function writeStatus(
+  status: AnalyzerStatus,
+  baseDir?: string,
+  analyzerName?: string
+): Promise<void> {
+  await ensureStateDir(baseDir, analyzerName);
+  const filePath = getStatePath("status.json", baseDir, analyzerName);
   const content = JSON.stringify(status, null, 2);
   await fs.writeFile(filePath, content, "utf-8");
 }

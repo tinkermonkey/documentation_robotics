@@ -164,7 +164,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const detected = await this.detect();
 
     // Read index metadata if it exists
-    const indexMeta = await readIndexMeta(projectRoot);
+    const analyzerName = this.mapper.getAnalyzerName();
+    const indexMeta = await readIndexMeta(projectRoot, analyzerName);
 
     // Check if indexed
     const indexed = indexMeta !== null;
@@ -298,7 +299,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         edge_count: edgeCount,
       };
 
-      await writeIndexMeta(meta, projectRoot);
+      const analyzerName = this.mapper.getAnalyzerName();
+      await writeIndexMeta(meta, projectRoot, analyzerName);
 
       return {
         success: true,

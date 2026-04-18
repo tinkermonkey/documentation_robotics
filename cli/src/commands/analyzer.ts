@@ -290,7 +290,7 @@ Examples:
         if (options.json) {
           console.log(JSON.stringify(status, null, 2));
           if (actualProjectRoot) {
-            await writeStatus(status, actualProjectRoot);
+            await writeStatus(status, actualProjectRoot, analyzerName);
           }
           return;
         }
@@ -334,7 +334,7 @@ Examples:
 
         // Write status file
         if (actualProjectRoot) {
-          await writeStatus(status, actualProjectRoot);
+          await writeStatus(status, actualProjectRoot, analyzerName);
         }
       } catch (error) {
         if (error instanceof CLIError) throw error;
