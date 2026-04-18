@@ -183,9 +183,11 @@ interface ManifestDistFile {
 }
 
 interface AttributeMapping {
-  analyzer_field: string;
+  from: string;
   dr_attribute: string;
+  template?: string;
   transform?: string;
+  default?: unknown;
 }
 
 interface AnalyzerNodeMapping {

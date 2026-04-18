@@ -47,9 +47,9 @@ Maps analyzer output node types to DR model node types across layers.
 
 - `mappings` — array of node type mappings
 - Each mapping includes:
-  - `analyzer_node_type` — type identifier from analyzer output
+  - `cbm_label` — node type label from analyzer output (PascalCase, e.g., `Function`, `Route`)
   - `dr_layer` — canonical DR layer (`motivation`, `business`, `security`, `application`, `technology`, `api`, `data-model`, `data-store`, `ux`, `navigation`, `apm`, `testing`)
-  - `dr_node_type` — node type within that layer
+  - `dr_element_type` — element type within that layer (kebab-case, e.g., `component`, `endpoint`)
   - `confidence` — mapping confidence level (`high`, `medium`, `low`)
   - `attribute_mappings` — optional array of analyzer field → DR attribute mappings
 
@@ -59,13 +59,13 @@ Maps analyzer output node types to DR model node types across layers.
 {
   "mappings": [
     {
-      "analyzer_node_type": "function",
+      "cbm_label": "Function",
       "dr_layer": "application",
-      "dr_node_type": "component",
+      "dr_element_type": "component",
       "confidence": "high",
       "attribute_mappings": [
         {
-          "analyzer_field": "name",
+          "from": "name",
           "dr_attribute": "name"
         }
       ]
@@ -82,9 +82,8 @@ Maps analyzer relationship types to DR predicate relationships.
 
 - `mappings` — array of edge/relationship mappings
 - Each mapping includes:
-  - `analyzer_edge_type` — relationship type from analyzer output
+  - `cbm_edge` — edge/relationship type from analyzer output (UPPERCASE, e.g., `CALLS`, `IMPORTS`)
   - `dr_relationship` — predicate name from `predicates.json` (or `null` if not mappable)
-  - `directionality_transform` — optional transformation (e.g., `invert`, `bidirectional`)
   - `confidence` — mapping confidence level (`high`, `medium`, `low`)
 
 **Example:**
@@ -93,9 +92,8 @@ Maps analyzer relationship types to DR predicate relationships.
 {
   "mappings": [
     {
-      "analyzer_edge_type": "calls",
+      "cbm_edge": "CALLS",
       "dr_relationship": "uses",
-      "directionality_transform": null,
       "confidence": "high"
     }
   ]

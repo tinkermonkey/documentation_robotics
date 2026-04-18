@@ -123,16 +123,16 @@ describe("build-spec.ts Analyzer Compilation", () => {
         expect(label[0]).toBe(label[0].toUpperCase());
       }
 
-      // Verify mappings preserve the analyzer_node_type data
+      // Verify mappings preserve the cbm_label data
       for (const [label, mapping] of Object.entries(packed.nodes_by_label)) {
-        expect(mapping).toHaveProperty("analyzer_node_type");
+        expect(mapping).toHaveProperty("cbm_label");
         expect(mapping).toHaveProperty("dr_layer");
-        expect(mapping).toHaveProperty("dr_node_type");
+        expect(mapping).toHaveProperty("dr_element_type");
         expect(mapping).toHaveProperty("confidence");
       }
     });
 
-    it("should index edge mappings by analyzer_edge_type", () => {
+    it("should index edge mappings by cbm_edge type", () => {
       const cbmPath = join(SPEC_DIST_DIR, "analyzers", "cbm.json");
       const packed = JSON.parse(readFileSync(cbmPath, "utf-8"));
 
@@ -142,8 +142,8 @@ describe("build-spec.ts Analyzer Compilation", () => {
 
       // Verify each edge mapping has required fields
       for (const [edgeType, mapping] of Object.entries(packed.edges_by_type)) {
-        expect(mapping).toHaveProperty("analyzer_edge_type");
-        expect(mapping.analyzer_edge_type).toBe(edgeType);
+        expect(mapping).toHaveProperty("cbm_edge");
+        expect(mapping.cbm_edge).toBe(edgeType);
         expect(mapping).toHaveProperty("dr_relationship");
         expect(mapping).toHaveProperty("confidence");
       }
@@ -392,9 +392,9 @@ function createTestAnalyzer(testName: string): string {
     JSON.stringify({
       mappings: [
         {
-          analyzer_node_type: "test_node",
+          cbm_label: "TestNode",
           dr_layer: "api",
-          dr_node_type: "endpoint",
+          dr_element_type: "endpoint",
           confidence: "high",
         },
       ],
@@ -406,7 +406,7 @@ function createTestAnalyzer(testName: string): string {
     JSON.stringify({
       mappings: [
         {
-          analyzer_edge_type: "test_edge",
+          cbm_edge: "TEST_EDGE",
           dr_relationship: "consumes",
           confidence: "high",
         },
