@@ -25,6 +25,7 @@ import type {
   AnalyzerNodeMapping,
   HttpMethod,
 } from "./types.js";
+import { VALID_HTTP_METHODS } from "./types.js";
 import { StdioClient } from "./stdio-client.js";
 import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
@@ -564,9 +565,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       typeof properties.method === "string"
         ? properties.method.toUpperCase()
         : "GET";
-    // Validate against valid HTTP methods
-    const validMethods = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"]);
-    const httpMethod: HttpMethod = validMethods.has(rawMethod)
+    // Validate against valid HTTP methods using the constant
+    const validMethods = new Set(VALID_HTTP_METHODS);
+    const httpMethod: HttpMethod = validMethods.has(rawMethod as HttpMethod)
       ? (rawMethod as HttpMethod)
       : "GET";
 

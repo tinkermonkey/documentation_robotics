@@ -122,6 +122,13 @@ describe("CbmAnalyzer", () => {
       expect(candidate.http_method).toBe("GET");
       expect(candidate.http_path).toBe("/users");
       expect(candidate.suggested_name).toMatch(/^[a-z0-9-]+$/);
+      // Verify new required fields
+      expect(candidate.suggested_id_fragment).toBeDefined();
+      expect(candidate.suggested_id_fragment).toMatch(/^[a-z0-9-]+$/);
+      expect(candidate.source_reference).toBeDefined();
+      expect(candidate.source_reference.provenance).toBe("extracted");
+      expect(candidate.source_reference.locations).toBeDefined();
+      expect(Array.isArray(candidate.source_reference.locations)).toBe(true);
     });
   });
 
@@ -151,12 +158,20 @@ describe("CbmAnalyzer", () => {
           suggested_layer: "api",
           suggested_element_type: "operation",
           suggested_name: "get-users",
+          suggested_id_fragment: "get-users",
           http_method: "GET",
           http_path: "/users",
           handler_qualified_name: "UserController.getUsers",
           source_symbol: "getUsers",
           source_start_line: 42,
           source_end_line: 50,
+          source_reference: {
+            provenance: "extracted",
+            locations: [{
+              file: sourceFile,
+              symbol: "getUsers",
+            }],
+          },
         };
 
         const isTest = (analyzer as any).isTestCode(candidate);
@@ -177,12 +192,20 @@ describe("CbmAnalyzer", () => {
           suggested_layer: "api",
           suggested_element_type: "operation",
           suggested_name: "get-users",
+          suggested_id_fragment: "get-users",
           http_method: "GET",
           http_path: "/users",
           handler_qualified_name: "UserController.getUsers",
           source_symbol: "getUsers",
           source_start_line: 42,
           source_end_line: 50,
+          source_reference: {
+            provenance: "extracted",
+            locations: [{
+              file: sourceFile,
+              symbol: "getUsers",
+            }],
+          },
         };
 
         const isTest = (analyzer as any).isTestCode(candidate);
@@ -214,12 +237,20 @@ describe("CbmAnalyzer", () => {
         suggested_layer: "api",
         suggested_element_type: "operation",
         suggested_name: "get-users",
+        suggested_id_fragment: "get-users",
         http_method: "GET",
         http_path: "/users",
         handler_qualified_name: "UserController.getUsers",
         source_symbol: "getUsers",
         source_start_line: 42,
         source_end_line: 50,
+        source_reference: {
+          provenance: "extracted",
+          locations: [{
+            file: "src/routes.test.ts",
+            symbol: "getUsers",
+          }],
+        },
       };
 
       const isTest = (analyzerWithInvalidRegex as any).isTestCode(candidate);
@@ -250,12 +281,20 @@ describe("CbmAnalyzer", () => {
         suggested_layer: "api",
         suggested_element_type: "operation",
         suggested_name: "get-users",
+        suggested_id_fragment: "get-users",
         http_method: "GET",
         http_path: "/users",
         handler_qualified_name: "UserController.getUsers",
         source_symbol: "getUsers",
         source_start_line: 42,
         source_end_line: 50,
+        source_reference: {
+          provenance: "extracted",
+          locations: [{
+            file: "src/routes.test.ts",
+            symbol: "getUsers",
+          }],
+        },
       };
 
       const isTest = (analyzerWithoutRule as any).isTestCode(candidate);
@@ -281,12 +320,20 @@ describe("CbmAnalyzer", () => {
         suggested_layer: "api",
         suggested_element_type: "operation",
         suggested_name: "get-users",
+        suggested_id_fragment: "get-users",
         http_method: "GET",
         http_path: "/users",
         handler_qualified_name: "UserController.getUsers",
         source_symbol: "getUsers",
         source_start_line: 42,
         source_end_line: 50,
+        source_reference: {
+          provenance: "extracted",
+          locations: [{
+            file: "src/routes.ts",
+            symbol: "getUsers",
+          }],
+        },
       };
 
       // Verify that the relative path doesn't start with /

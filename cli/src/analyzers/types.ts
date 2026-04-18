@@ -26,9 +26,24 @@ export interface DetectionResult {
 export type ConfidenceLevel = "high" | "medium" | "low";
 
 /**
- * Valid HTTP methods
+ * Valid HTTP methods - single source of truth for both type and runtime validation
  */
-export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS" | "TRACE" | "CONNECT";
+export const VALID_HTTP_METHODS = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "PATCH",
+  "HEAD",
+  "OPTIONS",
+  "TRACE",
+  "CONNECT",
+] as const;
+
+/**
+ * HTTP method type derived from VALID_HTTP_METHODS constant
+ */
+export type HttpMethod = (typeof VALID_HTTP_METHODS)[number];
 
 /**
  * An API endpoint candidate discovered from code analysis
