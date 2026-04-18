@@ -78,18 +78,24 @@ Examples:
         // Get metadata for each analyzer
         const analyzerOptions = [];
         for (const name of analyzerNames) {
-          const backend = await registry.getAnalyzer(name);
-          if (!backend) continue;
+          try {
+            const backend = await registry.getAnalyzer(name);
+            if (!backend) continue;
 
-          const detection = await backend.detect();
-          const mapper = await MappingLoader.load(name);
-          const metadata = mapper.getAnalyzerMetadata();
+            const detection = await backend.detect();
+            const mapper = await MappingLoader.load(name);
+            const metadata = mapper.getAnalyzerMetadata();
 
-          analyzerOptions.push({
-            backend,
-            detection,
-            metadata,
-          });
+            analyzerOptions.push({
+              backend,
+              detection,
+              metadata,
+            });
+          } catch (error) {
+            // Log error but continue discovering other analyzers
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`Failed to discover analyzer "${name}": ${errorMsg}`);
+          }
         }
 
         // Find installed analyzers
@@ -120,8 +126,8 @@ Examples:
 
           // If reselecting, auto-select first available analyzer in non-TTY mode
           if (options.reselect) {
-            if (!process.stdin.isTTY && analyzerOptions.length > 0) {
-              const firstAnalyzer = analyzerOptions[0];
+            if (!process.stdin.isTTY && installed.length > 0) {
+              const firstAnalyzer = installed[0];
               const state: SessionState = {
                 active_analyzer: firstAnalyzer.backend.name,
                 selected_at: new Date().toISOString(),
@@ -134,9 +140,9 @@ Examples:
             const session = await readSession(projectRoot);
             if (session) {
               result.selected = session.active_analyzer;
-            } else if (!process.stdin.isTTY && analyzerOptions.length > 0) {
-              // Auto-select first analyzer in non-TTY mode if no session exists
-              const firstAnalyzer = analyzerOptions[0];
+            } else if (!process.stdin.isTTY && installed.length > 0) {
+              // Auto-select first installed analyzer in non-TTY mode if no session exists
+              const firstAnalyzer = installed[0];
               const state: SessionState = {
                 active_analyzer: firstAnalyzer.backend.name,
                 selected_at: new Date().toISOString(),
@@ -270,15 +276,13 @@ Examples:
           );
         }
 
-        // Get detection result
-        const detected = await backend.detect();
-
         // Get status (use project root from findProjectRoot for backend operations)
         const actualProjectRoot = await findProjectRoot();
         let status;
         if (actualProjectRoot) {
           status = await backend.status(actualProjectRoot);
         } else {
+          const detected = await backend.detect();
           status = {
             detected,
             indexed: false,
