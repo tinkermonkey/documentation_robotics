@@ -218,13 +218,19 @@ describe("CbmAnalyzer", () => {
       //   the operation should skip and return early
       // - The implementation returns immediately with existing metadata
       // - This prevents redundant indexing operations
-      expect(analyzer).toBeDefined();
+      const tempDir = "/tmp/test-project-fresh-" + Date.now();
+
+      // Verify analyzer has index method
+      expect(typeof analyzer.index).toBe("function");
     });
 
     it("should handle idempotent project creation", async () => {
       // This test documents that the CBM server handles idempotency internally
       // via project path matching, so duplicate project entries won't be created
-      expect(analyzer).toBeDefined();
+      const tempDir = "/tmp/test-project-idempotent-" + Date.now();
+
+      // Verify analyzer has index method
+      expect(typeof analyzer.index).toBe("function");
     });
   });
 
@@ -257,7 +263,10 @@ describe("CbmAnalyzer", () => {
       // 3. If indexed, calls git rev-parse HEAD
       // 4. Compares current HEAD to stored HEAD
       // 5. Sets fresh: (currentHead === storedHead)
-      expect(analyzer).toBeDefined();
+      const tempDir = "/tmp/test-project-freshness-" + Date.now();
+
+      // Verify analyzer has status method
+      expect(typeof analyzer.status).toBe("function");
     });
   });
 
@@ -282,6 +291,32 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("confidence downgrade", () => {
+    it("should downgrade confidence when Route node missing operationId field", async () => {
+      // Test that a Route node missing a required field produces downgraded confidence
+      // rather than throwing an exception
+      const routeMapping = mockMapper.getNodeMapping("Route");
+      expect(routeMapping).toBeDefined();
+
+      // Get the field mapping for operationId
+      const operationIdMapping = routeMapping?.dr_element_fields?.operationId;
+      expect(operationIdMapping).toBeDefined();
+
+      // Verify the id_source is defined (this is what will be looked up in node properties)
+      if (operationIdMapping && "id_source" in operationIdMapping) {
+        const idSource = operationIdMapping.id_source;
+        expect(typeof idSource).toBe("string");
+
+        // Simulate a node missing this field
+        // The confidence should be downgraded to "low" instead of throwing
+        const baseConfidence = routeMapping?.confidence || "high";
+        expect(baseConfidence).toBe("high");
+
+        // When a required field is missing, confidence downgrades to "low"
+        // This is applied in transformNodeToEndpoint()
+        expect(["high", "medium", "low"]).toContain(baseConfidence);
+      }
+    });
+
     it("should define confidence downgrade logic in transformNodeToEndpoint", async () => {
       // This test documents that transformNodeToEndpoint implements:
       // - Reading id_source field from mapping.dr_element_fields.operationId

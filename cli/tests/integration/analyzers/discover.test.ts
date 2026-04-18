@@ -121,10 +121,13 @@ describe("analyzer discover integration tests", () => {
   });
 
   describe("discover with mock analyzer binary", () => {
+    let mockBinDir: string;
+    let originalPath: string | undefined;
+
     beforeEach(async () => {
       // Create a mock analyzer binary in a temporary location
       // and add it to PATH for this test
-      const mockBinDir = join(tempDir.path, "mock-bin");
+      mockBinDir = join(tempDir.path, "mock-bin");
       await mkdir(mockBinDir, { recursive: true });
 
       // Create a mock cbm binary
@@ -138,20 +141,16 @@ echo '{"capabilities": {}}'
         { mode: 0o755 }
       );
 
-      // Add mock bin directory to PATH
-      tempDir.cleanup = (async () => {
-        try {
-          await rm(tempDir.path, { recursive: true, force: true });
-        } catch (e) {
-          // Ignore
-        }
-      }).bind(tempDir);
+      // Store original PATH for restoration
+      originalPath = process.env.PATH;
     });
 
     it("should detect available analyzers via JSON output", async () => {
+      // Pass the mock binary directory in PATH
+      const customPath = `${mockBinDir}:${originalPath || ""}`;
       const result = await runDr(["analyzer", "discover", "--json"], {
         cwd: tempDir.path,
-        env: { CI: "true" },
+        env: { CI: "true", PATH: customPath },
       });
 
       expect(result.exitCode).toBe(0);
@@ -161,9 +160,10 @@ echo '{"capabilities": {}}'
     });
 
     it("should auto-select first analyzer in non-TTY mode", async () => {
+      const customPath = `${mockBinDir}:${originalPath || ""}`;
       const result = await runDr(["analyzer", "discover", "--json"], {
         cwd: tempDir.path,
-        env: { CI: "true" },
+        env: { CI: "true", PATH: customPath },
       });
 
       expect(result.exitCode).toBe(0);
@@ -179,10 +179,12 @@ echo '{"capabilities": {}}'
     });
 
     it("should support --reselect flag to force re-selection", async () => {
+      const customPath = `${mockBinDir}:${originalPath || ""}`;
+
       // First discover
       const discover1 = await runDr(["analyzer", "discover", "--json"], {
         cwd: tempDir.path,
-        env: { CI: "true" },
+        env: { CI: "true", PATH: customPath },
       });
 
       expect(discover1.exitCode).toBe(0);
@@ -190,7 +192,7 @@ echo '{"capabilities": {}}'
       // Second discover with --reselect
       const discover2 = await runDr(["analyzer", "discover", "--json", "--reselect"], {
         cwd: tempDir.path,
-        env: { CI: "true" },
+        env: { CI: "true", PATH: customPath },
       });
 
       expect(discover2.exitCode).toBe(0);
