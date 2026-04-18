@@ -294,23 +294,23 @@ export class CbmAnalyzer implements AnalyzerBackend {
         | undefined) ?? [];
       const projectExists = projects.some((p) => p.path === projectRoot);
 
-      if (projectExists) {
+      // Prevent re-indexing unless forced (mirroring freshness gate pattern)
+      if (projectExists && !options?.force) {
         handleWarning(
           "Project already indexed in CBM backend.",
           ["Use --force to re-index the project"]
         );
+        return {
+          success: true,
+          node_count: 0,
+          edge_count: 0,
+          git_head: "unknown",
+          timestamp: new Date().toISOString(),
+        };
       }
 
-      // Index the repository
-      const indexResponse = (await client.callTool("index_repository", {
-        repo_path: projectRoot,
-      })) as {
-        node_count?: number;
-        edge_count?: number;
-        [key: string]: unknown;
-      };
-
       // Get current git HEAD - fail if git is not available
+      // This must happen before index_repository to avoid inconsistent state
       const headResult = spawnSync("git", ["rev-parse", "HEAD"], {
         cwd: projectRoot,
         stdio: "pipe",
@@ -320,7 +320,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       if (headResult.status !== 0) {
         throw new CLIError(
           "Failed to get git HEAD",
-          ErrorCategory.VALIDATION,
+          ErrorCategory.SYSTEM,
           [
             "Ensure the project is a git repository",
             "Verify git is installed and functional",
@@ -330,6 +330,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       const gitHead = headResult.stdout.trim();
+
+      // Index the repository
+      const indexResponse = (await client.callTool("index_repository", {
+        repo_path: projectRoot,
+      })) as {
+        node_count?: number;
+        edge_count?: number;
+        [key: string]: unknown;
+      };
 
       const timestamp = new Date().toISOString();
       const nodeCount = (indexResponse.node_count as number) ?? 0;
