@@ -194,18 +194,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         // Verify required_tools from mapping are available on the server
         let contractOk = true;
-        const requiredTools = (metadata?.supported_tool_contract?.required_tools as string[] | undefined) ?? [];
+        const requiredTools = (metadata?.supported_tool_contract as Record<string, unknown> | undefined)?.required_tools as string[] | undefined ?? [];
 
         if (requiredTools.length > 0) {
           try {
             // Verify all required tools are listed in supported tools
             // The MCP spec requires tools to be registered at initialization
-            const response = await client.call({
-              jsonrpc: "2.0",
-              id: 1,
-              method: "tools/list",
-              params: {},
-            }) as { tools?: Array<{ name: string }> };
+            const response = await client.callTool("tools/list", {}) as { tools?: Array<{ name: string }> };
 
             const availableTools = new Set(
               (response.tools ?? []).map((tool) => tool.name)
@@ -729,11 +724,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Validate against valid HTTP methods using the constant
     const validMethods = new Set(VALID_HTTP_METHODS);
-    const httpMethod: HttpMethod = validMethods.has(rawMethod as HttpMethod)
+    const isValidMethod = validMethods.has(rawMethod as HttpMethod);
+    const httpMethod: HttpMethod = isValidMethod
       ? (rawMethod as HttpMethod)
       : "GET";
 
-    if (!validMethods.has(rawMethod as HttpMethod)) {
+    if (!isValidMethod) {
       handleWarning(
         `Node ${node.id}: Invalid HTTP method`,
         [
