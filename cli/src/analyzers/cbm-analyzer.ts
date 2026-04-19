@@ -1031,8 +1031,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
             promotionHeuristicNames
           );
 
-          // Apply test code exclusion filter
-          if (!this.isTestCode(candidate)) {
+          // Filter out candidates with zero qualifying heuristics (unless is_entry_point is true)
+          // and apply test code exclusion filter
+          if (candidate.qualifying_heuristics.length > 0 && !this.isTestCode(candidate)) {
             candidates.push(candidate);
           }
         }
@@ -1109,8 +1110,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Drop candidates where zero heuristics fire AND is_entry_point is not true
     const shouldKeep = qualifyingHeuristics.length > 0 || isEntryPoint;
     if (!shouldKeep) {
-      // Return a minimal candidate that will be filtered out by the caller
-      // This is handled at the call site by checking qualifying_heuristics
+      // Return a minimal candidate with empty qualifying_heuristics
+      // The services() method will filter this out based on qualifying_heuristics.length > 0 check
       return {
         suggested_layer: "application",
         suggested_element_type: mapping.dr_element_type_promoted || "applicationservice",
@@ -1151,7 +1152,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Evaluate a single heuristic against a node
    *
    * Checks if the heuristic's conditions are met based on the node's properties
-   * and file path.
+   * and file path. Unknown heuristics are logged with a warning rather than
+   * silently ignored, to support dynamic heuristics from cbm.json.
    *
    * @private
    */
@@ -1185,7 +1187,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         const hasInterfaceImpl = properties.implements_interface === true;
         const hasDependencyInjection = properties.dependency_injection === true;
         const publicMethodsCount = Number(properties.public_methods_count ?? 0);
-        const threshold = 3;
+        // Read threshold from parameters instead of hardcoding
+        const threshold = (heuristic.parameters?.threshold as number) ?? 3;
         return (
           hasInterfaceImpl ||
           hasDependencyInjection ||
@@ -1211,6 +1214,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       default:
+        // For unknown heuristics, log a warning rather than silently returning false
+        // This supports dynamic heuristics added to cbm.json without code changes
+        handleWarning(
+          `Unknown heuristic type: ${heuristic.name}`,
+          [
+            "The heuristic is defined in cbm.json but not implemented in cbm-analyzer.ts",
+            "This heuristic will be treated as not met (returning false)",
+            "Add support for this heuristic to evaluateHeuristic() if it should fire",
+          ]
+        );
         return false;
     }
   }
@@ -1262,8 +1275,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Query for datastores/databases inferred from code analysis
    *
    * Applies datastore_detection heuristic rules to aggregate signals by file/module.
-   * Cross-references IMPORTS edges against import_patterns and function names against
-   * function_name_patterns. All candidates have confidence "low".
+   * Matches file paths against import_patterns and function/symbol names against
+   * naming_indicators from the heuristic parameters. All candidates have confidence "low".
    *
    * @param projectRoot Absolute path to the project root
    * @returns Array of datastore candidates aggregated by inferred datastore
@@ -1353,16 +1366,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
             }
           }
 
-          if (!matchedImportPattern && !node.label) {
-            continue;
-          }
-
           // Check if node name contains datastore naming indicators
-          const nodeName = String(node.label ?? "").toLowerCase();
+          const nodeName = String(node.properties?.name ?? "").toLowerCase();
           const matchedIndicators = namingIndicators.filter((indicator) =>
             nodeName.includes(indicator.toLowerCase())
           );
 
+          // Skip if no import pattern matched AND no naming indicators matched
           if (!matchedImportPattern && matchedIndicators.length === 0) {
             continue;
           }
@@ -1491,8 +1501,22 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Try to extract from node name or label
     const nodeName = String(node.label ?? node.id ?? "");
-    if (nodeName && !["Function", "Method", "Class", "Module", "Route"].includes(nodeName)) {
-      return nodeName;
+
+    // Check if the label is a known datastore-related type by checking mapping
+    // Generic structural labels like Function, Method, Class, Module, Route should be excluded
+    if (nodeName) {
+      const nodeMapping = this.mapper.getNodeMapping(nodeName);
+      // If the label is in the mapping and NOT a generic structural type, use it
+      if (nodeMapping && nodeMapping.dr_layer !== "api" && nodeMapping.dr_layer !== "application") {
+        return nodeName;
+      }
+
+      // Also check if it explicitly looks like a datastore name (e.g., "Database", "Repository")
+      if (nodeName.toLowerCase().includes("database") ||
+          nodeName.toLowerCase().includes("repository") ||
+          nodeName.toLowerCase().includes("datastore")) {
+        return nodeName;
+      }
     }
 
     // Fallback: use a generic name based on what was detected
