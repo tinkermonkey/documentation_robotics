@@ -60,6 +60,8 @@ documentation/claude_thoughts/
 .dr/logs/
 
 # DR CLI metadata (generated)
+# Includes: model data, changesets, logs, analyzer runtime state
+# (.dr/analyzers/session.json, .dr/analyzers/{name}/index-meta.json, .dr/analyzers/{name}/status.json)
 .dr/
 
 # Temporary files

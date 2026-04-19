@@ -33,6 +33,7 @@ import { conformanceCommand } from "./commands/conformance.js";
 import { changesetCommands } from "./commands/changeset.js";
 import { claudeCommands } from "./commands/claude.js";
 import { copilotCommands } from "./commands/copilot.js";
+import { analyzerCommands } from "./commands/analyzer.js";
 import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
 import { reportCommand } from "./commands/report.js";
@@ -722,6 +723,9 @@ claudeCommands(program);
 // GitHub Copilot integration subcommands
 copilotCommands(program);
 
+// Analyzer integration subcommands
+analyzerCommands(program);
+
 // Execute CLI with proper telemetry span wrapping
 // This creates a root span that all child spans will be linked to
 (async () => {
@@ -777,7 +781,7 @@ copilotCommands(program);
             if (error instanceof CommanderError) {
               // Commander handled its own output; nothing to print
             } else if (error instanceof CLIError) {
-              console.error(error.message);
+              console.error(error.format());
             } else if (error instanceof Error) {
               console.error(error.message);
             } else {
@@ -810,8 +814,10 @@ copilotCommands(program);
         // Extract exit code from CLIError if available
         // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
         const { CLIError } = await import("./utils/errors.js");
-        if (error instanceof CommanderError || error instanceof CLIError) {
-          // Output already handled by Commander or CLIError internals
+        if (error instanceof CommanderError) {
+          // Commander handled its own output; nothing to print
+        } else if (error instanceof CLIError) {
+          console.error(error.format());
         } else {
           // Unexpected exceptions need to be printed
           if (error instanceof Error) {

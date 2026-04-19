@@ -247,6 +247,35 @@ export function formatValidOptions(options: string[], heading: string = "Valid o
 }
 
 /**
+ * Categorize errors based on type, using stable error.code for system errors
+ * Returns the appropriate ErrorCategory for a given error
+ */
+export function categorizeError(error: unknown): ErrorCategory {
+  if (error instanceof CLIError) {
+    return error.exitCode;
+  }
+
+  // Check for system errors using stable error.code
+  if (error instanceof Error && "code" in error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (typeof code === "string") {
+      // File not found errors should map to NOT_FOUND category
+      if (code === "ENOENT") {
+        return ErrorCategory.NOT_FOUND;
+      }
+      // Other system-level errors
+      const SYSTEM_ERROR_CODES = new Set(["EACCES", "ENOSPC", "EIO", "EROFS", "EPERM"]);
+      if (SYSTEM_ERROR_CODES.has(code)) {
+        return ErrorCategory.SYSTEM;
+      }
+    }
+  }
+
+  // Default to USER for other errors
+  return ErrorCategory.USER;
+}
+
+/**
  * Extract error message from any error type
  * Handles Error instances, strings, and unknown types consistently
  */
