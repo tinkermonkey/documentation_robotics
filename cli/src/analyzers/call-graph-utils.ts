@@ -2,6 +2,7 @@
  * Utilities for call graph analysis
  */
 
+import { relative } from "node:path";
 import type { CallGraphNode } from "./types.js";
 
 /**
@@ -22,9 +23,9 @@ export function shapeCallGraphNode(
   let sourceFile = responseNode.file_path || responseNode.source_file || "";
   if (sourceFile && projectRoot) {
     try {
-      sourceFile = sourceFile.replace(projectRoot + "/", "");
+      sourceFile = relative(projectRoot, sourceFile);
     } catch {
-      // Keep original if replacement fails
+      // Keep original if path.relative fails
     }
   }
 

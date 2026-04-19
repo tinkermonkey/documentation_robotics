@@ -5,6 +5,22 @@
 import type { AnalyzerHeuristic } from "./types.js";
 
 /**
+ * Get the list of known heuristic names
+ * @returns Array of heuristic names that are implemented
+ */
+export function getKnownHeuristicNames(): string[] {
+  return [
+    "min_fan_in",
+    "naming_patterns",
+    "is_entry_point",
+    "directory_match",
+    "class_is_service",
+    "service_class_naming",
+    "handles_route",
+  ];
+}
+
+/**
  * Evaluate whether a heuristic is met for a given node
  *
  * @param heuristic The heuristic to evaluate
@@ -108,6 +124,21 @@ export function matchPattern(filePath: string, pattern: string): boolean {
     );
   }
 
-  // Handle exact match
-  return filePath === pattern || filePath.endsWith("/" + pattern);
+  // Handle *.ext patterns (file extensions)
+  if (pattern.startsWith("*.")) {
+    return filePath.endsWith(pattern.slice(1));
+  }
+
+  // Handle *pattern patterns (ends with pattern without path separators)
+  if (pattern.startsWith("*") && !pattern.includes("/")) {
+    return filePath.endsWith(pattern.slice(1));
+  }
+
+  // Handle exact match or substring match
+  return (
+    filePath === pattern ||
+    filePath.endsWith("/" + pattern) ||
+    filePath.includes(pattern) ||
+    filePath.endsWith(pattern)
+  );
 }

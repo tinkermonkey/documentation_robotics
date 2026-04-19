@@ -39,7 +39,7 @@ import { getCliVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { VerifyEngine } from "./verify-engine.js";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
-import { evaluateHeuristic, capConfidence, matchPattern } from "./heuristic-utils.js";
+import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
 
 /**
  * Graph node from CBM search results
@@ -1165,8 +1165,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     // Cap confidence at "medium" (from mapping or default to medium)
-    let confidenceFull = mapping.confidence as "high" | "medium" | "low";
-    const confidence = capConfidence(confidenceFull) as "medium" | "low";
+    const confidence = capConfidence(
+      mapping.confidence as "high" | "medium" | "low"
+    );
 
     return {
       suggested_layer: "application",
@@ -1203,7 +1204,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const result = evaluateHeuristic(heuristic, properties, sourceFile);
 
     // For unknown heuristics, log a warning
-    if (heuristic.name && !["min_fan_in", "naming_patterns", "is_entry_point", "directory_match", "class_is_service", "service_class_naming", "handles_route"].includes(heuristic.name)) {
+    if (heuristic.name && !getKnownHeuristicNames().includes(heuristic.name)) {
       handleWarning(
         `Unknown heuristic type: ${heuristic.name}`,
         [
@@ -1227,19 +1228,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
    */
   private matchPattern(filePath: string, pattern: string): boolean {
     return matchPattern(filePath, pattern);
-
-    // Handle *.ext patterns (file extensions)
-    if (pattern.startsWith("*.")) {
-      return filePath.endsWith(pattern.slice(1));
-    }
-
-    // Handle *pattern patterns (ends with pattern)
-    if (pattern.startsWith("*") && !pattern.includes("/")) {
-      return filePath.endsWith(pattern.slice(1));
-    }
-
-    // Exact match or substring match
-    return filePath.includes(pattern) || filePath.endsWith(pattern);
   }
 
   /**

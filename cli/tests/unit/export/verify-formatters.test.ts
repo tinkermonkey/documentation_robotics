@@ -93,8 +93,8 @@ describe("Verify Formatters", () => {
     });
 
     it("should use text format as default when format is invalid", () => {
-      // Call with text format explicitly
-      const output = formatVerifyReport(sampleReport, { format: "text" });
+      // Call with invalid format (cast to allow type check bypass)
+      const output = formatVerifyReport(sampleReport, { format: "xml" as any });
       expect(typeof output).toBe("string");
       expect(output).toContain("API Verification Report");
     });
