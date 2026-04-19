@@ -61,6 +61,9 @@ documentation/claude_thoughts/
 
 # DR CLI metadata (generated)
 .dr/
+# DR CLI runtime state: analyzer sessions, index metadata, analyzer status
+# These are generated during CLI execution and should not be committed
+.dr/analyzers/
 
 # Temporary files
 *.tmp
