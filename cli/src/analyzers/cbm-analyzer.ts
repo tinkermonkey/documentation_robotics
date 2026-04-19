@@ -598,6 +598,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
 
+    // Get the Route mapping BEFORE initializing client to validate it exists
+    const routeMapping = this.mapper.getNodeMapping("Route");
+    if (!routeMapping) {
+      throw new CLIError(
+        "Route mapping not found in analyzer",
+        ErrorCategory.VALIDATION,
+        ["Run `npm run build:spec` to recompile the analyzer artifacts"]
+      );
+    }
+
     const client = new StdioClient();
 
     try {
@@ -609,12 +619,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      // Search for Route nodes
+      // Search for Route nodes using the CBM label from the mapping
       const searchResponse = (await client.callTool("search_graph", {
-        label: "Route",
+        label: routeMapping.cbm_label,
         project: projectRoot,
       })) as {
-        nodes?: CbmGraphNode[];
+        nodes?: unknown;
         [key: string]: unknown;
       };
 
@@ -627,19 +637,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
-      const nodes = Array.isArray(searchResponse.nodes)
-        ? (searchResponse.nodes as CbmGraphNode[])
-        : [];
-
-      // Get the Route mapping
-      const routeMapping = this.mapper.getNodeMapping("Route");
-      if (!routeMapping) {
+      // Validate that nodes is actually an array
+      if (!Array.isArray(searchResponse.nodes)) {
         throw new CLIError(
-          "Route mapping not found in analyzer",
-          ErrorCategory.VALIDATION,
-          ["Run `npm run build:spec` to recompile the analyzer artifacts"]
+          "Invalid response from search_graph: nodes must be an array",
+          ErrorCategory.SYSTEM,
+          [
+            `Expected array, got ${typeof searchResponse.nodes}`,
+            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+          ]
         );
       }
+
+      const nodes = searchResponse.nodes as CbmGraphNode[];
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -843,7 +853,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       try {
         sourceFile = path.relative(projectRoot, sourceFile);
       } catch (error) {
-        // If relative path fails, keep absolute
+        // Log warning if relative path fails but continue with absolute path
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          `Failed to compute relative path for ${node.id}`,
+          [
+            `Error: ${errorMsg}`,
+            "Using absolute file path instead of relative",
+          ]
+        );
+        // sourceFile keeps its original absolute value
       }
     }
 
@@ -997,7 +1016,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           label,
           project: projectRoot,
         })) as {
-          nodes?: CbmGraphNode[];
+          nodes?: unknown;
           [key: string]: unknown;
         };
 
@@ -1010,9 +1029,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
           );
         }
 
-        const nodes = Array.isArray(searchResponse.nodes)
-          ? (searchResponse.nodes as CbmGraphNode[])
-          : [];
+        // Validate that nodes is actually an array
+        if (!Array.isArray(searchResponse.nodes)) {
+          throw new CLIError(
+            "Invalid response from search_graph: nodes must be an array",
+            ErrorCategory.SYSTEM,
+            [
+              `Expected array, got ${typeof searchResponse.nodes}`,
+              "Ensure codebase-memory-mcp is properly installed and returning valid results"
+            ]
+          );
+        }
+
+        const nodes = searchResponse.nodes as CbmGraphNode[];
 
         // Get the node mapping for this label
         const nodeMapping = this.mapper.getNodeMapping(label);
@@ -1076,7 +1105,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       try {
         sourceFile = path.relative(projectRoot, sourceFile);
       } catch (error) {
-        // If relative path fails, keep absolute
+        // Log warning if relative path fails but continue with absolute path
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          `Failed to compute relative path for ${node.id}`,
+          [
+            `Error: ${errorMsg}`,
+            "Using absolute file path instead of relative",
+          ]
+        );
+        // sourceFile keeps its original absolute value
       }
     }
 
@@ -1321,7 +1359,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Load the datastore_detection heuristic
       const datastoreHeuristic = this.mapper.getHeuristic("datastore_detection");
       if (!datastoreHeuristic) {
-        return [];
+        throw new CLIError(
+          "datastore_detection heuristic not found in analyzer",
+          ErrorCategory.VALIDATION,
+          [
+            "The analyzer configuration is missing the datastore_detection heuristic",
+            "Run `npm run build:spec` to recompile the analyzer artifacts"
+          ]
+        );
       }
 
       const importPatterns = (datastoreHeuristic.parameters?.patterns as string[]) ?? [];
@@ -1345,15 +1390,32 @@ export class CbmAnalyzer implements AnalyzerBackend {
           label,
           project: projectRoot,
         })) as {
-          nodes?: CbmGraphNode[];
+          nodes?: unknown;
           [key: string]: unknown;
         };
 
+        // Validate response structure - throw error on invalid responses
         if (!searchResponse || typeof searchResponse !== "object") {
-          continue;
+          throw new CLIError(
+            "Invalid response from search_graph",
+            ErrorCategory.SYSTEM,
+            ["Ensure codebase-memory-mcp is properly installed and functional"]
+          );
         }
 
-        const nodes = Array.isArray(searchResponse.nodes) ? searchResponse.nodes : [];
+        // Validate that nodes is actually an array
+        if (!Array.isArray(searchResponse.nodes)) {
+          throw new CLIError(
+            "Invalid response from search_graph: nodes must be an array",
+            ErrorCategory.SYSTEM,
+            [
+              `Expected array, got ${typeof searchResponse.nodes}`,
+              "Ensure codebase-memory-mcp is properly installed and returning valid results"
+            ]
+          );
+        }
+
+        const nodes = searchResponse.nodes as CbmGraphNode[];
 
         for (const node of nodes) {
           const filePath = node.file_path ?? "";
@@ -1403,8 +1465,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
           if (filePath && projectRoot) {
             try {
               relativeFile = path.relative(projectRoot, filePath);
-            } catch {
-              // Keep absolute if relative fails
+            } catch (error) {
+              // Log warning if relative path fails but continue with absolute path
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              handleWarning(
+                `Failed to compute relative path in datastore detection`,
+                [
+                  `File: ${filePath}`,
+                  `Error: ${errorMsg}`,
+                  "Using absolute file path instead of relative",
+                ]
+              );
+              // relativeFile keeps its original absolute value
             }
           }
 
@@ -1691,8 +1763,17 @@ export class CbmAnalyzer implements AnalyzerBackend {
         if (sourceFile && projectRoot) {
           try {
             sourceFile = path.relative(projectRoot, sourceFile);
-          } catch {
-            // If relative path fails, keep absolute
+          } catch (error) {
+            // Log warning if relative path fails but continue with absolute path
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            handleWarning(
+              `Failed to compute relative path for ${node.id}`,
+              [
+                `Error: ${errorMsg}`,
+                "Using absolute file path instead of relative",
+              ]
+            );
+            // sourceFile keeps its original absolute value
           }
         }
 
@@ -1772,6 +1853,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
 
+    // Get the Route mapping BEFORE initializing client to validate it exists
+    const routeMapping = this.mapper.getNodeMapping("Route");
+    if (!routeMapping) {
+      throw new CLIError(
+        "Route mapping not found in analyzer",
+        ErrorCategory.VALIDATION,
+        ["Run `npm run build:spec` to recompile the analyzer artifacts"]
+      );
+    }
+
     const client = new StdioClient();
 
     try {
@@ -1783,12 +1874,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      // Search for Route nodes
+      // Search for Route nodes using the CBM label from the mapping
       const searchResponse = (await client.callTool("search_graph", {
-        label: "Route",
+        label: routeMapping.cbm_label,
         project: projectRoot,
       })) as {
-        nodes?: CbmGraphNode[];
+        nodes?: unknown;
         [key: string]: unknown;
       };
 
@@ -1801,19 +1892,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
-      const nodes = Array.isArray(searchResponse.nodes)
-        ? (searchResponse.nodes as CbmGraphNode[])
-        : [];
-
-      // Get the Route mapping
-      const routeMapping = this.mapper.getNodeMapping("Route");
-      if (!routeMapping) {
+      // Validate that nodes is actually an array
+      if (!Array.isArray(searchResponse.nodes)) {
         throw new CLIError(
-          "Route mapping not found in analyzer",
-          ErrorCategory.VALIDATION,
-          ["Run `npm run build:spec` to recompile the analyzer artifacts"]
+          "Invalid response from search_graph: nodes must be an array",
+          ErrorCategory.SYSTEM,
+          [
+            `Expected array, got ${typeof searchResponse.nodes}`,
+            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+          ]
         );
       }
+
+      const nodes = searchResponse.nodes as CbmGraphNode[];
 
       // Shape routes via mapping
       const routes = [];
