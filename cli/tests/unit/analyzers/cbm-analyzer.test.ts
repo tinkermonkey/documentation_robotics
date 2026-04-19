@@ -349,33 +349,41 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("query()", () => {
-    it("should throw CLIError with not-implemented message", async () => {
-      let error: CLIError | undefined;
+    it("should return a defined placeholder response instead of throwing", async () => {
+      const result = await analyzer.query("/tmp/project", "MATCH (n) RETURN n");
 
-      try {
-        await analyzer.query("/tmp/project", "MATCH (n) RETURN n");
-      } catch (e) {
-        error = e as CLIError;
-      }
-
-      expect(error).toBeDefined();
-      expect(error).toBeInstanceOf(CLIError);
-      expect(error?.message).toContain("not yet implemented");
+      expect(result).toBeDefined();
+      expect(typeof result).toBe("object");
+      expect(result).not.toBeNull();
     });
 
-    it("should suggest using endpoints() instead", async () => {
-      let error: CLIError | undefined;
+    it("should return a response with expected structure", async () => {
+      const result = (await analyzer.query("/tmp/project", "MATCH (n) RETURN n")) as any;
 
-      try {
-        await analyzer.query("/tmp/project", "MATCH (n) RETURN n");
-      } catch (e) {
-        error = e as CLIError;
-      }
+      // Verify placeholder structure
+      expect("results" in result).toBe(true);
+      expect(Array.isArray(result.results)).toBe(true);
+      expect("message" in result).toBe(true);
+      expect(typeof result.message).toBe("string");
+      expect(result.message).toContain("not yet implemented");
+    });
 
-      expect(error?.suggestions).toBeDefined();
-      expect(
-        error?.suggestions?.some((s) => s.includes("endpoints"))
-      ).toBe(true);
+    it("should include suggestion in placeholder response", async () => {
+      const result = (await analyzer.query("/tmp/project", "MATCH (n) RETURN n")) as any;
+
+      expect("suggestion" in result).toBe(true);
+      expect(typeof result.suggestion).toBe("string");
+      expect(result.suggestion).toMatch(
+        /endpoints|index|detect/i
+      );
+    });
+
+    it("should return empty results in the placeholder", async () => {
+      const result = (await analyzer.query("/tmp/project", "MATCH (n) RETURN n")) as any;
+
+      expect(result.results).toBeDefined();
+      expect(Array.isArray(result.results)).toBe(true);
+      expect(result.results.length).toBe(0);
     });
   });
 

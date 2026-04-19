@@ -578,19 +578,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
   /**
    * Execute a raw query against the analyzer's graph (stub - not yet implemented)
    *
+   * Returns a defined placeholder stub response per FR-5.2. The feature is planned for
+   * a future release and currently returns empty results rather than throwing an exception.
+   *
    * @param _projectRoot Absolute path to the project root (not yet used)
    * @param _rawQuery Query string in the analyzer's native language (not yet used)
-   * @throws CLIError indicating not yet implemented
+   * @returns Placeholder stub response with empty results
    */
   async query(_projectRoot: string, _rawQuery: string): Promise<unknown> {
-    throw new CLIError(
-      "Raw graph queries are not yet implemented",
-      ErrorCategory.USER,
-      [
-        "The query command is planned for a future release",
-        "Currently, use endpoints(), index(), and detect() for analysis",
-      ]
-    );
+    return {
+      results: [],
+      message: "Raw graph queries are not yet implemented",
+      suggestion: "Use endpoints(), index(), or detect() for analysis",
+    };
   }
 
   /**
