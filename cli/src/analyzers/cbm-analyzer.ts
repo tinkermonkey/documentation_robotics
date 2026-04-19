@@ -47,6 +47,7 @@ interface CbmGraphNode {
  */
 export class CbmAnalyzer implements AnalyzerBackend {
   private mapper: MappingLoader;
+  private testCodePatternWarned = false;
 
   /**
    * Default regex patterns for test code detection
@@ -149,9 +150,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
     let mcpRegistered = false;
     try {
       mcpRegistered = await this.checkMcpRegistration(projectRoot || process.cwd());
-    } catch {
-      // If MCP registration check fails with permission or format errors,
-      // assume not registered and continue with detection
+    } catch (error) {
+      // CLIError from checkMcpRegistration indicates actionable problems (EACCES, syntax errors)
+      // Surface these to the user via handleWarning(), but continue with detection
+      if (error instanceof CLIError) {
+        handleWarning(error.message, error.suggestions);
+      } else {
+        // Unexpected error - still continue with detection but warn
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning("Unexpected error checking MCP registration", [errorMsg]);
+      }
       mcpRegistered = false;
     }
 
@@ -376,8 +384,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
 
         // Return actual index metadata instead of fabricated zeros
-        // This ensures the command layer prints accurate counts to the user
-        const meta = status.index_meta!;
+        // Guard against index_meta being undefined (can happen if metadata is corrupted or deleted)
+        if (!status.index_meta) {
+          throw new CLIError(
+            "Project exists in CBM backend but local metadata is missing",
+            ErrorCategory.VALIDATION,
+            [
+              "Use --force to re-index and regenerate metadata",
+              "Or manually delete the project from CBM backend and re-index"
+            ]
+          );
+        }
+
+        const meta = status.index_meta;
         return {
           success: true,
           node_count: meta.node_count ?? 0,
@@ -681,7 +700,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Check if an endpoint candidate is in test code
    *
    * Applies the test_code_exclusion filtering rule from the analyzer mapping.
-   * If the configured regex pattern is invalid, warns the user and falls back to defaults.
+   * If the configured regex pattern is invalid, warns the user once and falls back to defaults.
+   * Uses a one-shot flag to ensure the warning is only emitted once even if called in a loop.
    *
    * @private
    */
@@ -706,16 +726,20 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const testCodePattern = new RegExp(testCodeRule.pattern);
       return testCodePattern.test(candidate.source_file);
     } catch (error) {
-      // If regex is invalid, warn user and fall back to default patterns
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      handleWarning(
-        "Invalid test_code_exclusion regex pattern in analyzer mapping",
-        [
-          `Pattern: ${testCodeRule.pattern}`,
-          `Error: ${errorMsg}`,
-          "Falling back to default test code patterns",
-        ]
-      );
+      // If regex is invalid, warn user once (not on every invocation in the loop)
+      // and fall back to default patterns
+      if (!this.testCodePatternWarned) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          "Invalid test_code_exclusion regex pattern in analyzer mapping",
+          [
+            `Pattern: ${testCodeRule.pattern}`,
+            `Error: ${errorMsg}`,
+            "Falling back to default test code patterns",
+          ]
+        );
+        this.testCodePatternWarned = true;
+      }
       return CbmAnalyzer.DEFAULT_TEST_PATTERNS.some((pattern) =>
         pattern.test(candidate.source_file)
       );
