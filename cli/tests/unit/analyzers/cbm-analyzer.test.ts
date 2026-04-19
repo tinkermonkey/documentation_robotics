@@ -11,6 +11,13 @@ import { CLIError, ErrorCategory } from "@/utils/errors";
 import type { EndpointCandidate } from "@/analyzers/types";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as os from "os";
+import { randomUUID } from "crypto";
+
+// Helper to create a unique temp directory for each test
+function createTempDir(): string {
+  return path.join(os.tmpdir(), `cbm-analyzer-test-${randomUUID()}`);
+}
 
 describe("CbmAnalyzer", () => {
   let analyzer: CbmAnalyzer;
@@ -539,15 +546,20 @@ describe("CbmAnalyzer", () => {
   });
 
   describe("checkMcpRegistration()", () => {
-    const projectRoot = process.cwd();
-    const mcpJsonPath = path.join(projectRoot, ".mcp.json");
+    let tempDir: string;
+
+    beforeEach(async () => {
+      tempDir = createTempDir();
+      // Create the temp directory
+      await fs.mkdir(tempDir, { recursive: true });
+    });
 
     afterEach(async () => {
-      // Clean up temp .mcp.json file if it exists
+      // Clean up temp directory
       try {
-        await fs.unlink(mcpJsonPath);
+        await fs.rm(tempDir, { recursive: true, force: true });
       } catch {
-        // File doesn't exist, that's fine
+        // Directory doesn't exist, that's fine
       }
     });
 
@@ -563,9 +575,10 @@ describe("CbmAnalyzer", () => {
         },
       };
 
+      const mcpJsonPath = path.join(tempDir, ".mcp.json");
       await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfigContent));
 
-      const isRegistered = await analyzer.checkMcpRegistration(projectRoot);
+      const isRegistered = await analyzer.checkMcpRegistration(tempDir);
 
       expect(isRegistered).toBe(true);
     });
@@ -573,14 +586,8 @@ describe("CbmAnalyzer", () => {
     it("should return false when .mcp.json is missing", async () => {
       // This test verifies checkMcpRegistration() gracefully handles missing .mcp.json
       // by returning false
-      // Ensure .mcp.json doesn't exist
-      try {
-        await fs.unlink(mcpJsonPath);
-      } catch {
-        // Already doesn't exist
-      }
-
-      const isRegistered = await analyzer.checkMcpRegistration(projectRoot);
+      // Ensure .mcp.json doesn't exist (tempDir is fresh)
+      const isRegistered = await analyzer.checkMcpRegistration(tempDir);
 
       expect(isRegistered).toBe(false);
     });
@@ -596,9 +603,10 @@ describe("CbmAnalyzer", () => {
         },
       };
 
+      const mcpJsonPath = path.join(tempDir, ".mcp.json");
       await fs.writeFile(mcpJsonPath, JSON.stringify(mcpConfigContent));
 
-      const isRegistered = await analyzer.checkMcpRegistration(projectRoot);
+      const isRegistered = await analyzer.checkMcpRegistration(tempDir);
 
       expect(isRegistered).toBe(false);
     });
@@ -606,11 +614,12 @@ describe("CbmAnalyzer", () => {
     it("should throw CLIError when .mcp.json is invalid JSON", async () => {
       // This test verifies checkMcpRegistration() throws an error for malformed JSON
       // Invalid JSON is a configuration problem that needs user attention
+      const mcpJsonPath = path.join(tempDir, ".mcp.json");
       await fs.writeFile(mcpJsonPath, "{ invalid json");
 
       let error: CLIError | undefined;
       try {
-        await analyzer.checkMcpRegistration(projectRoot);
+        await analyzer.checkMcpRegistration(tempDir);
       } catch (e) {
         error = e as CLIError;
       }
