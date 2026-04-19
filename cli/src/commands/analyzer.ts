@@ -1,22 +1,31 @@
 /**
  * Analyzer Commands - CLI surface for analyzer discovery, status, indexing, and querying
  *
- * Implements four subcommands:
+ * Implements ten subcommands:
  * - discover: Scan for installed analyzers and select active analyzer
  * - status: Report analyzer detection and project index state
  * - index: Index the current project with the active analyzer
  * - endpoints: List discovered API endpoints from indexed project
+ * - services: Query for services/components in the indexed project
+ * - datastores: Query for datastores/databases inferred from code analysis
+ * - callers: Query for callers of a specific function or symbol
+ * - callees: Query for callees of a specific function or symbol
+ * - query: Execute a raw query against the analyzer's graph
+ * - verify: Verify that graph-discovered routes align with model endpoints
  */
 
 import { Command } from "commander";
 import { intro, outro, select, isCancel } from "@clack/prompts";
 import ansis from "ansis";
+import { promises as fs } from "fs";
+import * as path from "path";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
-import { readSession, writeSession, writeStatus } from "../analyzers/session-state.js";
+import { readSession, writeSession, writeStatus, readIndexMeta } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { performDiscover } from "./discover-logic.js";
+import { formatVerifyReport } from "../export/verify-formatters.js";
 import type { SessionState } from "../analyzers/types.js";
 
 /**
@@ -496,6 +505,620 @@ Examples:
         console.log(ansis.dim("─".repeat(135)));
         console.log(ansis.dim(`Total: ${endpoints.length} endpoint(s)`));
         console.log("");
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+      }
+    });
+
+  /**
+   * Services subcommand - query for services/components in indexed project
+   */
+  analyzer
+    .command("services")
+    .description("Query for services/components in the indexed project")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--layer <layer>", "Filter by layer (e.g., 'application')")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr analyzer services              # List all services
+  $ dr analyzer services --layer application
+  $ dr analyzer services --json       # Output as JSON`
+    )
+    .action(async (options) => {
+      try {
+        // Find project root
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        // Resolve analyzer name
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError(
+              "No analyzer selected. Run `dr analyzer discover` first.",
+              ErrorCategory.USER
+            );
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        // Get analyzer
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+
+        if (!backend) {
+          throw new CLIError(
+            `Analyzer not found: ${analyzerName}`,
+            ErrorCategory.NOT_FOUND
+          );
+        }
+
+        // Check if project is indexed
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError(
+            "Project not indexed",
+            ErrorCategory.USER,
+            ["Run `dr analyzer index` first"]
+          );
+        }
+
+        // Query for services
+        const services = await backend.services(projectRoot);
+
+        // JSON output
+        if (options.json) {
+          console.log(JSON.stringify(services, null, 2));
+          return;
+        }
+
+        // Table output
+        if (services.length === 0) {
+          console.log(ansis.yellow("No services found"));
+          return;
+        }
+
+        console.log("");
+        console.log(ansis.bold(`Services (${services.length} found):`));
+        console.log(ansis.dim("─".repeat(120)));
+
+        // Print header
+        const nameWidth = 20;
+        const layerWidth = 15;
+        const typeWidth = 18;
+        const symbolWidth = 20;
+        const confidenceWidth = 12;
+        const fileWidth = 25;
+
+        console.log(
+          ansis.cyan(
+            `${"Name".padEnd(nameWidth)} ${"Layer".padEnd(layerWidth)} ${"Type".padEnd(typeWidth)} ${"Symbol".padEnd(symbolWidth)} ${"Confidence".padEnd(confidenceWidth)} File`
+          )
+        );
+        console.log(ansis.dim("─".repeat(120)));
+
+        // Print each service
+        for (const service of services) {
+          const name = service.suggested_name.substring(0, nameWidth).padEnd(nameWidth);
+          const layer = service.suggested_layer.substring(0, layerWidth).padEnd(layerWidth);
+          const type = service.suggested_element_type.substring(0, typeWidth).padEnd(typeWidth);
+          const symbol = service.source_symbol.substring(0, symbolWidth).padEnd(symbolWidth);
+          const confidence = service.confidence.toUpperCase().padEnd(confidenceWidth);
+          const file = service.source_file.substring(0, fileWidth);
+
+          console.log(`${name} ${layer} ${type} ${symbol} ${confidence} ${ansis.dim(file)}`);
+        }
+
+        console.log(ansis.dim("─".repeat(120)));
+        console.log(ansis.dim(`Total: ${services.length} service(s)`));
+        console.log("");
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+      }
+    });
+
+  /**
+   * Datastores subcommand - query for datastores/databases inferred from code
+   */
+  analyzer
+    .command("datastores")
+    .description("Query for datastores/databases inferred from code analysis")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr analyzer datastores        # List all inferred datastores
+  $ dr analyzer datastores --json # Output as JSON`
+    )
+    .action(async (options) => {
+      try {
+        // Find project root
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        // Resolve analyzer name
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError(
+              "No analyzer selected. Run `dr analyzer discover` first.",
+              ErrorCategory.USER
+            );
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        // Get analyzer
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+
+        if (!backend) {
+          throw new CLIError(
+            `Analyzer not found: ${analyzerName}`,
+            ErrorCategory.NOT_FOUND
+          );
+        }
+
+        // Check if project is indexed
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError(
+            "Project not indexed",
+            ErrorCategory.USER,
+            ["Run `dr analyzer index` first"]
+          );
+        }
+
+        // Query for datastores
+        const datastores = await backend.datastores(projectRoot);
+
+        // JSON output
+        if (options.json) {
+          console.log(JSON.stringify(datastores, null, 2));
+          return;
+        }
+
+        // Table output
+        if (datastores.length === 0) {
+          console.log(ansis.yellow("No datastores found"));
+          return;
+        }
+
+        console.log("");
+        console.log(ansis.bold(`Datastores (${datastores.length} found):`));
+        console.log(ansis.dim("─".repeat(100)));
+
+        // Print each datastore
+        for (const ds of datastores) {
+          console.log(`  ${ansis.cyan(ds.suggested_name)}`);
+          console.log(`    Inferred from:`);
+          for (const evidence of ds.inferred_from) {
+            console.log(`      - ${evidence.source_file}: ${evidence.import_pattern}`);
+          }
+          if (ds.notes) {
+            console.log(`    Notes: ${ds.notes}`);
+          }
+          console.log("");
+        }
+
+        console.log(ansis.dim(`Total: ${datastores.length} datastore(s)`));
+        console.log("");
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+      }
+    });
+
+  /**
+   * Callers subcommand - query for callers of a specific symbol
+   */
+  analyzer
+    .command("callers <qualified-name>")
+    .description("Query for callers of a specific function or symbol")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--depth <n>", "Maximum depth for call graph traversal (default: 3, max: 10)", "3")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr analyzer callers com.example.Service.handleRequest
+  $ dr analyzer callers com.example.Service.handleRequest --depth 5
+  $ dr analyzer callers com.example.Service.handleRequest --json`
+    )
+    .action(async (qualifiedName, options) => {
+      try {
+        // Validate depth
+        const depth = parseInt(options.depth, 10);
+        if (isNaN(depth) || depth < 1) {
+          throw new CLIError(
+            "Invalid --depth value: must be a positive integer",
+            ErrorCategory.USER
+          );
+        }
+
+        // Find project root
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        // Resolve analyzer name
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError(
+              "No analyzer selected. Run `dr analyzer discover` first.",
+              ErrorCategory.USER
+            );
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        // Get analyzer
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+
+        if (!backend) {
+          throw new CLIError(
+            `Analyzer not found: ${analyzerName}`,
+            ErrorCategory.NOT_FOUND
+          );
+        }
+
+        // Check if project is indexed
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError(
+            "Project not indexed",
+            ErrorCategory.USER,
+            ["Run `dr analyzer index` first"]
+          );
+        }
+
+        // Query for callers
+        const callers = await backend.callers(projectRoot, qualifiedName, depth);
+
+        // JSON output
+        if (options.json) {
+          console.log(JSON.stringify(callers, null, 2));
+          return;
+        }
+
+        // Table output
+        if (callers.length === 0) {
+          console.log(ansis.yellow(`No callers found for ${qualifiedName}`));
+          return;
+        }
+
+        console.log("");
+        console.log(ansis.bold(`Callers of ${ansis.cyan(qualifiedName)} (${callers.length} found):`));
+        console.log(ansis.dim("─".repeat(100)));
+
+        // Print each caller
+        for (const caller of callers) {
+          console.log(`  ${ansis.bold(caller.qualified_name)}`);
+          console.log(`    File: ${caller.source_file}`);
+          console.log(`    Symbol: ${caller.source_symbol}`);
+          console.log(`    Depth: ${caller.depth}`);
+          console.log(`    Edge: ${caller.edge_type}`);
+          console.log("");
+        }
+
+        console.log(ansis.dim(`Total: ${callers.length} caller(s)`));
+        console.log("");
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+      }
+    });
+
+  /**
+   * Callees subcommand - query for callees of a specific symbol
+   */
+  analyzer
+    .command("callees <qualified-name>")
+    .description("Query for callees of a specific function or symbol")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--depth <n>", "Maximum depth for call graph traversal (default: 3, max: 10)", "3")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr analyzer callees com.example.Service.handleRequest
+  $ dr analyzer callees com.example.Service.handleRequest --depth 5
+  $ dr analyzer callees com.example.Service.handleRequest --json`
+    )
+    .action(async (qualifiedName, options) => {
+      try {
+        // Validate depth
+        const depth = parseInt(options.depth, 10);
+        if (isNaN(depth) || depth < 1) {
+          throw new CLIError(
+            "Invalid --depth value: must be a positive integer",
+            ErrorCategory.USER
+          );
+        }
+
+        // Find project root
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        // Resolve analyzer name
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError(
+              "No analyzer selected. Run `dr analyzer discover` first.",
+              ErrorCategory.USER
+            );
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        // Get analyzer
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+
+        if (!backend) {
+          throw new CLIError(
+            `Analyzer not found: ${analyzerName}`,
+            ErrorCategory.NOT_FOUND
+          );
+        }
+
+        // Check if project is indexed
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError(
+            "Project not indexed",
+            ErrorCategory.USER,
+            ["Run `dr analyzer index` first"]
+          );
+        }
+
+        // Query for callees
+        const callees = await backend.callees(projectRoot, qualifiedName, depth);
+
+        // JSON output
+        if (options.json) {
+          console.log(JSON.stringify(callees, null, 2));
+          return;
+        }
+
+        // Table output
+        if (callees.length === 0) {
+          console.log(ansis.yellow(`No callees found for ${qualifiedName}`));
+          return;
+        }
+
+        console.log("");
+        console.log(ansis.bold(`Callees of ${ansis.cyan(qualifiedName)} (${callees.length} found):`));
+        console.log(ansis.dim("─".repeat(100)));
+
+        // Print each callee
+        for (const callee of callees) {
+          console.log(`  ${ansis.bold(callee.qualified_name)}`);
+          console.log(`    File: ${callee.source_file}`);
+          console.log(`    Symbol: ${callee.source_symbol}`);
+          console.log(`    Depth: ${callee.depth}`);
+          console.log(`    Edge: ${callee.edge_type}`);
+          console.log("");
+        }
+
+        console.log(ansis.dim(`Total: ${callees.length} callee(s)`));
+        console.log("");
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+      }
+    });
+
+  /**
+   * Query subcommand - execute a raw query against the analyzer's graph
+   */
+  analyzer
+    .command("query <cypher>")
+    .description("Execute a raw query (advanced escape hatch for graph queries)")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Advanced escape hatch for executing raw graph queries.
+Query syntax depends on the analyzer backend (e.g., Cypher for graph analyzers).
+
+Examples:
+  $ dr analyzer query "MATCH (n) RETURN n LIMIT 10"
+  $ dr analyzer query "MATCH (n:Service) RETURN n.name" --json`
+    )
+    .action(async (cypher, options) => {
+      try {
+        // Find project root
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        // Resolve analyzer name
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError(
+              "No analyzer selected. Run `dr analyzer discover` first.",
+              ErrorCategory.USER
+            );
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        // Get analyzer
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+
+        if (!backend) {
+          throw new CLIError(
+            `Analyzer not found: ${analyzerName}`,
+            ErrorCategory.NOT_FOUND
+          );
+        }
+
+        // Check if project is indexed
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError(
+            "Project not indexed",
+            ErrorCategory.USER,
+            ["Run `dr analyzer index` first"]
+          );
+        }
+
+        // Execute query
+        const result = await backend.query(projectRoot, cypher);
+
+        // Output (always JSON for consistency with complex result structures)
+        console.log(JSON.stringify(result, null, 2));
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+      }
+    });
+
+  /**
+   * Verify subcommand - verify that graph-discovered routes align with model endpoints
+   */
+  analyzer
+    .command("verify")
+    .description("Verify that graph-discovered routes align with model endpoints")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--layer <layer>", "Layer(s) to verify (can be used multiple times)", (value, previous: string[] | undefined) => {
+      return previous ? [...previous, value] : [value];
+    })
+    .option("--output <path>", "Write report to file")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr analyzer verify                              # Verify api layer (default)
+  $ dr analyzer verify --layer api --layer testing # Verify multiple layers
+  $ dr analyzer verify --output report.json         # Save report to file
+  $ dr analyzer verify --json                       # Output as JSON`
+    )
+    .action(async (options) => {
+      try {
+        // Find project root
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        // Validate layers - only api is supported in v1
+        const layers = options.layer || ["api"];
+        for (const layer of layers) {
+          if (layer !== "api") {
+            console.log("verify scope v1 only supports api layer");
+            process.exit(0);
+          }
+        }
+
+        // Resolve analyzer name
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError(
+              "No analyzer selected. Run `dr analyzer discover` first.",
+              ErrorCategory.USER
+            );
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        // Get analyzer
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+
+        if (!backend) {
+          throw new CLIError(
+            `Analyzer not found: ${analyzerName}`,
+            ErrorCategory.NOT_FOUND
+          );
+        }
+
+        // Check if project is indexed
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError(
+            "Project not indexed",
+            ErrorCategory.USER,
+            ["Run `dr analyzer index` first"]
+          );
+        }
+
+        // Execute verification with changeset awareness enabled by default
+        const report = await backend.verify(projectRoot, {
+          layers,
+          changesetAware: true,
+        });
+
+        // Format output
+        const format = options.json ? "json" : "text";
+        const formatted = formatVerifyReport(report, { format });
+
+        // Write to file if --output specified
+        if (options.output) {
+          const outputPath = path.resolve(options.output);
+          await fs.writeFile(outputPath, formatted, "utf-8");
+          console.log(ansis.green(`✓ Report written to ${outputPath}`));
+          return;
+        }
+
+        // Print to stdout
+        console.log(formatted);
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
         throw new CLIError(
