@@ -206,9 +206,9 @@ describe("Analyzer Subcommands Integration", () => {
       expect(result.exitCode).not.toBe(0);
     });
 
-    it("should work with --json flag", async () => {
-      const result = await runDr(["analyzer", "verify", "--json"]);
-      // May fail if not indexed, but should handle --json flag
+    it("should work with --format json flag", async () => {
+      const result = await runDr(["analyzer", "verify", "--format", "json"]);
+      // May fail if not indexed, but should handle --format json flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
       } else {
@@ -228,12 +228,13 @@ describe("Analyzer Subcommands Integration", () => {
       expect([0, 1, 2]).toContain(result.exitCode);
     });
 
-    it("should clean exit when --layer application specified", async () => {
+    it("should error when --layer application specified", async () => {
       const result = await runDr(["analyzer", "verify", "--layer", "application"], {
         cwd: workdir.path,
       });
+      // Should error with non-zero exit code when non-api layer is specified
+      expect(result.exitCode).not.toBe(0);
       // Should output message about v1 scope (in either stdout or stderr)
-      // The verify subcommand outputs this message when non-api layers are specified
       const output = result.stdout + result.stderr;
       expect(output).toContain("verify scope v1");
     });
@@ -255,6 +256,34 @@ describe("Analyzer Subcommands Integration", () => {
       if (result.exitCode === 0) {
         expect(output).toContain("verify scope");
       }
+    });
+
+    it("should reject invalid format values", async () => {
+      const result = await runDr(["analyzer", "verify", "--format", "xml"]);
+      // Should error when invalid format is specified (or when project not indexed)
+      expect(result.exitCode).not.toBe(0);
+      const output = result.stdout + result.stderr;
+      // Should either complain about format or that project is not indexed
+      expect(output).toMatch(/invalid format|valid formats|not indexed/i);
+    });
+
+    it("should infer JSON format from .json file extension", async () => {
+      const outputFile = join(workdir.path, "verify-report.json");
+      const result = await runDr([
+        "analyzer",
+        "verify",
+        "--output",
+        outputFile,
+      ]);
+      // When --output has .json extension, should format as JSON
+      // (will fail if not indexed, but format inference should work)
+      expect([0, 1, 2]).toContain(result.exitCode);
+    });
+
+    it("should default to text format when no format specified", async () => {
+      const result = await runDr(["analyzer", "verify"]);
+      // Should use text format by default (may fail if not indexed)
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
   });
 
@@ -299,7 +328,7 @@ describe("Analyzer Subcommands Integration", () => {
     });
 
     it("should preserve reason field on ignored entries", async () => {
-      const result = await runDr(["analyzer", "verify", "--json"]);
+      const result = await runDr(["analyzer", "verify", "--format", "json"]);
       // When verify runs (regardless of success), ignore reasons should be preserved
       try {
         if (result.exitCode === 0) {

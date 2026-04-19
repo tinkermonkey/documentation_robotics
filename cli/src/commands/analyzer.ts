@@ -1022,7 +1022,12 @@ Examples:
         const result = await backend.query(projectRoot, cypher);
 
         // Output format: JSON is the only reasonable format for arbitrary query results
-        // The --json flag is available for consistency, though it's the default
+        // The --json flag is accepted for consistency, but JSON is always the output format
+        // (the flag currently has no effect as all query output is JSON)
+        if (options.json === false) {
+          // Explicit no-op: --json flag or its absence doesn't change behavior
+          // Query results are always output as JSON regardless of flag
+        }
         console.log(JSON.stringify(result, null, 2));
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
@@ -1057,6 +1062,24 @@ Examples:
     )
     .action(async (options) => {
       try {
+        // Validate format option early (before checking project state)
+        let format: "text" | "json" = "text";
+        if (options.format) {
+          const formatLower = options.format.toLowerCase();
+          if (formatLower !== "text" && formatLower !== "json") {
+            throw new CLIError(
+              `Invalid format: ${options.format}. Valid formats are: text, json`,
+              ErrorCategory.USER
+            );
+          }
+          format = formatLower as "text" | "json";
+        } else if (options.output) {
+          const ext = path.extname(options.output).toLowerCase();
+          if (ext === ".json") {
+            format = "json";
+          }
+        }
+
         // Find project root
         const projectRoot = await findProjectRoot();
         if (!projectRoot) {
@@ -1115,24 +1138,6 @@ Examples:
           layers,
           changesetAware: true,
         });
-
-        // Determine output format
-        let format: "text" | "json" = "text";
-        if (options.format) {
-          const formatLower = options.format.toLowerCase();
-          if (formatLower !== "text" && formatLower !== "json") {
-            throw new CLIError(
-              `Invalid format: ${options.format}. Valid formats are: text, json`,
-              ErrorCategory.USER
-            );
-          }
-          format = formatLower as "text" | "json";
-        } else if (options.output) {
-          const ext = path.extname(options.output).toLowerCase();
-          if (ext === ".json") {
-            format = "json";
-          }
-        }
 
         const formatted = formatVerifyReport(report, { format });
 
