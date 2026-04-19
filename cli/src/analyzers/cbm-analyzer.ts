@@ -24,6 +24,11 @@ import type {
   IndexMeta,
   AnalyzerNodeMapping,
   HttpMethod,
+  ServiceCandidate,
+  DatastoreCandidate,
+  CallGraphNode,
+  VerifyOptions,
+  VerifyReport,
 } from "./types.js";
 import { VALID_HTTP_METHODS } from "./types.js";
 import { StdioClient } from "./stdio-client.js";
@@ -863,7 +868,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @param _projectRoot Absolute path to the project root
    * @returns Placeholder stub response
    */
-  async services(_projectRoot: string): Promise<import("./types.js").ServiceCandidate[]> {
+  async services(_projectRoot: string): Promise<ServiceCandidate[]> {
     throw new Error("not implemented");
   }
 
@@ -875,7 +880,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    */
   async datastores(
     _projectRoot: string
-  ): Promise<import("./types.js").DatastoreCandidate[]> {
+  ): Promise<DatastoreCandidate[]> {
     throw new Error("not implemented");
   }
 
@@ -891,7 +896,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     _projectRoot: string,
     _symbol: string,
     _depth?: number
-  ): Promise<import("./types.js").CallGraphNode[]> {
+  ): Promise<CallGraphNode[]> {
     throw new Error("not implemented");
   }
 
@@ -907,7 +912,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     _projectRoot: string,
     _symbol: string,
     _depth?: number
-  ): Promise<import("./types.js").CallGraphNode[]> {
+  ): Promise<CallGraphNode[]> {
     throw new Error("not implemented");
   }
 
@@ -920,8 +925,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
    */
   async verify(
     _projectRoot: string,
-    _options: import("./types.js").VerifyOptions
-  ): Promise<import("./types.js").VerifyReport> {
+    _options: VerifyOptions
+  ): Promise<VerifyReport> {
     throw new Error("not implemented");
   }
 }
