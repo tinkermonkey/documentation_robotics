@@ -78,7 +78,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         ]);
 
         // Run discover
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -115,7 +115,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         ]);
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -153,7 +153,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         ]);
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -190,7 +190,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         ]);
 
         // Text mode (json: false) with no installed analyzers
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: false,
           isTTY: true,
         });
@@ -231,7 +231,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         ]);
 
         // Should continue despite error in one analyzer
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -264,7 +264,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         ]);
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -299,7 +299,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         ]);
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -337,7 +337,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         ]);
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
@@ -371,12 +371,12 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         ]);
 
         // Test both modes
-        const jsonResult = await performDiscover(registry, "/tmp/test", {
+        const jsonResult = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });
 
-        const textResult = await performDiscover(registry, "/tmp/test", {
+        const textResult = await performDiscover(registry, {
           json: false,
           isTTY: true,
         });
@@ -413,7 +413,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         ]);
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
           reselect: true,
@@ -439,7 +439,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
 
         let errorThrown = false;
         try {
-          await performDiscover(registry, "/tmp/test", { json: true });
+          await performDiscover(registry, { json: true });
         } catch (error) {
           errorThrown = true;
           expect(error instanceof Error).toBe(true);
@@ -471,7 +471,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           },
         };
 
-        const result = await performDiscover(registry, "/tmp/test", {
+        const result = await performDiscover(registry, {
           json: true,
           isTTY: false,
         });

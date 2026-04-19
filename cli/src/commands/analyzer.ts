@@ -12,6 +12,7 @@ import { Command } from "commander";
 import { intro, outro, select, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
+import { MappingLoader } from "../analyzers/mapping-loader.js";
 import { readSession, writeSession, writeStatus } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
@@ -65,7 +66,7 @@ Examples:
         }
 
         // Run core discover logic
-        const discoverResult = await performDiscover(registry, projectRoot, {
+        const discoverResult = await performDiscover(registry, {
           json: options.json,
           reselect: options.reselect,
           isTTY: process.stdin.isTTY,

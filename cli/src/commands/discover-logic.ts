@@ -7,7 +7,7 @@
 
 import { AnalyzerRegistry } from "../analyzers/registry.js";
 import { MappingLoader } from "../analyzers/mapping-loader.js";
-import type { DiscoveryResult, AvailableAnalyzer, SessionState } from "../analyzers/types.js";
+import type { DiscoveryResult, AvailableAnalyzer } from "../analyzers/types.js";
 
 export interface DiscoverOptions {
   json?: boolean;
@@ -31,7 +31,6 @@ export interface DiscoverAnalyzerOption {
  */
 export async function performDiscover(
   registry: AnalyzerRegistry,
-  projectRoot: string,
   options: DiscoverOptions = {}
 ): Promise<{
   discoveryResult: DiscoveryResult;
