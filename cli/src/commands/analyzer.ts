@@ -316,6 +316,14 @@ Examples:
           console.log(`Version: ${ansis.dim(status.detected.version)}`);
         }
 
+        console.log(
+          `MCP Registered: ${status.detected.mcp_registered ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
+        );
+
+        console.log(
+          `Contract Valid: ${status.detected.contract_ok ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
+        );
+
         if (actualProjectRoot) {
           console.log(
             `Indexed: ${status.indexed ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
@@ -512,39 +520,45 @@ Examples:
 
         console.log("");
         console.log(ansis.bold(`API Endpoints (${endpoints.length} found):`));
-        console.log(ansis.dim("─".repeat(100)));
+        console.log(ansis.dim("─".repeat(135)));
 
         // Print header
         const methodWidth = 8;
-        const pathWidth = 35;
+        const pathWidth = 20;
+        const nameWidth = 18;
+        const idFragmentWidth = 18;
+        const symbolWidth = 18;
         const confidenceWidth = 12;
-        const fileWidth = 40;
+        const fileWidth = 25;
 
         console.log(
           ansis.cyan(
-            `${"Method".padEnd(methodWidth)} ${"Path".padEnd(pathWidth)} ${"Confidence".padEnd(confidenceWidth)} File`
+            `${"Method".padEnd(methodWidth)} ${"Path".padEnd(pathWidth)} ${"Name".padEnd(nameWidth)} ${"ID Fragment".padEnd(idFragmentWidth)} ${"Symbol".padEnd(symbolWidth)} ${"Confidence".padEnd(confidenceWidth)} File`
           )
         );
-        console.log(ansis.dim("─".repeat(100)));
+        console.log(ansis.dim("─".repeat(135)));
 
         // Print each endpoint
         for (const endpoint of endpoints) {
           const method = endpoint.http_method.padEnd(methodWidth);
           const path = endpoint.http_path.substring(0, pathWidth).padEnd(pathWidth);
+          const name = endpoint.suggested_name.substring(0, nameWidth).padEnd(nameWidth);
+          const idFragment = endpoint.suggested_id_fragment.substring(0, idFragmentWidth).padEnd(idFragmentWidth);
+          const symbol = endpoint.source_symbol.substring(0, symbolWidth).padEnd(symbolWidth);
           const confidence = endpoint.confidence.toUpperCase().padEnd(confidenceWidth);
           const file = endpoint.source_file.substring(0, fileWidth);
 
-          console.log(`${method} ${path} ${confidence} ${ansis.dim(file)}`);
+          console.log(`${method} ${path} ${name} ${idFragment} ${symbol} ${confidence} ${ansis.dim(file)}`);
         }
 
-        console.log(ansis.dim("─".repeat(100)));
+        console.log(ansis.dim("─".repeat(135)));
         console.log(ansis.dim(`Total: ${endpoints.length} endpoint(s)`));
         console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
         throw new CLIError(
           error instanceof Error ? error.message : String(error),
-          ErrorCategory.USER
+          categorizeError(error)
         );
       }
     });
