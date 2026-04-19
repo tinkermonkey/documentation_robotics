@@ -17,7 +17,7 @@ import type { DiscoveryResult } from "../../../src/analyzers/types.js";
  */
 function createMockRegistry(analyzers: any[] = []): any {
   return {
-    getAnalyzerNames: () => analyzers.map((a) => a.name),
+    getAnalyzerNames: async () => analyzers.map((a) => a.name),
     getAnalyzer: async (name: string) => {
       const analyzer = analyzers.find((a) => a.name === name);
       if (!analyzer) return null;

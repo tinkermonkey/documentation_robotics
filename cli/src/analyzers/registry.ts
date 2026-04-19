@@ -212,9 +212,7 @@ export class AnalyzerRegistry {
    * @throws CLIError if manifest is not initialized or mapping cannot be loaded
    */
   async getAllAnalyzers(): Promise<AnalyzerBackend[]> {
-    await this.initialize();
-
-    const names = this.getAnalyzerNames();
+    const names = await this.getAnalyzerNames();
     const analyzers: AnalyzerBackend[] = [];
 
     for (const name of names) {
@@ -231,17 +229,11 @@ export class AnalyzerRegistry {
    * Get all available analyzer names
    *
    * @returns Array of analyzer names
-   * @throws CLIError if manifest is not initialized
+   * @throws CLIError if manifest cannot be loaded
    */
-  getAnalyzerNames(): string[] {
-    if (!this.manifest) {
-      throw new CLIError(
-        "Registry not initialized",
-        ErrorCategory.VALIDATION,
-        ["Call initialize() before using the registry"]
-      );
-    }
+  async getAnalyzerNames(): Promise<string[]> {
+    await this.initialize();
 
-    return this.manifest.analyzers.map((a) => a.name);
+    return this.manifest!.analyzers.map((a) => a.name);
   }
 }

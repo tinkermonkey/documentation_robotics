@@ -39,7 +39,7 @@ export async function performDiscover(
   selectedAnalyzer?: string;
   shouldWriteSession: boolean;
 }> {
-  const analyzerNames = registry.getAnalyzerNames();
+  const analyzerNames = await registry.getAnalyzerNames();
 
   if (analyzerNames.length === 0) {
     throw new Error("No analyzers registered in the specification");

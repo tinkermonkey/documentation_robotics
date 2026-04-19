@@ -53,39 +53,39 @@ describe("AnalyzerRegistry", () => {
 
   describe("getAnalyzerNames()", () => {
     it("should return array of analyzer names", async () => {
-      await registry.initialize();
-      const names = registry.getAnalyzerNames();
+      const names = await registry.getAnalyzerNames();
       expect(Array.isArray(names)).toBe(true);
       expect(names.length).toBeGreaterThan(0);
     });
 
     it("should include 'cbm' in the list", async () => {
-      await registry.initialize();
-      const names = registry.getAnalyzerNames();
+      const names = await registry.getAnalyzerNames();
       expect(names).toContain("cbm");
     });
 
-    it("should throw CLIError if not initialized", () => {
+    it("should auto-initialize the registry", async () => {
       // Create a fresh registry instance that hasn't been initialized
       AnalyzerRegistry.resetForTesting();
       const newRegistry = AnalyzerRegistry.getInstance();
 
-      // Before initialize(), getAnalyzerNames() should throw
-      expect(() => newRegistry.getAnalyzerNames()).toThrow();
+      // getAnalyzerNames() should auto-initialize and return names
+      const names = await newRegistry.getAnalyzerNames();
+      expect(Array.isArray(names)).toBe(true);
+      expect(names.length).toBeGreaterThan(0);
     });
   });
 
   describe("initialize()", () => {
     it("should load the manifest successfully", async () => {
       await registry.initialize();
-      const names = registry.getAnalyzerNames();
+      const names = await registry.getAnalyzerNames();
       expect(names.length).toBeGreaterThan(0);
     });
 
     it("should be idempotent", async () => {
       await registry.initialize();
       await registry.initialize(); // Should not throw
-      const names = registry.getAnalyzerNames();
+      const names = await registry.getAnalyzerNames();
       expect(names.length).toBeGreaterThan(0);
     });
   });
