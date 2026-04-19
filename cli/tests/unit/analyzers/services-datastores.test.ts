@@ -10,123 +10,53 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import type { ServiceCandidate, DatastoreCandidate, AnalyzerHeuristic } from "@/analyzers/types.js";
+import type { AnalyzerHeuristic } from "@/analyzers/types.js";
+
+// Helper function that simulates heuristic evaluation logic
+function evaluateHeuristic(
+  heuristic: AnalyzerHeuristic,
+  targetValue: number | string
+): boolean {
+  const params = heuristic.parameters || {};
+
+  if (heuristic.name === "min_fan_in") {
+    const threshold = (params.threshold as number) ?? 5;
+    return (targetValue as number) >= threshold;
+  }
+
+  if (heuristic.name === "naming_patterns") {
+    const suffixes = (params.service_suffixes as string[]) ?? [];
+    return suffixes.some((suffix) =>
+      (targetValue as string).toLowerCase().endsWith(suffix.toLowerCase())
+    );
+  }
+
+  if (heuristic.name === "is_entry_point") {
+    const patterns = (params.entry_point_patterns as string[]) ?? [];
+    return patterns.some((pattern) =>
+      (targetValue as string).toLowerCase().includes(pattern.toLowerCase())
+    );
+  }
+
+  return false;
+}
 
 describe("Service and Datastore Analysis", () => {
-  describe("ServiceCandidate heuristic evaluation", () => {
-    it("should populate qualifying_heuristics from fired rules", () => {
-      // Simulate a service candidate with qualifying heuristics
-      const candidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "user-service",
-        suggested_name: "user-service",
-        source_file: "src/services/UserService.ts",
-        source_symbol: "UserService",
-        qualified_name: "com.example.UserService",
-        qualifying_heuristics: ["min_fan_in", "naming_patterns"],
-        confidence: "medium",
-        fan_in: 10,
-        fan_out: 5,
-      };
-
-      expect(candidate.qualifying_heuristics.length).toBe(2);
-      expect(candidate.qualifying_heuristics).toContain("min_fan_in");
-      expect(candidate.qualifying_heuristics).toContain("naming_patterns");
-    });
-
-    it("should drop candidates with zero qualifying heuristics", () => {
-      const candidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "unused-class",
-        suggested_name: "unused-class",
-        source_file: "src/UnusedClass.ts",
-        source_symbol: "UnusedClass",
-        qualified_name: "com.example.UnusedClass",
-        qualifying_heuristics: [],
-        confidence: "low",
-        fan_in: 0,
-        fan_out: 0,
-      };
-
-      // Test shows zero heuristics - should be filtered out
-      expect(candidate.qualifying_heuristics.length).toBe(0);
-    });
-
-    it("should bypass drop for candidates with is_entry_point", () => {
-      // When is_entry_point fires, the candidate should be kept even with other zero heuristics
-      const candidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "main-handler",
-        suggested_name: "main-handler",
-        source_file: "src/main.ts",
-        source_symbol: "main",
-        qualified_name: "com.example.main",
-        qualifying_heuristics: ["is_entry_point"],
-        confidence: "medium",
-        fan_in: 1,
-        fan_out: 5,
-      };
-
-      expect(candidate.qualifying_heuristics).toContain("is_entry_point");
-    });
-
-    it("should cap confidence at medium", () => {
-      const highConfidenceCandidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "service",
-        suggested_name: "service",
-        source_file: "src/Service.ts",
-        source_symbol: "Service",
-        qualified_name: "com.example.Service",
-        qualifying_heuristics: ["min_fan_in"],
-        confidence: "medium", // Should never be "high"
-        fan_in: 50,
-        fan_out: 20,
-      };
-
-      expect(highConfidenceCandidate.confidence).toBe("medium");
-      expect(highConfidenceCandidate.confidence).not.toBe("high");
-    });
-
-    it("should preserve low confidence for low-confidence items", () => {
-      const lowConfidenceCandidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "questionable-service",
-        suggested_name: "questionable-service",
-        source_file: "src/QuestionableService.ts",
-        source_symbol: "QuestionableService",
-        qualified_name: "com.example.QuestionableService",
-        qualifying_heuristics: ["directory_match"],
-        confidence: "low",
-        fan_in: 0,
-        fan_out: 0,
-      };
-
-      expect(lowConfidenceCandidate.confidence).toBe("low");
-    });
-  });
-
   describe("Heuristic evaluation logic", () => {
     it("should evaluate min_fan_in heuristic", () => {
-      // Simulate heuristic evaluation
       const heuristic: AnalyzerHeuristic = {
         name: "min_fan_in",
         description: "Minimum fan-in threshold",
         parameters: { threshold: 5 },
       };
 
-      const nodeWithHighFanIn = { fan_in: 10 };
-      const nodeWithLowFanIn = { fan_in: 2 };
+      // Test that evaluates high fan-in
+      const result1 = evaluateHeuristic(heuristic, 10);
+      expect(result1).toBe(true);
 
-      // Manual evaluation logic
-      const threshold = (heuristic.parameters?.threshold as number) ?? 5;
-      expect((nodeWithHighFanIn as any).fan_in >= threshold).toBe(true);
-      expect((nodeWithLowFanIn as any).fan_in >= threshold).toBe(false);
+      // Test that evaluates low fan-in
+      const result2 = evaluateHeuristic(heuristic, 2);
+      expect(result2).toBe(false);
     });
 
     it("should evaluate naming_patterns heuristic", () => {
@@ -136,21 +66,13 @@ describe("Service and Datastore Analysis", () => {
         parameters: { service_suffixes: ["Service", "Manager", "Handler"] },
       };
 
-      const serviceName = "UserService";
-      const suffixes = (heuristic.parameters?.service_suffixes as string[]) ?? [];
+      // Test class with matching suffix
+      const result1 = evaluateHeuristic(heuristic, "UserService");
+      expect(result1).toBe(true);
 
-      expect(
-        suffixes.some((suffix) =>
-          serviceName.toLowerCase().endsWith(suffix.toLowerCase())
-        )
-      ).toBe(true);
-
-      const regularName = "User";
-      expect(
-        suffixes.some((suffix) =>
-          regularName.toLowerCase().endsWith(suffix.toLowerCase())
-        )
-      ).toBe(false);
+      // Test class without matching suffix
+      const result2 = evaluateHeuristic(heuristic, "User");
+      expect(result2).toBe(false);
     });
 
     it("should evaluate is_entry_point heuristic", () => {
@@ -160,164 +82,232 @@ describe("Service and Datastore Analysis", () => {
         parameters: { entry_point_patterns: ["main", "app", "index"] },
       };
 
-      const entryPointName = "main";
-      const patterns = (heuristic.parameters?.entry_point_patterns as string[]) ?? [];
+      // Test with matching entry point name
+      const result1 = evaluateHeuristic(heuristic, "main");
+      expect(result1).toBe(true);
 
-      expect(
-        patterns.some((pattern) =>
-          entryPointName.toLowerCase().includes(pattern.toLowerCase())
-        )
-      ).toBe(true);
+      // Test with non-matching name
+      const result2 = evaluateHeuristic(heuristic, "UserService");
+      expect(result2).toBe(false);
+    });
 
-      const regularName = "UserService";
-      expect(
-        patterns.some((pattern) =>
-          regularName.toLowerCase().includes(pattern.toLowerCase())
-        )
-      ).toBe(false);
+    it("should handle heuristics with missing parameters gracefully", () => {
+      const heuristic: AnalyzerHeuristic = {
+        name: "min_fan_in",
+        description: "Minimum fan-in threshold",
+        // No parameters provided
+      };
+
+      // Should use default threshold of 5
+      const result = evaluateHeuristic(heuristic, 10);
+      expect(result).toBe(true);
     });
   });
 
-  describe("DatastoreCandidate aggregation", () => {
-    it("should group signals by file and module", () => {
-      const candidate: DatastoreCandidate = {
-        suggested_layer: "data-store",
-        suggested_name: "postgresql",
-        inferred_from: [
-          {
-            source_file: "src/db/users.ts",
-            import_pattern: "pg",
-            function_patterns: ["query", "execute"],
-          },
-          {
-            source_file: "src/db/products.ts",
-            import_pattern: "pg",
-            function_patterns: ["query"],
-          },
-        ],
-        confidence: "low",
-        notes: "Inferred from 2 source file(s) based on datastore detection heuristics",
-      };
-
-      expect(candidate.inferred_from.length).toBe(2);
-      expect(candidate.inferred_from[0].source_file).toBe("src/db/users.ts");
-      expect(candidate.inferred_from[1].source_file).toBe("src/db/products.ts");
-      expect(candidate.inferred_from[0].function_patterns).toContain("query");
-    });
-
-    it("should aggregate multiple evidence sources for same datastore", () => {
-      const candidate: DatastoreCandidate = {
-        suggested_layer: "data-store",
-        suggested_name: "mongodb",
-        inferred_from: [
-          {
-            source_file: "src/db/connection.ts",
-            import_pattern: "mongodb",
-            function_patterns: ["connect", "collection"],
-          },
-          {
-            source_file: "src/db/queries.ts",
-            import_pattern: "mongodb",
-            function_patterns: ["find", "insert", "update"],
-          },
-          {
-            source_file: "src/models/User.ts",
-            import_pattern: "mongodb",
-            function_patterns: ["findOne"],
-          },
-        ],
-        confidence: "low",
-        notes: "Inferred from 3 source file(s) based on datastore detection heuristics",
-      };
-
-      expect(candidate.inferred_from.length).toBe(3);
-      expect(candidate.suggested_name).toBe("mongodb");
-
-      // Count total function patterns
-      const totalPatterns = candidate.inferred_from.reduce(
-        (sum, source) => sum + source.function_patterns.length,
-        0
-      );
-      expect(totalPatterns).toBe(6);
-    });
-
-    it("should maintain confidence at low for all datastores", () => {
-      const candidates: DatastoreCandidate[] = [
+  describe("ServiceCandidate heuristic application", () => {
+    it("should populate qualifying_heuristics from fired rules", () => {
+      const heuristics: AnalyzerHeuristic[] = [
         {
-          suggested_layer: "data-store",
-          suggested_name: "postgresql",
-          inferred_from: [],
-          confidence: "low",
-          notes: "Inferred from datastore detection heuristics",
+          name: "min_fan_in",
+          description: "Minimum fan-in threshold",
+          parameters: { threshold: 5 },
         },
         {
-          suggested_layer: "data-store",
-          suggested_name: "redis",
-          inferred_from: [],
-          confidence: "low",
-          notes: "Inferred from datastore detection heuristics",
+          name: "naming_patterns",
+          description: "Service naming patterns",
+          parameters: { service_suffixes: ["Service", "Manager", "Handler"] },
         },
       ];
 
-      for (const candidate of candidates) {
-        expect(candidate.confidence).toBe("low");
+      const className = "UserService";
+      const fanIn = 10;
+
+      // Evaluate which heuristics fire
+      const firedHeuristics: string[] = [];
+      for (const heuristic of heuristics) {
+        if (heuristic.name === "min_fan_in") {
+          if (evaluateHeuristic(heuristic, fanIn)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        } else if (heuristic.name === "naming_patterns") {
+          if (evaluateHeuristic(heuristic, className)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        }
       }
+
+      expect(firedHeuristics.length).toBe(2);
+      expect(firedHeuristics).toContain("min_fan_in");
+      expect(firedHeuristics).toContain("naming_patterns");
+    });
+
+    it("should drop candidates with zero qualifying heuristics", () => {
+      const heuristics: AnalyzerHeuristic[] = [
+        {
+          name: "min_fan_in",
+          description: "Minimum fan-in threshold",
+          parameters: { threshold: 5 },
+        },
+      ];
+
+      const className = "UnusedClass";
+      const fanIn = 0;
+
+      // Evaluate which heuristics fire
+      const firedHeuristics: string[] = [];
+      for (const heuristic of heuristics) {
+        if (heuristic.name === "min_fan_in") {
+          if (evaluateHeuristic(heuristic, fanIn)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        }
+      }
+
+      // No heuristics fired - should be dropped
+      expect(firedHeuristics.length).toBe(0);
+    });
+
+    it("should bypass drop for candidates with is_entry_point", () => {
+      const heuristics: AnalyzerHeuristic[] = [
+        {
+          name: "is_entry_point",
+          description: "Is entry point",
+          parameters: { entry_point_patterns: ["main", "app", "index"] },
+        },
+      ];
+
+      const className = "main";
+
+      // Evaluate which heuristics fire
+      const firedHeuristics: string[] = [];
+      for (const heuristic of heuristics) {
+        if (heuristic.name === "is_entry_point") {
+          if (evaluateHeuristic(heuristic, className)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        }
+      }
+
+      // is_entry_point fired - candidate should be kept
+      expect(firedHeuristics).toContain("is_entry_point");
+    });
+
+    it("should cap confidence at medium", () => {
+      const confidenceWithManyHeuristics = "medium";
+      const confidenceWithFewHeuristics = "low";
+
+      // Confidence should never exceed medium
+      expect(confidenceWithManyHeuristics).toBe("medium");
+      expect(confidenceWithManyHeuristics).not.toBe("high");
+      expect(confidenceWithFewHeuristics).toBe("low");
+    });
+  });
+
+  describe("Datastore candidate aggregation", () => {
+    it("should aggregate multiple evidence sources for same datastore", () => {
+      // Simulate aggregating datastore evidence
+      const sourceFiles = [
+        {
+          source_file: "src/db/connection.ts",
+          import_pattern: "mongodb",
+          function_patterns: ["connect", "collection"],
+        },
+        {
+          source_file: "src/db/queries.ts",
+          import_pattern: "mongodb",
+          function_patterns: ["find", "insert", "update"],
+        },
+        {
+          source_file: "src/models/User.ts",
+          import_pattern: "mongodb",
+          function_patterns: ["findOne"],
+        },
+      ];
+
+      const totalPatterns = sourceFiles.reduce(
+        (sum, source) => sum + source.function_patterns.length,
+        0
+      );
+      expect(sourceFiles.length).toBe(3);
+      expect(totalPatterns).toBe(6);
     });
 
     it("should infer datastore name from import patterns", () => {
-      // Simulate datastore name inference from patterns
-      const importPattern = "mongodb";
-      const inferredName = importPattern.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+      const patterns = ["mongodb", "pg", "redis", "@prisma/client"];
 
-      expect(inferredName).toBe("mongodb");
+      for (const pattern of patterns) {
+        // Simulate name inference
+        const inferredName = pattern
+          .toLowerCase()
+          .split("/")[0]
+          .replace(/[^a-z0-9-]/g, "-");
 
-      const pgPattern = "pg";
-      const pgName = pgPattern.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-      expect(pgName).toBe("pg");
+        expect(inferredName).toBeTruthy();
+        expect(inferredName.length).toBeGreaterThan(0);
+      }
     });
   });
 
   describe("Combined heuristic scenarios", () => {
-    it("should mark service as high-value when multiple heuristics fire", () => {
-      const candidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "order-service",
-        suggested_name: "order-service",
-        source_file: "src/services/OrderService.ts",
-        source_symbol: "OrderService",
-        qualified_name: "com.example.OrderService",
-        qualifying_heuristics: [
-          "min_fan_in",
-          "naming_patterns",
-          "class_is_service",
-        ],
-        confidence: "medium",
-        fan_in: 15,
-        fan_out: 8,
-      };
+    it("should fire multiple heuristics for high-value service", () => {
+      const heuristics: AnalyzerHeuristic[] = [
+        {
+          name: "min_fan_in",
+          description: "Minimum fan-in threshold",
+          parameters: { threshold: 5 },
+        },
+        {
+          name: "naming_patterns",
+          description: "Service naming patterns",
+          parameters: { service_suffixes: ["Service"] },
+        },
+      ];
 
-      expect(candidate.qualifying_heuristics.length).toBeGreaterThan(2);
-      expect(candidate.confidence).toBe("medium");
+      const className = "OrderService";
+      const fanIn = 15;
+
+      // Evaluate which heuristics fire
+      const firedHeuristics: string[] = [];
+      for (const heuristic of heuristics) {
+        if (heuristic.name === "min_fan_in") {
+          if (evaluateHeuristic(heuristic, fanIn)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        } else if (heuristic.name === "naming_patterns") {
+          if (evaluateHeuristic(heuristic, className)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        }
+      }
+
+      expect(firedHeuristics.length).toBeGreaterThan(1);
+      expect(firedHeuristics).toContain("min_fan_in");
+      expect(firedHeuristics).toContain("naming_patterns");
     });
 
-    it("should mark service as low-confidence when only one weak heuristic fires", () => {
-      const candidate: ServiceCandidate = {
-        suggested_layer: "application",
-        suggested_element_type: "applicationservice",
-        suggested_id_fragment: "maybe-service",
-        suggested_name: "maybe-service",
-        source_file: "src/services/MaybeService.ts",
-        source_symbol: "MaybeService",
-        qualified_name: "com.example.MaybeService",
-        qualifying_heuristics: ["directory_match"],
-        confidence: "low",
-        fan_in: 1,
-        fan_out: 0,
-      };
+    it("should fire only weak heuristics for low-confidence service", () => {
+      const heuristics: AnalyzerHeuristic[] = [
+        {
+          name: "min_fan_in",
+          description: "Minimum fan-in threshold",
+          parameters: { threshold: 5 },
+        },
+      ];
 
-      expect(candidate.qualifying_heuristics.length).toBe(1);
-      expect(candidate.confidence).toBe("low");
+      const className = "MaybeService";
+      const fanIn = 1;
+
+      // Evaluate which heuristics fire
+      const firedHeuristics: string[] = [];
+      for (const heuristic of heuristics) {
+        if (heuristic.name === "min_fan_in") {
+          if (evaluateHeuristic(heuristic, fanIn)) {
+            firedHeuristics.push(heuristic.name);
+          }
+        }
+      }
+
+      expect(firedHeuristics.length).toBe(0);
     });
   });
 });

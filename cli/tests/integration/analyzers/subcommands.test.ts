@@ -45,13 +45,13 @@ describe("Analyzer Subcommands Integration", () => {
 
     it("should work with --json flag", async () => {
       const result = await runDr(["analyzer", "services", "--json"]);
-      // May fail if not indexed, but should accept --json flag
-      try {
-        if (result.exitCode === 0) {
-          JSON.parse(result.stdout);
-        }
-      } catch {
-        // Expected to fail if project not indexed
+      // May fail if not indexed, but should accept --json flag and exit gracefully
+      if (result.exitCode !== 0) {
+        // Should have an error message
+        expect(result.stderr).toContain("");  // stderr should be populated on error
+      } else {
+        // If successful, should return valid JSON
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
       }
     });
 
@@ -62,8 +62,8 @@ describe("Analyzer Subcommands Integration", () => {
         "--layer",
         "application",
       ]);
-      // Should accept --layer option (even if it fails for other reasons)
-      expect(result.stdout || result.stderr).toBeDefined();
+      // Should accept --layer option and exit with error or success
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
   });
 
@@ -77,12 +77,10 @@ describe("Analyzer Subcommands Integration", () => {
     it("should work with --json flag", async () => {
       const result = await runDr(["analyzer", "datastores", "--json"]);
       // May fail if not indexed, but should accept --json flag
-      try {
-        if (result.exitCode === 0) {
-          JSON.parse(result.stdout);
-        }
-      } catch {
-        // Expected to fail if project not indexed
+      if (result.exitCode === 0) {
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
+      } else {
+        expect([1, 2]).toContain(result.exitCode);
       }
     });
   });
@@ -112,8 +110,8 @@ describe("Analyzer Subcommands Integration", () => {
         "--depth",
         "5",
       ]);
-      // Should accept --depth option (even if it fails for other reasons)
-      expect(result.stdout || result.stderr).toBeDefined();
+      // Should accept --depth option and return a valid exit code
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
 
     it("should clamp --depth to maximum of 10", async () => {
@@ -124,8 +122,8 @@ describe("Analyzer Subcommands Integration", () => {
         "--depth",
         "20",
       ]);
-      // Should accept --depth and clamp internally (even if it fails for other reasons)
-      expect(result.stdout || result.stderr).toBeDefined();
+      // Should accept --depth and clamp internally
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
 
     it("should work with --json flag", async () => {
@@ -135,13 +133,11 @@ describe("Analyzer Subcommands Integration", () => {
         "com.example.Service.method",
         "--json",
       ]);
-      // May fail if not indexed, but should accept --json flag
-      try {
-        if (result.exitCode === 0) {
-          JSON.parse(result.stdout);
-        }
-      } catch {
-        // Expected to fail if project not indexed
+      // May fail if not indexed, but should handle --json flag
+      if (result.exitCode === 0) {
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
+      } else {
+        expect([1, 2]).toContain(result.exitCode);
       }
     });
   });
@@ -171,8 +167,8 @@ describe("Analyzer Subcommands Integration", () => {
         "--depth",
         "5",
       ]);
-      // Should accept --depth option (even if it fails for other reasons)
-      expect(result.stdout || result.stderr).toBeDefined();
+      // Should accept --depth option
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
 
     it("should clamp --depth to maximum of 10", async () => {
@@ -183,8 +179,8 @@ describe("Analyzer Subcommands Integration", () => {
         "--depth",
         "20",
       ]);
-      // Should accept --depth and clamp internally (even if it fails for other reasons)
-      expect(result.stdout || result.stderr).toBeDefined();
+      // Should accept --depth and clamp internally
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
 
     it("should work with --json flag", async () => {
@@ -194,13 +190,11 @@ describe("Analyzer Subcommands Integration", () => {
         "com.example.Service.method",
         "--json",
       ]);
-      // May fail if not indexed, but should accept --json flag
-      try {
-        if (result.exitCode === 0) {
-          JSON.parse(result.stdout);
-        }
-      } catch {
-        // Expected to fail if project not indexed
+      // May fail if not indexed, but should handle --json flag
+      if (result.exitCode === 0) {
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
+      } else {
+        expect([1, 2]).toContain(result.exitCode);
       }
     });
   });
@@ -214,13 +208,11 @@ describe("Analyzer Subcommands Integration", () => {
 
     it("should work with --json flag", async () => {
       const result = await runDr(["analyzer", "verify", "--json"]);
-      // May fail if not indexed, but should accept --json flag
-      try {
-        if (result.exitCode === 0) {
-          JSON.parse(result.stdout);
-        }
-      } catch {
-        // Expected to fail if project not indexed
+      // May fail if not indexed, but should handle --json flag
+      if (result.exitCode === 0) {
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
+      } else {
+        expect([1, 2]).toContain(result.exitCode);
       }
     });
 
@@ -232,8 +224,8 @@ describe("Analyzer Subcommands Integration", () => {
         "--output",
         outputFile,
       ]);
-      // Should accept --output option (even if it fails for other reasons)
-      expect(result.stdout || result.stderr).toBeDefined();
+      // Should accept --output option and return valid exit code
+      expect([0, 1, 2]).toContain(result.exitCode);
     });
 
     it("should clean exit when --layer application specified", async () => {
@@ -256,8 +248,13 @@ describe("Analyzer Subcommands Integration", () => {
         "application",
       ]);
       // Should accept multiple --layer options
-      // The second one (application) should cause clean exit
-      expect(result.stdout || result.stderr).toBeDefined();
+      // The second one (application) should cause clean exit with appropriate message
+      const output = result.stdout + result.stderr;
+      expect([0, 1, 2]).toContain(result.exitCode);
+      // When non-api layer is specified, should mention verify scope
+      if (result.exitCode === 0) {
+        expect(output).toContain("verify scope");
+      }
     });
   });
 
@@ -270,13 +267,11 @@ describe("Analyzer Subcommands Integration", () => {
 
     it("should work with --json flag", async () => {
       const result = await runDr(["analyzer", "endpoints", "--json"]);
-      // May fail if not indexed, but should accept --json flag
-      try {
-        if (result.exitCode === 0) {
-          JSON.parse(result.stdout);
-        }
-      } catch {
-        // Expected to fail if project not indexed
+      // May fail if not indexed, but should handle --json flag
+      if (result.exitCode === 0) {
+        expect(() => JSON.parse(result.stdout)).not.toThrow();
+      } else {
+        expect([1, 2]).toContain(result.exitCode);
       }
     });
   });

@@ -12,14 +12,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
-import * as path from "path";
-import { fileURLToPath } from "url";
-import { VerifyEngine, type DiscoveredRoute } from "@/analyzers/verify-engine.js";
-import { Model } from "@/core/model.js";
 import { spawnSync } from "child_process";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { VerifyEngine, type DiscoveredRoute } from "@/analyzers/verify-engine.js";
 
 let testProjectRoot: string = "";
 
@@ -376,10 +370,10 @@ get-users:
   describe("Layer filtering", () => {
     it("should handle --layer application with clean message", async () => {
       // Create minimal model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
       await mkdir(modelDir, { recursive: true });
 
-      const manifestPath = join(modelDir, "manifest.yaml");
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
       await writeFile(
         manifestPath,
         `project:
@@ -388,17 +382,21 @@ get-users:
 spec_version: "0.8.3"`
       );
 
-      // Note: This test simulates the layer filtering behavior in the CLI
-      // The verify subcommand should output "verify scope v1 only supports api layer"
-      // when --layer is anything other than api
+      // Create empty API layer
+      await writeFile(join(modelDir, "operations.yaml"), "");
 
-      const nonApiLayers = ["application", "business", "technology"];
+      // Test that verify engine/subcommand handles non-api layers gracefully
+      // The verify engine should only process api layer, so no routes will be verified
+      const routes: DiscoveredRoute[] = [];
 
-      for (const layer of nonApiLayers) {
-        // Verify that unsupported layers produce expected message
-        // In the actual CLI, this would be: console.log("verify scope v1 only supports api layer")
-        expect(layer).not.toBe("api");
-      }
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // With no routes, report should have empty buckets
+      expect(report.buckets.matched.length).toBe(0);
+      expect(report.buckets.in_graph_only.length).toBe(0);
     });
   });
 

@@ -8,165 +8,369 @@
  * - Correct changeset_context for both base-model and changeset-view paths
  */
 
-import { describe, it, expect } from "bun:test";
-import type {
-  VerifyBuckets,
-  MatchedEntry,
-  GraphOnlyEntry,
-  ModelOnlyEntry,
-  IgnoredEntry,
-} from "@/analyzers/types.js";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { mkdir, writeFile, rm } from "fs/promises";
+import { join } from "path";
+import { spawnSync } from "child_process";
+import { VerifyEngine, type DiscoveredRoute } from "@/analyzers/verify-engine.js";
+
+let testProjectRoot: string = "";
 
 describe("VerifyEngine - Bucket Computation", () => {
-  describe("Dual-index matching logic", () => {
-    it("should match by primary index (file:symbol)", () => {
-      // Simulate primary index lookup
-      const primaryIndex = new Map<string, { id: string; source_file: string; source_symbol: string }>();
-      primaryIndex.set("src/handlers/users.ts:getUsers", {
-        id: "api.operation.get-users",
-        source_file: "src/handlers/users.ts",
-        source_symbol: "getUsers",
-      });
+  beforeEach(async () => {
+    // Create temporary test project
+    testProjectRoot = `/tmp/verify-unit-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    await mkdir(testProjectRoot, { recursive: true });
 
-      const route = {
-        source_file: "src/handlers/users.ts",
-        source_symbol: "getUsers",
-      };
-
-      const key = `${route.source_file}:${route.source_symbol}`;
-      const primaryMatch = primaryIndex.get(key);
-
-      expect(primaryMatch).toBeDefined();
-      expect(primaryMatch?.id).toBe("api.operation.get-users");
+    // Initialize git repository
+    spawnSync("git", ["init"], { cwd: testProjectRoot, stdio: "pipe" });
+    spawnSync("git", ["config", "user.email", "test@example.com"], {
+      cwd: testProjectRoot,
+      stdio: "pipe",
+    });
+    spawnSync("git", ["config", "user.name", "Test User"], {
+      cwd: testProjectRoot,
+      stdio: "pipe",
     });
 
-    it("should match by secondary index (http_method:http_path)", () => {
-      const secondaryIndex = new Map<string, { id: string; http_method: string; http_path: string }>();
-      secondaryIndex.set("GET:/users", {
-        id: "api.operation.get-users",
-        http_method: "GET",
-        http_path: "/users",
-      });
-
-      const route = {
-        http_method: "GET",
-        http_path: "/users",
-      };
-
-      const key = `${route.http_method}:${route.http_path}`;
-      const secondaryMatch = secondaryIndex.get(key);
-
-      expect(secondaryMatch).toBeDefined();
-      expect(secondaryMatch?.id).toBe("api.operation.get-users");
-    });
-
-    it("should prefer primary index over secondary", () => {
-      const primaryIndex = new Map<string, string>();
-      primaryIndex.set("src/file.ts:symbol", "api.operation.primary-match");
-
-      const secondaryIndex = new Map<string, string>();
-      secondaryIndex.set("GET:/users", "api.operation.secondary-match");
-
-      const route = {
-        source_file: "src/file.ts",
-        source_symbol: "symbol",
-        http_method: "GET",
-        http_path: "/users",
-      };
-
-      let matchedId: string | undefined;
-
-      // Try primary first
-      if (route.source_file && route.source_symbol) {
-        const key = `${route.source_file}:${route.source_symbol}`;
-        matchedId = primaryIndex.get(key);
-      }
-
-      // Fallback to secondary
-      if (!matchedId && route.http_method && route.http_path) {
-        const key = `${route.http_method}:${route.http_path}`;
-        matchedId = secondaryIndex.get(key);
-      }
-
-      expect(matchedId).toBe("api.operation.primary-match");
-    });
-
-    it("should fallback to secondary when primary doesn't match", () => {
-      const primaryIndex = new Map<string, string>();
-      primaryIndex.set("src/other.ts:symbol", "api.operation.other");
-
-      const secondaryIndex = new Map<string, string>();
-      secondaryIndex.set("GET:/users", "api.operation.secondary-match");
-
-      const route = {
-        source_file: "src/file.ts",
-        source_symbol: "symbol",
-        http_method: "GET",
-        http_path: "/users",
-      };
-
-      let matchedId: string | undefined;
-
-      // Try primary first
-      if (route.source_file && route.source_symbol) {
-        const key = `${route.source_file}:${route.source_symbol}`;
-        matchedId = primaryIndex.get(key);
-      }
-
-      // Fallback to secondary
-      if (!matchedId && route.http_method && route.http_path) {
-        const key = `${route.http_method}:${route.http_path}`;
-        matchedId = secondaryIndex.get(key);
-      }
-
-      expect(matchedId).toBe("api.operation.secondary-match");
-    });
-
-    it("should not match if neither index has entry", () => {
-      const primaryIndex = new Map<string, string>();
-      const secondaryIndex = new Map<string, string>();
-
-      const route = {
-        source_file: "src/unknown.ts",
-        source_symbol: "unknown",
-        http_method: "GET",
-        http_path: "/unknown",
-      };
-
-      let matchedId: string | undefined;
-
-      if (route.source_file && route.source_symbol) {
-        const key = `${route.source_file}:${route.source_symbol}`;
-        matchedId = primaryIndex.get(key);
-      }
-
-      if (!matchedId && route.http_method && route.http_path) {
-        const key = `${route.http_method}:${route.http_path}`;
-        matchedId = secondaryIndex.get(key);
-      }
-
-      expect(matchedId).toBeUndefined();
+    // Create initial commit
+    await writeFile(join(testProjectRoot, "README.md"), "# Test Project\n");
+    spawnSync("git", ["add", "."], { cwd: testProjectRoot, stdio: "pipe" });
+    spawnSync("git", ["commit", "-m", "Initial commit"], {
+      cwd: testProjectRoot,
+      stdio: "pipe",
     });
   });
 
-  describe("Bucket computation", () => {
-    it("should compute matched bucket from successful index lookups", () => {
-      const matched: MatchedEntry[] = [
+  afterEach(async () => {
+    try {
+      if (testProjectRoot && testProjectRoot.startsWith("/tmp/")) {
+        await rm(testProjectRoot, { recursive: true, force: true });
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  describe("Dual-index matching logic", () => {
+    it("should match by primary index (file:symbol)", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with operation having source reference
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+    source_reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/handlers/users.ts"
+          symbol: "getUsers"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      // Discovered route matching by primary index
+      const routes: DiscoveredRoute[] = [
         {
-          id: "api.operation.get-users",
-          type: "operation",
+          id: "route-1",
           source_file: "src/handlers/users.ts",
           source_symbol: "getUsers",
         },
       ];
 
-      expect(matched.length).toBe(1);
-      expect(matched[0].id).toBe("api.operation.get-users");
-      expect(matched[0].type).toBe("operation");
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // Should match via primary index (file:symbol)
+      expect(report.buckets.matched.length).toBe(1);
+      // The matched entry should have the operation type
+      expect(report.buckets.matched[0].type).toBe("operation");
     });
 
-    it("should compute in_graph_only bucket from unmatched routes", () => {
-      const inGraphOnly: GraphOnlyEntry[] = [
+    it("should match by secondary index (http_method:http_path)", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with operation (no source reference, will use secondary index)
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      // Discovered route matching by secondary index
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // Should match via secondary index (http_method:http_path)
+      expect(report.buckets.matched.length).toBe(1);
+      expect(report.buckets.matched[0].type).toBe("operation");
+    });
+
+    it("should prefer primary index over secondary", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with both source reference and http attributes
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+    source_reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/handlers/users.ts"
+          symbol: "getUsers"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      // Discovered route with both primary and secondary index keys
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+          source_file: "src/handlers/users.ts",
+          source_symbol: "getUsers",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // Should use primary index
+      expect(report.buckets.matched.length).toBe(1);
+      expect(report.buckets.matched[0].type).toBe("operation");
+    });
+
+    it("should fallback to secondary when primary doesn't match", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with both endpoints
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+    source_reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/handlers/other.ts"
+          symbol: "getUsers"
+
+post-users:
+  id: "api.operation.post-users"
+  path: "api.operation.post-users"
+  type: "operation"
+  name: "Create User"
+  layer_id: "api"
+  attributes:
+    http_method: "POST"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      // Discovered route that doesn't match primary index but matches secondary
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "POST",
+          http_path: "/users",
+          source_file: "src/handlers/users.ts",
+          source_symbol: "createUser",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // Should fall back to secondary index
+      expect(report.buckets.matched.length).toBe(1);
+      expect(report.buckets.matched[0].type).toBe("operation");
+    });
+
+    it("should not match if neither index has entry", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create empty API layer
+      await writeFile(join(modelDir, "operations.yaml"), "");
+
+      // Discovered route with no matching model element
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/unknown",
+          source_file: "src/handlers/unknown.ts",
+          source_symbol: "unknown",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // Should be in_graph_only since no match
+      expect(report.buckets.in_graph_only.length).toBe(1);
+      expect(report.buckets.matched.length).toBe(0);
+    });
+  });
+
+  describe("Bucket computation", () => {
+    it("should compute matched bucket from successful index lookups", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with operation
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      expect(report.buckets.matched.length).toBe(1);
+      expect(report.buckets.matched[0].type).toBe("operation");
+    });
+
+    it("should compute in_graph_only bucket from unmatched routes", async () => {
+      // Create minimal model structure (no API layer)
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(modelDir, "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      const routes: DiscoveredRoute[] = [
         {
           id: "route-unmapped-1",
           http_method: "POST",
@@ -183,256 +387,94 @@ describe("VerifyEngine - Bucket Computation", () => {
         },
       ];
 
-      expect(inGraphOnly.length).toBe(2);
-      expect(inGraphOnly[0].http_method).toBe("POST");
-      expect(inGraphOnly[1].http_path).toBe("/users/:id");
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      expect(report.buckets.in_graph_only.length).toBe(2);
+      expect(report.buckets.in_graph_only[0].http_method).toBe("POST");
+      expect(report.buckets.in_graph_only[1].http_path).toBe("/users/:id");
     });
 
-    it("should compute in_model_only bucket from unmatched elements with existing files", () => {
-      const inModelOnly: ModelOnlyEntry[] = [
-        {
-          id: "api.operation.get-products",
-          type: "operation",
-          source_file: "src/handlers/products.ts",
-          source_symbol: "ProductsHandler.getProducts",
-        },
-      ];
+    it("should compute in_model_only bucket from unmatched elements", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
 
-      expect(inModelOnly.length).toBe(1);
-      expect(inModelOnly[0].id).toBe("api.operation.get-products");
-      expect(inModelOnly[0].source_file).toBe("src/handlers/products.ts");
-    });
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
 
-    it("should compute ignored bucket from matched ignore rules", () => {
-      const ignored: IgnoredEntry[] = [
-        {
-          id: "route-health",
-          entry_type: "route",
-          reason: "Health check endpoints ignored",
-        },
-        {
-          id: "api.operation.admin-status",
-          entry_type: "element",
-          reason: "Admin endpoints ignored",
-        },
-      ];
+      // Create handler files
+      const handlersDir = join(testProjectRoot, "src", "handlers");
+      await mkdir(handlersDir, { recursive: true });
+      await writeFile(join(handlersDir, "products.ts"), "export class ProductsHandler {}");
 
-      expect(ignored.length).toBe(2);
-      expect(ignored[0].entry_type).toBe("route");
-      expect(ignored[1].entry_type).toBe("element");
-      expect(ignored[0].reason).toBe("Health check endpoints ignored");
-    });
-  });
+      // Create API layer with operation
+      const apiYaml = `
+get-products:
+  id: "api.operation.get-products"
+  path: "api.operation.get-products"
+  type: "operation"
+  name: "Get Products"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/products"
+    source_reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/handlers/products.ts"
+          symbol: "ProductsHandler.getProducts"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
-  describe("File-existence filtering for in_model_only", () => {
-    it("should include elements from existing files", () => {
-      const existsResults = [true, true, false];
-      const elementsToCheck = [
-        { id: "op1", file: "src/file1.ts", symbol: "handler1" },
-        { id: "op2", file: "src/file2.ts", symbol: "handler2" },
-        { id: "op3", file: "src/nonexistent.ts", symbol: "handler3" },
-      ];
+      // No routes discovered
+      const routes: DiscoveredRoute[] = [];
 
-      const inModelOnly: ModelOnlyEntry[] = [];
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
 
-      for (let i = 0; i < elementsToCheck.length; i++) {
-        if (existsResults[i]) {
-          const elem = elementsToCheck[i];
-          inModelOnly.push({
-            id: elem.id,
-            type: "operation",
-            source_file: elem.file,
-            source_symbol: elem.symbol,
-          });
-        }
-      }
-
-      expect(inModelOnly.length).toBe(2);
-      expect(inModelOnly[0].id).toBe("op1");
-      expect(inModelOnly[1].id).toBe("op2");
-    });
-
-    it("should exclude elements from non-existing files", () => {
-      const fileExists = false;
-      const element = {
-        id: "api.operation.deleted-endpoint",
-        file: "src/deleted-handler.ts",
-        symbol: "handler",
-      };
-
-      const inModelOnly: ModelOnlyEntry[] = [];
-
-      if (fileExists) {
-        inModelOnly.push({
-          id: element.id,
-          type: "operation",
-          source_file: element.file,
-          source_symbol: element.symbol,
-        });
-      }
-
-      expect(inModelOnly.length).toBe(0);
-    });
-
-    it("should skip elements without source_reference file", () => {
-      const elementsToCheck: Array<{
-        id: string;
-        file?: string;
-        symbol: string;
-      }> = [
-        { id: "op1", file: "src/handler.ts", symbol: "handler" },
-        { id: "op2", symbol: "no-file" }, // No file property
-        { id: "op3", file: "", symbol: "empty-file" }, // Empty file
-      ];
-
-      const inModelOnly: ModelOnlyEntry[] = [];
-
-      for (const elem of elementsToCheck) {
-        if (elem.file) {
-          inModelOnly.push({
-            id: elem.id,
-            type: "operation",
-            source_file: elem.file,
-            source_symbol: elem.symbol,
-          });
-        }
-      }
-
-      expect(inModelOnly.length).toBe(1);
-      expect(inModelOnly[0].id).toBe("op1");
+      expect(report.buckets.in_model_only.length).toBe(1);
+      expect(report.buckets.in_model_only[0].type).toBe("operation");
+      expect(report.buckets.in_model_only[0].source_file).toBe("src/handlers/products.ts");
     });
   });
 
   describe("Changeset context determination", () => {
-    it("should set verified_against to base_model when changesetAware is false", () => {
-      const changesetAware = false;
-      const activeChangesetId: string | null = "changeset-123";
+    it("should set verified_against to base_model when no active changeset", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
 
-      const verifiedAgainst =
-        changesetAware && activeChangesetId !== null
-          ? "changeset_view"
-          : "base_model";
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
 
-      expect(verifiedAgainst).toBe("base_model");
-    });
+      await writeFile(join(modelDir, "operations.yaml"), "");
 
-    it("should set verified_against to base_model when no active changeset", () => {
-      const changesetAware = true;
-      const activeChangesetId: string | null = null;
+      const routes: DiscoveredRoute[] = [];
 
-      const verifiedAgainst =
-        changesetAware && activeChangesetId !== null
-          ? "changeset_view"
-          : "base_model";
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
 
-      expect(verifiedAgainst).toBe("base_model");
-    });
-
-    it("should set verified_against to changeset_view when changeset active", () => {
-      const changesetAware = true;
-      const activeChangesetId: string | null = "changeset-123";
-
-      const verifiedAgainst =
-        changesetAware && activeChangesetId !== null
-          ? "changeset_view"
-          : "base_model";
-
-      expect(verifiedAgainst).toBe("changeset_view");
-    });
-
-    it("should set active_changeset to null when no active changeset", () => {
-      const changesetAware = true;
-      const activeChangesetId: string | null = null;
-
-      const activChangeset = changesetAware ? activeChangesetId : null;
-
-      expect(activChangeset).toBeNull();
-    });
-
-    it("should set active_changeset to changeset ID when active", () => {
-      const changesetAware = true;
-      const activeChangesetId: string | null = "changeset-456";
-
-      const activChangeset = changesetAware ? activeChangesetId : null;
-
-      expect(activChangeset).toBe("changeset-456");
-    });
-
-    it("should set active_changeset to null when changesetAware is false", () => {
-      const changesetAware = false;
-      const activeChangesetId: string | null = "changeset-789";
-
-      const activChangeset = changesetAware ? activeChangesetId : null;
-
-      expect(activChangeset).toBeNull();
-    });
-  });
-
-  describe("Summary computation", () => {
-    it("should compute correct summary counts", () => {
-      const buckets: VerifyBuckets = {
-        matched: [
-          {
-            id: "op1",
-            type: "operation",
-            source_file: "src/file1.ts",
-            source_symbol: "handler1",
-          },
-        ],
-        in_graph_only: [
-          {
-            id: "route1",
-            http_method: "POST",
-            http_path: "/users",
-            source_file: "src/file.ts",
-            source_symbol: "handler",
-          },
-          {
-            id: "route2",
-            http_method: "DELETE",
-            http_path: "/users/:id",
-            source_file: "src/file.ts",
-            source_symbol: "handler2",
-          },
-        ],
-        in_model_only: [
-          {
-            id: "op2",
-            type: "operation",
-            source_file: "src/file2.ts",
-            source_symbol: "handler2",
-          },
-        ],
-        ignored: [
-          {
-            id: "ignored1",
-            entry_type: "route",
-            reason: "Test",
-          },
-        ],
-      };
-
-      const matchedCount = buckets.matched.length;
-      const inGraphOnlyCount = buckets.in_graph_only.length;
-      const inModelOnlyCount = buckets.in_model_only.length;
-      const ignoredCount = buckets.ignored.length;
-
-      const totalRoutesAnalyzed =
-        buckets.matched.length +
-        buckets.in_graph_only.length +
-        buckets.ignored.length;
-
-      const totalElementsAnalyzed =
-        buckets.matched.length +
-        buckets.in_model_only.length +
-        buckets.ignored.filter((e) => e.entry_type === "element").length;
-
-      expect(matchedCount).toBe(1);
-      expect(inGraphOnlyCount).toBe(2);
-      expect(inModelOnlyCount).toBe(1);
-      expect(ignoredCount).toBe(1);
-      expect(totalRoutesAnalyzed).toBe(4);
-      expect(totalElementsAnalyzed).toBe(2);
+      expect(report.changeset_context.verified_against).toBe("base_model");
+      expect(report.changeset_context.active_changeset).toBeNull();
     });
   });
 });
