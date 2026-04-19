@@ -187,10 +187,18 @@ export class StdioClient {
 
       try {
         const line = JSON.stringify(request) + "\n";
-        if (!this.proc!.stdin!.write(line)) {
+        // Explicit null checks to prevent race condition with exit handler
+        if (!this.proc || !this.proc.stdin) {
+          clearTimeout(timeoutHandle);
+          this.pendingRequests.delete(id);
+          reject(new Error("Process or stdin closed before write could complete"));
+          return;
+        }
+
+        if (!this.proc.stdin.write(line)) {
           // Write returned false (backpressure), but data is already in the buffer.
           // No action needed — the data will be flushed automatically.
-          this.proc!.stdin!.once("drain", () => {
+          this.proc.stdin.once("drain", () => {
             // Drain event listener registered but no action needed
           });
         }
@@ -252,7 +260,7 @@ export class StdioClient {
         procToClose.kill("SIGTERM");
 
         // Schedule SIGKILL fallback after 1 second if process doesn't exit
-        setTimeout(() => {
+        const killTimer = setTimeout(() => {
           // Check if process has actually exited (exitCode is non-null once exit event fires)
           if (procToClose.exitCode === null) {
             try {
@@ -262,6 +270,9 @@ export class StdioClient {
             }
           }
         }, 1000);
+
+        // Unreference the timer so it doesn't keep the event loop alive
+        killTimer.unref();
       }
     } catch (error) {
       // Ignore errors during shutdown
@@ -292,7 +303,12 @@ export class StdioClient {
     const pending = this.pendingRequests.get(msgId);
 
     if (!pending) {
-      // Ignore responses for unknown requests
+      // Log diagnostic information for unmatched response IDs
+      console.warn(
+        `Received response with unmatched ID ${msgId} (type: ${typeof msgId}). ` +
+        `Pending request IDs: [${Array.from(this.pendingRequests.keys()).join(", ")}]. ` +
+        `This may indicate a type mismatch or stale response.`
+      );
       return;
     }
 
