@@ -258,9 +258,16 @@ export function categorizeError(error: unknown): ErrorCategory {
   // Check for system errors using stable error.code
   if (error instanceof Error && "code" in error) {
     const code = (error as NodeJS.ErrnoException).code;
-    const SYSTEM_ERROR_CODES = new Set(["EACCES", "ENOSPC", "EIO", "EROFS", "EPERM"]);
-    if (typeof code === "string" && SYSTEM_ERROR_CODES.has(code)) {
-      return ErrorCategory.SYSTEM;
+    if (typeof code === "string") {
+      // File not found errors should map to NOT_FOUND category
+      if (code === "ENOENT") {
+        return ErrorCategory.NOT_FOUND;
+      }
+      // Other system-level errors
+      const SYSTEM_ERROR_CODES = new Set(["EACCES", "ENOSPC", "EIO", "EROFS", "EPERM"]);
+      if (SYSTEM_ERROR_CODES.has(code)) {
+        return ErrorCategory.SYSTEM;
+      }
     }
   }
 
