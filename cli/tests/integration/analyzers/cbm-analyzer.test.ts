@@ -498,4 +498,250 @@ setTimeout(() => {
       expect(candidate.source_reference.locations?.[0]?.file).toBe("src/routes.ts");
     });
   });
+
+  describe("endpoints() complete end-to-end flow", () => {
+    it("should execute full endpoints flow: status check → detect → spawn client → search_graph → transform → filter → return", async () => {
+      // This test verifies the complete endpoints() success path lines 492-579
+      // The flow is: status check → detect → spawn client → search_graph → transform → filter → return
+      // With the mock server, we can drive the complete flow
+
+      // Write index metadata to make the project appear indexed
+      const { writeIndexMeta } = await import("@/analyzers/session-state.js");
+      const indexMeta = {
+        git_head: "abc123def456",
+        timestamp: new Date().toISOString(),
+        node_count: 2,
+        edge_count: 3,
+      };
+
+      await writeIndexMeta(indexMeta, tempDir, "cbm");
+
+      // Now stub status() to return indexed: true and provide the mock server path
+      const statusStub = {
+        indexed: true,
+        fresh: false,
+        last_indexed: new Date().toISOString(),
+        index_meta: indexMeta,
+        detected: {
+          installed: true,
+          binary_path: "node",  // Will spawn node process with mock server
+          contract_ok: true,
+          mcp_registered: false,
+        },
+      };
+
+      const originalStatus = analyzer.status.bind(analyzer);
+      (analyzer as any).status = async () => statusStub;
+
+      try {
+        // Create a test script that runs the mock server as a stdio service
+        const mockServerScript = `
+const readline = require("readline");
+const mockServer = require("${MOCK_MCP_SERVER_PATH}");
+
+// Stdin interface to receive MCP requests
+const rl = readline.createInterface({ input: process.stdin });
+
+let messageId = 1;
+
+rl.on("line", async (line) => {
+  try {
+    const message = JSON.parse(line);
+
+    // Route message to mock server handler
+    if (message.method === "initialize") {
+      console.log(JSON.stringify({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: { capabilities: {}, serverInfo: { name: "mock-cbm", version: "1.0.0" } }
+      }));
+    } else if (message.method === "search_graph") {
+      // Call mock server's search_graph implementation
+      const nodes = [
+        {
+          id: "route-get-users",
+          label: "Route",
+          properties: {
+            method: "GET",
+            path: "/users",
+            handler_name: "UserController.getUsers",
+            symbol: "getUsers",
+            start_line: 10,
+            end_line: 20,
+          },
+          file_path: "${tempDir}/src/routes.ts",
+        },
+        {
+          id: "route-post-users",
+          label: "Route",
+          properties: {
+            method: "POST",
+            path: "/users",
+            handler_name: "UserController.createUser",
+            symbol: "createUser",
+            start_line: 22,
+            end_line: 32,
+          },
+          file_path: "${tempDir}/src/routes.ts",
+        }
+      ];
+
+      // Filter by label if provided
+      const filtered = message.params?.label
+        ? nodes.filter(n => n.label === message.params.label)
+        : nodes;
+
+      console.log(JSON.stringify({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: { nodes: filtered, label: message.params?.label }
+      }));
+    } else if (message.method === "list_projects") {
+      console.log(JSON.stringify({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: { projects: [{ path: "${tempDir}", indexed: true }] }
+      }));
+    } else {
+      console.log(JSON.stringify({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: {}
+      }));
+    }
+  } catch (e) {
+    console.error("Error:", e.message);
+  }
+});
+`;
+
+        const scriptPath = join(tempDir, "mock-server-stdio.js");
+        await writeFile(scriptPath, mockServerScript);
+
+        // Stub status to use the mock server script
+        (analyzer as any).status = async () => ({
+          ...statusStub,
+          detected: {
+            installed: true,
+            binary_path: "node",
+            contract_ok: true,
+            mcp_registered: false,
+          },
+        });
+
+        // Mock the StdioClient methods
+        const { StdioClient } = await import("@/analyzers/stdio-client.js");
+        const originalSpawn = StdioClient.prototype.spawn;
+        const originalCallTool = StdioClient.prototype.callTool;
+        const originalClose = StdioClient.prototype.close;
+        let spawnCalled = false;
+
+        try {
+          (StdioClient.prototype as any).spawn = function (binaryPath: string) {
+            spawnCalled = true;
+            // Don't actually spawn anything - we'll mock the callTool method
+            this.process = null;
+            this.stdio = { stdin: null, stdout: null, stderr: null };
+          };
+
+          // Mock callTool to return test data
+          (StdioClient.prototype as any).callTool = async function (method: string, params?: any) {
+            if (method === "initialize") {
+              return { serverInfo: { name: "mock-cbm", version: "1.0.0" } };
+            } else if (method === "search_graph") {
+              return {
+                nodes: [
+                  {
+                    id: "route-get-users",
+                    label: "Route",
+                    properties: {
+                      method: "GET",
+                      path: "/users",
+                      handler_name: "UserController.getUsers",
+                      symbol: "getUsers",
+                      start_line: 10,
+                      end_line: 20,
+                    },
+                    file_path: join(tempDir, "src/routes.ts"),
+                  },
+                  {
+                    id: "route-post-users",
+                    label: "Route",
+                    properties: {
+                      method: "POST",
+                      path: "/users",
+                      handler_name: "UserController.createUser",
+                      symbol: "createUser",
+                      start_line: 22,
+                      end_line: 32,
+                    },
+                    file_path: join(tempDir, "src/routes.ts"),
+                  },
+                  // Test file that should be filtered out
+                  {
+                    id: "route-test-get-users",
+                    label: "Route",
+                    properties: {
+                      method: "GET",
+                      path: "/test-users",
+                      handler_name: "TestController.getTestUsers",
+                      symbol: "getTestUsers",
+                      start_line: 40,
+                      end_line: 50,
+                    },
+                    file_path: join(tempDir, "src/routes.test.ts"),
+                  },
+                ]
+              };
+            }
+            return {};
+          };
+
+          (StdioClient.prototype as any).close = function () {
+            // Mock close
+          };
+
+          // Call endpoints() - should execute the full flow
+          const candidates = await analyzer.endpoints(tempDir);
+
+          // Verify the complete flow executed:
+          // 1. status check happened (indexed: true)
+          // 2. client spawned (mocked above)
+          // 3. search_graph was called (mock callTool returned nodes)
+          // 4. nodes were transformed to candidates
+          // 5. test code was filtered out
+
+          // Should return 2 candidates (the test file candidate should be filtered)
+          expect(candidates).toBeDefined();
+          expect(Array.isArray(candidates)).toBe(true);
+          expect(candidates.length).toBe(2); // Filtered out test.ts file
+
+          // Verify the candidates have the correct structure
+          const getCandidate = candidates.find(c => c.http_method === "GET" && c.http_path === "/users");
+          expect(getCandidate).toBeDefined();
+          expect(getCandidate?.confidence).toBe("high");
+          expect(getCandidate?.suggested_layer).toBe("api");
+          expect(getCandidate?.suggested_element_type).toBe("operation");
+          expect(getCandidate?.source_file).toBe("src/routes.ts");
+
+          const postCandidate = candidates.find(c => c.http_method === "POST" && c.http_path === "/users");
+          expect(postCandidate).toBeDefined();
+          expect(postCandidate?.confidence).toBe("high");
+
+          // Verify test code was filtered
+          const testCandidate = candidates.find(c => c.source_file?.includes("test"));
+          expect(testCandidate).toBeUndefined();
+
+          expect(spawnCalled).toBe(true);
+        } finally {
+          // Restore original methods - CRITICAL for test isolation
+          StdioClient.prototype.spawn = originalSpawn;
+          StdioClient.prototype.callTool = originalCallTool;
+          StdioClient.prototype.close = originalClose;
+        }
+      } finally {
+        (analyzer as any).status = originalStatus;
+      }
+    });
+  });
 });
