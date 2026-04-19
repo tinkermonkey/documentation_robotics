@@ -20,6 +20,39 @@ import type {
   FilteringRule,
 } from "./types.js";
 
+/**
+ * Validate analyzer name to prevent path traversal attacks
+ * Rejects names containing `/`, `\`, or `..`
+ *
+ * @param analyzerName Analyzer name to validate
+ * @throws CLIError if name contains path traversal characters
+ */
+function validateAnalyzerName(analyzerName: string): void {
+  if (!analyzerName) {
+    throw new CLIError(
+      "Analyzer name cannot be empty",
+      ErrorCategory.VALIDATION,
+      []
+    );
+  }
+
+  if (analyzerName.includes("/") || analyzerName.includes("\\")) {
+    throw new CLIError(
+      "Analyzer name cannot contain path separators (/ or \\)",
+      ErrorCategory.VALIDATION,
+      []
+    );
+  }
+
+  if (analyzerName.includes("..")) {
+    throw new CLIError(
+      "Analyzer name cannot contain parent directory references (..)",
+      ErrorCategory.VALIDATION,
+      []
+    );
+  }
+}
+
 interface AnalyzerManifestMetadata {
   name: string;
   display_name: string;
@@ -59,9 +92,11 @@ export class MappingLoader {
    *
    * @param analyzerName Name of the analyzer (e.g., "cbm")
    * @returns Loaded and validated MappingLoader instance
-   * @throws CLIError if artifact is missing or malformed
+   * @throws CLIError if artifact is missing, malformed, or analyzerName contains path traversal characters
    */
   static async load(analyzerName: string): Promise<MappingLoader> {
+    validateAnalyzerName(analyzerName);
+
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
     const artifactPath = path.join(
       currentDir,

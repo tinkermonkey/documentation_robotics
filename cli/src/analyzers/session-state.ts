@@ -21,6 +21,27 @@ import * as path from "path";
 import type { SessionState, IndexMeta, AnalyzerStatus } from "./types.js";
 
 /**
+ * Validate analyzer name to prevent path traversal attacks
+ * Rejects names containing `/`, `\`, or `..`
+ *
+ * @param analyzerName Analyzer name to validate
+ * @throws Error if name contains path traversal characters
+ */
+function validateAnalyzerName(analyzerName: string): void {
+  if (!analyzerName) {
+    throw new Error("Analyzer name cannot be empty");
+  }
+
+  if (analyzerName.includes("/") || analyzerName.includes("\\")) {
+    throw new Error("Analyzer name cannot contain path separators (/ or \\)");
+  }
+
+  if (analyzerName.includes("..")) {
+    throw new Error("Analyzer name cannot contain parent directory references (..)");
+  }
+}
+
+/**
  * Validate SessionState structure
  * @throws Error if data is missing required fields
  */
@@ -157,12 +178,14 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()
  * @param analyzerName Optional analyzer name for per-analyzer subdirectory
+ * @throws Error if analyzerName is provided but empty or contains path traversal characters
  */
 function getStateDir(baseDir?: string, analyzerName?: string): string {
   const base = baseDir ?? process.cwd();
   const analyzersDir = path.join(base, ".dr", "analyzers");
 
-  if (analyzerName) {
+  if (analyzerName !== undefined) {
+    validateAnalyzerName(analyzerName);
     return path.join(analyzersDir, analyzerName);
   }
 

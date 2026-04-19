@@ -309,4 +309,78 @@ describe("MappingLoader", () => {
       expect(types).toContain("IMPORTS");
     });
   });
+
+  describe("Path Traversal Protection", () => {
+    it("should reject analyzer names with forward slashes", async () => {
+      let error: CLIError | undefined;
+      try {
+        await MappingLoader.load("../../../etc/passwd");
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("path separators");
+      expect(error?.exitCode).toBe(ErrorCategory.VALIDATION);
+    });
+
+    it("should reject analyzer names with backslashes", async () => {
+      let error: CLIError | undefined;
+      try {
+        await MappingLoader.load("..\\..\\windows\\system32");
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("path separators");
+      expect(error?.exitCode).toBe(ErrorCategory.VALIDATION);
+    });
+
+    it("should reject analyzer names with parent directory references", async () => {
+      let error: CLIError | undefined;
+      try {
+        await MappingLoader.load("analyzer..name");
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("parent directory");
+      expect(error?.exitCode).toBe(ErrorCategory.VALIDATION);
+    });
+
+    it("should reject empty analyzer names", async () => {
+      let error: CLIError | undefined;
+      try {
+        await MappingLoader.load("");
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("empty");
+      expect(error?.exitCode).toBe(ErrorCategory.VALIDATION);
+    });
+
+    it("should accept valid analyzer names with hyphens and underscores", async () => {
+      // Note: This will fail to find the artifact, but should pass validation
+      let error: CLIError | undefined;
+      try {
+        await MappingLoader.load("my-analyzer_v2");
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      // Should fail with NOT_FOUND (file not found), not VALIDATION
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.exitCode).toBe(ErrorCategory.NOT_FOUND);
+      expect(error?.message).toContain("not found");
+    });
+  });
 });

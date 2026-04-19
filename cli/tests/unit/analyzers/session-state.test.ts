@@ -593,4 +593,121 @@ describe("Session State Persistence", () => {
       expect(read?.active_analyzer).toMatch(/^analyzer-/);
     });
   });
+
+  describe("Path Traversal Protection", () => {
+    it("should reject analyzer names with forward slashes", async () => {
+      const meta: IndexMeta = {
+        git_head: "abc123",
+        timestamp: "2025-01-01T00:00:00Z",
+        node_count: 10,
+        edge_count: 20,
+      };
+
+      const error = await writeIndexMeta(meta, tempDir, "../../../etc/passwd")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+      expect(error?.message).toContain("path separators");
+    });
+
+    it("should reject analyzer names with backslashes", async () => {
+      const meta: IndexMeta = {
+        git_head: "abc123",
+        timestamp: "2025-01-01T00:00:00Z",
+        node_count: 10,
+        edge_count: 20,
+      };
+
+      const error = await writeIndexMeta(meta, tempDir, "..\\..\\windows\\system32")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+      expect(error?.message).toContain("path separators");
+    });
+
+    it("should reject analyzer names with parent directory references", async () => {
+      const meta: IndexMeta = {
+        git_head: "abc123",
+        timestamp: "2025-01-01T00:00:00Z",
+        node_count: 10,
+        edge_count: 20,
+      };
+
+      const error = await writeIndexMeta(meta, tempDir, "analyzer..name")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+      expect(error?.message).toContain("parent directory");
+    });
+
+    it("should reject empty analyzer names", async () => {
+      const meta: IndexMeta = {
+        git_head: "abc123",
+        timestamp: "2025-01-01T00:00:00Z",
+        node_count: 10,
+        edge_count: 20,
+      };
+
+      const error = await writeIndexMeta(meta, tempDir, "")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+      expect(error?.message).toContain("empty");
+    });
+
+    it("should accept valid analyzer names with hyphens and underscores", async () => {
+      const meta: IndexMeta = {
+        git_head: "abc123",
+        timestamp: "2025-01-01T00:00:00Z",
+        node_count: 10,
+        edge_count: 20,
+      };
+
+      await writeIndexMeta(meta, tempDir, "my-analyzer_v2");
+      const read = await readIndexMeta(tempDir, "my-analyzer_v2");
+
+      expect(read).toEqual(meta);
+    });
+
+    it("should protect readIndexMeta() from path traversal", async () => {
+      const error = await readIndexMeta(tempDir, "../../../etc/passwd")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+    });
+
+    it("should protect readStatus() from path traversal", async () => {
+      const error = await readStatus(tempDir, "../../../etc/passwd")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+    });
+
+    it("should protect writeStatus() from path traversal", async () => {
+      const status: AnalyzerStatus = {
+        detected: { installed: true },
+        indexed: false,
+        fresh: false,
+      };
+
+      const error = await writeStatus(status, tempDir, "../../../etc/passwd")
+        .then(() => null)
+        .catch((e) => e);
+
+      expect(error).toBeDefined();
+      expect(error instanceof Error).toBe(true);
+    });
+  });
 });
