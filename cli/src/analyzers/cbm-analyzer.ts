@@ -1201,18 +1201,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     switch (heuristic.name) {
       case "min_fan_in": {
-        const threshold = (heuristic.parameters?.threshold as number) ?? 5;
+        const threshold = heuristic.parameters?.threshold ?? 5;
         const fanIn = typeof properties.fan_in === "number" ? properties.fan_in : 0;
         return fanIn >= threshold;
       }
 
       case "directory_match": {
-        const patterns = (heuristic.parameters?.patterns as string[]) ?? [];
+        const patterns = heuristic.parameters?.patterns ?? [];
         return patterns.some((pattern) => this.matchPattern(sourceFile, pattern));
       }
 
       case "naming_patterns": {
-        const suffixes = (heuristic.parameters?.service_suffixes as string[]) ?? [];
+        const suffixes = heuristic.parameters?.service_suffixes ?? [];
         const name = String(properties.name ?? "").toLowerCase();
         return suffixes.some((suffix) => name.endsWith(suffix.toLowerCase()));
       }
@@ -1223,7 +1223,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         const hasDependencyInjection = properties.dependency_injection === true;
         const publicMethodsCount = Number(properties.public_methods_count ?? 0);
         // Read threshold from parameters instead of hardcoding
-        const threshold = (heuristic.parameters?.threshold as number) ?? 3;
+        const threshold = heuristic.parameters?.threshold ?? 3;
         return (
           hasInterfaceImpl ||
           hasDependencyInjection ||
@@ -1232,13 +1232,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       case "service_class_naming": {
-        const prefixes = (heuristic.parameters?.service_method_prefixes as string[]) ?? [];
+        const prefixes = heuristic.parameters?.service_method_prefixes ?? [];
         const name = String(properties.name ?? "").toLowerCase();
         return prefixes.some((prefix) => name.startsWith(prefix.toLowerCase()));
       }
 
       case "is_entry_point": {
-        const patterns = (heuristic.parameters?.entry_point_patterns as string[]) ?? [];
+        const patterns = heuristic.parameters?.entry_point_patterns ?? [];
         const name = String(properties.name ?? "").toLowerCase();
         return patterns.some((pattern) => name.includes(pattern.toLowerCase()));
       }
@@ -1365,8 +1365,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
-      const importPatterns = (datastoreHeuristic.parameters?.patterns as string[]) ?? [];
-      const namingIndicators = (datastoreHeuristic.parameters?.naming_indicators as string[]) ?? [];
+      const importPatterns = datastoreHeuristic.parameters?.patterns ?? [];
+      const namingIndicators = datastoreHeuristic.parameters?.naming_indicators ?? [];
 
       // Map to track signals by datastore name
       const datastoreSignals = new Map<

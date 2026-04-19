@@ -80,6 +80,7 @@ export const VALID_HTTP_METHODS = [
  * - class_is_service: { threshold: number }
  * - service_class_naming: { service_method_prefixes: string[] }
  * - is_entry_point: { entry_point_patterns: string[] }
+ * - infer_datastores: { patterns: string[], naming_indicators: string[] }
  */
 export interface HeuristicParameters {
   threshold?: number;
@@ -87,16 +88,13 @@ export interface HeuristicParameters {
   service_suffixes?: string[];
   service_method_prefixes?: string[];
   entry_point_patterns?: string[];
+  naming_indicators?: string[];
   [key: string]: unknown;
 }
 
-/**
- * Conditions for mappings and heuristics
- * Flexible structure for conditional logic and filtering
- */
-export interface MappingConditions {
-  [key: string]: unknown;
-}
+// TODO: MappingConditions currently remain untyped as Record<string, unknown> because the
+// mapping schema defines conditions as a flexible object without known fields. If specific
+// condition properties are identified in future mapping iterations, define them here.
 
 /**
  * HTTP method type derived from VALID_HTTP_METHODS constant
@@ -230,7 +228,7 @@ export interface AnalyzerNodeMapping {
   dr_element_type_promoted?: string;
   promotion_heuristics?: string[];
   evidence_fields?: Record<string, { from: string }>;
-  conditions?: MappingConditions;
+  conditions?: Record<string, unknown>;
 }
 
 /**
@@ -248,7 +246,7 @@ export interface AnalyzerEdgeMapping {
   confidence_from_property?: string;
   dr_pattern?: string;
   implementation_note?: string;
-  conditions?: MappingConditions;
+  conditions?: Record<string, unknown>;
 }
 
 /**
@@ -261,7 +259,7 @@ export interface AnalyzerHeuristic {
   parameters?: HeuristicParameters;
   rule?: string;
   confidence_adjustment?: number;
-  conditions?: MappingConditions;
+  conditions?: Record<string, unknown>;
 }
 
 /**

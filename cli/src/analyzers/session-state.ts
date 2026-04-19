@@ -177,14 +177,21 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
       throw new Error("AnalyzerStatus.last_indexed must be a string");
     }
 
+    // Build detected from validated detection data based on installed flag
+    const detectedResult = installed
+      ? {
+          installed: true,
+          binary_path: detected.binary_path as string,
+          version: detected.version as string | undefined,
+          mcp_registered: detected.mcp_registered as boolean | undefined,
+          contract_ok: detected.contract_ok as boolean | undefined,
+        }
+      : {
+          installed: false,
+        };
+
     return {
-      detected: {
-        installed: true,
-        binary_path: detected.binary_path as string,
-        version: detected.version as string | undefined,
-        mcp_registered: detected.mcp_registered as boolean | undefined,
-        contract_ok: detected.contract_ok as boolean | undefined,
-      },
+      detected: detectedResult,
       indexed: true,
       index_meta: validatedIndexMeta,
       fresh: obj.fresh as boolean,
@@ -201,10 +208,21 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
       throw new Error("AnalyzerStatus.last_indexed must be a string");
     }
 
+    // Build detected from validated detection data based on installed flag
+    const detectedResult = installed
+      ? {
+          installed: true,
+          binary_path: detected.binary_path as string,
+          version: detected.version as string | undefined,
+          mcp_registered: detected.mcp_registered as boolean | undefined,
+          contract_ok: detected.contract_ok as boolean | undefined,
+        }
+      : {
+          installed: false,
+        };
+
     return {
-      detected: {
-        installed: false,
-      },
+      detected: detectedResult,
       indexed: false,
       fresh: obj.fresh as boolean,
       last_indexed: obj.last_indexed as string | undefined,
