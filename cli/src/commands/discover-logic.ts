@@ -91,23 +91,15 @@ export async function performDiscover(
 
   // Determine session and selection behavior
   if (options.json) {
-    // JSON mode: determine if we should select and write session
-    if (options.reselect) {
-      // Force reselect in non-TTY mode
-      if (!options.isTTY && analyzerNames.length > 0) {
-        selectedAnalyzer = analyzerNames[0];
-        shouldWriteSession = true;
-        discoveryResult.selected = selectedAnalyzer;
-      }
-    } else {
-      // Not reselecting: use existing session if present
-      // Otherwise auto-select first in non-TTY mode
-      if (!options.isTTY && analyzerNames.length > 0) {
-        selectedAnalyzer = analyzerNames[0];
-        shouldWriteSession = true;
-        discoveryResult.selected = selectedAnalyzer;
-      }
+    // JSON mode: only auto-select if explicitly reselecting or in non-TTY mode with no existing session
+    if (options.reselect && !options.isTTY && installed.length > 0) {
+      // Force reselect in non-TTY mode - select first installed
+      selectedAnalyzer = installed[0].backend.name;
+      shouldWriteSession = true;
+      discoveryResult.selected = selectedAnalyzer;
     }
+    // In non-reselect mode, the CLI handler will check for existing session
+    // Don't auto-select here - let analyzer.ts handle the session lookup
   } else {
     // Text mode: only write session if analyzers are installed and we can select
     if (installed.length > 0) {

@@ -40,23 +40,33 @@ function createMockBackend(name: string, displayName: string, installed: boolean
   };
 }
 
+/**
+ * Setup MappingLoader mock with custom metadata loader
+ * Returns a cleanup function to restore the original
+ */
+function setupMappingLoaderMock(
+  metadataLoader: (name: string) => Promise<any>
+): () => void {
+  const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
+
+  (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = metadataLoader;
+
+  return () => {
+    (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+  };
+}
+
 describe("Analyzer Command - discover with no analyzer installed", () => {
   describe("discover behavior when no analyzers are installed", () => {
     it("should return empty found array and zero installed count when no analyzers installed", async () => {
-      // Mock MappingLoader for the test
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-      let mapperCallCount = 0;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test analyzer",
           homepage: `https://example.com/${name}`,
         }),
-      });
+      }));
 
       try {
         // Create registry with one registered but not installed analyzer
@@ -78,23 +88,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(result.discoveryResult.installed_count).toBe(0);
         expect(result.installed.length).toBe(0);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should distinguish between registered but uninstalled analyzers", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test analyzer",
           homepage: `https://example.com/${name}`,
         }),
-      });
+      }));
 
       try {
         // Scenario: analyzers registered but none installed
@@ -120,23 +126,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(result.discoveryResult.installed_count).toBe(0);
         expect(result.installed.length).toBe(0);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should set installed flag correctly for each analyzer", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test analyzer",
           homepage: `https://example.com/${name}`,
         }),
-      });
+      }));
 
       try {
         // Mix of installed and uninstalled analyzers
@@ -165,23 +167,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(notInstalled?.installed).toBe(false);
         expect(result.discoveryResult.installed_count).toBe(1);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should not select analyzer in non-JSON text mode when none installed", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test analyzer",
           homepage: `https://example.com/${name}`,
         }),
-      });
+      }));
 
       try {
         const registry = createMockRegistry([
@@ -201,16 +199,12 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(result.selectedAnalyzer).toBeUndefined();
         expect(result.shouldWriteSession).toBe(false);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should handle metadata loading errors gracefully", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => {
+      const cleanup = setupMappingLoaderMock(async (name: string) => {
         if (name === "broken") {
           throw new Error("Failed to load metadata");
         }
@@ -222,7 +216,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
             homepage: `https://example.com/${name}`,
           }),
         };
-      };
+      });
 
       try {
         const registry = createMockRegistry([
@@ -246,25 +240,21 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(result.discoveryResult).toBeDefined();
         expect(result.discoveryResult.installed_count).toBe(0);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
   });
 
   describe("discover JSON output structure", () => {
     it("should return valid DiscoveryResult structure", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test",
           homepage: "https://example.com",
         }),
-      });
+      }));
 
       try {
         const registry = createMockRegistry([
@@ -287,23 +277,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(Array.isArray(discovery.found)).toBe(true);
         expect(typeof discovery.installed_count).toBe("number");
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should include all AvailableAnalyzer fields in found array", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test analyzer description",
           homepage: "https://example.com/analyzer",
         }),
-      });
+      }));
 
       try {
         const registry = createMockRegistry([
@@ -328,23 +314,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
           expect(analyzer).toHaveProperty("installed");
         }
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should only include selected field when session exists or auto-selected", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test",
           homepage: "https://example.com",
         }),
-      });
+      }));
 
       try {
         // No analyzers installed case
@@ -364,25 +346,21 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         const hasSelected = "selected" in result.discoveryResult;
         expect(hasSelected).toBe(result.selectedAnalyzer !== undefined);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
   });
 
   describe("discover session persistence", () => {
     it("should not select analyzer when no analyzers are installed in any mode", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test",
           homepage: "https://example.com",
         }),
-      });
+      }));
 
       try {
         const registry = createMockRegistry([
@@ -409,23 +387,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         expect(jsonResult.shouldWriteSession).toBe(false);
         expect(textResult.shouldWriteSession).toBe(false);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should auto-select first analyzer in non-TTY JSON mode when analyzers exist", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test",
           homepage: "https://example.com",
         }),
-      });
+      }));
 
       try {
         const registry = createMockRegistry([
@@ -442,26 +416,23 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         const result = await performDiscover(registry, "/tmp/test", {
           json: true,
           isTTY: false,
+          reselect: true,
         });
 
-        // In non-TTY with analyzers installed, should auto-select first
+        // In non-TTY with analyzers installed and reselect, should auto-select first
         expect(result.selectedAnalyzer).toBe("first");
         expect(result.shouldWriteSession).toBe(true);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
   });
 
   describe("discover error handling", () => {
     it("should throw when no analyzers registered", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({}),
-      });
+      }));
 
       try {
         const registry = createMockRegistry([]); // No analyzers
@@ -476,23 +447,19 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
 
         expect(errorThrown).toBe(true);
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
 
     it("should continue discovery when analyzer backend is null", async () => {
-      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
-
-      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
-        name: string
-      ) => ({
+      const cleanup = setupMappingLoaderMock(async (name: string) => ({
         getAnalyzerMetadata: () => ({
           name,
           display_name: `${name} Analyzer`,
           description: "Test",
           homepage: "https://example.com",
         }),
-      });
+      }));
 
       try {
         // Registry that returns null for one analyzer
@@ -512,7 +479,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
         // Should have completed despite null analyzer
         expect(result.discoveryResult).toBeDefined();
       } finally {
-        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+        cleanup();
       }
     });
   });
