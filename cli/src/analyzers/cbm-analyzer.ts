@@ -194,15 +194,34 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         // Verify required_tools from mapping are available on the server
         let contractOk = true;
-        const requiredTools = (metadata?.required_tools as string[] | undefined) ?? [];
+        const requiredTools = (metadata?.supported_tool_contract?.required_tools as string[] | undefined) ?? [];
 
         if (requiredTools.length > 0) {
           try {
-            // Attempt to verify each required tool exists by checking server capabilities
-            // Note: We don't call the tools themselves (which might require arguments),
-            // just verify the tool contract was established by successful initialization
-            // If initialization succeeded, required tools are assumed available
+            // Verify all required tools are listed in supported tools
+            // The MCP spec requires tools to be registered at initialization
+            const response = await client.call({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/list",
+              params: {},
+            }) as { tools?: Array<{ name: string }> };
+
+            const availableTools = new Set(
+              (response.tools ?? []).map((tool) => tool.name)
+            );
+
+            for (const tool of requiredTools) {
+              if (!availableTools.has(tool)) {
+                contractOk = false;
+                handleWarning(
+                  `Required tool '${tool}' not available in ${binaryName}`,
+                  ["Ensure the analyzer server exports all required tools"]
+                );
+              }
+            }
           } catch (error) {
+            // If tool listing fails, treat as verification failure
             contractOk = false;
             const errorMsg = error instanceof Error ? error.message : String(error);
             handleWarning(
@@ -454,10 +473,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         const stagingManager = new StagingAreaManager(projectRoot);
         const activeChangesetId = await stagingManager.getActiveId();
         if (activeChangesetId) {
-          handleWarning(
-            "Indexing with active changeset",
-            [`Active changeset: ${activeChangesetId}`]
-          );
+          console.log(`Indexing with active changeset: ${activeChangesetId}`);
         }
       } catch (error) {
         // If reading active changeset fails, log a warning but continue indexing
@@ -487,11 +503,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       const timestamp = new Date().toISOString();
-      let nodeCount =
+      const nodeCount =
         typeof indexResponse.node_count === "number"
           ? indexResponse.node_count
           : 0;
-      let edgeCount =
+      const edgeCount =
         typeof indexResponse.edge_count === "number"
           ? indexResponse.edge_count
           : 0;
@@ -696,13 +712,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const suggestedIdFragment = suggestedName;
 
     // Required fields for dr add api operation
-    // Validate that method is a string before using it, cast to HttpMethod
-    let rawMethod =
-      typeof properties.method === "string"
-        ? properties.method.toUpperCase()
-        : "GET";
-
-    // Warn if method was missing or invalid
+    // Validate and assign HTTP method
+    let rawMethod: string;
     if (typeof properties.method !== "string") {
       handleWarning(
         `Node ${node.id}: Missing or invalid HTTP method`,
@@ -712,6 +723,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         ]
       );
       rawMethod = "GET";
+    } else {
+      rawMethod = properties.method.toUpperCase();
     }
 
     // Validate against valid HTTP methods using the constant
@@ -731,10 +744,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
 
-    // Validate that path is a string before using it
-    let httpPath =
-      typeof properties.path === "string" ? properties.path : "/";
-
+    // Validate and assign HTTP path
+    let httpPath: string;
     if (typeof properties.path !== "string") {
       handleWarning(
         `Node ${node.id}: Missing or invalid HTTP path`,
@@ -744,6 +755,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
         ]
       );
       httpPath = "/";
+    } else {
+      httpPath = properties.path;
     }
 
     // Handler information (from node properties)
