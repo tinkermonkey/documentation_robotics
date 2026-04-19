@@ -120,23 +120,26 @@ Examples:
 
         // JSON output mode
         if (options.json) {
-          // If auto-selected in non-TTY mode and should write session
-          if (selectedAnalyzer && shouldWriteSession) {
-            const state: SessionState = {
-              active_analyzer: selectedAnalyzer,
-              selected_at: new Date().toISOString(),
-            };
-            await writeSession(state, projectRoot);
-          } else if (!selectedAnalyzer && !process.stdin.isTTY && analyzerOptions.length > 0) {
-            // In non-TTY mode with no auto-selected analyzer, save default session
-            // with first available analyzer (even if not installed)
-            const defaultAnalyzer = analyzerOptions[0].backend.name;
-            const state: SessionState = {
-              active_analyzer: defaultAnalyzer,
-              selected_at: new Date().toISOString(),
-            };
-            await writeSession(state, projectRoot);
-            discoveryResult.selected = defaultAnalyzer;
+          // Only write session if there are installed analyzers
+          if (installed.length > 0) {
+            // If auto-selected in non-TTY mode and should write session
+            if (selectedAnalyzer && shouldWriteSession) {
+              const state: SessionState = {
+                active_analyzer: selectedAnalyzer,
+                selected_at: new Date().toISOString(),
+              };
+              await writeSession(state, projectRoot);
+            } else if (!selectedAnalyzer && !process.stdin.isTTY && analyzerOptions.length > 0) {
+              // In non-TTY mode with no auto-selected analyzer, save default session
+              // with first available analyzer (even if not installed)
+              const defaultAnalyzer = analyzerOptions[0].backend.name;
+              const state: SessionState = {
+                active_analyzer: defaultAnalyzer,
+                selected_at: new Date().toISOString(),
+              };
+              await writeSession(state, projectRoot);
+              discoveryResult.selected = defaultAnalyzer;
+            }
           }
 
           console.log(JSON.stringify(discoveryResult, null, 2));
@@ -158,17 +161,6 @@ Examples:
 
           console.log("");
           outro(ansis.dim("To install: follow the links above or use your package manager"));
-
-          // In non-TTY mode, save a default session with first available analyzer
-          // This allows subsequent discover calls to find and reference a selection
-          if (!process.stdin.isTTY && analyzerOptions.length > 0) {
-            const defaultAnalyzer = analyzerOptions[0].backend.name;
-            const state: SessionState = {
-              active_analyzer: defaultAnalyzer,
-              selected_at: new Date().toISOString(),
-            };
-            await writeSession(state, projectRoot);
-          }
 
           return;
         }

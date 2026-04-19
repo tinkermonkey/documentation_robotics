@@ -11,16 +11,17 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, writeFile, rm } from "fs/promises";
+import { writeFile, rm } from "fs/promises";
 import { join } from "path";
+import { mkdtemp } from "fs/promises";
+import { tmpdir } from "os";
 import { IgnoreFileLoader, type IgnoreRule } from "@/analyzers/verify-ignore.js";
 
-let testDir: string = "";
-
 describe("IgnoreFileLoader", () => {
+  let testDir: string = "";
+
   beforeEach(async () => {
-    testDir = `/tmp/verify-ignore-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), "verify-ignore-test-"));
   });
 
   afterEach(async () => {
