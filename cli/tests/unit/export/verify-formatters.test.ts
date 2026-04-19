@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { formatVerifyJSON, formatVerifyText } from "@/export/verify-formatters.js";
+import { formatVerifyJSON, formatVerifyText, formatVerifyReport } from "@/export/verify-formatters.js";
 import type { VerifyReport } from "@/analyzers/types.js";
 
 // Sample VerifyReport for testing
@@ -78,6 +78,88 @@ const sampleReportWithChangeset: VerifyReport = {
 };
 
 describe("Verify Formatters", () => {
+  describe("formatVerifyReport", () => {
+    it("should dispatch to formatVerifyText for text format (default)", () => {
+      const output = formatVerifyReport(sampleReport, { format: "text" });
+      expect(typeof output).toBe("string");
+      expect(output).toContain("API Verification Report");
+    });
+
+    it("should dispatch to formatVerifyJSON for json format", () => {
+      const output = formatVerifyReport(sampleReport, { format: "json" });
+      expect(() => JSON.parse(output)).not.toThrow();
+      const parsed = JSON.parse(output);
+      expect(parsed.project_root).toBe(sampleReport.project_root);
+    });
+
+    it("should use text format as default when format is invalid", () => {
+      // Call with text format explicitly
+      const output = formatVerifyReport(sampleReport, { format: "text" });
+      expect(typeof output).toBe("string");
+      expect(output).toContain("API Verification Report");
+    });
+
+    it("should handle JSON output with all report data", () => {
+      const output = formatVerifyReport(sampleReport, { format: "json" });
+      const parsed = JSON.parse(output);
+
+      expect(parsed.generated_at).toBe(sampleReport.generated_at);
+      expect(parsed.analyzer).toBe(sampleReport.analyzer);
+      expect(parsed.layers_verified).toEqual(sampleReport.layers_verified);
+      expect(parsed.buckets).toBeDefined();
+      expect(parsed.summary).toBeDefined();
+    });
+
+    it("should handle text output with all report sections", () => {
+      const output = formatVerifyReport(sampleReport, { format: "text" });
+
+      expect(output).toContain("API Verification Report");
+      expect(output).toContain("/home/user/my-project");
+      expect(output).toContain("SUMMARY");
+      expect(output).toContain("Matched");
+      expect(output).toContain("Graph-only");
+      expect(output).toContain("Model-only");
+    });
+
+    it("should produce consistent output for same input", () => {
+      const output1 = formatVerifyReport(sampleReport, { format: "text" });
+      const output2 = formatVerifyReport(sampleReport, { format: "text" });
+      expect(output1).toBe(output2);
+    });
+
+    it("should route JSON requests correctly", () => {
+      const jsonOutput = formatVerifyReport(sampleReport, { format: "json" });
+      const textOutput = formatVerifyReport(sampleReport, { format: "text" });
+
+      // JSON output should be parseable
+      expect(() => JSON.parse(jsonOutput)).not.toThrow();
+
+      // Text output should contain readable text
+      expect(textOutput).toContain("Verification Results");
+    });
+
+    it("should handle changeset context in both formats", () => {
+      const reportWithChangeset = {
+        ...sampleReport,
+        changeset_context: {
+          active_changeset: "changeset-xyz",
+          verified_against: "changeset_view" as const,
+        },
+      };
+
+      const textOutput = formatVerifyReport(reportWithChangeset, {
+        format: "text",
+      });
+      expect(textOutput).toContain("changeset-xyz");
+
+      const jsonOutput = formatVerifyReport(reportWithChangeset, {
+        format: "json",
+      });
+      const parsed = JSON.parse(jsonOutput);
+      expect(parsed.changeset_context.active_changeset).toBe("changeset-xyz");
+    });
+  });
+
   describe("formatVerifyJSON", () => {
     it("should produce valid JSON", () => {
       const output = formatVerifyJSON(sampleReport);

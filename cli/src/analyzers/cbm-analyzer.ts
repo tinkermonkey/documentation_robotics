@@ -38,6 +38,8 @@ import type { MappingLoader } from "./mapping-loader.js";
 import { getCliVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { VerifyEngine } from "./verify-engine.js";
+import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
+import { evaluateHeuristic, capConfidence, matchPattern } from "./heuristic-utils.js";
 
 /**
  * Graph node from CBM search results
@@ -856,7 +858,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Downgrade confidence if handler information is missing
     if (!handlerQualifiedName || !sourceSymbol) {
-      confidence = confidence === "high" ? "medium" : confidence;
+      confidence = capConfidence(confidence);
     }
 
     // Extract source file (relative to project root)
@@ -1163,10 +1165,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     // Cap confidence at "medium" (from mapping or default to medium)
-    let confidence = mapping.confidence as "high" | "medium" | "low";
-    if (confidence === "high") {
-      confidence = "medium";
-    }
+    let confidenceFull = mapping.confidence as "high" | "medium" | "low";
+    const confidence = capConfidence(confidenceFull) as "medium" | "low";
 
     return {
       suggested_layer: "application",
@@ -1199,68 +1199,22 @@ export class CbmAnalyzer implements AnalyzerBackend {
   ): boolean {
     const properties = node.properties ?? {};
 
-    switch (heuristic.name) {
-      case "min_fan_in": {
-        const threshold = heuristic.parameters?.threshold ?? 5;
-        const fanIn = typeof properties.fan_in === "number" ? properties.fan_in : 0;
-        return fanIn >= threshold;
-      }
+    // Use the heuristic utility function
+    const result = evaluateHeuristic(heuristic, properties, sourceFile);
 
-      case "directory_match": {
-        const patterns = heuristic.parameters?.patterns ?? [];
-        return patterns.some((pattern) => this.matchPattern(sourceFile, pattern));
-      }
-
-      case "naming_patterns": {
-        const suffixes = heuristic.parameters?.service_suffixes ?? [];
-        const name = String(properties.name ?? "").toLowerCase();
-        return suffixes.some((suffix) => name.endsWith(suffix.toLowerCase()));
-      }
-
-      case "class_is_service": {
-        // Check for service-like class indicators
-        const hasInterfaceImpl = properties.implements_interface === true;
-        const hasDependencyInjection = properties.dependency_injection === true;
-        const publicMethodsCount = Number(properties.public_methods_count ?? 0);
-        // Read threshold from parameters instead of hardcoding
-        const threshold = heuristic.parameters?.threshold ?? 3;
-        return (
-          hasInterfaceImpl ||
-          hasDependencyInjection ||
-          publicMethodsCount >= threshold
-        );
-      }
-
-      case "service_class_naming": {
-        const prefixes = heuristic.parameters?.service_method_prefixes ?? [];
-        const name = String(properties.name ?? "").toLowerCase();
-        return prefixes.some((prefix) => name.startsWith(prefix.toLowerCase()));
-      }
-
-      case "is_entry_point": {
-        const patterns = heuristic.parameters?.entry_point_patterns ?? [];
-        const name = String(properties.name ?? "").toLowerCase();
-        return patterns.some((pattern) => name.includes(pattern.toLowerCase()));
-      }
-
-      case "handles_route": {
-        // Check if this function/method has route handling decoration
-        return properties.has_route_handler === true || properties.is_decorated === true;
-      }
-
-      default:
-        // For unknown heuristics, log a warning rather than silently returning false
-        // This supports dynamic heuristics added to cbm.json without code changes
-        handleWarning(
-          `Unknown heuristic type: ${heuristic.name}`,
-          [
-            "The heuristic is defined in cbm.json but not implemented in cbm-analyzer.ts",
-            "This heuristic will be treated as not met (returning false)",
-            "Add support for this heuristic to evaluateHeuristic() if it should fire",
-          ]
-        );
-        return false;
+    // For unknown heuristics, log a warning
+    if (heuristic.name && !["min_fan_in", "naming_patterns", "is_entry_point", "directory_match", "class_is_service", "service_class_naming", "handles_route"].includes(heuristic.name)) {
+      handleWarning(
+        `Unknown heuristic type: ${heuristic.name}`,
+        [
+          "The heuristic is defined in cbm.json but not implemented in cbm-analyzer.ts",
+          "This heuristic will be treated as not met (returning false)",
+          "Add support for this heuristic to evaluateHeuristic() if it should fire",
+        ]
+      );
     }
+
+    return result;
   }
 
   /**
@@ -1272,25 +1226,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @private
    */
   private matchPattern(filePath: string, pattern: string): boolean {
-    // Handle **/ prefix (matches any number of directories)
-    if (pattern.startsWith("**/")) {
-      const suffix = pattern.slice(3);
-      // Remove trailing /** from suffix if present
-      const suffixToMatch = suffix.endsWith("/**") ? suffix.slice(0, -3) : suffix;
-      return (
-        filePath.includes("/" + suffixToMatch + "/") ||
-        filePath.includes(suffixToMatch + "/") ||
-        filePath.endsWith(suffixToMatch)
-      );
-    }
-
-    // Handle trailing /** (matches anything under this directory)
-    if (pattern.endsWith("/**")) {
-      const prefix = pattern.slice(0, -3);
-      return (
-        filePath.includes(prefix + "/") || filePath.startsWith(prefix + "/")
-      );
-    }
+    return matchPattern(filePath, pattern);
 
     // Handle *.ext patterns (file extensions)
     if (pattern.startsWith("*.")) {
@@ -1679,7 +1615,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     // Clamp depth: default 3, max 10
-    const clampedDepth = Math.min(depth ?? 3, 10);
+    const clampedDepth = clampDepth(depth);
 
     const client = new StdioClient();
 
@@ -1769,65 +1705,29 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Get valid edge types from the mapping loader (don't hardcode)
       const validEdgeTypes = this.mapper.getEdgeTypes();
-      const defaultEdgeType =
-        validEdgeTypes.length > 0 ? validEdgeTypes[0] : "CALLS";
 
       // Transform nodes to CallGraphNode objects
       const callGraphNodes: CallGraphNode[] = [];
 
       for (const node of nodes) {
-        // Extract qualified name from node
         const nodeQualifiedName = node.qualified_name || node.id;
 
-        // Extract source file (relative to project root)
-        let sourceFile = node.file_path || node.source_file || "";
-        if (sourceFile && projectRoot) {
-          try {
-            sourceFile = path.relative(projectRoot, sourceFile);
-          } catch (error) {
-            // Log warning if relative path fails but continue with absolute path
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            handleWarning(
-              `Failed to compute relative path for ${node.id}`,
-              [
-                `Error: ${errorMsg}`,
-                "Using absolute file path instead of relative",
-              ]
-            );
-            // sourceFile keeps its original absolute value
-          }
-        }
+        // Shape the node using utility function
+        let callGraphNode = shapeCallGraphNode(node, projectRoot);
 
-        // Extract source symbol
-        const sourceSymbol = node.source_symbol || node.id || "";
-
-        // Extract depth (default 0 if not provided)
+        // Determine edge type using utility function
         const nodeDepth = typeof node.depth === "number" ? node.depth : 0;
+        const edgeType = determineEdgeType(
+          nodeDepth,
+          edges,
+          nodeQualifiedName,
+          validEdgeTypes
+        );
 
-        // Determine edge type by finding the edge that connects to this node
-        // For depth 0 (root), look for edges from root to this node
-        // For depth > 0, look for edges from any parent to this node
-        let edgeType = defaultEdgeType;
-        if (nodeDepth > 0) {
-          // Find the incoming edge to this node
-          const incomingEdge = edges.find(
-            (edge) => edge.to_node === nodeQualifiedName
-          );
-          if (incomingEdge && incomingEdge.type) {
-            // Validate that this edge type is in our valid types
-            if (validEdgeTypes.includes(incomingEdge.type)) {
-              edgeType = incomingEdge.type;
-            }
-          }
-        }
+        // Apply edge type to the shaped node
+        callGraphNode.edge_type = edgeType;
 
-        callGraphNodes.push({
-          qualified_name: nodeQualifiedName,
-          source_file: sourceFile,
-          source_symbol: sourceSymbol,
-          depth: nodeDepth,
-          edge_type: edgeType as "CALLS" | "HTTP_CALLS" | "HANDLES",
-        });
+        callGraphNodes.push(callGraphNode);
       }
 
       return callGraphNodes;

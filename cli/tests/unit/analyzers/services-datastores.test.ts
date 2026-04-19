@@ -10,47 +10,8 @@
  */
 
 import { describe, it, expect } from "bun:test";
+import { evaluateHeuristic, capConfidence } from "@/analyzers/heuristic-utils.js";
 import type { AnalyzerHeuristic } from "@/analyzers/types.js";
-
-// Helper function that simulates heuristic evaluation logic
-function evaluateHeuristic(
-  heuristic: AnalyzerHeuristic,
-  targetValue: number | string
-): boolean {
-  const params = heuristic.parameters || {};
-
-  if (heuristic.name === "min_fan_in") {
-    const threshold = (params.threshold as number) ?? 5;
-    return (targetValue as number) >= threshold;
-  }
-
-  if (heuristic.name === "naming_patterns") {
-    const suffixes = (params.service_suffixes as string[]) ?? [];
-    return suffixes.some((suffix) =>
-      (targetValue as string).toLowerCase().endsWith(suffix.toLowerCase())
-    );
-  }
-
-  if (heuristic.name === "is_entry_point") {
-    const patterns = (params.entry_point_patterns as string[]) ?? [];
-    return patterns.some((pattern) =>
-      (targetValue as string).toLowerCase().includes(pattern.toLowerCase())
-    );
-  }
-
-  return false;
-}
-
-// Helper function that simulates confidence capping logic
-function capConfidence(
-  confidence: "high" | "medium" | "low"
-): "high" | "medium" | "low" {
-  // Cap confidence at "medium" for service candidates
-  if (confidence === "high") {
-    return "medium";
-  }
-  return confidence;
-}
 
 describe("Service and Datastore Analysis", () => {
   describe("Heuristic evaluation logic", () => {
@@ -62,11 +23,11 @@ describe("Service and Datastore Analysis", () => {
       };
 
       // Test that evaluates high fan-in
-      const result1 = evaluateHeuristic(heuristic, 10);
+      const result1 = evaluateHeuristic(heuristic, { fan_in: 10 });
       expect(result1).toBe(true);
 
       // Test that evaluates low fan-in
-      const result2 = evaluateHeuristic(heuristic, 2);
+      const result2 = evaluateHeuristic(heuristic, { fan_in: 2 });
       expect(result2).toBe(false);
     });
 
@@ -78,11 +39,11 @@ describe("Service and Datastore Analysis", () => {
       };
 
       // Test class with matching suffix
-      const result1 = evaluateHeuristic(heuristic, "UserService");
+      const result1 = evaluateHeuristic(heuristic, { name: "UserService" });
       expect(result1).toBe(true);
 
       // Test class without matching suffix
-      const result2 = evaluateHeuristic(heuristic, "User");
+      const result2 = evaluateHeuristic(heuristic, { name: "User" });
       expect(result2).toBe(false);
     });
 
@@ -94,11 +55,11 @@ describe("Service and Datastore Analysis", () => {
       };
 
       // Test with matching entry point name
-      const result1 = evaluateHeuristic(heuristic, "main");
+      const result1 = evaluateHeuristic(heuristic, { name: "main" });
       expect(result1).toBe(true);
 
       // Test with non-matching name
-      const result2 = evaluateHeuristic(heuristic, "UserService");
+      const result2 = evaluateHeuristic(heuristic, { name: "UserService" });
       expect(result2).toBe(false);
     });
 
@@ -110,7 +71,7 @@ describe("Service and Datastore Analysis", () => {
       };
 
       // Should use default threshold of 5
-      const result = evaluateHeuristic(heuristic, 10);
+      const result = evaluateHeuristic(heuristic, { fan_in: 10 });
       expect(result).toBe(true);
     });
   });
@@ -130,20 +91,13 @@ describe("Service and Datastore Analysis", () => {
         },
       ];
 
-      const className = "UserService";
-      const fanIn = 10;
+      const nodeProps = { name: "UserService", fan_in: 10 };
 
       // Evaluate which heuristics fire
       const firedHeuristics: string[] = [];
       for (const heuristic of heuristics) {
-        if (heuristic.name === "min_fan_in") {
-          if (evaluateHeuristic(heuristic, fanIn)) {
-            firedHeuristics.push(heuristic.name);
-          }
-        } else if (heuristic.name === "naming_patterns") {
-          if (evaluateHeuristic(heuristic, className)) {
-            firedHeuristics.push(heuristic.name);
-          }
+        if (evaluateHeuristic(heuristic, nodeProps)) {
+          firedHeuristics.push(heuristic.name);
         }
       }
 
@@ -161,16 +115,13 @@ describe("Service and Datastore Analysis", () => {
         },
       ];
 
-      const className = "UnusedClass";
-      const fanIn = 0;
+      const nodeProps = { name: "UnusedClass", fan_in: 0 };
 
       // Evaluate which heuristics fire
       const firedHeuristics: string[] = [];
       for (const heuristic of heuristics) {
-        if (heuristic.name === "min_fan_in") {
-          if (evaluateHeuristic(heuristic, fanIn)) {
-            firedHeuristics.push(heuristic.name);
-          }
+        if (evaluateHeuristic(heuristic, nodeProps)) {
+          firedHeuristics.push(heuristic.name);
         }
       }
 
@@ -187,15 +138,13 @@ describe("Service and Datastore Analysis", () => {
         },
       ];
 
-      const className = "main";
+      const nodeProps = { name: "main" };
 
       // Evaluate which heuristics fire
       const firedHeuristics: string[] = [];
       for (const heuristic of heuristics) {
-        if (heuristic.name === "is_entry_point") {
-          if (evaluateHeuristic(heuristic, className)) {
-            firedHeuristics.push(heuristic.name);
-          }
+        if (evaluateHeuristic(heuristic, nodeProps)) {
+          firedHeuristics.push(heuristic.name);
         }
       }
 
@@ -279,20 +228,13 @@ describe("Service and Datastore Analysis", () => {
         },
       ];
 
-      const className = "OrderService";
-      const fanIn = 15;
+      const nodeProps = { name: "OrderService", fan_in: 15 };
 
       // Evaluate which heuristics fire
       const firedHeuristics: string[] = [];
       for (const heuristic of heuristics) {
-        if (heuristic.name === "min_fan_in") {
-          if (evaluateHeuristic(heuristic, fanIn)) {
-            firedHeuristics.push(heuristic.name);
-          }
-        } else if (heuristic.name === "naming_patterns") {
-          if (evaluateHeuristic(heuristic, className)) {
-            firedHeuristics.push(heuristic.name);
-          }
+        if (evaluateHeuristic(heuristic, nodeProps)) {
+          firedHeuristics.push(heuristic.name);
         }
       }
 
@@ -310,16 +252,13 @@ describe("Service and Datastore Analysis", () => {
         },
       ];
 
-      const className = "MaybeService";
-      const fanIn = 1;
+      const nodeProps = { name: "MaybeService", fan_in: 1 };
 
       // Evaluate which heuristics fire
       const firedHeuristics: string[] = [];
       for (const heuristic of heuristics) {
-        if (heuristic.name === "min_fan_in") {
-          if (evaluateHeuristic(heuristic, fanIn)) {
-            firedHeuristics.push(heuristic.name);
-          }
+        if (evaluateHeuristic(heuristic, nodeProps)) {
+          firedHeuristics.push(heuristic.name);
         }
       }
 

@@ -8,12 +8,8 @@
  */
 
 import { describe, it, expect } from "bun:test";
+import { clampDepth, shapeCallGraphNode, determineEdgeType } from "@/analyzers/call-graph-utils.js";
 import type { CallGraphNode } from "@/analyzers/types.js";
-
-// Helper function that simulates the depth clamping logic used in CbmAnalyzer
-function clampDepth(depth: number | undefined): number {
-  return Math.min(depth ?? 3, 10);
-}
 
 describe("Call Graph Analysis (Callers/Callees)", () => {
   describe("Depth clamping", () => {
@@ -57,23 +53,7 @@ describe("Call Graph Analysis (Callers/Callees)", () => {
   });
 
   describe("Response shaping to CallGraphNode", () => {
-    // Helper function that transforms raw response to CallGraphNode
-    // (matches the logic in CbmAnalyzer.traceCallPath)
-    function shapeCallGraphNode(
-      responseNode: any,
-      projectRoot?: string
-    ): CallGraphNode {
-      const sourceFile = responseNode.file_path || responseNode.source_file || "";
-      const relativePath = projectRoot ? sourceFile.replace(projectRoot + "/", "") : sourceFile;
-
-      return {
-        qualified_name: responseNode.qualified_name || responseNode.id,
-        source_file: relativePath,
-        source_symbol: responseNode.source_symbol || responseNode.id || "",
-        depth: typeof responseNode.depth === "number" ? responseNode.depth : 0,
-        edge_type: "CALLS",
-      };
-    }
+    // Tests use shapeCallGraphNode imported from production code
 
     it("should shape response with all required fields", () => {
       const responseNode = {
@@ -144,30 +124,7 @@ describe("Call Graph Analysis (Callers/Callees)", () => {
   });
 
   describe("Edge type mapping", () => {
-    // Helper function that determines edge type based on analyzer response
-    function determineEdgeType(
-      nodeDepth: number,
-      edges: Array<{ from_node: string; to_node: string; type?: string }>,
-      targetNodeQualifiedName: string,
-      validEdgeTypes: string[] = ["CALLS", "HTTP_CALLS", "HANDLES"]
-    ): "CALLS" | "HTTP_CALLS" | "HANDLES" {
-      const defaultEdgeType = validEdgeTypes[0] || "CALLS";
-
-      // For root nodes, use default
-      if (nodeDepth === 0) {
-        return defaultEdgeType as any;
-      }
-
-      // Find incoming edge for non-root node
-      const incomingEdge = edges.find(
-        (edge) => edge.to_node === targetNodeQualifiedName
-      );
-      if (incomingEdge && incomingEdge.type && validEdgeTypes.includes(incomingEdge.type)) {
-        return incomingEdge.type as any;
-      }
-
-      return defaultEdgeType as any;
-    }
+    // Tests use determineEdgeType imported from production code
 
     it("should use valid edge types from analyzer", () => {
       const validEdgeTypes = ["CALLS", "HTTP_CALLS", "HANDLES"];
