@@ -565,6 +565,45 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
+   * Validate search_graph response structure
+   *
+   * Ensures response is an object and nodes is an array.
+   * Throws CLIError if validation fails.
+   *
+   * @private
+   * @param response Raw response from search_graph MCP tool
+   * @returns Typed nodes array (never empty due to early throws)
+   * @throws CLIError if response is invalid
+   */
+  private validateSearchResponse(
+    response: unknown
+  ): CbmGraphNode[] {
+    // Validate response structure
+    if (!response || typeof response !== "object") {
+      throw new CLIError(
+        "Invalid response from search_graph",
+        ErrorCategory.SYSTEM,
+        ["Ensure codebase-memory-mcp is properly installed and functional"]
+      );
+    }
+
+    // Validate that nodes is actually an array
+    const responseObj = response as { nodes?: unknown; [key: string]: unknown };
+    if (!Array.isArray(responseObj.nodes)) {
+      throw new CLIError(
+        "Invalid response from search_graph: nodes must be an array",
+        ErrorCategory.SYSTEM,
+        [
+          `Expected array, got ${typeof responseObj.nodes}`,
+          "Ensure codebase-memory-mcp is properly installed and returning valid results"
+        ]
+      );
+    }
+
+    return responseObj.nodes as CbmGraphNode[];
+  }
+
+  /**
    * Query for API endpoints/routes in the indexed project
    *
    * Searches the indexed graph for Route nodes, applies field mappings from
@@ -620,36 +659,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Search for Route nodes using the CBM label from the mapping
-      const searchResponse = (await client.callTool("search_graph", {
+      const searchResponse = await client.callTool("search_graph", {
         label: routeMapping.cbm_label,
         project: projectRoot,
-      })) as {
-        nodes?: unknown;
-        [key: string]: unknown;
-      };
+      });
 
-      // Validate response structure
-      if (!searchResponse || typeof searchResponse !== "object") {
-        throw new CLIError(
-          "Invalid response from search_graph",
-          ErrorCategory.SYSTEM,
-          ["Ensure codebase-memory-mcp is properly installed and functional"]
-        );
-      }
-
-      // Validate that nodes is actually an array
-      if (!Array.isArray(searchResponse.nodes)) {
-        throw new CLIError(
-          "Invalid response from search_graph: nodes must be an array",
-          ErrorCategory.SYSTEM,
-          [
-            `Expected array, got ${typeof searchResponse.nodes}`,
-            "Ensure codebase-memory-mcp is properly installed and returning valid results"
-          ]
-        );
-      }
-
-      const nodes = searchResponse.nodes as CbmGraphNode[];
+      const nodes = this.validateSearchResponse(searchResponse);
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -1003,8 +1018,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
       }
 
-      // If no application-layer labels found, return empty list
+      // If no application-layer labels found, warn and return empty list
       if (applicationLabels.length === 0) {
+        handleWarning(
+          "No application-layer labels found in analyzer mapping",
+          [
+            "Check that the analyzer is properly configured with application-layer node mappings",
+            "Services detection requires at least one mapped application-layer node type",
+            "Returning empty services list"
+          ]
+        );
         return [];
       }
 
@@ -1012,36 +1035,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Search for each application-layer label
       for (const label of applicationLabels) {
-        const searchResponse = (await client.callTool("search_graph", {
+        const searchResponse = await client.callTool("search_graph", {
           label,
           project: projectRoot,
-        })) as {
-          nodes?: unknown;
-          [key: string]: unknown;
-        };
+        });
 
-        // Validate response structure
-        if (!searchResponse || typeof searchResponse !== "object") {
-          throw new CLIError(
-            "Invalid response from search_graph",
-            ErrorCategory.SYSTEM,
-            ["Ensure codebase-memory-mcp is properly installed and functional"]
-          );
-        }
-
-        // Validate that nodes is actually an array
-        if (!Array.isArray(searchResponse.nodes)) {
-          throw new CLIError(
-            "Invalid response from search_graph: nodes must be an array",
-            ErrorCategory.SYSTEM,
-            [
-              `Expected array, got ${typeof searchResponse.nodes}`,
-              "Ensure codebase-memory-mcp is properly installed and returning valid results"
-            ]
-          );
-        }
-
-        const nodes = searchResponse.nodes as CbmGraphNode[];
+        const nodes = this.validateSearchResponse(searchResponse);
 
         // Get the node mapping for this label
         const nodeMapping = this.mapper.getNodeMapping(label);
@@ -1382,111 +1381,116 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }>
       >();
 
-      // Search for nodes that match datastore-related naming patterns
-      const nodeLabels = this.mapper.getNodeLabels();
+      // Try to use query_graph to traverse IMPORTS edges (1 call instead of many)
+      // This implements the spec algorithm requirement for IMPORTS edge traversal
+      let allNodes: CbmGraphNode[] = [];
+      try {
+        // Query for all IMPORTS edges and their connected nodes
+        const importsQuery = `
+          MATCH (n1)-[r:IMPORTS]->(n2)
+          RETURN DISTINCT n1 as node
+          UNION
+          MATCH (n1)-[r:IMPORTS]->(n2)
+          RETURN DISTINCT n2 as node
+        `;
 
-      for (const label of nodeLabels) {
-        const searchResponse = (await client.callTool("search_graph", {
-          label,
+        const queryResponse = await client.callTool("query_graph", {
+          query: importsQuery,
           project: projectRoot,
-        })) as {
-          nodes?: unknown;
-          [key: string]: unknown;
-        };
+        });
 
-        // Validate response structure - throw error on invalid responses
-        if (!searchResponse || typeof searchResponse !== "object") {
-          throw new CLIError(
-            "Invalid response from search_graph",
-            ErrorCategory.SYSTEM,
-            ["Ensure codebase-memory-mcp is properly installed and functional"]
-          );
+        // Extract nodes from query response
+        if (queryResponse && typeof queryResponse === "object" && Array.isArray((queryResponse as { records?: unknown[] }).records)) {
+          const records = (queryResponse as { records?: Array<{ node?: CbmGraphNode }> }).records || [];
+          allNodes = records
+            .map((r) => r.node)
+            .filter((n) => n && typeof n === "object") as CbmGraphNode[];
         }
-
-        // Validate that nodes is actually an array
-        if (!Array.isArray(searchResponse.nodes)) {
-          throw new CLIError(
-            "Invalid response from search_graph: nodes must be an array",
-            ErrorCategory.SYSTEM,
-            [
-              `Expected array, got ${typeof searchResponse.nodes}`,
-              "Ensure codebase-memory-mcp is properly installed and returning valid results"
-            ]
-          );
-        }
-
-        const nodes = searchResponse.nodes as CbmGraphNode[];
-
-        for (const node of nodes) {
-          const filePath = node.file_path ?? "";
-
-          // Check if file matches datastore-related patterns
-          let matchedImportPattern: string | undefined;
-          for (const pattern of importPatterns) {
-            if (this.matchPattern(filePath, pattern)) {
-              matchedImportPattern = pattern;
-              break;
-            }
-          }
-
-          // Check if node name contains datastore naming indicators
-          const nodeName = String(node.properties?.name ?? "").toLowerCase();
-          const matchedIndicators = namingIndicators.filter((indicator) =>
-            nodeName.includes(indicator.toLowerCase())
-          );
-
-          // Skip if no import pattern matched AND no naming indicators matched
-          if (!matchedImportPattern && matchedIndicators.length === 0) {
-            continue;
-          }
-
-          // Extract datastore name from file path or node properties
-          let datastoreName = this.inferDatastoreName(
-            filePath,
-            node,
-            matchedImportPattern
-          );
-          if (!datastoreName) {
-            continue;
-          }
-
-          // Normalize to lowercase and replace special chars
-          datastoreName = datastoreName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-
-          // Get or create entry for this datastore
-          if (!datastoreSignals.has(datastoreName)) {
-            datastoreSignals.set(datastoreName, []);
-          }
-
-          const signals = datastoreSignals.get(datastoreName)!;
-
-          // Convert file path to relative
-          let relativeFile = filePath;
-          if (filePath && projectRoot) {
-            try {
-              relativeFile = path.relative(projectRoot, filePath);
-            } catch (error) {
-              // Log warning if relative path fails but continue with absolute path
-              const errorMsg = error instanceof Error ? error.message : String(error);
-              handleWarning(
-                `Failed to compute relative path in datastore detection`,
-                [
-                  `File: ${filePath}`,
-                  `Error: ${errorMsg}`,
-                  "Using absolute file path instead of relative",
-                ]
-              );
-              // relativeFile keeps its original absolute value
-            }
-          }
-
-          // Add signal for this source file
-          signals.push({
-            sourceFile: relativeFile,
-            importPattern: matchedImportPattern,
-            functionPatterns: matchedIndicators,
+      } catch (error) {
+        // Fallback to search_graph if query_graph is unavailable
+        // This provides backward compatibility while still attempting IMPORTS traversal
+        const nodeLabels = this.mapper.getNodeLabels();
+        for (const label of nodeLabels) {
+          const searchResponse = await client.callTool("search_graph", {
+            label,
+            project: projectRoot,
           });
+
+          const nodes = this.validateSearchResponse(searchResponse);
+          allNodes.push(...nodes);
         }
+      }
+
+      // Process all nodes to find datastore signals
+      for (const node of allNodes) {
+        const filePath = node.file_path ?? "";
+
+        // Check if file matches datastore-related patterns
+        let matchedImportPattern: string | undefined;
+        for (const pattern of importPatterns) {
+          if (this.matchPattern(filePath, pattern)) {
+            matchedImportPattern = pattern;
+            break;
+          }
+        }
+
+        // Check if node name contains datastore naming indicators
+        const nodeName = String(node.properties?.name ?? "").toLowerCase();
+        const matchedIndicators = namingIndicators.filter((indicator) =>
+          nodeName.includes(indicator.toLowerCase())
+        );
+
+        // Skip if no import pattern matched AND no naming indicators matched
+        if (!matchedImportPattern && matchedIndicators.length === 0) {
+          continue;
+        }
+
+        // Extract datastore name from file path or node properties
+        let datastoreName = this.inferDatastoreName(
+          filePath,
+          node,
+          matchedImportPattern
+        );
+        if (!datastoreName) {
+          continue;
+        }
+
+        // Normalize to lowercase and replace special chars
+        datastoreName = datastoreName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+        // Get or create entry for this datastore
+        if (!datastoreSignals.has(datastoreName)) {
+          datastoreSignals.set(datastoreName, []);
+        }
+
+        const signals = datastoreSignals.get(datastoreName)!;
+
+        // Convert file path to relative
+        let relativeFile = filePath;
+        if (filePath && projectRoot) {
+          try {
+            relativeFile = path.relative(projectRoot, filePath);
+          } catch (error) {
+            // Log warning if relative path fails but continue with absolute path
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            handleWarning(
+              `Failed to compute relative path in datastore detection`,
+              [
+                `File: ${filePath}`,
+                `Error: ${errorMsg}`,
+                "Using absolute file path instead of relative",
+              ]
+            );
+            // relativeFile keeps its original absolute value
+          }
+        }
+
+        // Add signal for this source file
+        signals.push({
+          sourceFile: relativeFile,
+          importPattern: matchedImportPattern,
+          functionPatterns: matchedIndicators,
+        });
       }
 
       // Transform collected signals into DatastoreCandidate objects
@@ -1725,26 +1729,46 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
-      const nodes = Array.isArray(traceResponse.nodes)
-        ? (traceResponse.nodes as Array<{
-            id: string;
-            qualified_name?: string;
-            source_file?: string;
-            source_symbol?: string;
-            file_path?: string;
-            depth?: number;
-            [key: string]: unknown;
-          }>)
-        : [];
+      // Validate that nodes is an array
+      if (!Array.isArray(traceResponse.nodes)) {
+        throw new CLIError(
+          "Invalid response from trace_call_path: nodes must be an array",
+          ErrorCategory.SYSTEM,
+          [
+            `Expected array, got ${typeof traceResponse.nodes}`,
+            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+          ]
+        );
+      }
 
-      const edges = Array.isArray(traceResponse.edges)
-        ? (traceResponse.edges as Array<{
-            from_node: string;
-            to_node: string;
-            type?: string;
-            [key: string]: unknown;
-          }>)
-        : [];
+      // Validate that edges is an array
+      if (!Array.isArray(traceResponse.edges)) {
+        throw new CLIError(
+          "Invalid response from trace_call_path: edges must be an array",
+          ErrorCategory.SYSTEM,
+          [
+            `Expected array, got ${typeof traceResponse.edges}`,
+            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+          ]
+        );
+      }
+
+      const nodes = traceResponse.nodes as Array<{
+        id: string;
+        qualified_name?: string;
+        source_file?: string;
+        source_symbol?: string;
+        file_path?: string;
+        depth?: number;
+        [key: string]: unknown;
+      }>;
+
+      const edges = traceResponse.edges as Array<{
+        from_node: string;
+        to_node: string;
+        type?: string;
+        [key: string]: unknown;
+      }>;
 
       // Get valid edge types from the mapping loader (don't hardcode)
       const validEdgeTypes = this.mapper.getEdgeTypes();
@@ -1875,36 +1899,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Search for Route nodes using the CBM label from the mapping
-      const searchResponse = (await client.callTool("search_graph", {
+      const searchResponse = await client.callTool("search_graph", {
         label: routeMapping.cbm_label,
         project: projectRoot,
-      })) as {
-        nodes?: unknown;
-        [key: string]: unknown;
-      };
+      });
 
-      // Validate response structure
-      if (!searchResponse || typeof searchResponse !== "object") {
-        throw new CLIError(
-          "Invalid response from search_graph",
-          ErrorCategory.SYSTEM,
-          ["Ensure codebase-memory-mcp is properly installed and functional"]
-        );
-      }
-
-      // Validate that nodes is actually an array
-      if (!Array.isArray(searchResponse.nodes)) {
-        throw new CLIError(
-          "Invalid response from search_graph: nodes must be an array",
-          ErrorCategory.SYSTEM,
-          [
-            `Expected array, got ${typeof searchResponse.nodes}`,
-            "Ensure codebase-memory-mcp is properly installed and returning valid results"
-          ]
-        );
-      }
-
-      const nodes = searchResponse.nodes as CbmGraphNode[];
+      const nodes = this.validateSearchResponse(searchResponse);
 
       // Shape routes via mapping
       const routes = [];
