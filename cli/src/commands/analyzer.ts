@@ -423,14 +423,6 @@ Examples:
         console.log(`Indexing project with ${analyzerName}...`);
         const result = await backend.index(projectRoot, { force: options.force });
 
-        if (!result.success) {
-          throw new CLIError(
-            "Indexing failed",
-            ErrorCategory.SYSTEM,
-            ["Check that the analyzer is properly installed and configured"]
-          );
-        }
-
         console.log(ansis.green(`✓ Indexing complete`));
         console.log(`  Nodes: ${result.node_count}`);
         console.log(`  Edges: ${result.edge_count}`);

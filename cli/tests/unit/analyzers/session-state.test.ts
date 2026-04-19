@@ -134,18 +134,20 @@ describe("Session State Persistence", () => {
       expect(result).toBeNull();
     });
 
-    it("should handle optional fields", async () => {
+    it("should write and read all required fields", async () => {
       const meta: IndexMeta = {
         git_head: "abc123",
         timestamp: "2025-01-01T00:00:00Z",
+        node_count: 42,
+        edge_count: 99,
       };
 
       await writeIndexMeta(meta, tempDir, "cbm");
       const read = await readIndexMeta(tempDir, "cbm");
 
       expect(read).toEqual(meta);
-      expect(read?.node_count).toBeUndefined();
-      expect(read?.edge_count).toBeUndefined();
+      expect(read?.node_count).toBe(42);
+      expect(read?.edge_count).toBe(99);
     });
 
     it("should overwrite existing index meta", async () => {
@@ -192,11 +194,15 @@ describe("Session State Persistence", () => {
       const meta1: IndexMeta = {
         git_head: "abc123",
         timestamp: "2025-01-01T00:00:00Z",
+        node_count: 10,
+        edge_count: 20,
       };
 
       const meta2: IndexMeta = {
         git_head: "def456",
         timestamp: "2025-01-02T00:00:00Z",
+        node_count: 30,
+        edge_count: 40,
       };
 
       // Write metadata for two different analyzers
@@ -397,6 +403,8 @@ describe("Session State Persistence", () => {
       const meta: IndexMeta = {
         git_head: "abc123",
         timestamp: "2025-01-01T00:00:00Z",
+        node_count: 5,
+        edge_count: 15,
       };
 
       const status: AnalyzerStatus = {
@@ -536,10 +544,12 @@ describe("Session State Persistence", () => {
   });
 
   describe("Edge Cases", () => {
-    it("should handle empty objects", async () => {
+    it("should handle minimal valid data", async () => {
       const meta: IndexMeta = {
         git_head: "",
         timestamp: "",
+        node_count: 0,
+        edge_count: 0,
       };
 
       await writeIndexMeta(meta, tempDir, "cbm");

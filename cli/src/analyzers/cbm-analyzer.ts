@@ -318,9 +318,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Return the existing metadata
       const meta = status.index_meta!;
       return {
-        success: true,
-        node_count: meta.node_count ?? 0,
-        edge_count: meta.edge_count ?? 0,
+        node_count: meta.node_count,
+        edge_count: meta.edge_count,
         git_head: meta.git_head,
         timestamp: meta.timestamp,
       };
@@ -398,9 +397,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         const meta = status.index_meta;
         return {
-          success: true,
-          node_count: meta.node_count ?? 0,
-          edge_count: meta.edge_count ?? 0,
+          node_count: meta.node_count,
+          edge_count: meta.edge_count,
           git_head: meta.git_head,
           timestamp: meta.timestamp,
         };
@@ -468,7 +466,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
       await writeIndexMeta(meta, projectRoot, analyzerName);
 
       return {
-        success: true,
         node_count: nodeCount,
         edge_count: edgeCount,
         git_head: gitHead,

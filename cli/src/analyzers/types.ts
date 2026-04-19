@@ -92,15 +92,14 @@ export interface EndpointCandidate {
 export interface IndexMeta {
   git_head: string;
   timestamp: string;
-  node_count?: number;
-  edge_count?: number;
+  node_count: number;
+  edge_count: number;
 }
 
 /**
  * Result of an index operation
  */
 export interface IndexResult {
-  success: boolean;
   node_count: number;
   edge_count: number;
   git_head: string;
@@ -126,20 +125,6 @@ export interface SessionState {
   selected_at: string;
 }
 
-/**
- * Discovery result - list of available analyzers and selection
- */
-export interface DiscoveryResult {
-  found: Array<{
-    name: string;
-    display_name: string;
-    description: string;
-    homepage: string;
-    version: string;
-    installed: boolean;
-  }>;
-  selected?: string;
-}
 
 /**
  * Mapping for a single CBM node label to DR element type

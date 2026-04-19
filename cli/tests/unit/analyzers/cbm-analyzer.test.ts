@@ -777,7 +777,6 @@ describe("CbmAnalyzer", () => {
         const result = await analyzer.index(tempDir);
 
         // Should return existing metadata without calling further methods
-        expect(result.success).toBe(true);
         expect(result.git_head).toBe("abc123");
         expect(result.node_count).toBe(10);
         expect(result.edge_count).toBe(15);

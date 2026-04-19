@@ -47,7 +47,7 @@ function validateSessionState(data: unknown): SessionState {
 
 /**
  * Validate IndexMeta structure
- * @throws Error if data is missing required fields or optional fields have wrong types
+ * @throws Error if data is missing required fields
  */
 function validateIndexMeta(data: unknown): IndexMeta {
   if (!data || typeof data !== "object") {
@@ -64,20 +64,19 @@ function validateIndexMeta(data: unknown): IndexMeta {
     throw new Error("IndexMeta.timestamp must be a string");
   }
 
-  // Validate optional numeric fields if present
-  if (obj.node_count !== undefined && typeof obj.node_count !== "number") {
+  if (typeof obj.node_count !== "number") {
     throw new Error("IndexMeta.node_count must be a number");
   }
 
-  if (obj.edge_count !== undefined && typeof obj.edge_count !== "number") {
+  if (typeof obj.edge_count !== "number") {
     throw new Error("IndexMeta.edge_count must be a number");
   }
 
   return {
     git_head: obj.git_head,
     timestamp: obj.timestamp,
-    node_count: obj.node_count as number | undefined,
-    edge_count: obj.edge_count as number | undefined,
+    node_count: obj.node_count as number,
+    edge_count: obj.edge_count as number,
   };
 }
 
