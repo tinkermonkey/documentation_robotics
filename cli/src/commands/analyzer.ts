@@ -16,7 +16,7 @@ import { MappingLoader } from "../analyzers/mapping-loader.js";
 import { readSession, writeSession, writeStatus } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
-import type { SessionState } from "../analyzers/types.js";
+import type { SessionState, DiscoveryResult, AvailableAnalyzer } from "../analyzers/types.js";
 
 /**
  * Register all analyzer subcommands
@@ -103,24 +103,16 @@ Examples:
 
         // JSON output mode
         if (options.json) {
-          const result: {
-            found: Array<{
-              name: string;
-              display_name: string;
-              description: string;
-              homepage: string;
-              installed: boolean;
-            }>;
-            installed_count: number;
-            selected?: string;
-          } = {
-            found: analyzerOptions.map((a) => ({
-              name: a.backend.name,
-              display_name: a.backend.displayName,
-              description: a.metadata?.description || "",
-              homepage: a.metadata?.homepage || "",
-              installed: a.detection.installed,
-            })),
+          const found: AvailableAnalyzer[] = analyzerOptions.map((a) => ({
+            name: a.backend.name,
+            display_name: a.backend.displayName,
+            description: a.metadata?.description || "",
+            homepage: a.metadata?.homepage || "",
+            installed: a.detection.installed,
+          }));
+
+          const result: DiscoveryResult = {
+            found,
             installed_count: installed.length,
           };
 

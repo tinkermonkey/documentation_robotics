@@ -31,9 +31,10 @@ export interface AnalyzerBackend {
   /**
    * Check if the analyzer is installed and functional
    *
+   * @param projectRoot Optional absolute path to the project root (for MCP registration check)
    * @returns Detection result with binary path, version, and MCP registration status
    */
-  detect(): Promise<DetectionResult>;
+  detect(projectRoot?: string): Promise<DetectionResult>;
 
   /**
    * Get the current status of the analyzer for a project

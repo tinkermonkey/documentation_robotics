@@ -21,6 +21,28 @@ export interface DetectionResult {
 }
 
 /**
+ * Information about an available analyzer
+ * Used in discovery results to report analyzer availability and installation status
+ */
+export interface AvailableAnalyzer {
+  name: string;
+  display_name: string;
+  description: string;
+  homepage: string;
+  installed: boolean;
+}
+
+/**
+ * Result of analyzer discovery
+ * Lists all available analyzers and their installation status
+ */
+export interface DiscoveryResult {
+  found: AvailableAnalyzer[];
+  installed_count: number;
+  selected?: string;
+}
+
+/**
  * Confidence level for mappings and detections
  */
 export type ConfidenceLevel = "high" | "medium" | "low";
@@ -98,9 +120,15 @@ export interface IndexMeta {
 
 /**
  * Result of an index operation
- * Alias for IndexMeta - same structure with identical required fields
+ * Contains success status and counts and metadata from indexing
  */
-export type IndexResult = IndexMeta;
+export interface IndexResult {
+  success: boolean;
+  git_head: string;
+  timestamp: string;
+  node_count: number;
+  edge_count: number;
+}
 
 /**
  * Current status of an analyzer for a project
