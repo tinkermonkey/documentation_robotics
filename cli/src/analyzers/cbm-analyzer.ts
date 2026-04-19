@@ -1095,14 +1095,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
           }>)
         : [];
 
-      // Build a map of edge types by from_node -> to_node for quick lookup
-      const edgeTypeMap = new Map<string, string>();
-      for (const edge of edges) {
-        const key = `${edge.from_node}→${edge.to_node}`;
-        // Use the first edge type found for this connection (prefer CALLS if multiple)
-        if (!edgeTypeMap.has(key)) {
-          edgeTypeMap.set(key, edge.type || "CALLS");
-        }
+      // Get valid edge types from the mapping loader (don't hardcode)
+      const validEdgeTypes = this.mapper.getEdgeTypes();
+      const defaultEdgeType =
+        validEdgeTypes.length > 0 ? validEdgeTypes[0] : "CALLS";
+
+      // Build a map of nodes by qualified_name for parent lookup
+      const nodesByQualifiedName = new Map<string, (typeof nodes)[0]>();
+      for (const node of nodes) {
+        const qname = node.qualified_name || node.id;
+        nodesByQualifiedName.set(qname, node);
       }
 
       // Transform nodes to CallGraphNode objects
@@ -1128,22 +1130,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Extract depth (default 0 if not provided)
         const nodeDepth = typeof node.depth === "number" ? node.depth : 0;
 
-        // Determine edge type from the edges map or default to CALLS
-        // For root node (depth 0), we look for edges from root to this node
-        let edgeType: "CALLS" | "HTTP_CALLS" | "HANDLES" = "CALLS";
+        // Determine edge type by finding the edge that connects to this node
+        // For depth 0 (root), look for edges from root to this node
+        // For depth > 0, look for edges from any parent to this node
+        let edgeType = defaultEdgeType;
         if (nodeDepth > 0) {
-          // Look for edge connecting to this node
-          for (const edge of edges) {
-            if (
-              (direction === "forward" && edge.from_node === qualifiedName && edge.to_node === nodeQualifiedName) ||
-              (direction === "backward" && edge.from_node === nodeQualifiedName && edge.to_node === qualifiedName)
-            ) {
-              const cbmEdgeType = edge.type || "CALLS";
-              // Only use edge types that are valid CallGraphNode edge types
-              if (cbmEdgeType === "CALLS" || cbmEdgeType === "HTTP_CALLS" || cbmEdgeType === "HANDLES") {
-                edgeType = cbmEdgeType;
-              }
-              break;
+          // Find the incoming edge to this node
+          const incomingEdge = edges.find(
+            (edge) => edge.to_node === nodeQualifiedName
+          );
+          if (incomingEdge && incomingEdge.type) {
+            // Validate that this edge type is in our valid types
+            if (validEdgeTypes.includes(incomingEdge.type)) {
+              edgeType = incomingEdge.type;
             }
           }
         }
@@ -1153,7 +1152,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           source_file: sourceFile,
           source_symbol: sourceSymbol,
           depth: nodeDepth,
-          edge_type: edgeType,
+          edge_type: edgeType as "CALLS" | "HTTP_CALLS" | "HANDLES",
         });
       }
 
