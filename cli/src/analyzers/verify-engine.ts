@@ -274,14 +274,13 @@ export class VerifyEngine {
       );
     }
 
-    // Wait for all file checks using allSettled to prevent one error from aborting the entire verification
-    const fileExistsResults = await Promise.allSettled(fileChecks);
+    // Wait for all file checks. All promises have .catch() handlers that return booleans,
+    // so they will never reject - Promise.all() is safe and simpler than allSettled.
+    const fileExistsResults = await Promise.all(fileChecks);
 
     // Add to in_model_only only if file exists, then check against ignore rules
     for (let i = 0; i < elementsToCheck.length; i++) {
-      const result = fileExistsResults[i];
-      // Only proceed if the promise settled successfully and the file exists
-      const fileExists = result.status === "fulfilled" && result.value === true;
+      const fileExists = fileExistsResults[i];
 
       if (fileExists) {
         const elem = elementsToCheck[i];

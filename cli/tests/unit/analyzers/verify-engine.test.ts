@@ -450,33 +450,6 @@ get-products:
   });
 
   describe("Changeset context determination", () => {
-    it("should set verified_against to base_model when no active changeset", async () => {
-      // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
-      await mkdir(modelDir, { recursive: true });
-
-      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
-      await writeFile(
-        manifestPath,
-        `project:
-  name: "Test Project"
-  version: "1.0.0"
-spec_version: "0.8.3"`
-      );
-
-      await writeFile(join(modelDir, "operations.yaml"), "");
-
-      const routes: DiscoveredRoute[] = [];
-
-      const engine = new VerifyEngine();
-      const report = await engine.computeReport(testProjectRoot, routes, {
-        changesetAware: false,
-      });
-
-      expect(report.changeset_context.verified_against).toBe("base_model");
-      expect(report.changeset_context.active_changeset).toBeNull();
-    });
-
     it("should use base_model when changesetAware is explicitly false", async () => {
       // Create model structure
       const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
@@ -564,6 +537,53 @@ get-users:
 
       // Should still work without explicit changesetAware option
       expect(report.buckets.matched.length).toBe(1);
+    });
+  });
+
+  describe("Error handling", () => {
+    it("should throw helpful error with dr init suggestion when model directory is missing", async () => {
+      // Create a project root with no model directory
+      const emptyProjectRoot = `/tmp/verify-error-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      await mkdir(emptyProjectRoot, { recursive: true });
+
+      // Initialize git repository
+      spawnSync("git", ["init"], { cwd: emptyProjectRoot, stdio: "pipe" });
+      spawnSync("git", ["config", "user.email", "test@example.com"], {
+        cwd: emptyProjectRoot,
+        stdio: "pipe",
+      });
+      spawnSync("git", ["config", "user.name", "Test User"], {
+        cwd: emptyProjectRoot,
+        stdio: "pipe",
+      });
+
+      // Create initial commit
+      await writeFile(join(emptyProjectRoot, "README.md"), "# Test Project\n");
+      spawnSync("git", ["add", "."], { cwd: emptyProjectRoot, stdio: "pipe" });
+      spawnSync("git", ["commit", "-m", "Initial commit"], {
+        cwd: emptyProjectRoot,
+        stdio: "pipe",
+      });
+
+      const engine = new VerifyEngine();
+
+      try {
+        await engine.computeReport(emptyProjectRoot, [], {});
+        // If we get here, the test should fail
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        const message = (error as Error).message;
+        expect(message).toContain("Failed to load DR model");
+        expect(message).toContain("dr init");
+      }
+
+      // Cleanup
+      try {
+        await rm(emptyProjectRoot, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     });
   });
 });
