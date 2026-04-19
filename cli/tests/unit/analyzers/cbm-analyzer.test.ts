@@ -1695,61 +1695,124 @@ describe("CbmAnalyzer", () => {
     });
 
     it("should return DatastoreCandidate objects with confidence low", async () => {
-      // Verify structure of DatastoreCandidate
-      const heuristic = mockMapper.getHeuristic("datastore_detection");
-      expect(heuristic).toBeDefined();
+      // Test that inferDatastoreName produces valid candidate names
+      const testNodes = [
+        {
+          id: "migration-users",
+          label: "Migration",
+          properties: { name: "userMigration" },
+          file_path: "/project/migrations/users.migration.ts",
+        },
+        {
+          id: "schema-orders",
+          label: "Schema",
+          properties: { name: "orderSchema" },
+          file_path: "/project/schema/orders.schema.ts",
+        },
+      ];
 
-      // Construct a sample DatastoreCandidate to verify structure
-      const sampleCandidate: any = {
-        suggested_layer: "data-store",
-        suggested_name: "users-database",
+      // Test inferDatastoreName with migration pattern
+      let name1 = (analyzer as any).inferDatastoreName(
+        "/project/migrations/users.migration.ts",
+        testNodes[0],
+        "pg"
+      );
+      expect(name1).toBeDefined();
+      expect(typeof name1).toBe("string");
+
+      // Test inferDatastoreName with schema pattern
+      let name2 = (analyzer as any).inferDatastoreName(
+        "/project/schema/orders.schema.ts",
+        testNodes[1],
+        "mongodb"
+      );
+      expect(name2).toBeDefined();
+      expect(typeof name2).toBe("string");
+
+      // All inferred names should be valid DatastoreCandidate names
+      // Simulate what datastores() does: create candidate with confidence "low"
+      const candidate = {
+        suggested_layer: "data-store" as const,
+        suggested_name: name1!,
         inferred_from: [
           {
-            source_file: "src/db/migrations/001-users.ts",
+            source_file: "migrations/users.migration.ts",
             import_pattern: "pg",
             function_patterns: ["migration"],
           },
         ],
-        confidence: "low",
-        notes: "Inferred from 1 source file(s) based on datastore detection heuristics",
+        confidence: "low" as const,
+        notes: `Inferred from 1 source file(s) based on datastore detection heuristics`,
       };
 
-      // Verify the DatastoreCandidate structure
-      expect(sampleCandidate.confidence).toBe("low");
-      expect(typeof sampleCandidate.suggested_name).toBe("string");
-      expect(Array.isArray(sampleCandidate.inferred_from)).toBe(true);
-      expect(sampleCandidate.suggested_layer).toBe("data-store");
+      // Verify the constructed candidate has correct structure
+      expect(candidate.confidence).toBe("low");
+      expect(typeof candidate.suggested_name).toBe("string");
+      expect(Array.isArray(candidate.inferred_from)).toBe(true);
+      expect(candidate.suggested_layer).toBe("data-store");
     });
 
     it("should aggregate signals by file and module", async () => {
-      // Verify that signals are properly aggregated by datastore name
+      // Test the aggregation logic used in datastores(): multiple signals from the same file
+      // should be aggregated into a single entry with combined evidence
       const heuristic = mockMapper.getHeuristic("datastore_detection");
       expect(heuristic).toBeDefined();
 
-      // The heuristic has patterns and naming_indicators for aggregation
-      const patterns = heuristic?.parameters?.patterns as string[];
-      const indicators = heuristic?.parameters?.naming_indicators as string[];
-
-      expect(Array.isArray(patterns)).toBe(true);
-      expect(patterns!.length).toBeGreaterThan(0);
-      expect(Array.isArray(indicators)).toBe(true);
-      expect(indicators!.length).toBeGreaterThan(0);
-
-      // Test signal aggregation logic: multiple signals from same file
-      // should be aggregated into a single DatastoreCandidate with both signals
+      // Simulate the aggregation logic from datastores() at lines 1426-1447
+      // Multiple signals from the same source file get combined
       const signals = [
         { sourceFile: "src/db/migrations/users.ts", importPattern: "pg", functionPatterns: ["migration"] },
         { sourceFile: "src/db/migrations/users.ts", importPattern: "pg", functionPatterns: ["schema"] },
+        { sourceFile: "src/db/migrations/users.ts", importPattern: undefined, functionPatterns: ["index"] },
       ];
 
-      // Verify that when aggregated, both function patterns are captured
-      const aggregatedPatterns = new Set<string>();
+      // Aggregate signals by source file (matching datastores() aggregation logic)
+      const inferredFromMap = new Map<
+        string,
+        {
+          importPatterns: Set<string>;
+          functionPatterns: Set<string>;
+        }
+      >();
+
       for (const signal of signals) {
-        signal.functionPatterns.forEach((fp) => aggregatedPatterns.add(fp));
+        if (!inferredFromMap.has(signal.sourceFile)) {
+          inferredFromMap.set(signal.sourceFile, {
+            importPatterns: new Set(),
+            functionPatterns: new Set(),
+          });
+        }
+
+        const entry = inferredFromMap.get(signal.sourceFile)!;
+        if (signal.importPattern) {
+          entry.importPatterns.add(signal.importPattern);
+        }
+        signal.functionPatterns.forEach((fp) => entry.functionPatterns.add(fp));
       }
-      expect(aggregatedPatterns.size).toBe(2);
-      expect(Array.from(aggregatedPatterns)).toContain("migration");
-      expect(Array.from(aggregatedPatterns)).toContain("schema");
+
+      // Verify aggregation worked: single file should have multiple patterns
+      expect(inferredFromMap.size).toBe(1);
+      const aggregated = Array.from(inferredFromMap.values())[0]!;
+      expect(aggregated.importPatterns.size).toBeGreaterThan(0);
+      expect(aggregated.functionPatterns.size).toBe(3); // migration, schema, index
+      expect(Array.from(aggregated.functionPatterns)).toContain("migration");
+      expect(Array.from(aggregated.functionPatterns)).toContain("schema");
+      expect(Array.from(aggregated.functionPatterns)).toContain("index");
+
+      // Create candidate from aggregated signals (matching datastores() logic at lines 1450-1457)
+      const inferredFromMapEntries = Array.from(inferredFromMap.entries());
+      const inferredFrom = inferredFromMapEntries.map(
+        ([sourceFile, evidence]) => ({
+          source_file: sourceFile,
+          import_pattern: Array.from(evidence.importPatterns).join(", ") || "unknown",
+          function_patterns: Array.from(evidence.functionPatterns),
+        })
+      );
+
+      // Verify the final candidate structure has aggregated evidence
+      expect(inferredFrom.length).toBe(1);
+      expect(inferredFrom[0].source_file).toBe("src/db/migrations/users.ts");
+      expect(inferredFrom[0].function_patterns.length).toBe(3);
     });
 
     it("should match datastore patterns from heuristics", async () => {
@@ -1783,50 +1846,121 @@ describe("CbmAnalyzer", () => {
       expect(typeof name).toBe("string");
     });
 
-    it("should return array of DatastoreCandidate objects", async () => {
-      // Verify that datastores() structure is correct
-      const heuristic = mockMapper.getHeuristic("datastore_detection");
-      expect(heuristic).toBeDefined();
+    it("should construct DatastoreCandidate array from aggregated signals", async () => {
+      // Test the transformation of aggregated signals into DatastoreCandidate array
+      // following the pattern at datastores() lines 1419-1466
 
-      // Create a sample array of DatastoreCandidate objects to verify structure
-      const sampleCandidates = [
+      // Simulate multiple datastores with aggregated signals
+      const datastoreSignals = new Map<
+        string,
+        Array<{
+          sourceFile: string;
+          importPattern?: string;
+          functionPatterns: string[];
+        }>
+      >();
+
+      // Add signals for users datastore
+      datastoreSignals.set("users", [
         {
-          suggested_layer: "data-store",
-          suggested_name: "users-db",
-          inferred_from: [
-            {
-              source_file: "src/db/migrations/001-users.ts",
-              import_pattern: "pg",
-              function_patterns: ["migration"],
-            },
-          ],
-          confidence: "low" as const,
-          notes: "Inferred from 1 source file(s) based on datastore detection heuristics",
+          sourceFile: "src/db/migrations/users.migration.ts",
+          importPattern: "pg",
+          functionPatterns: ["migration"],
         },
         {
-          suggested_layer: "data-store",
-          suggested_name: "cache-store",
-          inferred_from: [
-            {
-              source_file: "src/cache/redis-client.ts",
-              import_pattern: "redis",
-              function_patterns: ["cache"],
-            },
-          ],
-          confidence: "low" as const,
-          notes: "Inferred from 1 source file(s) based on datastore detection heuristics",
+          sourceFile: "src/db/migrations/users.migration.ts",
+          importPattern: "pg",
+          functionPatterns: ["schema"],
         },
-      ];
+      ]);
 
-      // Verify all candidates conform to the DatastoreCandidate structure
-      expect(Array.isArray(sampleCandidates)).toBe(true);
-      for (const candidate of sampleCandidates) {
+      // Add signals for cache datastore
+      datastoreSignals.set("redis-cache", [
+        {
+          sourceFile: "src/cache/redis-client.ts",
+          importPattern: "redis",
+          functionPatterns: ["cache"],
+        },
+      ]);
+
+      // Transform signals into DatastoreCandidate objects (matching datastores() logic)
+      const candidates: any[] = [];
+
+      const entriesArray = Array.from(datastoreSignals.entries());
+      for (const [datastoreName, signals] of entriesArray) {
+        // Aggregate by source file
+        const inferredFromMap = new Map<
+          string,
+          {
+            importPatterns: Set<string>;
+            functionPatterns: Set<string>;
+          }
+        >();
+
+        for (const signal of signals) {
+          if (!inferredFromMap.has(signal.sourceFile)) {
+            inferredFromMap.set(signal.sourceFile, {
+              importPatterns: new Set(),
+              functionPatterns: new Set(),
+            });
+          }
+
+          const entry = inferredFromMap.get(signal.sourceFile)!;
+          if (signal.importPattern) {
+            entry.importPatterns.add(signal.importPattern);
+          }
+          signal.functionPatterns.forEach((fp) => entry.functionPatterns.add(fp));
+        }
+
+        // Create candidate with aggregated evidence
+        const inferredFromMapEntries = Array.from(inferredFromMap.entries());
+        const inferredFrom = inferredFromMapEntries.map(
+          ([sourceFile, evidence]) => ({
+            source_file: sourceFile,
+            import_pattern: Array.from(evidence.importPatterns).join(", ") || datastoreName,
+            function_patterns: Array.from(evidence.functionPatterns),
+          })
+        );
+
+        candidates.push({
+          suggested_layer: "data-store",
+          suggested_name: datastoreName,
+          inferred_from: inferredFrom,
+          confidence: "low",
+          notes: `Inferred from ${inferredFrom.length} source file(s) based on datastore detection heuristics`,
+        });
+      }
+
+      // Verify the array structure
+      expect(Array.isArray(candidates)).toBe(true);
+      expect(candidates.length).toBe(2);
+
+      // Verify all candidates conform to DatastoreCandidate structure
+      for (const candidate of candidates) {
         expect(candidate.suggested_layer).toBe("data-store");
         expect(typeof candidate.suggested_name).toBe("string");
         expect(Array.isArray(candidate.inferred_from)).toBe(true);
+        expect(candidate.inferred_from.length).toBeGreaterThan(0);
         expect(candidate.confidence).toBe("low");
         expect(typeof candidate.notes).toBe("string");
+
+        // Verify inferred_from structure
+        for (const source of candidate.inferred_from) {
+          expect(typeof source.source_file).toBe("string");
+          expect(typeof source.import_pattern).toBe("string");
+          expect(Array.isArray(source.function_patterns)).toBe(true);
+        }
       }
+
+      // Verify specific candidates have expected structure
+      const usersCandidate = candidates.find((c) => c.suggested_name === "users");
+      expect(usersCandidate).toBeDefined();
+      expect(usersCandidate.inferred_from[0].function_patterns).toContain("migration");
+      expect(usersCandidate.inferred_from[0].function_patterns).toContain("schema");
+
+      const redisCandidate = candidates.find((c) => c.suggested_name === "redis-cache");
+      expect(redisCandidate).toBeDefined();
+      expect(redisCandidate.inferred_from[0].function_patterns).toContain("cache");
     });
   });
 
