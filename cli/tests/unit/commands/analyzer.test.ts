@@ -464,7 +464,7 @@ describe("Analyzer Command - discover with no analyzer installed", () => {
       try {
         // Registry that returns null for one analyzer
         const registry = {
-          getAnalyzerNames: () => ["null-analyzer", "working-analyzer"],
+          getAnalyzerNames: async () => ["null-analyzer", "working-analyzer"],
           getAnalyzer: async (name: string) => {
             if (name === "null-analyzer") return null;
             return createMockBackend("working-analyzer", "Working", false);
