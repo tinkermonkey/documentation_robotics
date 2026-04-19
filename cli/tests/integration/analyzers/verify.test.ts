@@ -368,7 +368,7 @@ get-users:
   });
 
   describe("Layer filtering", () => {
-    it("should handle --layer application with clean message", async () => {
+    it("should verify only api layer regardless of layer option", async () => {
       // Create minimal model structure
       const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
       await mkdir(modelDir, { recursive: true });
@@ -385,16 +385,19 @@ spec_version: "0.8.3"`
       // Create empty API layer
       await writeFile(join(modelDir, "operations.yaml"), "");
 
-      // Test that verify engine/subcommand handles non-api layers gracefully
-      // The verify engine should only process api layer, so no routes will be verified
+      // Test that verify engine always operates on api layer
+      // Even if other layers are requested, only api is verified
       const routes: DiscoveredRoute[] = [];
 
       const engine = new VerifyEngine();
       const report = await engine.computeReport(testProjectRoot, routes, {
         changesetAware: false,
+        layers: ["application", "data-model"],  // Request non-api layers
       });
 
-      // With no routes, report should have empty buckets
+      // Report should indicate only api layer was verified
+      expect(report.layers_verified).toEqual(["api"]);
+      // With no routes, api layer buckets should be empty
       expect(report.buckets.matched.length).toBe(0);
       expect(report.buckets.in_graph_only.length).toBe(0);
     });

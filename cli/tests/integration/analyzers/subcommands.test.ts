@@ -48,7 +48,7 @@ describe("Analyzer Subcommands Integration", () => {
       // May fail if not indexed, but should accept --json flag and exit gracefully
       if (result.exitCode !== 0) {
         // Should have an error message
-        expect(result.stderr).toContain("");  // stderr should be populated on error
+        expect(result.stderr.length).toBeGreaterThan(0);  // stderr should be populated on error
       } else {
         // If successful, should return valid JSON
         expect(() => JSON.parse(result.stdout)).not.toThrow();

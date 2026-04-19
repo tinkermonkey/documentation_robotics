@@ -41,6 +41,17 @@ function evaluateHeuristic(
   return false;
 }
 
+// Helper function that simulates confidence capping logic
+function capConfidence(
+  confidence: "high" | "medium" | "low"
+): "high" | "medium" | "low" {
+  // Cap confidence at "medium" for service candidates
+  if (confidence === "high") {
+    return "medium";
+  }
+  return confidence;
+}
+
 describe("Service and Datastore Analysis", () => {
   describe("Heuristic evaluation logic", () => {
     it("should evaluate min_fan_in heuristic", () => {
@@ -193,13 +204,18 @@ describe("Service and Datastore Analysis", () => {
     });
 
     it("should cap confidence at medium", () => {
-      const confidenceWithManyHeuristics = "medium";
-      const confidenceWithFewHeuristics = "low";
+      // Test that high confidence gets capped to medium
+      const cappedHigh = capConfidence("high");
+      expect(cappedHigh).toBe("medium");
+      expect(cappedHigh).not.toBe("high");
 
-      // Confidence should never exceed medium
-      expect(confidenceWithManyHeuristics).toBe("medium");
-      expect(confidenceWithManyHeuristics).not.toBe("high");
-      expect(confidenceWithFewHeuristics).toBe("low");
+      // Test that medium confidence remains unchanged
+      const cappedMedium = capConfidence("medium");
+      expect(cappedMedium).toBe("medium");
+
+      // Test that low confidence remains unchanged
+      const cappedLow = capConfidence("low");
+      expect(cappedLow).toBe("low");
     });
   });
 
