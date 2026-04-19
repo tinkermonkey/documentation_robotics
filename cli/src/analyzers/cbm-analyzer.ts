@@ -662,21 +662,82 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Execute a raw query against the analyzer's graph (stub - not yet implemented)
+   * Execute a raw Cypher query against the analyzer's graph
    *
-   * Returns a defined placeholder stub response per FR-5.2. The feature is planned for
-   * a future release and currently returns empty results rather than throwing an exception.
+   * Passes the raw Cypher string directly to the query_graph MCP tool.
+   * The query_graph tool is optional (not in required_tools contract).
+   * If the tool call fails, surfaces a clear error message.
    *
-   * @param _projectRoot Absolute path to the project root (not yet used)
-   * @param _rawQuery Query string in the analyzer's native language (not yet used)
-   * @returns Placeholder stub response with empty results
+   * @param projectRoot Absolute path to the project root
+   * @param rawQuery Raw Cypher query string
+   * @returns Raw result from query_graph tool
+   * @throws CLIError if project not indexed or query_graph tool unavailable
    */
-  async query(_projectRoot: string, _rawQuery: string): Promise<unknown> {
-    return {
-      results: [],
-      message: "Raw graph queries are not yet implemented",
-      suggestion: "Use endpoints(), index(), or detect() for analysis",
-    };
+  async query(projectRoot: string, rawQuery: string): Promise<unknown> {
+    // Check that the project is indexed (same pre-flight checks as endpoints)
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed || !detection.binary_path) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Call query_graph tool
+      try {
+        const queryResponse = await client.callTool("query_graph", {
+          query: rawQuery,
+          project: projectRoot,
+        });
+
+        return queryResponse;
+      } catch (error) {
+        // Check if the error is due to the tool not being available
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        if (errorMessage.includes("query_graph") || errorMessage.includes("Unknown method")) {
+          throw new CLIError(
+            "query_graph not supported by this analyzer",
+            ErrorCategory.USER,
+            [
+              "The query_graph tool is optional in the CBM analyzer contract",
+              "Ensure your codebase-memory-mcp version supports raw graph queries",
+              "Contact the analyzer maintainers if you need this feature",
+            ]
+          );
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
+    } finally {
+      client.close();
+    }
   }
 
   /**
@@ -885,35 +946,221 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Query for callers of a specific function or symbol (stub - not yet implemented)
+   * Query for callers of a specific function or symbol
    *
-   * @param _projectRoot Absolute path to the project root
-   * @param _symbol Fully qualified symbol name to find callers of
-   * @param _depth Maximum depth for call graph traversal
-   * @returns Placeholder stub response
+   * Delegates to trace_call_path MCP tool with direction="backward" to find
+   * all functions that call the specified qualified name. Applies depth clamping
+   * (default 3, max 10) and transforms CBM response nodes into CallGraphNode objects
+   * using edge-type mappings from the analyzer.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param qualifiedName Fully qualified symbol name (e.g., "com.example.UserService.getUser")
+   * @param depth Maximum traversal depth (default 3, clamped to max 10)
+   * @returns Array of callers in the call graph
+   * @throws CLIError if project not indexed or analyzer not installed
    */
   async callers(
-    _projectRoot: string,
-    _symbol: string,
-    _depth?: number
+    projectRoot: string,
+    qualifiedName: string,
+    depth?: number
   ): Promise<CallGraphNode[]> {
-    throw new Error("not implemented");
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "backward");
   }
 
   /**
-   * Query for callees of a specific function or symbol (stub - not yet implemented)
+   * Query for callees of a specific function or symbol
    *
-   * @param _projectRoot Absolute path to the project root
-   * @param _symbol Fully qualified symbol name to find callees of
-   * @param _depth Maximum depth for call graph traversal
-   * @returns Placeholder stub response
+   * Delegates to trace_call_path MCP tool with direction="forward" to find
+   * all functions called by the specified qualified name. Applies depth clamping
+   * (default 3, max 10) and transforms CBM response nodes into CallGraphNode objects
+   * using edge-type mappings from the analyzer.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param qualifiedName Fully qualified symbol name (e.g., "com.example.UserService.getUser")
+   * @param depth Maximum traversal depth (default 3, clamped to max 10)
+   * @returns Array of callees in the call graph
+   * @throws CLIError if project not indexed or analyzer not installed
    */
   async callees(
-    _projectRoot: string,
-    _symbol: string,
-    _depth?: number
+    projectRoot: string,
+    qualifiedName: string,
+    depth?: number
   ): Promise<CallGraphNode[]> {
-    throw new Error("not implemented");
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "forward");
+  }
+
+  /**
+   * Internal helper to trace call paths in either direction
+   *
+   * Handles common logic for callers() and callees(): pre-flight checks,
+   * depth clamping, tool invocation, and response transformation.
+   *
+   * @private
+   */
+  private async traceCallPath(
+    projectRoot: string,
+    qualifiedName: string,
+    depth: number | undefined,
+    direction: "forward" | "backward"
+  ): Promise<CallGraphNode[]> {
+    // Check that the project is indexed (same pre-flight checks as endpoints)
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed || !detection.binary_path) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    // Clamp depth: default 3, max 10
+    const clampedDepth = Math.min(depth ?? 3, 10);
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Call trace_call_path with the clamped depth
+      const traceResponse = (await client.callTool("trace_call_path", {
+        qualified_name: qualifiedName,
+        direction,
+        depth: clampedDepth,
+        project: projectRoot,
+      })) as {
+        nodes?: Array<{
+          id: string;
+          qualified_name?: string;
+          source_file?: string;
+          source_symbol?: string;
+          file_path?: string;
+          depth?: number;
+          [key: string]: unknown;
+        }>;
+        edges?: Array<{
+          from_node: string;
+          to_node: string;
+          type?: string;
+          [key: string]: unknown;
+        }>;
+        [key: string]: unknown;
+      };
+
+      // Validate response structure
+      if (!traceResponse || typeof traceResponse !== "object") {
+        throw new CLIError(
+          "Invalid response from trace_call_path",
+          ErrorCategory.SYSTEM,
+          ["Ensure codebase-memory-mcp is properly installed and functional"]
+        );
+      }
+
+      const nodes = Array.isArray(traceResponse.nodes)
+        ? (traceResponse.nodes as Array<{
+            id: string;
+            qualified_name?: string;
+            source_file?: string;
+            source_symbol?: string;
+            file_path?: string;
+            depth?: number;
+            [key: string]: unknown;
+          }>)
+        : [];
+
+      const edges = Array.isArray(traceResponse.edges)
+        ? (traceResponse.edges as Array<{
+            from_node: string;
+            to_node: string;
+            type?: string;
+            [key: string]: unknown;
+          }>)
+        : [];
+
+      // Build a map of edge types by from_node -> to_node for quick lookup
+      const edgeTypeMap = new Map<string, string>();
+      for (const edge of edges) {
+        const key = `${edge.from_node}→${edge.to_node}`;
+        // Use the first edge type found for this connection (prefer CALLS if multiple)
+        if (!edgeTypeMap.has(key)) {
+          edgeTypeMap.set(key, edge.type || "CALLS");
+        }
+      }
+
+      // Transform nodes to CallGraphNode objects
+      const callGraphNodes: CallGraphNode[] = [];
+
+      for (const node of nodes) {
+        // Extract qualified name from node
+        const nodeQualifiedName = node.qualified_name || node.id;
+
+        // Extract source file (relative to project root)
+        let sourceFile = node.file_path || node.source_file || "";
+        if (sourceFile && projectRoot) {
+          try {
+            sourceFile = path.relative(projectRoot, sourceFile);
+          } catch {
+            // If relative path fails, keep absolute
+          }
+        }
+
+        // Extract source symbol
+        const sourceSymbol = node.source_symbol || node.id || "";
+
+        // Extract depth (default 0 if not provided)
+        const nodeDepth = typeof node.depth === "number" ? node.depth : 0;
+
+        // Determine edge type from the edges map or default to CALLS
+        // For root node (depth 0), we look for edges from root to this node
+        let edgeType: "CALLS" | "HTTP_CALLS" | "HANDLES" = "CALLS";
+        if (nodeDepth > 0) {
+          // Look for edge connecting to this node
+          for (const edge of edges) {
+            if (
+              (direction === "forward" && edge.from_node === qualifiedName && edge.to_node === nodeQualifiedName) ||
+              (direction === "backward" && edge.from_node === nodeQualifiedName && edge.to_node === qualifiedName)
+            ) {
+              const cbmEdgeType = edge.type || "CALLS";
+              // Only use edge types that are valid CallGraphNode edge types
+              if (cbmEdgeType === "CALLS" || cbmEdgeType === "HTTP_CALLS" || cbmEdgeType === "HANDLES") {
+                edgeType = cbmEdgeType;
+              }
+              break;
+            }
+          }
+        }
+
+        callGraphNodes.push({
+          qualified_name: nodeQualifiedName,
+          source_file: sourceFile,
+          source_symbol: sourceSymbol,
+          depth: nodeDepth,
+          edge_type: edgeType,
+        });
+      }
+
+      return callGraphNodes;
+    } finally {
+      client.close();
+    }
   }
 
   /**
