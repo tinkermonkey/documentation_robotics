@@ -358,9 +358,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       ]);
 
       // Return the existing metadata
-      const meta = status.index_meta!;
+      const meta = status.index_meta;
       return {
-        success: true,
         node_count: meta.node_count,
         edge_count: meta.edge_count,
         git_head: meta.git_head,
@@ -370,7 +369,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -442,7 +441,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         const meta = status.index_meta;
         return {
-          success: true,
           node_count: meta.node_count,
           edge_count: meta.edge_count,
           git_head: meta.git_head,
@@ -553,7 +551,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
       await writeIndexMeta(meta, projectRoot, analyzerName);
 
       return {
-        success: true,
         node_count: nodeCount,
         edge_count: edgeCount,
         git_head: gitHead,
@@ -629,7 +626,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -716,7 +713,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -987,7 +984,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -1336,7 +1333,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -1673,7 +1670,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -1869,7 +1866,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,

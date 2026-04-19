@@ -11,14 +11,23 @@ import type { SourceReference } from "../types/source-reference.js";
 
 /**
  * Binary detection result - whether an analyzer is installed and functional
+ * Discriminated union on `installed` field to make binary_path required when installed
  */
-export interface DetectionResult {
-  installed: boolean;
-  binary_path?: string;
-  version?: string;
-  mcp_registered?: boolean;
-  contract_ok?: boolean;
-}
+export type DetectionResult =
+  | {
+      installed: true;
+      binary_path: string;
+      version?: string;
+      mcp_registered?: boolean;
+      contract_ok?: boolean;
+    }
+  | {
+      installed: false;
+      binary_path?: never;
+      version?: never;
+      mcp_registered?: never;
+      contract_ok?: never;
+    };
 
 /**
  * Information about an available analyzer
@@ -61,6 +70,33 @@ export const VALID_HTTP_METHODS = [
   "TRACE",
   "CONNECT",
 ] as const;
+
+/**
+ * Heuristic parameters - shape depends on heuristic type
+ * Known parameter types:
+ * - min_fan_in: { threshold: number }
+ * - directory_match: { patterns: string[] }
+ * - naming_patterns: { service_suffixes: string[] }
+ * - class_is_service: { threshold: number }
+ * - service_class_naming: { service_method_prefixes: string[] }
+ * - is_entry_point: { entry_point_patterns: string[] }
+ */
+export interface HeuristicParameters {
+  threshold?: number;
+  patterns?: string[];
+  service_suffixes?: string[];
+  service_method_prefixes?: string[];
+  entry_point_patterns?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * Conditions for mappings and heuristics
+ * Flexible structure for conditional logic and filtering
+ */
+export interface MappingConditions {
+  [key: string]: unknown;
+}
 
 /**
  * HTTP method type derived from VALID_HTTP_METHODS constant
@@ -120,10 +156,10 @@ export interface IndexMeta {
 
 /**
  * Result of an index operation
- * Contains success status and counts and metadata from indexing
+ * Contains counts and metadata from indexing.
+ * Failures are signaled by throwing CLIError, not by success: false.
  */
 export interface IndexResult {
-  success: boolean;
   git_head: string;
   timestamp: string;
   node_count: number;
@@ -132,14 +168,23 @@ export interface IndexResult {
 
 /**
  * Current status of an analyzer for a project
+ * Discriminated union on `indexed` field to enforce index_meta presence when indexed: true
  */
-export interface AnalyzerStatus {
-  detected: DetectionResult;
-  indexed: boolean;
-  index_meta?: IndexMeta;
-  fresh: boolean;
-  last_indexed?: string;
-}
+export type AnalyzerStatus =
+  | {
+      detected: DetectionResult;
+      indexed: true;
+      index_meta: IndexMeta;
+      fresh: boolean;
+      last_indexed?: string;
+    }
+  | {
+      detected: DetectionResult;
+      indexed: false;
+      index_meta?: never;
+      fresh: boolean;
+      last_indexed?: string;
+    };
 
 /**
  * Session state - tracks which analyzer is currently active
@@ -185,7 +230,7 @@ export interface AnalyzerNodeMapping {
   dr_element_type_promoted?: string;
   promotion_heuristics?: string[];
   evidence_fields?: Record<string, { from: string }>;
-  conditions?: Record<string, unknown>;
+  conditions?: MappingConditions;
 }
 
 /**
@@ -203,7 +248,7 @@ export interface AnalyzerEdgeMapping {
   confidence_from_property?: string;
   dr_pattern?: string;
   implementation_note?: string;
-  conditions?: Record<string, unknown>;
+  conditions?: MappingConditions;
 }
 
 /**
@@ -213,10 +258,10 @@ export interface AnalyzerHeuristic {
   name: string;
   description: string;
   applies_to?: string[];
-  parameters?: Record<string, unknown>;
+  parameters?: HeuristicParameters;
   rule?: string;
   confidence_adjustment?: number;
-  conditions?: Record<string, unknown>;
+  conditions?: MappingConditions;
 }
 
 /**
@@ -257,8 +302,8 @@ export interface FilteringRule {
  * Maps to `dr add application service` or similar command arguments
  */
 export interface ServiceCandidate {
-  /** Suggested DR layer for this service */
-  suggested_layer: string;
+  /** Suggested DR layer for this service (always "application") */
+  suggested_layer: "application";
   /** Suggested element type for this service */
   suggested_element_type: string;
   /** Suggested kebab-case ID fragment for constructing element ID */

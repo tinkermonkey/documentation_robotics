@@ -103,7 +103,13 @@ function validateIndexMeta(data: unknown): IndexMeta {
 
 /**
  * Validate AnalyzerStatus structure
- * @throws Error if data is missing required fields or optional fields have wrong types
+ * Enforces discriminated union constraints:
+ * - When installed: true, binary_path must be present
+ * - When installed: false, binary_path must not be present
+ * - When indexed: true, index_meta must be present
+ * - When indexed: false, index_meta must not be present
+ *
+ * @throws Error if data is missing required fields or violates discriminated union constraints
  */
 function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
   if (!data || typeof data !== "object") {
@@ -121,21 +127,32 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
     throw new Error("AnalyzerStatus.detected.installed must be a boolean");
   }
 
-  // Validate optional fields in detected if present
-  if (detected.binary_path !== undefined && typeof detected.binary_path !== "string") {
-    throw new Error("AnalyzerStatus.detected.binary_path must be a string");
-  }
+  // Validate DetectionResult discriminated union
+  const installed = detected.installed as boolean;
 
-  if (detected.version !== undefined && typeof detected.version !== "string") {
-    throw new Error("AnalyzerStatus.detected.version must be a string");
-  }
+  if (installed) {
+    // When installed: true, binary_path is required
+    if (typeof detected.binary_path !== "string") {
+      throw new Error("AnalyzerStatus.detected.binary_path must be a string when installed: true");
+    }
 
-  if (detected.mcp_registered !== undefined && typeof detected.mcp_registered !== "boolean") {
-    throw new Error("AnalyzerStatus.detected.mcp_registered must be a boolean");
-  }
+    // Validate optional fields
+    if (detected.version !== undefined && typeof detected.version !== "string") {
+      throw new Error("AnalyzerStatus.detected.version must be a string");
+    }
 
-  if (detected.contract_ok !== undefined && typeof detected.contract_ok !== "boolean") {
-    throw new Error("AnalyzerStatus.detected.contract_ok must be a boolean");
+    if (detected.mcp_registered !== undefined && typeof detected.mcp_registered !== "boolean") {
+      throw new Error("AnalyzerStatus.detected.mcp_registered must be a boolean");
+    }
+
+    if (detected.contract_ok !== undefined && typeof detected.contract_ok !== "boolean") {
+      throw new Error("AnalyzerStatus.detected.contract_ok must be a boolean");
+    }
+  } else {
+    // When installed: false, binary_path must not be present
+    if (detected.binary_path !== undefined) {
+      throw new Error("AnalyzerStatus.detected.binary_path must not be present when installed: false");
+    }
   }
 
   if (typeof obj.indexed !== "boolean") {
@@ -146,30 +163,53 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
     throw new Error("AnalyzerStatus.fresh must be a boolean");
   }
 
-  // Validate optional index_meta if present
-  let validatedIndexMeta: IndexMeta | undefined;
-  if (obj.index_meta !== undefined) {
-    validatedIndexMeta = validateIndexMeta(obj.index_meta);
-  }
+  // Validate AnalyzerStatus discriminated union
+  const indexed = obj.indexed as boolean;
+  if (indexed) {
+    // When indexed: true, index_meta is required
+    if (obj.index_meta === undefined) {
+      throw new Error("AnalyzerStatus.index_meta must be present when indexed: true");
+    }
+    const validatedIndexMeta = validateIndexMeta(obj.index_meta);
 
-  // Validate optional last_indexed if present
-  if (obj.last_indexed !== undefined && typeof obj.last_indexed !== "string") {
-    throw new Error("AnalyzerStatus.last_indexed must be a string");
-  }
+    // Validate optional last_indexed if present
+    if (obj.last_indexed !== undefined && typeof obj.last_indexed !== "string") {
+      throw new Error("AnalyzerStatus.last_indexed must be a string");
+    }
 
-  return {
-    detected: {
-      installed: detected.installed as boolean,
-      binary_path: detected.binary_path as string | undefined,
-      version: detected.version as string | undefined,
-      mcp_registered: detected.mcp_registered as boolean | undefined,
-      contract_ok: detected.contract_ok as boolean | undefined,
-    },
-    indexed: obj.indexed as boolean,
-    fresh: obj.fresh as boolean,
-    index_meta: validatedIndexMeta,
-    last_indexed: obj.last_indexed as string | undefined,
-  };
+    return {
+      detected: {
+        installed: true,
+        binary_path: detected.binary_path as string,
+        version: detected.version as string | undefined,
+        mcp_registered: detected.mcp_registered as boolean | undefined,
+        contract_ok: detected.contract_ok as boolean | undefined,
+      },
+      indexed: true,
+      index_meta: validatedIndexMeta,
+      fresh: obj.fresh as boolean,
+      last_indexed: obj.last_indexed as string | undefined,
+    } as AnalyzerStatus;
+  } else {
+    // When indexed: false, index_meta must not be present
+    if (obj.index_meta !== undefined) {
+      throw new Error("AnalyzerStatus.index_meta must not be present when indexed: false");
+    }
+
+    // Validate optional last_indexed if present
+    if (obj.last_indexed !== undefined && typeof obj.last_indexed !== "string") {
+      throw new Error("AnalyzerStatus.last_indexed must be a string");
+    }
+
+    return {
+      detected: {
+        installed: false,
+      },
+      indexed: false,
+      fresh: obj.fresh as boolean,
+      last_indexed: obj.last_indexed as string | undefined,
+    } as AnalyzerStatus;
+  }
 }
 
 /**

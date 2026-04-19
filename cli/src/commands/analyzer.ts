@@ -26,7 +26,7 @@ import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "..
 import { findProjectRoot } from "../utils/project-paths.js";
 import { performDiscover } from "./discover-logic.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
-import type { SessionState } from "../analyzers/types.js";
+import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
 
 /**
  * Register all analyzer subcommands
@@ -278,7 +278,7 @@ Examples:
 
         // Get status (use project root from findProjectRoot for backend operations)
         const actualProjectRoot = await findProjectRoot();
-        let status;
+        let status: AnalyzerStatus;
         if (actualProjectRoot) {
           status = await backend.status(actualProjectRoot);
         } else {
@@ -287,7 +287,7 @@ Examples:
             detected,
             indexed: false,
             fresh: false,
-          };
+          } as AnalyzerStatus;
         }
 
         // JSON output
