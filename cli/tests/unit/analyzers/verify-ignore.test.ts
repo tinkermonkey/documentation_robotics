@@ -38,23 +38,32 @@ describe("IgnoreFileLoader", () => {
       const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
       const content = `version: 1
 ignore:
-  - handler: "*HealthHandler*"
+  - patterns:
+      - handler: "*HealthHandler*"
     reason: "Health check endpoints ignored"
-  - path: "/admin"
+    match: "graph_only"
+  - patterns:
+      - path: "/admin"
     reason: "Admin routes ignored"
-  - element_ids: ["api.operation.get-status"]
-    reason: "Status endpoint ignored"`;
+    match: "graph_only"
+  - patterns:
+      - element_ids: ["api.operation.get-status"]
+    reason: "Status endpoint ignored"
+    match: "model_only"`;
 
       await writeFile(ignoreFile, content);
 
       const rules = await IgnoreFileLoader.load(ignoreFile);
       expect(rules.length).toBe(3);
-      expect(rules[0].handler).toBe("*HealthHandler*");
+      expect(rules[0].patterns[0].handler).toBe("*HealthHandler*");
       expect(rules[0].reason).toBe("Health check endpoints ignored");
-      expect(rules[1].path).toBe("/admin");
+      expect(rules[0].match).toBe("graph_only");
+      expect(rules[1].patterns[0].path).toBe("/admin");
       expect(rules[1].reason).toBe("Admin routes ignored");
-      expect(rules[2].element_ids).toContain("api.operation.get-status");
+      expect(rules[1].match).toBe("graph_only");
+      expect(rules[2].patterns[0].element_ids).toContain("api.operation.get-status");
       expect(rules[2].reason).toBe("Status endpoint ignored");
+      expect(rules[2].match).toBe("model_only");
     });
 
     it("should return empty array when file doesn't exist (no error)", async () => {
@@ -63,73 +72,101 @@ ignore:
       expect(rules.length).toBe(0);
     });
 
-    it("should return empty array when version is not 1", async () => {
+    it("should throw error when version is not 1", async () => {
       const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
       const content = `version: 2
 ignore:
-  - handler: "*HealthHandler*"
-    reason: "Health check endpoints ignored"`;
+  - patterns:
+      - handler: "*HealthHandler*"
+    reason: "Health check endpoints ignored"
+    match: "graph_only"`;
 
       await writeFile(ignoreFile, content);
 
-      const rules = await IgnoreFileLoader.load(ignoreFile);
-      expect(rules.length).toBe(0);
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("version");
+      }
     });
 
-    it("should return empty array when ignore key is missing", async () => {
+    it("should throw error when ignore key is missing", async () => {
       const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
       const content = `version: 1`;
 
       await writeFile(ignoreFile, content);
 
-      const rules = await IgnoreFileLoader.load(ignoreFile);
-      expect(rules.length).toBe(0);
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("ignore");
+      }
     });
 
-    it("should skip rules without reason field", async () => {
+    it("should throw error for rule without reason field", async () => {
       const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
       const content = `version: 1
 ignore:
-  - handler: "*HealthHandler*"
-  - path: "/admin"
+  - patterns:
+      - handler: "*HealthHandler*"
+    match: "graph_only"
+  - patterns:
+      - path: "/admin"
     reason: "Admin routes ignored"
-  - element_ids: ["api.operation.get-status"]`;
+    match: "graph_only"`;
 
       await writeFile(ignoreFile, content);
 
-      const rules = await IgnoreFileLoader.load(ignoreFile);
-      expect(rules.length).toBe(1);
-      expect(rules[0].path).toBe("/admin");
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("reason");
+      }
     });
 
     it("should handle mixed rule types in single file", async () => {
       const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
       const content = `version: 1
 ignore:
-  - handler: "*Health*"
+  - patterns:
+      - handler: "*Health*"
     reason: "Health patterns"
-  - path: "/admin"
+    match: "graph_only"
+  - patterns:
+      - path: "/admin"
     reason: "Admin path"
-  - element_ids: ["api.operation.get-status", "api.operation.post-config"]
+    match: "graph_only"
+  - patterns:
+      - element_ids: ["api.operation.get-status", "api.operation.post-config"]
     reason: "Multiple element IDs"
-  - handler: "*Mock*"
-    path: "/test"
-    reason: "Both handler and path"`;
+    match: "model_only"
+  - patterns:
+      - handler: "*Mock*"
+      - path: "/test"
+    reason: "Both handler and path"
+    match: "graph_only"`;
 
       await writeFile(ignoreFile, content);
 
       const rules = await IgnoreFileLoader.load(ignoreFile);
       expect(rules.length).toBe(4);
-      expect(rules[2].element_ids?.length).toBe(2);
-      expect(rules[3].handler).toBe("*Mock*");
-      expect(rules[3].path).toBe("/test");
+      expect(rules[2].patterns[0].element_ids?.length).toBe(2);
+      expect(rules[3].patterns[0].handler).toBe("*Mock*");
+      expect(rules[3].patterns[1].path).toBe("/test");
     });
   });
 
   describe("matches", () => {
     it("should match handler glob pattern", () => {
       const rules: IgnoreRule[] = [
-        { handler: "*HealthHandler*", reason: "Health check" },
+        {
+          patterns: [{ handler: "*HealthHandler*" }],
+          reason: "Health check",
+          match: "graph_only",
+        },
       ];
 
       const result = IgnoreFileLoader.matches(
@@ -142,7 +179,11 @@ ignore:
 
     it("should not match handler glob pattern when no match", () => {
       const rules: IgnoreRule[] = [
-        { handler: "*HealthHandler*", reason: "Health check" },
+        {
+          patterns: [{ handler: "*HealthHandler*" }],
+          reason: "Health check",
+          match: "graph_only",
+        },
       ];
 
       const result = IgnoreFileLoader.matches(
@@ -154,7 +195,13 @@ ignore:
     });
 
     it("should match exact path", () => {
-      const rules: IgnoreRule[] = [{ path: "/admin", reason: "Admin path" }];
+      const rules: IgnoreRule[] = [
+        {
+          patterns: [{ path: "/admin" }],
+          reason: "Admin path",
+          match: "graph_only",
+        },
+      ];
 
       const result = IgnoreFileLoader.matches(
         { path: "/admin" },
@@ -165,7 +212,13 @@ ignore:
     });
 
     it("should not match path when different", () => {
-      const rules: IgnoreRule[] = [{ path: "/admin", reason: "Admin path" }];
+      const rules: IgnoreRule[] = [
+        {
+          patterns: [{ path: "/admin" }],
+          reason: "Admin path",
+          match: "graph_only",
+        },
+      ];
 
       const result = IgnoreFileLoader.matches(
         { path: "/admin/users" },
@@ -178,8 +231,16 @@ ignore:
     it("should match element_ids", () => {
       const rules: IgnoreRule[] = [
         {
-          element_ids: ["api.operation.get-status", "api.operation.post-config"],
+          patterns: [
+            {
+              element_ids: [
+                "api.operation.get-status",
+                "api.operation.post-config",
+              ],
+            },
+          ],
           reason: "Ignored elements",
+          match: "model_only",
         },
       ];
 
@@ -194,8 +255,9 @@ ignore:
     it("should not match element_ids when not in list", () => {
       const rules: IgnoreRule[] = [
         {
-          element_ids: ["api.operation.get-status"],
+          patterns: [{ element_ids: ["api.operation.get-status"] }],
           reason: "Ignored elements",
+          match: "model_only",
         },
       ];
 
@@ -209,8 +271,16 @@ ignore:
 
     it("should return first matching rule reason", () => {
       const rules: IgnoreRule[] = [
-        { handler: "*Health*", reason: "First match" },
-        { handler: "*Health*", reason: "Second match" },
+        {
+          patterns: [{ handler: "*Health*" }],
+          reason: "First match",
+          match: "graph_only",
+        },
+        {
+          patterns: [{ handler: "*Health*" }],
+          reason: "Second match",
+          match: "graph_only",
+        },
       ];
 
       const result = IgnoreFileLoader.matches(
@@ -232,7 +302,11 @@ ignore:
 
     it("should handle missing handler in entry", () => {
       const rules: IgnoreRule[] = [
-        { handler: "*Health*", reason: "Health check" },
+        {
+          patterns: [{ handler: "*Health*" }],
+          reason: "Health check",
+          match: "graph_only",
+        },
       ];
 
       const result = IgnoreFileLoader.matches({ path: "/health" }, "route", rules);
@@ -241,7 +315,11 @@ ignore:
 
     it("should handle missing path in entry", () => {
       const rules: IgnoreRule[] = [
-        { path: "/admin", reason: "Admin path" },
+        {
+          patterns: [{ path: "/admin" }],
+          reason: "Admin path",
+          match: "graph_only",
+        },
       ];
 
       const result = IgnoreFileLoader.matches(
@@ -252,12 +330,12 @@ ignore:
       expect(result).toBeNull();
     });
 
-    it("should handle rules with multiple conditions (OR semantics)", () => {
+    it("should handle rules with multiple patterns (OR semantics)", () => {
       const rules: IgnoreRule[] = [
         {
-          handler: "*Health*",
-          path: "/health",
+          patterns: [{ handler: "*Health*" }, { path: "/health" }],
           reason: "Health endpoint",
+          match: "graph_only",
         },
       ];
 
@@ -284,6 +362,170 @@ ignore:
         rules
       );
       expect(result3).toBeNull();
+    });
+
+    it("should filter rules by match bucket type (graph_only for routes)", () => {
+      const rules: IgnoreRule[] = [
+        {
+          patterns: [{ handler: "*Health*" }],
+          reason: "Route ignore rule",
+          match: "graph_only",
+        },
+        {
+          patterns: [{ handler: "*Health*" }],
+          reason: "Element ignore rule",
+          match: "model_only",
+        },
+      ];
+
+      // Route type should only match graph_only rules
+      const resultRoute = IgnoreFileLoader.matches(
+        { handler: "HealthCheck" },
+        "route",
+        rules
+      );
+      expect(resultRoute).toBe("Route ignore rule");
+
+      // Element type should only match model_only rules
+      const resultElement = IgnoreFileLoader.matches(
+        { handler: "HealthCheck" },
+        "element",
+        rules
+      );
+      expect(resultElement).toBe("Element ignore rule");
+    });
+
+    it("should not match rules with wrong bucket type", () => {
+      const rules: IgnoreRule[] = [
+        {
+          patterns: [{ handler: "*Health*" }],
+          reason: "Element rule",
+          match: "model_only",
+        },
+      ];
+
+      // Route type should not match model_only rule
+      const result = IgnoreFileLoader.matches(
+        { handler: "HealthCheck" },
+        "route",
+        rules
+      );
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("error handling", () => {
+    it("should throw error for missing match field", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - handler: "*HealthHandler*"
+    reason: "Health check"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("match");
+      }
+    });
+
+    it("should throw error for invalid match value", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - handler: "*HealthHandler*"
+    reason: "Health check"
+    match: "invalid_bucket"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("invalid_bucket");
+      }
+    });
+
+    it("should throw error for empty patterns array", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns: []
+    reason: "Empty patterns"
+    match: "graph_only"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("empty");
+      }
+    });
+
+    it("should throw error for pattern with no matching criteria", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - {}
+    reason: "Empty pattern"
+    match: "graph_only"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("matching criteria");
+      }
+    });
+
+    it("should throw error for unknown pattern field", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - handler: "*Health*"
+        unknown_field: "value"
+    reason: "Invalid pattern"
+    match: "graph_only"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("unknown");
+      }
+    });
+
+    it("should throw error for non-string element_ids", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - element_ids: ["api.operation.get-status", 123]
+    reason: "Invalid element_ids"
+    match: "model_only"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("strings");
+      }
     });
   });
 });

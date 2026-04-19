@@ -64,20 +64,26 @@ describe("Verify Engine", () => {
       const ignoreFile = join(testProjectRoot, ".dr-verify-ignore.yaml");
       const content = `version: 1
 ignore:
-  - handler: "*HealthHandler*"
+  - patterns:
+      - handler: "*HealthHandler*"
     reason: "Health check endpoints ignored"
-  - path: "/admin"
+    match: "graph_only"
+  - patterns:
+      - path: "/admin"
     reason: "Admin routes ignored"
-  - element_ids: ["api.operation.get-status"]
-    reason: "Status endpoint ignored"`;
+    match: "graph_only"
+  - patterns:
+      - element_ids: ["api.operation.get-status"]
+    reason: "Status endpoint ignored"
+    match: "model_only"`;
 
       await writeFile(ignoreFile, content);
 
       const rules = await IgnoreFileLoader.load(ignoreFile);
       expect(rules.length).toBe(3);
-      expect(rules[0].handler).toBe("*HealthHandler*");
-      expect(rules[1].path).toBe("/admin");
-      expect(rules[2].element_ids).toContain("api.operation.get-status");
+      expect(rules[0].patterns[0].handler).toBe("*HealthHandler*");
+      expect(rules[1].patterns[0].path).toBe("/admin");
+      expect(rules[2].patterns[0].element_ids).toContain("api.operation.get-status");
     });
 
     it("should return empty rules when file doesn't exist", async () => {
@@ -86,24 +92,31 @@ ignore:
       expect(rules.length).toBe(0);
     });
 
-    it("should return empty rules when version is not 1", async () => {
+    it("should throw error when version is not 1", async () => {
       const ignoreFile = join(testProjectRoot, ".dr-verify-ignore.yaml");
       const content = `version: 2
 ignore:
-  - handler: "*HealthHandler*"
-    reason: "Health check endpoints ignored"`;
+  - patterns:
+      - handler: "*HealthHandler*"
+    reason: "Health check endpoints ignored"
+    match: "graph_only"`;
 
       await writeFile(ignoreFile, content);
 
-      const rules = await IgnoreFileLoader.load(ignoreFile);
-      expect(rules.length).toBe(0);
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("version");
+      }
     });
 
     it("should match handler with glob pattern", () => {
       const rules = [
         {
-          handler: "*HealthHandler*",
+          patterns: [{ handler: "*HealthHandler*" }],
           reason: "Health check endpoints ignored",
+          match: "graph_only",
         },
       ];
 
@@ -125,8 +138,9 @@ ignore:
     it("should match path with exact matching", () => {
       const rules = [
         {
-          path: "/health",
+          patterns: [{ path: "/health" }],
           reason: "Health endpoint ignored",
+          match: "graph_only",
         },
       ];
 
@@ -148,8 +162,16 @@ ignore:
     it("should match element_ids with exact matching", () => {
       const rules = [
         {
-          element_ids: ["api.operation.get-health", "api.operation.get-status"],
+          patterns: [
+            {
+              element_ids: [
+                "api.operation.get-health",
+                "api.operation.get-status",
+              ],
+            },
+          ],
           reason: "Monitoring endpoints ignored",
+          match: "model_only",
         },
       ];
 
@@ -492,8 +514,10 @@ spec_version: "0.8.3"`
         ignoreFile,
         `version: 1
 ignore:
-  - handler: "*HealthHandler*"
-    reason: "Health check endpoints ignored"`
+  - patterns:
+      - handler: "*HealthHandler*"
+    reason: "Health check endpoints ignored"
+    match: "graph_only"`
       );
 
       // Create API layer with one operation (matched route)
@@ -588,8 +612,10 @@ spec_version: "0.8.3"`
         ignoreFile,
         `version: 1
 ignore:
-  - element_ids: ["223e4567-e89b-12d3-a456-426614174001"]
-    reason: "Monitoring endpoint ignored"`
+  - patterns:
+      - element_ids: ["223e4567-e89b-12d3-a456-426614174001"]
+    reason: "Monitoring endpoint ignored"
+    match: "model_only"`
       );
 
       // Create API layer with two operations

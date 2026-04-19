@@ -10,13 +10,28 @@ import yaml from "yaml";
 import { minimatch } from "minimatch";
 
 /**
- * A single ignore rule from the ignore file
+ * A pattern within an ignore rule
+ *
+ * Each pattern object contains exactly one matching criterion.
  */
-export interface IgnoreRule {
+export interface IgnorePattern {
   handler?: string;
   path?: string;
   element_ids?: string[];
+}
+
+/**
+ * A single ignore rule from the ignore file
+ *
+ * Rules must specify:
+ * - patterns: list of matching criteria (OR semantics - any match applies the rule)
+ * - reason: explanation for why the rule exists
+ * - match: scope of the rule (graph_only for routes, model_only for elements)
+ */
+export interface IgnoreRule {
+  patterns: IgnorePattern[];
   reason: string;
+  match: "graph_only" | "model_only";
 }
 
 /**
@@ -26,16 +41,39 @@ export interface IgnoreRule {
  * - Glob patterns for handler names (e.g., "*HealthHandler*")
  * - Exact matching for paths (e.g., "/health")
  * - Exact matching for element IDs (e.g., "api.operation.get-health")
+ * - Bucket scoping via match field (graph_only for routes, model_only for elements)
+ *
+ * Expected YAML format:
+ * ```yaml
+ * version: 1
+ * ignore:
+ *   - patterns:
+ *       - handler: "*HealthHandler*"
+ *       - path: "/health"
+ *     reason: "Health check endpoints"
+ *     match: "graph_only"
+ *   - patterns:
+ *       - element_ids: ["api.operation.get-status"]
+ *     reason: "Status endpoint ignored"
+ *     match: "model_only"
+ * ```
  */
 export class IgnoreFileLoader {
   /**
    * Load ignore rules from a YAML file
    *
    * Returns an empty array if the file doesn't exist (no error).
-   * Throws if the file exists but is malformed.
+   * Throws if the file exists but contains structural errors:
+   * - Invalid YAML syntax
+   * - version != 1
+   * - ignore is not an array
+   * - Rule missing required fields (patterns, reason, match)
+   * - Pattern objects with unsupported fields
+   * - Invalid match values
    *
    * @param filePath Path to the .dr-verify-ignore.yaml file
-   * @returns Array of ignore rules
+   * @returns Array of validated ignore rules
+   * @throws Error on structural issues with the ignore file
    */
   static async load(filePath: string): Promise<IgnoreRule[]> {
     try {
@@ -50,34 +88,138 @@ export class IgnoreFileLoader {
       const { version, ignore } = parsed as { version?: number; ignore?: unknown[] };
 
       if (version !== 1) {
-        // Silently ignore files with version != 1 (return empty rules)
-        return [];
+        throw new Error(
+          `Invalid ignore file version: expected 1, got ${version ?? "missing"}`
+        );
       }
 
       if (!Array.isArray(ignore)) {
-        // Silently ignore files without ignore array
-        return [];
+        throw new Error(
+          "Invalid ignore file: 'ignore' field must be an array of rules"
+        );
       }
 
       // Validate and collect rules
       const rules: IgnoreRule[] = [];
-      for (const rule of ignore) {
-        if (!rule || typeof rule !== "object") {
-          continue;
+      for (let i = 0; i < ignore.length; i++) {
+        const ruleObj = ignore[i];
+
+        // Validate rule is an object
+        if (!ruleObj || typeof ruleObj !== "object") {
+          throw new Error(
+            `Rule at index ${i} is not an object`
+          );
         }
 
-        const ruleObj = rule as any;
-        const reason = ruleObj.reason as string | undefined;
+        const rule = ruleObj as any;
+        const reason = rule.reason as string | undefined;
+        const match = rule.match as string | undefined;
+        const patterns = rule.patterns as unknown[] | undefined;
 
+        // Validate required fields
         if (!reason || typeof reason !== "string") {
-          continue; // Skip rules without a reason
+          throw new Error(
+            `Rule at index ${i} missing required field: 'reason' (must be a string)`
+          );
+        }
+
+        if (!match || typeof match !== "string") {
+          throw new Error(
+            `Rule at index ${i} missing required field: 'match' (must be a string)`
+          );
+        }
+
+        if (match !== "graph_only" && match !== "model_only") {
+          throw new Error(
+            `Rule at index ${i} has invalid 'match' value: '${match}' (must be 'graph_only' or 'model_only')`
+          );
+        }
+
+        if (!Array.isArray(patterns)) {
+          throw new Error(
+            `Rule at index ${i} missing required field: 'patterns' (must be an array of pattern objects)`
+          );
+        }
+
+        if (patterns.length === 0) {
+          throw new Error(
+            `Rule at index ${i} has empty 'patterns' array (must contain at least one pattern)`
+          );
+        }
+
+        // Validate and normalize patterns
+        const normalizedPatterns: IgnorePattern[] = [];
+        for (let j = 0; j < patterns.length; j++) {
+          const patternObj = patterns[j];
+
+          if (!patternObj || typeof patternObj !== "object") {
+            throw new Error(
+              `Rule at index ${i}, pattern at index ${j} is not an object`
+            );
+          }
+
+          const pattern = patternObj as any;
+          const normalizedPattern: IgnorePattern = {};
+
+          // Extract handler if present
+          if ("handler" in pattern) {
+            if (typeof pattern.handler !== "string") {
+              throw new Error(
+                `Rule at index ${i}, pattern at index ${j}: 'handler' must be a string`
+              );
+            }
+            normalizedPattern.handler = pattern.handler;
+          }
+
+          // Extract path if present
+          if ("path" in pattern) {
+            if (typeof pattern.path !== "string") {
+              throw new Error(
+                `Rule at index ${i}, pattern at index ${j}: 'path' must be a string`
+              );
+            }
+            normalizedPattern.path = pattern.path;
+          }
+
+          // Extract element_ids if present
+          if ("element_ids" in pattern) {
+            if (!Array.isArray(pattern.element_ids)) {
+              throw new Error(
+                `Rule at index ${i}, pattern at index ${j}: 'element_ids' must be an array`
+              );
+            }
+            if (!pattern.element_ids.every((id: unknown) => typeof id === "string")) {
+              throw new Error(
+                `Rule at index ${i}, pattern at index ${j}: 'element_ids' must contain only strings`
+              );
+            }
+            normalizedPattern.element_ids = pattern.element_ids;
+          }
+
+          // Check for unknown fields
+          const validFields = new Set(["handler", "path", "element_ids"]);
+          for (const field of Object.keys(pattern)) {
+            if (!validFields.has(field)) {
+              throw new Error(
+                `Rule at index ${i}, pattern at index ${j}: unknown field '${field}' (valid fields: handler, path, element_ids)`
+              );
+            }
+          }
+
+          // At least one matching criterion must be present
+          if (Object.keys(normalizedPattern).length === 0) {
+            throw new Error(
+              `Rule at index ${i}, pattern at index ${j} has no matching criteria (must have at least one of: handler, path, element_ids)`
+            );
+          }
+
+          normalizedPatterns.push(normalizedPattern);
         }
 
         rules.push({
-          handler: typeof ruleObj.handler === "string" ? ruleObj.handler : undefined,
-          path: typeof ruleObj.path === "string" ? ruleObj.path : undefined,
-          element_ids: Array.isArray(ruleObj.element_ids) ? ruleObj.element_ids : undefined,
+          patterns: normalizedPatterns,
           reason,
+          match,
         });
       }
 
@@ -89,7 +231,7 @@ export class IgnoreFileLoader {
         return [];
       }
 
-      // Other errors should be thrown (malformed YAML, permission issues, etc.)
+      // YAML parse errors and validation errors should be thrown
       throw error;
     }
   }
@@ -97,35 +239,52 @@ export class IgnoreFileLoader {
   /**
    * Check if an entry matches any ignore rule and return the matching rule's reason
    *
+   * Only considers rules that apply to the specified entry type:
+   * - "route" entries: only rules with match: "graph_only"
+   * - "element" entries: only rules with match: "model_only"
+   *
+   * A rule matches if ANY of its patterns match (OR semantics within patterns).
+   *
    * @param entry Object with optional handler, path, and element_id properties
-   * @param _type Type of entry ("route" or "element" for context)
+   * @param type Type of entry ("route" for graph entries, "element" for model entries)
    * @param rules Array of ignore rules
    * @returns The reason string from the matched rule, or null if no match
    */
   static matches(
     entry: { handler?: string; path?: string; element_id?: string },
-    _type: "route" | "element",
+    type: "route" | "element",
     rules: IgnoreRule[]
   ): string | null {
     for (const rule of rules) {
-      // Check handler glob pattern
-      if (rule.handler && entry.handler) {
-        if (minimatch(entry.handler, rule.handler)) {
-          return rule.reason;
-        }
+      // Filter by match bucket type
+      if (type === "route" && rule.match !== "graph_only") {
+        continue;
+      }
+      if (type === "element" && rule.match !== "model_only") {
+        continue;
       }
 
-      // Check path exact match
-      if (rule.path && entry.path) {
-        if (entry.path === rule.path) {
-          return rule.reason;
+      // Check if any pattern in this rule matches (OR semantics)
+      for (const pattern of rule.patterns) {
+        // Check handler glob pattern
+        if (pattern.handler && entry.handler) {
+          if (minimatch(entry.handler, pattern.handler)) {
+            return rule.reason;
+          }
         }
-      }
 
-      // Check element_ids exact match
-      if (rule.element_ids && entry.element_id) {
-        if (rule.element_ids.includes(entry.element_id)) {
-          return rule.reason;
+        // Check path exact match
+        if (pattern.path && entry.path) {
+          if (entry.path === pattern.path) {
+            return rule.reason;
+          }
+        }
+
+        // Check element_ids exact match
+        if (pattern.element_ids && entry.element_id) {
+          if (pattern.element_ids.includes(entry.element_id)) {
+            return rule.reason;
+          }
         }
       }
     }
