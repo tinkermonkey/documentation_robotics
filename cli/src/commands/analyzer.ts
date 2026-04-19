@@ -62,15 +62,50 @@ Examples:
         const registry = AnalyzerRegistry.getInstance();
         await registry.initialize();
 
-        // Check if session already exists and not reselecting (but only for non-JSON output)
-        if (!options.reselect && !options.json) {
+        // Check if session already exists and not reselecting
+        if (!options.reselect) {
           const session = await readSession(projectRoot);
           if (session) {
-            // Already selected and not reselecting - text output
-            console.log(
-              ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
-            );
-            return;
+            if (options.json) {
+              // JSON mode: return discovery results with existing session as selected
+              const analyzerNames = await registry.getAnalyzerNames();
+              const analyzerOptions: any[] = [];
+
+              for (const name of analyzerNames) {
+                try {
+                  const backend = await registry.getAnalyzer(name);
+                  if (!backend) continue;
+                  const detection = await backend.detect();
+                  const mapper = await MappingLoader.load(name);
+                  const metadata = mapper.getAnalyzerMetadata();
+                  analyzerOptions.push({ backend, detection, metadata });
+                } catch (error) {
+                  // Continue discovering other analyzers
+                }
+              }
+
+              const installed = analyzerOptions.filter((a) => a.detection.installed);
+              const discoveryResult: any = {
+                found: analyzerOptions.map((a) => ({
+                  name: a.backend.name,
+                  display_name: a.backend.displayName,
+                  description: a.metadata?.description || "",
+                  homepage: a.metadata?.homepage || "",
+                  installed: a.detection.installed,
+                })),
+                installed_count: installed.length,
+                selected: session.active_analyzer,
+              };
+
+              console.log(JSON.stringify(discoveryResult, null, 2));
+              return;
+            } else {
+              // Text mode: show message and return
+              console.log(
+                ansis.green(`✓ Using analyzer: ${session.active_analyzer} (use --reselect to change)`)
+              );
+              return;
+            }
           }
         }
 
@@ -92,14 +127,16 @@ Examples:
               selected_at: new Date().toISOString(),
             };
             await writeSession(state, projectRoot);
-          }
-
-          // If not reselecting, check if session exists for selected field
-          if (!options.reselect && !selectedAnalyzer) {
-            const session = await readSession(projectRoot);
-            if (session) {
-              discoveryResult.selected = session.active_analyzer;
-            }
+          } else if (!selectedAnalyzer && !process.stdin.isTTY && analyzerOptions.length > 0) {
+            // In non-TTY mode with no auto-selected analyzer, save default session
+            // with first available analyzer (even if not installed)
+            const defaultAnalyzer = analyzerOptions[0].backend.name;
+            const state: SessionState = {
+              active_analyzer: defaultAnalyzer,
+              selected_at: new Date().toISOString(),
+            };
+            await writeSession(state, projectRoot);
+            discoveryResult.selected = defaultAnalyzer;
           }
 
           console.log(JSON.stringify(discoveryResult, null, 2));
@@ -121,6 +158,18 @@ Examples:
 
           console.log("");
           outro(ansis.dim("To install: follow the links above or use your package manager"));
+
+          // In non-TTY mode, save a default session with first available analyzer
+          // This allows subsequent discover calls to find and reference a selection
+          if (!process.stdin.isTTY && analyzerOptions.length > 0) {
+            const defaultAnalyzer = analyzerOptions[0].backend.name;
+            const state: SessionState = {
+              active_analyzer: defaultAnalyzer,
+              selected_at: new Date().toISOString(),
+            };
+            await writeSession(state, projectRoot);
+          }
+
           return;
         }
 
