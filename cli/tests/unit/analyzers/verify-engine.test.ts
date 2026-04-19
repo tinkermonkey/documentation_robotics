@@ -476,5 +476,94 @@ spec_version: "0.8.3"`
       expect(report.changeset_context.verified_against).toBe("base_model");
       expect(report.changeset_context.active_changeset).toBeNull();
     });
+
+    it("should use base_model when changesetAware is explicitly false", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with operation
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      expect(report.changeset_context.verified_against).toBe("base_model");
+      expect(report.buckets.matched.length).toBe(1);
+    });
+
+    it("should default to changesetAware=true when not specified", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with operation
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      // Note: changesetAware is now optional, so we don't provide it
+      const report = await engine.computeReport(testProjectRoot, routes, {});
+
+      // Should still work without explicit changesetAware option
+      expect(report.buckets.matched.length).toBe(1);
+    });
   });
 });

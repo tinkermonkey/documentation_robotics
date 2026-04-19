@@ -69,7 +69,24 @@ export class VerifyEngine {
     indexMeta?: IndexMeta
   ): Promise<VerifyReport> {
     // Step 1: Resolve model view
-    const model = await Model.load(projectRoot);
+    let model: Model;
+    try {
+      model = await Model.load(projectRoot);
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      // Provide helpful error message if model directory is missing or corrupted
+      if (err.code === "ENOENT" || err.code === "ENOTDIR") {
+        throw new Error(
+          `Failed to load DR model at ${projectRoot}: Model directory not found or inaccessible. ` +
+          `Please run 'dr init' to initialize the documentation robotics model.`
+        );
+      }
+      throw new Error(
+        `Failed to load DR model at ${projectRoot}: ${err.message}. ` +
+        `Please check that the model directory exists and is accessible.`
+      );
+    }
+
     const activeChangesetId = model.getActiveChangesetId();
 
     // Use base layer if changesetAware is explicitly false
@@ -190,6 +207,10 @@ export class VerifyEngine {
           entry_type: "route",
           reason: ignoreReason,
         });
+        // Update matchedRouteIds even when ignored to prevent false drift
+        if (matchedElement) {
+          matchedRouteIds.add(matchedElement.id);
+        }
       } else if (matchedElement) {
         matched.push({
           id: matchedElement.id,
@@ -226,7 +247,8 @@ export class VerifyEngine {
       const firstLocation = locations[0];
 
       if (!firstLocation || !firstLocation.file) {
-        // Skip elements with no source_reference file
+        // Skip elements with no source_reference file - they cannot drift since they have no code linkage.
+        // This includes manually-created elements that are documentation-only.
         continue;
       }
 
@@ -242,21 +264,26 @@ export class VerifyEngine {
           .then(() => true)
           .catch((err: NodeJS.ErrnoException) => {
             // Only treat ENOENT (file not found) as "file doesn't exist"
-            // Other errors (EACCES, EMFILE, etc.) are re-thrown
+            // Other errors (EACCES, EMFILE, etc.) are treated as "file exists" to avoid false negatives
             if (err.code === "ENOENT") {
               return false;
             }
-            throw err;
+            // For permission errors and other issues, assume file exists to be conservative
+            return true;
           })
       );
     }
 
-    // Wait for all file checks
-    const fileExistsResults = await Promise.all(fileChecks);
+    // Wait for all file checks using allSettled to prevent one error from aborting the entire verification
+    const fileExistsResults = await Promise.allSettled(fileChecks);
 
     // Add to in_model_only only if file exists, then check against ignore rules
     for (let i = 0; i < elementsToCheck.length; i++) {
-      if (fileExistsResults[i]) {
+      const result = fileExistsResults[i];
+      // Only proceed if the promise settled successfully and the file exists
+      const fileExists = result.status === "fulfilled" && result.value === true;
+
+      if (fileExists) {
         const elem = elementsToCheck[i];
 
         // Check if element matches any ignore rule

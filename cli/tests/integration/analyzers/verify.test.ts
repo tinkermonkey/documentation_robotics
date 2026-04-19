@@ -14,6 +14,8 @@ import { mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
 import { spawnSync } from "child_process";
 import { VerifyEngine, type DiscoveredRoute } from "@/analyzers/verify-engine.js";
+import { Model } from "@/core/model.js";
+import { StagingAreaManager } from "@/core/staging-area.js";
 
 let testProjectRoot: string = "";
 
@@ -51,6 +53,197 @@ describe("Verify Integration - Full Verify Flow", () => {
     } catch {
       // Ignore cleanup errors
     }
+  });
+
+  describe("Changeset-aware verification path", () => {
+    it("should use base_model when changesetAware=false explicitly", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(
+        testProjectRoot,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with operation
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: false,
+      });
+
+      // Should verify against base_model when explicitly false
+      expect(report.changeset_context.verified_against).toBe("base_model");
+      expect(report.buckets.matched.length).toBe(1);
+    });
+
+    it("should default to base_model when changesetAware is undefined and no active changeset", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(
+        testProjectRoot,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-1",
+          http_method: "GET",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      // Note: changesetAware is now optional and defaults to true when undefined
+      // But with no active changeset, it should still use base_model
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        // changesetAware not specified - uses default (true)
+      });
+
+      expect(report.changeset_context.verified_against).toBe("base_model");
+      expect(report.changeset_context.active_changeset).toBeNull();
+      expect(report.buckets.matched.length).toBe(1);
+    });
+
+    it("should use changeset_view when changesetAware=true with active changeset", async () => {
+      // Create model structure
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = join(
+        testProjectRoot,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
+      await writeFile(
+        manifestPath,
+        `project:
+  name: "Test Project"
+  version: "1.0.0"
+spec_version: "0.8.3"`
+      );
+
+      // Create API layer with one operation
+      const apiYaml = `
+get-users:
+  id: "api.operation.get-users"
+  path: "api.operation.get-users"
+  type: "operation"
+  name: "Get Users"
+  layer_id: "api"
+  attributes:
+    http_method: "GET"
+    http_path: "/users"
+`;
+      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
+
+      // Create and activate a changeset with a new operation
+      const model = await Model.load(testProjectRoot, { lazyLoad: false });
+      const manager = new StagingAreaManager(testProjectRoot, model);
+
+      const changeset = await manager.create(
+        "test-verify-changeset",
+        "Test changeset for verify-aware path"
+      );
+      await manager.setActive(changeset.id!);
+
+      // Stage a new operation in the changeset
+      await manager.stage(changeset.id!, {
+        type: "add",
+        elementId: "api.operation.create-users",
+        layerName: "api",
+        timestamp: new Date().toISOString(),
+        after: {
+          type: "operation",
+          name: "Create Users",
+          attributes: {
+            http_method: "POST",
+            http_path: "/users",
+          },
+        },
+      });
+
+      // Routes include both base and staged operations
+      const routes: DiscoveredRoute[] = [
+        {
+          id: "route-get",
+          http_method: "GET",
+          http_path: "/users",
+        },
+        {
+          id: "route-post",
+          http_method: "POST",
+          http_path: "/users",
+        },
+      ];
+
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(testProjectRoot, routes, {
+        changesetAware: true,  // Explicitly true to use changeset view
+      });
+
+      // Should verify against changeset_view
+      expect(report.changeset_context.verified_against).toBe("changeset_view");
+      expect(report.changeset_context.active_changeset).toBe(changeset.id);
+      // Both operations should be matched (one from base, one from changeset)
+      expect(report.buckets.matched.length).toBe(2);
+    });
   });
 
   describe("Base model path (no active changeset)", () => {
@@ -148,10 +341,14 @@ spec_version: "0.8.3"`
         ignoreFile,
         `version: 1
 ignore:
-  - path: "/health"
+  - patterns:
+      - path: "/health"
     reason: "Health check endpoints ignored"
-  - path: "/admin"
-    reason: "Admin endpoints ignored"`
+    match: "graph_only"
+  - patterns:
+      - path: "/admin"
+    reason: "Admin endpoints ignored"
+    match: "graph_only"`
       );
 
       const apiYaml = `
@@ -228,8 +425,10 @@ spec_version: "0.8.3"`
         ignoreFile,
         `version: 1
 ignore:
-  - handler: "*HealthHandler*"
-    reason: "Health-related handlers ignored"`
+  - patterns:
+      - handler: "*HealthHandler*"
+    reason: "Health-related handlers ignored"
+    match: "graph_only"`
       );
 
       const apiYaml = `
@@ -312,8 +511,10 @@ spec_version: "0.8.3"`
         ignoreFile,
         `version: 1
 ignore:
-  - element_ids: ["123e4567-e89b-12d3-a456-426614174001"]
-    reason: "Status endpoint ignored"`
+  - patterns:
+      - element_ids: ["123e4567-e89b-12d3-a456-426614174001"]
+    reason: "Status endpoint ignored"
+    match: "model_only"`
       );
 
       const apiYaml = `

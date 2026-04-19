@@ -370,7 +370,7 @@ export interface VerifyOptions {
   /** Array of layer names to verify (empty = verify all layers) */
   layers?: string[];
   /** Whether to use changeset view if active (default: true) */
-  changesetAware: boolean;
+  changesetAware?: boolean;
   /** Optional path to custom ignore file */
   ignoreFilePath?: string;
 }
