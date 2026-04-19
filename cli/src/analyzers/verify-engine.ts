@@ -33,10 +33,10 @@ export interface DiscoveredRoute {
 }
 
 /**
- * Primary or secondary index entry
+ * Primary or secondary index entry (holds model element data, not discovered route data)
  */
 interface IndexEntry {
-  route: DiscoveredRoute;
+  modelEntry: DiscoveredRoute;
   key: string;
 }
 
@@ -106,7 +106,7 @@ export class VerifyEngine {
         const symbol = firstLocation.symbol || "";
         const key = `${firstLocation.file}:${symbol}`;
         primaryIndex.set(key, {
-          route: {
+          modelEntry: {
             id: element.id,
             source_file: firstLocation.file,
             source_symbol: symbol,
@@ -120,7 +120,7 @@ export class VerifyEngine {
       if (attrs?.http_method && attrs?.http_path) {
         const key = `${attrs.http_method}:${attrs.http_path}`;
         secondaryIndex.set(key, {
-          route: {
+          modelEntry: {
             id: element.id,
             http_method: attrs.http_method,
             http_path: attrs.http_path,
@@ -151,7 +151,7 @@ export class VerifyEngine {
         const key = `${route.source_file}:${route.source_symbol}`;
         const primaryMatch = primaryIndex.get(key);
         if (primaryMatch) {
-          matchedElement = primaryMatch.route as any;
+          matchedElement = primaryMatch.modelEntry as any;
         }
       }
 
@@ -160,7 +160,7 @@ export class VerifyEngine {
         const key = `${route.http_method}:${route.http_path}`;
         const secondaryMatch = secondaryIndex.get(key);
         if (secondaryMatch) {
-          matchedElement = secondaryMatch.route as any;
+          matchedElement = secondaryMatch.modelEntry as any;
         }
       }
 
@@ -238,16 +238,34 @@ export class VerifyEngine {
     // Wait for all file checks
     const fileExistsResults = await Promise.all(fileChecks);
 
-    // Add to in_model_only only if file exists
+    // Add to in_model_only only if file exists, then check against ignore rules
     for (let i = 0; i < elementsToCheck.length; i++) {
       if (fileExistsResults[i]) {
         const elem = elementsToCheck[i];
-        inModelOnly.push({
-          id: elem.id,
-          type: "operation",
-          source_file: elem.file,
-          source_symbol: elem.symbol,
-        });
+
+        // Check if element matches any ignore rule
+        const ignoreReason = IgnoreFileLoader.matches(
+          {
+            element_id: elem.id,
+          },
+          "element",
+          ignoreRules
+        );
+
+        if (ignoreReason) {
+          ignored.push({
+            id: elem.id,
+            entry_type: "element",
+            reason: ignoreReason,
+          });
+        } else {
+          inModelOnly.push({
+            id: elem.id,
+            type: "operation",
+            source_file: elem.file,
+            source_symbol: elem.symbol,
+          });
+        }
       }
     }
 

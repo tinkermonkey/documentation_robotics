@@ -37,6 +37,7 @@ import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { getCliVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { VerifyEngine } from "./verify-engine.js";
 
 /**
  * Graph node from CBM search results
@@ -1844,7 +1845,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       // Delegate to VerifyEngine
-      const { VerifyEngine } = await import("./verify-engine.js");
       const engine = new VerifyEngine();
       const report = await engine.computeReport(projectRoot, routes, options);
 
