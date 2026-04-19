@@ -89,7 +89,7 @@ export function evaluateHeuristic(
  */
 export function capConfidence(
   confidence: "high" | "medium" | "low"
-): "high" | "medium" | "low" {
+): "medium" | "low" {
   if (confidence === "high") {
     return "medium";
   }
