@@ -963,16 +963,17 @@ Examples:
     .command("query <cypher>")
     .description("Execute a raw query (advanced escape hatch for graph queries)")
     .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--json", "Output as JSON (default format for query results)")
     .addHelpText(
       "after",
       `
 Advanced escape hatch for executing raw graph queries.
 Query syntax depends on the analyzer backend (e.g., Cypher for graph analyzers).
-Results are always output as JSON for consistency with complex result structures.
 
 Examples:
   $ dr analyzer query "MATCH (n) RETURN n LIMIT 10"
-  $ dr analyzer query "MATCH (n:Service) RETURN n.name"`
+  $ dr analyzer query "MATCH (n:Service) RETURN n.name"
+  $ dr analyzer query "MATCH (n) RETURN n LIMIT 10" --json`
     )
     .action(async (cypher, options) => {
       try {
@@ -1020,7 +1021,8 @@ Examples:
         // Execute query
         const result = await backend.query(projectRoot, cypher);
 
-        // Output as JSON (only reasonable format for arbitrary query results)
+        // Output format: JSON is the only reasonable format for arbitrary query results
+        // The --json flag is available for consistency, though it's the default
         console.log(JSON.stringify(result, null, 2));
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
@@ -1042,15 +1044,16 @@ Examples:
       return previous ? [...previous, value] : [value];
     })
     .option("--output <path>", "Write report to file")
-    .option("--json", "Output as JSON")
+    .option("--format <format>", "Output format: text or json (inferred from --output extension if not specified)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr analyzer verify                       # Verify api layer (default)
   $ dr analyzer verify --layer api           # Explicitly specify api layer
-  $ dr analyzer verify --output report.json  # Save report to file
-  $ dr analyzer verify --json                # Output as JSON`
+  $ dr analyzer verify --output report.json  # Save report to file (format inferred as JSON)
+  $ dr analyzer verify --output report.txt   # Save report as text
+  $ dr analyzer verify --format json         # Output as JSON to stdout`
     )
     .action(async (options) => {
       try {
@@ -1064,8 +1067,11 @@ Examples:
         const layers = options.layer || ["api"];
         for (const layer of layers) {
           if (layer !== "api") {
-            console.log("verify scope v1 only supports api layer");
-            return;
+            throw new CLIError(
+              `Unsupported layer for verify: ${layer}`,
+              ErrorCategory.USER,
+              ["verify scope v1 only supports the 'api' layer"]
+            );
           }
         }
 
@@ -1110,8 +1116,24 @@ Examples:
           changesetAware: true,
         });
 
-        // Format output
-        const format = options.json ? "json" : "text";
+        // Determine output format
+        let format: "text" | "json" = "text";
+        if (options.format) {
+          const formatLower = options.format.toLowerCase();
+          if (formatLower !== "text" && formatLower !== "json") {
+            throw new CLIError(
+              `Invalid format: ${options.format}. Valid formats are: text, json`,
+              ErrorCategory.USER
+            );
+          }
+          format = formatLower as "text" | "json";
+        } else if (options.output) {
+          const ext = path.extname(options.output).toLowerCase();
+          if (ext === ".json") {
+            format = "json";
+          }
+        }
+
         const formatted = formatVerifyReport(report, { format });
 
         // Write to file if --output specified
