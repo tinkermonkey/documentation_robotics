@@ -98,13 +98,9 @@ export interface IndexMeta {
 
 /**
  * Result of an index operation
+ * Alias for IndexMeta - same structure with identical required fields
  */
-export interface IndexResult {
-  node_count: number;
-  edge_count: number;
-  git_head: string;
-  timestamp: string;
-}
+export type IndexResult = IndexMeta;
 
 /**
  * Current status of an analyzer for a project
@@ -124,7 +120,6 @@ export interface SessionState {
   active_analyzer: string;
   selected_at: string;
 }
-
 
 /**
  * Mapping for a single CBM node label to DR element type

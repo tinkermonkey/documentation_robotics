@@ -126,8 +126,9 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
   }
 
   // Validate optional index_meta if present
-  if (obj.index_meta !== undefined && (typeof obj.index_meta !== "object" || obj.index_meta === null)) {
-    throw new Error("AnalyzerStatus.index_meta must be an object");
+  let validatedIndexMeta: IndexMeta | undefined;
+  if (obj.index_meta !== undefined) {
+    validatedIndexMeta = validateIndexMeta(obj.index_meta);
   }
 
   // Validate optional last_indexed if present
@@ -145,7 +146,7 @@ function validateAnalyzerStatus(data: unknown): AnalyzerStatus {
     },
     indexed: obj.indexed as boolean,
     fresh: obj.fresh as boolean,
-    index_meta: obj.index_meta as IndexMeta | undefined,
+    index_meta: validatedIndexMeta,
     last_indexed: obj.last_indexed as string | undefined,
   };
 }

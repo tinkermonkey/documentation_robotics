@@ -176,6 +176,8 @@ describe("Session State Persistence", () => {
       const meta: IndexMeta = {
         git_head: "test123",
         timestamp: "2025-01-01T00:00:00Z",
+        node_count: 0,
+        edge_count: 0,
       };
 
       await writeIndexMeta(meta, tempDir, "cbm");
@@ -262,6 +264,8 @@ describe("Session State Persistence", () => {
         index_meta: {
           git_head: "abc123",
           timestamp: "2025-01-01T00:00:00Z",
+          node_count: 100,
+          edge_count: 250,
         },
         fresh: true,
         last_indexed: "2025-01-01T00:00:00Z",
