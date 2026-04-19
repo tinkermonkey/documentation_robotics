@@ -1424,15 +1424,6 @@ describe("CbmAnalyzer", () => {
       }
     });
 
-    it("should pass raw Cypher query to query_graph tool", async () => {
-      // Document that query() method signature accepts query parameter
-      // The method signature is: async query(projectRoot: string, cypher: string)
-      // This test documents the acceptance of raw Cypher strings
-      const cypher = "MATCH (n) RETURN n";
-      expect(typeof cypher).toBe("string");
-      expect(cypher.length).toBeGreaterThan(0);
-    });
-
     it("should surface clear error when query_graph tool unavailable", async () => {
       // Test that unsupported tool message is clear
       // When query_graph throws, the error should be surfaced as-is

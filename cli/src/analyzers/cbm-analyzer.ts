@@ -1100,13 +1100,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const defaultEdgeType =
         validEdgeTypes.length > 0 ? validEdgeTypes[0] : "CALLS";
 
-      // Build a map of nodes by qualified_name for parent lookup
-      const nodesByQualifiedName = new Map<string, (typeof nodes)[0]>();
-      for (const node of nodes) {
-        const qname = node.qualified_name || node.id;
-        nodesByQualifiedName.set(qname, node);
-      }
-
       // Transform nodes to CallGraphNode objects
       const callGraphNodes: CallGraphNode[] = [];
 
