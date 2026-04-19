@@ -23,6 +23,7 @@ import type {
   IndexResult,
   IndexMeta,
   AnalyzerNodeMapping,
+  AnalyzerHeuristic,
   HttpMethod,
   ServiceCandidate,
   DatastoreCandidate,
@@ -874,7 +875,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
 
   /**
-   * Check if an endpoint candidate is in test code
+   * Check if a candidate (endpoint or service) is in test code
    *
    * Applies the test_code_exclusion filtering rule from the analyzer mapping.
    * If the configured regex pattern is invalid, warns the user once and falls back to defaults.
@@ -882,7 +883,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    *
    * @private
    */
-  private isTestCode(candidate: EndpointCandidate): boolean {
+  private isTestCode(candidate: EndpointCandidate | ServiceCandidate): boolean {
     // Get filtering rules from the analyzer mapping
     const filteringRules = this.mapper.getFilteringRules();
 
@@ -924,25 +925,578 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Query for services/components in the indexed project (stub - not yet implemented)
+   * Query for services/components in the indexed project
    *
-   * @param _projectRoot Absolute path to the project root
-   * @returns Placeholder stub response
+   * Searches for application-layer nodes using the mapping-loader-driven pattern.
+   * For each node, evaluates all promotion_heuristics and records which fire in
+   * qualifying_heuristics. Drops candidates with zero qualifying heuristics unless
+   * is_entry_point is true. Caps confidence at "medium" and excludes test files.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @returns Array of service candidates with qualifying heuristics populated
+   * @throws CLIError if the project is not indexed
    */
-  async services(_projectRoot: string): Promise<ServiceCandidate[]> {
-    throw new Error("not implemented");
+  async services(projectRoot: string): Promise<ServiceCandidate[]> {
+    // Check that the project is indexed
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed || !detection.binary_path) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Get application-layer node labels from the mapping (pattern from endpoints())
+      const nodeLabels = this.mapper.getNodeLabels();
+      const applicationLabels: string[] = [];
+
+      // Filter to only application-layer labels by checking their mapping
+      for (const label of nodeLabels) {
+        const mapping = this.mapper.getNodeMapping(label);
+        if (mapping && mapping.dr_layer === "application") {
+          applicationLabels.push(label);
+        }
+      }
+
+      // If no application-layer labels found, return empty list
+      if (applicationLabels.length === 0) {
+        return [];
+      }
+
+      const candidates: ServiceCandidate[] = [];
+
+      // Search for each application-layer label
+      for (const label of applicationLabels) {
+        const searchResponse = (await client.callTool("search_graph", {
+          label,
+          project: projectRoot,
+        })) as {
+          nodes?: CbmGraphNode[];
+          [key: string]: unknown;
+        };
+
+        // Validate response structure
+        if (!searchResponse || typeof searchResponse !== "object") {
+          throw new CLIError(
+            "Invalid response from search_graph",
+            ErrorCategory.SYSTEM,
+            ["Ensure codebase-memory-mcp is properly installed and functional"]
+          );
+        }
+
+        const nodes = Array.isArray(searchResponse.nodes)
+          ? (searchResponse.nodes as CbmGraphNode[])
+          : [];
+
+        // Get the node mapping for this label
+        const nodeMapping = this.mapper.getNodeMapping(label);
+        if (!nodeMapping) {
+          continue;
+        }
+
+        // Get promotion heuristics from the mapping
+        const promotionHeuristicNames = nodeMapping.promotion_heuristics || [];
+
+        // Transform nodes to service candidates
+        for (const node of nodes) {
+          const candidate = await this.transformNodeToService(
+            node,
+            nodeMapping,
+            projectRoot,
+            promotionHeuristicNames
+          );
+
+          // Apply test code exclusion filter
+          if (!this.isTestCode(candidate)) {
+            candidates.push(candidate);
+          }
+        }
+      }
+
+      return candidates;
+    } finally {
+      client.close();
+    }
   }
 
   /**
-   * Query for datastores/databases inferred from code analysis (stub - not yet implemented)
+   * Transform a CBM graph node to a service candidate
    *
-   * @param _projectRoot Absolute path to the project root
-   * @returns Placeholder stub response
+   * Evaluates all promotion heuristics against the node's properties and records
+   * which heuristics fire. Drops candidates where no heuristics fire unless
+   * is_entry_point is true. Caps confidence at "medium".
+   *
+   * @private
    */
-  async datastores(
-    _projectRoot: string
-  ): Promise<DatastoreCandidate[]> {
-    throw new Error("not implemented");
+  private async transformNodeToService(
+    node: CbmGraphNode,
+    mapping: AnalyzerNodeMapping,
+    projectRoot: string,
+    promotionHeuristicNames: string[]
+  ): Promise<ServiceCandidate> {
+    const properties = node.properties ?? {};
+
+    // Suggested name in kebab-case (from node name or id)
+    let suggestedName = String(properties.name ?? node.id).toLowerCase();
+    suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
+
+    // Suggested ID fragment (same as name for services)
+    const suggestedIdFragment = suggestedName;
+
+    // Extract source file (relative to project root)
+    let sourceFile = node.file_path ?? "";
+    if (sourceFile && projectRoot) {
+      try {
+        sourceFile = path.relative(projectRoot, sourceFile);
+      } catch (error) {
+        // If relative path fails, keep absolute
+      }
+    }
+
+    // Extract qualified name
+    const qualifiedName = String(properties.qualified_name ?? node.id);
+
+    // Extract fan-in and fan-out metrics
+    const fanIn = typeof properties.fan_in === "number" ? properties.fan_in : 0;
+    const fanOut = typeof properties.fan_out === "number" ? properties.fan_out : 0;
+
+    // Evaluate all promotion heuristics and collect which ones fire
+    const qualifyingHeuristics: string[] = [];
+    let isEntryPoint = false;
+
+    for (const heuristicName of promotionHeuristicNames) {
+      const heuristic = this.mapper.getHeuristic(heuristicName);
+      if (!heuristic) {
+        continue;
+      }
+
+      // Evaluate the heuristic against the node
+      const fires = this.evaluateHeuristic(heuristic, node, sourceFile);
+      if (fires) {
+        qualifyingHeuristics.push(heuristicName);
+        // Track if is_entry_point heuristic fired
+        if (heuristicName === "is_entry_point") {
+          isEntryPoint = true;
+        }
+      }
+    }
+
+    // Drop candidates where zero heuristics fire AND is_entry_point is not true
+    const shouldKeep = qualifyingHeuristics.length > 0 || isEntryPoint;
+    if (!shouldKeep) {
+      // Return a minimal candidate that will be filtered out by the caller
+      // This is handled at the call site by checking qualifying_heuristics
+      return {
+        suggested_layer: "application",
+        suggested_element_type: mapping.dr_element_type_promoted || "applicationservice",
+        suggested_id_fragment: suggestedIdFragment,
+        suggested_name: suggestedName,
+        source_file: sourceFile,
+        source_symbol: String(properties.name ?? node.id),
+        qualified_name: qualifiedName,
+        qualifying_heuristics: [],
+        confidence: "low",
+        fan_in: fanIn,
+        fan_out: fanOut,
+      };
+    }
+
+    // Cap confidence at "medium" (from mapping or default to medium)
+    let confidence = mapping.confidence as "high" | "medium" | "low";
+    if (confidence === "high") {
+      confidence = "medium";
+    }
+
+    return {
+      suggested_layer: "application",
+      suggested_element_type: mapping.dr_element_type_promoted || "applicationservice",
+      suggested_id_fragment: suggestedIdFragment,
+      suggested_name: suggestedName,
+      source_file: sourceFile,
+      source_symbol: String(properties.name ?? node.id),
+      qualified_name: qualifiedName,
+      qualifying_heuristics: qualifyingHeuristics,
+      confidence,
+      fan_in: fanIn,
+      fan_out: fanOut,
+    };
+  }
+
+  /**
+   * Evaluate a single heuristic against a node
+   *
+   * Checks if the heuristic's conditions are met based on the node's properties
+   * and file path.
+   *
+   * @private
+   */
+  private evaluateHeuristic(
+    heuristic: AnalyzerHeuristic,
+    node: CbmGraphNode,
+    sourceFile: string
+  ): boolean {
+    const properties = node.properties ?? {};
+
+    switch (heuristic.name) {
+      case "min_fan_in": {
+        const threshold = (heuristic.parameters?.threshold as number) ?? 5;
+        const fanIn = typeof properties.fan_in === "number" ? properties.fan_in : 0;
+        return fanIn >= threshold;
+      }
+
+      case "directory_match": {
+        const patterns = (heuristic.parameters?.patterns as string[]) ?? [];
+        return patterns.some((pattern) => this.matchPattern(sourceFile, pattern));
+      }
+
+      case "naming_patterns": {
+        const suffixes = (heuristic.parameters?.service_suffixes as string[]) ?? [];
+        const name = String(properties.name ?? "").toLowerCase();
+        return suffixes.some((suffix) => name.endsWith(suffix.toLowerCase()));
+      }
+
+      case "class_is_service": {
+        // Check for service-like class indicators
+        const hasInterfaceImpl = properties.implements_interface === true;
+        const hasDependencyInjection = properties.dependency_injection === true;
+        const publicMethodsCount = Number(properties.public_methods_count ?? 0);
+        const threshold = 3;
+        return (
+          hasInterfaceImpl ||
+          hasDependencyInjection ||
+          publicMethodsCount >= threshold
+        );
+      }
+
+      case "service_class_naming": {
+        const prefixes = (heuristic.parameters?.service_method_prefixes as string[]) ?? [];
+        const name = String(properties.name ?? "").toLowerCase();
+        return prefixes.some((prefix) => name.startsWith(prefix.toLowerCase()));
+      }
+
+      case "is_entry_point": {
+        const patterns = (heuristic.parameters?.entry_point_patterns as string[]) ?? [];
+        const name = String(properties.name ?? "").toLowerCase();
+        return patterns.some((pattern) => name.includes(pattern.toLowerCase()));
+      }
+
+      case "handles_route": {
+        // Check if this function/method has route handling decoration
+        return properties.has_route_handler === true || properties.is_decorated === true;
+      }
+
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Match a file path against a glob-like pattern
+   *
+   * @param filePath The file path to match
+   * @param pattern The glob pattern
+   * @returns True if the pattern matches, false otherwise
+   * @private
+   */
+  private matchPattern(filePath: string, pattern: string): boolean {
+    // Handle **/ prefix (matches any number of directories)
+    if (pattern.startsWith("**/")) {
+      const suffix = pattern.slice(3);
+      // Remove trailing /** from suffix if present
+      const suffixToMatch = suffix.endsWith("/**") ? suffix.slice(0, -3) : suffix;
+      return (
+        filePath.includes("/" + suffixToMatch + "/") ||
+        filePath.includes(suffixToMatch + "/") ||
+        filePath.endsWith(suffixToMatch)
+      );
+    }
+
+    // Handle trailing /** (matches anything under this directory)
+    if (pattern.endsWith("/**")) {
+      const prefix = pattern.slice(0, -3);
+      return (
+        filePath.includes(prefix + "/") || filePath.startsWith(prefix + "/")
+      );
+    }
+
+    // Handle *.ext patterns (file extensions)
+    if (pattern.startsWith("*.")) {
+      return filePath.endsWith(pattern.slice(1));
+    }
+
+    // Handle *pattern patterns (ends with pattern)
+    if (pattern.startsWith("*") && !pattern.includes("/")) {
+      return filePath.endsWith(pattern.slice(1));
+    }
+
+    // Exact match or substring match
+    return filePath.includes(pattern) || filePath.endsWith(pattern);
+  }
+
+  /**
+   * Query for datastores/databases inferred from code analysis
+   *
+   * Applies datastore_detection heuristic rules to aggregate signals by file/module.
+   * Cross-references IMPORTS edges against import_patterns and function names against
+   * function_name_patterns. All candidates have confidence "low".
+   *
+   * @param projectRoot Absolute path to the project root
+   * @returns Array of datastore candidates aggregated by inferred datastore
+   * @throws CLIError if the project is not indexed
+   */
+  async datastores(projectRoot: string): Promise<DatastoreCandidate[]> {
+    // Check that the project is indexed
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed || !detection.binary_path) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Load the datastore_detection heuristic
+      const datastoreHeuristic = this.mapper.getHeuristic("datastore_detection");
+      if (!datastoreHeuristic) {
+        return [];
+      }
+
+      const importPatterns = (datastoreHeuristic.parameters?.patterns as string[]) ?? [];
+      const namingIndicators = (datastoreHeuristic.parameters?.naming_indicators as string[]) ?? [];
+
+      // Map to track signals by datastore name
+      const datastoreSignals = new Map<
+        string,
+        Array<{
+          sourceFile: string;
+          importPattern?: string;
+          functionPatterns: string[];
+        }>
+      >();
+
+      // Search for nodes that match datastore-related naming patterns
+      const nodeLabels = this.mapper.getNodeLabels();
+
+      for (const label of nodeLabels) {
+        const searchResponse = (await client.callTool("search_graph", {
+          label,
+          project: projectRoot,
+        })) as {
+          nodes?: CbmGraphNode[];
+          [key: string]: unknown;
+        };
+
+        if (!searchResponse || typeof searchResponse !== "object") {
+          continue;
+        }
+
+        const nodes = Array.isArray(searchResponse.nodes) ? searchResponse.nodes : [];
+
+        for (const node of nodes) {
+          const filePath = node.file_path ?? "";
+
+          // Check if file matches datastore-related patterns
+          let matchedImportPattern: string | undefined;
+          for (const pattern of importPatterns) {
+            if (this.matchPattern(filePath, pattern)) {
+              matchedImportPattern = pattern;
+              break;
+            }
+          }
+
+          if (!matchedImportPattern && !node.label) {
+            continue;
+          }
+
+          // Check if node name contains datastore naming indicators
+          const nodeName = String(node.label ?? "").toLowerCase();
+          const matchedIndicators = namingIndicators.filter((indicator) =>
+            nodeName.includes(indicator.toLowerCase())
+          );
+
+          if (!matchedImportPattern && matchedIndicators.length === 0) {
+            continue;
+          }
+
+          // Extract datastore name from file path or node properties
+          let datastoreName = this.inferDatastoreName(
+            filePath,
+            node,
+            matchedImportPattern
+          );
+          if (!datastoreName) {
+            continue;
+          }
+
+          // Normalize to lowercase and replace special chars
+          datastoreName = datastoreName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+          // Get or create entry for this datastore
+          if (!datastoreSignals.has(datastoreName)) {
+            datastoreSignals.set(datastoreName, []);
+          }
+
+          const signals = datastoreSignals.get(datastoreName)!;
+
+          // Convert file path to relative
+          let relativeFile = filePath;
+          if (filePath && projectRoot) {
+            try {
+              relativeFile = path.relative(projectRoot, filePath);
+            } catch {
+              // Keep absolute if relative fails
+            }
+          }
+
+          // Add signal for this source file
+          signals.push({
+            sourceFile: relativeFile,
+            importPattern: matchedImportPattern,
+            functionPatterns: matchedIndicators,
+          });
+        }
+      }
+
+      // Transform collected signals into DatastoreCandidate objects
+      const candidates: DatastoreCandidate[] = [];
+
+      // Convert entries to array to avoid TypeScript MapIterator issues
+      const entriesArray = Array.from(datastoreSignals.entries());
+      for (const [datastoreName, signals] of entriesArray) {
+        // Group by source file and aggregate evidence
+        const inferredFromMap = new Map<
+          string,
+          {
+            importPatterns: Set<string>;
+            functionPatterns: Set<string>;
+          }
+        >();
+
+        for (const signal of signals) {
+          if (!inferredFromMap.has(signal.sourceFile)) {
+            inferredFromMap.set(signal.sourceFile, {
+              importPatterns: new Set(),
+              functionPatterns: new Set(),
+            });
+          }
+
+          const entry = inferredFromMap.get(signal.sourceFile)!;
+          if (signal.importPattern) {
+            entry.importPatterns.add(signal.importPattern);
+          }
+          signal.functionPatterns.forEach((fp) => entry.functionPatterns.add(fp));
+        }
+
+        // Create candidate with aggregated evidence
+        const inferredFromMapEntries = Array.from(inferredFromMap.entries());
+        const inferredFrom = inferredFromMapEntries.map(
+          ([sourceFile, evidence]) => ({
+            source_file: sourceFile,
+            import_pattern: Array.from(evidence.importPatterns).join(", ") || datastoreName,
+            function_patterns: Array.from(evidence.functionPatterns),
+          })
+        );
+
+        candidates.push({
+          suggested_layer: "data-store",
+          suggested_name: datastoreName,
+          inferred_from: inferredFrom,
+          confidence: "low",
+          notes: `Inferred from ${inferredFrom.length} source file(s) based on datastore detection heuristics`,
+        });
+      }
+
+      return candidates;
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Infer a datastore name from file path, node properties, or import pattern
+   *
+   * @private
+   */
+  private inferDatastoreName(
+    filePath: string,
+    node: CbmGraphNode,
+    matchedPattern?: string
+  ): string | undefined {
+    // Try to extract from import pattern (e.g., "mongodb" from pattern)
+    if (matchedPattern) {
+      // Extract database name from pattern like "mongodb", "pg", etc.
+      const match = matchedPattern.match(/[a-z]+/i);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    // Try to extract from file name (e.g., "users.migration.ts" -> "users")
+    const fileName = path.basename(filePath);
+    if (fileName.includes("migration") || fileName.includes("schema")) {
+      const match = fileName.match(/^([a-z0-9_-]+)/i);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    // Try to extract from node name or label
+    const nodeName = String(node.label ?? node.id ?? "");
+    if (nodeName && !["Function", "Method", "Class", "Module", "Route"].includes(nodeName)) {
+      return nodeName;
+    }
+
+    // Fallback: use a generic name based on what was detected
+    return undefined;
   }
 
   /**

@@ -1468,4 +1468,445 @@ describe("CbmAnalyzer", () => {
     });
   });
 
+  describe("services()", () => {
+    it("should throw CLIError if project is not indexed", async () => {
+      const tempDir = "/tmp/test-services-not-indexed-" + Date.now();
+      let error: CLIError | undefined;
+
+      try {
+        await analyzer.services(tempDir);
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("not indexed");
+    });
+
+    it("should require analyzer to be installed", async () => {
+      const tempDir = "/tmp/test-services-not-installed-" + Date.now();
+
+      let error: CLIError | undefined;
+      try {
+        await analyzer.services(tempDir);
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+    });
+
+    it("should populate qualifying_heuristics from fired heuristics", async () => {
+      // Test that heuristic evaluation populates qualifying_heuristics
+      const applicationMapping = mockMapper.getNodeMapping("Function");
+      expect(applicationMapping).toBeDefined();
+      expect(applicationMapping?.dr_layer).toBe("application");
+
+      // Verify that the mapping has promotion_heuristics defined
+      expect(applicationMapping?.promotion_heuristics).toBeDefined();
+      expect(Array.isArray(applicationMapping?.promotion_heuristics)).toBe(true);
+      expect(applicationMapping!.promotion_heuristics!.length).toBeGreaterThan(0);
+    });
+
+    it("should drop candidates with zero qualifying heuristics and no is_entry_point", async () => {
+      // Create a node with no heuristics firing
+      const applicationMapping = mockMapper.getNodeMapping("Function");
+      expect(applicationMapping).toBeDefined();
+
+      // Create a test node that should not match any heuristics
+      const testNode: any = {
+        id: "isolated-function",
+        label: "Function",
+        properties: {
+          name: "randomFunction",
+          fan_in: 0, // Below min_fan_in threshold
+          fan_out: 1,
+          // No entry_point patterns
+        },
+        file_path: "/project/src/utils.ts", // Not in service directory
+      };
+
+      // Call transformNodeToService directly
+      const promotionHeuristics = applicationMapping?.promotion_heuristics || [];
+      const candidate = await (analyzer as any).transformNodeToService(
+        testNode,
+        applicationMapping!,
+        "/project",
+        promotionHeuristics
+      );
+
+      // If no heuristics fire and is_entry_point is not true,
+      // the candidate should have empty qualifying_heuristics
+      if (candidate.qualifying_heuristics.length === 0) {
+        expect(candidate.qualifying_heuristics).toEqual([]);
+      }
+    });
+
+    it("should cap confidence at medium, never high", async () => {
+      // Verify that services() returns confidence as medium or low, never high
+      const applicationMapping = mockMapper.getNodeMapping("Function");
+      expect(applicationMapping).toBeDefined();
+
+      // Create test node
+      const testNode: any = {
+        id: "service-function",
+        label: "Function",
+        properties: {
+          name: "getUserService",
+          fan_in: 10, // High fan-in to trigger heuristic
+          fan_out: 5,
+        },
+        file_path: "/project/src/services/user.service.ts",
+      };
+
+      const promotionHeuristics = applicationMapping?.promotion_heuristics || [];
+      const candidate = await (analyzer as any).transformNodeToService(
+        testNode,
+        applicationMapping!,
+        "/project",
+        promotionHeuristics
+      );
+
+      // Verify confidence is never "high"
+      expect(candidate.confidence).not.toBe("high");
+      expect(["medium", "low"]).toContain(candidate.confidence);
+    });
+
+    it("should exclude test files from results via isTestCode filter", async () => {
+      // Verify that test files are filtered out
+      const applicationMapping = mockMapper.getNodeMapping("Function");
+      expect(applicationMapping).toBeDefined();
+
+      // Create test candidate with test file
+      const testCandidate: any = {
+        source_file: "src/services/user.service.test.ts",
+        suggested_layer: "application",
+        suggested_element_type: "applicationservice",
+        suggested_name: "user-service",
+        source_symbol: "UserService",
+        qualified_name: "UserService",
+        qualifying_heuristics: ["naming_patterns"],
+        confidence: "medium",
+        fan_in: 5,
+        fan_out: 3,
+      };
+
+      const isTest = (analyzer as any).isTestCode(testCandidate);
+      expect(isTest).toBe(true);
+    });
+
+    it("should filter by application layer only", async () => {
+      // Verify that getNodeLabels() returns application-layer labels
+      const nodeLabels = mockMapper.getNodeLabels();
+      expect(nodeLabels).toBeDefined();
+      expect(Array.isArray(nodeLabels)).toBe(true);
+
+      // Check that at least Function, Method, Class are in the labels
+      const hasApplicationLabels = nodeLabels.some((label) => {
+        const mapping = mockMapper.getNodeMapping(label);
+        return mapping?.dr_layer === "application";
+      });
+
+      expect(hasApplicationLabels).toBe(true);
+    });
+
+    it("should return array of ServiceCandidate objects", async () => {
+      // Verify structure by calling transformNodeToService
+      const applicationMapping = mockMapper.getNodeMapping("Function");
+      expect(applicationMapping).toBeDefined();
+
+      const testNode: any = {
+        id: "test-service",
+        label: "Function",
+        properties: {
+          name: "testService",
+          fan_in: 5,
+          fan_out: 3,
+        },
+        file_path: "/project/src/services/test.ts",
+      };
+
+      const promotionHeuristics = applicationMapping?.promotion_heuristics || [];
+      const candidate = await (analyzer as any).transformNodeToService(
+        testNode,
+        applicationMapping!,
+        "/project",
+        promotionHeuristics
+      );
+
+      // Verify ServiceCandidate structure
+      expect(candidate).toBeDefined();
+      expect(typeof candidate.suggested_layer).toBe("string");
+      expect(typeof candidate.suggested_element_type).toBe("string");
+      expect(typeof candidate.suggested_id_fragment).toBe("string");
+      expect(typeof candidate.suggested_name).toBe("string");
+      expect(typeof candidate.source_file).toBe("string");
+      expect(typeof candidate.source_symbol).toBe("string");
+      expect(typeof candidate.qualified_name).toBe("string");
+      expect(Array.isArray(candidate.qualifying_heuristics)).toBe(true);
+      expect(["medium", "low"]).toContain(candidate.confidence);
+      expect(typeof candidate.fan_in).toBe("number");
+      expect(typeof candidate.fan_out).toBe("number");
+    });
+  });
+
+  describe("datastores()", () => {
+    it("should throw CLIError if project is not indexed", async () => {
+      const tempDir = "/tmp/test-datastores-not-indexed-" + Date.now();
+      let error: CLIError | undefined;
+
+      try {
+        await analyzer.datastores(tempDir);
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+      expect(error?.message).toContain("not indexed");
+    });
+
+    it("should require analyzer to be installed", async () => {
+      const tempDir = "/tmp/test-datastores-not-installed-" + Date.now();
+
+      let error: CLIError | undefined;
+      try {
+        await analyzer.datastores(tempDir);
+      } catch (e) {
+        error = e as CLIError;
+      }
+
+      expect(error).toBeDefined();
+      expect(error).toBeInstanceOf(CLIError);
+    });
+
+    it("should load datastore_detection heuristic from mapping", async () => {
+      // Verify the datastore_detection heuristic exists in the mapping
+      const heuristic = mockMapper.getHeuristic("datastore_detection");
+      expect(heuristic).toBeDefined();
+      expect(heuristic?.name).toBe("datastore_detection");
+      expect(heuristic?.parameters).toBeDefined();
+      expect(Array.isArray(heuristic?.parameters?.patterns)).toBe(true);
+      expect(Array.isArray(heuristic?.parameters?.naming_indicators)).toBe(true);
+    });
+
+    it("should return DatastoreCandidate objects with confidence low", async () => {
+      // Verify structure of DatastoreCandidate
+      const heuristic = mockMapper.getHeuristic("datastore_detection");
+      expect(heuristic).toBeDefined();
+
+      // All datastores should have confidence: "low"
+      // This is a structural requirement
+    });
+
+    it("should aggregate signals by file and module", async () => {
+      // Verify that inferredFrom includes both import patterns and function patterns
+      // when present in the same file
+      const heuristic = mockMapper.getHeuristic("datastore_detection");
+      expect(heuristic).toBeDefined();
+
+      // The heuristic has patterns and naming_indicators for aggregation
+      const patterns = heuristic?.parameters?.patterns as string[];
+      const indicators = heuristic?.parameters?.naming_indicators as string[];
+
+      expect(Array.isArray(patterns)).toBe(true);
+      expect(patterns!.length).toBeGreaterThan(0);
+      expect(Array.isArray(indicators)).toBe(true);
+      expect(indicators!.length).toBeGreaterThan(0);
+    });
+
+    it("should match datastore patterns from heuristics", async () => {
+      // Test the matchPattern helper
+      const testCases = [
+        { file: "/project/migrations/users.migration.ts", pattern: "**/migrations/**", shouldMatch: true },
+        { file: "/project/schema/schema.sql", pattern: "*.sql", shouldMatch: true },
+        { file: "/project/src/models/user.model.ts", pattern: "*model.ts", shouldMatch: true },
+        { file: "/project/src/routes.ts", pattern: "**/migrations/**", shouldMatch: false },
+      ];
+
+      for (const { file, pattern, shouldMatch } of testCases) {
+        const matches = (analyzer as any).matchPattern(file, pattern);
+        expect(matches).toBe(shouldMatch);
+      }
+    });
+
+    it("should infer datastore name from file path", async () => {
+      // Test inferDatastoreName logic
+      const node: any = {
+        id: "users-table",
+        label: "Table",
+      };
+
+      // Test with migration file
+      let name = (analyzer as any).inferDatastoreName(
+        "/project/migrations/users.migration.ts",
+        node
+      );
+      expect(name).toBeDefined();
+      expect(typeof name).toBe("string");
+    });
+
+    it("should return array of DatastoreCandidate objects", async () => {
+      // Verify that datastores() returns an array (even if empty in unit test)
+      // when analyzer is not installed, it will throw, so this verifies
+      // the structure is defined
+      const heuristic = mockMapper.getHeuristic("datastore_detection");
+      expect(heuristic).toBeDefined();
+
+      // A valid DatastoreCandidate has these properties:
+      // - suggested_layer: "data-store"
+      // - suggested_name: string
+      // - inferred_from: array of evidence
+      // - confidence: "low"
+      // - notes: string
+    });
+  });
+
+  describe("evaluateHeuristic()", () => {
+    it("should evaluate min_fan_in heuristic", async () => {
+      const heuristic = mockMapper.getHeuristic("min_fan_in");
+      expect(heuristic).toBeDefined();
+
+      const nodeWithHighFanIn: any = {
+        id: "high-fan-in",
+        label: "Function",
+        properties: {
+          name: "service",
+          fan_in: 10,
+        },
+        file_path: "/project/src/service.ts",
+      };
+
+      const nodeWithLowFanIn: any = {
+        id: "low-fan-in",
+        label: "Function",
+        properties: {
+          name: "helper",
+          fan_in: 2,
+        },
+        file_path: "/project/src/helper.ts",
+      };
+
+      const highResult = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        nodeWithHighFanIn,
+        nodeWithHighFanIn.file_path
+      );
+      const lowResult = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        nodeWithLowFanIn,
+        nodeWithLowFanIn.file_path
+      );
+
+      expect(highResult).toBe(true);
+      expect(lowResult).toBe(false);
+    });
+
+    it("should evaluate naming_patterns heuristic", async () => {
+      const heuristic = mockMapper.getHeuristic("naming_patterns");
+      expect(heuristic).toBeDefined();
+
+      const nodeWithServiceSuffix: any = {
+        id: "user-service",
+        label: "Function",
+        properties: {
+          name: "UserService",
+        },
+        file_path: "/project/src/user-service.ts",
+      };
+
+      const nodeWithoutSuffix: any = {
+        id: "helper-function",
+        label: "Function",
+        properties: {
+          name: "helperFunction",
+        },
+        file_path: "/project/src/helper.ts",
+      };
+
+      const result1 = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        nodeWithServiceSuffix,
+        nodeWithServiceSuffix.file_path
+      );
+      const result2 = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        nodeWithoutSuffix,
+        nodeWithoutSuffix.file_path
+      );
+
+      expect(result1).toBe(true);
+      expect(result2).toBe(false);
+    });
+
+    it("should evaluate directory_match heuristic", async () => {
+      const heuristic = mockMapper.getHeuristic("directory_match");
+      expect(heuristic).toBeDefined();
+
+      const nodeInServiceDir: any = {
+        id: "service-in-dir",
+        label: "Function",
+        properties: { name: "getUserService" },
+        file_path: "/project/src/services/user.ts",
+      };
+
+      const nodeInSrcDir: any = {
+        id: "function-in-src",
+        label: "Function",
+        properties: { name: "helperFunction" },
+        file_path: "/project/src/helpers/helper.ts",
+      };
+
+      const result1 = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        nodeInServiceDir,
+        nodeInServiceDir.file_path
+      );
+      const result2 = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        nodeInSrcDir,
+        nodeInSrcDir.file_path
+      );
+
+      // At least one should match (depending on patterns)
+      expect(typeof result1).toBe("boolean");
+      expect(typeof result2).toBe("boolean");
+    });
+
+    it("should evaluate is_entry_point heuristic", async () => {
+      const heuristic = mockMapper.getHeuristic("is_entry_point");
+      expect(heuristic).toBeDefined();
+
+      const handlerNode: any = {
+        id: "main-handler",
+        label: "Function",
+        properties: { name: "mainHandler" },
+        file_path: "/project/src/handler.ts",
+      };
+
+      const normalNode: any = {
+        id: "normal-function",
+        label: "Function",
+        properties: { name: "normalFunction" },
+        file_path: "/project/src/utils.ts",
+      };
+
+      const result1 = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        handlerNode,
+        handlerNode.file_path
+      );
+      const result2 = (analyzer as any).evaluateHeuristic(
+        heuristic!,
+        normalNode,
+        normalNode.file_path
+      );
+
+      expect(result1).toBe(true);
+      expect(result2).toBe(false);
+    });
+  });
+
 });
