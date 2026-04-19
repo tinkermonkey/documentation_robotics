@@ -12,7 +12,7 @@ import { minimatch } from "minimatch";
 /**
  * A pattern within an ignore rule
  *
- * Each pattern object contains exactly one matching criterion.
+ * Each pattern object contains one or more matching criteria.
  */
 export interface IgnorePattern {
   handler?: string;
@@ -65,9 +65,11 @@ export class IgnoreFileLoader {
    * Returns an empty array if the file doesn't exist (no error).
    * Throws if the file exists but contains structural errors:
    * - Invalid YAML syntax
+   * - Parsed YAML is not an object with version and ignore fields
    * - version != 1
    * - ignore is not an array
    * - Rule missing required fields (patterns, reason, match)
+   * - Rule has unknown fields
    * - Pattern objects with unsupported fields
    * - Invalid match values
    *
@@ -82,7 +84,9 @@ export class IgnoreFileLoader {
 
       // Validate schema: expect version 1 and an ignore array
       if (!parsed || typeof parsed !== "object") {
-        return [];
+        throw new Error(
+          "Invalid ignore file: expected an object with 'version' and 'ignore' fields"
+        );
       }
 
       const { version, ignore } = parsed as { version?: number; ignore?: unknown[] };
@@ -145,6 +149,16 @@ export class IgnoreFileLoader {
           throw new Error(
             `Rule at index ${i} has empty 'patterns' array (must contain at least one pattern)`
           );
+        }
+
+        // Check for unknown fields at rule level
+        const validRuleFields = new Set(["patterns", "reason", "match"]);
+        for (const field of Object.keys(rule)) {
+          if (!validRuleFields.has(field)) {
+            throw new Error(
+              `Rule at index ${i}: unknown field '${field}' (valid fields: patterns, reason, match)`
+            );
+          }
         }
 
         // Validate and normalize patterns

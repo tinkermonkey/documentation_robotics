@@ -527,5 +527,40 @@ ignore:
         expect((error as Error).message).toContain("strings");
       }
     });
+
+    it("should throw error for non-object YAML content", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `"just a string"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("expected an object");
+      }
+    });
+
+    it("should throw error for unknown field at rule level", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - handler: "*Health*"
+    reason: "Invalid rule"
+    match: "graph_only"
+    severity: "high"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("unknown field");
+        expect((error as Error).message).toContain("severity");
+      }
+    });
   });
 });
