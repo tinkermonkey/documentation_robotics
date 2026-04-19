@@ -6,9 +6,10 @@
  *
  * To add a new analyzer:
  * 1. Create a new class implementing AnalyzerBackend (e.g., NewAnalyzer)
- * 2. Add an entry to the manifest in spec/schemas/bundled/analyzers/manifest.json
- * 3. Update the registry mapping in this file
- * 4. No other changes needed — registry logic remains unchanged
+ * 2. Create analyzer definition in spec/analyzers/{name}/analyzer.json
+ * 3. Add mapping for the new analyzer class in the ANALYZER_CLASSES map below
+ * 4. Run `npm run build:spec` to compile the analyzer artifacts
+ * 5. Run `npm run build` in the cli/ directory to sync bundled schemas
  */
 
 import fs from "fs/promises";
@@ -18,6 +19,22 @@ import { CLIError, ErrorCategory } from "../utils/errors.js";
 import type { AnalyzerBackend } from "./base-analyzer.js";
 import { CbmAnalyzer } from "./cbm-analyzer.js";
 import { MappingLoader } from "./mapping-loader.js";
+
+/**
+ * Type for analyzer class constructor
+ */
+type AnalyzerConstructor = new (mapper: MappingLoader) => AnalyzerBackend;
+
+/**
+ * Mapping of analyzer names to their class implementations
+ *
+ * Add entries here when implementing a new analyzer.
+ * The manifest (spec/dist/analyzers/manifest.json) defines which analyzers are available,
+ * and this map provides the runtime bindings to construct instances.
+ */
+const ANALYZER_CLASSES: Record<string, AnalyzerConstructor> = {
+  cbm: CbmAnalyzer,
+};
 
 /**
  * Analyzer metadata from manifest
@@ -169,19 +186,21 @@ export class AnalyzerRegistry {
       this.mappers.set(name, mapper);
     }
 
-    // Construct the appropriate analyzer instance
-    let analyzer: AnalyzerBackend;
-
-    if (name === "cbm") {
-      analyzer = new CbmAnalyzer(mapper);
-    } else {
+    // Construct the appropriate analyzer instance using the class map
+    const AnalyzerClass = ANALYZER_CLASSES[name];
+    if (!AnalyzerClass) {
       throw new CLIError(
         `Unknown analyzer: ${name}`,
         ErrorCategory.NOT_FOUND,
-        ["Check the analyzer name is spelled correctly", "Use getAnalyzerNames() to list available analyzers"]
+        [
+          "Check the analyzer name is spelled correctly",
+          "Ensure the analyzer class is registered in ANALYZER_CLASSES in registry.ts",
+          "Use getAnalyzerNames() to list available analyzers",
+        ]
       );
     }
 
+    const analyzer = new AnalyzerClass(mapper);
     this.analyzers.set(name, analyzer);
     return analyzer;
   }
