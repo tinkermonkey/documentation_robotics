@@ -1734,16 +1734,123 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Verify that graph-discovered routes align with model endpoints (stub - not yet implemented)
+   * Verify that graph-discovered routes align with model endpoints
    *
-   * @param _projectRoot Absolute path to the project root
-   * @param _options Verification options
-   * @returns Placeholder stub response
+   * Queries the CBM graph for Route nodes, shapes them via the Route mapping,
+   * and delegates comparison to VerifyEngine. Entirely read-only.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param options Verification options
+   * @returns Comprehensive verification report
+   * @throws CLIError if project not indexed or analyzer not installed
    */
   async verify(
-    _projectRoot: string,
-    _options: VerifyOptions
+    projectRoot: string,
+    options: VerifyOptions
   ): Promise<VerifyReport> {
-    throw new Error("not implemented");
+    // Check that the project is indexed
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed || !detection.binary_path) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Search for Route nodes
+      const searchResponse = (await client.callTool("search_graph", {
+        label: "Route",
+        project: projectRoot,
+      })) as {
+        nodes?: CbmGraphNode[];
+        [key: string]: unknown;
+      };
+
+      // Validate response structure
+      if (!searchResponse || typeof searchResponse !== "object") {
+        throw new CLIError(
+          "Invalid response from search_graph",
+          ErrorCategory.SYSTEM,
+          ["Ensure codebase-memory-mcp is properly installed and functional"]
+        );
+      }
+
+      const nodes = Array.isArray(searchResponse.nodes)
+        ? (searchResponse.nodes as CbmGraphNode[])
+        : [];
+
+      // Get the Route mapping
+      const routeMapping = this.mapper.getNodeMapping("Route");
+      if (!routeMapping) {
+        throw new CLIError(
+          "Route mapping not found in analyzer",
+          ErrorCategory.VALIDATION,
+          ["Run `npm run build:spec` to recompile the analyzer artifacts"]
+        );
+      }
+
+      // Shape routes via mapping
+      const routes = [];
+      for (const node of nodes) {
+        const properties = node.properties ?? {};
+
+        // Extract required fields
+        let httpMethod = "GET";
+        if (typeof properties.method === "string") {
+          httpMethod = properties.method.toUpperCase();
+        }
+
+        const httpPath = typeof properties.path === "string" ? properties.path : "/";
+        const handler = String(properties.handler_name ?? "");
+        const sourceFile = node.file_path ?? "";
+        const sourceSymbol = String(properties.symbol ?? "");
+
+        // Construct route ID (use file:symbol as primary key for matching)
+        const routeId = sourceFile && sourceSymbol ? `${sourceFile}:${sourceSymbol}` : node.id;
+
+        routes.push({
+          id: routeId,
+          http_method: httpMethod,
+          http_path: httpPath,
+          handler,
+          source_file: sourceFile,
+          source_symbol: sourceSymbol,
+        });
+      }
+
+      // Delegate to VerifyEngine
+      const { VerifyEngine } = await import("./verify-engine.js");
+      const engine = new VerifyEngine();
+      const report = await engine.computeReport(projectRoot, routes, options);
+
+      return report;
+    } finally {
+      client.close();
+    }
   }
 }
