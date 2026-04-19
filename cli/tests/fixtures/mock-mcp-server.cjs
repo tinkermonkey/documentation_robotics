@@ -187,7 +187,8 @@ rl.on("line", (line) => {
         return;
       }
 
-      const query = params?.query || "";
+      // Production code calls with 'label' parameter, not 'query'
+      const label = params?.label || "";
       const graph = projectGraphs.get(projectPath);
 
       if (!graph) {
@@ -195,21 +196,20 @@ rl.on("line", (line) => {
         return;
       }
 
-      // Filter nodes based on query if provided
+      // Filter nodes based on label if provided (label is node type like "Route")
       let results = graph.nodes;
-      if (query) {
-        const lowerQuery = query.toLowerCase();
+      if (label) {
+        const lowerLabel = label.toLowerCase();
         results = graph.nodes.filter((node) =>
-          node.label.toLowerCase().includes(lowerQuery) ||
-          JSON.stringify(node.properties).toLowerCase().includes(lowerQuery)
+          node.label.toLowerCase() === lowerLabel
         );
       }
 
       // Also include edges if querying for them
       sendResponse(id, {
         nodes: results,
-        edges: query.includes("edge") ? graph.edges : [],
-        query,
+        edges: label.includes("edge") ? graph.edges : [],
+        label,
         total: results.length,
       });
       return;
