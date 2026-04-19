@@ -856,4 +856,72 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
   }
+
+  /**
+   * Query for services/components in the indexed project (stub - not yet implemented)
+   *
+   * @param _projectRoot Absolute path to the project root
+   * @returns Placeholder stub response
+   */
+  async services(_projectRoot: string): Promise<import("./types.js").ServiceCandidate[]> {
+    throw new Error("not implemented");
+  }
+
+  /**
+   * Query for datastores/databases inferred from code analysis (stub - not yet implemented)
+   *
+   * @param _projectRoot Absolute path to the project root
+   * @returns Placeholder stub response
+   */
+  async datastores(
+    _projectRoot: string
+  ): Promise<import("./types.js").DatastoreCandidate[]> {
+    throw new Error("not implemented");
+  }
+
+  /**
+   * Query for callers of a specific function or symbol (stub - not yet implemented)
+   *
+   * @param _projectRoot Absolute path to the project root
+   * @param _symbol Fully qualified symbol name to find callers of
+   * @param _depth Maximum depth for call graph traversal
+   * @returns Placeholder stub response
+   */
+  async callers(
+    _projectRoot: string,
+    _symbol: string,
+    _depth?: number
+  ): Promise<import("./types.js").CallGraphNode[]> {
+    throw new Error("not implemented");
+  }
+
+  /**
+   * Query for callees of a specific function or symbol (stub - not yet implemented)
+   *
+   * @param _projectRoot Absolute path to the project root
+   * @param _symbol Fully qualified symbol name to find callees of
+   * @param _depth Maximum depth for call graph traversal
+   * @returns Placeholder stub response
+   */
+  async callees(
+    _projectRoot: string,
+    _symbol: string,
+    _depth?: number
+  ): Promise<import("./types.js").CallGraphNode[]> {
+    throw new Error("not implemented");
+  }
+
+  /**
+   * Verify that graph-discovered routes align with model endpoints (stub - not yet implemented)
+   *
+   * @param _projectRoot Absolute path to the project root
+   * @param _options Verification options
+   * @returns Placeholder stub response
+   */
+  async verify(
+    _projectRoot: string,
+    _options: import("./types.js").VerifyOptions
+  ): Promise<import("./types.js").VerifyReport> {
+    throw new Error("not implemented");
+  }
 }

@@ -251,3 +251,206 @@ export interface FilteringRule {
   pattern?: string;
   enabled: boolean;
 }
+
+/**
+ * A service candidate discovered from code analysis
+ * Maps to `dr add application service` or similar command arguments
+ */
+export interface ServiceCandidate {
+  /** Suggested DR layer for this service */
+  suggested_layer: string;
+  /** Suggested element type for this service */
+  suggested_element_type: string;
+  /** Suggested kebab-case ID fragment for constructing element ID */
+  suggested_id_fragment: string;
+  /** Suggested name for the service */
+  suggested_name: string;
+  /** Relative path from project root */
+  source_file: string;
+  /** Source symbol or identifier where service is defined */
+  source_symbol: string;
+  /** Fully qualified name of the service */
+  qualified_name: string;
+  /** List of heuristics that qualified this as a service candidate */
+  qualifying_heuristics: string[];
+  /** Confidence in the detection (medium or low only) */
+  confidence: "medium" | "low";
+  /** Number of incoming calls/references */
+  fan_in: number;
+  /** Number of outgoing calls/references */
+  fan_out: number;
+}
+
+/**
+ * A datastore candidate inferred from code analysis
+ */
+export interface DatastoreCandidate {
+  /** Suggested DR layer for this datastore (always "data-store") */
+  suggested_layer: "data-store";
+  /** Suggested name for the datastore */
+  suggested_name: string;
+  /** Array of evidence sources for this datastore inference */
+  inferred_from: Array<{
+    /** Relative path from project root */
+    source_file: string;
+    /** Pattern used to match imports (e.g., "mongodb", "pg") */
+    import_pattern: string;
+    /** Array of function/method call patterns that suggest datastore usage */
+    function_patterns: string[];
+  }>;
+  /** Confidence in the detection (always "low") */
+  confidence: "low";
+  /** Additional notes about the inference */
+  notes: string;
+}
+
+/**
+ * A node in the call graph
+ */
+export interface CallGraphNode {
+  /** Fully qualified name of the node */
+  qualified_name: string;
+  /** Relative path from project root */
+  source_file: string;
+  /** Source symbol or identifier */
+  source_symbol: string;
+  /** Depth in the call graph (0 = root node) */
+  depth: number;
+  /** Type of edge (CALLS, HTTP_CALLS, HANDLES) */
+  edge_type: "CALLS" | "HTTP_CALLS" | "HANDLES";
+}
+
+/**
+ * Options for the verify operation
+ */
+export interface VerifyOptions {
+  /** Array of layer names to verify (empty = verify all layers) */
+  layers?: string[];
+  /** Whether to use changeset view if active (default: true) */
+  changesetAware: boolean;
+  /** Optional path to custom ignore file */
+  ignoreFilePath?: string;
+}
+
+/**
+ * Entry for a matched route/element in verify report
+ */
+export interface MatchedEntry {
+  /** Identifier for the matched entry */
+  id: string;
+  /** Type of the entry (e.g., "operation") */
+  type: string;
+  /** Source file where this entry is located */
+  source_file: string;
+  /** Source symbol */
+  source_symbol: string;
+}
+
+/**
+ * Entry for routes found in graph but not in model
+ */
+export interface GraphOnlyEntry {
+  /** Identifier for the entry */
+  id: string;
+  /** HTTP method (GET, POST, etc.) */
+  http_method?: string;
+  /** HTTP path */
+  http_path?: string;
+  /** Source file where this route is located */
+  source_file: string;
+  /** Source symbol */
+  source_symbol: string;
+}
+
+/**
+ * Entry for elements in model but not found in graph
+ */
+export interface ModelOnlyEntry {
+  /** Identifier for the model element */
+  id: string;
+  /** Type of the element (e.g., "operation") */
+  type: string;
+  /** Source file referenced in the model */
+  source_file: string;
+  /** Source symbol referenced in the model */
+  source_symbol: string;
+}
+
+/**
+ * Entry for matches that were ignored by rules
+ */
+export interface IgnoredEntry {
+  /** Identifier for the ignored entry */
+  id: string;
+  /** Type of the entry (graph, model, etc.) */
+  entry_type: string;
+  /** Reason for ignoring */
+  reason: string;
+}
+
+/**
+ * Summary statistics for verify report
+ */
+export interface VerifySummary {
+  /** Number of routes matched to model elements */
+  matched_count: number;
+  /** Number of routes found in graph only */
+  in_graph_only_count: number;
+  /** Number of elements found in model only */
+  in_model_only_count: number;
+  /** Number of entries ignored by rules */
+  ignored_count: number;
+  /** Total routes analyzed from graph */
+  total_routes_analyzed: number;
+  /** Total elements analyzed from model */
+  total_elements_analyzed: number;
+}
+
+/**
+ * Changeset context information in verify report
+ */
+export interface VerifyChangesetContext {
+  /** ID of the active changeset, or null if none */
+  active_changeset: string | null;
+  /** Whether report was verified against base model or changeset view */
+  verified_against: "base_model" | "changeset_view";
+}
+
+/**
+ * Buckets of categorized entries from verify operation
+ */
+export interface VerifyBuckets {
+  /** Routes matched to model elements */
+  matched: MatchedEntry[];
+  /** Routes found in graph only */
+  in_graph_only: GraphOnlyEntry[];
+  /** Elements in model only */
+  in_model_only: ModelOnlyEntry[];
+  /** Entries ignored by rules */
+  ignored: IgnoredEntry[];
+}
+
+/**
+ * Detailed verification report for a project
+ *
+ * This is a public API contract consumed by /dr-verify Claude Code command.
+ * Treat as stable from issue #654 forward.
+ */
+export interface VerifyReport {
+  /** ISO 8601 timestamp when report was generated */
+  generated_at: string;
+  /** Absolute path to the project root */
+  project_root: string;
+  /** Name of the analyzer used */
+  analyzer: string;
+  /** ISO 8601 timestamp when analyzer was indexed */
+  analyzer_indexed_at: string;
+  /** Changeset context information */
+  changeset_context: VerifyChangesetContext;
+  /** Array of layer names that were verified */
+  layers_verified: string[];
+  /** Buckets of categorized entries */
+  buckets: VerifyBuckets;
+  /** Summary statistics */
+  summary: VerifySummary;
+}
