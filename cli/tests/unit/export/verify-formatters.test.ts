@@ -61,11 +61,11 @@ const sampleReport: VerifyReport = {
   },
   summary: {
     matched_count: 2,
-    in_graph_only_count: 1,
-    in_model_only_count: 1,
+    gap_count: 1,
+    drift_count: 1,
     ignored_count: 1,
-    total_routes_analyzed: 3,
-    total_elements_analyzed: 3,
+    total_graph_entries: 3,
+    total_model_entries: 3,
   },
 };
 
@@ -118,8 +118,8 @@ describe("Verify Formatters", () => {
       const parsed = JSON.parse(output);
 
       expect(parsed.summary.matched_count).toBe(2);
-      expect(parsed.summary.in_graph_only_count).toBe(1);
-      expect(parsed.summary.in_model_only_count).toBe(1);
+      expect(parsed.summary.gap_count).toBe(1);
+      expect(parsed.summary.drift_count).toBe(1);
       expect(parsed.summary.ignored_count).toBe(1);
     });
 
@@ -248,11 +248,11 @@ describe("Verify Formatters", () => {
         },
         summary: {
           matched_count: 0,
-          in_graph_only_count: 0,
-          in_model_only_count: 0,
+          gap_count: 0,
+          drift_count: 0,
           ignored_count: 0,
-          total_routes_analyzed: 0,
-          total_elements_analyzed: 0,
+          total_graph_entries: 0,
+          total_model_entries: 0,
         },
       };
 
@@ -309,7 +309,7 @@ describe("Verify Formatters", () => {
         },
         summary: {
           ...sampleReport.summary,
-          in_graph_only_count: 25,
+          gap_count: 25,
         },
       };
 

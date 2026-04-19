@@ -17,6 +17,7 @@ import type {
   IgnoredEntry,
   VerifyBuckets,
   VerifySummary,
+  IndexMeta,
 } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 
@@ -65,7 +66,7 @@ export class VerifyEngine {
     routes: DiscoveredRoute[],
     options: VerifyOptions,
     analyzerName: string = "codebase-memory-mcp",
-    indexMeta?: any
+    indexMeta?: IndexMeta
   ): Promise<VerifyReport> {
     // Step 1: Resolve model view
     const model = await Model.load(projectRoot);
@@ -315,7 +316,7 @@ export class VerifyEngine {
     activeChangesetId: string | null,
     options: VerifyOptions,
     analyzerName: string = "codebase-memory-mcp",
-    indexMeta?: any
+    indexMeta?: IndexMeta
   ): VerifyReport {
     const summary: VerifySummary = {
       matched_count: buckets.matched.length,

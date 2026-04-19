@@ -301,8 +301,8 @@ get-products:
       expect(report.buckets.in_graph_only.length).toBe(1);
       expect(report.buckets.in_model_only.length).toBe(1);
       expect(report.summary.matched_count).toBe(1);
-      expect(report.summary.in_graph_only_count).toBe(1);
-      expect(report.summary.in_model_only_count).toBe(1);
+      expect(report.summary.gap_count).toBe(1);
+      expect(report.summary.drift_count).toBe(1);
     });
 
     it("should exclude in_model_only elements with no source_reference", async () => {
