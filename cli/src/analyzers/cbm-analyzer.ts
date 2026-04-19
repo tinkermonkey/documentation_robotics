@@ -1846,7 +1846,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Delegate to VerifyEngine
       const engine = new VerifyEngine();
-      const report = await engine.computeReport(projectRoot, routes, options);
+      const indexMeta = status.index_meta;
+      const analyzerName = this.name;
+      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta);
 
       return report;
     } finally {

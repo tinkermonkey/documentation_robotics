@@ -394,16 +394,16 @@ export interface IgnoredEntry {
 export interface VerifySummary {
   /** Number of routes matched to model elements */
   matched_count: number;
-  /** Number of routes found in graph only */
-  in_graph_only_count: number;
-  /** Number of elements found in model only */
-  in_model_only_count: number;
+  /** Number of routes found in graph only (gaps in model) */
+  gap_count: number;
+  /** Number of elements found in model only (drift from model) */
+  drift_count: number;
   /** Number of entries ignored by rules */
   ignored_count: number;
-  /** Total routes analyzed from graph */
-  total_routes_analyzed: number;
-  /** Total elements analyzed from model */
-  total_elements_analyzed: number;
+  /** Total graph entries analyzed */
+  total_graph_entries: number;
+  /** Total model entries analyzed */
+  total_model_entries: number;
 }
 
 /**

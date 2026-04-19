@@ -105,12 +105,12 @@ function formatSummaryText(lines: string[], report: VerifyReport): void {
 
   lines.push(ansis.bold("Verification Results:"));
   lines.push(`  Matched:        ${ansis.green(String(summary.matched_count).padStart(4))} operations found in both graph and model`);
-  lines.push(`  Graph-only:     ${ansis.yellow(String(summary.in_graph_only_count).padStart(4))} routes discovered but not in model (gaps)`);
-  lines.push(`  Model-only:     ${ansis.red(String(summary.in_model_only_count).padStart(4))} operations defined but not discovered (drift)`);
+  lines.push(`  Graph-only:     ${ansis.yellow(String(summary.gap_count).padStart(4))} routes discovered but not in model (gaps)`);
+  lines.push(`  Model-only:     ${ansis.red(String(summary.drift_count).padStart(4))} operations defined but not discovered (drift)`);
   lines.push(`  Ignored:        ${ansis.dim(String(summary.ignored_count).padStart(4))} entries excluded by rules`);
   lines.push("");
-  lines.push(`Total Routes Analyzed:   ${summary.total_routes_analyzed}`);
-  lines.push(`Total Elements Analyzed: ${summary.total_elements_analyzed}`);
+  lines.push(`Total Graph Entries Analyzed:   ${summary.total_graph_entries}`);
+  lines.push(`Total Model Entries Analyzed:   ${summary.total_model_entries}`);
 }
 
 /**

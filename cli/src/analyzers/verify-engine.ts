@@ -63,12 +63,18 @@ export class VerifyEngine {
   async computeReport(
     projectRoot: string,
     routes: DiscoveredRoute[],
-    options: VerifyOptions
+    options: VerifyOptions,
+    analyzerName: string = "codebase-memory-mcp",
+    indexMeta?: any
   ): Promise<VerifyReport> {
     // Step 1: Resolve model view
     const model = await Model.load(projectRoot);
     const activeChangesetId = model.getActiveChangesetId();
-    const apiLayer = await model.getLayer("api");
+
+    // Use base layer if changesetAware is explicitly false
+    const apiLayer = options.changesetAware === false
+      ? await model.getBaseLayer("api")
+      : await model.getLayer("api");
 
     if (!apiLayer) {
       // No API layer found - all routes are in_graph_only
@@ -88,7 +94,9 @@ export class VerifyEngine {
           ignored: [],
         },
         activeChangesetId,
-        options
+        options,
+        analyzerName,
+        indexMeta
       );
     }
 
@@ -231,7 +239,14 @@ export class VerifyEngine {
       fileChecks.push(
         access(filePath)
           .then(() => true)
-          .catch(() => false)
+          .catch((err: NodeJS.ErrnoException) => {
+            // Only treat ENOENT (file not found) as "file doesn't exist"
+            // Other errors (EACCES, EMFILE, etc.) are re-thrown
+            if (err.code === "ENOENT") {
+              return false;
+            }
+            throw err;
+          })
       );
     }
 
@@ -282,7 +297,9 @@ export class VerifyEngine {
       model,
       buckets,
       activeChangesetId,
-      options
+      options,
+      analyzerName,
+      indexMeta
     );
   }
 
@@ -296,15 +313,17 @@ export class VerifyEngine {
     model: Model,
     buckets: VerifyBuckets,
     activeChangesetId: string | null,
-    options: VerifyOptions
+    options: VerifyOptions,
+    analyzerName: string = "codebase-memory-mcp",
+    indexMeta?: any
   ): VerifyReport {
     const summary: VerifySummary = {
       matched_count: buckets.matched.length,
-      in_graph_only_count: buckets.in_graph_only.length,
-      in_model_only_count: buckets.in_model_only.length,
+      gap_count: buckets.in_graph_only.length,
+      drift_count: buckets.in_model_only.length,
       ignored_count: buckets.ignored.length,
-      total_routes_analyzed: buckets.matched.length + buckets.in_graph_only.length + buckets.ignored.length,
-      total_elements_analyzed:
+      total_graph_entries: buckets.matched.length + buckets.in_graph_only.length + buckets.ignored.filter((e) => e.entry_type === "route").length,
+      total_model_entries:
         buckets.matched.length +
         buckets.in_model_only.length +
         buckets.ignored.filter((e) => e.entry_type === "element").length,
@@ -314,11 +333,14 @@ export class VerifyEngine {
     const changesetAware = options.changesetAware ?? true;
     const hasActiveChangeset = changesetAware && activeChangesetId !== null;
 
+    // Use analyzer index timestamp if provided, otherwise fall back to model manifest modified time
+    const analyzerIndexedAt = indexMeta?.timestamp || model.manifest.modified;
+
     return {
       generated_at: new Date().toISOString(),
       project_root: projectRoot,
-      analyzer: "codebase-memory-mcp",
-      analyzer_indexed_at: model.manifest.modified,
+      analyzer: analyzerName,
+      analyzer_indexed_at: analyzerIndexedAt,
       changeset_context: {
         active_changeset: hasActiveChangeset ? activeChangesetId : null,
         verified_against: hasActiveChangeset ? "changeset_view" : "base_model",
