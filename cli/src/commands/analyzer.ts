@@ -12,11 +12,11 @@ import { Command } from "commander";
 import { intro, outro, select, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { AnalyzerRegistry } from "../analyzers/registry.js";
-import { MappingLoader } from "../analyzers/mapping-loader.js";
 import { readSession, writeSession, writeStatus } from "../analyzers/session-state.js";
 import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/project-paths.js";
-import type { SessionState, DiscoveryResult, AvailableAnalyzer } from "../analyzers/types.js";
+import { performDiscover } from "./discover-logic.js";
+import type { SessionState } from "../analyzers/types.js";
 
 /**
  * Register all analyzer subcommands
@@ -52,17 +52,6 @@ Examples:
         const registry = AnalyzerRegistry.getInstance();
         await registry.initialize();
 
-        // Get all analyzer names
-        const analyzerNames = registry.getAnalyzerNames();
-
-        if (analyzerNames.length === 0) {
-          throw new CLIError(
-            "No analyzers registered in the specification",
-            ErrorCategory.NOT_FOUND,
-            ["Check that spec/analyzers/ contains analyzer definitions"]
-          );
-        }
-
         // Check if session already exists and not reselecting (but only for non-JSON output)
         if (!options.reselect && !options.json) {
           const session = await readSession(projectRoot);
@@ -75,76 +64,35 @@ Examples:
           }
         }
 
-        // Get metadata for each analyzer
-        const analyzerOptions = [];
-        for (const name of analyzerNames) {
-          try {
-            const backend = await registry.getAnalyzer(name);
-            if (!backend) continue;
+        // Run core discover logic
+        const discoverResult = await performDiscover(registry, projectRoot, {
+          json: options.json,
+          reselect: options.reselect,
+          isTTY: process.stdin.isTTY,
+        });
 
-            const detection = await backend.detect();
-            const mapper = await MappingLoader.load(name);
-            const metadata = mapper.getAnalyzerMetadata();
-
-            analyzerOptions.push({
-              backend,
-              detection,
-              metadata,
-            });
-          } catch (error) {
-            // Log error but continue discovering other analyzers
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            console.error(`Failed to discover analyzer "${name}": ${errorMsg}`);
-          }
-        }
-
-        // Find installed analyzers
-        const installed = analyzerOptions.filter((a) => a.detection.installed);
+        const { discoveryResult, installed, analyzerOptions, selectedAnalyzer, shouldWriteSession } = discoverResult;
 
         // JSON output mode
         if (options.json) {
-          const found: AvailableAnalyzer[] = analyzerOptions.map((a) => ({
-            name: a.backend.name,
-            display_name: a.backend.displayName,
-            description: a.metadata?.description || "",
-            homepage: a.metadata?.homepage || "",
-            installed: a.detection.installed,
-          }));
+          // If auto-selected in non-TTY mode and should write session
+          if (selectedAnalyzer && shouldWriteSession) {
+            const state: SessionState = {
+              active_analyzer: selectedAnalyzer,
+              selected_at: new Date().toISOString(),
+            };
+            await writeSession(state, projectRoot);
+          }
 
-          const result: DiscoveryResult = {
-            found,
-            installed_count: installed.length,
-          };
-
-          // If reselecting, auto-select first available analyzer in non-TTY mode
-          if (options.reselect) {
-            if (!process.stdin.isTTY && analyzerNames.length > 0) {
-              const selectedName = analyzerNames[0];
-              const state: SessionState = {
-                active_analyzer: selectedName,
-                selected_at: new Date().toISOString(),
-              };
-              await writeSession(state, projectRoot);
-              result.selected = selectedName;
-            }
-          } else {
-            // If not reselecting, check if session exists
+          // If not reselecting, check if session exists for selected field
+          if (!options.reselect && !selectedAnalyzer) {
             const session = await readSession(projectRoot);
             if (session) {
-              result.selected = session.active_analyzer;
-            } else if (!process.stdin.isTTY && analyzerNames.length > 0) {
-              // Auto-select first registered analyzer in non-TTY mode if no session exists
-              const selectedName = analyzerNames[0];
-              const state: SessionState = {
-                active_analyzer: selectedName,
-                selected_at: new Date().toISOString(),
-              };
-              await writeSession(state, projectRoot);
-              result.selected = selectedName;
+              discoveryResult.selected = session.active_analyzer;
             }
           }
 
-          console.log(JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(discoveryResult, null, 2));
           return;
         }
 
@@ -197,18 +145,19 @@ Examples:
             )
           );
         } else {
-          // Non-TTY: use first installed analyzer
-          const firstInstalled = installed[0];
-          const state: SessionState = {
-            active_analyzer: firstInstalled.backend.name,
-            selected_at: new Date().toISOString(),
-          };
-          await writeSession(state, projectRoot);
+          // Non-TTY: auto-select first installed analyzer
+          if (selectedAnalyzer) {
+            const state: SessionState = {
+              active_analyzer: selectedAnalyzer,
+              selected_at: new Date().toISOString(),
+            };
+            await writeSession(state, projectRoot);
 
-          console.log(
-            ansis.green(`✓ Selected analyzer: ${firstInstalled.backend.name} (non-interactive mode)`)
-          );
-          outro(ansis.dim("Saved to .dr/analyzers/session.json"));
+            console.log(
+              ansis.green(`✓ Selected analyzer: ${selectedAnalyzer} (non-interactive mode)`)
+            );
+            outro(ansis.dim("Saved to .dr/analyzers/session.json"));
+          }
         }
       } catch (error) {
         if (error instanceof CLIError) throw error;

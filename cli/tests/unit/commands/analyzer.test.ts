@@ -7,280 +7,513 @@
  * - JSON and text output modes
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import * as path from "path";
-import * as os from "os";
-import { randomUUID } from "crypto";
-import * as fs from "fs/promises";
-import { readSession } from "../../../src/analyzers/session-state.js";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { performDiscover } from "../../../src/commands/discover-logic.js";
+import type { AnalyzerRegistry } from "../../../src/analyzers/registry.js";
+import type { DiscoveryResult } from "../../../src/analyzers/types.js";
 
-// Helper to create a unique temp directory for each test
-function createTempDir(): string {
-  return path.join(os.tmpdir(), `analyzer-cmd-test-${randomUUID()}`);
+/**
+ * Mock analyzer registry for testing
+ */
+function createMockRegistry(analyzers: any[] = []): any {
+  return {
+    getAnalyzerNames: () => analyzers.map((a) => a.name),
+    getAnalyzer: async (name: string) => {
+      const analyzer = analyzers.find((a) => a.name === name);
+      if (!analyzer) return null;
+      return analyzer.backend;
+    },
+  };
+}
+
+/**
+ * Mock analyzer backend
+ */
+function createMockBackend(name: string, displayName: string, installed: boolean) {
+  return {
+    name,
+    displayName,
+    detect: async () => ({
+      installed,
+      binary_path: installed ? `/usr/bin/${name}` : undefined,
+    }),
+  };
 }
 
 describe("Analyzer Command - discover with no analyzer installed", () => {
-  let tempDir: string;
+  describe("discover behavior when no analyzers are installed", () => {
+    it("should return empty found array and zero installed count when no analyzers installed", async () => {
+      // Mock MappingLoader for the test
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
+      let mapperCallCount = 0;
 
-  beforeEach(async () => {
-    tempDir = createTempDir();
-    // Create the temp directory
-    await fs.mkdir(tempDir, { recursive: true });
-  });
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test analyzer",
+          homepage: `https://example.com/${name}`,
+        }),
+      });
 
-  afterEach(async () => {
-    // Clean up temp directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Directory doesn't exist, that's fine
-    }
-  });
-
-  describe("discover behavior when no analyzer installed", () => {
-    it("should handle empty analyzer list gracefully", async () => {
-      // This test documents the behavior at line 152-167 in analyzer.ts
-      // When installed.length === 0 (no analyzers installed), the discover command:
-      // 1. Shows a message about available analyzers
-      // 2. Provides installation links
-      // 3. Does NOT create a session.json
-      // 4. Exits gracefully without throwing
-
-      // We verify the logic by checking the session was not created
-      // since no analyzer was selected (none installed)
-      const session = await readSession(tempDir);
-      expect(session).toBeNull();
-    });
-
-    it("should not persist session when no analyzer is installed", async () => {
-      // This test verifies line 152-167: when no analyzers are installed,
-      // the discover command does NOT write a session.json file.
-      // It only shows informational messages to the user.
-
-      const sessionPath = path.join(tempDir, ".dr", "analyzers", "session.json");
-
-      // Verify session file does not exist
-      let fileExists = false;
       try {
-        await fs.access(sessionPath);
-        fileExists = true;
-      } catch {
-        fileExists = false;
+        // Create registry with one registered but not installed analyzer
+        const registry = createMockRegistry([
+          {
+            name: "test-analyzer",
+            backend: createMockBackend("test-analyzer", "Test Analyzer", false),
+          },
+        ]);
+
+        // Run discover
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        // When no analyzers are installed, found array should have the analyzer but installed_count should be 0
+        expect(result.discoveryResult.found.length).toBeGreaterThanOrEqual(0);
+        expect(result.discoveryResult.installed_count).toBe(0);
+        expect(result.installed.length).toBe(0);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
       }
-
-      expect(fileExists).toBe(false);
     });
 
-    it("should gather analyzer metadata even when none are installed", async () => {
-      // This test documents the gather phase at lines 78-99 in analyzer.ts
-      // The discover command:
-      // 1. Iterates through all registered analyzer names
-      // 2. Gets metadata for each via MappingLoader.load(name)
-      // 3. Extracts display_name, description, homepage from metadata
-      // 4. Continues if an analyzer fails to load (error tolerance at line 94-98)
+    it("should distinguish between registered but uninstalled analyzers", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      // Verifies the structure of what discover would output
-      // even when no analyzers are installed.
-      // The metadata required for discover output includes:
-      // - name (string)
-      // - display_name (string)
-      // - description (string, can be empty)
-      // - homepage (string, can be empty)
-      // - installed (boolean: false when not found in PATH)
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test analyzer",
+          homepage: `https://example.com/${name}`,
+        }),
+      });
 
-      // This is implicitly tested by the discover command reading
-      // MappingLoader.getAnalyzerMetadata() for each analyzer
-      expect(true).toBe(true); // Placeholder: actual test via integration
-    });
+      try {
+        // Scenario: analyzers registered but none installed
+        const registry = createMockRegistry([
+          {
+            name: "cbm",
+            backend: createMockBackend("cbm", "CBM Analyzer", false),
+          },
+          {
+            name: "other",
+            backend: createMockBackend("other", "Other Analyzer", false),
+          },
+        ]);
 
-    it("should distinguish between no analyzers registered vs no analyzers installed", async () => {
-      // This test documents two different error cases:
-      // 1. No analyzers registered in spec (line 58-64): throws CLIError
-      // 2. Analyzers registered but none installed (line 152-167): shows message
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
 
-      // When no analyzers are registered, discover throws at line 59-63
-      // When analyzers exist but none installed, discover shows message at line 152-167
-
-      // This test verifies the session logic expects the second case (registered but none installed)
-      const session = await readSession(tempDir);
-      expect(session).toBeNull();
-    });
-
-    it("should provide informational output when no analyzers are installed (text mode)", async () => {
-      // This test documents the text output flow at lines 151-166 in analyzer.ts
-      // When installed.length === 0:
-      // 1. Shows "No analyzers installed" message
-      // 2. Lists all registered analyzers with their homepage links
-      // 3. Suggests running the links or using package manager
-      // 4. Does NOT persist a session
-      // 5. Returns (exits) without throwing
-
-      // Verify no session is created in this scenario
-      const session = await readSession(tempDir);
-      expect(session).toBeNull();
-    });
-
-    it("should output valid JSON when --json flag used with no analyzers installed", async () => {
-      // This test documents the JSON output flow at lines 105-149 in analyzer.ts
-      // When --json is specified and no analyzers are installed:
-      // 1. Builds found array with all registered analyzers
-      // 2. Sets installed: false for each
-      // 3. Includes display_name, description, homepage
-      // 4. Sets installed_count: 0
-      // 5. Does NOT set selected field (no session created)
-      // 6. Outputs as JSON
-
-      // The expected JSON structure is DiscoveryResult:
-      interface ExpectedDiscoveryResult {
-        found: Array<{
-          name: string;
-          display_name: string;
-          description: string;
-          homepage: string;
-          installed: boolean;
-        }>;
-        installed_count: number;
-        selected?: string;
+        // Should have found both analyzers but installed_count should be 0
+        expect(result.discoveryResult.found.length).toBeGreaterThanOrEqual(2);
+        expect(result.discoveryResult.found.every((a) => !a.installed)).toBe(true);
+        expect(result.discoveryResult.installed_count).toBe(0);
+        expect(result.installed.length).toBe(0);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
       }
-
-      // Verify the structure by checking that no session persists
-      // since no analyzers are available
-      const session = await readSession(tempDir);
-      expect(session).toBeNull();
     });
 
-    it("should handle analyzer metadata loading errors gracefully", async () => {
-      // This test documents error handling at lines 94-98 in analyzer.ts
-      // When MappingLoader.load(name) fails for an analyzer:
-      // 1. Logs error to console
-      // 2. Continues with next analyzer (line 95: continue)
-      // 3. Does NOT throw
-      // 4. Does NOT block the discover command
+    it("should set installed flag correctly for each analyzer", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      // This behavior ensures discover is resilient:
-      // even if one analyzer's metadata is broken, others are still discovered
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test analyzer",
+          homepage: `https://example.com/${name}`,
+        }),
+      });
 
-      // Verify discover completes without exception
-      const session = await readSession(tempDir);
-      expect(session).toBeNull();
+      try {
+        // Mix of installed and uninstalled analyzers
+        const registry = createMockRegistry([
+          {
+            name: "installed-one",
+            backend: createMockBackend("installed-one", "Installed One", true),
+          },
+          {
+            name: "not-installed",
+            backend: createMockBackend("not-installed", "Not Installed", false),
+          },
+        ]);
+
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        // Verify installed field is set correctly
+        const foundAnalyzers = result.discoveryResult.found;
+        const installedOne = foundAnalyzers.find((a) => a.name === "installed-one");
+        const notInstalled = foundAnalyzers.find((a) => a.name === "not-installed");
+
+        expect(installedOne?.installed).toBe(true);
+        expect(notInstalled?.installed).toBe(false);
+        expect(result.discoveryResult.installed_count).toBe(1);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
+    });
+
+    it("should not select analyzer in non-JSON text mode when none installed", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
+
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test analyzer",
+          homepage: `https://example.com/${name}`,
+        }),
+      });
+
+      try {
+        const registry = createMockRegistry([
+          {
+            name: "test-analyzer",
+            backend: createMockBackend("test-analyzer", "Test Analyzer", false),
+          },
+        ]);
+
+        // Text mode (json: false) with no installed analyzers
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: false,
+          isTTY: true,
+        });
+
+        // Should not select or write session
+        expect(result.selectedAnalyzer).toBeUndefined();
+        expect(result.shouldWriteSession).toBe(false);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
+    });
+
+    it("should handle metadata loading errors gracefully", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
+
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => {
+        if (name === "broken") {
+          throw new Error("Failed to load metadata");
+        }
+        return {
+          getAnalyzerMetadata: () => ({
+            name,
+            display_name: `${name} Analyzer`,
+            description: "Test analyzer",
+            homepage: `https://example.com/${name}`,
+          }),
+        };
+      };
+
+      try {
+        const registry = createMockRegistry([
+          {
+            name: "broken",
+            backend: createMockBackend("broken", "Broken", false),
+          },
+          {
+            name: "working",
+            backend: createMockBackend("working", "Working", false),
+          },
+        ]);
+
+        // Should continue despite error in one analyzer
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        // Should have at least completed
+        expect(result.discoveryResult).toBeDefined();
+        expect(result.discoveryResult.installed_count).toBe(0);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
     });
   });
 
   describe("discover JSON output structure", () => {
-    it("should include required fields in JSON output", async () => {
-      // Documents the DiscoveryResult structure from types.ts
-      // When discover outputs JSON, the result must include:
-      // - found: array of AvailableAnalyzer
-      // - installed_count: number
-      // - selected?: string (optional, only when session exists)
+    it("should return valid DiscoveryResult structure", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      // Verify the structure by checking what would be required
-      interface DiscoveryResult {
-        found: Array<{
-          name: string;
-          display_name: string;
-          description: string;
-          homepage: string;
-          installed: boolean;
-        }>;
-        installed_count: number;
-        selected?: string;
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test",
+          homepage: "https://example.com",
+        }),
+      });
+
+      try {
+        const registry = createMockRegistry([
+          {
+            name: "test",
+            backend: createMockBackend("test", "Test", false),
+          },
+        ]);
+
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        const discovery = result.discoveryResult;
+
+        // Verify DiscoveryResult structure
+        expect(discovery).toHaveProperty("found");
+        expect(discovery).toHaveProperty("installed_count");
+        expect(Array.isArray(discovery.found)).toBe(true);
+        expect(typeof discovery.installed_count).toBe("number");
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
       }
-
-      // When no analyzers installed, the structure is valid
-      const expectedResult: DiscoveryResult = {
-        found: [],
-        installed_count: 0,
-      };
-
-      expect(expectedResult.found).toEqual([]);
-      expect(expectedResult.installed_count).toBe(0);
-      expect("selected" in expectedResult).toBe(false);
     });
 
-    it("should populate found array with all registered analyzers", async () => {
-      // Documents the discover logic at lines 106-112
-      // The found array includes ALL registered analyzers:
-      // - Even those not installed (installed: false)
-      // - With their metadata from MappingLoader
+    it("should include all AvailableAnalyzer fields in found array", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      // Each element has:
-      // - name: backend.name
-      // - display_name: backend.displayName
-      // - description: metadata?.description || ""
-      // - homepage: metadata?.homepage || ""
-      // - installed: detection.installed
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test analyzer description",
+          homepage: "https://example.com/analyzer",
+        }),
+      });
 
-      const emptyFound = [];
-      expect(Array.isArray(emptyFound)).toBe(true);
+      try {
+        const registry = createMockRegistry([
+          {
+            name: "test",
+            backend: createMockBackend("test", "Test Analyzer", false),
+          },
+        ]);
+
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        // Check first analyzer in found array
+        if (result.discoveryResult.found.length > 0) {
+          const analyzer = result.discoveryResult.found[0];
+          expect(analyzer).toHaveProperty("name");
+          expect(analyzer).toHaveProperty("display_name");
+          expect(analyzer).toHaveProperty("description");
+          expect(analyzer).toHaveProperty("homepage");
+          expect(analyzer).toHaveProperty("installed");
+        }
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
     });
 
-    it("should calculate installed_count correctly", async () => {
-      // Documents the installed_count field at line 116
-      // installed_count = number of analyzers where detection.installed === true
-      // When no analyzers are installed, installed_count === 0
+    it("should only include selected field when session exists or auto-selected", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      expect(0).toBe(0); // Expected count when none installed
-    });
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test",
+          homepage: "https://example.com",
+        }),
+      });
 
-    it("should not set selected field when no session exists", async () => {
-      // Documents the selected field logic at lines 130-145
-      // The selected field is only present if:
-      // 1. Session already exists (readSession returned non-null), OR
-      // 2. --reselect flag + non-TTY mode + analyzers exist
+      try {
+        // No analyzers installed case
+        const registry = createMockRegistry([
+          {
+            name: "test",
+            backend: createMockBackend("test", "Test", false),
+          },
+        ]);
 
-      // When no analyzers are installed:
-      // - No session is created
-      // - No selected field is included
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
 
-      const session = await readSession(tempDir);
-      expect(session).toBeNull();
+        // When no analyzers installed, selected field should not be in result
+        const hasSelected = "selected" in result.discoveryResult;
+        expect(hasSelected).toBe(result.selectedAnalyzer !== undefined);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
     });
   });
 
   describe("discover session persistence", () => {
-    it("should skip session write when no analyzers are installed", async () => {
-      // When installed.length === 0 (line 152), discover does NOT:
-      // - Check for existing session (line 67-75 is skipped)
-      // - Attempt to write a session
-      // - Prompt for selection
+    it("should not select analyzer when no analyzers are installed in any mode", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      const sessionPath = path.join(tempDir, ".dr", "analyzers", "session.json");
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test",
+          homepage: "https://example.com",
+        }),
+      });
 
-      // Verify session was not created
-      let fileExists = false;
       try {
-        await fs.access(sessionPath);
-        fileExists = true;
-      } catch {
-        fileExists = false;
-      }
+        const registry = createMockRegistry([
+          {
+            name: "test",
+            backend: createMockBackend("test", "Test", false),
+          },
+        ]);
 
-      expect(fileExists).toBe(false);
+        // Test both modes
+        const jsonResult = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        const textResult = await performDiscover(registry, "/tmp/test", {
+          json: false,
+          isTTY: true,
+        });
+
+        // Neither should select when no analyzers installed
+        expect(jsonResult.selectedAnalyzer).toBeUndefined();
+        expect(textResult.selectedAnalyzer).toBeUndefined();
+        expect(jsonResult.shouldWriteSession).toBe(false);
+        expect(textResult.shouldWriteSession).toBe(false);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
     });
 
-    it("should preserve existing session when no analyzers are installed", async () => {
-      // Documents the session precedence:
-      // If a session.json already exists from a previous discover,
-      // and discover is run again with no analyzers installed,
-      // the existing session should be preserved (or not overwritten)
+    it("should auto-select first analyzer in non-TTY JSON mode when analyzers exist", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
 
-      // Create a fake existing session
-      const sessionDir = path.join(tempDir, ".dr", "analyzers");
-      await fs.mkdir(sessionDir, { recursive: true });
-      const sessionData = {
-        active_analyzer: "cbm",
-        selected_at: new Date().toISOString(),
-      };
-      await fs.writeFile(
-        path.join(sessionDir, "session.json"),
-        JSON.stringify(sessionData, null, 2)
-      );
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test",
+          homepage: "https://example.com",
+        }),
+      });
 
-      // Verify session still exists (not overwritten by discover with no analyzers)
-      const existingSession = await readSession(tempDir);
-      expect(existingSession).toBeDefined();
-      expect(existingSession?.active_analyzer).toBe("cbm");
+      try {
+        const registry = createMockRegistry([
+          {
+            name: "first",
+            backend: createMockBackend("first", "First", true),
+          },
+          {
+            name: "second",
+            backend: createMockBackend("second", "Second", true),
+          },
+        ]);
+
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        // In non-TTY with analyzers installed, should auto-select first
+        expect(result.selectedAnalyzer).toBe("first");
+        expect(result.shouldWriteSession).toBe(true);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
+    });
+  });
+
+  describe("discover error handling", () => {
+    it("should throw when no analyzers registered", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
+
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({}),
+      });
+
+      try {
+        const registry = createMockRegistry([]); // No analyzers
+
+        let errorThrown = false;
+        try {
+          await performDiscover(registry, "/tmp/test", { json: true });
+        } catch (error) {
+          errorThrown = true;
+          expect(error instanceof Error).toBe(true);
+        }
+
+        expect(errorThrown).toBe(true);
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
+    });
+
+    it("should continue discovery when analyzer backend is null", async () => {
+      const originalLoad = require("../../../src/analyzers/mapping-loader.js").MappingLoader.load;
+
+      (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = async (
+        name: string
+      ) => ({
+        getAnalyzerMetadata: () => ({
+          name,
+          display_name: `${name} Analyzer`,
+          description: "Test",
+          homepage: "https://example.com",
+        }),
+      });
+
+      try {
+        // Registry that returns null for one analyzer
+        const registry = {
+          getAnalyzerNames: () => ["null-analyzer", "working-analyzer"],
+          getAnalyzer: async (name: string) => {
+            if (name === "null-analyzer") return null;
+            return createMockBackend("working-analyzer", "Working", false);
+          },
+        };
+
+        const result = await performDiscover(registry, "/tmp/test", {
+          json: true,
+          isTTY: false,
+        });
+
+        // Should have completed despite null analyzer
+        expect(result.discoveryResult).toBeDefined();
+      } finally {
+        (require("../../../src/analyzers/mapping-loader.js").MappingLoader as any).load = originalLoad;
+      }
     });
   });
 });
