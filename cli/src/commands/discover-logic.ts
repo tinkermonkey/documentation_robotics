@@ -90,29 +90,23 @@ export async function performDiscover(
 
   // Determine session and selection behavior
   if (options.json) {
-    // JSON mode: auto-select in non-TTY
-    if (!options.isTTY) {
-      // Prefer installed analyzers, fall back to first available analyzer
-      const analyzerToSelect = installed.length > 0 ? installed[0] : analyzerOptions[0];
-      if (analyzerToSelect) {
-        selectedAnalyzer = analyzerToSelect.backend.name;
-        shouldWriteSession = true;
-        discoveryResult.selected = selectedAnalyzer;
-      }
+    // JSON mode: auto-select in non-TTY, but only if analyzers are installed
+    if (!options.isTTY && installed.length > 0) {
+      selectedAnalyzer = installed[0].backend.name;
+      shouldWriteSession = true;
+      discoveryResult.selected = selectedAnalyzer;
     }
     // In TTY mode, CLI handler will check for existing session
   } else {
-    // Text mode: in non-TTY, auto-select an available analyzer
-    if (!options.isTTY && analyzerOptions.length > 0) {
-      // Prefer installed analyzers, fall back to first available analyzer
-      const analyzerToSelect = installed.length > 0 ? installed[0] : analyzerOptions[0];
-      selectedAnalyzer = analyzerToSelect.backend.name;
+    // Text mode: in non-TTY, auto-select only if analyzers are installed
+    if (!options.isTTY && installed.length > 0) {
+      selectedAnalyzer = installed[0].backend.name;
       shouldWriteSession = true;
     } else if (installed.length > 0 && options.isTTY) {
       // TTY mode with installed analyzers: will prompt, session will be written after selection
       shouldWriteSession = false; // CLI handler will write after prompt
     }
-    // If no analyzers available at all: show message, don't write session
+    // If no analyzers installed: don't select or write session
   }
 
   return {
