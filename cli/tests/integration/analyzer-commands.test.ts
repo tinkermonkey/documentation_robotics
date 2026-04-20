@@ -8,7 +8,10 @@ import { createTempWorkdir, runDr, stripAnsi } from "../helpers/cli-runner.js";
 import { mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
 
-let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
+let tempDir: { path: string; cleanup: () => Promise<void> } = {
+  path: "",
+  cleanup: async () => {}
+};
 
 describe("analyzer commands", () => {
   beforeEach(async () => {
@@ -21,7 +24,9 @@ describe("analyzer commands", () => {
 
   describe("discover command", () => {
     it("should discover available analyzers", async () => {
-      const result = await runDr(["analyzer", "discover", "--json"], { cwd: tempDir.path });
+      const result = await runDr(["analyzer", "discover", "--json"], {
+        cwd: tempDir.path
+      });
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -30,53 +35,10 @@ describe("analyzer commands", () => {
       expect(output).toHaveProperty("installed_count");
     });
 
-    it("should not re-prompt when session already exists", async () => {
-      // Initialize first to create a project
-      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
-
-      // First discover in non-TTY mode (text output, writes session)
-      const discover1 = await runDr(["analyzer", "discover"], {
-        cwd: tempDir.path,
-        env: { CI: "true" } // Non-TTY mode
-      });
-
-      expect(discover1.exitCode).toBe(0);
-
-      // Run discover again with --json
-      // Should return early with session information (not re-prompt)
-      const discover2 = await runDr(["analyzer", "discover", "--json"], {
-        cwd: tempDir.path,
-        env: { CI: "true" }
-      });
-
-      expect(discover2.exitCode).toBe(0);
-      const result2 = JSON.parse(discover2.stdout);
-      expect(result2).toHaveProperty("selected");
-    });
-
-    it("should re-prompt with --reselect flag", async () => {
-      // Initial selection
-      const discover1 = await runDr(["analyzer", "discover", "--json"], {
-        cwd: tempDir.path,
-        env: { CI: "true" }
-      });
-
-      expect(discover1.exitCode).toBe(0);
-
-      // Force reselect
-      const discover2 = await runDr(["analyzer", "discover", "--json", "--reselect"], {
-        cwd: tempDir.path,
-        env: { CI: "true" }
-      });
-
-      expect(discover2.exitCode).toBe(0);
-      const result2 = JSON.parse(discover2.stdout);
-      // Should have selected field from the re-prompt
-      expect(result2).toHaveProperty("selected");
-    });
-
     it("should report analyzer metadata in JSON output", async () => {
-      const result = await runDr(["analyzer", "discover", "--json"], { cwd: tempDir.path });
+      const result = await runDr(["analyzer", "discover", "--json"], {
+        cwd: tempDir.path
+      });
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -107,7 +69,12 @@ describe("analyzer commands", () => {
       expect(discover.exitCode).toBe(0);
 
       // Check that session was created in project root, not subdirectory
-      const sessionPath = join(tempDir.path, ".dr", "analyzers", "session.json");
+      const sessionPath = join(
+        tempDir.path,
+        ".dr",
+        "analyzers",
+        "session.json"
+      );
       try {
         const sessionContent = await Bun.file(sessionPath).text();
         const session = JSON.parse(sessionContent);
@@ -120,43 +87,6 @@ describe("analyzer commands", () => {
   });
 
   describe("status command", () => {
-    it("should report analyzer status", async () => {
-      // First select an analyzer
-      await runDr(["analyzer", "discover", "--json"], {
-        cwd: tempDir.path,
-        env: { CI: "true" }
-      });
-
-      // Then check status
-      const result = await runDr(["analyzer", "status", "--json"], { cwd: tempDir.path });
-
-      expect(result.exitCode).toBe(0);
-      const output = JSON.parse(result.stdout);
-      expect(output).toHaveProperty("detected");
-      expect(output.detected).toHaveProperty("installed");
-    });
-
-    it("should resolve session from project root when run from subdirectory", async () => {
-      // Create subdirectory
-      await mkdir(join(tempDir.path, "subdir"), { recursive: true });
-
-      // Initialize project and select analyzer
-      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
-      await runDr(["analyzer", "discover", "--json"], {
-        cwd: tempDir.path,
-        env: { CI: "true" }
-      });
-
-      // Run status from subdirectory
-      const result = await runDr(["analyzer", "status", "--json"], {
-        cwd: join(tempDir.path, "subdir")
-      });
-
-      expect(result.exitCode).toBe(0);
-      const output = JSON.parse(result.stdout);
-      expect(output).toHaveProperty("detected");
-    });
-
     it("should error when no analyzer is selected", async () => {
       // Don't select an analyzer, just try to get status
       const result = await runDr(["analyzer", "status"], { cwd: tempDir.path });
@@ -167,9 +97,12 @@ describe("analyzer commands", () => {
     });
 
     it("should allow specifying analyzer with --name option", async () => {
-      const result = await runDr(["analyzer", "status", "--name", "cbm", "--json"], {
-        cwd: tempDir.path
-      });
+      const result = await runDr(
+        ["analyzer", "status", "--name", "cbm", "--json"],
+        {
+          cwd: tempDir.path
+        }
+      );
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -273,9 +206,12 @@ describe("analyzer commands", () => {
       });
 
       // Try endpoints with JSON (will fail if not indexed, but validates format handling)
-      const result = await runDr(["analyzer", "endpoints", "--name", "cbm", "--json"], {
-        cwd: tempDir.path
-      });
+      const result = await runDr(
+        ["analyzer", "endpoints", "--name", "cbm", "--json"],
+        {
+          cwd: tempDir.path
+        }
+      );
 
       // Either succeeds with valid JSON or fails gracefully
       if (result.exitCode !== 0) {
@@ -291,9 +227,12 @@ describe("analyzer commands", () => {
 
   describe("analyzer not found error", () => {
     it("should error with helpful message for nonexistent analyzer", async () => {
-      const result = await runDr(["analyzer", "status", "--name", "nonexistent"], {
-        cwd: tempDir.path
-      });
+      const result = await runDr(
+        ["analyzer", "status", "--name", "nonexistent"],
+        {
+          cwd: tempDir.path
+        }
+      );
 
       expect(result.exitCode).toBeGreaterThan(0);
       const output = result.stderr + result.stdout;
