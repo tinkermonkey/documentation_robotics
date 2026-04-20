@@ -92,11 +92,12 @@ describe("Verify Formatters", () => {
       expect(parsed.project_root).toBe(sampleReport.project_root);
     });
 
-    it("should use text format as default when format is invalid", () => {
-      // Call with invalid format (cast to allow type check bypass)
-      const output = formatVerifyReport(sampleReport, { format: "xml" as any });
+    it("should dispatch to formatVerifyMarkdown for markdown format", () => {
+      const output = formatVerifyReport(sampleReport, { format: "markdown" });
       expect(typeof output).toBe("string");
-      expect(output).toContain("API Verification Report");
+      expect(output).toContain("# API Verification Report");
+      expect(output).toContain("## Summary");
+      expect(output).toContain("## Matched Entries");
     });
 
     it("should handle JSON output with all report data", () => {

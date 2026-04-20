@@ -1816,11 +1816,11 @@ describe("CbmAnalyzer", () => {
     });
 
     it("should match datastore patterns from heuristics", async () => {
-      // Test the matchPattern helper
+      // Test the matchPattern helper using proper minimatch patterns
       const testCases = [
         { file: "/project/migrations/users.migration.ts", pattern: "**/migrations/**", shouldMatch: true },
-        { file: "/project/schema/schema.sql", pattern: "*.sql", shouldMatch: true },
-        { file: "/project/src/models/user.model.ts", pattern: "*model.ts", shouldMatch: true },
+        { file: "/project/schema/schema.sql", pattern: "**/*.sql", shouldMatch: true },
+        { file: "/project/src/models/user.model.ts", pattern: "**/*model.ts", shouldMatch: true },
         { file: "/project/src/routes.ts", pattern: "**/migrations/**", shouldMatch: false },
       ];
 

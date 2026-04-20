@@ -1131,13 +1131,15 @@ Examples:
     .action(async (options) => {
       try {
         // Determine output format from --json flag or --output file extension
-        let format: "text" | "json" = "text";
+        let format: "text" | "json" | "markdown" = "text";
         if (options.json) {
           format = "json";
         } else if (options.output) {
           const ext = path.extname(options.output).toLowerCase();
           if (ext === ".json") {
             format = "json";
+          } else if (ext === ".md") {
+            format = "markdown";
           }
         }
 

@@ -2,6 +2,7 @@
  * Utilities for heuristic evaluation and service/datastore detection
  */
 
+import { minimatch } from "minimatch";
 import type { AnalyzerHeuristic } from "./types.js";
 
 /**
@@ -97,48 +98,18 @@ export function capConfidence(
 }
 
 /**
- * Match a file path against a glob-like pattern
+ * Match a file path against a glob pattern
+ *
+ * Uses minimatch for consistent glob pattern matching semantics.
+ * Supports standard glob patterns like:
+ * - *.ext - match files with extension
+ * - src/ - match anything under src directory
+ * - tests directories at any depth
  *
  * @param filePath The file path to match
  * @param pattern The glob pattern
  * @returns True if the pattern matches, false otherwise
  */
 export function matchPattern(filePath: string, pattern: string): boolean {
-  // Handle **/ prefix (matches any number of directories)
-  if (pattern.startsWith("**/")) {
-    const suffix = pattern.slice(3);
-    // Remove trailing /** from suffix if present
-    const suffixToMatch = suffix.endsWith("/**") ? suffix.slice(0, -3) : suffix;
-    return (
-      filePath.includes("/" + suffixToMatch + "/") ||
-      filePath.includes(suffixToMatch + "/") ||
-      filePath.endsWith(suffixToMatch)
-    );
-  }
-
-  // Handle trailing /** (matches anything under this directory)
-  if (pattern.endsWith("/**")) {
-    const prefix = pattern.slice(0, -3);
-    return (
-      filePath.includes(prefix + "/") || filePath.startsWith(prefix + "/")
-    );
-  }
-
-  // Handle *.ext patterns (file extensions)
-  if (pattern.startsWith("*.")) {
-    return filePath.endsWith(pattern.slice(1));
-  }
-
-  // Handle *pattern patterns (ends with pattern without path separators)
-  if (pattern.startsWith("*") && !pattern.includes("/")) {
-    return filePath.endsWith(pattern.slice(1));
-  }
-
-  // Handle exact match or substring match
-  return (
-    filePath === pattern ||
-    filePath.endsWith("/" + pattern) ||
-    filePath.includes(pattern) ||
-    filePath.endsWith(pattern)
-  );
+  return minimatch(filePath, pattern);
 }
