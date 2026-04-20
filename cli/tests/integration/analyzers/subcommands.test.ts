@@ -206,9 +206,9 @@ describe("Analyzer Subcommands Integration", () => {
       expect(result.exitCode).not.toBe(0);
     });
 
-    it("should work with --json flag", async () => {
-      const result = await runDr(["analyzer", "verify", "--json"]);
-      // May fail if not indexed, but should handle --json flag
+    it("should work with --format json flag", async () => {
+      const result = await runDr(["analyzer", "verify", "--format", "json"]);
+      // May fail if not indexed, but should handle --format flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
       } else {

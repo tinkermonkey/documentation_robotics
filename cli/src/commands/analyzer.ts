@@ -303,13 +303,16 @@ Examples:
           console.log(`Version: ${ansis.dim(status.detected.version)}`);
         }
 
-        console.log(
-          `MCP Registered: ${status.detected.mcp_registered ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
-        );
+        // Only show MCP and contract info if analyzer is installed
+        if (status.detected.installed) {
+          console.log(
+            `MCP Registered: ${status.detected.mcp_registered ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
+          );
 
-        console.log(
-          `Contract Valid: ${status.detected.contract_ok ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
-        );
+          console.log(
+            `Contract Valid: ${status.detected.contract_ok ? ansis.green("✓ Yes") : ansis.yellow("✗ No")}`
+          );
+        }
 
         if (actualProjectRoot) {
           console.log(
@@ -1022,17 +1025,23 @@ Examples:
 
   /**
    * Query subcommand - execute a raw query against the analyzer's graph
+   * Documented as an advanced escape hatch for graph queries (not recommended for scripting)
    */
   analyzer
     .command("query <cypher>")
-    .description("Execute a raw query (advanced escape hatch for graph queries)")
+    .description("Execute a raw Cypher query against the analyzer graph (advanced escape hatch)")
     .option("--name <n>", "Analyzer name (defaults to active from session.json)")
     .option("--json", "Output as JSON (default format for query results)")
     .addHelpText(
+      "before",
+      `Advanced Escape Hatch: This command directly executes graph queries without validation or wrapping.
+Use for advanced analysis when standard commands don't meet your needs.\n`
+    )
+    .addHelpText(
       "after",
       `
-Advanced escape hatch for executing raw graph queries.
 Query syntax depends on the analyzer backend (e.g., Cypher for graph analyzers).
+Results are always output as JSON.
 
 Examples:
   $ dr analyzer query "MATCH (n) RETURN n LIMIT 10"
@@ -1116,24 +1125,32 @@ Examples:
     .option("--layer <layer>", "Layer(s) to verify (can be used multiple times)", (value, previous: string[] | undefined) => {
       return previous ? [...previous, value] : [value];
     })
+    .option("--format <format>", "Output format: text, json, markdown (default: text)")
     .option("--output <path>", "Write report to file")
-    .option("--json", "Output as JSON (instead of text)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr analyzer verify                       # Verify api layer (default)
   $ dr analyzer verify --layer api           # Explicitly specify api layer
+  $ dr analyzer verify --format json         # Output as JSON to stdout
+  $ dr analyzer verify --format markdown     # Output as Markdown to stdout
   $ dr analyzer verify --output report.json  # Save report to file (format inferred as JSON)
-  $ dr analyzer verify --output report.txt   # Save report as text
-  $ dr analyzer verify --json                # Output as JSON to stdout`
+  $ dr analyzer verify --output report.md    # Save report as Markdown`
     )
     .action(async (options) => {
       try {
-        // Determine output format from --json flag or --output file extension
+        // Determine output format from --format flag or --output file extension
         let format: "text" | "json" | "markdown" = "text";
-        if (options.json) {
-          format = "json";
+        if (options.format) {
+          const validFormats = ["text", "json", "markdown"];
+          if (!validFormats.includes(options.format)) {
+            throw new CLIError(
+              `Invalid format: "${options.format}". Valid values are: ${validFormats.join(", ")}.`,
+              ErrorCategory.USER
+            );
+          }
+          format = options.format as "text" | "json" | "markdown";
         } else if (options.output) {
           const ext = path.extname(options.output).toLowerCase();
           if (ext === ".json") {
@@ -1154,14 +1171,14 @@ Examples:
         const apiLayers = requestedLayers.filter((layer: string) => layer === "api");
         const nonApiLayers = requestedLayers.filter((layer: string) => layer !== "api");
 
-        // Report non-api layers with v1 scope constraint
+        // Report non-api layers as not available
         for (const layer of nonApiLayers) {
-          console.log(ansis.dim(`Verify scope v1 only supports api layer; '${layer}' is not supported.`));
+          console.log(ansis.dim(`No verification available for layer '${layer}'`));
         }
 
-        // If no api layers to verify, throw error
+        // If no api layers to verify, exit cleanly
         if (apiLayers.length === 0) {
-          throw new CLIError(`No supported layers to verify. Verify scope v1 only supports api layer.`);
+          return;
         }
 
         // Resolve analyzer name
