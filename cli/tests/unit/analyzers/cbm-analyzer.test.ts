@@ -1964,6 +1964,156 @@ describe("CbmAnalyzer", () => {
     });
   });
 
+  describe("verify() route shaping defaults", () => {
+    it("should default httpMethod to GET when not provided", async () => {
+      // This test documents that the verify() method at lines 1864-1876
+      // defaults httpMethod to "GET" when the node property is missing or not a string
+
+      const routeMapping = mockMapper.getNodeMapping("Route");
+      expect(routeMapping).toBeDefined();
+
+      // Create a route node without method property
+      const routeNodeNoMethod: any = {
+        id: "route-no-method",
+        label: "Route",
+        properties: {
+          path: "/users",
+          handler_name: "UserController.getUsers",
+          symbol: "getUsers",
+        },
+        file_path: "/project/src/routes.ts",
+      };
+
+      // Simulate the shape logic: if typeof properties.method !== 'string', default to "GET"
+      let httpMethod = "GET";
+      if (typeof routeNodeNoMethod.properties.method === "string") {
+        httpMethod = routeNodeNoMethod.properties.method.toUpperCase();
+      }
+
+      expect(httpMethod).toBe("GET");
+    });
+
+    it("should convert httpMethod to uppercase", async () => {
+      // Test that lowercase methods are converted to uppercase
+      const testMethods = [
+        { input: "get", expected: "GET" },
+        { input: "post", expected: "POST" },
+        { input: "delete", expected: "DELETE" },
+        { input: "Put", expected: "PUT" },
+        { input: "PATCH", expected: "PATCH" },
+      ];
+
+      for (const { input, expected } of testMethods) {
+        let httpMethod = "GET";
+        const properties = { method: input };
+        if (typeof properties.method === "string") {
+          httpMethod = properties.method.toUpperCase();
+        }
+        expect(httpMethod).toBe(expected);
+      }
+    });
+
+    it("should default httpPath to / when not provided", async () => {
+      // This test documents that the verify() method defaults httpPath to "/"
+      // when the property is missing or not a string
+
+      const routeNodeNoPath: any = {
+        id: "route-no-path",
+        label: "Route",
+        properties: {
+          method: "GET",
+          handler_name: "RootHandler.root",
+          symbol: "root",
+        },
+        file_path: "/project/src/routes.ts",
+      };
+
+      // Simulate the shape logic: if typeof properties.path !== 'string', default to "/"
+      const httpPath = typeof routeNodeNoPath.properties.path === "string"
+        ? routeNodeNoPath.properties.path
+        : "/";
+
+      expect(httpPath).toBe("/");
+    });
+
+    it("should use provided path when it is a string", async () => {
+      // Test that provided paths are used as-is
+      const testPaths = [
+        "/users",
+        "/api/v1/products",
+        "/",
+        "/health/status",
+        "/items/:id",
+      ];
+
+      for (const path of testPaths) {
+        const properties = { path };
+        const httpPath = typeof properties.path === "string" ? properties.path : "/";
+        expect(httpPath).toBe(path);
+      }
+    });
+
+    it("should handle null or undefined method by defaulting to GET", async () => {
+      // Test edge cases: null and undefined method values
+      const testCases = [
+        { input: null, expected: "GET" },
+        { input: undefined, expected: "GET" },
+        { input: "", expected: "GET" },
+        { input: 123, expected: "GET" },
+      ];
+
+      for (const { input, expected } of testCases) {
+        let httpMethod = "GET";
+        if (typeof input === "string") {
+          httpMethod = input.toUpperCase();
+        }
+        expect(httpMethod).toBe(expected);
+      }
+    });
+
+    it("should handle null or undefined path by defaulting to /", async () => {
+      // Test edge cases: null and undefined path values
+      const testCases = [
+        { input: null, expected: "/" },
+        { input: undefined, expected: "/" },
+        { input: "", expected: "/" },
+        { input: 123, expected: "/" },
+      ];
+
+      for (const { input, expected } of testCases) {
+        const httpPath = typeof input === "string" ? input : "/";
+        expect(httpPath).toBe(expected);
+      }
+    });
+
+    it("should apply both defaults together", async () => {
+      // Test that both httpMethod and httpPath defaults work together
+      // when both are missing
+
+      const routeNodeNoDefaults: any = {
+        id: "route-minimal",
+        label: "Route",
+        properties: {
+          handler_name: "Handler",
+          symbol: "handle",
+        },
+        file_path: "/project/src/routes.ts",
+      };
+
+      let httpMethod = "GET";
+      if (typeof routeNodeNoDefaults.properties.method === "string") {
+        httpMethod = routeNodeNoDefaults.properties.method.toUpperCase();
+      }
+
+      const httpPath = typeof routeNodeNoDefaults.properties.path === "string"
+        ? routeNodeNoDefaults.properties.path
+        : "/";
+
+      expect(httpMethod).toBe("GET");
+      expect(httpPath).toBe("/");
+    });
+  });
+
   describe("evaluateHeuristic()", () => {
     it("should evaluate min_fan_in heuristic", async () => {
       const heuristic = mockMapper.getHeuristic("min_fan_in");

@@ -225,6 +225,100 @@ describe("analyzer commands", () => {
     });
   });
 
+  describe("query subcommand", () => {
+    it("should error when project not indexed", async () => {
+      // Initialize project but don't index
+      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+      await runDr(["analyzer", "discover", "--json"], {
+        cwd: tempDir.path,
+        env: { CI: "true" }
+      });
+
+      // Try to execute a query without indexing
+      const result = await runDr(
+        ["analyzer", "query", "MATCH (n) RETURN n LIMIT 10", "--name", "cbm"],
+        { cwd: tempDir.path }
+      );
+
+      expect(result.exitCode).toBeGreaterThan(0);
+      const output = result.stderr + result.stdout;
+      expect(output).toMatch(/not indexed/i);
+    });
+
+    it("should error when no analyzer selected and not specified", async () => {
+      // Don't select an analyzer, try to run query
+      const result = await runDr(
+        ["analyzer", "query", "MATCH (n) RETURN n LIMIT 10"],
+        { cwd: tempDir.path }
+      );
+
+      expect(result.exitCode).toBeGreaterThan(0);
+      const output = result.stderr + result.stdout;
+      expect(output).toMatch(/No analyzer selected|analyzer/i);
+    });
+
+    it("should error with helpful message for nonexistent analyzer", async () => {
+      const result = await runDr(
+        ["analyzer", "query", "MATCH (n) RETURN n LIMIT 10", "--name", "nonexistent"],
+        { cwd: tempDir.path }
+      );
+
+      expect(result.exitCode).toBeGreaterThan(0);
+      const output = result.stderr + result.stdout;
+      expect(output).toMatch(/not found|Analyzer/);
+    });
+
+    it("should accept --json flag for consistency", async () => {
+      // Initialize project
+      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+      await runDr(["analyzer", "discover", "--json"], {
+        cwd: tempDir.path,
+        env: { CI: "true" }
+      });
+
+      // Try query with --json flag (will fail if not indexed, but validates flag parsing)
+      const result = await runDr(
+        ["analyzer", "query", "MATCH (n) RETURN n LIMIT 10", "--name", "cbm", "--json"],
+        { cwd: tempDir.path }
+      );
+
+      // Should get an error about not indexed, not about flag parsing
+      if (result.exitCode !== 0) {
+        const output = result.stderr + result.stdout;
+        expect(output).not.toMatch(/unknown option|flag/i);
+      }
+    });
+
+    it("should pass cypher query as positional argument", async () => {
+      // Initialize project
+      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+      await runDr(["analyzer", "discover", "--json"], {
+        cwd: tempDir.path,
+        env: { CI: "true" }
+      });
+
+      // Try query with different cypher expressions
+      const testCyphers = [
+        "MATCH (n) RETURN n",
+        "MATCH (n:Service) RETURN n.name",
+        "MATCH (n) RETURN n LIMIT 5",
+      ];
+
+      for (const cypher of testCyphers) {
+        const result = await runDr(
+          ["analyzer", "query", cypher, "--name", "cbm"],
+          { cwd: tempDir.path }
+        );
+
+        // All should fail at the "not indexed" check, not at query parsing
+        if (result.exitCode !== 0) {
+          const output = result.stderr + result.stdout;
+          expect(output).not.toMatch(/invalid|syntax/i);
+        }
+      }
+    });
+  });
+
   describe("analyzer not found error", () => {
     it("should error with helpful message for nonexistent analyzer", async () => {
       const result = await runDr(
