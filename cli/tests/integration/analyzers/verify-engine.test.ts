@@ -73,7 +73,8 @@ ignore:
     reason: "Admin routes ignored"
     match: "graph_only"
   - patterns:
-      - element_ids: ["api.operation.get-status"]
+      - handler: "*StatusHandler*"
+    element_ids: ["api.operation.get-status"]
     reason: "Status endpoint ignored"
     match: "model_only"`;
 
@@ -83,7 +84,7 @@ ignore:
       expect(rules.length).toBe(3);
       expect(rules[0].patterns[0].handler).toBe("*HealthHandler*");
       expect(rules[1].patterns[0].path).toBe("/admin");
-      expect(rules[2].patterns[0].element_ids).toContain("api.operation.get-status");
+      expect(rules[2].element_ids).toContain("api.operation.get-status");
     });
 
     it("should return empty rules when file doesn't exist", async () => {
@@ -162,13 +163,10 @@ ignore:
     it("should match element_ids with exact matching", () => {
       const rules = [
         {
-          patterns: [
-            {
-              element_ids: [
-                "api.operation.get-health",
-                "api.operation.get-status",
-              ],
-            },
+          patterns: [{ handler: "*Handler*" }],
+          element_ids: [
+            "api.operation.get-health",
+            "api.operation.get-status",
           ],
           reason: "Monitoring endpoints ignored",
           match: "model_only",
@@ -613,7 +611,8 @@ spec_version: "0.8.3"`
         `version: 1
 ignore:
   - patterns:
-      - element_ids: ["223e4567-e89b-12d3-a456-426614174001"]
+      - handler: "*Handler*"
+    element_ids: ["223e4567-e89b-12d3-a456-426614174001"]
     reason: "Monitoring endpoint ignored"
     match: "model_only"`
       );

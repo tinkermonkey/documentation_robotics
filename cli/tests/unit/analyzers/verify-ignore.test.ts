@@ -48,7 +48,8 @@ ignore:
     reason: "Admin routes ignored"
     match: "graph_only"
   - patterns:
-      - element_ids: ["api.operation.get-status"]
+      - handler: "*StatusHandler*"
+    element_ids: ["api.operation.get-status"]
     reason: "Status endpoint ignored"
     match: "model_only"`;
 
@@ -62,7 +63,7 @@ ignore:
       expect(rules[1].patterns[0].path).toBe("/admin");
       expect(rules[1].reason).toBe("Admin routes ignored");
       expect(rules[1].match).toBe("graph_only");
-      expect(rules[2].patterns[0].element_ids).toContain("api.operation.get-status");
+      expect(rules[2].element_ids).toContain("api.operation.get-status");
       expect(rules[2].reason).toBe("Status endpoint ignored");
       expect(rules[2].match).toBe("model_only");
     });
@@ -141,7 +142,8 @@ ignore:
     reason: "Admin path"
     match: "graph_only"
   - patterns:
-      - element_ids: ["api.operation.get-status", "api.operation.post-config"]
+      - handler: "*StatusHandler*"
+    element_ids: ["api.operation.get-status", "api.operation.post-config"]
     reason: "Multiple element IDs"
     match: "model_only"
   - patterns:
@@ -154,7 +156,7 @@ ignore:
 
       const rules = await IgnoreFileLoader.load(ignoreFile);
       expect(rules.length).toBe(4);
-      expect(rules[2].patterns[0].element_ids?.length).toBe(2);
+      expect(rules[2].element_ids?.length).toBe(2);
       expect(rules[3].patterns[0].handler).toBe("*Mock*");
       expect(rules[3].patterns[1].path).toBe("/test");
     });
@@ -232,13 +234,10 @@ ignore:
     it("should match element_ids", () => {
       const rules: IgnoreRule[] = [
         {
-          patterns: [
-            {
-              element_ids: [
-                "api.operation.get-status",
-                "api.operation.post-config",
-              ],
-            },
+          patterns: [{ handler: "*Handler*" }],
+          element_ids: [
+            "api.operation.get-status",
+            "api.operation.post-config",
           ],
           reason: "Ignored elements",
           match: "model_only",
@@ -256,7 +255,8 @@ ignore:
     it("should not match element_ids when not in list", () => {
       const rules: IgnoreRule[] = [
         {
-          patterns: [{ element_ids: ["api.operation.get-status"] }],
+          patterns: [{ handler: "*Handler*" }],
+          element_ids: ["api.operation.get-status"],
           reason: "Ignored elements",
           match: "model_only",
         },
@@ -507,6 +507,28 @@ ignore:
         expect.unreachable();
       } catch (error) {
         expect((error as Error).message).toContain("unknown");
+        expect((error as Error).message).toContain("unknown_field");
+      }
+    });
+
+    it("should throw error for element_ids in pattern instead of rule level", async () => {
+      const ignoreFile = join(testDir, ".dr-verify-ignore.yaml");
+      const content = `version: 1
+ignore:
+  - patterns:
+      - handler: "*Health*"
+        element_ids: ["api.operation.get-status"]
+    reason: "Invalid structure"
+    match: "graph_only"`;
+
+      await writeFile(ignoreFile, content);
+
+      try {
+        await IgnoreFileLoader.load(ignoreFile);
+        expect.unreachable();
+      } catch (error) {
+        expect((error as Error).message).toContain("unknown");
+        expect((error as Error).message).toContain("element_ids");
       }
     });
 
@@ -515,7 +537,8 @@ ignore:
       const content = `version: 1
 ignore:
   - patterns:
-      - element_ids: ["api.operation.get-status", 123]
+      - handler: "*Handler*"
+    element_ids: ["api.operation.get-status", 123]
     reason: "Invalid element_ids"
     match: "model_only"`;
 

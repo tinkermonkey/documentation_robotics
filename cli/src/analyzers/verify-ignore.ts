@@ -17,7 +17,6 @@ import { minimatch } from "minimatch";
 export interface IgnorePattern {
   handler?: string;
   path?: string;
-  element_ids?: string[];
 }
 
 /**
@@ -25,11 +24,13 @@ export interface IgnorePattern {
  *
  * Rules must specify:
  * - patterns: list of matching criteria (OR semantics - any match applies the rule)
+ * - element_ids: list of element IDs to ignore (top-level field)
  * - reason: explanation for why the rule exists
  * - match: scope of the rule (graph_only for routes, model_only for elements)
  */
 export interface IgnoreRule {
   patterns: IgnorePattern[];
+  element_ids?: string[];
   reason: string;
   match: "graph_only" | "model_only";
 }
@@ -53,7 +54,8 @@ export interface IgnoreRule {
  *     reason: "Health check endpoints"
  *     match: "graph_only"
  *   - patterns:
- *       - element_ids: ["api.operation.get-status"]
+ *       - handler: "*StatusHandler*"
+ *     element_ids: ["api.operation.get-status"]
  *     reason: "Status endpoint ignored"
  *     match: "model_only"
  * ```
@@ -69,9 +71,10 @@ export class IgnoreFileLoader {
    * - version != 1
    * - ignore is not an array
    * - Rule missing required fields (patterns, reason, match)
-   * - Rule has unknown fields
-   * - Pattern objects with unsupported fields
+   * - Rule has unknown fields (only patterns, reason, match, element_ids allowed)
+   * - Pattern objects with unsupported fields (only handler, path allowed)
    * - Invalid match values
+   * - element_ids not an array of strings
    *
    * @param filePath Path to the .dr-verify-ignore.yaml file
    * @returns Array of validated ignore rules
@@ -119,6 +122,7 @@ export class IgnoreFileLoader {
         const reason = rule.reason as string | undefined;
         const match = rule.match as string | undefined;
         const patterns = rule.patterns as unknown[] | undefined;
+        const elementIds = rule.element_ids as unknown[] | undefined;
 
         // Validate required fields
         if (!reason || typeof reason !== "string") {
@@ -151,12 +155,28 @@ export class IgnoreFileLoader {
           );
         }
 
+        // Validate element_ids if present
+        let normalizedElementIds: string[] | undefined;
+        if (elementIds !== undefined) {
+          if (!Array.isArray(elementIds)) {
+            throw new Error(
+              `Rule at index ${i}: 'element_ids' must be an array`
+            );
+          }
+          if (!elementIds.every((id: unknown) => typeof id === "string")) {
+            throw new Error(
+              `Rule at index ${i}: 'element_ids' must contain only strings`
+            );
+          }
+          normalizedElementIds = elementIds;
+        }
+
         // Check for unknown fields at rule level
-        const validRuleFields = new Set(["patterns", "reason", "match"]);
+        const validRuleFields = new Set(["patterns", "reason", "match", "element_ids"]);
         for (const field of Object.keys(rule)) {
           if (!validRuleFields.has(field)) {
             throw new Error(
-              `Rule at index ${i}: unknown field '${field}' (valid fields: patterns, reason, match)`
+              `Rule at index ${i}: unknown field '${field}' (valid fields: patterns, reason, match, element_ids)`
             );
           }
         }
@@ -195,27 +215,12 @@ export class IgnoreFileLoader {
             normalizedPattern.path = pattern.path;
           }
 
-          // Extract element_ids if present
-          if ("element_ids" in pattern) {
-            if (!Array.isArray(pattern.element_ids)) {
-              throw new Error(
-                `Rule at index ${i}, pattern at index ${j}: 'element_ids' must be an array`
-              );
-            }
-            if (!pattern.element_ids.every((id: unknown) => typeof id === "string")) {
-              throw new Error(
-                `Rule at index ${i}, pattern at index ${j}: 'element_ids' must contain only strings`
-              );
-            }
-            normalizedPattern.element_ids = pattern.element_ids;
-          }
-
-          // Check for unknown fields
-          const validFields = new Set(["handler", "path", "element_ids"]);
+          // Check for unknown fields (element_ids should not be in patterns)
+          const validFields = new Set(["handler", "path"]);
           for (const field of Object.keys(pattern)) {
             if (!validFields.has(field)) {
               throw new Error(
-                `Rule at index ${i}, pattern at index ${j}: unknown field '${field}' (valid fields: handler, path, element_ids)`
+                `Rule at index ${i}, pattern at index ${j}: unknown field '${field}' (valid fields: handler, path)`
               );
             }
           }
@@ -223,18 +228,24 @@ export class IgnoreFileLoader {
           // At least one matching criterion must be present
           if (Object.keys(normalizedPattern).length === 0) {
             throw new Error(
-              `Rule at index ${i}, pattern at index ${j} has no matching criteria (must have at least one of: handler, path, element_ids)`
+              `Rule at index ${i}, pattern at index ${j} has no matching criteria (must have at least one of: handler, path)`
             );
           }
 
           normalizedPatterns.push(normalizedPattern);
         }
 
-        rules.push({
+        const ignoreRule: IgnoreRule = {
           patterns: normalizedPatterns,
           reason,
           match,
-        });
+        };
+
+        if (normalizedElementIds !== undefined) {
+          ignoreRule.element_ids = normalizedElementIds;
+        }
+
+        rules.push(ignoreRule);
       }
 
       return rules;
@@ -257,7 +268,8 @@ export class IgnoreFileLoader {
    * - "route" entries: only rules with match: "graph_only"
    * - "element" entries: only rules with match: "model_only"
    *
-   * A rule matches if ANY of its patterns match (OR semantics within patterns).
+   * A rule matches if ANY of its patterns match (OR semantics within patterns),
+   * or if the entry's element_id matches the rule's element_ids list.
    *
    * @param entry Object with optional handler, path, and element_id properties
    * @param type Type of entry ("route" for graph entries, "element" for model entries)
@@ -278,6 +290,13 @@ export class IgnoreFileLoader {
         continue;
       }
 
+      // Check rule-level element_ids (exact match)
+      if (rule.element_ids && entry.element_id) {
+        if (rule.element_ids.includes(entry.element_id)) {
+          return rule.reason;
+        }
+      }
+
       // Check if any pattern in this rule matches (OR semantics)
       for (const pattern of rule.patterns) {
         // Check handler glob pattern
@@ -290,13 +309,6 @@ export class IgnoreFileLoader {
         // Check path exact match
         if (pattern.path && entry.path) {
           if (entry.path === pattern.path) {
-            return rule.reason;
-          }
-        }
-
-        // Check element_ids exact match
-        if (pattern.element_ids && entry.element_id) {
-          if (pattern.element_ids.includes(entry.element_id)) {
             return rule.reason;
           }
         }

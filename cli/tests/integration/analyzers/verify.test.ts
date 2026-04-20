@@ -505,14 +505,15 @@ spec_version: "0.8.3"`
       await writeFile(join(handlersDir, "api.ts"), "export class ApiHandler {}");
 
       // Create ignore file with element_ids rule
-      // Note: element_ids use the UUID from the YAML, not the path field
+      // Note: element_ids is now a top-level rule field (not nested in patterns)
       const ignoreFile = join(testProjectRoot, ".dr-verify-ignore.yaml");
       await writeFile(
         ignoreFile,
         `version: 1
 ignore:
   - patterns:
-      - element_ids: ["123e4567-e89b-12d3-a456-426614174001"]
+      - handler: "*Handler*"
+    element_ids: ["123e4567-e89b-12d3-a456-426614174001"]
     reason: "Status endpoint ignored"
     match: "model_only"`
       );
