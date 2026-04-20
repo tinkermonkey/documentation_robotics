@@ -406,7 +406,7 @@ export class VerifyEngine {
       analyzer: analyzerName,
       analyzer_indexed_at: analyzerIndexedAt,
       changeset_context,
-      layers_verified: (options.layers?.filter(l => l === "api") ?? ["api"]),
+      layers_verified: ["api"],
       buckets,
       summary,
     };
