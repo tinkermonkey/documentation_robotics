@@ -1810,6 +1810,50 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
+   * Shape a single CBM graph node into a route object with defaults applied
+   *
+   * This is extracted to be testable - applies the defaulting logic used in verify()
+   * to ensure empty/missing properties are handled consistently.
+   *
+   * @param node Raw node from CBM graph search
+   * @returns Shaped route object with defaults applied
+   * @internal
+   */
+  shapeRoute(node: CbmGraphNode): {
+    id: string;
+    http_method: string;
+    http_path: string;
+    handler: string;
+    source_file: string;
+    source_symbol: string;
+  } {
+    const properties = node.properties ?? {};
+
+    // Extract required fields with defaults
+    let httpMethod = "GET";
+    if (typeof properties.method === "string") {
+      httpMethod = properties.method.toUpperCase();
+    }
+
+    const httpPath = typeof properties.path === "string" ? properties.path : "/";
+    const handler = String(properties.handler_name ?? "");
+    const sourceFile = node.file_path ?? "";
+    const sourceSymbol = String(properties.symbol ?? "");
+
+    // Construct route ID (use file:symbol as primary key for matching)
+    const routeId = sourceFile && sourceSymbol ? `${sourceFile}:${sourceSymbol}` : node.id;
+
+    return {
+      id: routeId,
+      http_method: httpMethod,
+      http_path: httpPath,
+      handler,
+      source_file: sourceFile,
+      source_symbol: sourceSymbol,
+    };
+  }
+
+  /**
    * Verify that graph-discovered routes align with model endpoints
    *
    * Queries the CBM graph for Route nodes, shapes them via the Route mapping,
@@ -1877,33 +1921,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const nodes = this.validateSearchResponse(searchResponse);
 
       // Shape routes via mapping
-      const routes = [];
-      for (const node of nodes) {
-        const properties = node.properties ?? {};
-
-        // Extract required fields
-        let httpMethod = "GET";
-        if (typeof properties.method === "string") {
-          httpMethod = properties.method.toUpperCase();
-        }
-
-        const httpPath = typeof properties.path === "string" ? properties.path : "/";
-        const handler = String(properties.handler_name ?? "");
-        const sourceFile = node.file_path ?? "";
-        const sourceSymbol = String(properties.symbol ?? "");
-
-        // Construct route ID (use file:symbol as primary key for matching)
-        const routeId = sourceFile && sourceSymbol ? `${sourceFile}:${sourceSymbol}` : node.id;
-
-        routes.push({
-          id: routeId,
-          http_method: httpMethod,
-          http_path: httpPath,
-          handler,
-          source_file: sourceFile,
-          source_symbol: sourceSymbol,
-        });
-      }
+      const routes = nodes.map((node) => this.shapeRoute(node));
 
       // Delegate to VerifyEngine
       const engine = new VerifyEngine();

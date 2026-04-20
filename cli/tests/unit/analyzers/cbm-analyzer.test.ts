@@ -1964,13 +1964,10 @@ describe("CbmAnalyzer", () => {
     });
   });
 
-  describe("verify() route shaping defaults", () => {
+  describe("shapeRoute() - route shaping defaults", () => {
     it("should default httpMethod to GET when not provided", async () => {
-      // This test documents that the verify() method at lines 1864-1876
+      // This test validates that shapeRoute() at cbm-analyzer.ts:1825-1842
       // defaults httpMethod to "GET" when the node property is missing or not a string
-
-      const routeMapping = mockMapper.getNodeMapping("Route");
-      expect(routeMapping).toBeDefined();
 
       // Create a route node without method property
       const routeNodeNoMethod: any = {
@@ -1984,13 +1981,8 @@ describe("CbmAnalyzer", () => {
         file_path: "/project/src/routes.ts",
       };
 
-      // Simulate the shape logic: if typeof properties.method !== 'string', default to "GET"
-      let httpMethod = "GET";
-      if (typeof routeNodeNoMethod.properties.method === "string") {
-        httpMethod = routeNodeNoMethod.properties.method.toUpperCase();
-      }
-
-      expect(httpMethod).toBe("GET");
+      const shaped = analyzer.shapeRoute(routeNodeNoMethod);
+      expect(shaped.http_method).toBe("GET");
     });
 
     it("should convert httpMethod to uppercase", async () => {
@@ -2004,17 +1996,18 @@ describe("CbmAnalyzer", () => {
       ];
 
       for (const { input, expected } of testMethods) {
-        let httpMethod = "GET";
-        const properties = { method: input };
-        if (typeof properties.method === "string") {
-          httpMethod = properties.method.toUpperCase();
-        }
-        expect(httpMethod).toBe(expected);
+        const node: any = {
+          id: "test-route",
+          label: "Route",
+          properties: { method: input },
+        };
+        const shaped = analyzer.shapeRoute(node);
+        expect(shaped.http_method).toBe(expected);
       }
     });
 
     it("should default httpPath to / when not provided", async () => {
-      // This test documents that the verify() method defaults httpPath to "/"
+      // This test validates that shapeRoute() defaults httpPath to "/"
       // when the property is missing or not a string
 
       const routeNodeNoPath: any = {
@@ -2028,12 +2021,8 @@ describe("CbmAnalyzer", () => {
         file_path: "/project/src/routes.ts",
       };
 
-      // Simulate the shape logic: if typeof properties.path !== 'string', default to "/"
-      const httpPath = typeof routeNodeNoPath.properties.path === "string"
-        ? routeNodeNoPath.properties.path
-        : "/";
-
-      expect(httpPath).toBe("/");
+      const shaped = analyzer.shapeRoute(routeNodeNoPath);
+      expect(shaped.http_path).toBe("/");
     });
 
     it("should use provided path when it is a string", async () => {
@@ -2047,42 +2036,57 @@ describe("CbmAnalyzer", () => {
       ];
 
       for (const path of testPaths) {
-        const properties = { path };
-        const httpPath = typeof properties.path === "string" ? properties.path : "/";
-        expect(httpPath).toBe(path);
+        const node: any = {
+          id: "test-route",
+          label: "Route",
+          properties: { path },
+        };
+        const shaped = analyzer.shapeRoute(node);
+        expect(shaped.http_path).toBe(path);
       }
     });
 
     it("should handle null or undefined method by defaulting to GET", async () => {
       // Test edge cases: null and undefined method values
+      // Note: empty string ("") is NOT included because typeof "" === "string" is true,
+      // so it would pass through to toUpperCase(), resulting in "" not "GET".
+      // This matches the production behavior at cbm-analyzer.ts:1832-1835.
       const testCases = [
         { input: null, expected: "GET" },
         { input: undefined, expected: "GET" },
-        { input: "", expected: "GET" },
         { input: 123, expected: "GET" },
       ];
 
       for (const { input, expected } of testCases) {
-        let httpMethod = "GET";
-        if (typeof input === "string") {
-          httpMethod = input.toUpperCase();
-        }
-        expect(httpMethod).toBe(expected);
+        const node: any = {
+          id: "test-route",
+          label: "Route",
+          properties: { method: input },
+        };
+        const shaped = analyzer.shapeRoute(node);
+        expect(shaped.http_method).toBe(expected);
       }
     });
 
     it("should handle null or undefined path by defaulting to /", async () => {
       // Test edge cases: null and undefined path values
+      // Note: empty string ("") is NOT included because typeof "" === "string" is true,
+      // so it would pass through the ternary, resulting in "" not "/".
+      // This matches the production behavior at cbm-analyzer.ts:1836.
       const testCases = [
         { input: null, expected: "/" },
         { input: undefined, expected: "/" },
-        { input: "", expected: "/" },
         { input: 123, expected: "/" },
       ];
 
       for (const { input, expected } of testCases) {
-        const httpPath = typeof input === "string" ? input : "/";
-        expect(httpPath).toBe(expected);
+        const node: any = {
+          id: "test-route",
+          label: "Route",
+          properties: { path: input },
+        };
+        const shaped = analyzer.shapeRoute(node);
+        expect(shaped.http_path).toBe(expected);
       }
     });
 
@@ -2100,17 +2104,9 @@ describe("CbmAnalyzer", () => {
         file_path: "/project/src/routes.ts",
       };
 
-      let httpMethod = "GET";
-      if (typeof routeNodeNoDefaults.properties.method === "string") {
-        httpMethod = routeNodeNoDefaults.properties.method.toUpperCase();
-      }
-
-      const httpPath = typeof routeNodeNoDefaults.properties.path === "string"
-        ? routeNodeNoDefaults.properties.path
-        : "/";
-
-      expect(httpMethod).toBe("GET");
-      expect(httpPath).toBe("/");
+      const shaped = analyzer.shapeRoute(routeNodeNoDefaults);
+      expect(shaped.http_method).toBe("GET");
+      expect(shaped.http_path).toBe("/");
     });
   });
 

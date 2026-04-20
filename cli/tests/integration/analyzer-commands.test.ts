@@ -283,10 +283,9 @@ describe("analyzer commands", () => {
       );
 
       // Should get an error about not indexed, not about flag parsing
-      if (result.exitCode !== 0) {
-        const output = result.stderr + result.stdout;
-        expect(output).not.toMatch(/unknown option|flag/i);
-      }
+      expect(result.exitCode).not.toBe(0);
+      const output = result.stderr + result.stdout;
+      expect(output).not.toMatch(/unknown option|flag/i);
     });
 
     it("should pass cypher query as positional argument", async () => {
@@ -311,10 +310,9 @@ describe("analyzer commands", () => {
         );
 
         // All should fail at the "not indexed" check, not at query parsing
-        if (result.exitCode !== 0) {
-          const output = result.stderr + result.stdout;
-          expect(output).not.toMatch(/invalid|syntax/i);
-        }
+        expect(result.exitCode).not.toBe(0);
+        const output = result.stderr + result.stdout;
+        expect(output).not.toMatch(/invalid|syntax/i);
       }
     });
   });
