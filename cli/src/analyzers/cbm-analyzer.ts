@@ -1155,9 +1155,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
     if (!shouldKeep) {
       // Return a minimal candidate with empty qualifying_heuristics
       // The services() method will filter this out based on qualifying_heuristics.length > 0 check
+      const elementType: "applicationservice" | "applicationcomponent" =
+        mapping.dr_element_type_promoted === "applicationcomponent"
+          ? "applicationcomponent"
+          : "applicationservice";
       return {
         suggested_layer: "application",
-        suggested_element_type: mapping.dr_element_type_promoted || "applicationservice",
+        suggested_element_type: elementType,
         suggested_id_fragment: suggestedIdFragment,
         suggested_name: suggestedName,
         source_file: sourceFile,
@@ -1175,9 +1179,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
       mapping.confidence as "high" | "medium" | "low"
     );
 
+    // Ensure element type is one of the valid values
+    const elementType: "applicationservice" | "applicationcomponent" =
+      mapping.dr_element_type_promoted === "applicationcomponent"
+        ? "applicationcomponent"
+        : "applicationservice";
+
     return {
       suggested_layer: "application",
-      suggested_element_type: mapping.dr_element_type_promoted || "applicationservice",
+      suggested_element_type: elementType,
       suggested_id_fragment: suggestedIdFragment,
       suggested_name: suggestedName,
       source_file: sourceFile,

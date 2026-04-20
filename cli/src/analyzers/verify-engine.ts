@@ -18,6 +18,7 @@ import type {
   VerifyBuckets,
   VerifySummary,
   IndexMeta,
+  VerifyChangesetContext,
 } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 
@@ -363,15 +364,23 @@ export class VerifyEngine {
     // Use analyzer index timestamp if provided, otherwise fall back to model manifest modified time
     const analyzerIndexedAt = indexMeta?.timestamp || model.manifest.modified;
 
+    // Construct changeset context as discriminated union
+    const changeset_context: VerifyChangesetContext = hasActiveChangeset
+      ? {
+          active_changeset: activeChangesetId,
+          verified_against: "changeset_view",
+        }
+      : {
+          active_changeset: null,
+          verified_against: "base_model",
+        };
+
     return {
       generated_at: new Date().toISOString(),
       project_root: projectRoot,
       analyzer: analyzerName,
       analyzer_indexed_at: analyzerIndexedAt,
-      changeset_context: {
-        active_changeset: hasActiveChangeset ? activeChangesetId : null,
-        verified_against: hasActiveChangeset ? "changeset_view" : "base_model",
-      },
+      changeset_context,
       layers_verified: ["api"],
       buckets,
       summary,

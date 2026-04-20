@@ -303,7 +303,7 @@ export interface ServiceCandidate {
   /** Suggested DR layer for this service (always "application") */
   suggested_layer: "application";
   /** Suggested element type for this service */
-  suggested_element_type: string;
+  suggested_element_type: "applicationservice" | "applicationcomponent";
   /** Suggested kebab-case ID fragment for constructing element ID */
   suggested_id_fragment: string;
   /** Suggested name for the service */
@@ -425,8 +425,8 @@ export interface ModelOnlyEntry {
 export interface IgnoredEntry {
   /** Identifier for the ignored entry */
   id: string;
-  /** Type of the entry (graph, model, etc.) */
-  entry_type: string;
+  /** Type of the entry (route or element) */
+  entry_type: "route" | "element";
   /** Reason for ignoring */
   reason: string;
 }
@@ -451,13 +451,21 @@ export interface VerifySummary {
 
 /**
  * Changeset context information in verify report
+ * Discriminated union to prevent impossible states like active_changeset: "cs-1" with verified_against: "base_model"
  */
-export interface VerifyChangesetContext {
-  /** ID of the active changeset, or null if none */
-  active_changeset: string | null;
-  /** Whether report was verified against base model or changeset view */
-  verified_against: "base_model" | "changeset_view";
-}
+export type VerifyChangesetContext =
+  | {
+      /** ID of the active changeset */
+      active_changeset: string;
+      /** Report was verified against changeset view */
+      verified_against: "changeset_view";
+    }
+  | {
+      /** No active changeset */
+      active_changeset: null;
+      /** Report was verified against base model */
+      verified_against: "base_model";
+    };
 
 /**
  * Buckets of categorized entries from verify operation
