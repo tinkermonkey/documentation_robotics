@@ -55,6 +55,7 @@ Omit `--source-symbol` only for inferred elements (business capabilities, goals,
 - **`--source-provenance "inferred"`** — Element reasoned from patterns, naming, or multiple sources; no single definitive location
 
 Inferred examples:
+
 - Business service inferred from a group of API endpoints
 - Goal inferred from business capability names and design patterns
 - Process inferred from transaction flow through multiple components
@@ -177,6 +178,7 @@ The pre-brief consists of three JSON files (or inline references) describing can
 **Confidence**: **MEDIUM to LOW** — Service candidates are inferred from class definitions and naming patterns, not always called by endpoints. Some may be utilities or domain models, not application services.
 
 **How to use**: This is a **checklist only**, not a ground truth. For each service:
+
 1. Inspect the source file
 2. Determine if it's a true application service (has business methods, is called by API endpoints, manages a domain concern)
 3. If yes, create a `dr add application service` entry with `--source-provenance "extracted"`
@@ -202,6 +204,7 @@ The pre-brief consists of three JSON files (or inline references) describing can
 **Confidence**: **LOW** — Datastore candidates come from heuristics (table references in ORM, migration file patterns, etc.) and may be incomplete or over-inclusive.
 
 **How to use**: **Always confirm via code inspection** before creating model entries. For each candidate:
+
 1. Navigate to the source file and symbol
 2. Verify it's an actual table/collection definition (not a test fixture, example, or intermediate structure)
 3. Inspect the schema (columns, types, constraints)
@@ -209,11 +212,11 @@ The pre-brief consists of three JSON files (or inline references) describing can
 
 ### Confidence Interpretation Summary
 
-| Candidate Type | Confidence | Meaning | Action |
-|---|---|---|---|
-| **Endpoints** | **HIGH** | Syntactic ground truth from route definitions | Use directly — create `dr add api operation` for each |
-| **Services** | **MEDIUM/LOW** | Inferred from class/naming patterns | Checklist — inspect each, decide per-service |
-| **Datastores** | **LOW** | Heuristic-based candidates | Always confirm — verify in source before adding |
+| Candidate Type | Confidence     | Meaning                                       | Action                                                |
+| -------------- | -------------- | --------------------------------------------- | ----------------------------------------------------- |
+| **Endpoints**  | **HIGH**       | Syntactic ground truth from route definitions | Use directly — create `dr add api operation` for each |
+| **Services**   | **MEDIUM/LOW** | Inferred from class/naming patterns           | Checklist — inspect each, decide per-service          |
+| **Datastores** | **LOW**        | Heuristic-based candidates                    | Always confirm — verify in source before adding       |
 
 ### Non-Optional: Source Field Preservation
 
