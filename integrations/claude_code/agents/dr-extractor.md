@@ -61,9 +61,9 @@ Inferred examples:
 
 ### Rule 4: Preserve Source Provenance Exactly from Pre-Brief
 
-If you are given an **Analyzer Pre-Brief** (see section below), any element that appears in the pre-brief must have its `source_file`, `source_symbol`, and `source_start_line` preserved **exactly as they appear in the pre-brief**. Do not second-guess or re-locate these fields based on code inspection — use them as-is to maintain consistency with the analyzer's ground truth.
+If you are given an **Analyzer Pre-Brief** (see section below), any element that appears in the pre-brief must have its `source_file` and `source_symbol` preserved **exactly as they appear in the pre-brief**. Use `source_start_line` to navigate to the correct location in the file but do not attempt to pass it as a CLI flag (no `--source-start-line` parameter exists). Do not second-guess or re-locate these fields based on code inspection — use them as-is to maintain consistency with the analyzer's ground truth.
 
-**Why**: The pre-brief represents ground truth from a code graph analyzer. Changing these fields creates divergence and breaks drift detection.
+**Why**: The pre-brief represents ground truth from a code graph analyzer. Changing source location fields creates divergence and breaks drift detection. The `source_start_line` is navigational context for your agent to locate the right part of the file, not a parameter for the CLI.
 
 ### Why Provenance is Non-Optional
 
@@ -217,7 +217,7 @@ The pre-brief consists of three JSON files (or inline references) describing can
 
 ### Non-Optional: Source Field Preservation
 
-If the pre-brief provides `source_file`, `source_symbol`, and `source_start_line` for any element, you **must** preserve these values exactly when creating the `dr add` command. Do not re-locate or re-inspect these fields — they represent the analyzer's ground truth.
+If the pre-brief provides `source_file` and `source_symbol` for any element, you **must** preserve these values exactly when creating the `dr add` command. Do not re-locate or re-inspect these fields — they represent the analyzer's ground truth. The pre-brief may also include `source_start_line` as navigational context to help you locate the correct part of the file, but this field is not passed to the `dr add` CLI command.
 
 ```bash
 # If pre-brief says source_file="src/api/orders.ts", source_symbol="createOrder", use exactly that:
@@ -227,7 +227,7 @@ dr add api operation "Create Order" \
   --source-provenance "extracted"
 ```
 
-This is not optional. Changing these fields breaks consistency with the pre-brief and future drift detection.
+This is not optional. Changing `source_file` and `source_symbol` breaks consistency with the pre-brief and future drift detection.
 
 ## Output Format
 
