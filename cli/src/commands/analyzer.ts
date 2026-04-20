@@ -1148,19 +1148,18 @@ Examples:
         }
 
         // Validate layers - only api is supported in v1
-        const layers = options.layer || ["api"];
-        for (const layer of layers) {
-          if (layer !== "api") {
-            // For non-api layers, exit cleanly with informational message per spec (FR-7.6)
-            const message = `verify only supports the 'api' layer. Layer '${layer}' verification is not available in this version.`;
-            if (options.output) {
-              await fs.writeFile(path.resolve(options.output), message, "utf-8");
-              console.log(ansis.dim(`No verification available for layer '${layer}'. Message saved to ${path.resolve(options.output)}`));
-            } else {
-              console.log(ansis.dim(`No verification available for layer '${layer}'.`));
-            }
-            return;
-          }
+        const requestedLayers = options.layer || ["api"];
+        const apiLayers = requestedLayers.filter((layer: string) => layer === "api");
+        const nonApiLayers = requestedLayers.filter((layer: string) => layer !== "api");
+
+        // Report non-api layers cleanly per spec (FR-7.6)
+        for (const layer of nonApiLayers) {
+          console.log(ansis.dim(`No verification available for layer '${layer}'.`));
+        }
+
+        // If no api layers to verify, exit cleanly
+        if (apiLayers.length === 0) {
+          return;
         }
 
         // Resolve analyzer name
@@ -1200,7 +1199,7 @@ Examples:
 
         // Execute verification with changeset awareness enabled by default
         const report = await backend.verify(projectRoot, {
-          layers,
+          layers: apiLayers,
           changesetAware: true,
         });
 

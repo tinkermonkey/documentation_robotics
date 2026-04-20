@@ -206,9 +206,9 @@ describe("Analyzer Subcommands Integration", () => {
       expect(result.exitCode).not.toBe(0);
     });
 
-    it("should work with --format json flag", async () => {
-      const result = await runDr(["analyzer", "verify", "--format", "json"]);
-      // May fail if not indexed, but should handle --format json flag
+    it("should work with --json flag", async () => {
+      const result = await runDr(["analyzer", "verify", "--json"]);
+      // May fail if not indexed, but should handle --json flag
       if (result.exitCode === 0) {
         expect(() => JSON.parse(result.stdout)).not.toThrow();
       } else {
@@ -232,11 +232,11 @@ describe("Analyzer Subcommands Integration", () => {
       const result = await runDr(["analyzer", "verify", "--layer", "application"], {
         cwd: workdir.path,
       });
-      // Should error with non-zero exit code when non-api layer is specified
-      expect(result.exitCode).not.toBe(0);
-      // Should output message about v1 scope (in either stdout or stderr)
+      // Should exit cleanly (exit 0) when non-api layer is specified per spec (FR-7.6)
+      expect(result.exitCode).toBe(0);
+      // Should output message about non-api layer not being available
       const output = result.stdout + result.stderr;
-      expect(output).toContain("verify scope v1");
+      expect(output).toContain("No verification available for layer 'application'");
     });
 
     it("should support multiple --layer options", async () => {
@@ -249,22 +249,20 @@ describe("Analyzer Subcommands Integration", () => {
         "application",
       ]);
       // Should accept multiple --layer options
-      // The second one (application) should cause clean exit with appropriate message
+      // Non-api layers should be reported, but api layers should still be verified
       const output = result.stdout + result.stderr;
       expect([0, 1, 2]).toContain(result.exitCode);
-      // When non-api layer is specified, should mention verify scope
-      if (result.exitCode === 0) {
-        expect(output).toContain("verify scope");
-      }
+      // When non-api layer is specified, should report that it's not available
+      expect(output).toContain("No verification available for layer 'application'");
     });
 
     it("should reject invalid format values", async () => {
       const result = await runDr(["analyzer", "verify", "--format", "xml"]);
-      // Should error when invalid format is specified (or when project not indexed)
+      // Should error when unrecognized option is specified (Commander rejects --format)
       expect(result.exitCode).not.toBe(0);
       const output = result.stdout + result.stderr;
-      // Should either complain about format or that project is not indexed
-      expect(output).toMatch(/invalid format|valid formats|not indexed/i);
+      // Should complain about unrecognized option or invalid format
+      expect(output).toMatch(/unknown option|not recognized|invalid/i);
     });
 
     it("should infer JSON format from .json file extension", async () => {
@@ -328,7 +326,7 @@ describe("Analyzer Subcommands Integration", () => {
     });
 
     it("should preserve reason field on ignored entries", async () => {
-      const result = await runDr(["analyzer", "verify", "--format", "json"]);
+      const result = await runDr(["analyzer", "verify", "--json"]);
       // When verify runs (regardless of success), ignore reasons should be preserved
       try {
         if (result.exitCode === 0) {
