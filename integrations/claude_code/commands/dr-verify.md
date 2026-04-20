@@ -12,9 +12,11 @@ Cross-reference the Documentation Robotics model against an external code analyz
 1. Checks for an active code analyzer and confirms it is indexed
 2. Runs verification against the model (base model or active changeset if present)
 3. Reports results in three buckets:
+
    - **Matched**: Routes discovered in the code that exist in the model ✓
    - **Graph-only**: Routes discovered in the code but missing from the model (suspected gaps) ⚠
    - **Model-only**: Operations in the model but not discovered in the code (possible drift) ✗
+
 4. Offers actionable next steps: add missing routes, remove orphaned operations, or ignore entries
 
 ## Usage
@@ -120,6 +122,7 @@ dr analyzer verify --layer api --format json
 ```
 
 **Parse JSON output** — it contains the `VerifyReport` structure:
+
 - `summary`: matched_count, gap_count, drift_count, ignored_count, total_graph_entries, total_model_entries
 - `buckets.matched`: array of matched entries
 - `buckets.in_graph_only`: array of routes found in code but not in model
@@ -136,6 +139,7 @@ X matched, Y graph-only (suspected gaps), Z model-only (possible drift).
 ```
 
 **Where:**
+
 - N = `summary.total_graph_entries`
 - M = `summary.total_model_entries`
 - X = `summary.matched_count`
@@ -160,6 +164,7 @@ Verifying against base model (no active changeset)
 **Surface top entries from each bucket:**
 
 For each bucket (matched, in_graph_only, in_model_only):
+
 - Show first 5 entries with full details
 - If more exist, show count: `` ... and N more — see full report with `dr analyzer verify --output verify.json` ``
 
@@ -357,7 +362,7 @@ User: /dr-verify --output verify.json
 
 You: Generating verification report...
 
-     dr analyzer verify --layer api --json --output verify.json
+     dr analyzer verify --layer api --format json --output verify.json
 
      ✓ Report written to: verify.json
 
@@ -380,7 +385,7 @@ You: Generating verification report...
 **User can specify analyzer by name:**
 
 ```bash
-dr analyzer verify --name cbm --layer api --json
+dr analyzer verify --name cbm --layer api --format json
 ```
 
 If the analyzer is not installed, the command fails cleanly:
