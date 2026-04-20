@@ -2,9 +2,8 @@
 # Format: source_id -> predicate -> target_id
 # Last updated: 2026-04-12T20:48:24.639Z
 
-- source: api.operation.list-products
-  target: application.service.product-service
-  predicate: exposes
+- source: api.operation.list-todos
+  target: api.operation.create-todo
+  predicate: references
   layer: api
-  targetLayer: application
   category: structural
