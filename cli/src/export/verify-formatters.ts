@@ -18,8 +18,8 @@ export interface VerifyFormatterOptions {
  * Format verify report for output
  */
 export function formatVerifyReport(report: VerifyReport, options: VerifyFormatterOptions): string {
-  const _format: VerifyReportFormat = options.format;
-  switch (_format) {
+  const format: VerifyReportFormat = options.format;
+  switch (format) {
     case "json":
       return formatVerifyJSON(report);
     case "markdown":
@@ -28,7 +28,7 @@ export function formatVerifyReport(report: VerifyReport, options: VerifyFormatte
       return formatVerifyText(report);
     default:
       // Exhaustive check: if this line is reached, options.format is not a valid VerifyReportFormat
-      const _exhaustive: never = _format;
+      const _exhaustive: never = format;
       return _exhaustive;
   }
 }
