@@ -161,7 +161,7 @@ Verifying against base model (no active changeset)
 
 For each bucket (matched, in_graph_only, in_model_only):
 - Show first 5 entries with full details
-- If more exist, show count: `... and N more — see full report with `dr analyzer verify --output verify.json``
+- If more exist, show count: `` ... and N more — see full report with `dr analyzer verify --output verify.json` ``
 
 ### Step 5: Handle Graph-Only Entries (Suspected Gaps)
 
@@ -309,7 +309,8 @@ Ask for reason and append to `.dr-verify-ignore.yaml`:
 version: 1
 ignore:
   - patterns:
-      - element_id: "api.operation.old-endpoint"
+      - handler: "*"
+    element_ids: ["api.operation.old-endpoint"]
     reason: "<user-provided reason>"
     match: "model_only"
 ```
