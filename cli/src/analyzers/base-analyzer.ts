@@ -15,6 +15,11 @@ import type {
   DetectionResult,
   EndpointCandidate,
   IndexResult,
+  ServiceCandidate,
+  DatastoreCandidate,
+  CallGraphNode,
+  VerifyOptions,
+  VerifyReport,
 } from "./types.js";
 
 export interface AnalyzerBackend {
@@ -75,4 +80,60 @@ export interface AnalyzerBackend {
    * @returns Query results (structure depends on analyzer)
    */
   query(projectRoot: string, rawQuery: string): Promise<unknown>;
+
+  /**
+   * Query for services/components in the indexed project
+   *
+   * @param projectRoot Absolute path to the project root
+   * @returns Array of service candidates with confidence and heuristic evidence
+   */
+  services(projectRoot: string): Promise<ServiceCandidate[]>;
+
+  /**
+   * Query for datastores/databases inferred from code analysis
+   *
+   * @param projectRoot Absolute path to the project root
+   * @returns Array of datastore candidates with inference evidence
+   */
+  datastores(projectRoot: string): Promise<DatastoreCandidate[]>;
+
+  /**
+   * Query for callers of a specific function or symbol
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param symbol Fully qualified symbol name to find callers of
+   * @param depth Maximum depth for call graph traversal (default: 3, max: 10)
+   * @returns Array of call graph nodes representing callers
+   */
+  callers(
+    projectRoot: string,
+    symbol: string,
+    depth?: number
+  ): Promise<CallGraphNode[]>;
+
+  /**
+   * Query for callees of a specific function or symbol
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param symbol Fully qualified symbol name to find callees of
+   * @param depth Maximum depth for call graph traversal (default: 3, max: 10)
+   * @returns Array of call graph nodes representing callees
+   */
+  callees(
+    projectRoot: string,
+    symbol: string,
+    depth?: number
+  ): Promise<CallGraphNode[]>;
+
+  /**
+   * Verify that graph-discovered routes align with model endpoints
+   *
+   * Compares routes found by analyzer with API operations defined in the model,
+   * producing buckets of matched, in_graph_only, in_model_only, and ignored entries.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param options Verification options (layer filtering, changeset awareness, ignore file)
+   * @returns Detailed verification report with buckets and summary statistics
+   */
+  verify(projectRoot: string, options: VerifyOptions): Promise<VerifyReport>;
 }

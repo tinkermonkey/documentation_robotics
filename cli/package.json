@@ -24,8 +24,8 @@
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
     "type-check": "tsc --noEmit",
-    "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/audit/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
-    "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/scripts/ ./tests/unit/audit/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
+    "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/audit/ ./tests/unit/analyzers/ ./tests/unit/export/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
+    "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/scripts/ ./tests/unit/audit/ ./tests/unit/export/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test ./tests/unit/analyzers/ ; bun test tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
     "test:generated": "bun test tests/unit/generators/*.test.ts",
     "test:integration": "[ -f dist/cli.js ] || npm run build && bun test tests/integration/*.test.ts",
     "test:validators": "bun test --concurrent ./tests/unit/validators/",
@@ -68,6 +68,7 @@
     "graphology-traversal": "^0.3.1",
     "graphology-types": "^0.24.8",
     "hono": "^4.11.1",
+    "minimatch": "^10.0.0",
     "yaml": "^2.8.2",
     "zod": "^4.3.6"
   },

@@ -23,7 +23,13 @@ import type {
   IndexResult,
   IndexMeta,
   AnalyzerNodeMapping,
+  AnalyzerHeuristic,
   HttpMethod,
+  ServiceCandidate,
+  DatastoreCandidate,
+  CallGraphNode,
+  VerifyOptions,
+  VerifyReport,
 } from "./types.js";
 import { VALID_HTTP_METHODS } from "./types.js";
 import { StdioClient } from "./stdio-client.js";
@@ -31,6 +37,9 @@ import { readIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { getCliVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { VerifyEngine } from "./verify-engine.js";
+import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
+import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
 
 /**
  * Graph node from CBM search results
@@ -49,6 +58,7 @@ interface CbmGraphNode {
 export class CbmAnalyzer implements AnalyzerBackend {
   private mapper: MappingLoader;
   private testCodePatternWarned = false;
+  private warnedHeuristics = new Set<string>();
 
   /**
    * Default regex patterns for test code detection
@@ -247,8 +257,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Always close the client to prevent orphan processes
         try {
           client.close();
-        } catch {
-          // Ignore errors during cleanup
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          handleWarning(
+            `Failed to close MCP client for ${binaryName}: ${errorMessage}`,
+            [
+              "The MCP server process may still be running",
+              "Try restarting your terminal or manually killing the process",
+            ]
+          );
         }
       }
     }
@@ -351,9 +369,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       ]);
 
       // Return the existing metadata
-      const meta = status.index_meta!;
+      const meta = status.index_meta;
       return {
-        success: true,
         node_count: meta.node_count,
         edge_count: meta.edge_count,
         git_head: meta.git_head,
@@ -363,7 +380,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
@@ -435,7 +452,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         const meta = status.index_meta;
         return {
-          success: true,
           node_count: meta.node_count,
           edge_count: meta.edge_count,
           git_head: meta.git_head,
@@ -546,7 +562,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
       await writeIndexMeta(meta, projectRoot, analyzerName);
 
       return {
-        success: true,
         node_count: nodeCount,
         edge_count: edgeCount,
         git_head: gitHead,
@@ -555,6 +570,45 @@ export class CbmAnalyzer implements AnalyzerBackend {
     } finally {
       client.close();
     }
+  }
+
+  /**
+   * Validate search_graph response structure
+   *
+   * Ensures response is an object and nodes is an array.
+   * Throws CLIError if validation fails.
+   *
+   * @private
+   * @param response Raw response from search_graph MCP tool
+   * @returns Typed nodes array (may be empty if no results found)
+   * @throws CLIError if response structure is invalid
+   */
+  private validateSearchResponse(
+    response: unknown
+  ): CbmGraphNode[] {
+    // Validate response structure
+    if (!response || typeof response !== "object") {
+      throw new CLIError(
+        "Invalid response from search_graph",
+        ErrorCategory.SYSTEM,
+        ["Ensure codebase-memory-mcp is properly installed and functional"]
+      );
+    }
+
+    // Validate that nodes is actually an array
+    const responseObj = response as { nodes?: unknown; [key: string]: unknown };
+    if (!Array.isArray(responseObj.nodes)) {
+      throw new CLIError(
+        "Invalid response from search_graph: nodes must be an array",
+        ErrorCategory.SYSTEM,
+        [
+          `Expected array, got ${typeof responseObj.nodes}`,
+          "Ensure codebase-memory-mcp is properly installed and returning valid results"
+        ]
+      );
+    }
+
+    return responseObj.nodes as CbmGraphNode[];
   }
 
   /**
@@ -583,11 +637,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Use detection result from status() instead of re-detecting
     const detection = status.detected;
-    if (!detection.installed || !detection.binary_path) {
+    if (!detection.installed) {
       throw new CLIError(
         "CBM analyzer not installed",
         ErrorCategory.NOT_FOUND,
         ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    // Get the Route mapping BEFORE initializing client to validate it exists
+    const routeMapping = this.mapper.getNodeMapping("Route");
+    if (!routeMapping) {
+      throw new CLIError(
+        "Route mapping not found in analyzer",
+        ErrorCategory.VALIDATION,
+        ["Run `npm run build:spec` to recompile the analyzer artifacts"]
       );
     }
 
@@ -602,37 +666,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      // Search for Route nodes
-      const searchResponse = (await client.callTool("search_graph", {
-        label: "Route",
+      // Search for Route nodes using the CBM label from the mapping
+      const searchResponse = await client.callTool("search_graph", {
+        label: routeMapping.cbm_label,
         project: projectRoot,
-      })) as {
-        nodes?: CbmGraphNode[];
-        [key: string]: unknown;
-      };
+      });
 
-      // Validate response structure
-      if (!searchResponse || typeof searchResponse !== "object") {
-        throw new CLIError(
-          "Invalid response from search_graph",
-          ErrorCategory.SYSTEM,
-          ["Ensure codebase-memory-mcp is properly installed and functional"]
-        );
-      }
-
-      const nodes = Array.isArray(searchResponse.nodes)
-        ? (searchResponse.nodes as CbmGraphNode[])
-        : [];
-
-      // Get the Route mapping
-      const routeMapping = this.mapper.getNodeMapping("Route");
-      if (!routeMapping) {
-        throw new CLIError(
-          "Route mapping not found in analyzer",
-          ErrorCategory.VALIDATION,
-          ["Run `npm run build:spec` to recompile the analyzer artifacts"]
-        );
-      }
+      const nodes = this.validateSearchResponse(searchResponse);
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -657,21 +697,82 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Execute a raw query against the analyzer's graph (stub - not yet implemented)
+   * Execute a raw Cypher query against the analyzer's graph
    *
-   * Returns a defined placeholder stub response per FR-5.2. The feature is planned for
-   * a future release and currently returns empty results rather than throwing an exception.
+   * Passes the raw Cypher string directly to the query_graph MCP tool.
+   * The query_graph tool is optional (not in required_tools contract).
+   * If the tool call fails, surfaces a clear error message.
    *
-   * @param _projectRoot Absolute path to the project root (not yet used)
-   * @param _rawQuery Query string in the analyzer's native language (not yet used)
-   * @returns Placeholder stub response with empty results
+   * @param projectRoot Absolute path to the project root
+   * @param rawQuery Raw Cypher query string
+   * @returns Raw result from query_graph tool
+   * @throws CLIError if project not indexed or query_graph tool unavailable
    */
-  async query(_projectRoot: string, _rawQuery: string): Promise<unknown> {
-    return {
-      results: [],
-      message: "Raw graph queries are not yet implemented",
-      suggestion: "Use endpoints(), index(), or detect() for analysis",
-    };
+  async query(projectRoot: string, rawQuery: string): Promise<unknown> {
+    // Check that the project is indexed (same pre-flight checks as endpoints)
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Call query_graph tool
+      try {
+        const queryResponse = await client.callTool("query_graph", {
+          query: rawQuery,
+          project: projectRoot,
+        });
+
+        return queryResponse;
+      } catch (error) {
+        // Check if the error is due to the tool not being available
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        if (errorMessage.includes("query_graph") || errorMessage.includes("Unknown method")) {
+          throw new CLIError(
+            "query_graph not supported by this analyzer",
+            ErrorCategory.USER,
+            [
+              "The query_graph tool is optional in the CBM analyzer contract",
+              "Ensure your codebase-memory-mcp version supports raw graph queries",
+              "Contact the analyzer maintainers if you need this feature",
+            ]
+          );
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
+    } finally {
+      client.close();
+    }
   }
 
   /**
@@ -766,7 +867,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Downgrade confidence if handler information is missing
     if (!handlerQualifiedName || !sourceSymbol) {
-      confidence = confidence === "high" ? "medium" : confidence;
+      confidence = capConfidence(confidence);
     }
 
     // Extract source file (relative to project root)
@@ -775,7 +876,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       try {
         sourceFile = path.relative(projectRoot, sourceFile);
       } catch (error) {
-        // If relative path fails, keep absolute
+        // Log warning if relative path fails but continue with absolute path
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          `Failed to compute relative path for ${node.id}`,
+          [
+            `Error: ${errorMsg}`,
+            "Using absolute file path instead of relative",
+          ]
+        );
+        // sourceFile keeps its original absolute value
       }
     }
 
@@ -808,15 +918,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
 
   /**
-   * Check if an endpoint candidate is in test code
+   * Check if a candidate (endpoint, service, or datastore) is in test code
    *
    * Applies the test_code_exclusion filtering rule from the analyzer mapping.
    * If the configured regex pattern is invalid, warns the user once and falls back to defaults.
    * Uses a one-shot flag to ensure the warning is only emitted once even if called in a loop.
    *
+   * Accepts any object with a source_file property (structural typing), allowing it to work
+   * with EndpointCandidate, ServiceCandidate, DatastoreCandidate, and temporary objects.
+   *
    * @private
    */
-  private isTestCode(candidate: EndpointCandidate): boolean {
+  private isTestCode(candidate: { source_file: string }): boolean {
     // Get filtering rules from the analyzer mapping
     const filteringRules = this.mapper.getFilteringRules();
 
@@ -854,6 +967,971 @@ export class CbmAnalyzer implements AnalyzerBackend {
       return CbmAnalyzer.DEFAULT_TEST_PATTERNS.some((pattern) =>
         pattern.test(candidate.source_file)
       );
+    }
+  }
+
+  /**
+   * Query for services/components in the indexed project
+   *
+   * Searches for application-layer nodes using the mapping-loader-driven pattern.
+   * For each node, evaluates all promotion_heuristics and records which fire in
+   * qualifying_heuristics. Drops candidates with zero qualifying heuristics (unless
+   * is_entry_point heuristic fires, adding it to qualifying_heuristics). Caps confidence
+   * at "medium" and excludes test files.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @returns Array of service candidates with qualifying heuristics populated
+   * @throws CLIError if the project is not indexed
+   */
+  async services(projectRoot: string): Promise<ServiceCandidate[]> {
+    // Check that the project is indexed
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Get application-layer node labels from the mapping (pattern from endpoints())
+      const nodeLabels = this.mapper.getNodeLabels();
+      const applicationLabels: string[] = [];
+
+      // Filter to only application-layer labels by checking their mapping
+      for (const label of nodeLabels) {
+        const mapping = this.mapper.getNodeMapping(label);
+        if (mapping && mapping.dr_layer === "application") {
+          applicationLabels.push(label);
+        }
+      }
+
+      // If no application-layer labels found, warn and return empty list
+      if (applicationLabels.length === 0) {
+        handleWarning(
+          "No application-layer labels found in analyzer mapping",
+          [
+            "Check that the analyzer is properly configured with application-layer node mappings",
+            "Services detection requires at least one mapped application-layer node type",
+            "Returning empty services list"
+          ]
+        );
+        return [];
+      }
+
+      const candidates: ServiceCandidate[] = [];
+
+      // Search for each application-layer label
+      for (const label of applicationLabels) {
+        const searchResponse = await client.callTool("search_graph", {
+          label,
+          project: projectRoot,
+        });
+
+        const nodes = this.validateSearchResponse(searchResponse);
+
+        // Get the node mapping for this label
+        const nodeMapping = this.mapper.getNodeMapping(label);
+        if (!nodeMapping) {
+          continue;
+        }
+
+        // Get promotion heuristics from the mapping
+        const promotionHeuristicNames = nodeMapping.promotion_heuristics || [];
+
+        // Transform nodes to service candidates
+        for (const node of nodes) {
+          const candidate = await this.transformNodeToService(
+            node,
+            nodeMapping,
+            projectRoot,
+            promotionHeuristicNames
+          );
+
+          // Filter out candidates with zero qualifying heuristics (unless is_entry_point is true)
+          // and apply test code exclusion filter
+          if (candidate.qualifying_heuristics.length > 0 && !this.isTestCode(candidate)) {
+            candidates.push(candidate);
+          }
+        }
+      }
+
+      return candidates;
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Transform a CBM graph node to a service candidate
+   *
+   * Evaluates all promotion heuristics against the node's properties and records
+   * which heuristics fire. Drops candidates where no heuristics fire (unless the
+   * is_entry_point heuristic fires, which adds it to qualifying_heuristics).
+   * Caps confidence at "medium".
+   *
+   * @private
+   */
+  private async transformNodeToService(
+    node: CbmGraphNode,
+    mapping: AnalyzerNodeMapping,
+    projectRoot: string,
+    promotionHeuristicNames: string[]
+  ): Promise<ServiceCandidate> {
+    const properties = node.properties ?? {};
+
+    // Suggested name in kebab-case (from node name or id)
+    let suggestedName = String(properties.name ?? node.id).toLowerCase();
+    suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
+
+    // Suggested ID fragment (same as name for services)
+    const suggestedIdFragment = suggestedName;
+
+    // Extract source file (relative to project root)
+    let sourceFile = node.file_path ?? "";
+    if (sourceFile && projectRoot) {
+      try {
+        sourceFile = path.relative(projectRoot, sourceFile);
+      } catch (error) {
+        // Log warning if relative path fails but continue with absolute path
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          `Failed to compute relative path for ${node.id}`,
+          [
+            `Error: ${errorMsg}`,
+            "Using absolute file path instead of relative",
+          ]
+        );
+        // sourceFile keeps its original absolute value
+      }
+    }
+
+    // Extract qualified name
+    const qualifiedName = String(properties.qualified_name ?? node.id);
+
+    // Extract fan-in and fan-out metrics
+    const fanIn = typeof properties.fan_in === "number" ? properties.fan_in : 0;
+    const fanOut = typeof properties.fan_out === "number" ? properties.fan_out : 0;
+
+    // Evaluate all promotion heuristics and collect which ones fire
+    const qualifyingHeuristics: string[] = [];
+    let isEntryPoint = false;
+
+    for (const heuristicName of promotionHeuristicNames) {
+      const heuristic = this.mapper.getHeuristic(heuristicName);
+      if (!heuristic) {
+        // Warn about missing heuristic only once per heuristic name
+        if (!this.warnedHeuristics.has(heuristicName)) {
+          this.warnedHeuristics.add(heuristicName);
+          handleWarning(
+            `Promotion heuristic "${heuristicName}" not found in analyzer mapping`,
+            [
+              "Check the mapping configuration for typos",
+              `Available heuristics: ${getKnownHeuristicNames().join(", ")}`,
+              "This heuristic will be skipped for service promotion",
+            ]
+          );
+        }
+        continue;
+      }
+
+      // Evaluate the heuristic against the node
+      const fires = this.evaluateHeuristic(heuristic, node, sourceFile);
+      if (fires) {
+        qualifyingHeuristics.push(heuristicName);
+        // Track if is_entry_point heuristic fired
+        if (heuristicName === "is_entry_point") {
+          isEntryPoint = true;
+        }
+      }
+    }
+
+    // Drop candidates where zero heuristics fire AND is_entry_point is not true
+    const shouldKeep = qualifyingHeuristics.length > 0 || isEntryPoint;
+    if (!shouldKeep) {
+      // Return a minimal candidate with empty qualifying_heuristics
+      // The services() method will filter this out based on qualifying_heuristics.length > 0 check
+      const elementType: "applicationservice" | "applicationcomponent" =
+        mapping.dr_element_type_promoted === "applicationcomponent"
+          ? "applicationcomponent"
+          : "applicationservice";
+      return {
+        suggested_layer: "application",
+        suggested_element_type: elementType,
+        suggested_id_fragment: suggestedIdFragment,
+        suggested_name: suggestedName,
+        source_file: sourceFile,
+        source_symbol: String(properties.name ?? node.id),
+        qualified_name: qualifiedName,
+        qualifying_heuristics: [],
+        confidence: "low",
+        fan_in: fanIn,
+        fan_out: fanOut,
+      };
+    }
+
+    // Cap confidence at "medium" (from mapping or default to medium)
+    const confidence = capConfidence(
+      mapping.confidence as "high" | "medium" | "low"
+    );
+
+    // Ensure element type is one of the valid values
+    const elementType: "applicationservice" | "applicationcomponent" =
+      mapping.dr_element_type_promoted === "applicationcomponent"
+        ? "applicationcomponent"
+        : "applicationservice";
+
+    return {
+      suggested_layer: "application",
+      suggested_element_type: elementType,
+      suggested_id_fragment: suggestedIdFragment,
+      suggested_name: suggestedName,
+      source_file: sourceFile,
+      source_symbol: String(properties.name ?? node.id),
+      qualified_name: qualifiedName,
+      qualifying_heuristics: qualifyingHeuristics,
+      confidence,
+      fan_in: fanIn,
+      fan_out: fanOut,
+    };
+  }
+
+  /**
+   * Evaluate a single heuristic against a node
+   *
+   * Checks if the heuristic's conditions are met based on the node's properties
+   * and file path. Unknown heuristics are logged with a warning rather than
+   * silently ignored, to support dynamic heuristics from cbm.json.
+   *
+   * Warnings for unknown heuristics are deduplicated - each heuristic name is warned
+   * about only once, even if evaluated against many nodes.
+   *
+   * @private
+   */
+  private evaluateHeuristic(
+    heuristic: AnalyzerHeuristic,
+    node: CbmGraphNode,
+    sourceFile: string
+  ): boolean {
+    const properties = node.properties ?? {};
+
+    // Use the heuristic utility function
+    const result = evaluateHeuristic(heuristic, properties, sourceFile);
+
+    // For unknown heuristics, log a warning (deduplicated by heuristic name)
+    if (heuristic.name && !getKnownHeuristicNames().includes(heuristic.name)) {
+      // Only warn once per heuristic name
+      if (!this.warnedHeuristics.has(heuristic.name)) {
+        handleWarning(
+          `Unknown heuristic type: ${heuristic.name}`,
+          [
+            "The heuristic is defined in cbm.json but not implemented in heuristic-utils.ts",
+            "This heuristic will be treated as not met (returning false)",
+            "Add support for this heuristic to evaluateHeuristic() if it should fire",
+          ]
+        );
+        this.warnedHeuristics.add(heuristic.name);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Match a file path against a glob-like pattern
+   *
+   * @param filePath The file path to match
+   * @param pattern The glob pattern
+   * @returns True if the pattern matches, false otherwise
+   * @private
+   */
+  private matchPattern(filePath: string, pattern: string): boolean {
+    return matchPattern(filePath, pattern);
+  }
+
+  /**
+   * Query for datastores/databases inferred from code analysis
+   *
+   * Applies datastore_detection heuristic rules to aggregate signals by file/module.
+   * Matches import target names against import_patterns and function/symbol names against
+   * naming_indicators from the heuristic parameters. All candidates have confidence "low".
+   *
+   * @param projectRoot Absolute path to the project root
+   * @returns Array of datastore candidates aggregated by inferred datastore
+   * @throws CLIError if the project is not indexed
+   */
+  async datastores(projectRoot: string): Promise<DatastoreCandidate[]> {
+    // Check that the project is indexed
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Load the datastore_detection heuristic
+      const datastoreHeuristic = this.mapper.getHeuristic("datastore_detection");
+      if (!datastoreHeuristic) {
+        throw new CLIError(
+          "datastore_detection heuristic not found in analyzer",
+          ErrorCategory.VALIDATION,
+          [
+            "The analyzer configuration is missing the datastore_detection heuristic",
+            "Run `npm run build:spec` to recompile the analyzer artifacts"
+          ]
+        );
+      }
+
+      const importPatterns = datastoreHeuristic.parameters?.patterns ?? [];
+      const namingIndicators = datastoreHeuristic.parameters?.naming_indicators ?? [];
+
+      // Map to track signals by datastore name
+      const datastoreSignals = new Map<
+        string,
+        Array<{
+          sourceFile: string;
+          importPattern?: string;
+          functionPatterns: string[];
+        }>
+      >();
+
+      // Try to use query_graph to traverse IMPORTS edges (1 call instead of many)
+      // This implements the spec algorithm requirement for IMPORTS edge traversal
+      let allNodes: CbmGraphNode[] = [];
+      try {
+        // Query for all IMPORTS edges and their connected nodes
+        const importsQuery = `
+          MATCH (n1)-[r:IMPORTS]->(n2)
+          RETURN DISTINCT n1 as node
+          UNION
+          MATCH (n1)-[r:IMPORTS]->(n2)
+          RETURN DISTINCT n2 as node
+        `;
+
+        const queryResponse = await client.callTool("query_graph", {
+          query: importsQuery,
+          project: projectRoot,
+        });
+
+        // Extract nodes from query response
+        if (queryResponse && typeof queryResponse === "object" && Array.isArray((queryResponse as { records?: unknown[] }).records)) {
+          const records = (queryResponse as { records?: Array<{ node?: CbmGraphNode }> }).records || [];
+          allNodes = records
+            .map((r) => r.node)
+            .filter((n) => n && typeof n === "object") as CbmGraphNode[];
+        }
+      } catch (error) {
+        // Fallback to search_graph if query_graph is unavailable
+        // Warn the user that we're using degraded search semantics
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          "query_graph tool failed; falling back to search_graph for datastore detection",
+          [
+            `Error: ${errorMsg}`,
+            "Using search_graph will return ALL nodes instead of only IMPORTS-connected nodes",
+            "Datastore detection results may include false positives or be less accurate",
+            "Ensure query_graph is supported by your analyzer version for best results"
+          ]
+        );
+
+        // This provides backward compatibility while still attempting IMPORTS traversal
+        const nodeLabels = this.mapper.getNodeLabels();
+        for (const label of nodeLabels) {
+          const searchResponse = await client.callTool("search_graph", {
+            label,
+            project: projectRoot,
+          });
+
+          const nodes = this.validateSearchResponse(searchResponse);
+          allNodes.push(...nodes);
+        }
+      }
+
+      // Process all nodes to find datastore signals
+      for (const node of allNodes) {
+        const filePath = node.file_path ?? "";
+
+        // For import target detection, check the node's import target name (from label/properties)
+        // not the file path. IMPORTS edges connect to target nodes like "mongodb", "pg"
+        const importTargetName = String(node.label ?? node.properties?.name ?? node.id ?? "").toLowerCase();
+
+        // Check if import target matches datastore-related patterns
+        let matchedImportPattern: string | undefined;
+        for (const pattern of importPatterns) {
+          if (this.matchPattern(importTargetName, pattern)) {
+            matchedImportPattern = pattern;
+            break;
+          }
+        }
+
+        // Check if node name contains datastore naming indicators
+        const nodeName = String(node.properties?.name ?? "").toLowerCase();
+        const matchedIndicators = namingIndicators.filter((indicator) =>
+          nodeName.includes(indicator.toLowerCase())
+        );
+
+        // Skip if no import pattern matched AND no naming indicators matched
+        if (!matchedImportPattern && matchedIndicators.length === 0) {
+          continue;
+        }
+
+        // Extract datastore name from import target name or node properties
+        let datastoreName = this.inferDatastoreName(
+          filePath,
+          node,
+          matchedImportPattern,
+          importTargetName
+        );
+        if (!datastoreName) {
+          continue;
+        }
+
+        // Normalize to lowercase and replace special chars
+        datastoreName = datastoreName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+        // Get or create entry for this datastore
+        if (!datastoreSignals.has(datastoreName)) {
+          datastoreSignals.set(datastoreName, []);
+        }
+
+        const signals = datastoreSignals.get(datastoreName)!;
+
+        // Convert file path to relative
+        let relativeFile = filePath;
+        if (filePath && projectRoot) {
+          try {
+            relativeFile = path.relative(projectRoot, filePath);
+          } catch (error) {
+            // Log warning if relative path fails but continue with absolute path
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            handleWarning(
+              `Failed to compute relative path in datastore detection`,
+              [
+                `File: ${filePath}`,
+                `Error: ${errorMsg}`,
+                "Using absolute file path instead of relative",
+              ]
+            );
+            // relativeFile keeps its original absolute value
+          }
+        }
+
+        // Add signal for this source file
+        signals.push({
+          sourceFile: relativeFile,
+          importPattern: matchedImportPattern,
+          functionPatterns: matchedIndicators,
+        });
+      }
+
+      // Transform collected signals into DatastoreCandidate objects
+      const candidates: DatastoreCandidate[] = [];
+
+      // Convert entries to array to avoid TypeScript MapIterator issues
+      const entriesArray = Array.from(datastoreSignals.entries());
+      for (const [datastoreName, signals] of entriesArray) {
+        // Group by source file and aggregate evidence
+        const inferredFromMap = new Map<
+          string,
+          {
+            importPatterns: Set<string>;
+            functionPatterns: Set<string>;
+          }
+        >();
+
+        for (const signal of signals) {
+          if (!inferredFromMap.has(signal.sourceFile)) {
+            inferredFromMap.set(signal.sourceFile, {
+              importPatterns: new Set(),
+              functionPatterns: new Set(),
+            });
+          }
+
+          const entry = inferredFromMap.get(signal.sourceFile)!;
+          if (signal.importPattern) {
+            entry.importPatterns.add(signal.importPattern);
+          }
+          signal.functionPatterns.forEach((fp) => entry.functionPatterns.add(fp));
+        }
+
+        // Create candidate with aggregated evidence
+        let inferredFromMapEntries = Array.from(inferredFromMap.entries());
+
+        // Apply test code exclusion filter: remove test files from inferred_from
+        inferredFromMapEntries = inferredFromMapEntries.filter(([sourceFile]) => {
+          // Create a temporary object with source_file to reuse isTestCode()
+          const tempCandidate = {
+            source_file: sourceFile,
+          };
+          return !this.isTestCode(tempCandidate);
+        });
+
+        // Skip candidates where all sources are test code
+        if (inferredFromMapEntries.length === 0) {
+          continue;
+        }
+
+        const inferredFrom = inferredFromMapEntries.map(
+          ([sourceFile, evidence]) => ({
+            source_file: sourceFile,
+            import_pattern: Array.from(evidence.importPatterns).join(", ") || datastoreName,
+            function_patterns: Array.from(evidence.functionPatterns),
+          })
+        );
+
+        candidates.push({
+          suggested_layer: "data-store",
+          suggested_name: datastoreName,
+          inferred_from: inferredFrom,
+          confidence: "low",
+          notes: `Inferred from ${inferredFrom.length} source file(s) based on datastore detection heuristics`,
+        });
+      }
+
+      return candidates;
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Infer a datastore name from import target name, file path, node properties, or import pattern
+   *
+   * @private
+   */
+  private inferDatastoreName(
+    filePath: string,
+    node: CbmGraphNode,
+    matchedPattern?: string,
+    importTargetName?: string
+  ): string | undefined {
+    // Priority 1: Use import target name directly if it matched a pattern
+    // This is the most reliable signal for import-based detection (e.g., "mongodb", "pg")
+    if (importTargetName && matchedPattern) {
+      // If the import target matches the pattern, use it as-is
+      if (this.matchPattern(importTargetName, matchedPattern)) {
+        return importTargetName;
+      }
+    }
+
+    // Priority 2: Try to extract from import pattern (e.g., "mongodb" from pattern)
+    if (matchedPattern) {
+      // Extract database name from pattern like "mongodb", "pg", etc.
+      const match = matchedPattern.match(/[a-z]+/i);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    // Priority 3: Try to extract from file name (e.g., "users.migration.ts" -> "users")
+    const fileName = path.basename(filePath);
+    if (fileName.includes("migration") || fileName.includes("schema")) {
+      const match = fileName.match(/^([a-z0-9_-]+)/i);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    // Priority 4: Try to extract from node name or label
+    const nodeName = String(node.label ?? node.id ?? "");
+
+    // Check if the label is a known datastore-related type by checking mapping
+    // Generic structural labels like Function, Method, Class, Module, Route should be excluded
+    if (nodeName) {
+      const nodeMapping = this.mapper.getNodeMapping(nodeName);
+      // If the label is in the mapping and NOT a generic structural type, use it
+      if (nodeMapping && nodeMapping.dr_layer !== "api" && nodeMapping.dr_layer !== "application") {
+        return nodeName;
+      }
+
+      // Also check if it explicitly looks like a datastore name (e.g., "Database", "Repository")
+      if (nodeName.toLowerCase().includes("database") ||
+          nodeName.toLowerCase().includes("repository") ||
+          nodeName.toLowerCase().includes("datastore")) {
+        return nodeName;
+      }
+    }
+
+    // Fallback: use a generic name based on what was detected
+    return undefined;
+  }
+
+  /**
+   * Query for callers of a specific function or symbol
+   *
+   * Delegates to trace_call_path MCP tool with direction="backward" to find
+   * all functions that call the specified qualified name. Applies depth clamping
+   * (default 3, max 10) and transforms CBM response nodes into CallGraphNode objects
+   * using edge-type mappings from the analyzer.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param qualifiedName Fully qualified symbol name (e.g., "com.example.UserService.getUser")
+   * @param depth Maximum traversal depth (default 3, clamped to max 10)
+   * @returns Array of callers in the call graph
+   * @throws CLIError if project not indexed or analyzer not installed
+   */
+  async callers(
+    projectRoot: string,
+    qualifiedName: string,
+    depth?: number
+  ): Promise<CallGraphNode[]> {
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "backward");
+  }
+
+  /**
+   * Query for callees of a specific function or symbol
+   *
+   * Delegates to trace_call_path MCP tool with direction="forward" to find
+   * all functions called by the specified qualified name. Applies depth clamping
+   * (default 3, max 10) and transforms CBM response nodes into CallGraphNode objects
+   * using edge-type mappings from the analyzer.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param qualifiedName Fully qualified symbol name (e.g., "com.example.UserService.getUser")
+   * @param depth Maximum traversal depth (default 3, clamped to max 10)
+   * @returns Array of callees in the call graph
+   * @throws CLIError if project not indexed or analyzer not installed
+   */
+  async callees(
+    projectRoot: string,
+    qualifiedName: string,
+    depth?: number
+  ): Promise<CallGraphNode[]> {
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "forward");
+  }
+
+  /**
+   * Internal helper to trace call paths in either direction
+   *
+   * Handles common logic for callers() and callees(): pre-flight checks,
+   * depth clamping, tool invocation, and response transformation.
+   *
+   * @private
+   */
+  private async traceCallPath(
+    projectRoot: string,
+    qualifiedName: string,
+    depth: number | undefined,
+    direction: "forward" | "backward"
+  ): Promise<CallGraphNode[]> {
+    // Check that the project is indexed (same pre-flight checks as endpoints)
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    // Clamp depth: default 3, max 10
+    const clampedDepth = clampDepth(depth);
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Call trace_call_path with the clamped depth
+      const traceResponse = (await client.callTool("trace_call_path", {
+        qualified_name: qualifiedName,
+        direction,
+        depth: clampedDepth,
+        project: projectRoot,
+      })) as {
+        nodes?: Array<{
+          id: string;
+          qualified_name?: string;
+          source_file?: string;
+          source_symbol?: string;
+          file_path?: string;
+          depth?: number;
+          [key: string]: unknown;
+        }>;
+        edges?: Array<{
+          from_node: string;
+          to_node: string;
+          type?: string;
+          [key: string]: unknown;
+        }>;
+        [key: string]: unknown;
+      };
+
+      // Validate response structure
+      if (!traceResponse || typeof traceResponse !== "object") {
+        throw new CLIError(
+          "Invalid response from trace_call_path",
+          ErrorCategory.SYSTEM,
+          ["Ensure codebase-memory-mcp is properly installed and functional"]
+        );
+      }
+
+      // Validate that nodes is an array
+      if (!Array.isArray(traceResponse.nodes)) {
+        throw new CLIError(
+          "Invalid response from trace_call_path: nodes must be an array",
+          ErrorCategory.SYSTEM,
+          [
+            `Expected array, got ${typeof traceResponse.nodes}`,
+            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+          ]
+        );
+      }
+
+      // Validate that edges is an array
+      if (!Array.isArray(traceResponse.edges)) {
+        throw new CLIError(
+          "Invalid response from trace_call_path: edges must be an array",
+          ErrorCategory.SYSTEM,
+          [
+            `Expected array, got ${typeof traceResponse.edges}`,
+            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+          ]
+        );
+      }
+
+      const nodes = traceResponse.nodes as Array<{
+        id: string;
+        qualified_name?: string;
+        source_file?: string;
+        source_symbol?: string;
+        file_path?: string;
+        depth?: number;
+        [key: string]: unknown;
+      }>;
+
+      const edges = traceResponse.edges as Array<{
+        from_node: string;
+        to_node: string;
+        type?: string;
+        [key: string]: unknown;
+      }>;
+
+      // Get valid edge types from the mapping loader (don't hardcode)
+      const validEdgeTypes = this.mapper.getEdgeTypes();
+
+      // Transform nodes to CallGraphNode objects
+      const callGraphNodes: CallGraphNode[] = [];
+
+      for (const node of nodes) {
+        const nodeQualifiedName = node.qualified_name || node.id;
+
+        // Shape the node using utility function
+        let callGraphNode = shapeCallGraphNode(node, projectRoot);
+
+        // Determine edge type using utility function
+        const nodeDepth = typeof node.depth === "number" ? node.depth : 0;
+        const edgeType = determineEdgeType(
+          nodeDepth,
+          edges,
+          nodeQualifiedName,
+          validEdgeTypes
+        );
+
+        // Apply edge type to the shaped node
+        callGraphNode.edge_type = edgeType;
+
+        callGraphNodes.push(callGraphNode);
+      }
+
+      return callGraphNodes;
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
+   * Shape a single CBM graph node into a route object with defaults applied
+   *
+   * This is extracted to be testable - applies the defaulting logic used in verify()
+   * to ensure empty/missing properties are handled consistently.
+   *
+   * @param node Raw node from CBM graph search
+   * @returns Shaped route object with defaults applied
+   * @internal
+   */
+  shapeRoute(node: CbmGraphNode): {
+    id: string;
+    http_method: string;
+    http_path: string;
+    handler: string;
+    source_file: string;
+    source_symbol: string;
+  } {
+    const properties = node.properties ?? {};
+
+    // Extract required fields with defaults
+    let httpMethod = "GET";
+    if (typeof properties.method === "string") {
+      httpMethod = properties.method.toUpperCase();
+    }
+
+    const httpPath = typeof properties.path === "string" ? properties.path : "/";
+    const handler = String(properties.handler_name ?? "");
+    const sourceFile = node.file_path ?? "";
+    const sourceSymbol = String(properties.symbol ?? "");
+
+    // Construct route ID (use file:symbol as primary key for matching)
+    const routeId = sourceFile && sourceSymbol ? `${sourceFile}:${sourceSymbol}` : node.id;
+
+    return {
+      id: routeId,
+      http_method: httpMethod,
+      http_path: httpPath,
+      handler,
+      source_file: sourceFile,
+      source_symbol: sourceSymbol,
+    };
+  }
+
+  /**
+   * Verify that graph-discovered routes align with model endpoints
+   *
+   * Queries the CBM graph for Route nodes, shapes them via the Route mapping,
+   * and delegates comparison to VerifyEngine. Entirely read-only.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param options Verification options
+   * @returns Comprehensive verification report
+   * @throws CLIError if project not indexed or analyzer not installed
+   */
+  async verify(
+    projectRoot: string,
+    options: VerifyOptions
+  ): Promise<VerifyReport> {
+    // Check that the project is indexed
+    const status = await this.status(projectRoot);
+    if (!status.indexed) {
+      throw new CLIError(
+        `Project not indexed: ${projectRoot}`,
+        ErrorCategory.NOT_FOUND,
+        [
+          "Run `dr analyzer index` to index the project",
+          "Ensure codebase-memory-mcp is installed and working",
+        ]
+      );
+    }
+
+    // Use detection result from status() instead of re-detecting
+    const detection = status.detected;
+    if (!detection.installed) {
+      throw new CLIError(
+        "CBM analyzer not installed",
+        ErrorCategory.NOT_FOUND,
+        ["Install codebase-memory-mcp: npm install -g codebase-memory-mcp"]
+      );
+    }
+
+    // Get the Route mapping BEFORE initializing client to validate it exists
+    const routeMapping = this.mapper.getNodeMapping("Route");
+    if (!routeMapping) {
+      throw new CLIError(
+        "Route mapping not found in analyzer",
+        ErrorCategory.VALIDATION,
+        ["Run `npm run build:spec` to recompile the analyzer artifacts"]
+      );
+    }
+
+    const client = new StdioClient();
+
+    try {
+      client.spawn(detection.binary_path);
+
+      const version = await getCliVersion();
+      await client.initialize({
+        name: "dr-cli",
+        version,
+      });
+
+      // Search for Route nodes using the CBM label from the mapping
+      const searchResponse = await client.callTool("search_graph", {
+        label: routeMapping.cbm_label,
+        project: projectRoot,
+      });
+
+      const nodes = this.validateSearchResponse(searchResponse);
+
+      // Shape routes via mapping
+      const routes = nodes.map((node) => this.shapeRoute(node));
+
+      // Delegate to VerifyEngine
+      const engine = new VerifyEngine();
+      const indexMeta = status.index_meta;
+      const analyzerName = this.name;
+      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta);
+
+      return report;
+    } finally {
+      client.close();
     }
   }
 }

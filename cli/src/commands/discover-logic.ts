@@ -90,29 +90,23 @@ export async function performDiscover(
 
   // Determine session and selection behavior
   if (options.json) {
-    // JSON mode: only auto-select if explicitly reselecting or in non-TTY mode with no existing session
-    if (options.reselect && !options.isTTY && installed.length > 0) {
-      // Force reselect in non-TTY mode - select first installed
+    // JSON mode: auto-select in non-TTY only if analyzers are installed
+    if (!options.isTTY && installed.length > 0) {
       selectedAnalyzer = installed[0].backend.name;
       shouldWriteSession = true;
       discoveryResult.selected = selectedAnalyzer;
     }
-    // In non-reselect mode, the CLI handler will check for existing session
-    // Don't auto-select here - let analyzer.ts handle the session lookup
+    // TTY mode or no installed analyzers: don't set selected field
   } else {
-    // Text mode: only write session if analyzers are installed and we can select
-    if (installed.length > 0) {
-      // We will prompt for selection (or auto-select in non-TTY)
-      if (!options.isTTY) {
-        // Auto-select first installed analyzer
-        selectedAnalyzer = installed[0].backend.name;
-        shouldWriteSession = true;
-      } else {
-        // Will prompt, session will be written after selection
-        shouldWriteSession = false; // CLI handler will write after prompt
-      }
+    // Text mode: in non-TTY, auto-select only if analyzers are installed
+    if (!options.isTTY && installed.length > 0) {
+      selectedAnalyzer = installed[0].backend.name;
+      shouldWriteSession = true;
+    } else if (installed.length > 0 && options.isTTY) {
+      // TTY mode with installed analyzers: will prompt, session will be written after selection
+      shouldWriteSession = false; // CLI handler will write after prompt
     }
-    // If no analyzers installed: show message, don't write session
+    // If no analyzers installed: don't select or write session
   }
 
   return {
