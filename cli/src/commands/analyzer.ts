@@ -80,7 +80,9 @@ Examples:
                   const metadata = mapper.getAnalyzerMetadata();
                   analyzerOptions.push({ backend, detection, metadata });
                 } catch (error) {
-                  // Continue discovering other analyzers
+                  // Log error but continue discovering other analyzers
+                  const errorMsg = error instanceof Error ? error.message : String(error);
+                  console.error(`Failed to discover analyzer "${name}": ${errorMsg}`);
                 }
               }
 
@@ -120,23 +122,15 @@ Examples:
 
         // JSON output mode
         if (options.json) {
-          // If auto-selected in non-TTY mode and should write session
+          // Only write session if an analyzer was actually selected
+          // (selectedAnalyzer is only set if analyzers are installed)
           if (selectedAnalyzer && shouldWriteSession) {
             const state: SessionState = {
               active_analyzer: selectedAnalyzer,
               selected_at: new Date().toISOString(),
             };
             await writeSession(state, projectRoot);
-          } else if (!selectedAnalyzer && !process.stdin.isTTY && analyzerOptions.length > 0) {
-            // In non-TTY mode with no auto-selected analyzer, save default session
-            // with first available analyzer (even if not installed)
-            const defaultAnalyzer = analyzerOptions[0].backend.name;
-            const state: SessionState = {
-              active_analyzer: defaultAnalyzer,
-              selected_at: new Date().toISOString(),
-            };
-            await writeSession(state, projectRoot);
-            discoveryResult.selected = defaultAnalyzer;
+            discoveryResult.selected = selectedAnalyzer;
           }
 
           console.log(JSON.stringify(discoveryResult, null, 2));
@@ -211,10 +205,14 @@ Examples:
         if (error instanceof CLIError) throw error;
 
         const category = categorizeError(error);
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           category
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -341,10 +339,14 @@ Examples:
         if (error instanceof CLIError) throw error;
 
         const category = categorizeError(error);
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           category
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -426,10 +428,14 @@ Examples:
         console.log(`  Git HEAD: ${result.git_head}`);
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           ErrorCategory.SYSTEM
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -545,10 +551,14 @@ Examples:
         console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -668,10 +678,14 @@ Examples:
         console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -769,10 +783,14 @@ Examples:
         console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -878,10 +896,14 @@ Examples:
         console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -987,10 +1009,14 @@ Examples:
         console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -1069,10 +1095,14 @@ Examples:
         console.log(JSON.stringify(result, null, 2));
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 
@@ -1087,7 +1117,7 @@ Examples:
       return previous ? [...previous, value] : [value];
     })
     .option("--output <path>", "Write report to file")
-    .option("--format <format>", "Output format: text or json (inferred from --output extension if not specified)")
+    .option("--json", "Output as JSON (instead of text)")
     .addHelpText(
       "after",
       `
@@ -1096,21 +1126,14 @@ Examples:
   $ dr analyzer verify --layer api           # Explicitly specify api layer
   $ dr analyzer verify --output report.json  # Save report to file (format inferred as JSON)
   $ dr analyzer verify --output report.txt   # Save report as text
-  $ dr analyzer verify --format json         # Output as JSON to stdout`
+  $ dr analyzer verify --json                # Output as JSON to stdout`
     )
     .action(async (options) => {
       try {
-        // Validate format option early (before checking project state)
+        // Determine output format from --json flag or --output file extension
         let format: "text" | "json" = "text";
-        if (options.format) {
-          const formatLower = options.format.toLowerCase();
-          if (formatLower !== "text" && formatLower !== "json") {
-            throw new CLIError(
-              `Invalid format: ${options.format}. Valid formats are: text, json`,
-              ErrorCategory.USER
-            );
-          }
-          format = formatLower as "text" | "json";
+        if (options.json) {
+          format = "json";
         } else if (options.output) {
           const ext = path.extname(options.output).toLowerCase();
           if (ext === ".json") {
@@ -1128,11 +1151,15 @@ Examples:
         const layers = options.layer || ["api"];
         for (const layer of layers) {
           if (layer !== "api") {
-            throw new CLIError(
-              `Unsupported layer for verify: ${layer}`,
-              ErrorCategory.USER,
-              ["verify scope v1 only supports the 'api' layer"]
-            );
+            // For non-api layers, exit cleanly with informational message per spec (FR-7.6)
+            const message = `verify only supports the 'api' layer. Layer '${layer}' verification is not available in this version.`;
+            if (options.output) {
+              await fs.writeFile(path.resolve(options.output), message, "utf-8");
+              console.log(ansis.dim(`No verification available for layer '${layer}'. Message saved to ${path.resolve(options.output)}`));
+            } else {
+              console.log(ansis.dim(`No verification available for layer '${layer}'.`));
+            }
+            return;
           }
         }
 
@@ -1191,10 +1218,14 @@ Examples:
         console.log(formatted);
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
-        throw new CLIError(
+        const cliError = new CLIError(
           error instanceof Error ? error.message : String(error),
           categorizeError(error)
         );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
       }
     });
 }
