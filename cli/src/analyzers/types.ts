@@ -48,7 +48,7 @@ export interface AvailableAnalyzer {
 export interface DiscoveryResult {
   found: AvailableAnalyzer[];
   installed_count: number;
-  selected?: string;
+  selected?: string | null;
 }
 
 /**
