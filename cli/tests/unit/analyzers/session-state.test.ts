@@ -303,6 +303,12 @@ describe("Session State Persistence", () => {
       const status1: AnalyzerStatus = {
         detected: { installed: true, binary_path: "/usr/bin/cbm" },
         indexed: true,
+        index_meta: {
+          git_head: "abc123",
+          timestamp: "2025-01-01T00:00:00Z",
+          node_count: 100,
+          edge_count: 250,
+        },
         fresh: true,
       };
 
@@ -359,6 +365,12 @@ describe("Session State Persistence", () => {
       const status1: AnalyzerStatus = {
         detected: { installed: true, binary_path: "/usr/bin/cbm" },
         indexed: true,
+        index_meta: {
+          git_head: "abc123",
+          timestamp: "2025-01-01T00:00:00Z",
+          node_count: 100,
+          edge_count: 250,
+        },
         fresh: true,
       };
 
@@ -412,8 +424,9 @@ describe("Session State Persistence", () => {
       };
 
       const status: AnalyzerStatus = {
-        detected: { installed: true },
+        detected: { installed: true, binary_path: "/usr/bin/cbm" },
         indexed: true,
+        index_meta: meta,
         fresh: true,
       };
 

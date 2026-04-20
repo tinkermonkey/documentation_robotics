@@ -59,18 +59,18 @@ describe("OpenAPIExporter", () => {
       attributes: {
         path: "/users",
         method: "POST",
-        "x-source-reference": {
-          provenance: "extracted",
-          locations: [
-            {
-              file: "src/api/users.ts",
-              symbol: "createUser",
-            },
-          ],
-          repository: {
-            url: "https://github.com/example/repo",
-            commit: "abc123def456789012345678901234567890abcd",
+      },
+      source_reference: {
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/api/users.ts",
+            symbol: "createUser",
           },
+        ],
+        repository: {
+          url: "https://github.com/example/repo",
+          commit: "abc123def456789012345678901234567890abcd",
         },
       },
     });
@@ -100,14 +100,14 @@ describe("OpenAPIExporter", () => {
       attributes: {
         path: "/users",
         method: "GET",
-        "x-source-reference": {
-          provenance: "manual",
-          locations: [
-            {
-              file: "src/api/users.ts",
-            },
-          ],
-        },
+      },
+      source_reference: {
+        provenance: "manual",
+        locations: [
+          {
+            file: "src/api/users.ts",
+          },
+        ],
       },
     });
 
@@ -143,10 +143,10 @@ describe("OpenAPIExporter", () => {
       attributes: {
         path: "/users",
         method: "GET",
-        "x-source-reference": {
-          provenance: "extracted",
-          locations: [{ file: "src/api/users.ts", symbol: "getUsers" }],
-        },
+      },
+      source_reference: {
+        provenance: "extracted",
+        locations: [{ file: "src/api/users.ts", symbol: "getUsers" }],
       },
     });
 

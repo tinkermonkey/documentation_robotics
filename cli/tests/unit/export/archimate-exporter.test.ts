@@ -60,6 +60,13 @@ describe("ArchiMateExporter", () => {
 
     motivationLayer.addElement(goal);
     motivationLayer.addElement(requirement);
+
+    // Register the cross-layer reference in the model's relationships
+    model.relationships.add({
+      source: "motivation-requirement-test-req",
+      target: "business-process-test",
+      predicate: "implements",
+    });
   });
 
   it("should export ArchiMate XML with valid declaration", async () => {
