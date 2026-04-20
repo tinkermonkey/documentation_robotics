@@ -916,9 +916,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * If the configured regex pattern is invalid, warns the user once and falls back to defaults.
    * Uses a one-shot flag to ensure the warning is only emitted once even if called in a loop.
    *
+   * Accepts any object with a source_file property (structural typing), allowing it to work
+   * with EndpointCandidate, ServiceCandidate, DatastoreCandidate, and temporary objects.
+   *
    * @private
    */
-  private isTestCode(candidate: EndpointCandidate | ServiceCandidate | DatastoreCandidate): boolean {
+  private isTestCode(candidate: { source_file: string }): boolean {
     // Get filtering rules from the analyzer mapping
     const filteringRules = this.mapper.getFilteringRules();
 
@@ -1244,7 +1247,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Query for datastores/databases inferred from code analysis
    *
    * Applies datastore_detection heuristic rules to aggregate signals by file/module.
-   * Matches file paths against import_patterns and function/symbol names against
+   * Matches import target names against import_patterns and function/symbol names against
    * naming_indicators from the heuristic parameters. All candidates have confidence "low".
    *
    * @param projectRoot Absolute path to the project root
@@ -1476,12 +1479,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         // Apply test code exclusion filter: remove test files from inferred_from
         inferredFromMapEntries = inferredFromMapEntries.filter(([sourceFile]) => {
-          // Create a temporary candidate-like object to reuse isTestCode()
+          // Create a temporary object with source_file to reuse isTestCode()
           const tempCandidate = {
             source_file: sourceFile,
-            suggested_layer: "data-store" as const,
           };
-          return !this.isTestCode(tempCandidate as DatastoreCandidate);
+          return !this.isTestCode(tempCandidate);
         });
 
         // Skip candidates where all sources are test code
