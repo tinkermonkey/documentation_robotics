@@ -246,7 +246,10 @@ describe("analyzer commands", () => {
     });
 
     it("should error when no analyzer selected and not specified", async () => {
-      // Don't select an analyzer, try to run query
+      // Initialize project but don't select an analyzer
+      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+
+      // Try to run query without selecting an analyzer
       const result = await runDr(
         ["analyzer", "query", "MATCH (n) RETURN n LIMIT 10"],
         { cwd: tempDir.path }
@@ -258,6 +261,10 @@ describe("analyzer commands", () => {
     });
 
     it("should error with helpful message for nonexistent analyzer", async () => {
+      // Initialize project
+      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
+
+      // Try to query with nonexistent analyzer
       const result = await runDr(
         ["analyzer", "query", "MATCH (n) RETURN n LIMIT 10", "--name", "nonexistent"],
         { cwd: tempDir.path }
