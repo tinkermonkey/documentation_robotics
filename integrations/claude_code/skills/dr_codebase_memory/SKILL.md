@@ -390,7 +390,7 @@ When summarizing verify output to the user:
 **Assistant:** Let me verify...
 
 ```bash
-dr analyzer verify --json
+dr analyzer verify --format json
 ```
 
 **Result (in JSON):**
