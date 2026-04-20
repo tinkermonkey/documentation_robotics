@@ -58,6 +58,7 @@ interface CbmGraphNode {
 export class CbmAnalyzer implements AnalyzerBackend {
   private mapper: MappingLoader;
   private testCodePatternWarned = false;
+  private warnedHeuristics = new Set<string>();
 
   /**
    * Default regex patterns for test code detection
@@ -571,8 +572,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
    *
    * @private
    * @param response Raw response from search_graph MCP tool
-   * @returns Typed nodes array (never empty due to early throws)
-   * @throws CLIError if response is invalid
+   * @returns Typed nodes array (may be empty if no results found)
+   * @throws CLIError if response structure is invalid
    */
   private validateSearchResponse(
     response: unknown
@@ -909,7 +910,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
 
   /**
-   * Check if a candidate (endpoint or service) is in test code
+   * Check if a candidate (endpoint, service, or datastore) is in test code
    *
    * Applies the test_code_exclusion filtering rule from the analyzer mapping.
    * If the configured regex pattern is invalid, warns the user once and falls back to defaults.
@@ -917,7 +918,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
    *
    * @private
    */
-  private isTestCode(candidate: EndpointCandidate | ServiceCandidate): boolean {
+  private isTestCode(candidate: EndpointCandidate | ServiceCandidate | DatastoreCandidate): boolean {
     // Get filtering rules from the analyzer mapping
     const filteringRules = this.mapper.getFilteringRules();
 
@@ -963,8 +964,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
    *
    * Searches for application-layer nodes using the mapping-loader-driven pattern.
    * For each node, evaluates all promotion_heuristics and records which fire in
-   * qualifying_heuristics. Drops candidates with zero qualifying heuristics unless
-   * is_entry_point is true. Caps confidence at "medium" and excludes test files.
+   * qualifying_heuristics. Drops candidates with zero qualifying heuristics (unless
+   * is_entry_point heuristic fires, adding it to qualifying_heuristics). Caps confidence
+   * at "medium" and excludes test files.
    *
    * @param projectRoot Absolute path to the project root
    * @returns Array of service candidates with qualifying heuristics populated
@@ -1077,8 +1079,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Transform a CBM graph node to a service candidate
    *
    * Evaluates all promotion heuristics against the node's properties and records
-   * which heuristics fire. Drops candidates where no heuristics fire unless
-   * is_entry_point is true. Caps confidence at "medium".
+   * which heuristics fire. Drops candidates where no heuristics fire (unless the
+   * is_entry_point heuristic fires, which adds it to qualifying_heuristics).
+   * Caps confidence at "medium".
    *
    * @private
    */
@@ -1191,6 +1194,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * and file path. Unknown heuristics are logged with a warning rather than
    * silently ignored, to support dynamic heuristics from cbm.json.
    *
+   * Warnings for unknown heuristics are deduplicated - each heuristic name is warned
+   * about only once, even if evaluated against many nodes.
+   *
    * @private
    */
   private evaluateHeuristic(
@@ -1203,16 +1209,20 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Use the heuristic utility function
     const result = evaluateHeuristic(heuristic, properties, sourceFile);
 
-    // For unknown heuristics, log a warning
+    // For unknown heuristics, log a warning (deduplicated by heuristic name)
     if (heuristic.name && !getKnownHeuristicNames().includes(heuristic.name)) {
-      handleWarning(
-        `Unknown heuristic type: ${heuristic.name}`,
-        [
-          "The heuristic is defined in cbm.json but not implemented in cbm-analyzer.ts",
-          "This heuristic will be treated as not met (returning false)",
-          "Add support for this heuristic to evaluateHeuristic() if it should fire",
-        ]
-      );
+      // Only warn once per heuristic name
+      if (!this.warnedHeuristics.has(heuristic.name)) {
+        handleWarning(
+          `Unknown heuristic type: ${heuristic.name}`,
+          [
+            "The heuristic is defined in cbm.json but not implemented in heuristic-utils.ts",
+            "This heuristic will be treated as not met (returning false)",
+            "Add support for this heuristic to evaluateHeuristic() if it should fire",
+          ]
+        );
+        this.warnedHeuristics.add(heuristic.name);
+      }
     }
 
     return result;
@@ -1329,6 +1339,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
       } catch (error) {
         // Fallback to search_graph if query_graph is unavailable
+        // Warn the user that we're using degraded search semantics
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        handleWarning(
+          "query_graph tool failed; falling back to search_graph for datastore detection",
+          [
+            `Error: ${errorMsg}`,
+            "Using search_graph will return ALL nodes instead of only IMPORTS-connected nodes",
+            "Datastore detection results may include false positives or be less accurate",
+            "Ensure query_graph is supported by your analyzer version for best results"
+          ]
+        );
+
         // This provides backward compatibility while still attempting IMPORTS traversal
         const nodeLabels = this.mapper.getNodeLabels();
         for (const label of nodeLabels) {
@@ -1346,10 +1368,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
       for (const node of allNodes) {
         const filePath = node.file_path ?? "";
 
-        // Check if file matches datastore-related patterns
+        // For import target detection, check the node's import target name (from label/properties)
+        // not the file path. IMPORTS edges connect to target nodes like "mongodb", "pg"
+        const importTargetName = String(node.label ?? node.properties?.name ?? node.id ?? "").toLowerCase();
+
+        // Check if import target matches datastore-related patterns
         let matchedImportPattern: string | undefined;
         for (const pattern of importPatterns) {
-          if (this.matchPattern(filePath, pattern)) {
+          if (this.matchPattern(importTargetName, pattern)) {
             matchedImportPattern = pattern;
             break;
           }
@@ -1366,11 +1392,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
           continue;
         }
 
-        // Extract datastore name from file path or node properties
+        // Extract datastore name from import target name or node properties
         let datastoreName = this.inferDatastoreName(
           filePath,
           node,
-          matchedImportPattern
+          matchedImportPattern,
+          importTargetName
         );
         if (!datastoreName) {
           continue;
@@ -1445,7 +1472,23 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
 
         // Create candidate with aggregated evidence
-        const inferredFromMapEntries = Array.from(inferredFromMap.entries());
+        let inferredFromMapEntries = Array.from(inferredFromMap.entries());
+
+        // Apply test code exclusion filter: remove test files from inferred_from
+        inferredFromMapEntries = inferredFromMapEntries.filter(([sourceFile]) => {
+          // Create a temporary candidate-like object to reuse isTestCode()
+          const tempCandidate = {
+            source_file: sourceFile,
+            suggested_layer: "data-store" as const,
+          };
+          return !this.isTestCode(tempCandidate as DatastoreCandidate);
+        });
+
+        // Skip candidates where all sources are test code
+        if (inferredFromMapEntries.length === 0) {
+          continue;
+        }
+
         const inferredFrom = inferredFromMapEntries.map(
           ([sourceFile, evidence]) => ({
             source_file: sourceFile,
@@ -1470,16 +1513,26 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Infer a datastore name from file path, node properties, or import pattern
+   * Infer a datastore name from import target name, file path, node properties, or import pattern
    *
    * @private
    */
   private inferDatastoreName(
     filePath: string,
     node: CbmGraphNode,
-    matchedPattern?: string
+    matchedPattern?: string,
+    importTargetName?: string
   ): string | undefined {
-    // Try to extract from import pattern (e.g., "mongodb" from pattern)
+    // Priority 1: Use import target name directly if it matched a pattern
+    // This is the most reliable signal for import-based detection (e.g., "mongodb", "pg")
+    if (importTargetName && matchedPattern) {
+      // If the import target matches the pattern, use it as-is
+      if (this.matchPattern(importTargetName, matchedPattern)) {
+        return importTargetName;
+      }
+    }
+
+    // Priority 2: Try to extract from import pattern (e.g., "mongodb" from pattern)
     if (matchedPattern) {
       // Extract database name from pattern like "mongodb", "pg", etc.
       const match = matchedPattern.match(/[a-z]+/i);
@@ -1488,7 +1541,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
     }
 
-    // Try to extract from file name (e.g., "users.migration.ts" -> "users")
+    // Priority 3: Try to extract from file name (e.g., "users.migration.ts" -> "users")
     const fileName = path.basename(filePath);
     if (fileName.includes("migration") || fileName.includes("schema")) {
       const match = fileName.match(/^([a-z0-9_-]+)/i);
@@ -1497,7 +1550,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
     }
 
-    // Try to extract from node name or label
+    // Priority 4: Try to extract from node name or label
     const nodeName = String(node.label ?? node.id ?? "");
 
     // Check if the label is a known datastore-related type by checking mapping
