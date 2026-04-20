@@ -255,6 +255,70 @@ This will take approximately 2-3 minutes.
 Proceed with extraction?
 ```
 
+### Check Analyzer Availability
+
+The extraction workflow can consult the dr-analyzer if one is installed and active.
+
+**Check analyzer status:**
+
+Run the following command and save the result (it will guide the extraction agent):
+
+```bash
+dr analyzer status --json 2>/dev/null
+```
+
+**If analyzer is active and indexed:**
+
+Fetch all three pre-briefs to temporary files:
+
+```bash
+dr analyzer brief --format json --layer api > /tmp/dr-analyzer-endpoints.json 2>/dev/null
+dr analyzer brief --format json --layer application > /tmp/dr-analyzer-services.json 2>/dev/null
+dr analyzer brief --format json --layer data-store > /tmp/dr-analyzer-datastores.json 2>/dev/null
+```
+
+Inform user:
+
+```
+✓ Analyzer is active and indexed
+  → Endpoints summary saved for extraction
+  → Services summary saved for extraction
+  → Datastores summary saved for extraction
+  → Extraction will cross-reference these for high-confidence mappings
+```
+
+**If analyzer is installed but not indexed:**
+
+Show:
+
+```
+⚠ Analyzer is installed but has not indexed the codebase yet.
+
+Option 1: Index the codebase now (recommended for better extraction)
+  Run: dr analyzer index
+
+Option 2: Continue without analyzer (uses code inspection only)
+  Proceed with /dr-map
+```
+
+Ask user: "Would you like to run `dr analyzer index` now? (Y/n)"
+
+If yes: Run `dr analyzer index` and proceed to fetch pre-briefs (as above).
+If no: Continue to Step 4 without pre-briefs (pre-brief files will be marked 'not available').
+
+**If no analyzer is installed:**
+
+Show once:
+
+```
+ℹ Extraction will use code inspection only.
+
+Tip: Installing an analyzer like codebase-memory-mcp would add graph-based evidence
+for more confident mappings. See `dr analyzer discover` for setup options.
+```
+
+Continue to Step 4 (no blocking).
+
 ### Step 3b: Capture Baseline Element Counts
 
 **Before launching any extraction**, record the current element count per layer. This is the authoritative "before" snapshot — do this now, not inside the extraction agent, to avoid counting elements added mid-execution.
@@ -280,6 +344,23 @@ Task(
 **Target Layers:** {layers}
 **Technology:** {technology}
 **Baseline Element Counts (captured before extraction):** {baseline_counts}
+
+**Analyzer Pre-Brief (if available):**
+
+If the analyzer was active during Step 3, the following files contain pre-analysis summaries:
+- Endpoints: /tmp/dr-analyzer-endpoints.json (if file exists, use it; otherwise 'not available')
+- Services: /tmp/dr-analyzer-services.json (if file exists, use it; otherwise 'not available')
+- Datastores: /tmp/dr-analyzer-datastores.json (if file exists, use it; otherwise 'not available')
+
+**How to use the pre-briefs:**
+
+1. **Endpoints Checklist (High Confidence):** Treat the endpoints summary as an authoritative checklist for the API layer. Each candidate endpoint in the brief must either:
+   - Produce a corresponding `api.operation` element you create, OR
+   - Include a documented rejection reason if it should be skipped (e.g., "internal utility, not a user-facing operation")
+
+2. **Services and Datastores (Suggestions):** Use the services and datastores summaries as suggestions, but rely on code inspection as your primary signal. Verify each candidate against actual code before creating elements.
+
+3. **Source Preservation:** For all elements you create from analyzer pre-briefs, **preserve the exact `source_file`, `source_symbol`, and `source_start_line` values** from the brief in your `dr add` commands. These fields are mandatory for traceability.
 
 **Your Task:**
 1. Analyze the codebase structure
@@ -501,6 +582,51 @@ Next Steps:
 
 Would you like me to address the warnings automatically?
 ```
+
+### Step 6b: Analyzer Verification (if available)
+
+This step only runs if the analyzer was active in Step 3.
+
+If analyzer was active, run the verification:
+
+```bash
+dr analyzer verify --layer api --json 2>/dev/null
+```
+
+Parse the JSON output and present three categories:
+
+1. **In Model & Verified by Analyzer** — Elements you created that analyzer confirms as correct
+2. **In Model but Not Found by Analyzer** — Elements you created that the analyzer doesn't recognize (likely false positives or different naming)
+3. **Found by Analyzer but Not in Model** — Candidates the analyzer detected that you didn't extract (potential gaps)
+
+Present a brief three-bucket summary:
+
+```
+Analyzer Verification Results
+=============================
+
+✓ Verified (in model): N elements
+⚠ Unrecognized (in model, not in analyzer): M elements
+  → Review for potential false positives
+
+? Missed (found by analyzer, not in model): P elements
+  → Consider adding if high confidence
+
+Recommendation:
+  - If many missed candidates: Review the analyzer brief and consider a second pass
+  - If significant false positives: Run /dr-verify for full reconciliation
+```
+
+**If there are many missed candidates or false positives**, offer:
+
+```
+Would you like to:
+1. Run /dr-verify for full reconciliation (review and adjust all mappings)
+2. Address specific buckets manually
+3. Continue (model as-is)
+```
+
+**If no analyzer was active in Step 3:** This step produces no output and is skipped entirely.
 
 ### Step 7: Post-Extraction Enhancements
 
