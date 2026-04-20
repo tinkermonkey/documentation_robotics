@@ -209,7 +209,7 @@ dr analyzer callees "auth.service.validateToken"
 
 **Example:**
 ```bash
-dr analyzer verify --json
+dr analyzer verify --format json
 ```
 
 **Output includes:**
@@ -396,8 +396,8 @@ dr analyzer verify --json
 
 **Confidence Levels:**
 - 🟢 HIGH: `endpoints`, `verify` (gaps/orphans)
-- 🟡 MEDIUM: `status`, `index`, `callers|callees`
-- 🔴 LOW: `services` (checklist only), `datastores` (consider, verify manually)
+- 🟡 MEDIUM: `status`, `index`, `callers|callees`, `services` (checklist only)
+- 🔴 LOW: `datastores` (consider, verify manually)
 
 **Fallback When Analyzer Unavailable:**
 - Mention capability once
