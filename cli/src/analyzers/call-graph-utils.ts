@@ -35,9 +35,19 @@ export function shapeCallGraphNode(
   let sourceFile = responseNode.file_path || responseNode.source_file || "";
   if (sourceFile && projectRoot) {
     try {
+      // Validate inputs are strings before calling path.relative()
+      if (typeof sourceFile !== "string" || typeof projectRoot !== "string") {
+        throw new TypeError(
+          `Invalid path types: sourceFile=${typeof sourceFile}, projectRoot=${typeof projectRoot}`
+        );
+      }
       sourceFile = relative(projectRoot, sourceFile);
-    } catch {
-      // Keep original if path.relative fails
+    } catch (error) {
+      // Log the error but keep the original path
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `Warning: Failed to compute relative path for "${sourceFile}": ${errorMessage}`
+      );
     }
   }
 

@@ -257,8 +257,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Always close the client to prevent orphan processes
         try {
           client.close();
-        } catch {
-          // Ignore errors during cleanup
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          handleWarning(
+            `Failed to close MCP client for ${binaryName}: ${errorMessage}`,
+            [
+              "The MCP server process may still be running",
+              "Try restarting your terminal or manually killing the process",
+            ]
+          );
         }
       }
     }
@@ -1136,6 +1144,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
     for (const heuristicName of promotionHeuristicNames) {
       const heuristic = this.mapper.getHeuristic(heuristicName);
       if (!heuristic) {
+        // Warn about missing heuristic only once per heuristic name
+        if (!this.warnedHeuristics.has(heuristicName)) {
+          this.warnedHeuristics.add(heuristicName);
+          handleWarning(
+            `Promotion heuristic "${heuristicName}" not found in analyzer mapping`,
+            [
+              "Check the mapping configuration for typos",
+              `Available heuristics: ${getKnownHeuristicNames().join(", ")}`,
+              "This heuristic will be skipped for service promotion",
+            ]
+          );
+        }
         continue;
       }
 
