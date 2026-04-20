@@ -704,7 +704,8 @@ deprecated-op:
         ignoreFilePath,
         `version: 1
 ignore:
-  - patterns: []
+  - patterns:
+      - handler: "*"
     element_ids:
       - "api.operation.deprecated-op"
     reason: "Deprecated operation"
@@ -794,22 +795,17 @@ ignore:
       - handler: "ignored-route"
     reason: "Test route ignore"
     match: "graph_only"
-  - patterns: []
+  - patterns:
+      - handler: "*"
     element_ids:
       - "api.operation.get-data"
     reason: "Test element ignore"
     match: "model_only"`
       );
 
-      // Routes: 1 matched, 1 ignored route, 1 unmatched route
+      // Routes: 1 ignored route, 1 unmatched route (no matching route for element)
+      // The element itself will be unmatched and then ignored by the element_ids rule
       const routes: DiscoveredRoute[] = [
-        {
-          id: "route-matched",
-          http_method: "GET",
-          http_path: "/data",
-          source_file: "src/handlers/api.ts",
-          source_symbol: "ApiHandler.getData",
-        },
         {
           id: "route-ignored",
           http_method: "POST",
@@ -837,10 +833,10 @@ ignore:
       expect(ignoredElements.length).toBe(1);
 
       // Verify totals use correct filtering
-      // total_graph_entries = matched (1) + in_graph_only (1) + ignored routes (1) = 3
-      expect(report.summary.total_graph_entries).toBe(3);
-      // total_model_entries = matched (1) + in_model_only (0) + ignored elements (1) = 2
-      expect(report.summary.total_model_entries).toBe(2);
+      // total_graph_entries = matched (0) + in_graph_only (1) + ignored routes (1) = 2
+      expect(report.summary.total_graph_entries).toBe(2);
+      // total_model_entries = matched (0) + in_model_only (0, because it's ignored) + ignored elements (1) = 1
+      expect(report.summary.total_model_entries).toBe(1);
     });
   });
 

@@ -251,7 +251,7 @@ export class VerifyEngine {
 
     // Batch file-existence checks
     const fileChecks: Promise<boolean>[] = [];
-    const elementsToCheck: Array<{ id: string; file: string; symbol: string }> = [];
+    const elementsToCheck: Array<{ id: string; path: string; file: string; symbol: string }> = [];
     let elementsWithoutSourceRef = 0;
 
     for (const element of apiLayer.elements.values()) {
@@ -272,6 +272,7 @@ export class VerifyEngine {
 
       elementsToCheck.push({
         id: element.id,
+        path: element.path,
         file: firstLocation.file,
         symbol: firstLocation.symbol || "",
       });
@@ -312,9 +313,10 @@ export class VerifyEngine {
         const elem = elementsToCheck[i];
 
         // Check if element matches any ignore rule
+        // Use element.path (semantic path) instead of elem.id (UUID)
         const ignoreReason = IgnoreFileLoader.matches(
           {
-            element_id: elem.id,
+            element_id: elem.path,
           },
           "element",
           ignoreRules
