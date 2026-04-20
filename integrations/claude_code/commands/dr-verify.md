@@ -12,7 +12,6 @@ Cross-reference the Documentation Robotics model against an external code analyz
 1. Checks for an active code analyzer and confirms it is indexed
 2. Runs verification against the model (base model or active changeset if present)
 3. Reports results in three buckets:
-
    - **Matched**: Routes discovered in the code that exist in the model ✓
    - **Graph-only**: Routes discovered in the code but missing from the model (suspected gaps) ⚠
    - **Model-only**: Operations in the model but not discovered in the code (possible drift) ✗

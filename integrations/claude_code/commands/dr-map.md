@@ -272,9 +272,9 @@ dr analyzer status --json 2>/dev/null
 Fetch all three pre-briefs to temporary files:
 
 ```bash
-dr analyzer brief --format json --layer api > /tmp/dr-analyzer-endpoints.json 2>/dev/null
-dr analyzer brief --format json --layer application > /tmp/dr-analyzer-services.json 2>/dev/null
-dr analyzer brief --format json --layer data-store > /tmp/dr-analyzer-datastores.json 2>/dev/null
+dr analyzer endpoints --json > /tmp/dr-analyzer-endpoints.json 2>/dev/null
+dr analyzer services --json --layer application > /tmp/dr-analyzer-services.json 2>/dev/null
+dr analyzer datastores --json > /tmp/dr-analyzer-datastores.json 2>/dev/null
 ```
 
 Inform user:
@@ -590,7 +590,7 @@ This step only runs if the analyzer was active in Step 3.
 If analyzer was active, run the verification:
 
 ```bash
-dr analyzer verify --layer api --json 2>/dev/null
+dr analyzer verify --layer api --format json 2>/dev/null
 ```
 
 Parse the JSON output and present three categories:
