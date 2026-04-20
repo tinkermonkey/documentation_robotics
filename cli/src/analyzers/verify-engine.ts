@@ -35,10 +35,27 @@ export interface DiscoveredRoute {
 }
 
 /**
+ * Model element reference extracted from the API layer
+ * Contains the minimal set of fields needed for dual-index matching
+ */
+interface ModelElementRef {
+  /** Element ID from the model */
+  id: string;
+  /** Source file path for primary index matching */
+  source_file?: string;
+  /** Source symbol for primary index matching */
+  source_symbol?: string;
+  /** HTTP method for secondary index matching */
+  http_method?: string;
+  /** HTTP path for secondary index matching */
+  http_path?: string;
+}
+
+/**
  * Primary or secondary index entry (holds model element data, not discovered route data)
  */
 interface IndexEntry {
-  modelEntry: DiscoveredRoute;
+  modelEntry: ModelElementRef;
   key: string;
 }
 
@@ -151,8 +168,6 @@ export class VerifyEngine {
             id: element.id,
             http_method: attrs.http_method,
             http_path: attrs.http_path,
-            source_file: firstLocation?.file,
-            source_symbol: firstLocation?.symbol,
           },
           key,
         });
@@ -178,7 +193,7 @@ export class VerifyEngine {
         const key = `${route.source_file}:${route.source_symbol}`;
         const primaryMatch = primaryIndex.get(key);
         if (primaryMatch) {
-          matchedElement = primaryMatch.modelEntry as any;
+          matchedElement = primaryMatch.modelEntry;
         }
       }
 
@@ -187,7 +202,7 @@ export class VerifyEngine {
         const key = `${route.http_method}:${route.http_path}`;
         const secondaryMatch = secondaryIndex.get(key);
         if (secondaryMatch) {
-          matchedElement = secondaryMatch.modelEntry as any;
+          matchedElement = secondaryMatch.modelEntry;
         }
       }
 
@@ -237,6 +252,7 @@ export class VerifyEngine {
     // Batch file-existence checks
     const fileChecks: Promise<boolean>[] = [];
     const elementsToCheck: Array<{ id: string; file: string; symbol: string }> = [];
+    let elementsWithoutSourceRef = 0;
 
     for (const element of apiLayer.elements.values()) {
       if (matchedRouteIds.has(element.id)) {
@@ -250,6 +266,7 @@ export class VerifyEngine {
       if (!firstLocation || !firstLocation.file) {
         // Skip elements with no source_reference file - they cannot drift since they have no code linkage.
         // This includes manually-created elements that are documentation-only.
+        elementsWithoutSourceRef++;
         continue;
       }
 
@@ -272,6 +289,14 @@ export class VerifyEngine {
             // For permission errors and other issues, assume file exists to be conservative
             return true;
           })
+      );
+    }
+
+    // Warn user if elements were excluded due to missing source references
+    if (elementsWithoutSourceRef > 0) {
+      console.warn(
+        `Note: ${elementsWithoutSourceRef} model element(s) excluded from drift detection ` +
+        `(no source reference data or file path); these elements cannot drift since they have no code linkage.`
       );
     }
 
@@ -381,7 +406,7 @@ export class VerifyEngine {
       analyzer: analyzerName,
       analyzer_indexed_at: analyzerIndexedAt,
       changeset_context,
-      layers_verified: ["api"],
+      layers_verified: options.layers || ["api"],
       buckets,
       summary,
     };

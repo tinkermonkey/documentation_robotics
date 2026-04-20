@@ -1154,14 +1154,14 @@ Examples:
         const apiLayers = requestedLayers.filter((layer: string) => layer === "api");
         const nonApiLayers = requestedLayers.filter((layer: string) => layer !== "api");
 
-        // Report non-api layers cleanly per spec (FR-7.6)
+        // Report non-api layers with v1 scope constraint
         for (const layer of nonApiLayers) {
-          console.log(ansis.dim(`No verification available for layer '${layer}'.`));
+          console.log(ansis.dim(`Verify scope v1 only supports api layer; '${layer}' is not supported.`));
         }
 
-        // If no api layers to verify, exit cleanly
+        // If no api layers to verify, throw error
         if (apiLayers.length === 0) {
-          return;
+          throw new CLIError(`No supported layers to verify. Verify scope v1 only supports api layer.`);
         }
 
         // Resolve analyzer name

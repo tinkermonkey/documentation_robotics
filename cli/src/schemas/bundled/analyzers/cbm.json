@@ -529,10 +529,10 @@
           "patterns": [
             "**/migrations/**",
             "**/schema/**",
-            "**/*.sql",
-            "**/*.migration.*",
-            "**/*schema.ts",
-            "**/*model.ts"
+            "*.sql",
+            "*.migration.*",
+            "*schema.ts",
+            "*model.ts"
           ],
           "naming_indicators": [
             "table",
