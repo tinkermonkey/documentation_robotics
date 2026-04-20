@@ -24,9 +24,11 @@ export interface IgnorePattern {
  *
  * Rules must specify:
  * - patterns: list of matching criteria (OR semantics - any match applies the rule)
- * - element_ids: list of element IDs to ignore (top-level field)
  * - reason: explanation for why the rule exists
  * - match: scope of the rule (graph_only for routes, model_only for elements)
+ *
+ * Optional fields:
+ * - element_ids: list of element IDs to ignore (only used with match: model_only)
  */
 export interface IgnoreRule {
   patterns: IgnorePattern[];

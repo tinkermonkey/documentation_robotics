@@ -80,7 +80,8 @@ export const VALID_HTTP_METHODS = [
  * - class_is_service: { threshold: number }
  * - service_class_naming: { service_method_prefixes: string[] }
  * - is_entry_point: { entry_point_patterns: string[] }
- * - infer_datastores: { patterns: string[], naming_indicators: string[] }
+ * - datastore_detection: { patterns: string[], naming_indicators: string[] }
+ * - handles_route: (no parameters required)
  */
 export interface HeuristicParameters {
   threshold?: number;
