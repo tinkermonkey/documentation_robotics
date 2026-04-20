@@ -116,7 +116,7 @@ Proceed to Step 3.
 **Run verification against api layer (v1 scope):**
 
 ```bash
-dr analyzer verify --layer api --json
+dr analyzer verify --layer api --format json
 ```
 
 **Parse JSON output** — it contains the `VerifyReport` structure:
@@ -161,7 +161,7 @@ Verifying against base model (no active changeset)
 
 For each bucket (matched, in_graph_only, in_model_only):
 - Show first 5 entries with full details
-- If more exist, show count: `... and N more — see full report with --output verify.json`
+- If more exist, show count: `... and N more — see full report with `dr analyzer verify --output verify.json``
 
 ### Step 5: Handle Graph-Only Entries (Suspected Gaps)
 
@@ -213,10 +213,12 @@ Reason for ignoring (e.g., "deprecated endpoint", "internal debug route"):
 Append to `.dr-verify-ignore.yaml` (created if it doesn't exist):
 
 ```yaml
-ignored_routes:
-  - endpoint: "POST /api/v1/orders"
+version: 1
+ignore:
+  - patterns:
+      - path: "/api/v1/orders"
     reason: "<user-provided reason>"
-    ignored_at: "<ISO timestamp>"
+    match: "graph_only"
 ```
 
 **If no changeset is active and user adds entries**, offer recommendation:
@@ -248,7 +250,7 @@ Options:
 [s] Show element details: dr show api.operation.old-endpoint
 [q] Search codebase: dr analyzer query "<handler-pattern>"
 [r] Remove from model: dr delete api.operation.old-endpoint
-[u] Update element manually: dr show api.operation.old-endpoint --edit
+[u] Update element: dr update api.operation.old-endpoint
 [i] Ignore (add to .dr-verify-ignore.yaml)
 [n] Next entry
 ```
@@ -294,20 +296,22 @@ Show result and move to next entry.
 **If user selects [u]:**
 
 ```bash
-dr show api.operation.old-endpoint --edit
+dr update api.operation.old-endpoint
 ```
 
-Open in editor and proceed to next entry.
+Prompt for updated field(s) and proceed to next entry.
 
 **If user selects [i]:**
 
 Ask for reason and append to `.dr-verify-ignore.yaml`:
 
 ```yaml
-ignored_elements:
-  - element_id: "api.operation.old-endpoint"
+version: 1
+ignore:
+  - patterns:
+      - element_id: "api.operation.old-endpoint"
     reason: "<user-provided reason>"
-    ignored_at: "<ISO timestamp>"
+    match: "model_only"
 ```
 
 ### Step 7: Status and Next Steps
