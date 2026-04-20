@@ -90,26 +90,13 @@ export async function performDiscover(
 
   // Determine session and selection behavior
   if (options.json) {
-    // JSON mode: auto-select in non-TTY
-    // Prefer installed analyzers, fall back to first available analyzer
-    if (!options.isTTY) {
-      if (installed.length > 0) {
-        selectedAnalyzer = installed[0].backend.name;
-      } else if (analyzerOptions.length > 0) {
-        // No installed analyzers, but some are available - select first available
-        selectedAnalyzer = analyzerOptions[0].backend.name;
-      }
-      if (selectedAnalyzer) {
-        shouldWriteSession = true;
-        discoveryResult.selected = selectedAnalyzer;
-      } else {
-        // No analyzers available at all
-        discoveryResult.selected = null;
-      }
-    } else {
-      // TTY mode: don't auto-select in JSON mode
-      discoveryResult.selected = null;
+    // JSON mode: auto-select in non-TTY only if analyzers are installed
+    if (!options.isTTY && installed.length > 0) {
+      selectedAnalyzer = installed[0].backend.name;
+      shouldWriteSession = true;
+      discoveryResult.selected = selectedAnalyzer;
     }
+    // TTY mode or no installed analyzers: don't set selected field
   } else {
     // Text mode: in non-TTY, auto-select only if analyzers are installed
     if (!options.isTTY && installed.length > 0) {
