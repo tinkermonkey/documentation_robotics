@@ -178,6 +178,15 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Only check components that are currently installed (have actual files in target directory)
     for (const componentName of Object.keys(versionData.components || {})) {
       const config = this.components[componentName];
+
+      // Skip unknown components (e.g., if CLI was updated and a component was removed)
+      if (!config) {
+        console.warn(
+          ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
+        );
+        continue;
+      }
+
       const targetPath = join(this.targetDir, config.target);
 
       // Only check components that have files in the target directory
@@ -277,6 +286,15 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       // Only upgrade components that are currently installed (have actual files)
       for (const componentName of Object.keys(versionData.components || {})) {
         const config = this.components[componentName];
+
+        // Skip unknown components (e.g., if CLI was updated and a component was removed)
+        if (!config) {
+          console.warn(
+            ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
+          );
+          continue;
+        }
+
         const targetPath = join(this.targetDir, config.target);
 
         // Only upgrade components that have files in the target directory
