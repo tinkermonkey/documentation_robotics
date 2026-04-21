@@ -617,7 +617,7 @@ Recommendation:
   - If few graph-only candidates and model-only entries: Run /dr-verify for full reconciliation
 ```
 
-**If the list is manageable (few missed candidates and false positives)**, offer:
+**If the list is manageable (few graph-only candidates and model-only entries)**, offer:
 
 ```
 Would you like to:
