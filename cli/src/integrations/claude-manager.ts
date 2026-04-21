@@ -108,6 +108,17 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
     const { components = Object.keys(this.components), force = false } = options;
 
+    // Check for non-TTY environment early (before other checks)
+    if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with installation"
+        );
+      }
+    }
+
     // Validate components
     const invalid = components.filter((c) => !this.components[c]);
     if (invalid.length > 0) {
@@ -120,13 +131,6 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     // Check if already installed
     if (await this.isInstalled()) {
       if (!force) {
-        const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
-        if (!isInteractive) {
-          throw new Error(
-            "Interactive confirmation is not available in non-TTY environments.\n" +
-              "Use --force to skip confirmation and proceed with installation"
-          );
-        }
         const response = await confirm({
           message: "Claude integration already installed. Overwrite?",
         });
