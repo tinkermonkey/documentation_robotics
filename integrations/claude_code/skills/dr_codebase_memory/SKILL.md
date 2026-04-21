@@ -375,18 +375,18 @@ dr analyzer verify --format json
 
 ## Confidence Interpretation Table
 
-| Command            | Confidence | Use As                                  | Caveats                                            |
-| ------------------ | ---------- | --------------------------------------- | -------------------------------------------------- |
-| `discover`         | Medium     | Bootstrap analyzer selection            | Only used once per session                         |
-| `status`           | Medium     | Decision gate (is analyzer available?)  | Only probes; doesn't query codebase                |
-| `index`            | Medium     | Refresh command (accept if user asks)   | Takes time; only offer if freshness concerns       |
-| `endpoints`        | **HIGH**   | Authoritative ground truth              | Complete and accurate (code is source truth)       |
-| `services`         | Medium-Low | Checklist, starting point for discovery | Inferred; may not match intended architecture      |
-| `datastores`       | **LOW**    | Consider as a lead, verify manually     | Inferred schemas may be incomplete/stale           |
-| `callers`          | Medium     | Reverse dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
-| `callees`          | Medium     | Forward dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
-| `query`            | **HIGH**   | Custom graph traversal                  | Requires Cypher knowledge and graph schema         |
-| `verify`           | **HIGH**   | Gap/drift detection, freshness check    | High confidence on diffs; quotes changeset context |
+| Command      | Confidence | Use As                                  | Caveats                                            |
+| ------------ | ---------- | --------------------------------------- | -------------------------------------------------- |
+| `discover`   | Medium     | Bootstrap analyzer selection            | Only used once per session                         |
+| `status`     | Medium     | Decision gate (is analyzer available?)  | Only probes; doesn't query codebase                |
+| `index`      | Medium     | Refresh command (accept if user asks)   | Takes time; only offer if freshness concerns       |
+| `endpoints`  | **HIGH**   | Authoritative ground truth              | Complete and accurate (code is source truth)       |
+| `services`   | Medium-Low | Checklist, starting point for discovery | Inferred; may not match intended architecture      |
+| `datastores` | **LOW**    | Consider as a lead, verify manually     | Inferred schemas may be incomplete/stale           |
+| `callers`    | Medium     | Reverse dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
+| `callees`    | Medium     | Forward dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
+| `query`      | **HIGH**   | Custom graph traversal                  | Requires Cypher knowledge and graph schema         |
+| `verify`     | **HIGH**   | Gap/drift detection, freshness check    | High confidence on diffs; quotes changeset context |
 
 ---
 
