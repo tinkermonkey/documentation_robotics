@@ -14,7 +14,7 @@ Cross-reference the Documentation Robotics model against an external code analyz
 3. Reports results in three buckets:
    - **Matched**: Routes discovered in the code that exist in the model ✓
    - **Graph-only**: Routes discovered in the code but missing from the model (suspected gaps) ⚠
-   - **Model-only**: Operations in the model but not discovered in the code (possible drift) ✗
+   - **Model-only**: Operations in the model but not discovered in the code (possible drift) ?
 
 4. Offers actionable next steps: add missing routes, remove orphaned operations, or ignore entries
 
@@ -42,7 +42,7 @@ When the user runs this command, perform intelligent verification with helpful s
 dr analyzer status --json
 ```
 
-**Handle three scenarios:**
+**Handle four scenarios:**
 
 **Scenario 1: No active analyzer**
 
@@ -70,7 +70,27 @@ To enable code verification:
 
 Then exit cleanly (no error).
 
-**Scenario 3: Analyzer active and indexed**
+**Scenario 3: Analyzer installed but not indexed (detected.installed: true, index.stale: null or index missing)**
+
+```
+Analyzer is installed but the project has not been indexed yet.
+
+To enable code verification:
+  dr analyzer index
+
+This scans your codebase and builds the code graph (~1-2 minutes).
+
+Would you like me to index now?
+
+[y] Index now and proceed with verification
+[n] Skip indexing (cannot verify without an index)
+```
+
+If user selects [y]: Run `dr analyzer index`, then proceed to Step 2.
+
+If user selects [n]: Exit cleanly (no error).
+
+**Scenario 4: Analyzer active and indexed (detected.installed: true, index.stale: false)**
 
 Proceed to Step 2.
 
@@ -79,14 +99,14 @@ Proceed to Step 2.
 **When analyzer is active, check freshness:**
 
 ```bash
-dr analyzer status --json | jq '.fresh'
+dr analyzer status --json | jq '.index.stale'
 ```
 
-**If fresh: true**
+**If index.stale: false**
 
 Proceed to Step 3.
 
-**If fresh: false (stale index)**
+**If index.stale: true (stale index)**
 
 Show freshness warning and ask for confirmation:
 
@@ -196,7 +216,20 @@ dr add api operation "create-order" \
   --source-provenance extracted
 ```
 
-Show the command, offer to run it:
+**If no changeset is active**, offer changeset recommendation before executing:
+
+```
+Tip: You can track this work in an isolated changeset.
+
+Would you like to create a changeset before adding entries?
+
+[y] Create changeset (I'll name it verify-<timestamp>)
+[n] Add directly to the base model
+```
+
+If user selects [y]: Create the changeset and activate it before proceeding.
+
+Show the command and offer to run it:
 
 ```
 [r] Run this command
@@ -224,17 +257,6 @@ ignore:
     reason: "<user-provided reason>"
     match: "graph_only"
 ```
-
-**If no changeset is active and user adds entries**, offer recommendation:
-
-```
-You've added new entries to the model.
-Would you like to create a changeset to track this work?
-
-/dr-changeset Create changeset verify-<timestamp>
-```
-
-**Do NOT automatically activate a changeset** — only recommend.
 
 ### Step 6: Handle Model-Only Entries (Possible Drift)
 
@@ -330,7 +352,7 @@ Verification Complete
 Summary:
 ✓ X matched (operations aligned)
 ⚠ Y graph-only (suggested adds)
-✗ Z model-only (suggested removes/updates)
+? Z model-only (suggested removes/updates)
 
 Next Steps:
 
@@ -462,7 +484,7 @@ You: Checking analyzer status...
         Add this operation? [a] Add [i] Ignore [s] Skip
 
      Model-Only Operations (2):
-     ✗ api.operation.legacy-endpoint
+     ? api.operation.legacy-endpoint
         Source: src/legacy/endpoints.ts:oldEndpoint
         Options: [s] Show [q] Query [r] Remove [u] Update [i] Ignore [n] Next
 
