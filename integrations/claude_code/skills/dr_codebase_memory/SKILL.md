@@ -1,5 +1,5 @@
 ---
-name: DR_CODEBASE_MEMORY
+name: dr_codebase_memory
 description: Graph-based code intelligence for using dr analyzer subcommands to understand codebase structure, discover elements, and verify model alignment
 triggers:
   [
@@ -406,19 +406,34 @@ Do NOT activate this skill when:
 
 ## Graceful Degradation Protocol
 
-The analyzer may not be installed or indexed. Handle with three-tier degradation:
+The analyzer may not be installed or indexed. Handle with four-tier degradation:
 
-### Level 1: Full Capability (Analyzer Active and Indexed)
+### Level 1: Full Capability (Analyzer Active and Indexed, Fresh)
 
-**Condition:** `dr analyzer status` shows analyzer installed and index is current.
+**Condition:** `dr analyzer status` shows analyzer installed and index is current (fresh).
 
 **Action:** Use all ten commands freely. User gets authoritative answers.
 
 ---
 
-### Level 2: Available But Not Indexed (Analyzer Installed, Not Indexed)
+### Level 2: Stale Index (Analyzer Active and Indexed, But Stale)
 
-**Condition:** `dr analyzer status` shows analyzer installed but index is stale or missing.
+**Condition:** `dr analyzer status` shows analyzer installed and indexed, but index is stale.
+
+**Action:**
+
+1. Ask to reindex: "The codebase index is stale. Would you like me to run `dr analyzer index` to get current data?"
+2. If user accepts, run `dr analyzer index` and proceed with full commands
+3. If user declines, continue with stale data (clearly label results as "stale")
+4. Do NOT repeatedly offer; accept user's choice once per session
+
+**Note:** Stale data may miss recent code changes but is more accurate than no index at all.
+
+---
+
+### Level 3: Available But Not Indexed (Analyzer Installed, Not Indexed)
+
+**Condition:** `dr analyzer status` shows analyzer installed but index is missing.
 
 **Action:**
 
@@ -428,7 +443,7 @@ The analyzer may not be installed or indexed. Handle with three-tier degradation
 
 ---
 
-### Level 3: No Analyzer (Not Installed)
+### Level 4: No Analyzer (Not Installed)
 
 **Condition:** `dr analyzer status` shows no analyzer active.
 
