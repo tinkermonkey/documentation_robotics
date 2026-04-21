@@ -74,26 +74,30 @@ This guide walks through the complete Documentation Robotics (DR) workflow: from
 **What this does:** Creates a new Documentation Robotics model for your project.
 
 **Command:**
+
 ```bash
 dr init <project-name>
 ```
 
 **Example:**
+
 ```bash
 dr init my-awesome-api
 ```
 
 **Output:**
+
 ```
 ✓ Model initialized: my-awesome-api
   Location: documentation-robotics/model/
   Manifest: documentation-robotics/model/manifest.yaml
-  
+
 Ready to extract architecture!
   Next: dr analyzer discover
 ```
 
 **What was created:**
+
 - `documentation-robotics/model/manifest.yaml` — Project metadata
 - `documentation-robotics/model/{NN}_{layer-name}/` — Empty layer directories for all 12 layers (e.g., `01_motivation/`, `02_business/`, ..., `12_testing/`)
 - `.dr/` — Local DR configuration directory
@@ -107,11 +111,13 @@ Ready to extract architecture!
 **What this does:** Shows available code analyzers that can scan your codebase and build a code graph for verification.
 
 **Command:**
+
 ```bash
 dr analyzer discover
 ```
 
 **Output:**
+
 ```
 Available Code Analyzers
 ========================
@@ -120,19 +126,20 @@ Available Code Analyzers
    Type: Graph-based code analyzer
    Coverage: Python, TypeScript, JavaScript, Java, Go
    Install: codebase-memory-mcp
-   
+
    Builds a semantic graph of your codebase:
    • Identifies all endpoints/routes
    • Maps service dependencies
    • Detects data store schemas
    • Provides pre-briefs for extraction
-   
+
    Install this analyzer?
    [y] Yes, install codebase-memory-mcp
    [n] Skip (you can add it later)
 ```
 
 **Select your analyzer:**
+
 - **Recommended:** `codebase-memory` for most projects
 - Other options may be available for specific tech stacks
 
@@ -143,11 +150,13 @@ If you select [y], the analyzer is installed and ready.
 **What this does:** Scans your codebase and builds an indexed code graph for later verification.
 
 **Command:**
+
 ```bash
 dr analyzer index
 ```
 
 **Output:**
+
 ```
 Indexing codebase...
 
@@ -171,6 +180,7 @@ Ready for extraction with /dr-map
 ```
 
 **What happens:**
+
 - Your codebase is scanned for architectural elements (endpoints, services, data models)
 - Pre-briefs are generated — summaries that `/dr-map` will consume during extraction
 - The index is saved locally; you can verify freshness before running `/dr-verify`
@@ -184,6 +194,7 @@ Ready for extraction with /dr-map
 ### 3a: Start the Extraction
 
 **Command:**
+
 ```bash
 /dr-map <path> [--layers <layers>] [--tech <technology>]
 ```
@@ -191,16 +202,19 @@ Ready for extraction with /dr-map
 **Examples:**
 
 **Simple extraction (infers layers):**
+
 ```bash
 /dr-map ./src
 ```
 
 **Specific layers only:**
+
 ```bash
 /dr-map ./src --layers application,api,data-model
 ```
 
 **With technology hints:**
+
 ```bash
 /dr-map ./backend --tech "Python FastAPI PostgreSQL"
 ```
@@ -267,6 +281,7 @@ Proceed with extraction?
 If you selected Recipe Mode, you'll see checkpoints after each layer:
 
 **Layer 1: Technology**
+
 ```
 Checkpoint: Technology Layer Complete
 =========================================
@@ -333,16 +348,19 @@ Next steps:
 ### 3f: Source Provenance
 
 All extracted elements include **source provenance**:
+
 - `source_file` — The file the element was extracted from
 - `source_symbol` — The specific class, function, or symbol
 - `source_provenance` — How the element was identified (extracted or inferred)
 
 This traceability is critical for:
+
 - `/dr-sync` — Detecting drift when code changes
 - `dr validate` — Verifying referenced files still exist
 - Reconciliation — Linking model elements back to their code origins
 
 **Example element with provenance:**
+
 ```bash
 dr show api.operation.create-order
 ```
@@ -368,6 +386,7 @@ Source Reference:
 ### 4a: Run Verification
 
 **Command:**
+
 ```bash
 /dr-verify [--layer <layer>]
 ```
@@ -396,6 +415,7 @@ Ready for verification.
 ### 4b: Verification Results
 
 **Summary:**
+
 ```
 Verified 45 graph routes against 40 model operations.
 35 matched, 8 graph-only (suspected gaps), 2 model-only (possible drift).
@@ -404,6 +424,7 @@ Verifying against base model (no active changeset).
 ```
 
 **Where:**
+
 - **Matched (35)** — Routes found in code AND in your model ✓
 - **Graph-only (8)** — Routes found in code but NOT in model (suspected gaps) ⚠
 - **Model-only (2)** — Operations in model but NOT in code (possible drift) ?
@@ -415,10 +436,10 @@ Matched Operations (35):
 ========================
 ✓ api.operation.create-order (POST /api/v1/orders)
   Source: src/routes/orders.ts:createOrder
-  
+
 ✓ api.operation.get-order (GET /api/v1/orders/{id})
   Source: src/routes/orders.ts:getOrder
-  
+
 ✓ api.operation.update-order (PUT /api/v1/orders/{id})
   Source: src/routes/orders.ts:updateOrder
 
@@ -434,7 +455,7 @@ Graph-Only Routes (8 suspected gaps):
 ======================================
 ⚠ POST /api/v1/orders/bulk-create
   Source: src/routes/orders.ts:bulkCreate
-  
+
   Add this operation to the model?
   [a] Add with command
   [i] Ignore (not a public operation)
@@ -444,8 +465,10 @@ Graph-Only Routes (8 suspected gaps):
 **Process gaps:**
 
 **Option 1: Add to Model**
+
 - Select [a]
 - A pre-populated `dr add` command is generated with all source info from the analyzer:
+
   ```bash
   dr add api operation "bulk-create-orders" \
     --description "POST /api/v1/orders/bulk-create" \
@@ -453,12 +476,15 @@ Graph-Only Routes (8 suspected gaps):
     --source-symbol "bulkCreate" \
     --source-provenance extracted
   ```
+
 - Command is executed and element is added
 
 **Option 2: Ignore**
+
 - Select [i]
 - Provide a reason: "Internal utility, not user-facing"
 - Entry is added to `.dr-verify-ignore.yaml` for future reference
+
   ```yaml
   version: 1
   ignore:
@@ -469,6 +495,7 @@ Graph-Only Routes (8 suspected gaps):
   ```
 
 **Option 3: Skip**
+
 - Select [s]
 - Move to next gap, decide later
 
@@ -480,12 +507,12 @@ Model-Only Operations (2):
 ? api.operation.legacy-endpoint
   Description: GET /api/v1/legacy/old-endpoint
   Source: src/legacy/endpoints.ts:oldEndpoint
-  
+
   Possible reasons:
     - Code was refactored or removed
     - Route handler is in a file the analyzer didn't scan
     - Confidence threshold filtered it out
-  
+
   Options:
   [s] Show element details
   [q] Query analyzer for pattern
@@ -498,24 +525,29 @@ Model-Only Operations (2):
 **Process drift:**
 
 **Option 1: Show Details** ([s])
+
 - Display full element information from the model
 - Helps you decide if it's truly obsolete
 
 **Option 2: Query Analyzer** ([q])
+
 - Search the code graph for related patterns
 - "Are there any routes similar to this?"
 - If found, maybe the naming changed in code
 
 **Option 3: Remove** ([r])
+
 - Delete from model if confirmed obsolete
 - `dr delete api.operation.legacy-endpoint`
 - Clean up outdated elements
 
 **Option 4: Update** ([u])
+
 - Modify the element if it's still valid but renamed
 - Update description, source file, etc.
 
 **Option 5: Ignore** ([i])
+
 - Keep it in the model but note that analyzer didn't find it
 - Useful for deprecated endpoints you're tracking
 
@@ -562,6 +594,7 @@ Next Steps:
    - Multi-file route registration?
 
 2. **Add to model** (if confirmed valid)
+
    ```bash
    dr add api operation "bulk-create-orders" \
      --description "POST /api/v1/orders/bulk-create" \
@@ -570,6 +603,7 @@ Next Steps:
    ```
 
 3. **Add to ignore list** (if confirmed not user-facing)
+
    ```bash
    echo "- path: /api/v1/internal/debug
      reason: Internal debug endpoint
@@ -581,16 +615,19 @@ Next Steps:
 **For each model-only entry from `/dr-verify`:**
 
 1. **Investigate** — Is the code still there?
+
    ```bash
    dr analyzer query "MATCH (n) WHERE n.name CONTAINS 'oldEndpoint' RETURN n"
    ```
 
 2. **Remove** (if code no longer exists)
+
    ```bash
    dr delete api.operation.legacy-endpoint
    ```
 
 3. **Update** (if code was refactored)
+
    ```bash
    dr update api.operation.legacy-endpoint \
      --source-file "src/routes/new-location.ts" \
@@ -613,6 +650,7 @@ This systematically establishes intra-layer and cross-layer relationships for el
 ### 5d: Final Validation
 
 **Run strict validation:**
+
 ```bash
 dr validate --strict
 ```
@@ -686,21 +724,23 @@ When `/dr-map` runs and an analyzer is indexed:
 - **Endpoints pre-brief** — All discovered routes/endpoints
   - Treated as authoritative checklist for API layer
   - Each candidate must be extracted or explicitly rejected
-  
+
 - **Services pre-brief** — Suggested application services
   - Used as hints; rely on code inspection as primary signal
-  
+
 - **Datastores pre-brief** — Database schemas and tables
   - Suggestions only; verify against actual code
 
 ### Source Provenance
 
 Every extracted element includes:
+
 - **source_file** — Where the element came from (relative to repo root)
 - **source_symbol** — The specific class/function/symbol name
 - **source_provenance** — "extracted" (from code) or "inferred" (from patterns)
 
 This is **mandatory** for traceability. Without it:
+
 - `/dr-sync` can't detect drift
 - `dr validate` can't verify file existence
 - Model becomes a snapshot with no connection to source code
@@ -722,6 +762,7 @@ The goal: Maximize matched, minimize gaps and drift.
 ## Troubleshooting
 
 ### "No analyzer installed"
+
 ```bash
 dr analyzer discover      # Install one first
 dr analyzer index         # Then index your codebase
@@ -729,6 +770,7 @@ dr analyzer index         # Then index your codebase
 ```
 
 ### "Index is stale"
+
 ```bash
 dr analyzer status        # Check freshness
 dr analyzer index         # Reindex if stale
@@ -736,12 +778,14 @@ dr analyzer index         # Reindex if stale
 ```
 
 ### "Verification found many gaps"
+
 ```bash
 /dr-map ./src --layers api    # Re-extract API layer specifically
 /dr-verify --layer api         # Reverify just that layer
 ```
 
 ### "Model validation errors"
+
 ```bash
 dr validate --strict      # See all errors
 /dr-model                 # Manually fix issues
@@ -770,7 +814,7 @@ Once your model is extracted and verified:
 
 1. **Document Business Goals**
    - `/dr-model Add motivation layer goals`
-   
+
 2. **Add Security Policies**
    - `/dr-model Add authentication to public endpoints`
 

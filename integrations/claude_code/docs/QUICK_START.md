@@ -39,6 +39,7 @@ dr analyzer index         # Wait for indexing
 **What it does:** Analyzes your codebase and extracts an architecture model.
 
 **Options:**
+
 - `--layers <layers>` — Specific layers (e.g., `api,application,data-model`)
 - `--tech <stack>` — Technology hints (helps with detection)
 
@@ -57,6 +58,7 @@ dr analyzer index         # Wait for indexing
 **What it does:** Cross-references your model against the code analyzer.
 
 **Shows:**
+
 - ✓ **Matched** — Elements correctly in both code and model
 - ⚠ **Graph-only** — Routes in code but missing from model (gaps)
 - ? **Model-only** — Operations in model but not in code (drift)
@@ -84,36 +86,42 @@ dr validate --strict
 ## Choosing Your Path
 
 ### Path A: New Project (Empty Model)
+
 ```
 Initialize → Discover Analyzer → Index → Extract (Recipe Mode) → Verify → Done
 ```
+
 **Time:** ~15-20 minutes
 
 ### Path B: Existing Project (You Have a Model)
+
 ```
 Verify → Address Gaps/Drift → Validate → Done
 ```
+
 **Time:** ~5-10 minutes
 
 ### Path C: Incremental Extraction
+
 ```
 Extract Specific Layers → Verify → Reconcile → Done
 ```
+
 **Time:** ~5-10 minutes
 
 ---
 
 ## What Each Step Does
 
-| Step | Command | Time | What Happens |
-|------|---------|------|--------------|
-| **Initialize** | `dr init <name>` | 30s | Creates empty model |
-| **Discover** | `dr analyzer discover` | 2m | Installs code analyzer |
-| **Index** | `dr analyzer index` | 1-2m | Scans codebase & builds graph |
-| **Extract** | `/dr-map <path>` | 2-5m | Generates model from code |
-| **Verify** | `/dr-verify` | 1-2m | Cross-checks against code |
-| **Reconcile** | Interactive prompts | 2-5m | Fix gaps and drift |
-| **Validate** | `dr validate --strict` | 30s | Final integrity check |
+| Step           | Command                | Time | What Happens                  |
+| -------------- | ---------------------- | ---- | ----------------------------- |
+| **Initialize** | `dr init <name>`       | 30s  | Creates empty model           |
+| **Discover**   | `dr analyzer discover` | 2m   | Installs code analyzer        |
+| **Index**      | `dr analyzer index`    | 1-2m | Scans codebase & builds graph |
+| **Extract**    | `/dr-map <path>`       | 2-5m | Generates model from code     |
+| **Verify**     | `/dr-verify`           | 1-2m | Cross-checks against code     |
+| **Reconcile**  | Interactive prompts    | 2-5m | Fix gaps and drift            |
+| **Validate**   | `dr validate --strict` | 30s  | Final integrity check         |
 
 **Total for new project:** ~15-20 minutes
 
@@ -183,6 +191,7 @@ dr analyzer index
 ## Output You'll See
 
 ### After `/dr-map`
+
 ```
 ✓ Extraction complete!
 
@@ -197,6 +206,7 @@ Next: /dr-verify
 ```
 
 ### After `/dr-verify`
+
 ```
 Verified 45 graph routes against 40 model operations.
 35 matched ✓, 8 graph-only ⚠, 2 model-only ?
@@ -208,6 +218,7 @@ Next Steps: dr validate --strict
 ```
 
 ### After `dr validate --strict`
+
 ```
 ✓ Schema validation passed
 ✓ Reference validation passed
@@ -220,14 +231,14 @@ Ready for export/sharing
 
 ## Troubleshooting Quick Fixes
 
-| Problem | Solution |
-|---------|----------|
-| "No analyzer" | `dr analyzer discover` then pick one |
-| "Not indexed" | `dr analyzer index` to build graph |
-| "Index stale" | `dr analyzer index` to refresh |
-| "Many gaps" | `/dr-map ./src --layers api` to re-extract |
+| Problem             | Solution                                                       |
+| ------------------- | -------------------------------------------------------------- |
+| "No analyzer"       | `dr analyzer discover` then pick one                           |
+| "Not indexed"       | `dr analyzer index` to build graph                             |
+| "Index stale"       | `dr analyzer index` to refresh                                 |
+| "Many gaps"         | `/dr-map ./src --layers api` to re-extract                     |
 | "Validation errors" | `dr validate --strict` to see details, then `/dr-model` to fix |
-| "Lost in process" | Read `END_TO_END_WALKTHROUGH.md` for detailed guide |
+| "Lost in process"   | Read `END_TO_END_WALKTHROUGH.md` for detailed guide            |
 
 ---
 
@@ -250,7 +261,7 @@ Ready for export/sharing
 **Need command reference?**
 
 - `/dr-map` — See `commands/dr-map.md`
-- `/dr-verify` — See `commands/dr-verify.md`  
+- `/dr-verify` — See `commands/dr-verify.md`
 - `dr validate` — See `commands/dr-validate.md`
 
 **Want to explore your model?**
