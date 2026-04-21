@@ -156,6 +156,17 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     const { dryRun = false, force = false } = options;
 
+    // Check for non-TTY environment early (before other checks)
+    if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with upgrade"
+        );
+      }
+    }
+
     // Check if installed
     if (!(await this.isInstalled())) {
       console.log(ansis.yellow("⚠ GitHub Copilot integration not installed"));
@@ -238,13 +249,6 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     // Ask for confirmation
     if (!force) {
-      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
-      if (!isInteractive) {
-        throw new Error(
-          "Interactive confirmation is not available in non-TTY environments.\n" +
-            "Use --force to skip confirmation and proceed with upgrade"
-        );
-      }
       const response = await confirm({
         message: "Apply upgrades?",
       });
@@ -299,13 +303,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     const { components = Object.keys(this.components), force = false } = options;
 
-    // Check if installed
-    if (!(await this.isInstalled())) {
-      console.log(ansis.yellow("⚠ GitHub Copilot integration not installed"));
-      return;
-    }
-
-    // Ask for confirmation
+    // Check for non-TTY environment early (before other checks)
     if (!force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
@@ -314,6 +312,16 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
             "Use --force to skip confirmation and proceed with removal"
         );
       }
+    }
+
+    // Check if installed
+    if (!(await this.isInstalled())) {
+      console.log(ansis.yellow("⚠ GitHub Copilot integration not installed"));
+      return;
+    }
+
+    // Ask for confirmation
+    if (!force) {
       console.log(ansis.yellow("This will remove: " + components.join(", ")));
       const response = await confirm({
         message: "Continue?",
