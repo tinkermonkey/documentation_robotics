@@ -283,6 +283,36 @@ describe("Analyzer Subcommands Integration", () => {
       // Should use text format by default (may fail if not indexed)
       expect([0, 1, 2]).toContain(result.exitCode);
     });
+
+    it("should warn when both --json and --format flags are provided", async () => {
+      const result = await runDr([
+        "analyzer",
+        "verify",
+        "--json",
+        "--format",
+        "markdown",
+      ]);
+      // Should succeed (may fail if not indexed, but format conflict handling should work)
+      expect([0, 1, 2]).toContain(result.exitCode);
+      // Should emit conflicting-flag warning on stderr
+      const output = result.stderr;
+      expect(output).toContain("--json and --format");
+    });
+
+    it("should warn when --output has unrecognized file extension", async () => {
+      const outputFile = join(workdir.path, "verify-report.yaml");
+      const result = await runDr([
+        "analyzer",
+        "verify",
+        "--output",
+        outputFile,
+      ]);
+      // Should succeed (may fail if not indexed, but extension handling should work)
+      expect([0, 1, 2]).toContain(result.exitCode);
+      // Should emit unrecognized-extension warning on stderr
+      const output = result.stderr;
+      expect(output).toContain("Unrecognized file extension");
+    });
   });
 
   describe("endpoints subcommand", () => {

@@ -7,12 +7,14 @@ on:
     paths:
       - "cli/**"
       - "spec/**"
+      - "integrations/**"
       - ".github/workflows/cli-tests.yml"
   pull_request:
     branches: ["**"]
     paths:
       - "cli/**"
       - "spec/**"
+      - "integrations/**"
 
 jobs:
   build-and-smoke:
@@ -117,7 +119,7 @@ jobs:
 
       - name: Validate layer specifications (Markdown)
         run: |
-          markdownlint-cli2 "spec/layers/**/*.md" --config .markdownlint.json
+          markdownlint-cli2 "spec/layers/**/*.md" "integrations/**/*.md" --config .markdownlint.json
 
       - name: Validate schema files (JSON syntax)
         run: |

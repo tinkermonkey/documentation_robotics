@@ -1125,6 +1125,7 @@ Examples:
     .option("--layer <layer>", "Layer(s) to verify (can be used multiple times)", (value, previous: string[] | undefined) => {
       return previous ? [...previous, value] : [value];
     })
+    .option("--json", "Output as JSON")
     .option("--format <format>", "Output format: text, json, markdown (default: text)")
     .option("--output <path>", "Write report to file")
     .addHelpText(
@@ -1133,16 +1134,22 @@ Examples:
 Examples:
   $ dr analyzer verify                       # Verify api layer (default)
   $ dr analyzer verify --layer api           # Explicitly specify api layer
-  $ dr analyzer verify --format json         # Output as JSON to stdout
+  $ dr analyzer verify --json                # Output as JSON to stdout
   $ dr analyzer verify --format markdown     # Output as Markdown to stdout
   $ dr analyzer verify --output report.json  # Save report to file (format inferred as JSON)
   $ dr analyzer verify --output report.md    # Save report as Markdown`
     )
     .action(async (options) => {
       try {
-        // Determine output format from --format flag or --output file extension
+        // Determine output format from --json flag, --format flag, or --output file extension
         let format: "text" | "json" | "markdown" = "text";
-        if (options.format) {
+        if (options.json) {
+          // Warn if both --json and --format are provided
+          if (options.format) {
+            console.warn(ansis.yellow(`⚠ Both --json and --format "${options.format}" were provided. Using --json format (--format is ignored).`));
+          }
+          format = "json";
+        } else if (options.format) {
           const validFormats = ["text", "json", "markdown"];
           if (!validFormats.includes(options.format)) {
             throw new CLIError(
@@ -1157,6 +1164,9 @@ Examples:
             format = "json";
           } else if (ext === ".md") {
             format = "markdown";
+          } else if (ext) {
+            // Warn if file has unrecognized extension
+            console.warn(ansis.yellow(`⚠ Unrecognized file extension "${ext}" in --output. Using text format by default.`));
           }
         }
 

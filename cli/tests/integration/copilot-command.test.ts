@@ -5,13 +5,19 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { fileExists, readJSON } from "../../src/utils/file-io.js";
-import { createTempWorkdir, runDr as runDrHelper } from "../helpers/cli-runner.js";
-import { mkdir } from "node:fs/promises";
+import {
+  createTempWorkdir,
+  runDr as runDrHelper
+} from "../helpers/cli-runner.js";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import * as yaml from "yaml";
 import { readFile } from "node:fs/promises";
 
-let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
+let tempDir: { path: string; cleanup: () => Promise<void> } = {
+  path: "",
+  cleanup: async () => {}
+};
 
 /**
  * Wrapper around the cli-runner helper
@@ -57,7 +63,9 @@ describe("Copilot Integration Commands", () => {
       const result = await runDr("copilot", "install", "--force");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("GitHub Copilot integration installed successfully");
+      expect(result.stdout).toContain(
+        "GitHub Copilot integration installed successfully"
+      );
       expect(result.stdout).toContain("Installed");
       expect(result.stdout).toContain("files");
 
@@ -81,10 +89,17 @@ describe("Copilot Integration Commands", () => {
     });
 
     it("should support --agents-only flag", async () => {
-      const result = await runDr("copilot", "install", "--agents-only", "--force");
+      const result = await runDr(
+        "copilot",
+        "install",
+        "--agents-only",
+        "--force"
+      );
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("GitHub Copilot integration installed successfully");
+      expect(result.stdout).toContain(
+        "GitHub Copilot integration installed successfully"
+      );
 
       // Version file should exist with agents component entry
       const githubDir = join(tempDir.path, ".github");
@@ -95,7 +110,12 @@ describe("Copilot Integration Commands", () => {
     });
 
     it("should support --skills-only flag", async () => {
-      const result = await runDr("copilot", "install", "--skills-only", "--force");
+      const result = await runDr(
+        "copilot",
+        "install",
+        "--skills-only",
+        "--force"
+      );
 
       expect(result.exitCode).toBe(0);
 
@@ -107,7 +127,13 @@ describe("Copilot Integration Commands", () => {
     });
 
     it("should combine multiple component flags", async () => {
-      const result = await runDr("copilot", "install", "--agents-only", "--skills-only", "--force");
+      const result = await runDr(
+        "copilot",
+        "install",
+        "--agents-only",
+        "--skills-only",
+        "--force"
+      );
 
       expect(result.exitCode).toBe(0);
 
@@ -156,7 +182,9 @@ describe("Copilot Integration Commands", () => {
       const result = await runDr("copilot", "status");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("GitHub Copilot integration not installed");
+      expect(result.stdout).toContain(
+        "GitHub Copilot integration not installed"
+      );
       expect(result.stdout).toContain("dr copilot install");
     });
 
@@ -208,7 +236,9 @@ describe("Copilot Integration Commands", () => {
       const result = await runDr("copilot", "upgrade");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("GitHub Copilot integration not installed");
+      expect(result.stdout).toContain(
+        "GitHub Copilot integration not installed"
+      );
     });
 
     it("should support --dry-run flag", async () => {
@@ -262,7 +292,13 @@ describe("Copilot Integration Commands", () => {
     });
 
     it("should combine multiple removal flags", async () => {
-      const result = await runDr("copilot", "remove", "--agents", "--skills", "--force");
+      const result = await runDr(
+        "copilot",
+        "remove",
+        "--agents",
+        "--skills",
+        "--force"
+      );
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("successfully");
@@ -276,7 +312,9 @@ describe("Copilot Integration Commands", () => {
       const result = await runDr("copilot", "remove");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("GitHub Copilot integration not installed");
+      expect(result.stdout).toContain(
+        "GitHub Copilot integration not installed"
+      );
     });
   });
 
@@ -306,7 +344,12 @@ describe("Copilot Integration Commands", () => {
 
     it("should support component-specific workflow", async () => {
       // Install only agents
-      let result = await runDr("copilot", "install", "--agents-only", "--force");
+      let result = await runDr(
+        "copilot",
+        "install",
+        "--agents-only",
+        "--force"
+      );
       expect(result.exitCode).toBe(0);
 
       // Check status shows agents
@@ -317,6 +360,108 @@ describe("Copilot Integration Commands", () => {
       // Remove specific component
       result = await runDr("copilot", "remove", "--agents", "--force");
       expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe("Unknown component handling (regression test)", () => {
+    it("should gracefully handle unknown components in version file during upgrade", async () => {
+      // Install normally
+      let result = await runDr("copilot", "install", "--force");
+      expect(result.exitCode).toBe(0);
+
+      // Manually inject an unknown component into the version file
+      // This simulates a scenario where a component was removed in a CLI update
+      const versionFile = join(tempDir.path, ".github", ".dr-copilot-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Add a phantom component that no longer exists in the CLI registry
+      // The component entry simulates a removed integration
+      versionData.components.phantom_component = {};
+
+      // Write back the modified version file
+      const { writeFile } = await import("node:fs/promises");
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade should complete successfully (regression: used to crash on unknown components)
+      result = await runDr("copilot", "upgrade", "--force");
+
+      // Main assertion: upgrade must complete without crashing (exit code 0)
+      // This is the core requirement - the command should not throw an error when
+      // encountering an unknown component in the version file
+      expect(result.exitCode).toBe(0);
+
+      // Verify success - output should not indicate an error
+      expect(result.stderr).not.toContain("Error");
+
+      // CRITICAL: Assert the warning message is emitted
+      // This prevents silent swallowing of the warning in future changes
+      // Note: console.warn goes to stderr, so check both stdout and stderr
+      const output = result.stdout + result.stderr;
+      expect(output).toContain(
+        "Unknown component in version file: phantom_component. Skipping."
+      );
+    });
+  });
+
+  describe("Non-TTY error handling", () => {
+    it("should throw error when install requires confirmation in non-TTY without --force", async () => {
+      // First install with force to set up state
+      await runDr("copilot", "install", "--force");
+
+      // Try to install again without --force (requires confirmation)
+      // The test runner uses stdio: ["pipe", "pipe", "pipe"], which means non-TTY
+      const result = await runDr("copilot", "install");
+
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
+    });
+
+    it("should throw error when upgrade requires confirmation in non-TTY without --force", async () => {
+      // Install with force first
+      await runDr("copilot", "install", "--force");
+
+      // Modify version file to clear hash for a file to trigger "modified" change
+      // When hash is missing from version file but file exists in source,
+      // it's treated as a modification (upgrading from older version format)
+      const versionFile = join(tempDir.path, ".github", ".dr-copilot-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Remove recorded hash for a file to trigger "modified" change type
+      // This simulates upgrading from a version that didn't track this file's hash
+      // Copilot uses "agents" component (not "commands" like Claude)
+      if (versionData.components.agents) {
+        const agentFiles = Object.keys(versionData.components.agents);
+        if (agentFiles.length > 0) {
+          // Delete the hash entry for the first file
+          delete versionData.components.agents[agentFiles[0]];
+        }
+      }
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade without --force will detect the modification and require confirmation
+      const result = await runDr("copilot", "upgrade");
+
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
+    });
+
+    it("should throw error when remove requires confirmation in non-TTY without --force", async () => {
+      // Install first to have something to remove
+      await runDr("copilot", "install", "--force");
+
+      // Try to remove without --force (requires confirmation)
+      const result = await runDr("copilot", "remove");
+
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
     });
   });
 });

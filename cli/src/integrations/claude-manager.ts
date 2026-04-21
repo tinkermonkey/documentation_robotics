@@ -15,7 +15,7 @@
 import { BaseIntegrationManager } from "./base-manager.js";
 import { ComponentConfig } from "./types.js";
 import { findProjectRoot } from "../utils/project-paths.js";
-import { confirm, spinner } from "@clack/prompts";
+import { confirm, spinner, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
@@ -120,10 +120,19 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     // Check if already installed
     if (await this.isInstalled()) {
       if (!force) {
+        // Check for non-TTY only when we need confirmation
+        const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+        if (!isInteractive) {
+          throw new Error(
+            "Interactive confirmation is not available in non-TTY environments.\n" +
+              "Use --force to skip confirmation and proceed with installation"
+          );
+        }
+
         const response = await confirm({
           message: "Claude integration already installed. Overwrite?",
         });
-        if (!response) {
+        if (isCancel(response) || !response) {
           console.log(ansis.yellow("✗ Installation cancelled"));
           return;
         }
@@ -198,10 +207,30 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     // Check for updates
     let totalChanges = 0;
     const changes: Array<{ file: string; status: string; action: string }> = [];
+    const unknownComponents = new Set<string>();
 
-    for (const componentName of Object.keys(this.components)) {
+    // Only check components that are currently installed (have actual files in target directory)
+    for (const componentName of Object.keys(versionData.components || {})) {
+      const config = this.components[componentName];
+
+      // Track unknown components (e.g., if CLI was updated and a component was removed)
+      if (!config) {
+        unknownComponents.add(componentName);
+        console.warn(
+          ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
+        );
+        continue;
+      }
+
       // Skip non-tracked components (user-customizable)
       if (!this.isTrackedComponent(componentName)) {
+        continue;
+      }
+
+      const targetPath = join(this.targetDir, config.target);
+
+      // Only check components that have files in the target directory
+      if (!existsSync(targetPath)) {
         continue;
       }
 
@@ -267,12 +296,29 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       return;
     }
 
-    // Ask for confirmation
+    // Check if there are actual changes to apply (not just skipped changes)
+    const hasActualChanges = changes.some((c) => c.action !== "Skip");
+
+    // If no actual changes to apply, return early
+    if (!hasActualChanges) {
+      console.log(ansis.yellow("⚠ No changes to apply (all changes are skipped or conflicts)"));
+      return;
+    }
+
+    // Only ask for confirmation if there are real changes to apply
     if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with upgrade"
+        );
+      }
+
       const response = await confirm({
         message: "Apply upgrades?",
       });
-      if (!response) {
+      if (isCancel(response) || !response) {
         console.log(ansis.yellow("✗ Upgrade cancelled"));
         return;
       }
@@ -283,11 +329,30 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     spinnerObj.start("Applying upgrades...");
 
     try {
-      for (const componentName of Object.keys(this.components)) {
+      // Only upgrade components that are currently installed (have actual files)
+      for (const componentName of Object.keys(versionData.components || {})) {
+        // Skip unknown components silently (already warned during detection phase)
+        if (unknownComponents.has(componentName)) {
+          continue;
+        }
+
+        const config = this.components[componentName];
+        if (!config) {
+          continue;
+        }
+
         // Skip non-tracked components (user-customizable)
         if (!this.isTrackedComponent(componentName)) {
           continue;
         }
+
+        const targetPath = join(this.targetDir, config.target);
+
+        // Only upgrade components that have files in the target directory
+        if (!existsSync(targetPath)) {
+          continue;
+        }
+
         await this.installComponent(componentName, force);
       }
 
@@ -333,13 +398,21 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       return;
     }
 
-    // Ask for confirmation
+    // Ask for confirmation (check for non-TTY only when we need confirmation)
     if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with removal"
+        );
+      }
+
       console.log(ansis.yellow("This will remove: " + components.join(", ")));
       const response = await confirm({
         message: "Continue?",
       });
-      if (!response) {
+      if (isCancel(response) || !response) {
         console.log(ansis.yellow("✗ Removal cancelled"));
         return;
       }

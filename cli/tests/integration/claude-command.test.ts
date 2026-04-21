@@ -570,5 +570,277 @@ describe("Claude Integration Commands", () => {
       const hasAgentOs = trackedFiles.some((f) => f.includes("agent-os/"));
       expect(hasAgentOs).toBe(false);
     });
+
+    /**
+     * Test Case 6: DR-owned file conflict detection
+     * Verify that modifications to DR-owned files (like dr-map.md) are detected as conflicts
+     * and reported during upgrade without silently overwriting
+     */
+    it("should detect conflicts when user modifies DR-owned files", async () => {
+      // Setup: Install DR commands
+      await runDr("claude", "install", "--commands-only", "--force");
+
+      const claudeDir = join(tempDir.path, ".claude");
+      const commandsDir = join(claudeDir, "commands");
+      const drMapPath = join(commandsDir, "dr-map.md");
+
+      // Verify dr-map.md was installed
+      expect(await fileExists(drMapPath)).toBe(true);
+
+      // Simulate user modification: append custom content to dr-map.md
+      const originalContent = await readFile(drMapPath, "utf-8");
+      const modifiedContent = originalContent + "\n\n## User Custom Section\n\nUser added content";
+      await writeFile(drMapPath, modifiedContent);
+
+      // Action: Run upgrade to detect the change
+      const result = await runDr("claude", "upgrade", "--dry-run");
+      expect(result.exitCode).toBe(0);
+
+      // Verify: Output indicates conflict
+      expect(result.stdout).toContain("dr-map.md");
+      // Should mention "Modified" or "Conflict" status
+      expect(result.stdout.toLowerCase()).toMatch(/conflict|modified/);
+
+      // Verify: File was NOT overwritten (dry-run)
+      const fileAfterDryRun = await readFile(drMapPath, "utf-8");
+      expect(fileAfterDryRun).toBe(modifiedContent);
+    });
+
+    /**
+     * Test Case 7: Conflict prevention in real upgrade (no --force)
+     * Verify that conflicts are reported and not overwritten during actual upgrade
+     * when the file is not used with --force flag
+     */
+    it("should detect and prevent overwriting conflicts in actual upgrade", async () => {
+      // Setup: Install DR commands
+      await runDr("claude", "install", "--commands-only", "--force");
+
+      const claudeDir = join(tempDir.path, ".claude");
+      const commandsDir = join(claudeDir, "commands");
+      const drMapPath = join(commandsDir, "dr-map.md");
+
+      // Modify dr-map.md
+      const originalContent = await readFile(drMapPath, "utf-8");
+      const modifiedContent = originalContent + "\n\n## Custom Section\n\nUser content";
+      await writeFile(drMapPath, modifiedContent);
+
+      // Action: Run upgrade without --force (should detect conflict and refuse to overwrite)
+      const result = await runDr("claude", "upgrade");
+      expect(result.exitCode).toBe(0);
+
+      // Verify: Output mentions the conflict
+      expect(result.stdout.toLowerCase()).toMatch(/conflict|modified/);
+
+      // Verify: File was NOT overwritten during actual upgrade
+      const fileAfterUpgrade = await readFile(drMapPath, "utf-8");
+      expect(fileAfterUpgrade).toBe(modifiedContent);
+    });
+  });
+
+  describe("Unknown component handling (regression test)", () => {
+    it("should gracefully handle unknown components in version file during upgrade", async () => {
+      // Install normally
+      let result = await runDr("claude", "install", "--force");
+      expect(result.exitCode).toBe(0);
+
+      // Manually inject an unknown component into the version file
+      // This simulates a scenario where a component was removed in a CLI update
+      const versionFile = join(tempDir.path, ".claude", ".dr-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Add a phantom component that no longer exists in the CLI registry
+      // The component entry simulates a removed integration
+      versionData.components.phantom_component = {};
+
+      // Write back the modified version file
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade should complete successfully (regression: used to crash on unknown components)
+      result = await runDr("claude", "upgrade", "--force");
+
+      // Main assertion: upgrade must complete without crashing (exit code 0)
+      // This is the core requirement - the command should not throw an error when
+      // encountering an unknown component in the version file
+      expect(result.exitCode).toBe(0);
+
+      // Verify success - output should not indicate an error
+      expect(result.stderr).not.toContain("Error");
+
+      // CRITICAL: Assert the warning message is emitted
+      // This prevents silent swallowing of the warning in future changes
+      // Note: console.warn goes to stderr, so check both stdout and stderr
+      const output = result.stdout + result.stderr;
+      expect(output).toContain(
+        "Unknown component in version file: phantom_component. Skipping."
+      );
+    });
+  });
+
+  describe("Non-TTY error handling", () => {
+    it("should throw error when install requires confirmation in non-TTY without --force", async () => {
+      // First install with force to set up state
+      await runDr("claude", "install", "--force");
+
+      // Try to install again without --force (requires confirmation)
+      // The test runner uses stdio: ["pipe", "pipe", "pipe"], which means non-TTY
+      const result = await runDr("claude", "install");
+
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
+    });
+
+    it("should throw error when upgrade requires confirmation in non-TTY without --force", async () => {
+      // Install with force first
+      await runDr("claude", "install", "--force");
+
+      // Modify version file to clear hash for a file to trigger "modified" change
+      // When hash is missing from version file but file exists in source,
+      // it's treated as a modification (upgrading from older version format)
+      const versionFile = join(tempDir.path, ".claude", ".dr-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Remove recorded hash for a file to trigger "modified" change type
+      // This simulates upgrading from a version that didn't track this file's hash
+      if (versionData.components.commands) {
+        const commandFiles = Object.keys(versionData.components.commands);
+        if (commandFiles.length > 0) {
+          // Delete the hash entry for the first file
+          delete versionData.components.commands[commandFiles[0]];
+        }
+      }
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade without --force will detect the modification and require confirmation
+      const result = await runDr("claude", "upgrade");
+
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
+    });
+
+    it("should throw error when remove requires confirmation in non-TTY without --force", async () => {
+      // Install first to have something to remove
+      await runDr("claude", "install", "--force");
+
+      // Try to remove without --force (requires confirmation)
+      const result = await runDr("claude", "remove");
+
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
+    });
+  });
+
+  describe("Asset Pipeline Discovery", () => {
+    /**
+     * Verify all four new artifacts are discovered and installed correctly
+     * Tests the asset pipeline discovery mechanism:
+     * - dr-verify.md discovered by "commands" component with dr-* prefix filter
+     * - dr-map.md discovered by "commands" component with dr-* prefix filter
+     * - dr-extractor.md discovered by "agents" component with dr-* prefix filter
+     * - dr_codebase_memory/SKILL.md discovered by "skills" component with type: "dirs"
+     */
+    it("should install and track all four artifacts during fresh install", async () => {
+      // Action: Fresh install of all components
+      const result = await runDr("claude", "install", "--force");
+      expect(result.exitCode).toBe(0);
+
+      const claudeDir = join(tempDir.path, ".claude");
+      const versionFile = join(claudeDir, ".dr-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Verify the four key artifacts are tracked in version file:
+      // 1. dr-verify.md (new command, discovered by dr-* prefix)
+      expect(versionData.components.commands).toBeDefined();
+      expect(versionData.components.commands["dr-verify.md"]).toBeDefined();
+      expect(versionData.components.commands["dr-verify.md"].hash).toBeDefined();
+
+      // 2. dr-map.md (modified command, discovered by dr-* prefix)
+      expect(versionData.components.commands["dr-map.md"]).toBeDefined();
+      expect(versionData.components.commands["dr-map.md"].hash).toBeDefined();
+
+      // 3. dr-extractor.md (new agent, discovered by dr-* prefix)
+      expect(versionData.components.agents).toBeDefined();
+      expect(versionData.components.agents["dr-extractor.md"]).toBeDefined();
+      expect(versionData.components.agents["dr-extractor.md"].hash).toBeDefined();
+
+      // 4. dr_codebase_memory/SKILL.md (new skill, discovered by type: "dirs")
+      expect(versionData.components.skills).toBeDefined();
+      expect(versionData.components.skills["dr_codebase_memory/SKILL.md"]).toBeDefined();
+      expect(versionData.components.skills["dr_codebase_memory/SKILL.md"].hash).toBeDefined();
+
+      // Verify files physically exist in .claude directory
+      expect(await fileExists(join(claudeDir, "commands", "dr-verify.md"))).toBe(true);
+      expect(await fileExists(join(claudeDir, "commands", "dr-map.md"))).toBe(true);
+      expect(await fileExists(join(claudeDir, "agents", "dr-extractor.md"))).toBe(true);
+      expect(await fileExists(join(claudeDir, "skills", "dr_codebase_memory", "SKILL.md"))).toBe(
+        true
+      );
+    });
+
+    /**
+     * Verify auto-discovery works without manifest or TypeScript changes
+     * The discovery mechanism automatically finds artifacts via:
+     * - prefix filter (dr-*.md) for commands and agents
+     * - type: "dirs" for skills
+     * No code changes or manifest edits are needed
+     */
+    it("should auto-discover artifacts via existing component filters", async () => {
+      // Action: Fresh install using only commands and agents components
+      const result = await runDr(
+        "claude",
+        "install",
+        "--commands-only",
+        "--agents-only",
+        "--force"
+      );
+      expect(result.exitCode).toBe(0);
+
+      const claudeDir = join(tempDir.path, ".claude");
+      const versionFile = join(claudeDir, ".dr-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Both dr-verify.md and dr-map.md should be discovered by the dr-* prefix filter
+      // without any manifest changes or TypeScript code updates
+      expect(versionData.components.commands["dr-verify.md"]).toBeDefined();
+      expect(versionData.components.commands["dr-map.md"]).toBeDefined();
+
+      // dr-extractor.md should be discovered by the dr-* prefix filter in agents component
+      expect(versionData.components.agents["dr-extractor.md"]).toBeDefined();
+    });
+
+    /**
+     * Verify skills directory discovery works correctly
+     * The skills component uses type: "dirs" to discover skill subdirectories,
+     * which allows dr_codebase_memory/ to be auto-discovered without code changes
+     */
+    it("should auto-discover skills directories without code changes", async () => {
+      // Action: Install only skills component
+      const result = await runDr("claude", "install", "--skills-only", "--force");
+      expect(result.exitCode).toBe(0);
+
+      const claudeDir = join(tempDir.path, ".claude");
+      const versionFile = join(claudeDir, ".dr-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // The dr_codebase_memory skill should be discovered via type: "dirs"
+      // without requiring any code changes to the component configuration
+      expect(versionData.components.skills).toBeDefined();
+      expect(versionData.components.skills["dr_codebase_memory/SKILL.md"]).toBeDefined();
+
+      // Verify the skill file exists
+      expect(
+        await fileExists(join(claudeDir, "skills", "dr_codebase_memory", "SKILL.md"))
+      ).toBe(true);
+    });
   });
 });
