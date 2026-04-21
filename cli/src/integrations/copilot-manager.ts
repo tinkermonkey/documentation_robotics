@@ -240,8 +240,10 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     if (!force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
-        console.log(ansis.yellow("\n✗ Upgrade cancelled (non-interactive mode - use --force to apply)"));
-        return;
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with upgrade"
+        );
       }
       const response = await confirm({
         message: "Apply upgrades?",
