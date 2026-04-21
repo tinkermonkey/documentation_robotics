@@ -70,7 +70,7 @@ To enable code verification:
 
 Then exit cleanly (no error).
 
-**Scenario 3: Analyzer installed but not indexed (detected.installed: true, index.stale: null or index missing)**
+**Scenario 3: Analyzer installed but not indexed (detected.installed: true, indexed: false)**
 
 ```
 Analyzer is installed but the project has not been indexed yet.
@@ -90,7 +90,7 @@ If user selects [y]: Run `dr analyzer index`, then proceed to Step 2.
 
 If user selects [n]: Exit cleanly (no error).
 
-**Scenario 4: Analyzer active and indexed (detected.installed: true, index.stale: true or false)**
+**Scenario 4: Analyzer active and indexed (detected.installed: true, indexed: true)**
 
 Proceed to Step 2.
 
@@ -99,14 +99,14 @@ Proceed to Step 2.
 **When analyzer is active, check freshness:**
 
 ```bash
-dr analyzer status --json | jq '.index.stale'
+dr analyzer status --json | jq '.fresh'
 ```
 
-**If index.stale: false**
+**If fresh: true**
 
 Proceed to Step 3.
 
-**If index.stale: true (stale index)**
+**If fresh: false (stale index)**
 
 Show freshness warning and ask for confirmation:
 
