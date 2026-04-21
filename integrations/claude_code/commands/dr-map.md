@@ -360,7 +360,7 @@ If the analyzer was active during Step 3, the following files contain pre-analys
 
 2. **Services and Datastores (Suggestions):** Use the services and datastores summaries as suggestions, but rely on code inspection as your primary signal. Verify each candidate against actual code before creating elements.
 
-3. **Source Preservation:** For all elements you create from analyzer pre-briefs, **preserve the exact `source_file`, `source_symbol`, and `source_start_line` values** from the brief in your `dr add` commands. These fields are mandatory for traceability.
+3. **Source Preservation:** For all elements you create from analyzer pre-briefs, **preserve the exact `source_file` and `source_symbol` values** from the brief in your `dr add` commands. Use `source_start_line` as navigational context to locate the correct part of the file, but do not pass it as a CLI flag (no `--source-start-line` parameter exists). These source file and symbol fields are mandatory for traceability.
 
 **Your Task:**
 1. Analyze the codebase structure
@@ -614,10 +614,10 @@ Analyzer Verification Results
 
 Recommendation:
   - If many missed candidates: Review the analyzer brief and consider a second pass
-  - If significant false positives: Run /dr-verify for full reconciliation
+  - If few missed candidates and false positives: Run /dr-verify for full reconciliation
 ```
 
-**If there are many missed candidates or false positives**, offer:
+**If the list is manageable (few missed candidates and false positives)**, offer:
 
 ```
 Would you like to:
