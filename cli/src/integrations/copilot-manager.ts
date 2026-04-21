@@ -75,17 +75,6 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     const { components = Object.keys(this.components), force = false } = options;
 
-    // Check for non-TTY environment early (before other checks)
-    if (!force) {
-      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
-      if (!isInteractive) {
-        throw new Error(
-          "Interactive confirmation is not available in non-TTY environments.\n" +
-            "Use --force to skip confirmation and proceed with installation"
-        );
-      }
-    }
-
     // Validate components
     const invalid = components.filter((c) => !this.components[c]);
     if (invalid.length > 0) {
@@ -98,6 +87,15 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Check if already installed
     if (await this.isInstalled()) {
       if (!force) {
+        // Check for non-TTY only when we need confirmation
+        const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+        if (!isInteractive) {
+          throw new Error(
+            "Interactive confirmation is not available in non-TTY environments.\n" +
+              "Use --force to skip confirmation and proceed with installation"
+          );
+        }
+
         const response = await confirm({
           message: "GitHub Copilot integration already installed. Overwrite?",
         });
@@ -160,17 +158,6 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     const { dryRun = false, force = false } = options;
 
-    // Check for non-TTY environment early (before other checks)
-    if (!force) {
-      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
-      if (!isInteractive) {
-        throw new Error(
-          "Interactive confirmation is not available in non-TTY environments.\n" +
-            "Use --force to skip confirmation and proceed with upgrade"
-        );
-      }
-    }
-
     // Check if installed
     if (!(await this.isInstalled())) {
       console.log(ansis.yellow("⚠ GitHub Copilot integration not installed"));
@@ -188,7 +175,16 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     let totalChanges = 0;
     const changes: Array<{ file: string; status: string; action: string }> = [];
 
-    for (const componentName of Object.keys(this.components)) {
+    // Only check components that are currently installed (have actual files in target directory)
+    for (const componentName of Object.keys(versionData.components || {})) {
+      const config = this.components[componentName];
+      const targetPath = join(this.targetDir, config.target);
+
+      // Only check components that have files in the target directory
+      if (!existsSync(targetPath)) {
+        continue;
+      }
+
       const componentChanges = await this.checkUpdates(componentName, versionData);
 
       for (const change of componentChanges) {
@@ -251,8 +247,19 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       return;
     }
 
-    // Ask for confirmation
-    if (!force) {
+    // Check if there are actual changes to apply (not just skipped changes)
+    const hasActualChanges = changes.some((c) => c.action !== "Skip");
+
+    // Only ask for confirmation if there are real changes to apply
+    if (hasActualChanges && !force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with upgrade"
+        );
+      }
+
       const response = await confirm({
         message: "Apply upgrades?",
       });
@@ -267,7 +274,16 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     spinnerObj.start("Applying upgrades...");
 
     try {
-      for (const componentName of Object.keys(this.components)) {
+      // Only upgrade components that are currently installed (have actual files)
+      for (const componentName of Object.keys(versionData.components || {})) {
+        const config = this.components[componentName];
+        const targetPath = join(this.targetDir, config.target);
+
+        // Only upgrade components that have files in the target directory
+        if (!existsSync(targetPath)) {
+          continue;
+        }
+
         await this.installComponent(componentName, force);
       }
 
@@ -307,7 +323,13 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     const { components = Object.keys(this.components), force = false } = options;
 
-    // Check for non-TTY environment early (before other checks)
+    // Check if installed
+    if (!(await this.isInstalled())) {
+      console.log(ansis.yellow("⚠ GitHub Copilot integration not installed"));
+      return;
+    }
+
+    // Ask for confirmation (check for non-TTY only when we need confirmation)
     if (!force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
@@ -316,16 +338,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
             "Use --force to skip confirmation and proceed with removal"
         );
       }
-    }
 
-    // Check if installed
-    if (!(await this.isInstalled())) {
-      console.log(ansis.yellow("⚠ GitHub Copilot integration not installed"));
-      return;
-    }
-
-    // Ask for confirmation
-    if (!force) {
       console.log(ansis.yellow("This will remove: " + components.join(", ")));
       const response = await confirm({
         message: "Continue?",
