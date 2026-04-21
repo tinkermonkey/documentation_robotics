@@ -654,8 +654,7 @@ describe("Claude Integration Commands", () => {
       versionData.components.phantom_component = {};
 
       // Write back the modified version file
-      const { writeFile: writeFileFs } = await import("node:fs/promises");
-      await writeFileFs(versionFile, yaml.stringify(versionData), "utf-8");
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
 
       // Upgrade should complete successfully (regression: used to crash on unknown components)
       result = await runDr("claude", "upgrade", "--force");
@@ -697,23 +696,31 @@ describe("Claude Integration Commands", () => {
       // Install with force first
       await runDr("claude", "install", "--force");
 
-      // Modify version file to trigger upgrade changes
+      // Modify version file to clear hash for a file to trigger "modified" change
+      // When hash is missing from version file but file exists in source,
+      // it's treated as a modification (upgrading from older version format)
       const versionFile = join(tempDir.path, ".claude", ".dr-version");
       const content = await readFile(versionFile, "utf-8");
       const versionData = yaml.parse(content);
-      // Add unknown component to trigger warning (which still exits code 0 for no changes)
-      versionData.components.phantom_component = {};
-      const { writeFile: writeFileFs } = await import("node:fs/promises");
-      await writeFileFs(versionFile, yaml.stringify(versionData), "utf-8");
 
-      // Upgrade without --force when not all files are up to date
-      // Note: This specific scenario may exit 0 if no actual changes to apply
-      // The actual error occurs during install when re-prompting, so test that path instead
+      // Remove recorded hash for a file to trigger "modified" change type
+      // This simulates upgrading from a version that didn't track this file's hash
+      if (versionData.components.commands) {
+        const commandFiles = Object.keys(versionData.components.commands);
+        if (commandFiles.length > 0) {
+          // Delete the hash entry for the first file
+          delete versionData.components.commands[commandFiles[0]];
+        }
+      }
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade without --force will detect the modification and require confirmation
       const result = await runDr("claude", "upgrade");
 
-      // If we get past the no-changes early return, should eventually prompt
-      // This test documents the expected behavior even if specific scenario doesn't trigger it
-      expect(result.exitCode >= 0).toBe(true);
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
     });
 
     it("should throw error when remove requires confirmation in non-TTY without --force", async () => {

@@ -9,7 +9,7 @@ import {
   createTempWorkdir,
   runDr as runDrHelper
 } from "../helpers/cli-runner.js";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import * as yaml from "yaml";
 import { readFile } from "node:fs/promises";
@@ -423,23 +423,32 @@ describe("Copilot Integration Commands", () => {
       // Install with force first
       await runDr("copilot", "install", "--force");
 
-      // Modify version file to trigger upgrade changes
+      // Modify version file to clear hash for a file to trigger "modified" change
+      // When hash is missing from version file but file exists in source,
+      // it's treated as a modification (upgrading from older version format)
       const versionFile = join(tempDir.path, ".github", ".dr-copilot-version");
       const content = await readFile(versionFile, "utf-8");
       const versionData = yaml.parse(content);
-      // Add unknown component to trigger warning (which still exits code 0 for no changes)
-      versionData.components.phantom_component = {};
-      const { writeFile: writeFileFs } = await import("node:fs/promises");
-      await writeFileFs(versionFile, yaml.stringify(versionData), "utf-8");
 
-      // Upgrade without --force when not all files are up to date
-      // Note: This specific scenario may exit 0 if no actual changes to apply
-      // The actual error occurs during install when re-prompting, so test that path instead
+      // Remove recorded hash for a file to trigger "modified" change type
+      // This simulates upgrading from a version that didn't track this file's hash
+      // Copilot uses "agents" component (not "commands" like Claude)
+      if (versionData.components.agents) {
+        const agentFiles = Object.keys(versionData.components.agents);
+        if (agentFiles.length > 0) {
+          // Delete the hash entry for the first file
+          delete versionData.components.agents[agentFiles[0]];
+        }
+      }
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade without --force will detect the modification and require confirmation
       const result = await runDr("copilot", "upgrade");
 
-      // If we get past the no-changes early return, should eventually prompt
-      // This test documents the expected behavior even if specific scenario doesn't trigger it
-      expect(result.exitCode >= 0).toBe(true);
+      // In non-TTY without --force, should fail with proper error message
+      expect(result.exitCode).toBeGreaterThan(0);
+      expect(result.stderr).toContain("Interactive confirmation is not available");
+      expect(result.stderr).toContain("Use --force");
     });
 
     it("should throw error when remove requires confirmation in non-TTY without --force", async () => {
