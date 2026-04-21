@@ -90,7 +90,7 @@ If user selects [y]: Run `dr analyzer index`, then proceed to Step 2.
 
 If user selects [n]: Exit cleanly (no error).
 
-**Scenario 4: Analyzer active and indexed (detected.installed: true, index.stale: false)**
+**Scenario 4: Analyzer active and indexed (detected.installed: true, index.stale: true or false)**
 
 Proceed to Step 2.
 
