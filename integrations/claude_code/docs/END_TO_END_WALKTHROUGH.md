@@ -26,16 +26,32 @@ This guide walks through the complete Documentation Robotics (DR) workflow: from
                      │
                      ▼
         ┌────────────────────────────────────────────┐
-        │ 2. Discover & Setup Code Analyzer         │
-        │    dr analyzer discover                    │
-        │    dr analyzer index                       │
+        │ 2. Choose Your Workflow Path               │
         └────────────┬───────────────────────────────┘
                      │
-                     ▼
+        ┌────────────┴────────────┐
+        │                         │
+        ▼                         ▼
+   ┌─────────────┐        ┌──────────────────────┐
+   │ Option A    │        │ Option B              │
+   │ (w/ Analyzer)        │ (Skip Analyzer)      │
+   │             │        │                      │
+   │ dr analyzer │        │ Skip to Step 3      │
+   │ discover    │        │                      │
+   │ dr analyzer │        │ • Faster setup       │
+   │ index       │        │ • Manual control     │
+   │             │        │                      │
+   │ • Enables   │        │ • No /dr-verify      │
+   │   /dr-verify         │   until added later  │
+   └────────────┬┘        └──────────────┬───────┘
+                │                       │
+                └───────────┬───────────┘
+                            │
+                            ▼
         ┌─────────────────────────────────────────────────────┐
         │ 3. Extract Architecture Model from Codebase        │
         │    /dr-map <path> [--layers] [--tech]              │
-        │    • Consumes pre-briefs from analyzer              │
+        │    • Consumes pre-briefs from analyzer (if present) │
         │    • Creates elements with source provenance        │
         │    • Wires cross-layer references                   │
         │    • Validates extracted model                      │
@@ -43,7 +59,7 @@ This guide walks through the complete Documentation Robotics (DR) workflow: from
                      │
                      ▼
         ┌─────────────────────────────────────────────────────┐
-        │ 4. Verify Model Against Code Analyzer              │
+        │ 4. Verify Model (if analyzer available)             │
         │    /dr-verify [--layer <layer>]                     │
         │    • Reports matched elements ✓                     │
         │    • Shows suspected gaps (graph-only) ⚠            │
@@ -101,9 +117,15 @@ dr init my-awesome-api
 
 ---
 
-## Step 2: Discover and Setup a Code Analyzer
+## Step 2: Choose Your Workflow Path
 
-### 2a: Discover Available Analyzers
+At this point, you have two options for how to proceed:
+
+### Option A: With Code Analyzer (Recommended for Verification)
+
+If you want to verify extracted elements against your codebase, set up an analyzer and index your code:
+
+#### Discover Available Analyzers
 
 **What this does:** Shows available code analyzers that can scan your codebase and build a code graph for verification.
 
@@ -142,7 +164,7 @@ Available Code Analyzers
 
 If you select [y], the analyzer is installed and ready.
 
-### 2b: Index Your Codebase
+#### Index Your Codebase
 
 **What this does:** Scans your codebase and builds an indexed code graph for later verification.
 
@@ -182,30 +204,17 @@ Ready for extraction with /dr-map
 - Pre-briefs are generated — summaries that `/dr-map` will consume during extraction
 - The index is saved locally; you can verify freshness before running `/dr-verify`
 
+**Then proceed to Step 3** with the analyzer installed. This enables `/dr-verify` for gap and drift detection.
+
 ---
-
-## Step 2b: Choose Your Path (Analyzer or No-Analyzer)
-
-At this point, you have two options:
-
-### Option A: With Code Analyzer (Recommended for Verification)
-
-If you want to verify extracted elements against your codebase:
-
-```bash
-dr analyzer discover      # Select an analyzer
-dr analyzer index         # Index your codebase
-```
-
-Then proceed to Step 3 with the analyzer installed. This enables `/dr-verify` for gap and drift detection.
 
 ### Option B: Without Code Analyzer (Faster, Manual-First Approach)
 
-If you prefer to build your model without code analysis, **skip the analyzer setup entirely**:
+If you prefer to build your model without code analysis, **skip the analyzer setup entirely** and go straight to Step 3:
 
 ```bash
 # Skip dr analyzer discover and dr analyzer index
-# Go straight to Step 3
+# Go directly to Step 3: /dr-map
 ```
 
 **When to use this path:**
@@ -215,16 +224,16 @@ If you prefer to build your model without code analysis, **skip the analyzer set
 - You want to iterate quickly without indexing overhead
 - You'll add an analyzer later if needed
 
-**Tradeoff:**
+**Tradeoffs:**
 
-- ❌ You won't have `/dr-verify` until you add an analyzer
+- ❌ You won't have `/dr-verify` until you add an analyzer later
 - ❌ No automated gap/drift detection
 - ✅ Faster initial setup (no indexing wait)
 - ✅ Full manual control over model creation
 
 **Adding an analyzer later:**
 
-If you decide later that you want verification, you can add an analyzer at any time:
+If you decide later that you want verification capabilities, you can add an analyzer at any time:
 
 ```bash
 dr analyzer discover      # Install analyzer
@@ -427,6 +436,8 @@ Source Reference:
 ---
 
 ## Step 4: Verify Model Against Code with `/dr-verify`
+
+**⚠️ This step only applies if you chose Option A (with Code Analyzer) in Step 2.** If you chose Option B (no analyzer), skip to Step 5 or refer to [Adding an analyzer later](#option-b-without-code-analyzer-faster-manual-first-approach) for instructions on adding verification capability.
 
 **What this does:** Cross-references your extracted model against the code analyzer's index and reports on alignment. Shows what's matched, what's missing (gaps), and what's out of sync (drift).
 
