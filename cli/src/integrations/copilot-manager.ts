@@ -293,6 +293,9 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
         }
 
         const config = this.components[componentName];
+        if (!config) {
+          continue;
+        }
 
         const targetPath = join(this.targetDir, config.target);
 

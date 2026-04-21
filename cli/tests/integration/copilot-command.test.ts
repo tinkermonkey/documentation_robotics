@@ -345,8 +345,11 @@ describe("Copilot Integration Commands", () => {
 
       // Main check: upgrade must complete without crashing (exit code 0)
       expect(result.exitCode).toBe(0);
-      // Verify success message is present
-      expect(result.stdout).toContain("Upgrade completed successfully");
+      // Verify success message is present - should either show upgrades completed or that files are up to date
+      expect(
+        result.stdout.includes("Upgrade completed successfully") ||
+          result.stdout.includes("All files are up to date")
+      ).toBe(true);
     });
   });
 });
