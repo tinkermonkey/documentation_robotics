@@ -89,11 +89,6 @@ dr init my-awesome-api
 
 ```
 ✓ Model initialized: my-awesome-api
-  Location: documentation-robotics/model/
-  Manifest: documentation-robotics/model/manifest.yaml
-
-Ready to extract architecture!
-  Next: dr analyzer discover
 ```
 
 **What was created:**
@@ -101,6 +96,8 @@ Ready to extract architecture!
 - `documentation-robotics/model/manifest.yaml` — Project metadata
 - `documentation-robotics/model/{NN}_{layer-name}/` — Empty layer directories for all 12 layers (e.g., `01_motivation/`, `02_business/`, ..., `12_testing/`)
 - `.dr/` — Local DR configuration directory
+
+(Use `--verbose` to see additional details about the model setup)
 
 ---
 
@@ -184,6 +181,56 @@ Ready for extraction with /dr-map
 - Your codebase is scanned for architectural elements (endpoints, services, data models)
 - Pre-briefs are generated — summaries that `/dr-map` will consume during extraction
 - The index is saved locally; you can verify freshness before running `/dr-verify`
+
+---
+
+## Step 2b: Choose Your Path (Analyzer or No-Analyzer)
+
+At this point, you have two options:
+
+### Option A: With Code Analyzer (Recommended for Verification)
+
+If you want to verify extracted elements against your codebase:
+
+```bash
+dr analyzer discover      # Select an analyzer
+dr analyzer index         # Index your codebase
+```
+
+Then proceed to Step 3 with the analyzer installed. This enables `/dr-verify` for gap and drift detection.
+
+### Option B: Without Code Analyzer (Faster, Manual-First Approach)
+
+If you prefer to build your model without code analysis, **skip the analyzer setup entirely**:
+
+```bash
+# Skip dr analyzer discover and dr analyzer index
+# Go straight to Step 3
+```
+
+**When to use this path:**
+
+- You prefer to manually define your architecture model
+- Your codebase is small and doesn't need systematic verification
+- You want to iterate quickly without indexing overhead
+- You'll add an analyzer later if needed
+
+**Tradeoff:**
+
+- ❌ You won't have `/dr-verify` until you add an analyzer
+- ❌ No automated gap/drift detection
+- ✅ Faster initial setup (no indexing wait)
+- ✅ Full manual control over model creation
+
+**Adding an analyzer later:**
+
+If you decide later that you want verification, you can add an analyzer at any time:
+
+```bash
+dr analyzer discover      # Install analyzer
+dr analyzer index         # Index your code
+/dr-verify                # Now verification is available
+```
 
 ---
 

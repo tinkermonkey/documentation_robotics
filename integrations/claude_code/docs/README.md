@@ -151,7 +151,11 @@ integrations/claude_code/
 │   ├── dr-validate.md          ← Validate model
 │   ├── dr-model.md             ← Edit elements
 │   ├── dr-init.md              ← Initialize model
-│   └── ... (30+ command docs)
+│   ├── dr-sync.md              ← Sync with code changes
+│   ├── dr-design.md            ← Design elements
+│   ├── dr-info.md              ← Get model information
+│   ├── dr-changeset.md         ← Manage changesets
+│   └── dr-relate.md            ← Establish relationships
 │
 ├── skills/                      ← Specialized knowledge modules
 │   ├── dr_codebase_memory/
