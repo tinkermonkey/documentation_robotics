@@ -1144,6 +1144,10 @@ Examples:
         // Determine output format from --json flag, --format flag, or --output file extension
         let format: "text" | "json" | "markdown" = "text";
         if (options.json) {
+          // Warn if both --json and --format are provided
+          if (options.format) {
+            console.warn(ansis.yellow(`⚠ Both --json and --format "${options.format}" were provided. Using --json format (--format is ignored).`));
+          }
           format = "json";
         } else if (options.format) {
           const validFormats = ["text", "json", "markdown"];
@@ -1160,6 +1164,9 @@ Examples:
             format = "json";
           } else if (ext === ".md") {
             format = "markdown";
+          } else if (ext) {
+            // Warn if file has unrecognized extension
+            console.warn(ansis.yellow(`⚠ Unrecognized file extension "${ext}" in --output. Using text format by default.`));
           }
         }
 
