@@ -87,6 +87,13 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Check if already installed
     if (await this.isInstalled()) {
       if (!force) {
+        const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+        if (!isInteractive) {
+          throw new Error(
+            "Interactive confirmation is not available in non-TTY environments.\n" +
+              "Use --force to skip confirmation and proceed with installation"
+          );
+        }
         const response = await confirm({
           message: "GitHub Copilot integration already installed. Overwrite?",
         });
@@ -231,6 +238,11 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     // Ask for confirmation
     if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        console.log(ansis.yellow("\n✗ Upgrade cancelled (non-interactive mode - use --force to apply)"));
+        return;
+      }
       const response = await confirm({
         message: "Apply upgrades?",
       });
@@ -293,6 +305,13 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     // Ask for confirmation
     if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with removal"
+        );
+      }
       console.log(ansis.yellow("This will remove: " + components.join(", ")));
       const response = await confirm({
         message: "Continue?",
