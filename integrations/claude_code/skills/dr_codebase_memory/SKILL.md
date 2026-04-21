@@ -326,7 +326,7 @@ dr analyzer query "MATCH (fn:Function) WHERE fn.name CONTAINS 'payment' RETURN f
 **Example:**
 
 ```bash
-dr analyzer verify --format json
+dr analyzer verify --json
 ```
 
 **Output includes:**
@@ -507,7 +507,7 @@ When summarizing verify output to the user:
 **Assistant:** Let me verify...
 
 ```bash
-dr analyzer verify --format json
+dr analyzer verify --json
 ```
 
 **Result (in JSON):**

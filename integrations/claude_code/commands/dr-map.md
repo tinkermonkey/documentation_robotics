@@ -590,7 +590,7 @@ This step only runs if the analyzer was active in Step 3.
 If analyzer was active, run the verification:
 
 ```bash
-dr analyzer verify --layer api --format json 2>/dev/null
+dr analyzer verify --layer api --json 2>/dev/null
 ```
 
 Parse the JSON output and present three categories:

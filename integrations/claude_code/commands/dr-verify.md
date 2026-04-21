@@ -137,7 +137,7 @@ Proceed to Step 3.
 **Run verification against api layer (v1 scope):**
 
 ```bash
-dr analyzer verify --layer api --format json
+dr analyzer verify --layer api --json
 ```
 
 **Parse JSON output** — it contains the `VerifyReport` structure:
@@ -229,15 +229,22 @@ Would you like to create a changeset before adding entries?
 
 If user selects [y]: Create the changeset and activate it before proceeding.
 
-Show the command and offer to run it:
+Show the commands and offer to run them:
+
+```bash
+dr changeset create "verify-<timestamp>"
+dr changeset activate "verify-<timestamp>"
+```
+
+Present options:
 
 ```
-[r] Run this command
+[r] Run these commands
 [e] Edit and run
 [c] Cancel
 ```
 
-If user selects [r]: execute the command and show result.
+If user selects [r]: execute the commands and show result.
 
 **If user selects [i] (ignore):**
 
@@ -383,7 +390,7 @@ User: /dr-verify --output verify.json
 
 You: Generating verification report...
 
-     dr analyzer verify --layer api --format json --output verify.json
+     dr analyzer verify --layer api --json --output verify.json
 
      ✓ Report written to: verify.json
 
@@ -406,7 +413,7 @@ You: Generating verification report...
 **User can specify analyzer by name:**
 
 ```bash
-dr analyzer verify --name cbm --layer api --format json
+dr analyzer verify --name cbm --layer api --json
 ```
 
 If the analyzer is not installed, the command fails cleanly:
