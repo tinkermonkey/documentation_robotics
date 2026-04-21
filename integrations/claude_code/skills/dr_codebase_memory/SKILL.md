@@ -1,9 +1,10 @@
 ---
 name: DR_CODEBASE_MEMORY
-description: Expert knowledge for using dr analyzer subcommands to understand codebase structure and verify model alignment
+description: Graph-based code intelligence for using dr analyzer subcommands to understand codebase structure, discover elements, and verify model alignment
 triggers:
   [
     "what endpoints exist",
+    "endpoints",
     "what calls",
     "call graph",
     "is the model complete",
@@ -12,7 +13,7 @@ triggers:
     "codebase memory",
     "reindex",
     "freshness",
-    "structure codebase question",
+    "code structure",
     "extract workflows",
     "code changes verification"
   ]
@@ -22,7 +23,7 @@ version: 0.1.3
 # Codebase Memory Skill
 
 **Scope:** CLI version 0.1.3
-**Purpose:** Teaches agents when and how to use `dr analyzer` subcommands rather than running grep+Read loops to understand codebase structure.
+**Purpose:** Teaches agents when and how to use `dr analyzer` subcommands for graph-based code intelligence rather than running grep+Read loops to understand codebase structure.
 
 ---
 
@@ -41,11 +42,39 @@ This skill activates when:
 
 ## Core Commands
 
-The `dr analyzer` surface provides seven subcommands for codebase discovery and verification. Each has a specific purpose and confidence level:
+The `dr analyzer` surface provides ten subcommands for codebase discovery and verification. Each has a specific purpose and confidence level:
 
-### 1. `dr analyzer status`
+### 1. `dr analyzer discover`
 
-**Purpose:** Probe analyzer state before any other query.
+**Purpose:** Scan for installed analyzers and select the active analyzer.
+
+**What it does:**
+
+- Detects which analyzers are installed and available on the system
+- Prompts for selection if multiple analyzers are found
+- Persists the selected analyzer to session state for subsequent commands
+- Can force re-selection with `--reselect` flag
+
+**Confidence:** Medium — Use to **bootstrap analyzer selection** before other commands
+
+**Example:**
+
+```bash
+dr analyzer discover
+dr analyzer discover --reselect         # Force new selection
+```
+
+**Use when:**
+
+- User wants to see what analyzers are available
+- No analyzer is currently selected
+- User wants to switch to a different analyzer
+
+---
+
+### 2. `dr analyzer status`
+
+**Purpose:** Probe analyzer state and project index freshness before any other query.
 
 **What it does:**
 
@@ -70,7 +99,7 @@ dr analyzer status
 
 ---
 
-### 2. `dr analyzer index`
+### 3. `dr analyzer index`
 
 **Purpose:** Index the project codebase with the active analyzer.
 
@@ -97,7 +126,7 @@ dr analyzer index
 
 ---
 
-### 3. `dr analyzer endpoints`
+### 4. `dr analyzer endpoints`
 
 **Purpose:** List all API endpoints discovered in the indexed project.
 
@@ -123,7 +152,7 @@ dr analyzer endpoints
 
 ---
 
-### 4. `dr analyzer services`
+### 5. `dr analyzer services`
 
 **Purpose:** Query for services/components in the indexed project.
 
@@ -154,7 +183,7 @@ dr analyzer services
 
 ---
 
-### 5. `dr analyzer datastores`
+### 6. `dr analyzer datastores`
 
 **Purpose:** Identify database schemas and data storage patterns inferred from code.
 
@@ -186,43 +215,109 @@ dr analyzer datastores
 
 ---
 
-### 6. `dr analyzer callers|callees <fqn>`
+### 7. `dr analyzer callers <qualified-name>`
 
-**Purpose:** Analyze function/method call relationships.
+**Purpose:** Analyze incoming call relationships for a function/method.
 
 **What it does:**
 
-- `dr analyzer callers <fqn>` — Find all functions that call the given function
-- `dr analyzer callees <fqn>` — Find all functions that this function calls
+- Finds all functions that call the given function
 - Builds call graph from code analysis (static analysis, type information)
-- Useful for understanding dependencies and impact analysis
+- Returns caller information: names, locations, call context
+- Useful for understanding callers and reverse dependencies
 
 **Confidence:** Medium — Accurate for explicit calls; may miss dynamic/reflection-based calls
 
 **Example:**
 
 ```bash
-dr analyzer callers "api.handler.getUserProfile"
-dr analyzer callees "auth.service.validateToken"
+dr analyzer callers "auth.service.validateToken"
 ```
 
 **Trust this for:**
 
-- ✅ Understanding call chains and dependencies
-- ✅ Impact analysis ("What breaks if I change this function?")
-- ✅ Discovering unexpected call patterns
+- ✅ Understanding who calls a given function
+- ✅ Reverse dependency analysis
+- ✅ Finding unexpected callers
 - ⚠️ Be aware: Dynamic calls (callbacks, reflection, higher-order functions) may not be detected
 
 ---
 
-### 7. `dr analyzer verify`
+### 8. `dr analyzer callees <qualified-name>`
+
+**Purpose:** Analyze outgoing call relationships for a function/method.
+
+**What it does:**
+
+- Finds all functions that the given function calls
+- Builds call graph from code analysis (static analysis, type information)
+- Returns callee information: names, locations, call context
+- Useful for understanding dependencies and call chains
+
+**Confidence:** Medium — Accurate for explicit calls; may miss dynamic/reflection-based calls
+
+**Example:**
+
+```bash
+dr analyzer callees "api.handler.createOrder"
+```
+
+**Trust this for:**
+
+- ✅ Understanding function dependencies
+- ✅ Forward impact analysis ("What does this function depend on?")
+- ✅ Discovering call chains and dependency graphs
+- ⚠️ Be aware: Dynamic calls (callbacks, reflection, higher-order functions) may not be detected
+
+---
+
+### 9. `dr analyzer query <cypher>`
+
+**Purpose:** Execute custom graph queries against the indexed codebase.
+
+**What it does:**
+
+- Accepts Cypher query language for flexible graph traversal
+- Queries the underlying codebase graph directly (bypassing predefined commands)
+- Returns raw graph results based on custom query logic
+- Powerful for advanced analysis beyond standard commands
+
+**Confidence:** HIGH for graph structure, but requires Cypher knowledge — Use when standard commands don't fit
+
+**Example:**
+
+```bash
+dr analyzer query "MATCH (fn:Function) WHERE fn.name CONTAINS 'payment' RETURN fn.fqn, fn.description"
+```
+
+**Trust this for:**
+
+- ✅ Custom graph traversals (e.g., "functions that call X and are called by Y")
+- ✅ Finding all nodes of a specific type with filters
+- ✅ Complex relationship analysis
+- ✅ Exploring graph structure itself
+
+**When to use:**
+
+- Standard commands (`endpoints`, `services`, `callers`, `callees`) don't meet your needs
+- You need to filter or combine results in a custom way
+- Analyzing complex graph patterns
+
+**Before using:**
+
+- Run `get_graph_schema` MCP tool first to understand available node/edge types
+- See "MCP Escape Hatch" section below for protocol
+
+---
+
+### 10. `dr analyzer verify`
 
 **Purpose:** Verify that code-discovered routes align with model endpoints and validate against active changeset.
 
 **What it does:**
 
 - Compares endpoints found in code against endpoints defined in the model (layer 6)
-- Reports **matches** (endpoint in code and model), **gaps** (in code but not modeled), **orphans** (modeled but not in code)
+- Reports **matches** (endpoint in code and model), **graph-only** (in code but not modeled), **model-only** (modeled but not in code)
 - Reports against the **active changeset view** if a changeset is staged
 - Returns JSON with detailed mappings and changeset context
 
@@ -238,24 +333,43 @@ dr analyzer verify --format json
 
 ```json
 {
-  "changeset_context": "active_changeset_id",
-  "matches": [...],
-  "gaps": [...],
-  "orphans": [...],
-  "summary": {...}
+  "generated_at": "2026-04-21T15:30:45.123Z",
+  "project_root": "/path/to/project",
+  "analyzer": "codebase-memory-mcp",
+  "analyzer_indexed_at": "2026-04-21T15:20:00.000Z",
+  "changeset_context": {
+    "active_changeset": "feat-payments",
+    "verified_against": "changeset_view"
+  },
+  "layers_verified": ["api"],
+  "buckets": {
+    "matched": [...],
+    "in_graph_only": [...],
+    "in_model_only": [...],
+    "ignored": [...]
+  },
+  "summary": {
+    "matched_count": 45,
+    "gap_count": 2,
+    "drift_count": 1,
+    "ignored_count": 0,
+    "total_graph_entries": 47,
+    "total_model_entries": 46
+  }
 }
 ```
 
 **Trust this for:**
 
-- ✅ Finding endpoints in code that aren't modeled yet (gaps)
-- ✅ Finding modeled endpoints that don't exist in code (orphans)
+- ✅ Finding endpoints in code that aren't modeled yet (in_graph_only)
+- ✅ Finding modeled endpoints that don't exist in code (in_model_only)
 - ✅ Verifying model freshness after code changes
 - ✅ Checking what changed when a changeset is active (via `changeset_context`)
 
 **When reporting results to user:**
 
-- Always **quote the `changeset_context` field** to indicate which model version was compared
+- Always **quote the `changeset_context` fields** (`active_changeset` and `verified_against`) to indicate which model version was compared
+- Use terminology: **"graph-only"** for `in_graph_only` (suspected gaps), **"model-only"** for `in_model_only` (possible drift)
 
 ---
 
@@ -263,13 +377,16 @@ dr analyzer verify --format json
 
 | Command            | Confidence | Use As                                  | Caveats                                            |
 | ------------------ | ---------- | --------------------------------------- | -------------------------------------------------- |
+| `discover`         | Medium     | Bootstrap analyzer selection            | Only used once per session                         |
 | `status`           | Medium     | Decision gate (is analyzer available?)  | Only probes; doesn't query codebase                |
 | `index`            | Medium     | Refresh command (accept if user asks)   | Takes time; only offer if freshness concerns       |
 | `endpoints`        | **HIGH**   | Authoritative ground truth              | Complete and accurate (code is source truth)       |
 | `services`         | Medium-Low | Checklist, starting point for discovery | Inferred; may not match intended architecture      |
 | `datastores`       | **LOW**    | Consider as a lead, verify manually     | Inferred schemas may be incomplete/stale           |
-| `callers\|callees` | Medium     | Call graph, dependency analysis         | Misses dynamic calls (callbacks, reflection)       |
-| `verify`           | **HIGH**   | Gap/orphan detection, freshness check   | High confidence on diffs; quotes changeset context |
+| `callers`          | Medium     | Reverse dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
+| `callees`          | Medium     | Forward dependency analysis             | Misses dynamic calls (callbacks, reflection)       |
+| `query`            | **HIGH**   | Custom graph traversal                  | Requires Cypher knowledge and graph schema         |
+| `verify`           | **HIGH**   | Gap/drift detection, freshness check    | High confidence on diffs; quotes changeset context |
 
 ---
 
@@ -295,7 +412,7 @@ The analyzer may not be installed or indexed. Handle with three-tier degradation
 
 **Condition:** `dr analyzer status` shows analyzer installed and index is current.
 
-**Action:** Use all seven commands freely. User gets authoritative answers.
+**Action:** Use all ten commands freely. User gets authoritative answers.
 
 ---
 
@@ -379,9 +496,9 @@ When summarizing verify output to the user:
 
 1. **Quote the `changeset_context` field** from the verify JSON response
 2. **Indicate what model version was checked:** "Verified against changeset X" or "Verified against current model"
-3. **Highlight gaps/orphans in context:**
-   - Gaps = "These endpoints are in code but not in changeset X"
-   - Orphans = "These endpoints are in changeset X but not in code"
+3. **Highlight graph-only/model-only in context:**
+   - Graph-only = "These endpoints are in code but not in changeset X"
+   - Model-only = "These endpoints are in changeset X but not in code"
 
 **Example:**
 
@@ -397,15 +514,29 @@ dr analyzer verify --format json
 
 ```json
 {
-  "changeset_context": "feat-payments",
-  "gaps": [{ "path": "/api/v1/payments/refund", "method": "POST" }],
-  "orphans": [],
-  "matches": 45
+  "changeset_context": {
+    "active_changeset": "feat-payments",
+    "verified_against": "changeset_view"
+  },
+  "buckets": {
+    "matched": [...],
+    "in_graph_only": [{ "id": "route-1", "http_method": "POST", "http_path": "/api/v1/payments/refund", "source_file": "src/routes.ts", "source_symbol": "refundPayment" }],
+    "in_model_only": [],
+    "ignored": []
+  },
+  "summary": {
+    "matched_count": 45,
+    "gap_count": 1,
+    "drift_count": 0,
+    "ignored_count": 0,
+    "total_graph_entries": 46,
+    "total_model_entries": 45
+  }
 }
 ```
 
 **Response to user:**
-"Verified against changeset `feat-payments`. Found 1 gap: `POST /api/v1/payments/refund` is in code but not modeled yet. All 45 existing endpoints match. Would you like me to add the missing endpoint?"
+"Verified against changeset `feat-payments`. Found 1 graph-only entry: `POST /api/v1/payments/refund` is in code but not in the changeset yet. All 45 existing endpoints match. Would you like me to add the missing endpoint to the changeset?"
 
 ### Why This Matters
 
@@ -427,17 +558,18 @@ dr analyzer verify --format json
 
 **Confidence Levels:**
 
-- 🟢 HIGH: `endpoints`, `verify` (gaps/orphans)
-- 🟡 MEDIUM: `status`, `index`, `callers|callees`, `services` (checklist only)
+- 🟢 HIGH: `endpoints`, `verify` (graph-only/model-only detection), `query` (custom traversal)
+- 🟡 MEDIUM: `discover`, `status`, `index`, `callers`, `callees`, `services` (checklist only)
 - 🔴 LOW: `datastores` (consider, verify manually)
 
 **Fallback When Analyzer Unavailable:**
 
-- Mention capability once
+- Mention capability once: "See `dr analyzer discover` to install analyzer support"
 - Use Read/Glob/Grep for structural questions
 - Do NOT repeatedly offer analyzer
 
 **With Changesets:**
 
-- Always quote `changeset_context` from verify output
-- Clarify which model version was checked
+- Always quote `changeset_context.active_changeset` and `changeset_context.verified_against` from verify output
+- Clarify which model version was checked (base_model vs changeset_view)
+- Use terminology: **graph-only** for in_graph_only, **model-only** for in_model_only
