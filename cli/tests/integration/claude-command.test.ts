@@ -607,10 +607,11 @@ describe("Claude Integration Commands", () => {
     });
 
     /**
-     * Test Case 7: Conflict prevention without force flag
-     * Verify that conflicts are reported and not overwritten during upgrade without --force
+     * Test Case 7: Conflict prevention in real upgrade (no --force)
+     * Verify that conflicts are reported and not overwritten during actual upgrade
+     * when the file is not used with --force flag
      */
-    it("should report conflicts during upgrade and not overwrite without force", async () => {
+    it("should detect and prevent overwriting conflicts in actual upgrade", async () => {
       // Setup: Install DR commands
       await runDr("claude", "install", "--commands-only", "--force");
 
@@ -623,20 +624,20 @@ describe("Claude Integration Commands", () => {
       const modifiedContent = originalContent + "\n\n## Custom Section\n\nUser content";
       await writeFile(drMapPath, modifiedContent);
 
-      // Action: Run upgrade in dry-run mode (should show conflict without changes)
-      const result = await runDr("claude", "upgrade", "--dry-run");
+      // Action: Run upgrade without --force (should detect conflict and refuse to overwrite)
+      const result = await runDr("claude", "upgrade");
       expect(result.exitCode).toBe(0);
 
       // Verify: Output mentions the conflict
       expect(result.stdout.toLowerCase()).toMatch(/conflict|modified/);
 
-      // Verify: File was NOT modified during dry-run
-      const fileAfterDryRun = await readFile(drMapPath, "utf-8");
-      expect(fileAfterDryRun).toBe(modifiedContent);
+      // Verify: File was NOT overwritten during actual upgrade
+      const fileAfterUpgrade = await readFile(drMapPath, "utf-8");
+      expect(fileAfterUpgrade).toBe(modifiedContent);
     });
   });
 
-  describe("Phase 5: Asset Pipeline Validation", () => {
+  describe("Asset Pipeline Discovery", () => {
     /**
      * Verify all four new artifacts are discovered and installed correctly
      * Tests the asset pipeline discovery mechanism:
