@@ -256,5 +256,5 @@ Ready for export/sharing
 **Want to explore your model?**
 
 - `/dr-model` — Manually add/edit elements
-- `/dr-search` — Query elements
-- `/dr-show <element-id>` — Inspect details
+- `dr search` — Query elements
+- `dr show <element-id>` — Inspect details

@@ -95,7 +95,7 @@ Ready to extract architecture!
 
 **What was created:**
 - `documentation-robotics/model/manifest.yaml` — Project metadata
-- `documentation-robotics/model/{01-12}/` — Empty layer directories for all 12 layers
+- `documentation-robotics/model/{NN}_{layer-name}/` — Empty layer directories for all 12 layers (e.g., `01_motivation/`, `02_business/`, ..., `12_testing/`)
 - `.dr/` — Local DR configuration directory
 
 ---
