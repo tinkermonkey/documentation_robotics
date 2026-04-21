@@ -319,4 +319,34 @@ describe("Copilot Integration Commands", () => {
       expect(result.exitCode).toBe(0);
     });
   });
+
+  describe("Unknown component handling (regression test)", () => {
+    it("should gracefully handle unknown components in version file during upgrade", async () => {
+      // Install normally
+      let result = await runDr("copilot", "install", "--force");
+      expect(result.exitCode).toBe(0);
+
+      // Manually inject an unknown component into the version file
+      // This simulates a scenario where a component was removed in a CLI update
+      const versionFile = join(tempDir.path, ".github", ".dr-copilot-version");
+      const content = await readFile(versionFile, "utf-8");
+      const versionData = yaml.parse(content);
+
+      // Add a phantom component that no longer exists in the CLI registry
+      // The component entry simulates a removed integration
+      versionData.components.phantom_component = {};
+
+      // Write back the modified version file
+      const { writeFile } = await import("node:fs/promises");
+      await writeFile(versionFile, yaml.stringify(versionData), "utf-8");
+
+      // Upgrade should complete successfully (regression: used to crash on unknown components)
+      result = await runDr("copilot", "upgrade", "--force");
+
+      // Main check: upgrade must complete without crashing (exit code 0)
+      expect(result.exitCode).toBe(0);
+      // Verify success message is present
+      expect(result.stdout).toContain("Upgrade completed successfully");
+    });
+  });
 });

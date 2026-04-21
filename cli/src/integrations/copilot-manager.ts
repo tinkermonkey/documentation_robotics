@@ -174,13 +174,15 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Check for updates
     let totalChanges = 0;
     const changes: Array<{ file: string; status: string; action: string }> = [];
+    const unknownComponents = new Set<string>();
 
     // Only check components that are currently installed (have actual files in target directory)
     for (const componentName of Object.keys(versionData.components || {})) {
       const config = this.components[componentName];
 
-      // Skip unknown components (e.g., if CLI was updated and a component was removed)
+      // Track unknown components (e.g., if CLI was updated and a component was removed)
       if (!config) {
+        unknownComponents.add(componentName);
         console.warn(
           ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
         );
@@ -285,15 +287,12 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     try {
       // Only upgrade components that are currently installed (have actual files)
       for (const componentName of Object.keys(versionData.components || {})) {
-        const config = this.components[componentName];
-
-        // Skip unknown components (e.g., if CLI was updated and a component was removed)
-        if (!config) {
-          console.warn(
-            ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
-          );
+        // Skip unknown components silently (already warned during detection phase)
+        if (unknownComponents.has(componentName)) {
           continue;
         }
+
+        const config = this.components[componentName];
 
         const targetPath = join(this.targetDir, config.target);
 
