@@ -605,16 +605,16 @@ Present a brief three-bucket summary:
 Analyzer Verification Results
 =============================
 
-✓ Verified (in model): N elements
-⚠ Unrecognized (in model, not in analyzer): M elements
-  → Review for potential false positives
+✓ matched (in model): N elements
+⚠ model-only (in model, not detected): M elements
+  → Review for potential drift
 
-? Missed (found by analyzer, not in model): P elements
+? graph-only (detected by analyzer, not in model): P elements
   → Consider adding if high confidence
 
 Recommendation:
-  - If many missed candidates: Review the analyzer brief and consider a second pass
-  - If few missed candidates and false positives: Run /dr-verify for full reconciliation
+  - If many graph-only candidates: Review the analyzer brief and consider a second pass
+  - If few graph-only candidates and model-only entries: Run /dr-verify for full reconciliation
 ```
 
 **If the list is manageable (few missed candidates and false positives)**, offer:

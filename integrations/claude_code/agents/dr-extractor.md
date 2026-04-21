@@ -208,7 +208,7 @@ The pre-brief consists of three JSON files (or inline references) describing can
 1. Navigate to the source file and symbol
 2. Verify it's an actual table/collection definition (not a test fixture, example, or intermediate structure)
 3. Inspect the schema (columns, types, constraints)
-4. Create `dr add data-store.table` entries only for confirmed datastores
+4. Create `dr add data-store table` entries only for confirmed datastores
 
 ### Confidence Interpretation Summary
 
