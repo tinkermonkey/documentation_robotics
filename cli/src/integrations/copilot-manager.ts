@@ -12,7 +12,7 @@
 import { BaseIntegrationManager } from "./base-manager.js";
 import { ComponentConfig } from "./types.js";
 import { findProjectRoot } from "../utils/project-paths.js";
-import { confirm, spinner } from "@clack/prompts";
+import { confirm, spinner, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
@@ -99,7 +99,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
         const response = await confirm({
           message: "GitHub Copilot integration already installed. Overwrite?",
         });
-        if (!response) {
+        if (isCancel(response) || !response) {
           console.log(ansis.yellow("✗ Installation cancelled"));
           return;
         }
@@ -261,8 +261,14 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Check if there are actual changes to apply (not just skipped changes)
     const hasActualChanges = changes.some((c) => c.action !== "Skip");
 
+    // If no actual changes to apply, return early
+    if (!hasActualChanges) {
+      console.log(ansis.yellow("⚠ No changes to apply (all changes are skipped or conflicts)"));
+      return;
+    }
+
     // Only ask for confirmation if there are real changes to apply
-    if (hasActualChanges && !force) {
+    if (!force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
         throw new Error(
@@ -274,7 +280,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       const response = await confirm({
         message: "Apply upgrades?",
       });
-      if (!response) {
+      if (isCancel(response) || !response) {
         console.log(ansis.yellow("✗ Upgrade cancelled"));
         return;
       }
@@ -363,7 +369,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       const response = await confirm({
         message: "Continue?",
       });
-      if (!response) {
+      if (isCancel(response) || !response) {
         console.log(ansis.yellow("✗ Removal cancelled"));
         return;
       }

@@ -15,7 +15,7 @@
 import { BaseIntegrationManager } from "./base-manager.js";
 import { ComponentConfig } from "./types.js";
 import { findProjectRoot } from "../utils/project-paths.js";
-import { confirm, spinner } from "@clack/prompts";
+import { confirm, spinner, isCancel } from "@clack/prompts";
 import ansis from "ansis";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
@@ -132,7 +132,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
         const response = await confirm({
           message: "Claude integration already installed. Overwrite?",
         });
-        if (!response) {
+        if (isCancel(response) || !response) {
           console.log(ansis.yellow("✗ Installation cancelled"));
           return;
         }
@@ -207,15 +207,26 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     // Check for updates
     let totalChanges = 0;
     const changes: Array<{ file: string; status: string; action: string }> = [];
+    const unknownComponents = new Set<string>();
 
     // Only check components that are currently installed (have actual files in target directory)
     for (const componentName of Object.keys(versionData.components || {})) {
+      const config = this.components[componentName];
+
+      // Track unknown components (e.g., if CLI was updated and a component was removed)
+      if (!config) {
+        unknownComponents.add(componentName);
+        console.warn(
+          ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
+        );
+        continue;
+      }
+
       // Skip non-tracked components (user-customizable)
       if (!this.isTrackedComponent(componentName)) {
         continue;
       }
 
-      const config = this.components[componentName];
       const targetPath = join(this.targetDir, config.target);
 
       // Only check components that have files in the target directory
@@ -288,8 +299,14 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     // Check if there are actual changes to apply (not just skipped changes)
     const hasActualChanges = changes.some((c) => c.action !== "Skip");
 
+    // If no actual changes to apply, return early
+    if (!hasActualChanges) {
+      console.log(ansis.yellow("⚠ No changes to apply (all changes are skipped or conflicts)"));
+      return;
+    }
+
     // Only ask for confirmation if there are real changes to apply
-    if (hasActualChanges && !force) {
+    if (!force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
         throw new Error(
@@ -301,7 +318,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       const response = await confirm({
         message: "Apply upgrades?",
       });
-      if (!response) {
+      if (isCancel(response) || !response) {
         console.log(ansis.yellow("✗ Upgrade cancelled"));
         return;
       }
@@ -314,12 +331,21 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     try {
       // Only upgrade components that are currently installed (have actual files)
       for (const componentName of Object.keys(versionData.components || {})) {
+        // Skip unknown components silently (already warned during detection phase)
+        if (unknownComponents.has(componentName)) {
+          continue;
+        }
+
+        const config = this.components[componentName];
+        if (!config) {
+          continue;
+        }
+
         // Skip non-tracked components (user-customizable)
         if (!this.isTrackedComponent(componentName)) {
           continue;
         }
 
-        const config = this.components[componentName];
         const targetPath = join(this.targetDir, config.target);
 
         // Only upgrade components that have files in the target directory
@@ -386,7 +412,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       const response = await confirm({
         message: "Continue?",
       });
-      if (!response) {
+      if (isCancel(response) || !response) {
         console.log(ansis.yellow("✗ Removal cancelled"));
         return;
       }
