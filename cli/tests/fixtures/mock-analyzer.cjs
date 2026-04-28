@@ -86,22 +86,38 @@ rl.on("line", (line) => {
       return;
     }
 
-    // Handle tool calls via tools/call wrapper
+    // Handle tool calls via tools/call wrapper (MCP protocol)
     if (method === "tools/call") {
       const { name, arguments: args } = params || {};
 
+      // Wrap tool results in the MCP content envelope that real servers produce
+      function sendToolResult(toolResult) {
+        sendResponse(id, {
+          content: [{ type: "text", text: JSON.stringify(toolResult) }],
+          isError: false,
+        });
+      }
+
       if (name === "echo") {
-        sendResponse(id, { echoed: args });
+        sendToolResult({ echoed: args });
+        return;
+      }
+
+      if (name === "list_projects") {
+        sendToolResult({ projects: [] });
+        return;
+      }
+
+      if (name === "index_repository") {
+        sendToolResult({ nodes: 42, edges: 100, status: "indexed" });
         return;
       }
 
       if (name === "delay") {
         const delay = (args?.delay || 100);
-        // Store for later response
         pendingRequests.set(id, { method, params, delay, timestamp: Date.now() });
-
         setTimeout(() => {
-          sendResponse(id, { delayed: true, delayMs: delay });
+          sendToolResult({ delayed: true, delayMs: delay });
           pendingRequests.delete(id);
         }, delay);
         return;

@@ -61,6 +61,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 ENV BUN_INSTALL=/usr/local
 RUN curl -fsSL https://bun.sh/install | bash
 
+# Install codebase-memory-mcp MCP server for code knowledge graph analysis
+# Official install: npm install -g codebase-memory-mcp
+# https://github.com/DeusData/codebase-memory-mcp
+RUN npm install -g codebase-memory-mcp
+
 # ============================================================================
 # Stage 3: Pre-install Dependencies (RECOMMENDED)
 # ============================================================================
@@ -172,7 +177,8 @@ RUN claude --version && \
 # Verify Node.js/Bun runtimes
 RUN node --version && \
     npm --version && \
-    bun --version
+    bun --version && \
+    codebase-memory-mcp --version
 
 # Note: Node.js dependencies are verified at runtime after bind mount.
 # The entrypoint handles npm install + npm run build when dist/cli.js is missing.

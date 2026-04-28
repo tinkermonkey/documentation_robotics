@@ -140,6 +140,54 @@ describe("StdioClient", () => {
     });
   });
 
+
+  describe("invokeTool via MCP tools/call Protocol", () => {
+    beforeEach(() => {
+      client.spawn("node", [MOCK_ANALYZER_PATH]);
+    });
+
+    it("should invoke a tool via tools/call and unwrap content response", async () => {
+      await client.initialize({});
+      const result = await client.invokeTool("echo", { greeting: "hello" });
+      const resultObj = result as Record<string, unknown>;
+      expect("echoed" in resultObj).toBe(true);
+      expect((resultObj.echoed as Record<string, unknown>).greeting).toBe("hello");
+    });
+
+    it("should invoke a tool with no arguments", async () => {
+      await client.initialize({});
+      const result = await client.invokeTool("list_projects");
+      const resultObj = result as Record<string, unknown>;
+      expect("projects" in resultObj).toBe(true);
+      expect(Array.isArray(resultObj.projects)).toBe(true);
+    });
+
+    it("should propagate errors through tools/call", async () => {
+      await client.initialize({});
+      try {
+        await client.invokeTool("error", { code: -32000, message: "Tool failed" });
+        expect.unreachable("Should have thrown");
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const msg = (error as Error).message;
+        expect(msg).toContain("-32000");
+        expect(msg).toContain("Tool failed");
+      }
+    });
+
+    it("should handle concurrent invokeTool calls", async () => {
+      await client.initialize({});
+      const [r1, r2, r3] = await Promise.all([
+        client.invokeTool("echo", { n: 1 }),
+        client.invokeTool("echo", { n: 2 }),
+        client.invokeTool("echo", { n: 3 }),
+      ]);
+      for (const r of [r1, r2, r3]) {
+        expect((r as Record<string, unknown>).echoed).toBeDefined();
+      }
+    });
+  });
+
   describe("Timeout Behavior", () => {
     beforeEach(() => {
       client.spawn(process.execPath, [MOCK_ANALYZER_PATH]);

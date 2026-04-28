@@ -164,62 +164,123 @@ setTimeout(() => {
   });
 
   describe("index() success path", () => {
-    it("should execute full index flow: list_projects → git HEAD → index_repository → metadata", async () => {
-      // This test verifies the complete index() success path lines 305-480
-      // Even without a real binary, we can verify the flow structure
-
-      // Test the error case which proves index() was called
-      let error: any;
-      try {
-        await analyzer.index(tempDir);
-      } catch (e) {
-        error = e;
-      }
-
-      // Should fail because analyzer is not installed (expected in CI)
-      expect(error).toBeDefined();
-      expect(error.message).toContain("not installed");
-
-      // The error proves index() executed the detection flow correctly
-      expect(error).toBeDefined();
+    it("should detect analyzer binary is available", async () => {
+      const status = await analyzer.status(tempDir);
+      expect(status.detected.installed).toBe(true);
+      expect(status.detected.binary_path).toBeTruthy();
     });
 
-    it("should skip reindexing when index is fresh", async () => {
-      // This test verifies the freshness gate at lines 312-327
-      // When index is fresh (git HEAD matches), returns early with existing metadata
+    it("should execute full index flow: list_projects → git HEAD → index_repository → metadata", async () => {
+      const { StdioClient } = await import("@/analyzers/stdio-client.js");
+      const originalSpawn = StdioClient.prototype.spawn;
+      const originalInitialize = StdioClient.prototype.initialize;
+      const originalInvokeTool = StdioClient.prototype.invokeTool;
+      const originalClose = StdioClient.prototype.close;
 
-      // First verify status() works
-      const status = await analyzer.status(tempDir);
-      expect(status).toBeDefined();
-      expect(status.indexed).toBe(false); // Not indexed yet
+      const originalStatus = analyzer.status.bind(analyzer);
+      (analyzer as any).status = async () => ({
+        indexed: false,
+        fresh: false,
+        last_indexed: null,
+        index_meta: null,
+        detected: { installed: true, binary_path: "node", contract_ok: true, mcp_registered: false },
+      });
 
-      // Attempting to index when not indexed should fail with "analyzer not installed"
-      let error: any;
       try {
-        await analyzer.index(tempDir);
-      } catch (e) {
-        error = e;
-      }
+        (StdioClient.prototype as any).spawn = function () {};
+        (StdioClient.prototype as any).initialize = async function () {
+          return { capabilities: {}, serverInfo: { name: "mock-cbm" } };
+        };
+        (StdioClient.prototype as any).invokeTool = async function (name: string) {
+          if (name === "list_projects") return { projects: [] };
+          if (name === "index_repository") return { nodes: 42, edges: 100, status: "indexed" };
+          return {};
+        };
+        (StdioClient.prototype as any).close = function () {};
 
-      expect(error).toBeDefined();
-      expect(error.message).toContain("not installed");
+        const result = await analyzer.index(tempDir);
+
+        expect(result).toBeDefined();
+        expect(result.node_count).toBe(42);
+        expect(result.edge_count).toBe(100);
+        expect(typeof result.git_head).toBe("string");
+        expect(result.git_head).toHaveLength(40);
+        expect(typeof result.timestamp).toBe("string");
+      } finally {
+        StdioClient.prototype.spawn = originalSpawn;
+        StdioClient.prototype.initialize = originalInitialize;
+        StdioClient.prototype.invokeTool = originalInvokeTool;
+        StdioClient.prototype.close = originalClose;
+        (analyzer as any).status = originalStatus;
+      }
+    });
+
+    it("should return existing metadata when index is fresh", async () => {
+      const originalStatus = analyzer.status.bind(analyzer);
+      const freshMeta = {
+        git_head: "a".repeat(40),
+        timestamp: new Date().toISOString(),
+        node_count: 10,
+        edge_count: 20,
+      };
+      (analyzer as any).status = async () => ({
+        indexed: true,
+        fresh: true,
+        last_indexed: freshMeta.timestamp,
+        index_meta: freshMeta,
+        detected: { installed: true, binary_path: "node", contract_ok: true, mcp_registered: false },
+      });
+
+      try {
+        const result = await analyzer.index(tempDir);
+
+        expect(result.node_count).toBe(10);
+        expect(result.edge_count).toBe(20);
+        expect(result.git_head).toBe("a".repeat(40));
+      } finally {
+        (analyzer as any).status = originalStatus;
+      }
     });
 
     it("should support --force flag to reindex even if fresh", async () => {
-      // This test documents the force reindex at lines 313, 380
-      // When options.force is true, bypasses freshness check
+      const { StdioClient } = await import("@/analyzers/stdio-client.js");
+      const originalSpawn = StdioClient.prototype.spawn;
+      const originalInitialize = StdioClient.prototype.initialize;
+      const originalInvokeTool = StdioClient.prototype.invokeTool;
+      const originalClose = StdioClient.prototype.close;
 
-      // Attempting with force should still fail on analyzer not installed
-      // But it proves force: true bypassed the freshness gate
-      let error: any;
+      const originalStatus = analyzer.status.bind(analyzer);
+      (analyzer as any).status = async () => ({
+        indexed: true,
+        fresh: true,
+        last_indexed: new Date().toISOString(),
+        index_meta: { git_head: "a".repeat(40), timestamp: new Date().toISOString(), node_count: 5, edge_count: 8 },
+        detected: { installed: true, binary_path: "node", contract_ok: true, mcp_registered: false },
+      });
+
       try {
-        await analyzer.index(tempDir, { force: true });
-      } catch (e) {
-        error = e;
-      }
+        (StdioClient.prototype as any).spawn = function () {};
+        (StdioClient.prototype as any).initialize = async function () {
+          return { capabilities: {}, serverInfo: { name: "mock-cbm" } };
+        };
+        (StdioClient.prototype as any).invokeTool = async function (name: string) {
+          if (name === "list_projects") return { projects: [{ path: tempDir, indexed: true }] };
+          if (name === "index_repository") return { nodes: 99, edges: 200, status: "indexed" };
+          return {};
+        };
+        (StdioClient.prototype as any).close = function () {};
 
-      expect(error).toBeDefined();
-      expect(error.message).toContain("not installed");
+        const result = await analyzer.index(tempDir, { force: true });
+
+        expect(result.node_count).toBe(99);
+        expect(result.edge_count).toBe(200);
+      } finally {
+        StdioClient.prototype.spawn = originalSpawn;
+        StdioClient.prototype.initialize = originalInitialize;
+        StdioClient.prototype.invokeTool = originalInvokeTool;
+        StdioClient.prototype.close = originalClose;
+        (analyzer as any).status = originalStatus;
+      }
     });
   });
 
@@ -633,22 +694,28 @@ rl.on("line", async (line) => {
         const { StdioClient } = await import("@/analyzers/stdio-client.js");
         const originalSpawn = StdioClient.prototype.spawn;
         const originalCallTool = StdioClient.prototype.callTool;
+        const originalInvokeTool = StdioClient.prototype.invokeTool;
         const originalClose = StdioClient.prototype.close;
         let spawnCalled = false;
 
         try {
           (StdioClient.prototype as any).spawn = function (binaryPath: string) {
             spawnCalled = true;
-            // Don't actually spawn anything - we'll mock the callTool method
             this.process = null;
             this.stdio = { stdin: null, stdout: null, stderr: null };
           };
 
-          // Mock callTool to return test data
+          // Mock callTool for MCP protocol methods (initialize, tools/list)
           (StdioClient.prototype as any).callTool = async function (method: string, params?: any) {
             if (method === "initialize") {
               return { serverInfo: { name: "mock-cbm", version: "1.0.0" } };
-            } else if (method === "search_graph") {
+            }
+            return {};
+          };
+
+          // Mock invokeTool for MCP tool calls (search_graph, etc.)
+          (StdioClient.prototype as any).invokeTool = async function (name: string) {
+            if (name === "search_graph") {
               return {
                 nodes: [
                   {
@@ -691,15 +758,13 @@ rl.on("line", async (line) => {
                     },
                     file_path: join(tempDir, "src/routes.test.ts"),
                   },
-                ]
+                ],
               };
             }
             return {};
           };
 
-          (StdioClient.prototype as any).close = function () {
-            // Mock close
-          };
+          (StdioClient.prototype as any).close = function () {};
 
           // Call endpoints() - should execute the full flow
           const candidates = await analyzer.endpoints(tempDir);
@@ -737,6 +802,7 @@ rl.on("line", async (line) => {
           // Restore original methods - CRITICAL for test isolation
           StdioClient.prototype.spawn = originalSpawn;
           StdioClient.prototype.callTool = originalCallTool;
+          StdioClient.prototype.invokeTool = originalInvokeTool;
           StdioClient.prototype.close = originalClose;
         }
       } finally {

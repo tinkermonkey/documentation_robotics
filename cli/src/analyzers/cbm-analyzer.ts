@@ -404,9 +404,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Check if project is already indexed using list_projects
       // This validates the acceptance criterion and prevents duplicate project creation
-      const listProjectsResponse = (await client.callTool(
-        "list_projects"
-      )) as {
+      const listProjectsResponse = (await client.invokeTool("list_projects")) as {
         projects?: Array<{ path: string; indexed?: boolean }>;
         [key: string]: unknown;
       };
@@ -498,11 +496,12 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       // Index the repository
-      const indexResponse = (await client.callTool("index_repository", {
+      const indexResponse = (await client.invokeTool("index_repository", {
         repo_path: projectRoot,
       })) as {
-        node_count?: number;
-        edge_count?: number;
+        nodes?: number;
+        edges?: number;
+        status?: string;
         [key: string]: unknown;
       };
 
@@ -516,35 +515,25 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       const timestamp = new Date().toISOString();
-      const nodeCount =
-        typeof indexResponse.node_count === "number"
-          ? indexResponse.node_count
-          : 0;
-      const edgeCount =
-        typeof indexResponse.edge_count === "number"
-          ? indexResponse.edge_count
-          : 0;
+      const nodeCount = typeof indexResponse.nodes === "number" ? indexResponse.nodes : 0;
+      const edgeCount = typeof indexResponse.edges === "number" ? indexResponse.edges : 0;
 
       // Warn if counts were not numbers and defaulted to zero
-      if (typeof indexResponse.node_count !== "number") {
+      if (typeof indexResponse.nodes !== "number") {
         handleWarning(
-          "Invalid node_count from index_repository",
+          "Invalid node count from index_repository",
           [
-            `Expected number, got ${typeof indexResponse.node_count}: ${String(
-              indexResponse.node_count
-            )}`,
+            `Expected number, got ${typeof indexResponse.nodes}: ${String(indexResponse.nodes)}`,
             "Defaulting to 0 - index may be incomplete or corrupted",
           ]
         );
       }
 
-      if (typeof indexResponse.edge_count !== "number") {
+      if (typeof indexResponse.edges !== "number") {
         handleWarning(
-          "Invalid edge_count from index_repository",
+          "Invalid edge count from index_repository",
           [
-            `Expected number, got ${typeof indexResponse.edge_count}: ${String(
-              indexResponse.edge_count
-            )}`,
+            `Expected number, got ${typeof indexResponse.edges}: ${String(indexResponse.edges)}`,
             "Defaulting to 0 - index may be incomplete or corrupted",
           ]
         );
@@ -667,7 +656,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Search for Route nodes using the CBM label from the mapping
-      const searchResponse = await client.callTool("search_graph", {
+      const searchResponse = await client.invokeTool("search_graph", {
         label: routeMapping.cbm_label,
         project: projectRoot,
       });
@@ -745,7 +734,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Call query_graph tool
       try {
-        const queryResponse = await client.callTool("query_graph", {
+        const queryResponse = await client.invokeTool("query_graph", {
           query: rawQuery,
           project: projectRoot,
         });
@@ -1047,7 +1036,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Search for each application-layer label
       for (const label of applicationLabels) {
-        const searchResponse = await client.callTool("search_graph", {
+        const searchResponse = await client.invokeTool("search_graph", {
           label,
           project: projectRoot,
         });
@@ -1358,7 +1347,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           RETURN DISTINCT n2 as node
         `;
 
-        const queryResponse = await client.callTool("query_graph", {
+        const queryResponse = await client.invokeTool("query_graph", {
           query: importsQuery,
           project: projectRoot,
         });
@@ -1387,7 +1376,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // This provides backward compatibility while still attempting IMPORTS traversal
         const nodeLabels = this.mapper.getNodeLabels();
         for (const label of nodeLabels) {
-          const searchResponse = await client.callTool("search_graph", {
+          const searchResponse = await client.invokeTool("search_graph", {
             label,
             project: projectRoot,
           });
@@ -1609,7 +1598,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
   /**
    * Query for callers of a specific function or symbol
    *
-   * Delegates to trace_call_path MCP tool with direction="backward" to find
+   * Delegates to trace_path MCP tool with direction="inbound" to find
    * all functions that call the specified qualified name. Applies depth clamping
    * (default 3, max 10) and transforms CBM response nodes into CallGraphNode objects
    * using edge-type mappings from the analyzer.
@@ -1625,13 +1614,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
     qualifiedName: string,
     depth?: number
   ): Promise<CallGraphNode[]> {
-    return this.traceCallPath(projectRoot, qualifiedName, depth, "backward");
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "inbound");
   }
 
   /**
    * Query for callees of a specific function or symbol
    *
-   * Delegates to trace_call_path MCP tool with direction="forward" to find
+   * Delegates to trace_path MCP tool with direction="outbound" to find
    * all functions called by the specified qualified name. Applies depth clamping
    * (default 3, max 10) and transforms CBM response nodes into CallGraphNode objects
    * using edge-type mappings from the analyzer.
@@ -1647,7 +1636,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     qualifiedName: string,
     depth?: number
   ): Promise<CallGraphNode[]> {
-    return this.traceCallPath(projectRoot, qualifiedName, depth, "forward");
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "outbound");
   }
 
   /**
@@ -1662,7 +1651,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     projectRoot: string,
     qualifiedName: string,
     depth: number | undefined,
-    direction: "forward" | "backward"
+    direction: "outbound" | "inbound"
   ): Promise<CallGraphNode[]> {
     // Check that the project is indexed (same pre-flight checks as endpoints)
     const status = await this.status(projectRoot);
@@ -1701,9 +1690,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
-      // Call trace_call_path with the clamped depth
-      const traceResponse = (await client.callTool("trace_call_path", {
-        qualified_name: qualifiedName,
+      // Call trace_path with the clamped depth
+      const traceResponse = (await client.invokeTool("trace_path", {
+        function_name: qualifiedName,
         direction,
         depth: clampedDepth,
         project: projectRoot,
@@ -1729,7 +1718,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Validate response structure
       if (!traceResponse || typeof traceResponse !== "object") {
         throw new CLIError(
-          "Invalid response from trace_call_path",
+          "Invalid response from trace_path",
           ErrorCategory.SYSTEM,
           ["Ensure codebase-memory-mcp is properly installed and functional"]
         );
@@ -1738,7 +1727,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Validate that nodes is an array
       if (!Array.isArray(traceResponse.nodes)) {
         throw new CLIError(
-          "Invalid response from trace_call_path: nodes must be an array",
+          "Invalid response from trace_path: nodes must be an array",
           ErrorCategory.SYSTEM,
           [
             `Expected array, got ${typeof traceResponse.nodes}`,
@@ -1750,7 +1739,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Validate that edges is an array
       if (!Array.isArray(traceResponse.edges)) {
         throw new CLIError(
-          "Invalid response from trace_call_path: edges must be an array",
+          "Invalid response from trace_path: edges must be an array",
           ErrorCategory.SYSTEM,
           [
             `Expected array, got ${typeof traceResponse.edges}`,
@@ -1913,7 +1902,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Search for Route nodes using the CBM label from the mapping
-      const searchResponse = await client.callTool("search_graph", {
+      const searchResponse = await client.invokeTool("search_graph", {
         label: routeMapping.cbm_label,
         project: projectRoot,
       });

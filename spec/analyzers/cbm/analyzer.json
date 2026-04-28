@@ -7,20 +7,17 @@
   "binary_names": ["codebase-memory-mcp"],
   "supported_tool_contract": {
     "required_tools": [
-      "initialize",
       "search_graph",
-      "trace_call_path",
-      "get_node_details",
-      "analyze_dependencies",
-      "extract_metrics",
-      "find_references"
+      "index_repository",
+      "list_projects",
+      "trace_path"
     ],
     "optional_tools": [
-      "batch_analyze",
-      "cache_status",
-      "optimize_index",
-      "export_graph",
-      "reset_cache"
+      "query_graph",
+      "detect_changes",
+      "index_status",
+      "get_graph_schema",
+      "search_code"
     ]
   },
   "supported_languages": [

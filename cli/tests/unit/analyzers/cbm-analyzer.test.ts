@@ -13,6 +13,13 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+import { spawnSync as gitSync } from "child_process";
+import { StdioClient } from "@/analyzers/stdio-client";
+
+const __filename = fileURLToPath(import.meta.url);
+const __cbmTestDir = path.dirname(__filename);
+const MOCK_ANALYZER_PATH = path.join(__cbmTestDir, "../../fixtures/mock-analyzer.cjs");
 
 // Helper to create a unique temp directory for each test
 function createTempDir(): string {
@@ -48,10 +55,8 @@ describe("CbmAnalyzer", () => {
       }
     });
 
-    it("should return installed:false when binary is not available", async () => {
+    it("should always return a DetectionResult with the installed field present", async () => {
       const result = await analyzer.detect();
-      // Test will pass in both cases (binary found or not found)
-      // The key is that detect() executes and returns a valid DetectionResult
       expect("installed" in result).toBe(true);
     });
   });
@@ -358,20 +363,35 @@ describe("CbmAnalyzer", () => {
 
   describe("index()", () => {
     it("should throw CLIError when analyzer is not installed", async () => {
-      const tempDir = "/tmp/test-project-no-analyzer-" + Date.now();
+      const originalStatus = analyzer.status.bind(analyzer);
+      (analyzer as any).status = async () => ({
+        indexed: false,
+        fresh: false,
+        last_indexed: undefined,
+        index_meta: null,
+        detected: {
+          installed: false,
+          binary_path: undefined,
+          contract_ok: false,
+          mcp_registered: false,
+        },
+      });
 
-      let error: CLIError | undefined;
       try {
-        await analyzer.index(tempDir);
-      } catch (e) {
-        error = e as CLIError;
-      }
+        let error: CLIError | undefined;
+        try {
+          await analyzer.index("/tmp/test-project-no-analyzer");
+        } catch (e) {
+          error = e as CLIError;
+        }
 
-      // In CI where analyzer is not installed, index() will fail
-      expect(error).toBeInstanceOf(CLIError);
-      expect(error?.message).toContain("not installed");
-      expect(error?.suggestions).toBeDefined();
-      expect(Array.isArray(error?.suggestions)).toBe(true);
+        expect(error).toBeInstanceOf(CLIError);
+        expect(error?.message).toContain("not installed");
+        expect(error?.suggestions).toBeDefined();
+        expect(Array.isArray(error?.suggestions)).toBe(true);
+      } finally {
+        (analyzer as any).status = originalStatus;
+      }
     });
   });
 
@@ -859,23 +879,30 @@ describe("CbmAnalyzer", () => {
       }
     });
 
-    it("should include node_count and edge_count from index_repository response", async () => {
-      // This test documents that index() extracts and returns the response from index_repository
-      // Lines 432-457: extracts node_count and edge_count, with defaults to 0
+    it("should map nodes/edges from index_repository response to node_count/edge_count in metadata", async () => {
+      // Regression test for the protocol mismatch bug:
+      // index_repository returns {nodes, edges} but IndexMeta stores {node_count, edge_count}.
+      // This test verifies index() correctly renames those fields.
+      // Patches StdioClient prototype to avoid spawning a real subprocess.
 
-      const tempDir = "/tmp/test-index-counts-" + Date.now();
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "cbm-index-field-map-"));
 
-      // Stub status() to return not indexed and not installed
-      // This proves index() reaches the flow, not just the freshness gate
+      // index() requires a git repo at projectRoot; create one so git rev-parse HEAD succeeds
+      gitSync("git", ["init"], { cwd: tempDir, stdio: "ignore" });
+      gitSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", "init"], {
+        cwd: tempDir,
+        stdio: "ignore",
+      });
+
       const statusStub = {
         indexed: false,
         fresh: false,
         last_indexed: undefined,
         index_meta: null,
         detected: {
-          installed: false,
-          binary_path: undefined,
-          contract_ok: false,
+          installed: true,
+          binary_path: "/bin/unused-patched-away",
+          contract_ok: true,
           mcp_registered: false,
         },
       };
@@ -883,20 +910,31 @@ describe("CbmAnalyzer", () => {
       const originalStatus = analyzer.status.bind(analyzer);
       (analyzer as any).status = async () => statusStub;
 
-      try {
-        let error: CLIError | undefined;
-        try {
-          await analyzer.index(tempDir);
-        } catch (e) {
-          error = e as CLIError;
-        }
+      const originalSpawn = StdioClient.prototype.spawn;
+      const originalInitialize = StdioClient.prototype.initialize;
+      const originalInvokeTool = StdioClient.prototype.invokeTool;
+      const originalClose = StdioClient.prototype.close;
 
-        // Should fail at line 331-339 (analyzer not installed check)
-        // The error proves index() was called and attempted the flow
-        expect(error).toBeDefined();
-        expect(error?.message).toContain("not installed");
+      StdioClient.prototype.spawn = function () { /* noop — no subprocess */ };
+      StdioClient.prototype.initialize = async function () { return { capabilities: {} }; };
+      StdioClient.prototype.invokeTool = async function (name: string) {
+        if (name === "list_projects") return { projects: [] };
+        if (name === "index_repository") return { nodes: 42, edges: 100, status: "indexed" };
+        return {};
+      };
+      StdioClient.prototype.close = function () { /* noop */ };
+
+      try {
+        const result = await analyzer.index(tempDir);
+        expect(result.node_count).toBe(42);
+        expect(result.edge_count).toBe(100);
       } finally {
+        StdioClient.prototype.spawn = originalSpawn;
+        StdioClient.prototype.initialize = originalInitialize;
+        StdioClient.prototype.invokeTool = originalInvokeTool;
+        StdioClient.prototype.close = originalClose;
         (analyzer as any).status = originalStatus;
+        await fs.rm(tempDir, { recursive: true, force: true });
       }
     });
 

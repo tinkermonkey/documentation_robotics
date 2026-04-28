@@ -217,6 +217,46 @@ export class StdioClient {
    * Sends SIGTERM first, then escalates to SIGKILL after 1 second if needed.
    * Cleans up all pending requests and event listeners.
    */
+
+  /**
+   * Invoke a tool on the analyzer via the MCP tools/call protocol
+   *
+   * Sends a tools/call request with {name, arguments} and unwraps the
+   * MCP content envelope from the response (content[0].text parsed as JSON).
+   *
+   * Use this for all tool invocations. Use callTool() only for MCP protocol
+   * methods (initialize, tools/list).
+   *
+   * @param name Tool name (e.g., "search_graph", "index_repository")
+   * @param args Tool arguments to pass as the arguments field
+   * @param options Optional configuration (timeout in milliseconds)
+   * @returns Parsed tool result unwrapped from MCP content envelope
+   */
+  async invokeTool(
+    name: string,
+    args?: unknown,
+    options?: { timeout?: number }
+  ): Promise<unknown> {
+    const response = await this.callTool(
+      "tools/call",
+      { name, arguments: args ?? {} },
+      options
+    ) as { content?: Array<{ type: string; text?: string }>; isError?: boolean };
+
+    // Unwrap MCP tools/call envelope: result is JSON-encoded in content[0].text
+    if (response?.content && Array.isArray(response.content) && response.content.length > 0) {
+      const first = response.content[0];
+      if (first.type === "text" && typeof first.text === "string") {
+        try {
+          return JSON.parse(first.text);
+        } catch {
+          return first.text;
+        }
+      }
+    }
+    return response;
+  }
+
   close(): void {
     if (!this.proc) {
       return;
