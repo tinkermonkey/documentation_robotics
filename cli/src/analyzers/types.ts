@@ -446,8 +446,11 @@ export interface VerifySummary {
   ignored_count: number;
   /** Total graph entries analyzed */
   total_graph_entries: number;
-  /** Total model entries analyzed */
+  /** Total elements in the API layer (all elements, regardless of source attribution) */
   total_model_entries: number;
+  /** Elements excluded from drift detection because they have no source_reference.
+   *  These are documentation-only elements with no code linkage. */
+  elements_without_source_ref: number;
 }
 
 /**

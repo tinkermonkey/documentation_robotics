@@ -354,7 +354,8 @@ export class VerifyEngine {
       activeChangesetId,
       options,
       analyzerName,
-      indexMeta
+      indexMeta,
+      elementsWithoutSourceRef
     );
   }
 
@@ -370,18 +371,22 @@ export class VerifyEngine {
     activeChangesetId: string | null,
     options: VerifyOptions,
     analyzerName: string = "codebase-memory-mcp",
-    indexMeta?: IndexMeta
+    indexMeta?: IndexMeta,
+    elementsWithoutSourceRef: number = 0
   ): VerifyReport {
+    const matchedElements = buckets.matched.length;
+    const inModelOnly = buckets.in_model_only.length;
+    const ignoredElements = buckets.ignored.filter((e) => e.entry_type === "element").length;
     const summary: VerifySummary = {
-      matched_count: buckets.matched.length,
+      matched_count: matchedElements,
       gap_count: buckets.in_graph_only.length,
-      drift_count: buckets.in_model_only.length,
+      drift_count: inModelOnly,
       ignored_count: buckets.ignored.length,
-      total_graph_entries: buckets.matched.length + buckets.in_graph_only.length + buckets.ignored.filter((e) => e.entry_type === "route").length,
-      total_model_entries:
-        buckets.matched.length +
-        buckets.in_model_only.length +
-        buckets.ignored.filter((e) => e.entry_type === "element").length,
+      total_graph_entries: matchedElements + buckets.in_graph_only.length + buckets.ignored.filter((e) => e.entry_type === "route").length,
+      // Count all API layer elements: those that participated in matching plus those
+      // excluded because they lack source_reference (documentation-only elements).
+      total_model_entries: matchedElements + inModelOnly + ignoredElements + elementsWithoutSourceRef,
+      elements_without_source_ref: elementsWithoutSourceRef,
     };
 
     // Determine changeset context

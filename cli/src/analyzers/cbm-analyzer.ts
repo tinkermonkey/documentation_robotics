@@ -1973,7 +1973,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
         project: projectName,
       });
 
-      const nodes = this.validateSearchResponse(searchResponse);
+      const allNodes = this.validateSearchResponse(searchResponse);
+      // Keep only nodes whose qualified_name follows the __route__METHOD__/path
+      // convention. Nodes that don't match are graph artifacts (documentation
+      // strings, base URLs, etc.) that were incidentally labelled Route by the
+      // indexer — not actual HTTP routes.
+      const nodes = allNodes.filter((n) =>
+        /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? ""))
+      );
 
       // Shape routes via mapping
       const routes = nodes.map((node) => this.shapeRoute(node));

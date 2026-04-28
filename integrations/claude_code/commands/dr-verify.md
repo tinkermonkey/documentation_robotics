@@ -108,7 +108,7 @@ Proceed to Step 3.
 
 **If fresh: false (stale index)**
 
-Show freshness warning and ask for confirmation:
+If you are in an **interactive session** with a user present, show a freshness warning and ask:
 
 ```
 Index is stale (last updated: <timestamp>).
@@ -120,17 +120,17 @@ Would you like me to reindex before verifying?
 [n] Skip and verify against current index
 ```
 
-**If user selects [y]:**
+If user selects [y]: Run `dr analyzer index`, then proceed to Step 3.
 
-```bash
-dr analyzer index
+If user selects [n]: Proceed to Step 3.
+
+**If running autonomously** (headless mode, sub-agent, or no interactive user present):
+
+Note the stale index in your output and proceed directly to Step 3 without asking:
+
 ```
-
-Wait for completion, then proceed to Step 3.
-
-**If user selects [n]:**
-
-Proceed to Step 3.
+Note: Index is stale (last updated: <timestamp>). Proceeding with current index.
+```
 
 ### Step 3: Run Verification
 

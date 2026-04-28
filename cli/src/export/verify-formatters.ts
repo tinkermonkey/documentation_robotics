@@ -125,7 +125,10 @@ function formatSummaryMarkdown(lines: string[], report: VerifyReport): void {
   lines.push("");
   lines.push(`**Total Graph Entries Analyzed:** ${summary.total_graph_entries}`);
   lines.push("");
-  lines.push(`**Total Model Entries Analyzed:** ${summary.total_model_entries}`);
+  lines.push(`**Total Model Entries (API Layer):** ${summary.total_model_entries}`);
+  if (summary.elements_without_source_ref > 0) {
+    lines.push(`_(${summary.elements_without_source_ref} element(s) excluded from drift detection — no source attribution)_`);
+  }
 }
 
 /**
@@ -334,7 +337,10 @@ function formatSummaryText(lines: string[], report: VerifyReport): void {
   lines.push(`  Ignored:        ${ansis.dim(String(summary.ignored_count).padStart(4))} entries excluded by rules`);
   lines.push("");
   lines.push(`Total Graph Entries Analyzed:   ${summary.total_graph_entries}`);
-  lines.push(`Total Model Entries Analyzed:   ${summary.total_model_entries}`);
+  lines.push(`Total Model Entries (API Layer): ${summary.total_model_entries}`);
+  if (summary.elements_without_source_ref > 0) {
+    lines.push(ansis.dim(`  (${summary.elements_without_source_ref} element(s) excluded from drift detection — no source attribution)`));
+  }
 }
 
 /**
