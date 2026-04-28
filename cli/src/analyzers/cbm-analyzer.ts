@@ -45,7 +45,9 @@ import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames 
  * Graph node from CBM search results
  */
 interface CbmGraphNode {
-  id: string;
+  id?: string;
+  name?: string;
+  qualified_name?: string;
   label: string;
   properties?: Record<string, unknown>;
   file_path?: string;
@@ -405,7 +407,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Check if project is already indexed using list_projects
       // This validates the acceptance criterion and prevents duplicate project creation
       const listProjectsResponse = (await client.invokeTool("list_projects")) as {
-        projects?: Array<{ path: string; indexed?: boolean }>;
+        projects?: Array<{ name: string; root_path: string; nodes?: number; edges?: number }>;
         [key: string]: unknown;
       };
 
@@ -420,11 +422,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       const projects = Array.isArray(listProjectsResponse.projects)
         ? (listProjectsResponse.projects as Array<{
-            path: string;
-            indexed?: boolean;
+            name: string;
+            root_path: string;
           }>)
         : [];
-      const projectExists = projects.some((p) => p.path === projectRoot);
+      const projectExists = projects.some((p) => p.root_path === projectRoot);
 
       // Prevent duplicate CBM entries if project exists and index is fresh.
       // Per FR-3.3, --force is only needed to override a fresh index, not for stale re-indexing.
@@ -584,20 +586,50 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
 
-    // Validate that nodes is actually an array
-    const responseObj = response as { nodes?: unknown; [key: string]: unknown };
-    if (!Array.isArray(responseObj.nodes)) {
+    // Support 'results' (codebase-memory-mcp v0.6+) and legacy 'nodes'
+    const responseObj = response as { results?: unknown; nodes?: unknown; [key: string]: unknown };
+    const nodeArray = responseObj.results ?? responseObj.nodes;
+    if (!Array.isArray(nodeArray)) {
       throw new CLIError(
-        "Invalid response from search_graph: nodes must be an array",
+        "Invalid response from search_graph: results must be an array",
         ErrorCategory.SYSTEM,
         [
-          `Expected array, got ${typeof responseObj.nodes}`,
+          `Expected array in 'results' or 'nodes', got ${typeof nodeArray}`,
           "Ensure codebase-memory-mcp is properly installed and returning valid results"
         ]
       );
     }
 
-    return responseObj.nodes as CbmGraphNode[];
+    return nodeArray as CbmGraphNode[];
+  }
+
+  /**
+   * Resolve the internal project name used by codebase-memory-mcp for a given root path.
+   *
+   * list_projects returns { name, root_path } per entry. search_graph and other
+   * query tools require the internal `name`, not the absolute `root_path`.
+   * Falls back to the absolute path with a warning if the project is not found.
+   */
+  private async resolveProjectName(
+    client: StdioClient,
+    projectRoot: string
+  ): Promise<string> {
+    const listResponse = (await client.invokeTool("list_projects")) as {
+      projects?: Array<{ name: string; root_path: string }>;
+    };
+    const projects = Array.isArray(listResponse?.projects) ? listResponse.projects : [];
+    const match = projects.find((p) => p.root_path === projectRoot);
+    if (!match) {
+      handleWarning(
+        "Project not found in CBM backend; using absolute path as project identifier",
+        [
+          `Project root: ${projectRoot}`,
+          "Run `dr analyzer index` to ensure the project is indexed",
+        ]
+      );
+      return projectRoot;
+    }
+    return match.name;
   }
 
   /**
@@ -655,13 +687,23 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      // Resolve internal project name for search_graph (requires name, not absolute path)
+      const projectName = await this.resolveProjectName(client, projectRoot);
+
       // Search for Route nodes using the CBM label from the mapping
       const searchResponse = await client.invokeTool("search_graph", {
         label: routeMapping.cbm_label,
-        project: projectRoot,
+        project: projectName,
       });
 
-      const nodes = this.validateSearchResponse(searchResponse);
+      const allNodes = this.validateSearchResponse(searchResponse);
+      // Keep only nodes whose qualified_name follows the __route__METHOD__/path
+      // convention. Nodes that don't match are graph artifacts (documentation
+      // strings, base URLs, etc.) that were incidentally labelled Route by the
+      // indexer — not actual HTTP routes.
+      const nodes = allNodes.filter((n) =>
+        /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? ""))
+      );
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -788,31 +830,29 @@ export class CbmAnalyzer implements AnalyzerBackend {
     projectRoot: string
   ): Promise<EndpointCandidate> {
     const properties = node.properties ?? {};
+    // Node identifier for display — actual codebase-memory-mcp nodes use 'name', not 'id'
+    const nodeId = String(node.name ?? node.id ?? "(unknown)");
 
     // Extract base fields
     let confidence = mapping.confidence as "high" | "medium" | "low";
 
-    // Suggested name in kebab-case (from node name or id)
-    let suggestedName = String(properties.name ?? node.id).toLowerCase();
+    // Suggested name in kebab-case: properties.name → node.name → node.id
+    let suggestedName = String(properties.name ?? node.name ?? node.id ?? "").toLowerCase();
     suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
 
     // Suggested ID fragment (same as name for endpoints)
     const suggestedIdFragment = suggestedName;
 
     // Required fields for dr add api operation
-    // Validate and assign HTTP method
+    // Extract HTTP method: properties first, then parse qualified_name pattern __route__METHOD__/path
     let rawMethod: string;
-    if (typeof properties.method !== "string") {
-      handleWarning(
-        `Node ${node.id}: Missing or invalid HTTP method`,
-        [
-          `Expected string, got ${typeof properties.method}`,
-          "Defaulting to GET - endpoint may be incomplete",
-        ]
-      );
-      rawMethod = "GET";
-    } else {
+    if (typeof properties.method === "string") {
       rawMethod = properties.method.toUpperCase();
+    } else {
+      const qn = String(node.qualified_name ?? "");
+      const methodMatch = qn.match(/^__route__([A-Z]+)__/);
+      rawMethod = methodMatch?.[1] ?? "GET";
+      if (rawMethod === "ANY") rawMethod = "GET";
     }
 
     // Validate against valid HTTP methods using the constant
@@ -824,7 +864,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     if (!isValidMethod) {
       handleWarning(
-        `Node ${node.id}: Invalid HTTP method`,
+        `Node ${nodeId}: Invalid HTTP method`,
         [
           `Method '${rawMethod}' is not a valid HTTP method`,
           `Valid methods: ${Array.from(validMethods).join(", ")}`,
@@ -833,19 +873,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
       );
     }
 
-    // Validate and assign HTTP path
+    // Extract HTTP path: properties first, then node.name (which IS the URL path for flat nodes)
     let httpPath: string;
-    if (typeof properties.path !== "string") {
+    if (typeof properties.path === "string") {
+      httpPath = properties.path;
+    } else if (typeof node.name === "string" && node.name.startsWith("/")) {
+      httpPath = node.name;
+    } else {
       handleWarning(
-        `Node ${node.id}: Missing or invalid HTTP path`,
+        `Node ${nodeId}: Missing or invalid HTTP path`,
         [
           `Expected string, got ${typeof properties.path}`,
           "Defaulting to / - endpoint may be incomplete",
         ]
       );
       httpPath = "/";
-    } else {
-      httpPath = properties.path;
     }
 
     // Handler information (from node properties)
@@ -868,7 +910,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Log warning if relative path fails but continue with absolute path
         const errorMsg = error instanceof Error ? error.message : String(error);
         handleWarning(
-          `Failed to compute relative path for ${node.id}`,
+          `Failed to compute relative path for ${nodeId}`,
           [
             `Error: ${errorMsg}`,
             "Using absolute file path instead of relative",
@@ -1034,11 +1076,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       const candidates: ServiceCandidate[] = [];
 
+      // Resolve internal project name once before the label search loop
+      const projectName = await this.resolveProjectName(client, projectRoot);
+
       // Search for each application-layer label
       for (const label of applicationLabels) {
         const searchResponse = await client.invokeTool("search_graph", {
           label,
-          project: projectRoot,
+          project: projectName,
         });
 
         const nodes = this.validateSearchResponse(searchResponse);
@@ -1093,8 +1138,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
   ): Promise<ServiceCandidate> {
     const properties = node.properties ?? {};
 
-    // Suggested name in kebab-case (from node name or id)
-    let suggestedName = String(properties.name ?? node.id).toLowerCase();
+    // Suggested name in kebab-case: properties.name → node.name → node.id
+    let suggestedName = String(properties.name ?? node.name ?? node.id ?? "").toLowerCase();
     suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
 
     // Suggested ID fragment (same as name for services)
@@ -1109,7 +1154,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Log warning if relative path fails but continue with absolute path
         const errorMsg = error instanceof Error ? error.message : String(error);
         handleWarning(
-          `Failed to compute relative path for ${node.id}`,
+          `Failed to compute relative path for ${String(node.name ?? node.id ?? "(unknown)")}`,
           [
             `Error: ${errorMsg}`,
             "Using absolute file path instead of relative",
@@ -1119,8 +1164,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
     }
 
-    // Extract qualified name
-    const qualifiedName = String(properties.qualified_name ?? node.id);
+    // Extract qualified name: properties first, then node.qualified_name, then node.id
+    const qualifiedName = String(properties.qualified_name ?? node.qualified_name ?? node.name ?? node.id ?? "");
 
     // Extract fan-in and fan-out metrics
     const fanIn = typeof properties.fan_in === "number" ? properties.fan_in : 0;
@@ -1174,7 +1219,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         suggested_id_fragment: suggestedIdFragment,
         suggested_name: suggestedName,
         source_file: sourceFile,
-        source_symbol: String(properties.name ?? node.id),
+        source_symbol: String(properties.name ?? node.name ?? node.id ?? ""),
         qualified_name: qualifiedName,
         qualifying_heuristics: [],
         confidence: "low",
@@ -1200,7 +1245,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       suggested_id_fragment: suggestedIdFragment,
       suggested_name: suggestedName,
       source_file: sourceFile,
-      source_symbol: String(properties.name ?? node.id),
+      source_symbol: String(properties.name ?? node.name ?? node.id ?? ""),
       qualified_name: qualifiedName,
       qualifying_heuristics: qualifyingHeuristics,
       confidence,
@@ -1334,6 +1379,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }>
       >();
 
+      // Resolve internal project name once (search_graph and query_graph require name, not path)
+      const projectName = await this.resolveProjectName(client, projectRoot);
+
       // Try to use query_graph to traverse IMPORTS edges (1 call instead of many)
       // This implements the spec algorithm requirement for IMPORTS edge traversal
       let allNodes: CbmGraphNode[] = [];
@@ -1349,7 +1397,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         const queryResponse = await client.invokeTool("query_graph", {
           query: importsQuery,
-          project: projectRoot,
+          project: projectName,
         });
 
         // Extract nodes from query response
@@ -1378,7 +1426,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         for (const label of nodeLabels) {
           const searchResponse = await client.invokeTool("search_graph", {
             label,
-            project: projectRoot,
+            project: projectName,
           });
 
           const nodes = this.validateSearchResponse(searchResponse);
@@ -1817,20 +1865,35 @@ export class CbmAnalyzer implements AnalyzerBackend {
     source_symbol: string;
   } {
     const properties = node.properties ?? {};
+    const nodeName = String(node.name ?? node.id ?? "");
 
-    // Extract required fields with defaults
+    // Extract HTTP method: properties first, then parse from qualified_name
+    // qualified_name format: __route__METHOD__/path (e.g. __route__GET__/users)
     let httpMethod = "GET";
     if (typeof properties.method === "string") {
       httpMethod = properties.method.toUpperCase();
+    } else {
+      const qn = String(node.qualified_name ?? "");
+      const methodMatch = qn.match(/^__route__([A-Z]+)__/);
+      const extracted = methodMatch?.[1] ?? "";
+      if (extracted && (VALID_HTTP_METHODS as readonly string[]).includes(extracted)) {
+        httpMethod = extracted;
+      }
     }
 
-    const httpPath = typeof properties.path === "string" ? properties.path : "/";
+    // Extract HTTP path: properties first, then node.name if it looks like a URL
+    const httpPath = typeof properties.path === "string"
+      ? properties.path
+      : (typeof node.name === "string" && node.name.startsWith("/") ? node.name : "/");
+
     const handler = String(properties.handler_name ?? "");
     const sourceFile = node.file_path ?? "";
     const sourceSymbol = String(properties.symbol ?? "");
 
     // Construct route ID (use file:symbol as primary key for matching)
-    const routeId = sourceFile && sourceSymbol ? `${sourceFile}:${sourceSymbol}` : node.id;
+    const routeId = sourceFile && sourceSymbol
+      ? `${sourceFile}:${sourceSymbol}`
+      : (nodeName || node.id || "(unknown)");
 
     return {
       id: routeId,
@@ -1901,10 +1964,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      // Resolve internal project name for search_graph (requires name, not absolute path)
+      const projectName = await this.resolveProjectName(client, projectRoot);
+
       // Search for Route nodes using the CBM label from the mapping
       const searchResponse = await client.invokeTool("search_graph", {
         label: routeMapping.cbm_label,
-        project: projectRoot,
+        project: projectName,
       });
 
       const nodes = this.validateSearchResponse(searchResponse);
