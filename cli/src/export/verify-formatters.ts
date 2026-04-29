@@ -175,6 +175,8 @@ function formatGraphOnlyMarkdown(lines: string[], graphOnly: GraphOnlyEntry[]): 
   lines.push("");
   lines.push("Routes discovered in the codebase but missing from the model:");
   lines.push("");
+  lines.push('> **Tip:** Use `/dr-map` or `dr analyzer endpoints` ingestion to close these gaps — manual `dr add` operations cannot be matched by the verifier.');
+  lines.push("");
   lines.push("| ID | Endpoint | Source |");
   lines.push("|----|----|--------|");
 
@@ -380,6 +382,8 @@ function formatGraphOnlyText(lines: string[], graphOnly: GraphOnlyEntry[]): void
   }
 
   lines.push(ansis.dim("Routes discovered in the codebase but missing from the model:"));
+  lines.push(ansis.dim("  Tip: Use /dr-map or `dr analyzer endpoints` ingestion to close these gaps —"));
+  lines.push(ansis.dim("  manual `dr add` operations cannot be matched by the verifier."));
   lines.push("");
 
   for (const entry of graphOnly.slice(0, 20)) {

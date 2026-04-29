@@ -508,4 +508,6 @@ export interface VerifyReport {
   buckets: VerifyBuckets;
   /** Summary statistics */
   summary: VerifySummary;
+  /** Actionable hints for resolving gaps or drift, present when issues are detected */
+  hints?: string[];
 }

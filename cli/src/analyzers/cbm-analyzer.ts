@@ -86,6 +86,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
     /\/tests?\//,
     /\/__tests__\//,
     /\/test-/,
+    /\/fixtures?\//,
+    /\/__fixtures__\//,
   ];
 
   constructor(mapper: MappingLoader) {
@@ -730,6 +732,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
           projectRoot
         );
 
+        // Skip unattributable candidates — empty source_file means the graph
+        // found a path string in non-route code (test assertions, fixture data)
+        if (!candidate.source_file) {
+          continue;
+        }
         // Apply test code exclusion filter
         if (!this.isTestCode(candidate)) {
           candidates.push(candidate);
@@ -1102,6 +1109,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Resolve internal project name once before the label search loop
       const projectName = await this.resolveProjectName(client, projectRoot);
 
+      // Process high-fidelity node types first so the source_file dedup (below) retains
+      // class/module level entries over method-level entries from the same file.
+      const labelPriority: Record<string, number> = { Class: 0, Module: 1 };
+      applicationLabels.sort((a, b) => (labelPriority[a] ?? 99) - (labelPriority[b] ?? 99));
+
       // Search for each application-layer label
       for (const label of applicationLabels) {
         const searchResponse = await client.invokeTool("search_graph", {
@@ -1137,7 +1149,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
       }
 
-      return candidates;
+      // Deduplicate by source_file — the model documents at class/file granularity;
+      // method-level entries from the same file are noise.
+      const seenFiles = new Set<string>();
+      const deduped = candidates.filter((c) => {
+        if (!c.source_file) return true;
+        if (seenFiles.has(c.source_file)) return false;
+        seenFiles.add(c.source_file);
+        return true;
+      });
+      return deduped;
     } finally {
       client.close();
     }
@@ -1711,6 +1732,75 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
+   * Cypher fallback for call graph traversal when trace_path is unavailable.
+   *
+   * Uses query_graph directly with CALLS-edge Cypher when trace_path returns a
+   * non-array nodes field (i.e. is not implemented in the binary).
+   *
+   * @private
+   */
+  private async callGraphViaCypher(
+    binaryPath: string,
+    projectName: string,
+    qualifiedName: string,
+    direction: "outbound" | "inbound",
+    depth: number,
+    projectRoot: string
+  ): Promise<CallGraphNode[]> {
+    // Escape single quotes for Cypher string literals (ISO SQL-style doubling)
+    const safeQN = qualifiedName.replace(/'/g, "''");
+    const limit = Math.min(depth * 20, 100);
+    const cypher = direction === "inbound"
+      ? `MATCH (caller)-[:CALLS]->(target) WHERE target.qualified_name = '${safeQN}' RETURN caller.id AS id, caller.qualified_name AS qualified_name, caller.file_path AS file_path LIMIT ${limit}`
+      : `MATCH (source)-[:CALLS]->(callee) WHERE source.qualified_name = '${safeQN}' RETURN callee.id AS id, callee.qualified_name AS qualified_name, callee.file_path AS file_path LIMIT ${limit}`;
+
+    if (depth > 1) {
+      handleWarning(
+        `Cypher CALLS fallback: depth ${depth} requested but fallback only traverses 1 hop`,
+        ["Multi-hop traversal requires trace_path support in the analyzer binary"]
+      );
+    }
+
+    // Spawn a fresh client — the binary closes the stdio pipe after an unimplemented
+    // method call, so the caller's trace_path connection cannot be reused here.
+    const client = new StdioClient();
+    try {
+      client.spawn(binaryPath);
+      const version = await getCliVersion();
+      await client.initialize({ name: "dr-cli", version });
+
+      const queryResponse = await client.invokeTool("query_graph", {
+        query: cypher,
+        project: projectName,
+      }) as { columns?: string[]; rows?: unknown[][]; total?: number } | null | undefined;
+
+      const cols: string[] = queryResponse?.columns ?? [];
+      const tuples: unknown[][] = (queryResponse?.rows as unknown[][] | undefined) ?? [];
+      return tuples.map((row) => {
+        const obj: Record<string, unknown> = {};
+        cols.forEach((col, i) => {
+          // Strip table-alias prefix (e.g. "caller.id" → "id")
+          const key = col.includes(".") ? col.slice(col.lastIndexOf(".") + 1) : col;
+          obj[key] = row[i];
+        });
+        return shapeCallGraphNode(obj, projectRoot);
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      handleWarning(
+        "Cypher CALLS fallback failed — returning empty call graph",
+        [
+          `Error: ${errorMsg}`,
+          "Neither trace_path nor query_graph is available for call graph traversal",
+        ]
+      );
+      return [];
+    } finally {
+      client.close();
+    }
+  }
+
+  /**
    * Internal helper to trace call paths in either direction
    *
    * Handles common logic for callers() and callees(): pre-flight checks,
@@ -1801,14 +1891,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Gracefully handle missing nodes/edges — return empty rather than crashing.
       // The CBM backend may not implement trace_path or may return an error shape.
       if (!Array.isArray(traceResponse.nodes)) {
-        handleWarning(
-          "trace_path returned no nodes array — returning empty call graph",
-          [
-            `Expected array, got ${typeof traceResponse.nodes}`,
-            "Ensure codebase-memory-mcp supports trace_path and the project is indexed",
-          ]
-        );
-        return [];
+        // trace_path not implemented — fall back to Cypher CALLS query.
+        // Pass binary_path (not client): the binary closes the pipe after an unimplemented call.
+        return this.callGraphViaCypher(detection.binary_path, projectName, qualifiedName, direction, clampedDepth, projectRoot);
       }
 
       if (!Array.isArray(traceResponse.edges)) {
@@ -2008,8 +2093,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
         .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
 
-      // Shape routes via mapping
-      const routes = nodes.map((node) => this.shapeRoute(node));
+      // Shape routes via mapping; drop unattributed nodes (same filter as endpoints())
+      const routes = nodes
+        .map((node) => this.shapeRoute(node))
+        .filter((r) => r.source_file);
 
       // Delegate to VerifyEngine
       const engine = new VerifyEngine();

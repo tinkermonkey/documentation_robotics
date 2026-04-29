@@ -411,6 +411,14 @@ export class VerifyEngine {
           verified_against: "base_model",
         };
 
+    const hints: string[] = [];
+    if (buckets.in_graph_only.length > 0) {
+      hints.push(
+        "To close gaps with source attribution, use /dr-map or `dr analyzer endpoints` ingestion — "
+        + "manual `dr add` operations cannot be matched by the verifier."
+      );
+    }
+
     return {
       generated_at: new Date().toISOString(),
       project_root: projectRoot,
@@ -420,6 +428,7 @@ export class VerifyEngine {
       layers_verified: ["api"],
       buckets,
       summary,
+      ...(hints.length > 0 ? { hints } : {}),
     };
   }
 }
