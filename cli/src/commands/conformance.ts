@@ -25,61 +25,62 @@ function getLayerElementTypes(): Record<string, string[]> {
 
 const LAYER_ELEMENT_TYPES = getLayerElementTypes();
 
-/**
- * Get expected cross-layer relationships per layer
- * Derived from the relationship catalog for consistency
- */
-function getLayerCrossLayerRelationships(): Record<
-  string,
-  Array<{
-    target: string;
-    relationship: string;
-  }>
-> {
-  const relationships: Record<
-    string,
-    Array<{
-      target: string;
-      relationship: string;
-    }>
-  > = {};
+interface CrossLayerRelSpec {
+  target: string;
+  relationship: string;
+  /** Element types (e.g. "businessrole") in the source layer that support this predicate */
+  sourceTypes: string[];
+  /** Element types (e.g. "stakeholder") in the target layer that can receive this predicate */
+  destTypes: string[];
+}
 
-  // Build cross-layer relationships from the relationship catalog
-  // by finding relationships where source and destination are in different layers
+/**
+ * Get expected cross-layer relationships per layer.
+ * Returns per-predicate specs that include which element types must exist in both layers,
+ * so the conformance check can skip gaps that are not yet achievable.
+ */
+function getLayerCrossLayerRelationships(): Record<string, CrossLayerRelSpec[]> {
+  const relationships: Record<string, CrossLayerRelSpec[]> = {};
   const layers = getAllLayerIds();
 
   for (const sourceLayerId of layers) {
     const sourceLayer = getLayerById(sourceLayerId);
     if (!sourceLayer) continue;
 
-    relationships[sourceLayerId] = [];
-
-    // Use Set for O(1) duplicate detection instead of linear search
-    const seenRelationships = new Set<string>();
-
-    // Get all node types for this layer
+    const specMap = new Map<string, CrossLayerRelSpec>();
     const sourceNodeTypes = getSpecNodeTypesForLayer(sourceLayerId);
 
-    // For each source node type, find relationships to other layers
     for (const sourceNodeType of sourceNodeTypes) {
       const rels = RELATIONSHIPS_BY_SOURCE.get(sourceNodeType) || [];
+      const sourceElemType = sourceNodeType.split(".")[1] || "";
 
       for (const rel of rels) {
-        // Extract destination layer from spec node ID
-        const destLayerId = rel.destinationSpecNodeId.split(".")[0];
+        const parts = rel.destinationSpecNodeId.split(".");
+        const destLayerId = parts[0];
+        const destElemType = parts[1] || "";
+
         if (destLayerId && destLayerId !== sourceLayerId) {
-          // Create composite key for O(1) lookup
           const key = `${destLayerId}:${rel.predicate}`;
-          if (!seenRelationships.has(key)) {
-            seenRelationships.add(key);
-            relationships[sourceLayerId].push({
+          if (!specMap.has(key)) {
+            specMap.set(key, {
               target: destLayerId,
               relationship: rel.predicate,
+              sourceTypes: [],
+              destTypes: [],
             });
+          }
+          const spec = specMap.get(key)!;
+          if (sourceElemType && !spec.sourceTypes.includes(sourceElemType)) {
+            spec.sourceTypes.push(sourceElemType);
+          }
+          if (destElemType && !spec.destTypes.includes(destElemType)) {
+            spec.destTypes.push(destElemType);
           }
         }
       }
     }
+
+    relationships[sourceLayerId] = Array.from(specMap.values());
   }
 
   return relationships;
@@ -179,16 +180,26 @@ export async function conformanceCommand(options: {
       const allRelationships = model.relationships.getAll();
       const layerRelationships = allRelationships.filter((rel) => rel.layer === layerName);
 
-      // Validate expected cross-layer relationships exist
+      // Validate expected cross-layer relationships exist, but only when the required
+      // element types are present in both layers — avoids flooding output with gaps
+      // that can't yet be closed given the current model content.
       for (const expectedRel of expectedRelationships) {
-        // Check if any actual relationship matches this expected relationship
+        // Skip if none of the source element types exist in this layer
+        if (!expectedRel.sourceTypes.some((t) => presentTypes.has(t))) continue;
+
+        // Skip if none of the dest element types exist in the target layer
+        const targetLayer = model.layers.get(expectedRel.target);
+        const targetPresentTypes = new Set(
+          (targetLayer?.listElements() ?? []).map((e) => e.type)
+        );
+        if (!expectedRel.destTypes.some((t) => targetPresentTypes.has(t))) continue;
+
         const hasRelationship = layerRelationships.some(
           (rel) =>
             rel.predicate === expectedRel.relationship &&
             rel.targetLayer === expectedRel.target
         );
 
-        // Only warn if the expected relationship is not found in actual data
         if (!hasRelationship) {
           issues.push({
             severity: "warning",
@@ -237,6 +248,14 @@ export async function conformanceCommand(options: {
     for (const [layerName, result] of Object.entries(results)) {
       if (result.compliant) {
         console.log(ansis.green(`✓ ${layerName}`));
+        // Compliant layers may still have warnings — show them in verbose mode
+        if (options.verbose && result.issues.length > 0) {
+          for (const issue of result.issues) {
+            const prefix =
+              issue.severity === "error" ? ansis.red("[ERROR]") : ansis.yellow("[WARNING]");
+            console.log(ansis.dim(`  ${prefix} ${issue.message}`));
+          }
+        }
       } else {
         console.log(ansis.red(`✗ ${layerName} - ${result.issues.length} issue(s)`));
 

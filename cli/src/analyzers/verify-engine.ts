@@ -293,11 +293,15 @@ export class VerifyEngine {
       );
     }
 
-    // Warn user if elements were excluded due to missing source references
+    // Warn when elements are excluded from drift detection due to missing source_reference.
+    // This is actionable: elements need a source_reference.locations[0].file to participate.
     if (elementsWithoutSourceRef > 0) {
       console.warn(
-        `Note: ${elementsWithoutSourceRef} model element(s) excluded from drift detection ` +
-        `(no source reference data or file path); these elements cannot drift since they have no code linkage.`
+        `\nWarning: ${elementsWithoutSourceRef} API model element(s) excluded from drift detection` +
+        ` — they have no source_reference with a file location.\n` +
+        `  Drift detection requires a linked source file to compare against the code graph.\n` +
+        `  Fix: dr update <element-id> --source-file <relative-path> --source-symbol <symbol>\n` +
+        `  Elements ingested via /dr-map or dr analyzer endpoints are automatically attributed.\n`
       );
     }
 

@@ -157,7 +157,7 @@ export async function addRelationshipHandler(
   predicate: string,
   properties?: Record<string, unknown>,
   preResolved?: PreResolvedElements
-): Promise<void> {
+): Promise<boolean> {
   // Use pre-resolved elements if provided, otherwise resolve them
   let resolvedSourceLayerName = preResolved?.source?.layerName;
   let resolvedSourceElement = preResolved?.source?.element;
@@ -216,6 +216,14 @@ export async function addRelationshipHandler(
       ErrorCategory.USER,
       validation.suggestions
     );
+  }
+
+  // Guard against duplicate relationships before staging or writing
+  if (model.relationships.find(source, target, predicate).length > 0) {
+    console.warn(
+      ansis.yellow(`Warning: Relationship ${source} --[${predicate}]--> ${target} already exists. Skipping.`)
+    );
+    return false;
   }
 
   // Check for active changeset — stage relationship instead of writing directly
@@ -282,6 +290,8 @@ export async function addRelationshipHandler(
       );
     }
   }
+
+  return true;
 }
 
 /**
@@ -470,7 +480,7 @@ Examples:
         const activeChangesetId = await stagingManager.getActiveId();
 
         // Call the handler function with pre-resolved elements to avoid duplicate lookups
-        await addRelationshipHandler(
+        const added = await addRelationshipHandler(
           model,
           source,
           target,
@@ -481,6 +491,8 @@ Examples:
             target: { element: targetElement, layerName: targetLayerName },
           }
         );
+
+        if (!added) return; // duplicate — warning already printed
 
         // Show cardinality and strength in output
         let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;

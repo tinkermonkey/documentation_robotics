@@ -701,9 +701,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // convention. Nodes that don't match are graph artifacts (documentation
       // strings, base URLs, etc.) that were incidentally labelled Route by the
       // indexer — not actual HTTP routes.
-      const nodes = allNodes.filter((n) =>
-        /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? ""))
-      );
+      const nodes = allNodes
+        .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
+        // Exclude paths that look like file-system paths rather than HTTP routes
+        // (e.g. /src/file.ts, /.dr/spec — string literals the indexer mislabels as Routes)
+        .filter((n) => {
+          const httpPath = String(n.qualified_name ?? "").replace(/^__route__[A-Z]+__/, "");
+          return !/\.[a-zA-Z]{1,5}$/.test(httpPath) && !httpPath.startsWith("/.dr/");
+        });
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -774,11 +779,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      // Resolve internal project name — query_graph requires the CBM name, not the absolute path
+      const projectName = await this.resolveProjectName(client, projectRoot);
+
       // Call query_graph tool
       try {
         const queryResponse = await client.invokeTool("query_graph", {
           query: rawQuery,
-          project: projectRoot,
+          project: projectName,
         });
 
         return queryResponse;
@@ -890,9 +898,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
       httpPath = "/";
     }
 
-    // Handler information (from node properties)
-    const handlerQualifiedName = String(properties.handler_name ?? "");
-    const sourceSymbol = String(properties.symbol ?? "");
+    // Handler information — try multiple property names because CBM indexers vary
+    const handlerQualifiedName = String(
+      properties.handler_name ??
+      properties.handler_qualified_name ??
+      properties.qualified_name ??
+      ""
+    );
+    const sourceSymbol = String(properties.symbol ?? properties.source_symbol ?? "");
     const sourceStartLine = Number(properties.start_line ?? 0);
     const sourceEndLine = Number(properties.end_line ?? 0);
 
@@ -901,8 +914,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
       confidence = capConfidence(confidence);
     }
 
-    // Extract source file (relative to project root)
-    let sourceFile = node.file_path ?? "";
+    // Extract source file — check both node-level and properties-level fields
+    let sourceFile = String(node.file_path ?? properties.file_path ?? properties.source_file ?? "");
     if (sourceFile && projectRoot) {
       try {
         sourceFile = path.relative(projectRoot, sourceFile);
@@ -1738,12 +1751,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      // Resolve internal project name — trace_path requires the CBM name, not the absolute path
+      const projectName = await this.resolveProjectName(client, projectRoot);
+
       // Call trace_path with the clamped depth
       const traceResponse = (await client.invokeTool("trace_path", {
         function_name: qualifiedName,
         direction,
         depth: clampedDepth,
-        project: projectRoot,
+        project: projectName,
       })) as {
         nodes?: Array<{
           id: string;
@@ -1772,28 +1788,28 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
-      // Validate that nodes is an array
+      // Gracefully handle missing nodes/edges — return empty rather than crashing.
+      // The CBM backend may not implement trace_path or may return an error shape.
       if (!Array.isArray(traceResponse.nodes)) {
-        throw new CLIError(
-          "Invalid response from trace_path: nodes must be an array",
-          ErrorCategory.SYSTEM,
+        handleWarning(
+          "trace_path returned no nodes array — returning empty call graph",
           [
             `Expected array, got ${typeof traceResponse.nodes}`,
-            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+            "Ensure codebase-memory-mcp supports trace_path and the project is indexed",
           ]
         );
+        return [];
       }
 
-      // Validate that edges is an array
       if (!Array.isArray(traceResponse.edges)) {
-        throw new CLIError(
-          "Invalid response from trace_path: edges must be an array",
-          ErrorCategory.SYSTEM,
+        handleWarning(
+          "trace_path returned no edges array — returning empty call graph",
           [
             `Expected array, got ${typeof traceResponse.edges}`,
-            "Ensure codebase-memory-mcp is properly installed and returning valid results"
+            "Ensure codebase-memory-mcp supports trace_path and the project is indexed",
           ]
         );
+        return [];
       }
 
       const nodes = traceResponse.nodes as Array<{
@@ -1978,9 +1994,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // convention. Nodes that don't match are graph artifacts (documentation
       // strings, base URLs, etc.) that were incidentally labelled Route by the
       // indexer — not actual HTTP routes.
-      const nodes = allNodes.filter((n) =>
-        /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? ""))
-      );
+      const nodes = allNodes
+        .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
+        // Exclude paths that look like file-system paths rather than HTTP routes
+        // (e.g. /src/file.ts, /.dr/spec — string literals the indexer mislabels as Routes)
+        .filter((n) => {
+          const httpPath = String(n.qualified_name ?? "").replace(/^__route__[A-Z]+__/, "");
+          return !/\.[a-zA-Z]{1,5}$/.test(httpPath) && !httpPath.startsWith("/.dr/");
+        });
 
       // Shape routes via mapping
       const routes = nodes.map((node) => this.shapeRoute(node));
