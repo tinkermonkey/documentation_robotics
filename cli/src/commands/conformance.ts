@@ -184,15 +184,20 @@ export async function conformanceCommand(options: {
       // element types are present in both layers — avoids flooding output with gaps
       // that can't yet be closed given the current model content.
       for (const expectedRel of expectedRelationships) {
+        // If catalog metadata is incomplete (empty type lists), fall back to always
+        // checking — missing metadata should not silently suppress real gaps.
+        const hasSourceTypeMeta = expectedRel.sourceTypes.length > 0;
+        const hasDestTypeMeta = expectedRel.destTypes.length > 0;
+
         // Skip if none of the source element types exist in this layer
-        if (!expectedRel.sourceTypes.some((t) => presentTypes.has(t))) continue;
+        if (hasSourceTypeMeta && !expectedRel.sourceTypes.some((t) => presentTypes.has(t))) continue;
 
         // Skip if none of the dest element types exist in the target layer
         const targetLayer = model.layers.get(expectedRel.target);
         const targetPresentTypes = new Set(
           (targetLayer?.listElements() ?? []).map((e) => e.type)
         );
-        if (!expectedRel.destTypes.some((t) => targetPresentTypes.has(t))) continue;
+        if (hasDestTypeMeta && !expectedRel.destTypes.some((t) => targetPresentTypes.has(t))) continue;
 
         const hasRelationship = layerRelationships.some(
           (rel) =>

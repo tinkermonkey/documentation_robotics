@@ -54,6 +54,21 @@ interface CbmGraphNode {
   [key: string]: unknown;
 }
 
+// Source-code file extensions that CBM sometimes mislabels as Route nodes when it
+// encounters string literals that look like paths (e.g. "/src/app.ts").
+// Only source-code extensions are listed — .json, .xml, .csv, .html etc. are
+// legitimate HTTP route suffixes and must NOT be filtered out.
+const SOURCE_CODE_EXT_RE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte|py|go|rb|java|rs|php|cs|cpp|c|h|kt|swift|sh|bash)$/i;
+
+/**
+ * Returns true when a qualified_name looks like a real HTTP route rather than
+ * a source-file path that the CBM indexer mislabelled as a Route node.
+ */
+function isLikelyHttpRoute(qualifiedName: string): boolean {
+  const httpPath = qualifiedName.replace(/^__route__[A-Z]+__/, "");
+  return !SOURCE_CODE_EXT_RE.test(httpPath) && !httpPath.startsWith("/.dr/");
+}
+
 /**
  * CBM Analyzer implementation
  */
@@ -703,12 +718,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // indexer — not actual HTTP routes.
       const nodes = allNodes
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
-        // Exclude paths that look like file-system paths rather than HTTP routes
-        // (e.g. /src/file.ts, /.dr/spec — string literals the indexer mislabels as Routes)
-        .filter((n) => {
-          const httpPath = String(n.qualified_name ?? "").replace(/^__route__[A-Z]+__/, "");
-          return !/\.[a-zA-Z]{1,5}$/.test(httpPath) && !httpPath.startsWith("/.dr/");
-        });
+        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
 
       // Transform nodes to endpoint candidates
       const candidates: EndpointCandidate[] = [];
@@ -898,11 +908,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
       httpPath = "/";
     }
 
-    // Handler information — try multiple property names because CBM indexers vary
+    // Handler information — try multiple property names because CBM indexers vary.
+    // Do NOT fall back to properties.qualified_name — that is the route node's own QN.
     const handlerQualifiedName = String(
       properties.handler_name ??
       properties.handler_qualified_name ??
-      properties.qualified_name ??
       ""
     );
     const sourceSymbol = String(properties.symbol ?? properties.source_symbol ?? "");
@@ -1996,12 +2006,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // indexer — not actual HTTP routes.
       const nodes = allNodes
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
-        // Exclude paths that look like file-system paths rather than HTTP routes
-        // (e.g. /src/file.ts, /.dr/spec — string literals the indexer mislabels as Routes)
-        .filter((n) => {
-          const httpPath = String(n.qualified_name ?? "").replace(/^__route__[A-Z]+__/, "");
-          return !/\.[a-zA-Z]{1,5}$/.test(httpPath) && !httpPath.startsWith("/.dr/");
-        });
+        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
 
       // Shape routes via mapping
       const routes = nodes.map((node) => this.shapeRoute(node));
