@@ -1085,8 +1085,11 @@ async function build(validate: boolean = false): Promise<void> {
     }
   }
 
-  // Phase 4.5: Verify all schema predicates are registered in predicates.json
-  const predicateKeys = new Set(Object.keys(predicates as Record<string, unknown>));
+  // Phase 4.5: predicates.json integrity checks
+  const predicateDict = predicates as Record<string, Record<string, unknown>>;
+  const predicateKeys = new Set(Object.keys(predicateDict));
+
+  // Check 1: every predicate used in a relationship schema must be in the catalog
   const missingFromCatalog = Array.from(allSchemaPredicates)
     .filter((p) => !predicateKeys.has(p))
     .sort();
@@ -1096,6 +1099,59 @@ async function build(validate: boolean = false): Promise<void> {
       console.error(`  - "${p}"`);
     }
     console.error(`\nAdd the above predicates to spec/schemas/base/predicates.json and rebuild.`);
+    process.exit(1);
+  }
+
+  // Check 2: AJV schema validation of all predicate catalog entries
+  {
+    const catalogSchemaPath = path.join(SCHEMAS_DIR, "base", "predicate-catalog.schema.json");
+    const catalogSchema = JSON.parse(fs.readFileSync(catalogSchemaPath, "utf-8")) as unknown;
+    const catalogAjv = new Ajv({ strict: false });
+    ajvFormats(catalogAjv);
+    const validateCatalog = catalogAjv.compile(catalogSchema);
+    if (!validateCatalog({ predicates: predicateDict })) {
+      console.error(`\n[ERROR] predicates.json fails schema validation:`);
+      for (const err of validateCatalog.errors ?? []) {
+        console.error(`  - ${err.instancePath || "/"}: ${err.message}`);
+      }
+      process.exit(1);
+    }
+  }
+
+  // Check 3: inverse reference integrity — if an inverse predicate is actively used in
+  // any relationship schema, it must also have a catalog entry. Purely documentary
+  // inverses (declared in another predicate's "inverse" field but absent from schemas)
+  // are allowed without a full catalog entry.
+  const inverseErrors: string[] = [];
+  for (const [key, entry] of Object.entries(predicateDict)) {
+    const inv = entry.inverse as string | undefined;
+    if (inv && !predicateKeys.has(inv) && allSchemaPredicates.has(inv)) {
+      inverseErrors.push(`"${key}" declares inverse "${inv}" which is used in relationship schemas but missing from the catalog`);
+    }
+  }
+  if (inverseErrors.length > 0) {
+    console.error(`\n[ERROR] Broken inverse references in predicates.json:`);
+    for (const e of inverseErrors) {
+      console.error(`  - ${e}`);
+    }
+    process.exit(1);
+  }
+
+  // Check 4: symmetry consistency — symmetry: true requires inverse === predicate
+  const symmetryErrors: string[] = [];
+  for (const [key, entry] of Object.entries(predicateDict)) {
+    const semantics = entry.semantics as Record<string, unknown> | undefined;
+    if (semantics?.symmetry === true && entry.inverse !== entry.predicate) {
+      symmetryErrors.push(
+        `"${key}" has symmetry: true but inverse "${entry.inverse}" ≠ predicate "${entry.predicate}"`
+      );
+    }
+  }
+  if (symmetryErrors.length > 0) {
+    console.error(`\n[ERROR] Symmetry inconsistencies in predicates.json (symmetry: true requires inverse === predicate):`);
+    for (const e of symmetryErrors) {
+      console.error(`  - ${e}`);
+    }
     process.exit(1);
   }
 

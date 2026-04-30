@@ -485,7 +485,6 @@
               "description": "Human-readable description of what this predicate means"
             },
             "archimate_alignment": {
-              "type": "string",
               "enum": [
                 "Composition",
                 "Aggregation",
@@ -497,9 +496,10 @@
                 "Triggering",
                 "Flow",
                 "Specialization",
-                "Association"
+                "Association",
+                null
               ],
-              "description": "Corresponding ArchiMate 3.2 relationship type (if applicable)"
+              "description": "Corresponding ArchiMate 3.2 relationship type (if applicable), or null if none applies"
             },
             "semantics": {
               "type": "object",
@@ -1302,7 +1302,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "assigned-to": {
@@ -1314,7 +1315,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "associated-with": {
@@ -1326,7 +1328,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": true
+        "symmetry": true,
+        "reflexivity": false
       }
     },
     "influence": {
@@ -1338,7 +1341,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "serves": {
@@ -1350,7 +1354,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "references": {
@@ -1362,7 +1367,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "depends-on": {
@@ -1374,7 +1380,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "supports-goals": {
@@ -1386,7 +1393,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "fulfills-requirements": {
@@ -1398,7 +1406,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "delivers-value": {
@@ -1410,7 +1419,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "measures-outcome": {
@@ -1422,7 +1432,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "governed-by-principles": {
@@ -1434,7 +1445,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "constrained-by": {
@@ -1446,7 +1458,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "enforces-requirement": {
@@ -1458,7 +1471,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "traces": {
@@ -1470,7 +1484,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "measures": {
@@ -1482,7 +1497,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "authenticates": {
@@ -1494,7 +1510,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "authorizes": {
@@ -1506,7 +1523,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "renders": {
@@ -1518,7 +1536,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "binds-to": {
@@ -1530,7 +1549,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "navigates-to": {
@@ -1542,7 +1562,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "maps-to": {
@@ -1554,7 +1575,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "references-table": {
@@ -1566,7 +1588,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "derives-from": {
@@ -1578,7 +1601,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     },
     "validates": {
@@ -1590,7 +1614,8 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
-        "symmetry": false
+        "symmetry": false,
+        "reflexivity": false
       }
     }
   }

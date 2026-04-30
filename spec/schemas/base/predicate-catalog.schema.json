@@ -77,7 +77,6 @@
           "description": "Human-readable description of what this predicate means"
         },
         "archimate_alignment": {
-          "type": "string",
           "enum": [
             "Composition",
             "Aggregation",
@@ -89,9 +88,10 @@
             "Triggering",
             "Flow",
             "Specialization",
-            "Association"
+            "Association",
+            null
           ],
-          "description": "Corresponding ArchiMate 3.2 relationship type (if applicable)"
+          "description": "Corresponding ArchiMate 3.2 relationship type (if applicable), or null if none applies"
         },
         "semantics": {
           "type": "object",
