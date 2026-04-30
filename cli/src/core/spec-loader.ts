@@ -377,11 +377,6 @@ export class SpecDataLoader {
     return this.getSpecData().predicates.get(predicateName);
   }
 
-  getAllPredicates(): PredicateSpec[] {
-    const data = this.getSpecData();
-    return Array.from(data.predicates.values());
-  }
-
   getLayer(layerId: string): LayerSpec | undefined {
     const data = this.getSpecData();
     return data.layers.find((l) => l.id === layerId);

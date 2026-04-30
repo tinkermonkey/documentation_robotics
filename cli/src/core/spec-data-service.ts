@@ -122,20 +122,6 @@ export class SpecDataService {
   }
 
   /**
-   * Get all predicates
-   */
-  getAllPredicates(): PredicateSpec[] {
-    return this.loader.getAllPredicates();
-  }
-
-  /**
-   * Get predicate by name
-   */
-  getPredicate(predicateName: string): PredicateSpec | undefined {
-    return this.loader.getPredicate(predicateName);
-  }
-
-  /**
    * Get enriched metadata for a node type (including relationships and layers)
    */
   getNodeTypeMetadata(specNodeId: string): NodeTypeMetadata | undefined {

@@ -12,7 +12,6 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
-import { RelationshipCatalog } from "../core/relationship-catalog.js";
 
 
 export interface ValidateOptions {
@@ -392,32 +391,6 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
           }
         }
       }
-    }
-
-    // Check that all relationship predicates are registered in the catalog.
-    // dr validate (schema-level) accepts any well-formed YAML — this check surfaces
-    // predicates created outside the catalog (e.g. by AI ingestion without catalog lookup).
-    try {
-      const catalog = new RelationshipCatalog();
-      await catalog.load();
-      const allRelationships = modelToValidate.relationships.getAll();
-      for (const rel of allRelationships) {
-        if (!catalog.getTypeByPredicate(rel.predicate)) {
-          result.addWarning({
-            message: `Predicate "${rel.predicate}" in relationship ${rel.source} --[${rel.predicate}]--> ${rel.target} is not registered in the relationship catalog`,
-            layer: rel.layer ?? "unknown",
-            elementId: rel.source,
-            category: "semantic",
-            fixSuggestion: `Run 'dr catalog search ${rel.predicate}' to find the correct predicate, or 'dr catalog types' to list all registered predicates`,
-          });
-        }
-      }
-    } catch (catalogErr) {
-      result.addWarning({
-        message: `Relationship catalog unavailable — predicate registration check skipped: ${getErrorMessage(catalogErr)}`,
-        layer: "unknown",
-        category: "semantic",
-      });
     }
 
     // Record validation results in span
