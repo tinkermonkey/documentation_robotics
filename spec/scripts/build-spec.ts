@@ -1033,6 +1033,7 @@ async function build(validate: boolean = false): Promise<void> {
   const manifest: ManifestEntry[] = [];
   let totalNodeTypes = 0;
   let totalRelationships = 0;
+  const allSchemaPredicates = new Set<string>();
 
   // Get layer files in order
   const layerFiles = fs
@@ -1078,6 +1079,24 @@ async function build(validate: boolean = false): Promise<void> {
 
     totalNodeTypes += nodeCount;
     totalRelationships += relCount;
+
+    for (const relSchema of Object.values(relationshipSchemas)) {
+      allSchemaPredicates.add(relSchema.predicate);
+    }
+  }
+
+  // Phase 4.5: Verify all schema predicates are registered in predicates.json
+  const predicateKeys = new Set(Object.keys(predicates as Record<string, unknown>));
+  const missingFromCatalog = Array.from(allSchemaPredicates)
+    .filter((p) => !predicateKeys.has(p))
+    .sort();
+  if (missingFromCatalog.length > 0) {
+    console.error(`\n[ERROR] Relationship schema predicates not registered in predicates.json:`);
+    for (const p of missingFromCatalog) {
+      console.error(`  - "${p}"`);
+    }
+    console.error(`\nAdd the above predicates to spec/schemas/base/predicates.json and rebuild.`);
+    process.exit(1);
   }
 
   // Phase 5: Write manifest.json

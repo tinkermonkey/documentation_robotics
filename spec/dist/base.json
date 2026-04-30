@@ -549,33 +549,51 @@
       "enum": [
         "accesses",
         "aggregates",
+        "applies",
+        "archives-to",
         "assigned-to",
         "associated-with",
         "authenticates",
         "authorizes",
         "binds-to",
+        "cascades-to",
         "composes",
+        "connects",
         "constrained-by",
         "constrains",
         "consumes",
+        "covers",
         "delivers",
         "delivers-value",
         "depends-on",
         "derives-from",
+        "enforces",
         "enforces-requirement",
+        "evaluates",
+        "exposes",
+        "extends",
+        "federates",
         "flows-to",
         "fulfills",
         "fulfills-requirements",
+        "generates",
+        "governed-by",
         "governed-by-principles",
         "governs",
         "implements",
         "influence",
+        "intercepts",
+        "lazy-loads",
+        "manages",
+        "mandates",
         "maps-to",
         "measures",
         "measures-outcome",
+        "migrates",
         "mitigates",
         "monitors",
         "navigates-to",
+        "optimizes",
         "owns",
         "performs",
         "protects",
@@ -584,13 +602,18 @@
         "references",
         "references-table",
         "renders",
+        "replicates",
         "requires",
+        "resolves-with",
+        "satisfies",
         "serves",
         "specializes",
         "supports",
         "supports-goals",
+        "targets",
         "tests",
         "traces",
+        "tracks",
         "triggers",
         "uses",
         "validates"
@@ -808,6 +831,305 @@
       "category": "dependency",
       "description": "Element uses or depends on another element's functionality",
       "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "covers": {
+      "predicate": "covers",
+      "inverse": "covered-by",
+      "category": "testing",
+      "description": "Coverage scope — test requirement or target covers an element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "extends": {
+      "predicate": "extends",
+      "inverse": "extended-by",
+      "category": "structural",
+      "description": "Schema or type inheritance (code-level specialization)",
+      "archimate_alignment": "Specialization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "satisfies": {
+      "predicate": "satisfies",
+      "inverse": "satisfied-by",
+      "category": "traceability",
+      "description": "Element fulfills or satisfies a requirement or constraint",
+      "archimate_alignment": "Realization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "targets": {
+      "predicate": "targets",
+      "inverse": "targeted-by",
+      "category": "security",
+      "description": "Threat identifies its attack surface or victim element",
+      "archimate_alignment": "Association",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "applies": {
+      "predicate": "applies",
+      "inverse": "applied-by",
+      "category": "ux",
+      "description": "Element applies a configuration or style to another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "archives-to": {
+      "predicate": "archives-to",
+      "inverse": "archived-from",
+      "category": "data",
+      "description": "Data is archived to a storage destination",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "cascades-to": {
+      "predicate": "cascades-to",
+      "inverse": "cascaded-from",
+      "category": "data",
+      "description": "Operation or constraint cascades its effect to another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "connects": {
+      "predicate": "connects",
+      "inverse": "connected-by",
+      "category": "structural",
+      "description": "Network or channel connects infrastructure elements",
+      "archimate_alignment": "Association",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "enforces": {
+      "predicate": "enforces",
+      "inverse": "enforced-by",
+      "category": "governance",
+      "description": "Element actively enforces a policy or constraint",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "evaluates": {
+      "predicate": "evaluates",
+      "inverse": "evaluated-by",
+      "category": "behavioral",
+      "description": "Element evaluates a condition or expression",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "exposes": {
+      "predicate": "exposes",
+      "inverse": "exposed-by",
+      "category": "structural",
+      "description": "Interface exposes underlying functionality or resources",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "federates": {
+      "predicate": "federates",
+      "inverse": "federated-by",
+      "category": "data",
+      "description": "Element participates in a federated arrangement with another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "generates": {
+      "predicate": "generates",
+      "inverse": "generated-by",
+      "category": "behavioral",
+      "description": "Element produces another element as output",
+      "archimate_alignment": "Triggering",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "governed-by": {
+      "predicate": "governed-by",
+      "inverse": "governs",
+      "category": "motivation",
+      "description": "Element is subject to governance by another element",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "intercepts": {
+      "predicate": "intercepts",
+      "inverse": "intercepted-by",
+      "category": "security",
+      "description": "Element intercepts or gates the flow of another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "lazy-loads": {
+      "predicate": "lazy-loads",
+      "inverse": "lazy-loaded-by",
+      "category": "behavioral",
+      "description": "Element defers loading of another element until needed",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "manages": {
+      "predicate": "manages",
+      "inverse": "managed-by",
+      "category": "governance",
+      "description": "Element has management responsibility over another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "mandates": {
+      "predicate": "mandates",
+      "inverse": "mandated-by",
+      "category": "governance",
+      "description": "Element compels or requires another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "migrates": {
+      "predicate": "migrates",
+      "inverse": "migrated-by",
+      "category": "data",
+      "description": "Element moves or transforms data to another location",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "optimizes": {
+      "predicate": "optimizes",
+      "inverse": "optimized-by",
+      "category": "dependency",
+      "description": "Element improves the performance or efficiency of another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "replicates": {
+      "predicate": "replicates",
+      "inverse": "replicated-by",
+      "category": "data",
+      "description": "Element copies data to another element for redundancy or distribution",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "resolves-with": {
+      "predicate": "resolves-with",
+      "inverse": "resolved-by",
+      "category": "behavioral",
+      "description": "Navigation request is resolved using another element",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "tracks": {
+      "predicate": "tracks",
+      "inverse": "tracked-by",
+      "category": "apm",
+      "description": "Element records or monitors the state of another element",
+      "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
