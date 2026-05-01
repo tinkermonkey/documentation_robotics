@@ -1572,7 +1572,6 @@ Examples:
 
   changesetGroup
     .command("status")
-    .aliases(["show"])
     .description("Show the currently active changeset")
     .addHelpText(
       "after",
@@ -1582,6 +1581,31 @@ Examples:
     )
     .action(async () => {
       await changesetStatusCommand();
+    });
+
+  changesetGroup
+    .command("show [name]")
+    .description("Show changeset details (use: status, staged, diff, or preview)")
+    .addHelpText(
+      "after",
+      `
+To inspect a changeset, use one of:
+  $ dr changeset status              # Show the active changeset
+  $ dr changeset staged              # List all staged changes
+  $ dr changeset diff [name]         # Show a diff of staged changes
+  $ dr changeset preview [name]      # Preview what will be committed`
+    )
+    .action(async (name?: string) => {
+      const nameHint = name ? ` '${name}'` : "";
+      console.error(
+        `error: 'dr changeset show${nameHint}' is not a valid subcommand.\n\n` +
+        `To inspect a changeset, use one of:\n` +
+        `  dr changeset status        — show the active changeset\n` +
+        `  dr changeset staged        — list all staged changes\n` +
+        `  dr changeset diff          — show a diff of staged changes\n` +
+        `  dr changeset preview       — preview what will be committed`
+      );
+      process.exit(1);
     });
 
   changesetGroup
