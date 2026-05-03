@@ -218,6 +218,13 @@ export async function addRelationshipHandler(
     );
   }
 
+  if (source === target) {
+    throw new CLIError(
+      `Invalid relationship: source and target cannot be the same element (${source})`,
+      ErrorCategory.USER
+    );
+  }
+
   // Guard against duplicate relationships before staging or writing
   if (model.relationships.find(source, target, predicate).length > 0) {
     console.warn(

@@ -319,6 +319,14 @@ Examples:
             ];
 
             for (const rel of allRelationships) {
+              if (rel.source === rel.target) {
+                issues.push(
+                  `${ansis.red("Error")}: Self-referential relationship: ${rel.source} --[${rel.predicate}]--> ${rel.target}`
+                );
+                errorCount++;
+                continue;
+              }
+
               // Check if predicate exists in catalog
               const type = catalogInstance.getTypeByPredicate(rel.predicate);
 

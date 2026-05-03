@@ -40,6 +40,7 @@ import { StagingAreaManager } from "../core/staging-area.js";
 import { VerifyEngine } from "./verify-engine.js";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
 import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
+import { toKebabCase } from "../utils/id-generator.js";
 
 /**
  * Graph node from CBM search results
@@ -743,6 +744,24 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
       }
 
+      // Warn on suggested_id_fragment collisions within the output set
+      const seenIdFragments = new Map<string, string>();
+      for (const c of candidates) {
+        const fragment = c.suggested_id_fragment;
+        if (!fragment) continue;
+        if (seenIdFragments.has(fragment)) {
+          handleWarning(
+            `Duplicate suggested ID "${fragment}" — multiple symbols map to the same element ID`,
+            [
+              `First: ${seenIdFragments.get(fragment)!}`,
+              `Conflict: ${c.source_symbol || c.source_file || "(unknown)"}`,
+              `Rename one or use "dr add" with a custom name`,
+            ]
+          );
+        } else {
+          seenIdFragments.set(fragment, c.source_symbol || c.source_file || "(unknown)");
+        }
+      }
       return candidates;
     } finally {
       client.close();
@@ -862,8 +881,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     let confidence = mapping.confidence as "high" | "medium" | "low";
 
     // Suggested name in kebab-case: properties.name → node.name → node.id
-    let suggestedName = String(properties.name ?? node.name ?? node.id ?? "").toLowerCase();
-    suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
+    const suggestedName = toKebabCase(String(properties.name ?? node.name ?? node.id ?? ""));
 
     // Suggested ID fragment (same as name for endpoints)
     const suggestedIdFragment = suggestedName;
@@ -1158,6 +1176,24 @@ export class CbmAnalyzer implements AnalyzerBackend {
         seenFiles.add(c.source_file);
         return true;
       });
+      // Warn on suggested_id_fragment collisions within the output set
+      const seenIdFragments = new Map<string, string>();
+      for (const c of deduped) {
+        const fragment = c.suggested_id_fragment;
+        if (!fragment) continue;
+        if (seenIdFragments.has(fragment)) {
+          handleWarning(
+            `Duplicate suggested ID "${fragment}" — multiple symbols map to the same element ID`,
+            [
+              `First: ${seenIdFragments.get(fragment)!}`,
+              `Conflict: ${c.source_symbol || c.source_file || "(unknown)"}`,
+              `Rename one or use "dr add" with a custom name`,
+            ]
+          );
+        } else {
+          seenIdFragments.set(fragment, c.source_symbol || c.source_file || "(unknown)");
+        }
+      }
       return deduped;
     } finally {
       client.close();
@@ -1183,8 +1219,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const properties = node.properties ?? {};
 
     // Suggested name in kebab-case: properties.name → node.name → node.id
-    let suggestedName = String(properties.name ?? node.name ?? node.id ?? "").toLowerCase();
-    suggestedName = suggestedName.replace(/[^a-z0-9-]/g, "-");
+    const suggestedName = toKebabCase(String(properties.name ?? node.name ?? node.id ?? ""));
 
     // Suggested ID fragment (same as name for services)
     const suggestedIdFragment = suggestedName;
@@ -1518,7 +1553,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
 
         // Normalize to lowercase and replace special chars
-        datastoreName = datastoreName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+        datastoreName = toKebabCase(datastoreName);
 
         // Get or create entry for this datastore
         if (!datastoreSignals.has(datastoreName)) {
@@ -1619,6 +1654,25 @@ export class CbmAnalyzer implements AnalyzerBackend {
         });
       }
 
+      // Warn on suggested_name collisions within the output set
+      const seenDsNames = new Map<string, string>();
+      for (const c of candidates) {
+        const name = c.suggested_name;
+        if (!name) continue;
+        const firstFile = c.inferred_from[0]?.source_file || "(unknown)";
+        if (seenDsNames.has(name)) {
+          handleWarning(
+            `Duplicate suggested datastore name "${name}" — multiple sources map to the same element ID`,
+            [
+              `First: ${seenDsNames.get(name)!}`,
+              `Conflict: ${firstFile}`,
+              `Rename one or use "dr add" with a custom name`,
+            ]
+          );
+        } else {
+          seenDsNames.set(name, firstFile);
+        }
+      }
       return candidates;
     } finally {
       client.close();

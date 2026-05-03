@@ -13,6 +13,7 @@ import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { findElementLayer } from "../utils/element-utils.js";
 
 /**
  * Generate a unique ID for imported changesets
@@ -735,6 +736,70 @@ export async function changesetStagedCommand(options: { layer?: string }): Promi
 /**
  * Remove specific element from staging area
  */
+export async function changesetExplicitStageCommand(elementId: string): Promise<void> {
+  const span = isTelemetryEnabled
+    ? startSpan("changeset.stage-explicit", { "stage.elementId": elementId })
+    : null;
+
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const activeChangesetId = await manager.getActiveId();
+
+    if (!activeChangesetId) {
+      console.error(ansis.red("Error: No active changeset"));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: "No active changeset" });
+      }
+      endSpan(span);
+      return;
+    }
+
+    const layerName = await findElementLayer(model, elementId);
+    if (!layerName) {
+      console.error(ansis.red(`Error: Element '${elementId}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: "Element not found" });
+      }
+      endSpan(span);
+      process.exit(1);
+    }
+
+    const layer = await model.getLayer(layerName);
+    const element = layer?.getElement(elementId);
+    if (!element) {
+      console.error(ansis.red(`Error: Element '${elementId}' not found in layer '${layerName}'`));
+      endSpan(span);
+      process.exit(1);
+    }
+
+    await manager.stage(activeChangesetId, {
+      type: "update",
+      elementId,
+      layerName,
+      after: element.toJSON() as unknown as Record<string, unknown>,
+    });
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute("stage.layerName", layerName);
+      (span as any).setStatus({ code: 0 });
+    }
+
+    console.log(ansis.green(`✓ Staged element: ${ansis.bold(elementId)}`));
+    console.log(ansis.dim(`  Layer: ${layerName} | Changeset: ${activeChangesetId}`));
+  } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: getErrorMessage(error) });
+    }
+    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    endSpan(span);
+    process.exit(1);
+  } finally {
+    endSpan(span);
+  }
+}
+
 export async function changesetUnstageCommand(elementId: string): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.unstage", {
@@ -1651,6 +1716,20 @@ Examples:
     )
     .action(async (options) => {
       await changesetStagedCommand(options);
+    });
+
+  changesetGroup
+    .command("stage <element-id>")
+    .description("Stage a specific element into the active changeset")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr changeset stage api.operation.get-users
+  $ dr changeset stage ux.uicomponent.login-form`
+    )
+    .action(async (elementId) => {
+      await changesetExplicitStageCommand(elementId);
     });
 
   changesetGroup
