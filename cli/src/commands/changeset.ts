@@ -773,8 +773,16 @@ export async function changesetExplicitStageCommand(elementId: string): Promise<
       process.exit(1);
     }
 
+    // Guard against staging the same element twice
+    const activeChangeset = await manager.load(activeChangesetId);
+    if (activeChangeset?.changes.some((c: any) => c.elementId === elementId)) {
+      console.warn(ansis.yellow(`Warning: Element '${elementId}' is already staged in the active changeset. Skipping.`));
+      endSpan(span);
+      return;
+    }
+
     await manager.stage(activeChangesetId, {
-      type: "update",
+      type: "add",
       elementId,
       layerName,
       after: element.toJSON() as unknown as Record<string, unknown>,

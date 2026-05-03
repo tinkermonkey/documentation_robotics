@@ -19,6 +19,7 @@ import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
 import { Element } from "../core/element.js";
 import { Relationship } from "../core/relationships.js";
+import { RelationshipCatalog } from "../core/relationship-catalog.js";
 
 /**
  * Pre-resolved element and layer information to avoid redundant lookups.
@@ -218,11 +219,16 @@ export async function addRelationshipHandler(
     );
   }
 
-  if (source === target) {
-    throw new CLIError(
-      `Invalid relationship: source and target cannot be the same element (${source})`,
-      ErrorCategory.USER
-    );
+  {
+    const catalog = new RelationshipCatalog();
+    await catalog.load();
+    const relType = catalog.getTypeByPredicate(predicate);
+    if (relType && !relType.semantics.reflexivity && source === target) {
+      throw new CLIError(
+        `Invalid relationship: predicate "${predicate}" does not allow reflexive relationships (${source})`,
+        ErrorCategory.USER
+      );
+    }
   }
 
   // Guard against duplicate relationships before staging or writing

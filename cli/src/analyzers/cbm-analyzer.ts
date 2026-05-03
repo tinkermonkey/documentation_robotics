@@ -744,24 +744,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
       }
 
-      // Warn on suggested_id_fragment collisions within the output set
-      const seenIdFragments = new Map<string, string>();
-      for (const c of candidates) {
-        const fragment = c.suggested_id_fragment;
-        if (!fragment) continue;
-        if (seenIdFragments.has(fragment)) {
-          handleWarning(
-            `Duplicate suggested ID "${fragment}" — multiple symbols map to the same element ID`,
-            [
-              `First: ${seenIdFragments.get(fragment)!}`,
-              `Conflict: ${c.source_symbol || c.source_file || "(unknown)"}`,
-              `Rename one or use "dr add" with a custom name`,
-            ]
-          );
-        } else {
-          seenIdFragments.set(fragment, c.source_symbol || c.source_file || "(unknown)");
-        }
-      }
+      this.warnOnDuplicateIdFragments(
+        candidates,
+        (c) => c.suggested_id_fragment,
+        (c) => c.source_symbol || c.source_file || "(unknown)"
+      );
       return candidates;
     } finally {
       client.close();
@@ -847,6 +834,31 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
     } finally {
       client.close();
+    }
+  }
+
+  private warnOnDuplicateIdFragments<T>(
+    items: T[],
+    getKey: (item: T) => string | undefined,
+    getLabel: (item: T) => string
+  ): void {
+    const seen = new Map<string, string>();
+    for (const item of items) {
+      const key = getKey(item);
+      if (!key) continue;
+      const label = getLabel(item);
+      if (seen.has(key)) {
+        handleWarning(
+          `Duplicate suggested ID "${key}" — multiple symbols map to the same element ID`,
+          [
+            `First: ${seen.get(key)!}`,
+            `Conflict: ${label}`,
+            `Rename one or use "dr add" with a custom name`,
+          ]
+        );
+      } else {
+        seen.set(key, label);
+      }
     }
   }
 
@@ -1176,24 +1188,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
         seenFiles.add(c.source_file);
         return true;
       });
-      // Warn on suggested_id_fragment collisions within the output set
-      const seenIdFragments = new Map<string, string>();
-      for (const c of deduped) {
-        const fragment = c.suggested_id_fragment;
-        if (!fragment) continue;
-        if (seenIdFragments.has(fragment)) {
-          handleWarning(
-            `Duplicate suggested ID "${fragment}" — multiple symbols map to the same element ID`,
-            [
-              `First: ${seenIdFragments.get(fragment)!}`,
-              `Conflict: ${c.source_symbol || c.source_file || "(unknown)"}`,
-              `Rename one or use "dr add" with a custom name`,
-            ]
-          );
-        } else {
-          seenIdFragments.set(fragment, c.source_symbol || c.source_file || "(unknown)");
-        }
-      }
+      this.warnOnDuplicateIdFragments(
+        deduped,
+        (c) => c.suggested_id_fragment,
+        (c) => c.source_symbol || c.source_file || "(unknown)"
+      );
       return deduped;
     } finally {
       client.close();
@@ -1457,6 +1456,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
           functionPatterns: string[];
         }>
       >();
+      // Tracks the first import target that produced each normalized datastore name,
+      // so we can warn when distinct imports collapse to the same element ID.
+      const datastoreFirstSource = new Map<string, string>();
 
       // Resolve internal project name once (search_graph and query_graph require name, not path)
       const projectName = await this.resolveProjectName(client, projectRoot);
@@ -1555,9 +1557,20 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Normalize to lowercase and replace special chars
         datastoreName = toKebabCase(datastoreName);
 
-        // Get or create entry for this datastore
+        // Get or create entry for this datastore; warn when distinct import targets
+        // normalize to the same name (merging is intentional, but the collision is surfaced)
         if (!datastoreSignals.has(datastoreName)) {
           datastoreSignals.set(datastoreName, []);
+          datastoreFirstSource.set(datastoreName, importTargetName);
+        } else if (datastoreFirstSource.get(datastoreName) !== importTargetName) {
+          handleWarning(
+            `Multiple imports normalize to datastore name "${datastoreName}"`,
+            [
+              `First: ${datastoreFirstSource.get(datastoreName)!}`,
+              `Conflict: ${importTargetName}`,
+              `Use "dr add" with a custom name to distinguish them`,
+            ]
+          );
         }
 
         const signals = datastoreSignals.get(datastoreName)!;
@@ -1654,25 +1667,6 @@ export class CbmAnalyzer implements AnalyzerBackend {
         });
       }
 
-      // Warn on suggested_name collisions within the output set
-      const seenDsNames = new Map<string, string>();
-      for (const c of candidates) {
-        const name = c.suggested_name;
-        if (!name) continue;
-        const firstFile = c.inferred_from[0]?.source_file || "(unknown)";
-        if (seenDsNames.has(name)) {
-          handleWarning(
-            `Duplicate suggested datastore name "${name}" — multiple sources map to the same element ID`,
-            [
-              `First: ${seenDsNames.get(name)!}`,
-              `Conflict: ${firstFile}`,
-              `Rename one or use "dr add" with a custom name`,
-            ]
-          );
-        } else {
-          seenDsNames.set(name, firstFile);
-        }
-      }
       return candidates;
     } finally {
       client.close();

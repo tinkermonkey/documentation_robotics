@@ -319,14 +319,6 @@ Examples:
             ];
 
             for (const rel of allRelationships) {
-              if (rel.source === rel.target) {
-                issues.push(
-                  `${ansis.red("Error")}: Self-referential relationship: ${rel.source} --[${rel.predicate}]--> ${rel.target}`
-                );
-                errorCount++;
-                continue;
-              }
-
               // Check if predicate exists in catalog
               const type = catalogInstance.getTypeByPredicate(rel.predicate);
 
@@ -335,6 +327,15 @@ Examples:
                   `${ansis.yellow("Warning")}: Unknown predicate "${rel.predicate}" in relationship ${rel.source} -> ${rel.target}`
                 );
                 warningCount++;
+                continue;
+              }
+
+              // Check reflexivity using catalog semantics; unknown predicates already handled above
+              if (rel.source === rel.target && !type.semantics.reflexivity) {
+                issues.push(
+                  `${ansis.red("Error")}: Self-referential relationship: ${rel.source} --[${rel.predicate}]--> ${rel.target}`
+                );
+                errorCount++;
                 continue;
               }
 
