@@ -1243,8 +1243,22 @@ export async function changesetCommitCommand(options?: {
           // Show results
           console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
 
+          if ((result.skipped ?? 0) > 0) {
+            const skipped = result.skipped!;
+            const details = result.skippedDetails ?? [];
+            console.log(ansis.yellow(`⚠ Skipped ${skipped} duplicate element(s):`));
+            const shown = details.slice(0, 10);
+            for (const detail of shown) {
+              console.log(ansis.dim(`    ${detail}`));
+            }
+            if (details.length > 10) {
+              console.log(ansis.dim(`    ... and ${details.length - 10} more`));
+            }
+          }
+
           if (isTelemetryEnabled) {
             (span as any).setAttribute("commit.committed", result.committed);
+            (span as any).setAttribute("commit.skipped", result.skipped);
             (span as any).setAttribute("commit.failed", result.failed);
             (span as any).setAttribute("commit.validationPassed", result.validation.passed);
           }

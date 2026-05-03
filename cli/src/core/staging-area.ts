@@ -62,6 +62,8 @@ export interface DriftReport {
 export interface CommitResult {
   changeset: string;
   committed: number;
+  skipped?: number;
+  skippedDetails?: string[];
   failed: number;
   validation: {
     passed: boolean;
@@ -467,6 +469,8 @@ export class StagingAreaManager {
       const result: CommitResult = {
         changeset: changeset.name,
         committed: 0,
+        skipped: 0,
+        skippedDetails: [],
         failed: 0,
         validation: {
           passed: true,
@@ -605,6 +609,16 @@ export class StagingAreaManager {
                   const element = new Element(elementData);
                   layer.addElement(element);
                   result.committed++;
+                } else {
+                  result.skipped = (result.skipped ?? 0) + 1;
+                  result.skippedDetails = result.skippedDetails ?? [];
+                  result.skippedDetails.push(
+                    `'${elementId}' in '${change.layerName}' already exists — deduplicated`
+                  );
+                  emitLog(SeverityNumber.WARN, "Element deduplicated during commit", {
+                    "change.elementId": change.elementId,
+                    "change.layer": change.layerName,
+                  });
                 }
               } else if (change.type === "update" && change.after) {
                 const element = layer.getElement(change.elementId);

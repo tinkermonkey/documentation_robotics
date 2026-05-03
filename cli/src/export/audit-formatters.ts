@@ -429,6 +429,12 @@ function formatGapsTextSummary(lines: string[], gaps: GapCandidate[]): void {
     lines.push("");
     lines.push(ansis.red(`  🚨 ${byPriority.high} high-priority gaps detected`));
   }
+
+  if (byPriority.medium > 50) {
+    lines.push("");
+    lines.push(ansis.yellow(`  ⚠ ${byPriority.medium} medium-priority gaps — model coverage is partially complete`));
+    lines.push(ansis.dim(`    Run /dr-relate to wire up architectural connections`));
+  }
 }
 
 /**
@@ -525,6 +531,11 @@ function formatGapsMarkdown(lines: string[], gaps: GapCandidate[]): void {
       lines.push(`| ${route} | ${predicate} | ${reason} | ${ref} |`);
     }
     lines.push("");
+
+    if (byPriority.medium.length > 50) {
+      lines.push(`> **Note:** ${byPriority.medium.length} medium-priority gaps — model coverage is partially complete. Run \`/dr-relate\` to wire architectural connections.`);
+      lines.push("");
+    }
   }
 }
 

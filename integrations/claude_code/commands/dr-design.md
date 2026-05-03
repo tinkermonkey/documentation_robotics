@@ -270,6 +270,25 @@ Resume with: /dr-changeset preview design-real-time-order-tracking
 Commit when ready: dr changeset commit design-real-time-order-tracking
 ```
 
+### Step 10: Wire Cross-Layer Relationships
+
+After committing, the new elements exist in the model but are not yet connected to existing elements — they will show up as orphans in `dr audit`. Offer to run a relate pass.
+
+Substitute `<N>` with the actual committed count from `dr changeset commit`'s output and `<layers>` with the layers touched by this design:
+
+```
+Design committed. <N> new elements are now in the model.
+
+These elements are not yet connected to existing architectural elements.
+Run /dr-relate to wire cross-layer relationships (recommended), or skip if
+you plan to add relationships manually.
+
+[r] Run /dr-relate now for the new elements
+[s] Skip — I'll wire relationships later
+```
+
+If the user chooses to relate, invoke `/dr-relate` with the scope narrowed to the `<layers>` touched by this design.
+
 ## Design Principles
 
 **Be opinionated about layer coverage:** A feature that touches the API layer almost certainly needs APM instrumentation and test cases. Flag when these are missing and add them unless the user explicitly skips.
