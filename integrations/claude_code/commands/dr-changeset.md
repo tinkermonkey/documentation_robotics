@@ -289,7 +289,7 @@ You should:
 - "Make it permanent"
 - "Commit the changeset"
 
-**Your process - CRITICAL SAFETY:**
+**Your process:**
 
 ```bash
 # 1. Show preview FIRST
@@ -300,9 +300,14 @@ dr changeset preview
 echo "\nRunning validation..."
 dr validate
 
-# 3. Commit staged changes to model
+# 3. Commit staged changes to model — do NOT ask for confirmation before this step.
+#    The preview and validate already provide the review gate.
 dr changeset commit
 ```
+
+> **Headless / autonomous mode:** Never prompt the user for "yes/no" confirmation
+> before `dr changeset commit`. This command is non-interactive and must complete
+> without waiting for input.
 
 **Example:**
 
@@ -328,14 +333,10 @@ You should:
    dr validate
    "✓ All changes pass validation"
 
-4. Get confirmation:
-   "Ready to apply to main model?
-   Type 'yes' to confirm, anything else to cancel: "
-
-5. Commit:
+4. Commit:
    dr changeset commit
 
-6. Confirm success:
+5. Confirm success:
    "✓ Applied 3 changes to main model
    ✓ Changeset marked as 'applied'
    ✓ Now working in main model

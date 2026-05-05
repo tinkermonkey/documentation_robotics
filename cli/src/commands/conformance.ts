@@ -118,6 +118,7 @@ export async function conformanceCommand(options: {
     const results: Record<string, ConformanceResult> = {};
 
     let totalIssues = 0;
+    let totalErrors = 0;
     let compliantLayers = 0;
 
     for (const [layerName, layer] of model.layers) {
@@ -206,9 +207,13 @@ export async function conformanceCommand(options: {
         );
 
         if (!hasRelationship) {
+          const pairHint =
+            expectedRel.sourceTypes.length > 0 && expectedRel.destTypes.length > 0
+              ? ` (valid pairs: ${expectedRel.sourceTypes.join("/")} → ${expectedRel.destTypes.join("/")})`
+              : "";
           issues.push({
             severity: "warning",
-            message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship} not found`,
+            message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship} not found${pairHint}`,
           });
         }
       }
@@ -229,6 +234,7 @@ export async function conformanceCommand(options: {
       }
 
       totalIssues += issues.length;
+      totalErrors += issues.filter((i) => i.severity === "error").length;
     }
 
     // Output as JSON if requested
@@ -239,6 +245,8 @@ export async function conformanceCommand(options: {
           compliantLayers,
           totalLayers: Object.keys(results).length,
           totalIssues,
+          totalErrors,
+          totalWarnings: totalIssues - totalErrors,
           layers: results,
         },
       };
@@ -280,16 +288,21 @@ export async function conformanceCommand(options: {
     }
 
     // Summary
+    const totalWarnings = totalIssues - totalErrors;
     console.log(ansis.dim("Summary:"));
     console.log(ansis.dim(`  Compliant layers: ${compliantLayers}/${Object.keys(results).length}`));
-    console.log(ansis.dim(`  Total issues: ${totalIssues}`));
+    console.log(ansis.dim(`  Errors: ${totalErrors}  Warnings: ${totalWarnings}`));
     console.log();
 
-    if (totalIssues === 0) {
+    if (totalErrors === 0 && totalWarnings === 0) {
       console.log(ansis.green(`✓ Model is fully conformant`));
+    } else if (totalErrors === 0) {
+      console.log(
+        ansis.yellow(`⚠ ${totalWarnings} conformance warning(s) — no errors. Model is compliant.`)
+      );
     } else {
       console.log(
-        ansis.yellow(`⚠ Model has conformance issues. Run 'dr validate' for more details.`)
+        ansis.red(`✗ ${totalErrors} conformance error(s), ${totalWarnings} warning(s). Run 'dr validate' for details.`)
       );
     }
 

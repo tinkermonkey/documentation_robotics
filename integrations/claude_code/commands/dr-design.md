@@ -33,6 +33,12 @@ Given a natural language description of a proposed change, generate all implied 
 
 ## Instructions for Claude Code
 
+> **GLOBAL RULE — source_reference on every element:**
+> Every `dr add` call in this command MUST include `--source-provenance inferred`.
+> Omitting it leaves `source_reference` unset, which produces one `dr validate` warning
+> per element — permanently, until manually fixed. There are no exceptions.
+> Correct form: `dr add <layer> <type> "<name>" --description "..." --source-provenance inferred`
+
 ### Step 1: Validate Prerequisites
 
 Check that a DR model exists:
@@ -74,6 +80,14 @@ dr search "<key terms from the feature description>"
 ```
 
 This prevents proposing elements that already exist and enables proposing relationships to existing elements.
+
+**Duplicate guard:** Before staging any element in Step 6, verify it does not already exist:
+
+```bash
+dr show <proposed-element-id> 2>/dev/null && echo "EXISTS" || echo "NEW"
+```
+
+If the element already exists, skip the `dr add` call and note it in the design summary as "already modeled." Do not attempt to re-add it.
 
 ### Step 4: Build the Impact Map
 
@@ -118,12 +132,19 @@ dr changeset activate design-real-time-order-tracking
 
 With the changeset active, add each element in the prescribed layer order (motivation first, then down). All `dr add` commands auto-stage to the active changeset. Include reasoning in the description.
 
-**REQUIRED:** Every `dr add` call MUST include `--source-provenance inferred`. Elements without `source_reference` will generate validation warnings on every `dr validate` run. No `--source-file` is needed for design-generated elements.
+**REQUIRED — no exceptions:** Every `dr add` call MUST end with `--source-provenance inferred`.
+This is non-negotiable. Elements staged without it will produce permanent `dr validate` warnings.
+No `--source-file` is needed for design-generated elements — provenance alone is sufficient.
 
 ```bash
+# CORRECT — always end dr add calls with --source-provenance inferred
 dr add motivation goal "Real Time Order Visibility" \
   --description "Customers can see live order status updates without refreshing. Drives the new tracking feature." \
   --source-provenance inferred
+
+# WRONG — missing --source-provenance causes a validate warning for this element forever
+dr add motivation goal "Real Time Order Visibility" \
+  --description "Customers can see live order status updates without refreshing."
 ```
 
 Show each staged element to the user as it's created with its reasoning:

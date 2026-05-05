@@ -626,13 +626,34 @@ export class StagingAreaManager {
                   const elementData = change.after as Record<string, unknown>;
                   Object.assign(element, elementData);
                   result.committed++;
+                } else {
+                  result.failed++;
+                  result.validation.passed = false;
+                  result.validation.errors.push(
+                    `Cannot update '${change.elementId}' in '${change.layerName}': element not found in base model`
+                  );
                 }
               } else if (change.type === "delete") {
                 const element = layer.getElement(change.elementId);
                 if (element) {
                   layer.deleteElement(element.path || element.id);
                   result.committed++;
+                } else {
+                  // Element was already removed — count as skipped, not failed
+                  result.skipped = (result.skipped ?? 0) + 1;
+                  result.skippedDetails = result.skippedDetails ?? [];
+                  result.skippedDetails.push(
+                    `'${change.elementId}' in '${change.layerName}' not found — already deleted`
+                  );
                 }
+              } else {
+                // Handles: unknown change types, and known types with missing payloads
+                // (e.g. "add" with no change.after, "relationship-add" with no change.after).
+                result.failed++;
+                result.validation.passed = false;
+                result.validation.errors.push(
+                  `Cannot apply change '${change.type}' for '${change.elementId}': missing payload or unrecognised type`
+                );
               }
             } catch (error) {
               result.failed++;

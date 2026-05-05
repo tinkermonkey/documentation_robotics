@@ -136,8 +136,8 @@ function formatText(
 
     // Isolation
     const isolationDelta = change.delta.isolation;
-    const isolationSymbol = isolationDelta < 0 ? ansis.green("↓") : ansis.red("↑");
-    const isolationColor = isolationDelta < 0 ? ansis.green : ansis.red;
+    const isolationSymbol = isolationDelta < 0 ? ansis.green("↓") : isolationDelta > 0 ? ansis.red("↑") : ansis.dim("=");
+    const isolationColor = isolationDelta < 0 ? ansis.green : isolationDelta > 0 ? ansis.red : ansis.dim;
     lines.push(
       `  Isolation: ${change.before.isolation.toFixed(1)}% → ${change.after.isolation.toFixed(1)}% ` +
         `${isolationSymbol} ${isolationColor(Math.abs(isolationDelta).toFixed(1) + "%")}`,
@@ -145,8 +145,8 @@ function formatText(
 
     // Density
     const densityDelta = change.delta.density;
-    const densitySymbol = densityDelta > 0 ? ansis.green("↑") : ansis.red("↓");
-    const densityColor = densityDelta > 0 ? ansis.green : ansis.red;
+    const densitySymbol = densityDelta > 0 ? ansis.green("↑") : densityDelta < 0 ? ansis.red("↓") : ansis.dim("=");
+    const densityColor = densityDelta > 0 ? ansis.green : densityDelta < 0 ? ansis.red : ansis.dim;
     lines.push(
       `  Density:   ${change.before.density.toFixed(2)} → ${change.after.density.toFixed(2)} ` +
         `${densitySymbol} ${densityColor(Math.abs(densityDelta).toFixed(2))}`,

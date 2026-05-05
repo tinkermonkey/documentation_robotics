@@ -710,7 +710,7 @@ Examples:
     await conformanceCommand({
       layers: options.layers,
       json: options.json,
-      verbose: options.verbose,
+      verbose: options.verbose ?? program.opts().verbose,
     });
   });
 

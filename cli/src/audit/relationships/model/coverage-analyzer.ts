@@ -31,7 +31,9 @@ export function analyzeLayerCoverage(
     if (e.path && e.path !== e.id) elementById.set(e.path, e);
   }
 
-  // Count intra-layer relationship instances per spec_node_id (by source element's spec_node_id)
+  // Count relationship instances per spec_node_id — includes both intra and inter-layer
+  // relationships for isolation scoring. A node type is only isolated if it participates
+  // in no relationships at all (not just intra-layer ones).
   const relCountBySpecNodeId = new Map<string, number>();
   const usedPredicatesSet = new Set<string>();
 
@@ -46,10 +48,33 @@ export function analyzeLayerCoverage(
     usedPredicatesSet.add(rel.predicate);
   }
 
+  // Cross-layer relationships count toward isolation and predicate utilization.
+  // Without this, node types that only participate in cross-layer relationships
+  // appear isolated and their predicates don't appear in usedPredicates.
+  for (const rel of interLayerRels) {
+    const sourceEl = elementById.get(rel.source);
+    if (sourceEl?.spec_node_id) {
+      relCountBySpecNodeId.set(
+        sourceEl.spec_node_id,
+        (relCountBySpecNodeId.get(sourceEl.spec_node_id) ?? 0) + 1
+      );
+    }
+    // Also count inbound rels — a node type targeted by a cross-layer relationship
+    // is not isolated, even if it never acts as a source.
+    const targetEl = elementById.get(rel.target);
+    if (targetEl?.spec_node_id) {
+      relCountBySpecNodeId.set(
+        targetEl.spec_node_id,
+        (relCountBySpecNodeId.get(targetEl.spec_node_id) ?? 0) + 1
+      );
+    }
+    usedPredicatesSet.add(rel.predicate);
+  }
+
   const relationshipCount = intraLayerRels.length;
   const interLayerRelationshipCount = interLayerRels.length;
 
-  // Isolated: spec_node_ids present in layer with zero intra-layer relationship instances
+  // Isolated: spec_node_ids present in layer with zero relationship instances (intra OR inter)
   const isolatedNodeTypes = Array.from(specNodeIds).filter(
     (id) => (relCountBySpecNodeId.get(id) ?? 0) === 0
   );

@@ -21,6 +21,7 @@ import type {
   VerifyChangesetContext,
 } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
+import { SOURCE_CODE_EXT_RE } from "./cbm-analyzer.js";
 
 /**
  * A discovered route from the graph
@@ -141,9 +142,7 @@ export class VerifyEngine {
     const secondaryIndex = new Map<string, IndexEntry>();
 
     for (const element of apiLayer.elements.values()) {
-      const sourceRef = (element.attributes?.source_reference as any) || {};
-      const locations = sourceRef.locations || [];
-      const firstLocation = locations[0];
+      const firstLocation = element.source_reference?.locations?.[0];
 
       // Primary index: file:symbol
       if (firstLocation && firstLocation.file) {
@@ -253,20 +252,26 @@ export class VerifyEngine {
     const fileChecks: Promise<boolean>[] = [];
     const elementsToCheck: Array<{ id: string; path: string; file: string; symbol: string }> = [];
     let elementsWithoutSourceRef = 0;
+    let elementsWithNonIndexableSource = 0;
 
     for (const element of apiLayer.elements.values()) {
       if (matchedRouteIds.has(element.id)) {
         continue; // Already matched
       }
 
-      const sourceRef = (element.attributes?.source_reference as any) || {};
-      const locations = sourceRef.locations || [];
-      const firstLocation = locations[0];
+      const firstLocation = element.source_reference?.locations?.[0];
 
       if (!firstLocation || !firstLocation.file) {
         // Skip elements with no source_reference file - they cannot drift since they have no code linkage.
         // This includes manually-created elements that are documentation-only.
         elementsWithoutSourceRef++;
+        continue;
+      }
+
+      // CBM only indexes source-code files — non-code source files (e.g. openapi.yaml)
+      // will never appear in the graph, so including them in drift detection produces false positives.
+      if (!SOURCE_CODE_EXT_RE.test(firstLocation.file)) {
+        elementsWithNonIndexableSource++;
         continue;
       }
 
@@ -293,8 +298,6 @@ export class VerifyEngine {
       );
     }
 
-    // Warn when elements are excluded from drift detection due to missing source_reference.
-    // This is actionable: elements need a source_reference.locations[0].file to participate.
     if (elementsWithoutSourceRef > 0) {
       console.warn(
         `\nWarning: ${elementsWithoutSourceRef} API model element(s) excluded from drift detection` +
@@ -302,6 +305,15 @@ export class VerifyEngine {
         `  Drift detection requires a linked source file to compare against the code graph.\n` +
         `  Fix: dr update <element-id> --source-file <relative-path> --source-symbol <symbol>\n` +
         `  Elements ingested via /dr-map or dr analyzer endpoints are automatically attributed.\n`
+      );
+    }
+
+    if (elementsWithNonIndexableSource > 0) {
+      console.warn(
+        `\nWarning: ${elementsWithNonIndexableSource} API model element(s) excluded from drift detection` +
+        ` — their source files are not indexable source-code files.\n` +
+        `  Point source_reference to a source-code file (.ts, .js, .py, etc.) for drift detection,\n` +
+        `  or use dr analyzer endpoints to discover routes automatically.\n`
       );
     }
 
@@ -359,7 +371,7 @@ export class VerifyEngine {
       options,
       analyzerName,
       indexMeta,
-      elementsWithoutSourceRef
+      elementsWithoutSourceRef + elementsWithNonIndexableSource
     );
   }
 

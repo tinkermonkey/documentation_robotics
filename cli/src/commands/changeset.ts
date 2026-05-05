@@ -1336,6 +1336,18 @@ export async function changesetCommitCommand(options?: {
             (span as any).setAttribute("commit.validationPassed", result.validation.passed);
           }
 
+          // Safety net: warn if any staged changes were neither committed, skipped, nor failed
+          const accountedFor = result.committed + (result.skipped ?? 0) + result.failed;
+          if (accountedFor < changeCount) {
+            const unaccounted = changeCount - accountedFor;
+            console.log(
+              ansis.yellow(
+                `⚠ Warning: ${unaccounted} staged change(s) were not applied, skipped, or reported as failed.` +
+                ` This is unexpected — check the changeset log for details.`
+              )
+            );
+          }
+
           if (result.driftWarning) {
             console.log(
               ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)

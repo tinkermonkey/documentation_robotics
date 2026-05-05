@@ -11,6 +11,7 @@ import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
 import type { Relationship } from "../../../core/relationships.js";
 import type { Element } from "../../../core/element.js";
 import { duplicateImpactScore, type DuplicateCandidate } from "../../types.js";
+import { isValidRelationship } from "../../../generated/relationship-index.js";
 
 /**
  * Detect duplicates within a set of model relationship instances
@@ -94,6 +95,15 @@ export function detectModelDuplicates(
         const type2 = catalog.getTypeByPredicate(p2);
         if (!type1 || !type2) continue;
         if (type1.category !== type2.category) continue;
+
+        // If both predicates are explicitly spec-valid for this exact source→target node type
+        // pair, the combination is intentional — not a duplicate. Skip it.
+        if (
+          isValidRelationship(sourceSpecNodeId, p1, destSpecNodeId) &&
+          isValidRelationship(sourceSpecNodeId, p2, destSpecNodeId)
+        ) {
+          continue;
+        }
 
         const confidence = assessSemanticConfidence(type1, type2);
         const semImpactScore = duplicateImpactScore(confidence);

@@ -59,7 +59,7 @@ interface CbmGraphNode {
 // encounters string literals that look like paths (e.g. "/src/app.ts").
 // Only source-code extensions are listed — .json, .xml, .csv, .html etc. are
 // legitimate HTTP route suffixes and must NOT be filtered out.
-const SOURCE_CODE_EXT_RE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte|py|go|rb|java|rs|php|cs|cpp|c|h|kt|swift|sh|bash)$/i;
+export const SOURCE_CODE_EXT_RE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte|py|go|rb|java|rs|php|cs|cpp|c|h|kt|swift|sh|bash)$/i;
 
 /**
  * Returns true when a qualified_name looks like a real HTTP route rather than
@@ -1799,8 +1799,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
     const safeQN = qualifiedName.replace(/'/g, "''");
     const limit = Math.min(depth * 20, 100);
     const cypher = direction === "inbound"
-      ? `MATCH (caller)-[:CALLS]->(target) WHERE target.qualified_name = '${safeQN}' RETURN caller.id AS id, caller.qualified_name AS qualified_name, caller.file_path AS file_path LIMIT ${limit}`
-      : `MATCH (source)-[:CALLS]->(callee) WHERE source.qualified_name = '${safeQN}' RETURN callee.id AS id, callee.qualified_name AS qualified_name, callee.file_path AS file_path LIMIT ${limit}`;
+      ? `MATCH (caller)-[:CALLS]->(target) WHERE target.qualified_name = '${safeQN}' OR target.name = '${safeQN}' RETURN caller.id AS id, caller.qualified_name AS qualified_name, caller.file_path AS file_path LIMIT ${limit}`
+      : `MATCH (source)-[:CALLS]->(callee) WHERE source.qualified_name = '${safeQN}' OR source.name = '${safeQN}' RETURN callee.id AS id, callee.qualified_name AS qualified_name, callee.file_path AS file_path LIMIT ${limit}`;
 
     if (depth > 1) {
       handleWarning(
