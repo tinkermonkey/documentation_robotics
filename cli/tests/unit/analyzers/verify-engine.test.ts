@@ -75,14 +75,14 @@ get-users:
   type: "operation"
   name: "Get Users"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/users.ts"
+        symbol: "getUsers"
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/users.ts"
-          symbol: "getUsers"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -175,14 +175,14 @@ get-users:
   type: "operation"
   name: "Get Users"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/users.ts"
+        symbol: "getUsers"
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/users.ts"
-          symbol: "getUsers"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -229,14 +229,14 @@ get-users:
   type: "operation"
   name: "Get Users"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/other.ts"
+        symbol: "getUsers"
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/other.ts"
-          symbol: "getUsers"
 
 post-users:
   id: "api.operation.post-users"
@@ -424,14 +424,14 @@ get-products:
   type: "operation"
   name: "Get Products"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/products.ts"
+        symbol: "ProductsHandler.getProducts"
   attributes:
     http_method: "GET"
     http_path: "/products"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/products.ts"
-          symbol: "ProductsHandler.getProducts"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -657,14 +657,14 @@ get-users:
   type: "operation"
   name: "Get Users"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/users.ts"
+        symbol: "UsersHandler.getUsers"
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/users.ts"
-          symbol: "UsersHandler.getUsers"
 
 get-products:
   id: "api.operation.get-products"
@@ -672,14 +672,14 @@ get-products:
   type: "operation"
   name: "Get Products"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/products.ts"
+        symbol: "ProductsHandler.getProducts"
   attributes:
     http_method: "GET"
     http_path: "/products"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/products.ts"
-          symbol: "ProductsHandler.getProducts"
 
 deprecated-op:
   id: "api.operation.deprecated-op"
@@ -687,14 +687,14 @@ deprecated-op:
   type: "operation"
   name: "Deprecated Operation"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/deprecated.ts"
+        symbol: "DeprecatedHandler.deprecated"
   attributes:
     http_method: "GET"
     http_path: "/deprecated"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/deprecated.ts"
-          symbol: "DeprecatedHandler.deprecated"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -774,14 +774,14 @@ get-data:
   type: "operation"
   name: "Get Data"
   layer_id: "api"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/api.ts"
+        symbol: "ApiHandler.getData"
   attributes:
     http_method: "GET"
     http_path: "/data"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/api.ts"
-          symbol: "ApiHandler.getData"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 

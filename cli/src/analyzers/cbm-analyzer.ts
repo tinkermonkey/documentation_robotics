@@ -67,7 +67,34 @@ export const SOURCE_CODE_EXT_RE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte|py|go|rb|
  */
 function isLikelyHttpRoute(qualifiedName: string): boolean {
   const httpPath = qualifiedName.replace(/^__route__[A-Z]+__/, "");
-  return !SOURCE_CODE_EXT_RE.test(httpPath) && !httpPath.startsWith("/.dr/");
+  // Reject source-code file paths, internal DR paths, and spec artifact paths
+  // (e.g. /schemas/motivation/goal from test fixtures or openapi schema refs)
+  return !SOURCE_CODE_EXT_RE.test(httpPath)
+    && !httpPath.startsWith("/.dr/")
+    && !httpPath.startsWith("/schemas/");
+}
+
+/**
+ * Infer HTTP method from a function name using naming conventions.
+ * Returns "GET" by default for ambiguous names.
+ */
+function inferHttpMethodFromFunctionName(name: string): HttpMethod {
+  const lower = name.toLowerCase();
+  if (/^(create|add|post|submit|send)/.test(lower)) return "POST";
+  if (/^(update|put|save|replace|set)/.test(lower)) return "PUT";
+  if (/^(patch|merge)/.test(lower)) return "PATCH";
+  if (/^(delete|remove|destroy)/.test(lower)) return "DELETE";
+  return "GET";
+}
+
+/**
+ * Infer an HTTP path from a function name by stripping the verb prefix and
+ * converting the remainder to kebab-case.
+ */
+function inferHttpPathFromFunctionName(name: string): string {
+  const stripped = name.replace(/^(fetch|get|list|create|add|update|put|delete|remove|patch|merge|load|save|replace|post|submit|send|destroy)/i, "");
+  const segment = toKebabCase(stripped || name);
+  return segment ? `/${segment}` : "/";
 }
 
 /**
@@ -744,6 +771,47 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
       }
 
+      // ISSUE-003: Client-side API consumer detection.
+      // When no server-side Route nodes are found (e.g. React/frontend apps using fetch/axios),
+      // fall back to querying Function nodes in API-client files whose names follow HTTP verb
+      // conventions. These are low-confidence candidates — the user confirms and adds them.
+      if (candidates.length === 0) {
+        try {
+          const clientQuery = `
+            MATCH (n:Function)
+            WHERE (n.file_path CONTAINS 'client' OR n.file_path CONTAINS 'Client'
+                   OR n.file_path CONTAINS 'Api' OR n.file_path CONTAINS 'Service'
+                   OR n.file_path CONTAINS 'service' OR n.file_path CONTAINS 'http'
+                   OR n.file_path CONTAINS 'Http')
+              AND (n.name STARTS WITH 'fetch' OR n.name STARTS WITH 'get'
+                   OR n.name STARTS WITH 'post' OR n.name STARTS WITH 'put'
+                   OR n.name STARTS WITH 'delete' OR n.name STARTS WITH 'patch'
+                   OR n.name STARTS WITH 'create' OR n.name STARTS WITH 'update'
+                   OR n.name STARTS WITH 'list')
+            RETURN n
+          `;
+
+          const qResp = await client.invokeTool("query_graph", {
+            query: clientQuery,
+            project: projectName,
+          });
+
+          if (qResp && typeof qResp === "object") {
+            const records = (qResp as { records?: Array<{ n?: CbmGraphNode }> }).records ?? [];
+            for (const record of records) {
+              const node = record.n;
+              if (!node || !node.file_path) continue;
+              const candidate = this.shapeClientSideEndpoint(node, projectRoot);
+              if (candidate && !this.isTestCode(candidate)) {
+                candidates.push(candidate);
+              }
+            }
+          }
+        } catch {
+          // query_graph not available — skip client-side fallback silently
+        }
+      }
+
       this.warnOnDuplicateIdFragments(
         candidates,
         (c) => c.suggested_id_fragment,
@@ -1020,6 +1088,49 @@ export class CbmAnalyzer implements AnalyzerBackend {
    *
    * @private
    */
+
+  /**
+   * Build a low-confidence EndpointCandidate from a client-side API function node.
+   * Used as a fallback when no server-side Route nodes are found (ISSUE-003).
+   */
+  private shapeClientSideEndpoint(node: CbmGraphNode, projectRoot: string): EndpointCandidate | null {
+    const name = String(node.name ?? node.id ?? "");
+    if (!name) return null;
+
+    let sourceFile = String(node.file_path ?? "");
+    if (sourceFile && projectRoot) {
+      try {
+        sourceFile = path.relative(projectRoot, sourceFile);
+      } catch {
+        // keep absolute path on failure
+      }
+    }
+    if (!sourceFile) return null;
+
+    const httpMethod = inferHttpMethodFromFunctionName(name);
+    const httpPath = inferHttpPathFromFunctionName(name);
+    const suggestedName = toKebabCase(name);
+
+    return {
+      source_file: sourceFile,
+      confidence: "low",
+      suggested_layer: "api",
+      suggested_element_type: "operation",
+      suggested_name: suggestedName,
+      suggested_id_fragment: suggestedName,
+      http_method: httpMethod,
+      http_path: httpPath,
+      handler_qualified_name: name,
+      source_symbol: name,
+      source_start_line: Number(node.properties?.start_line ?? 0),
+      source_end_line: Number(node.properties?.end_line ?? 0),
+      source_reference: {
+        provenance: "inferred",
+        locations: [{ file: sourceFile, symbol: name }],
+      },
+    };
+  }
+
   private isTestCode(candidate: { source_file: string }): boolean {
     // Get filtering rules from the analyzer mapping
     const filteringRules = this.mapper.getFilteringRules();
@@ -1665,6 +1776,76 @@ export class CbmAnalyzer implements AnalyzerBackend {
           confidence: "low",
           notes: `Inferred from ${inferredFrom.length} source file(s) based on datastore detection heuristics`,
         });
+      }
+
+      // ISSUE-003: Browser storage detection.
+      // localStorage and sessionStorage are global browser APIs — they don't appear in the
+      // IMPORTS graph. Query for Function nodes in files that are commonly associated with
+      // browser-side state persistence (store files, auth files, preference files).
+      const browserStorageTypes = ["local-storage", "session-storage"] as const;
+      const browserStorageSignals = new Map<string, Set<string>>();
+
+      try {
+        const storageQuery = `
+          MATCH (n:Function)
+          WHERE n.file_path CONTAINS 'Store' OR n.file_path CONTAINS 'store'
+             OR n.file_path CONTAINS 'storage' OR n.file_path CONTAINS 'Storage'
+             OR n.file_path CONTAINS 'auth' OR n.file_path CONTAINS 'Auth'
+             OR n.file_path CONTAINS 'preference' OR n.file_path CONTAINS 'Preference'
+             OR n.file_path CONTAINS 'layout' OR n.file_path CONTAINS 'Layout'
+             OR n.file_path CONTAINS 'settings' OR n.file_path CONTAINS 'Settings'
+          RETURN n
+        `;
+
+        const storageResp = await client.invokeTool("query_graph", {
+          query: storageQuery,
+          project: projectName,
+        });
+
+        if (storageResp && typeof storageResp === "object") {
+          const records = (storageResp as { records?: Array<{ n?: CbmGraphNode }> }).records ?? [];
+          for (const record of records) {
+            const node = record.n;
+            if (!node?.file_path) continue;
+
+            let relFile = node.file_path;
+            try { relFile = path.relative(projectRoot, node.file_path); } catch { /* keep absolute */ }
+
+            // Heuristic: files with 'session' in name likely use sessionStorage;
+            // otherwise assume localStorage (more common pattern).
+            const storageKey = /session/i.test(relFile) ? "session-storage" : "local-storage";
+            if (!browserStorageSignals.has(storageKey)) {
+              browserStorageSignals.set(storageKey, new Set());
+            }
+            browserStorageSignals.get(storageKey)!.add(relFile);
+          }
+        }
+      } catch {
+        // query_graph not available — skip browser storage detection silently
+      }
+
+      for (const storageType of browserStorageTypes) {
+        const sourceFiles = browserStorageSignals.get(storageType);
+        if (!sourceFiles || sourceFiles.size === 0) continue;
+
+        const accessPattern = storageType === "local-storage" ? "localStorage" : "sessionStorage";
+        const inferredFrom = Array.from(sourceFiles)
+          .filter((f) => !this.isTestCode({ source_file: f }))
+          .map((f) => ({
+            source_file: f,
+            import_pattern: accessPattern,
+            function_patterns: [],
+          }));
+
+        if (inferredFrom.length > 0) {
+          candidates.push({
+            suggested_layer: "data-store",
+            suggested_name: storageType,
+            inferred_from: inferredFrom,
+            confidence: "low",
+            notes: `Inferred from ${inferredFrom.length} source file(s) using browser ${accessPattern} (global API, no import required)`,
+          });
+        }
       }
 
       return candidates;
