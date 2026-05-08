@@ -172,6 +172,25 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.8.3 to v0.8.4: Analyzer Infrastructure (CBM Mapping)
+    this.migrations.push({
+      fromVersion: "0.8.3",
+      toVersion: "0.8.4",
+      description: "Analyzer Infrastructure (Spec v0.8.4)",
+      apply: async () => {
+        // Introduces spec/analyzers/ with codebase-memory (CBM) mapping:
+        // - New analyzer adapter foundation and full analyzer subcommands
+        // - dr analyzer verify with changeset awareness
+        // - Claude Code integration commands (/dr-verify, /dr-map, dr-extractor)
+        // - No model data format changes; existing models are fully compatible
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.8.4 (Analyzer Infrastructure)",
+        };
+      },
+    });
   }
 
   /**

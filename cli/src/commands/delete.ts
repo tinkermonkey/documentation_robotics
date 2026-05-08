@@ -165,27 +165,22 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     if (!options.force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
-        throw new CLIError(
-          "Interactive confirmation is not available in non-TTY environments",
-          ErrorCategory.USER,
-          ["Use --force to skip confirmation and proceed with deletion"],
-          { operation: "delete", context: `Element ${id}` }
-        );
-      }
+        console.log(ansis.dim("Non-interactive environment detected - proceeding without confirmation"));
+      } else {
+        const message =
+          options.cascade && dependents.length > 0
+            ? `Delete ${ansis.bold(id)} and ${ansis.bold(String(dependents.length))} dependent element(s)? This cannot be undone.`
+            : `Delete element ${ansis.bold(id)}? This cannot be undone.`;
 
-      const message =
-        options.cascade && dependents.length > 0
-          ? `Delete ${ansis.bold(id)} and ${ansis.bold(String(dependents.length))} dependent element(s)? This cannot be undone.`
-          : `Delete element ${ansis.bold(id)}? This cannot be undone.`;
+        const confirmed = await confirm({
+          message,
+          initialValue: false,
+        });
 
-      const confirmed = await confirm({
-        message,
-        initialValue: false,
-      });
-
-      if (!confirmed) {
-        console.log(ansis.dim("Cancelled"));
-        return;
+        if (!confirmed) {
+          console.log(ansis.dim("Cancelled"));
+          return;
+        }
       }
     }
 
@@ -278,7 +273,12 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           }
         );
       } else {
-        // Base model path
+        // Base model path: purge any stale relationships MutationHandler may have missed
+        const staleBase = elementsToRemove.reduce(
+          (n, eid) => n + model.relationships.deleteForElement(eid), 0
+        );
+        if (staleBase > 0) await model.saveRelationships();
+
         console.log("");
         console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
 
@@ -294,6 +294,11 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     } else {
       // Fallback success message if before state is not available
       // This should rarely occur, but ensures user always gets feedback
+      const staleFallback = elementsToRemove.reduce(
+        (n, eid) => n + model.relationships.deleteForElement(eid), 0
+      );
+      if (staleFallback > 0) await model.saveRelationships();
+
       console.log("");
       console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
 

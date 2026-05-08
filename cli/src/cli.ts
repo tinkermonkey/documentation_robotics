@@ -188,7 +188,7 @@ Examples:
 program
   .command("delete <id>")
   .description("Delete an element")
-  .option("--force", "Skip confirmation prompt and dependency checks")
+  .option("--force", "Skip dependency checks (confirmation is also skipped in non-TTY environments)")
   .option("--cascade", "Remove dependent elements automatically")
   .option("--dry-run", "Show what would be removed without actually removing")
   .addHelpText(
