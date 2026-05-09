@@ -8,7 +8,9 @@ import { MutationHandler } from "../core/mutation-handler.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, handleError } from "../utils/errors.js";
+import { CLIError, handleError, findSimilar, formatValidOptions } from "../utils/errors.js";
+import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
+import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
@@ -20,6 +22,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
 export interface UpdateOptions {
   name?: string;
   description?: string;
+  type?: string;
   attributes?: string;
   sourceFile?: string;
   sourceSymbol?: string;
@@ -60,6 +63,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   const changedFields: string[] = [];
   if (options.name) changedFields.push("name");
   if (options.description) changedFields.push("description");
+  if (options.type) changedFields.push("type");
   if (options.attributes) changedFields.push("attributes");
   if (options.sourceFile || options.clearSourceReference) changedFields.push("sourceReference");
 
@@ -97,7 +101,8 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               options.description !== undefined ||
               options.attributes ||
               options.sourceFile ||
-              options.clearSourceReference;
+              options.clearSourceReference ||
+              options.type;
 
             if (!hasUpdates) {
               console.log(ansis.yellow("No fields specified for update"));
@@ -106,6 +111,20 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
             const after: Record<string, unknown> = { ...addChange.after };
 
+            if (options.type) {
+              const stagedLayerName = addChange.layerName;
+              if (!isValidNodeType(stagedLayerName, options.type)) {
+                const validNodeTypes = getNodeTypesForLayer(stagedLayerName);
+                const typeNames = validNodeTypes.map((t) => t.type).sort();
+                const similar = findSimilar(options.type, typeNames, 3);
+                const suggestions: string[] = [`Valid types for ${stagedLayerName}: ${formatValidOptions(typeNames)}`];
+                if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+                throw new CLIError(`Invalid element type "${options.type}" for layer "${stagedLayerName}"`, 1, suggestions);
+              }
+              const resolvedNewType = normalizeNodeType(stagedLayerName, options.type);
+              after.type = resolvedNewType;
+              after.spec_node_id = `${stagedLayerName}.${resolvedNewType}`;
+            }
             if (options.name) after.name = options.name;
             if (options.description !== undefined) {
               after.description = options.description || undefined;
@@ -125,6 +144,38 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             } else if (options.sourceFile) {
               const newRef = buildSourceReference(options);
               if (newRef) after.source_reference = newRef;
+            }
+
+            // Validate schema if type or attributes changed in staged element
+            if (options.type || options.attributes) {
+              const stagedLayerName = addChange.layerName;
+              const tempElem = Element.fromSpecNode({
+                id: String(after.id ?? addChange.elementId ?? "staged"),
+                path: String(after.path ?? addChange.elementId ?? ""),
+                spec_node_id: String(after.spec_node_id ?? ""),
+                type: String(after.type ?? ""),
+                layer_id: String(after.layer_id ?? stagedLayerName),
+                name: String(after.name ?? ""),
+                attributes: (after.attributes as Record<string, unknown>) || {},
+              });
+              const schemaValidator = new SchemaValidator();
+              const tempLayer = new Layer(stagedLayerName);
+              tempLayer.addElement(tempElem);
+              const attrValidation = await schemaValidator.validateLayer(tempLayer);
+              if (!attrValidation.isValid()) {
+                const errorMessages = attrValidation.errors
+                  .map((e) => `  ${e.message}`)
+                  .join("\n");
+                throw new CLIError(
+                  `Updated attributes fail schema validation:\n${errorMessages}`,
+                  1,
+                  [
+                    options.type
+                      ? `Incompatible attributes must be manually cleaned up before changing type. Run "dr schema ${stagedLayerName} ${after.type}" to see the required attributes`
+                      : `Run "dr schema ${stagedLayerName} ${after.type}" to see the required attributes`,
+                  ]
+                );
+              }
             }
 
             await storage.updateChange(activeId, id, {
@@ -158,6 +209,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     const hasUpdates =
       options.name ||
       options.description !== undefined ||
+      options.type ||
       options.attributes ||
       options.sourceFile ||
       options.clearSourceReference;
@@ -173,11 +225,25 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     // Execute update through unified path (handles staging and base model consistently)
     // The mutator function applies all updates in a single pass with validated JSON parsing
     await handler.executeUpdate(element, async (elem, after) => {
-      // Parse JSON once here in the mutator - shared by both staging and base paths
+      // Resolve new type (validate name only — don't mutate live elem yet)
+      let resolvedNewType: string | undefined;
+      if (options.type) {
+        if (!isValidNodeType(layerName, options.type)) {
+          const validNodeTypes = getNodeTypesForLayer(layerName);
+          const typeNames = validNodeTypes.map((t) => t.type).sort();
+          const similar = findSimilar(options.type, typeNames, 3);
+          const suggestions: string[] = [`Valid types for ${layerName}: ${formatValidOptions(typeNames)}`];
+          if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+          throw new CLIError(`Invalid element type "${options.type}" for layer "${layerName}"`, 1, suggestions);
+        }
+        resolvedNewType = normalizeNodeType(layerName, options.type);
+      }
+
+      // Parse attributes (don't mutate yet)
       let parsedAttributes: Record<string, unknown> | undefined;
       if (options.attributes) {
         try {
-          parsedAttributes = JSON.parse(options.attributes);
+          parsedAttributes = JSON.parse(options.attributes) as Record<string, unknown>;
         } catch (e) {
           throw new CLIError("Invalid JSON in --attributes", 1, [
             "Ensure your JSON is valid and properly formatted",
@@ -185,7 +251,43 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
         }
       }
 
-      // Apply updates to both element and after state
+      // Validate against schema using a temp element BEFORE mutating the live elem
+      if (resolvedNewType || parsedAttributes) {
+        const candidateType = resolvedNewType ?? elem.type;
+        const tempElem = new Element({
+          ...elem.toJSON(),
+          type: candidateType,
+          spec_node_id: `${layerName}.${candidateType}`,
+          attributes: parsedAttributes ?? elem.attributes,
+        });
+        const schemaValidator = new SchemaValidator();
+        const tempLayer = new Layer(layerName);
+        tempLayer.addElement(tempElem);
+        const attrValidation = await schemaValidator.validateLayer(tempLayer);
+        if (!attrValidation.isValid()) {
+          const errorMessages = attrValidation.errors
+            .map((e) => `  ${e.message}`)
+            .join("\n");
+          throw new CLIError(
+            `Updated attributes fail schema validation:\n${errorMessages}`,
+            1,
+            [
+              resolvedNewType
+                ? `Incompatible attributes must be manually cleaned up before changing type. Run "dr schema ${layerName} ${candidateType}" to see the required attributes`
+                : `Run "dr schema ${layerName} ${elem.type}" to see the required attributes`,
+            ]
+          );
+        }
+      }
+
+      // Validation passed — apply all mutations to live element
+      if (resolvedNewType) {
+        elem.type = resolvedNewType;
+        after.type = resolvedNewType;
+        elem.spec_node_id = `${layerName}.${resolvedNewType}`;
+        after.spec_node_id = `${layerName}.${resolvedNewType}`;
+      }
+
       if (options.name) {
         elem.name = options.name;
         after.name = options.name;
@@ -199,22 +301,6 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       if (parsedAttributes) {
         elem.attributes = parsedAttributes;
         after.attributes = parsedAttributes;
-
-        // Validate new attributes against spec schema before persisting
-        const schemaValidator = new SchemaValidator();
-        const tempLayer = new Layer(layerName);
-        tempLayer.addElement(elem);
-        const attrValidation = await schemaValidator.validateLayer(tempLayer);
-        if (!attrValidation.isValid()) {
-          const errorMessages = attrValidation.errors
-            .map((e) => `  ${e.message}`)
-            .join("\n");
-          throw new CLIError(
-            `Updated attributes fail schema validation:\n${errorMessages}`,
-            1,
-            [`Run "dr schema ${layerName} ${elem.type}" to see the required attributes`]
-          );
-        }
       }
 
       if (options.clearSourceReference) {
@@ -235,6 +321,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     console.log(ansis.green(`✓ Updated element ${ansis.bold(id)}`));
     if (options.verbose) {
       console.log(ansis.dim(`  Layer: ${layerName}`));
+      if (options.type) {
+        console.log(ansis.dim(`  Type: ${options.type}`));
+      }
       if (options.name) {
         console.log(ansis.dim(`  Name: ${options.name}`));
       }

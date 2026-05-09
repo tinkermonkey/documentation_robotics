@@ -265,6 +265,7 @@ export class Layer {
     // Convert element to graph node and update in place, including spec-node fields
     // so that source_reference and attributes changes aren't lost on the next save cycle
     const updated = this.graph.updateNode(element.path || element.id, {
+      type: element.type,
       name: element.name,
       description: element.description,
       properties,

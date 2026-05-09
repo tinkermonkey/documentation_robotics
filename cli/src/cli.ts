@@ -164,6 +164,7 @@ program
   .description("Update an element")
   .option("--name <name>", "New element name")
   .option("--description <desc>", "New description")
+  .option("--type <new-type>", "Change element type (must be valid for the element's layer; incompatible attributes must be cleaned up manually)")
   .option("--attributes <json>", "Updated type-specific attributes (JSON)")
   .option("--source-file <path>", "Source file path (relative from repository root)")
   .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
@@ -181,6 +182,7 @@ To track changes for review, activate a changeset first:
 Examples:
   $ dr update api-endpoint-create-customer --name "Create Customer (v2)"
   $ dr update business-service-order --description "Updated description"
+  $ dr update application-applicationfunction-process-orders --type applicationservice
   $ dr update security-policy-auth --source-file "src/auth/policy.ts" --source-provenance "extracted"`
   )
   .action(updateCommand);
@@ -217,8 +219,8 @@ Examples:
   .action((id, options) => showCommand(id, options));
 
 program
-  .command("list <layer>")
-  .description("List elements in a layer")
+  .command("list [layer]")
+  .description("List elements in a layer (or all layers if omitted)")
   .option("--type <type>", "Filter by element type")
   .option("--json", "Output as JSON")
   .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
@@ -226,9 +228,11 @@ program
     "after",
     `
 Examples:
+  $ dr list
   $ dr list api
-  $ dr list business --type business-service
-  $ dr list api --json`
+  $ dr list business --type businessservice
+  $ dr list api --json
+  $ dr list --json`
   )
   .action(listCommand);
 
