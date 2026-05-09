@@ -154,6 +154,50 @@ Parse the output to build a working list. Each orphan has a `status`:
 - `dead-end` — no valid target types exist yet; note and skip for now
 - `no-schema` — element type has no outgoing relationship schemas defined
 
+For scripting or programmatic wiring, use `--output` to get the orphan list as JSON:
+
+```bash
+dr validate --orphans --output orphans.json
+```
+
+```json
+{
+  "total": 5,
+  "byLayer": {
+    "api": [
+      {
+        "id": "api.operation.create-order",
+        "type": "api.operation",
+        "status": "connectable",
+        "reachablePredicates": ["realizes", "references"],
+        "reachableTargetTypes": ["application.applicationfunction", "application.applicationservice"],
+        "needsTypes": ["application.applicationfunction", "application.applicationservice", "business.businessprocess"]
+      },
+      {
+        "id": "api.info.x",
+        "type": "api.info",
+        "status": "dead-end",
+        "reachablePredicates": [],
+        "reachableTargetTypes": [],
+        "needsTypes": ["api.contact", "api.license"]
+      }
+    ],
+    "ux": [
+      {
+        "id": "ux.view.dashboard",
+        "type": "ux.view",
+        "status": "connectable",
+        "reachablePredicates": ["serves", "accesses"],
+        "reachableTargetTypes": ["application.applicationservice"],
+        "needsTypes": ["application.applicationservice", "data-store.collection"]
+      }
+    ]
+  }
+}
+```
+
+> `reachablePredicates` and `reachableTargetTypes` are the actionable fields for Step O-2 — they list only predicates and destination types that already exist in the model. `needsTypes` shows all spec-valid destinations, including those not yet in the model.
+
 **Step O-2: Work through connectable orphans by layer**
 
 For each layer with connectable orphans (highest count first):
@@ -444,6 +488,24 @@ within each pair — this table shows the predicate vocabulary, not individual t
 | ux           | security     | references, requires, satisfies                                                                             |
 | ux           | technology   | depends-on, requires, uses                                                                                  |
 
+> **API→Application traceability pattern**
+>
+> When wiring `api` → `application`, use a two-hop chain through `applicationfunction` —
+> not a direct `operation →[realizes]→ applicationservice` shortcut (that schema does not exist):
+>
+> ```
+> api.operation.create-user  →[realizes]→  application.applicationfunction.create-user
+> application.applicationfunction.create-user  →[realizes]→  application.applicationservice.user-service
+> ```
+>
+> `operation.realizes.applicationfunction` and `applicationfunction.realizes.applicationservice`
+> are both defined in the spec. The shortcut `operation.realizes.applicationservice` is **not** —
+> the `openapidocument` (the whole contract) realizes the service; individual operations realize
+> the functions that back it.
+>
+> `operation.references.applicationservice` is valid as a weak annotation (e.g., an operation
+> that calls another service), but is not a substitute for the `realizes` chain.
+
 ---
 
 ### Step 6: Validation
@@ -688,13 +750,15 @@ Orphaned elements: 124
 Working through connectable orphans by layer...
 
 api layer (28 connectable orphans):
-  api.operation.create-user →[references]→ application.applicationservice.user-service  ✓
-  api.operation.get-user →[references]→ application.applicationservice.user-service      ✓
+  api.operation.create-user →[realizes]→ application.applicationfunction.create-user  ✓
+  api.operation.get-user →[realizes]→ application.applicationfunction.get-user          ✓
   ... (26 more)
 
 application layer (18 connectable orphans):
-  application.applicationservice.user-service →[realizes]→ business.businessservice.user-mgmt  ✓
-  ... (17 more)
+  application.applicationfunction.create-user →[realizes]→ application.applicationservice.user-service  ✓
+  application.applicationfunction.get-user    →[realizes]→ application.applicationservice.user-service  ✓
+  application.applicationservice.user-service →[realizes]→ business.businessservice.user-mgmt           ✓
+  ... (15 more)
 
 ux layer (39 connectable orphans):
   ... (39 wired)

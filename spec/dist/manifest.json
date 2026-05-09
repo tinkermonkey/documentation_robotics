@@ -55,7 +55,7 @@
       "number": 8,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 105
+      "relationshipCount": 106
     },
     {
       "id": "ux",
@@ -88,6 +88,6 @@
   ],
   "totals": {
     "nodeTypes": 186,
-    "relationships": 1565
+    "relationships": 1566
   }
 }

@@ -1141,6 +1141,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.collection.serves.application.applicationservice": {
+      "id": "data-store.collection.serves.application.applicationservice",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.collection.serves.api.operation": {
       "id": "data-store.collection.serves.api.operation",
       "source_spec_node_id": "data-store.collection",

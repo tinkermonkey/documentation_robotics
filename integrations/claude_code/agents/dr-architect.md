@@ -227,7 +227,7 @@ Proactively suggest `dr audit` after adding 5+ elements to a layer without menti
 - Application component, service, interface → **Application**
 - HTTP endpoint, operation, API contract → **API**
 - Data structure, schema, entity → **Data Model**
-- Database table, collection, index → **Data Store**
+- Database table/collection/index → **Data Store** (use `collection` for tables, NOT `storedlogic`)
 
 **Cross-cutting:**
 
@@ -250,8 +250,8 @@ dr relationship add api.operation.create-order business.service.orders --predica
 # Application service linked to a motivation goal
 dr relationship add application.service.order-api motivation.goal.revenue --predicate supports
 
-# Data model entity linked to a data store table
-dr relationship add data-model.entity.order data-store.table.orders --predicate realizes
+# Data model schema linked to a data store collection (table)
+dr relationship add data-model.schemadefinition.order data-store.collection.orders --predicate maps-to
 ```
 
 Cross-layer relationships are stored in `documentation-robotics/model/relationships.yaml`. Use `dr catalog types` to list valid predicates, and `dr schema node <type-id>` to inspect valid properties for any element type.

@@ -401,8 +401,25 @@ You: Generating comprehensive validation report...
 ```json
 {
   "valid": true,
-  "errorCount": 0,
-  "warningCount": 3,
+  "summary": {
+    "totalElements": 285,
+    "totalRelationships": 445,
+    "errorCount": 0,
+    "warningCount": 3,
+    "orphanedCount": 0,
+    "layersValidated": 12
+  },
+  "layerStats": {
+    "motivation": 20,
+    "business": 17,
+    "application": 54
+  },
+  "relationshipsByPredicate": {
+    "realizes": 84,
+    "serves": 34,
+    "depends-on": 43
+  },
+  "orphanedElements": [],
   "errors": [
     {
       "layer": "api",
@@ -423,6 +440,8 @@ You: Generating comprehensive validation report...
   ]
 }
 ```
+
+> `errorCount` and `warningCount` are nested under `summary`, not top-level fields. Access them as `report.summary.errorCount`.
 
 **Note on `location` field**: The `location` field contains an AJV `instancePath` (e.g., `/attributes/criticality`), not a file path. To locate the element's YAML file, use the `elementId` with `dr show <elementId>`.
 

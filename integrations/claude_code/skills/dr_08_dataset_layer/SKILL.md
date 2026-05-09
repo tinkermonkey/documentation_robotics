@@ -46,6 +46,11 @@ This layer supports **multiple storage paradigms**: relational (PostgreSQL, MySQ
 
 **Central Entity:** The **Collection** (table, document collection, stream) is the core modeling unit.
 
+> **`storedlogic` vs `collection` — common mistake:**
+> `storedlogic` is for stored **procedures, triggers, and user-defined functions** — executable logic that lives inside the database.
+> For relational **tables** (or document collections, streams, or buckets), use `collection` with `collectionType: TABLE` (or `DOCUMENT`, `STREAM`, etc.).
+> Using `storedlogic` for a table will fail schema validation.
+
 > **CLI Introspection:** Run `dr schema types data-store` for the authoritative, always-current list of node types.
 > Run `dr schema node <type-id>` for full attribute details on any type (e.g., `dr schema node data-store.collection`).
 

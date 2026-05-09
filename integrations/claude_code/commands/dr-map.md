@@ -146,22 +146,9 @@ Recipe Extraction Complete!
 [layer list with element counts and status]
 
 Total: N elements across M layers
-
-Final validation:
-  dr validate --strict
-
-Connectivity:
-  Run: dr validate --orphans
-  This shows elements still needing relationships, grouped by layer with
-  suggested predicates. Orphans remaining after /dr-map are best handled
-  by running /dr-relate --orphans rather than a full /dr-relate pass.
-
-Next steps:
-  - Review flagged low-confidence elements
-  - Use /dr-model to fill gaps manually
-  - Use /dr-sync when code changes arrive
-  - Use /dr-design to speculate on new features
 ```
+
+Proceed immediately to Steps 6–6c (validation → connectivity → code alignment → synthesis). Do not prompt the user for next steps here — the completion protocol handles that.
 
 ---
 
@@ -337,7 +324,7 @@ Use the Task tool to launch the specialized extraction agent:
 
 ````python
 Task(
-    subagent_type="dr-extractor",
+    subagent_type="dr-architect",
     prompt=f"""Extract Documentation Robotics model from codebase.
 
 **Source Path:** {path}
@@ -521,9 +508,7 @@ Cross-Layer References:
 ✓ 35 exposes references (app → api)
 ✓ 12 stores references (data-store → data model)
 
-Connectivity Check:
-  Run: dr validate --orphans
-  [show orphan count and top 3 layers with most orphans]
+Connectivity: [orphan count reported automatically in Step 6b]
 
 Validation: ⚠️ 2 warnings, 0 errors
 
@@ -542,126 +527,138 @@ Files Modified:
 
 ```
 
-### Step 6: Validation & Review
+### Step 6: Schema Validation
 
-After extraction, run validation:
+Run strict schema validation:
 
 ```bash
 dr validate --strict
 ```
 
-Present results and ask user to review:
+**If there are schema errors:** Stop. Report them, fix them, and re-validate before proceeding. Do not move to Step 6b until errors are 0.
+
+**If only warnings:** Note them — they will appear in the Step 6c synthesis — and continue. Do not ask the user to address warnings now.
 
 ```
-Validation Results
-==================
-
-✓ Schema validation passed
-⚠ 2 semantic warnings:
-
-1. application.service.order-service
-   Warning: No security policy assigned
-   Recommendation: Add authentication
-
-2. application.service.payment-service
-   Warning: Critical service not monitored
-   Recommendation: Add APM metrics
-
-Next Steps:
-1. Review extracted elements:
-   - Check element descriptions
-   - Verify cross-layer references
-   - Adjust criticality levels
-
-2. Add missing metadata:
-   /dr-model Add security policies to services
-   /dr-model Add monitoring to critical services
-
-3. Enhance traceability:
-   /dr-model Link services to business goals
-
-Would you like me to address the warnings automatically?
+Schema Validation
+=================
+✓ 0 errors, 2 warnings
+  ⚠ application.service.order-service — no security policy assigned
+  ⚠ application.service.payment-service — critical service, no monitoring
 ```
 
-### Step 6b: Analyzer Verification (if available)
+### Step 6b: Connectivity — Wire Orphans
 
-This step only runs if the analyzer was active in Step 3.
-
-If analyzer was active, run the verification:
+Check which extracted elements are not yet connected to the rest of the model:
 
 ```bash
-dr analyzer verify --layer api --json 2>/dev/null
+dr validate --orphans
 ```
 
-Parse the JSON output and present three categories:
-
-1. **In Model & Verified by Analyzer** — Elements you created that analyzer confirms as correct
-2. **In Model but Not Found by Analyzer** — Elements you created that the analyzer doesn't recognize (likely false positives or different naming)
-3. **Found by Analyzer but Not in Model** — Candidates the analyzer detected that you didn't extract (potential gaps)
-
-Present a brief three-bucket summary:
+Parse the output. Report the count and layer breakdown:
 
 ```
-Analyzer Verification Results
-=============================
-
-✓ matched (in model): N elements
-⚠ model-only (in model, not detected): M elements
-  → Review for potential drift
-
-? graph-only (detected by analyzer, not in model): P elements
-  → Consider adding if high confidence
-
-Recommendation:
-  - If many graph-only candidates: Review the analyzer brief and consider a second pass
-  - If few graph-only candidates and model-only entries: Run /dr-verify for full reconciliation
+Connectivity
+============
+8 orphaned elements (not yet wired):
+  api (5 orphans): 4 connectable, 1 dead-end
+  application (2 orphans): 2 connectable
+  business (1 orphan): 1 connectable
 ```
 
-**If the list is manageable (few graph-only candidates and model-only entries)**, offer:
+**If connectable orphans exist**, run the `/dr-relate --orphans` workflow inline immediately — do not ask the user first. Follow the `/dr-relate` instructions for orphan mode: work through connectable orphans layer by layer, skip dead-ends, re-validate at the end.
+
+After wiring, re-run `dr validate --orphans` and report the final state:
 
 ```
-Would you like to:
-1. Run /dr-verify for full reconciliation (review and adjust all mappings)
-2. Address specific buckets manually
-3. Continue (model as-is)
+Connectivity (after wiring)
+===========================
+✓ 7 orphans wired
+  1 dead-end remaining: api.info.x (needs: api.contact, api.license)
 ```
 
-**If no analyzer was active in Step 3:** This step produces no output and is skipped entirely.
+**If no orphans:** Report "✓ All elements connected" and proceed.
+
+### Step 6c: Code Alignment (External Grounding)
+
+Check whether an analyzer is available — **regardless of whether it was used during extraction**:
+
+```bash
+dr analyzer status 2>/dev/null
+```
+
+**If an analyzer is available and indexed**, run a cross-model verification across all extracted layers:
+
+```bash
+dr analyzer verify --json 2>/dev/null
+```
+
+Parse the JSON output and present the three-bucket summary:
+
+```
+Code Alignment Assessment
+=========================
+Source: codebase-memory (indexed 6 minutes ago)
+
+✓ matched (in model + in code):         38 elements
+⚠ model-only (in model, not in code):    2 elements  ← review for drift
+? graph-only (in code, not in model):    7 elements  ← suspected gaps
+
+Gaps by layer:
+  api (5): POST /orders/bulk, DELETE /orders/{id}, GET /orders/export, ...
+  application (1): OrderBatchProcessor
+  data-store (1): order_audit_log table
+
+Run /dr-verify to review and resolve each gap interactively.
+```
+
+**If no analyzer is available:** Skip this step silently.
+
+### Step 6d: Completion Synthesis
+
+Produce a single unified summary that consolidates Steps 6–6c:
+
+```
+/dr-map Complete
+================
+Extracted:     74 elements across 9 layers
+Relationships: 142 wired  |  1 dead-end orphan remaining
+Code coverage: 38/45 confirmed by analyzer (84%)  |  7 gaps detected
+
+What needs attention:
+  ? 7 elements in code not yet in model → run /dr-verify to process
+  ! 1 dead-end orphan (api.info.x) → needs api.contact or api.license to wire
+  ⚠ 2 semantic warnings → held for enhancement step below
+```
+
+Omit the "Code coverage" line if no analyzer was available. Omit "What needs attention" if the model is fully clean.
 
 ### Step 7: Post-Extraction Enhancements
 
-Offer to enhance the extracted model:
+After the structural assessment above is complete, offer targeted enhancements based on what was found. Only offer an enhancement if the relevant signal was actually seen during extraction.
 
-**Option 1: Add Security**
-
-```
-I noticed several services without security policies.
-Would you like me to add authentication schemes?
-
-Options:
-- OAuth2 for external APIs
-- JWT for internal services
-- Basic auth for admin endpoints
-```
-
-**Option 2: Add Monitoring**
+**If critical or public services exist without security policies:**
 
 ```
-Critical services should have monitoring.
-Should I add standard APM metrics?
-
-- Availability (99.9% SLO)
-- Latency (P95 < 200ms)
-- Error rate (< 1%)
+⚠ 2 services lack security policies.
+Add authentication schemes now? (OAuth2 for public APIs, JWT for internal)
+[Y/N]
 ```
 
-**Option 3: Add Business Goals**
+**If critical services exist without APM coverage:**
 
 ```
-I extracted technical elements but couldn't infer business goals.
-Would you like to:
-- Manually add goals: /dr-model Add goals
-- Skip for now
+⚠ 1 critical service has no monitoring.
+Add standard APM metrics? (availability, latency P95, error rate)
+[Y/N]
+```
+
+**If motivation layer is empty or thin (< 3 elements):**
+
+```
+The motivation layer has few elements — business goals were hard to infer.
+Add goals manually with /dr-model, or skip for now?
+[M]anual  [S]kip
 ```
 
 ## Analysis Patterns by Technology
