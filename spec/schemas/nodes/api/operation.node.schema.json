@@ -35,6 +35,15 @@
         },
         "deprecated": {
           "type": "boolean"
+        },
+        "httpMethod": {
+          "type": "string",
+          "description": "HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE)",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"]
+        },
+        "httpPath": {
+          "type": "string",
+          "description": "URL path template for this operation (e.g. '/api/taxonomies/{id}')"
         }
       },
       "required": ["operationId", "summary", "tags"],

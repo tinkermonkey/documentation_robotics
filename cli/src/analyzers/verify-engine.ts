@@ -173,6 +173,18 @@ export class VerifyEngine {
       }
     }
 
+    // Warn if graph routes have no source_symbol — primary-index matching will produce zero matches
+    const emptySymbolCount = routes.filter((r) => !r.source_symbol).length;
+    if (routes.length > 0 && emptySymbolCount === routes.length) {
+      console.warn(
+        `\nWarning: all ${emptySymbolCount} graph route(s) have empty source_symbol.` +
+        ` Primary-index matching by (source_file, source_symbol) will produce 0 matches.\n` +
+        `  Likely cause: the code graph analyzer did not extract handler function names for this language.\n` +
+        `  Secondary-index matching (httpMethod + httpPath) requires those attributes on model operations.\n` +
+        `  To fix: re-index after the analyzer is updated, or manually set httpMethod/httpPath on operations.\n`
+      );
+    }
+
     // Step 3: Load ignore rules
     const ignoreFilePath =
       options.ignoreFilePath || path.join(projectRoot, ".dr-verify-ignore.yaml");

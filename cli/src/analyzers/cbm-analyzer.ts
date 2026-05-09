@@ -2228,7 +2228,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     const handler = String(properties.handler_name ?? "");
     const sourceFile = node.file_path ?? "";
-    const sourceSymbol = String(properties.symbol ?? "");
+    const sourceSymbol = String(properties.symbol || properties.handler_name || "");
 
     // Construct route ID (use file:symbol as primary key for matching)
     const routeId = sourceFile && sourceSymbol

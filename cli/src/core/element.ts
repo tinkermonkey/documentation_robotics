@@ -99,7 +99,7 @@ export class Element implements IElement {
       layer_id: this.layer_id,
       name: this.name,
       ...(this.description && { description: this.description }),
-      ...(Object.keys(this.attributes).length > 0 && { attributes: this.attributes }),
+      attributes: this.attributes,
       ...(this.source_reference && { source_reference: this.source_reference }),
       ...(this.metadata && { metadata: this.metadata }),
     };

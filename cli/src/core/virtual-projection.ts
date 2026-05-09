@@ -165,6 +165,7 @@ export class VirtualProjectionEngine {
 
       const mergedData = {
         id: baseElement.id,
+        path: baseElement.path,
         spec_node_id: baseElement.spec_node_id,
         type: typeof projectedData.type === "string" ? projectedData.type : baseElement.type,
         layer_id: baseElement.layer_id,
@@ -314,6 +315,7 @@ export class VirtualProjectionEngine {
 
               const updatedElement = new ElementClass({
                 id: existing.id,
+                path: existing.path,
                 spec_node_id: existing.spec_node_id,
                 layer_id: existing.layer_id,
                 type: typeof change.after.type === "string" ? change.after.type : existing.type,
