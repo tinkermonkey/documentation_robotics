@@ -625,6 +625,10 @@ export class StagingAreaManager {
                 if (element) {
                   const elementData = change.after as Record<string, unknown>;
                   Object.assign(element, elementData);
+                  // Persist the mutation back to the underlying graph node.
+                  // getElement() returns a new wrapper each time, so Object.assign
+                  // alone is discarded; updateElement() writes through to the graph.
+                  layer.updateElement(element);
                   result.committed++;
                 } else {
                   result.failed++;

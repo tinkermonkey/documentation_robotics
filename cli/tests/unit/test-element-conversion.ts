@@ -104,7 +104,7 @@ describe("Element Class - Spec-Node Conversion", () => {
       expect(specNode.attributes).toEqual({ method: "POST" });
     });
 
-    it("should exclude empty optional fields from spec-node format", () => {
+    it("should exclude empty optional fields from spec-node format, but always emit attributes", () => {
       const element = new Element({
         id: "550e8400-e29b-41d4-a716-446655440000",
         spec_node_id: "api.endpoint",
@@ -116,7 +116,8 @@ describe("Element Class - Spec-Node Conversion", () => {
       const specNode = element.toSpecNode();
 
       expect(specNode.description).toBeUndefined();
-      expect(specNode.attributes).toBeUndefined();
+      // attributes is always emitted so AJV can validate required fields even when empty
+      expect(specNode.attributes).toEqual({});
       expect(specNode.source_reference).toBeUndefined();
       expect(specNode.metadata).toBeUndefined();
     });

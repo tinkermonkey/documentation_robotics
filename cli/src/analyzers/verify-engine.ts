@@ -173,15 +173,15 @@ export class VerifyEngine {
       }
     }
 
-    // Warn if graph routes have no source_symbol — primary-index matching will produce zero matches
+    // Warn if any graph routes have no source_symbol — they will be skipped by primary-index matching
     const emptySymbolCount = routes.filter((r) => !r.source_symbol).length;
-    if (routes.length > 0 && emptySymbolCount === routes.length) {
+    if (emptySymbolCount > 0) {
       console.warn(
-        `\nWarning: all ${emptySymbolCount} graph route(s) have empty source_symbol.` +
-        ` Primary-index matching by (source_file, source_symbol) will produce 0 matches.\n` +
+        `\nWarning: ${emptySymbolCount}/${routes.length} graph route(s) have empty source_symbol.` +
+        ` Primary-index matching by (source_file, source_symbol) will skip them.\n` +
         `  Likely cause: the code graph analyzer did not extract handler function names for this language.\n` +
-        `  Secondary-index matching (httpMethod + httpPath) requires those attributes on model operations.\n` +
-        `  To fix: re-index after the analyzer is updated, or manually set httpMethod/httpPath on operations.\n`
+        `  Secondary-index matching (http_method + http_path) requires those attributes on model operations.\n` +
+        `  To fix: re-index after the analyzer is updated, or manually set http_method/http_path on operations.\n`
       );
     }
 

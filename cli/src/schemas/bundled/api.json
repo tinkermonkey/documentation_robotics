@@ -669,9 +669,9 @@
             "deprecated": {
               "type": "boolean"
             },
-            "httpMethod": {
+            "http_method": {
               "type": "string",
-              "description": "HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE)",
+              "description": "HTTP method for this operation",
               "enum": [
                 "GET",
                 "POST",
@@ -683,9 +683,10 @@
                 "TRACE"
               ]
             },
-            "httpPath": {
+            "http_path": {
               "type": "string",
-              "description": "URL path template for this operation (e.g. '/api/taxonomies/{id}')"
+              "description": "URL path template for this operation (e.g. '/api/taxonomies/{id}')",
+              "pattern": "^/"
             }
           },
           "required": ["operationId", "summary", "tags"],
