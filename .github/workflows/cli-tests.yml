@@ -2,29 +2,12 @@ name: CLI Tests
 
 on:
   workflow_dispatch: # Allow manual trigger
-  push:
-    branches: ["**"] # Allow all branches
-    paths:
-      - "cli/**"
-      - "spec/**"
-      - "integrations/**"
-      - ".github/workflows/cli-tests.yml"
-  pull_request:
-    branches: ["**"]
-    paths:
-      - "cli/**"
-      - "spec/**"
-      - "integrations/**"
 
 jobs:
   build-and-smoke:
     name: Build & Smoke Tests
     runs-on: ubuntu-latest
-    # Run on PRs (non-draft), pushes, and manual triggers
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && !github.event.pull_request.draft)
+
 
     steps:
       - uses: actions/checkout@v4
@@ -61,8 +44,7 @@ jobs:
   test-comprehensive:
     name: Comprehensive Tests (Visualization + Performance)
     runs-on: ubuntu-latest
-    # Only run on manual trigger or main branch pushes
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4

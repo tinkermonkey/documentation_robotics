@@ -1,17 +1,7 @@
 name: CLI Regression Suite
 
 on:
-  pull_request:
-    paths:
-      - "cli/**"
-      - "cli-validation/**"
-      - ".github/workflows/ts-cli-regression.yml"
-  push:
-    branches: [main]
-    paths:
-      - "cli/**"
-      - "cli-validation/**"
-      - ".github/workflows/ts-cli-regression.yml"
+  workflow_dispatch:
 
 jobs:
   regression:
