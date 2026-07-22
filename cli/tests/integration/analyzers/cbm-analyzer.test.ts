@@ -721,6 +721,7 @@ rl.on("line", async (line) => {
                   {
                     id: "route-get-users",
                     label: "Route",
+                    qualified_name: "__route__GET__/users",
                     properties: {
                       method: "GET",
                       path: "/users",
@@ -734,6 +735,7 @@ rl.on("line", async (line) => {
                   {
                     id: "route-post-users",
                     label: "Route",
+                    qualified_name: "__route__POST__/users",
                     properties: {
                       method: "POST",
                       path: "/users",
@@ -748,6 +750,7 @@ rl.on("line", async (line) => {
                   {
                     id: "route-test-get-users",
                     label: "Route",
+                    qualified_name: "__route__GET__/test-users",
                     properties: {
                       method: "GET",
                       path: "/test-users",

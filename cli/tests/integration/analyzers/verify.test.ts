@@ -285,11 +285,11 @@ get-users:
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/users.ts"
-          symbol: "UsersHandler.getUsers"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/users.ts"
+        symbol: "UsersHandler.getUsers"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -504,7 +504,7 @@ spec_version: "0.8.3"`
       await mkdir(handlersDir, { recursive: true });
       await writeFile(join(handlersDir, "api.ts"), "export class ApiHandler {}");
 
-      // Create ignore file with element_ids rule
+      // Create ignore file with element_ids rule (matches elem.path, not the UUID id)
       // Note: element_ids is now a top-level rule field (not nested in patterns)
       const ignoreFile = join(testProjectRoot, ".dr-verify-ignore.yaml");
       await writeFile(
@@ -513,7 +513,7 @@ spec_version: "0.8.3"`
 ignore:
   - patterns:
       - handler: "*Handler*"
-    element_ids: ["123e4567-e89b-12d3-a456-426614174001"]
+    element_ids: ["api.operation.get-status"]
     reason: "Status endpoint ignored"
     match: "model_only"`
       );
@@ -528,11 +528,11 @@ get-status:
   attributes:
     http_method: "GET"
     http_path: "/status"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/api.ts"
-          symbol: "ApiHandler.getStatus"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/api.ts"
+        symbol: "ApiHandler.getStatus"
 
 get-users:
   id: "223e4567-e89b-12d3-a456-426614174002"
@@ -543,11 +543,11 @@ get-users:
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/api.ts"
-          symbol: "ApiHandler.getUsers"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/api.ts"
+        symbol: "ApiHandler.getUsers"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 

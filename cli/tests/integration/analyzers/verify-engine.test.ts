@@ -268,11 +268,11 @@ get-users:
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/users.ts"
-          symbol: "UsersHandler.getUsers"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/users.ts"
+        symbol: "UsersHandler.getUsers"
 
 get-products:
   id: "223e4567-e89b-12d3-a456-426614174001"
@@ -283,11 +283,11 @@ get-products:
   attributes:
     http_method: "GET"
     http_path: "/products"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/products.ts"
-          symbol: "ProductsHandler.getProducts"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/products.ts"
+        symbol: "ProductsHandler.getProducts"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -364,11 +364,11 @@ get-products:
   attributes:
     http_method: "GET"
     http_path: "/products"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/products.ts"
-          symbol: "ProductsHandler.getProducts"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/products.ts"
+        symbol: "ProductsHandler.getProducts"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -529,11 +529,11 @@ get-users:
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/users.ts"
-          symbol: "UsersHandler.getUsers"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/users.ts"
+        symbol: "UsersHandler.getUsers"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
@@ -604,7 +604,7 @@ spec_version: "0.8.3"`
         "export class ApiHandler {}"
       );
 
-      // Create ignore file with UUID-based element IDs (since model uses UUID as element ID)
+      // Create ignore file with semantic-path element IDs (matches elem.path, not the UUID id)
       const ignoreFile = join(testProjectRoot, ".dr-verify-ignore.yaml");
       await writeFile(
         ignoreFile,
@@ -612,7 +612,7 @@ spec_version: "0.8.3"`
 ignore:
   - patterns:
       - handler: "*Handler*"
-    element_ids: ["223e4567-e89b-12d3-a456-426614174001"]
+    element_ids: ["api.operation.get-health"]
     reason: "Monitoring endpoint ignored"
     match: "model_only"`
       );
@@ -628,11 +628,11 @@ get-users:
   attributes:
     http_method: "GET"
     http_path: "/users"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/api.ts"
-          symbol: "ApiHandler.getUsers"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/api.ts"
+        symbol: "ApiHandler.getUsers"
 
 get-health:
   id: "223e4567-e89b-12d3-a456-426614174001"
@@ -643,11 +643,11 @@ get-health:
   attributes:
     http_method: "GET"
     http_path: "/health"
-    source_reference:
-      provenance: "extracted"
-      locations:
-        - file: "src/handlers/api.ts"
-          symbol: "ApiHandler.getHealth"
+  source_reference:
+    provenance: "extracted"
+    locations:
+      - file: "src/handlers/api.ts"
+        symbol: "ApiHandler.getHealth"
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
