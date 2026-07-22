@@ -7,8 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Full `dr analyzer` subcommand suite** (CBM analyzer) — six new subcommands for
+  querying an indexed project's code-behavior model:
+  - `services` — infers services/components from indexed code using mapping-driven
+    heuristics (no hardcoded labels), with `--layer` filtering
+  - `datastores` — infers datastores/databases by cross-referencing `IMPORTS` edges
+    and naming patterns against the analyzer mapping
+  - `callers <qualified-name>` / `callees <qualified-name>` — traverses the call
+    graph in either direction with configurable `--depth` (default 3, max 10)
+  - `query <cypher>` — raw Cypher passthrough as an advanced escape hatch
+  - All subcommands support `--json` output and respect the active analyzer session
+- **`dr analyzer verify`** — compares graph-discovered API routes against modeled
+  `api` layer endpoints and reports four buckets: `matched`, `in_graph_only` (gaps),
+  `in_model_only` (drift), and `ignored`. Supports changeset-aware verification
+  (transparently diffs against the active changeset's projected view), `.dr-verify-ignore.yaml`
+  for suppressing known false positives (glob matching on `handler`/`path`, exact
+  matching on `element_ids`), and `text`/`json`/`markdown` output formats
+  (`--format`, or inferred from `--output` file extension)
+
 ### Changed
 
+- **CBM analyzer error handling hardened** — silent `return []` / empty-catch
+  fallbacks across `services()`, `datastores()`, `verify()`, and call-graph
+  traversal replaced with explicit `CLIError`s and diagnostic warnings, so
+  misconfiguration (missing heuristics, invalid graph responses, path resolution
+  failures) surfaces as actionable errors instead of confusing empty results
 - **Bundled viewer updated to v0.4.0** — `dr visualize` now serves the "Heimdall" UX
   rebuild of the `documentation_robotics_viewer` bundle, which replaces the previous
   React Flow / Flowbite React / Storybook front-end stack with `@tinkermonkey/heimdall-ui`.
