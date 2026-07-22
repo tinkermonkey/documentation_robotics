@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled viewer updated to v0.4.0** — `dr visualize` now serves the "Heimdall" UX
+  rebuild of the `documentation_robotics_viewer` bundle, which replaces the previous
+  React Flow / Flowbite React / Storybook front-end stack with `@tinkermonkey/heimdall-ui`.
+  The REST/WebSocket API contract, JSON-RPC chat service, and `spec_node_id` format are
+  unchanged, so no CLI server or client code changes were required.
+
 ## [0.1.3] - 2026-03-14
 
 **Specification Support:** v0.8.3
