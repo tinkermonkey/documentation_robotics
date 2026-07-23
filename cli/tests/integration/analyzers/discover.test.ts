@@ -80,9 +80,17 @@ describe("analyzer discover integration tests", () => {
     });
 
     it("should not create session.json when no analyzer installed", async () => {
+      // Scrub any globally-installed analyzer binaries (e.g. codebase-memory-mcp
+      // installed via npm --prefix ~/.npm-global) from PATH so this test reflects
+      // a true "no analyzer" environment even when one is present on the host.
+      const scrubbedPath = (process.env.PATH || "")
+        .split(":")
+        .filter((dir) => !dir.includes(".npm-global"))
+        .join(":");
+
       const result = await runDr(["analyzer", "discover"], {
         cwd: tempDir.path,
-        env: { CI: "true" },
+        env: { CI: "true", PATH: scrubbedPath },
       });
 
       expect(result.exitCode).toBe(0);

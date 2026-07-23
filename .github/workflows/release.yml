@@ -109,6 +109,9 @@ jobs:
         working-directory: ./cli
         run: npm run build:ci
 
+      - name: Install codebase-memory-mcp (analyzer test dependency)
+        run: npm install -g codebase-memory-mcp
+
       - name: Run tests
         working-directory: ./cli
         run: npm test
