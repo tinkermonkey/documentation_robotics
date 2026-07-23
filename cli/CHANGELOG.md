@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.4] - 2026-07-23
 
+**Specification Support:** v0.8.4
+
 ### Added
 
 - **Full `dr analyzer` subcommand suite** (CBM analyzer) — six new subcommands for
