@@ -10,8 +10,46 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { runDr } from "../../helpers/cli-runner.js";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
-import { mkdir, writeFile, rm, access } from "fs/promises";
+import { mkdir, writeFile, rm, access, constants as fsConstants } from "fs/promises";
 import { join } from "path";
+
+/**
+ * Names of analyzer binaries that may be installed on the host running this
+ * test suite (e.g. installed globally for CI's release gate, or locally for
+ * sandbox verification). Kept in sync with binary_names in
+ * src/schemas/bundled/analyzers/cbm.json.
+ */
+const KNOWN_ANALYZER_BINARY_NAMES = ["codebase-memory-mcp"];
+
+/**
+ * Build a PATH with any directory that actually contains a known analyzer
+ * binary removed, regardless of how/where that binary was installed
+ * (npm --prefix, plain global install, etc). Directory-name matching (e.g.
+ * filtering ".npm-global") is fragile and install-method-specific; checking
+ * for the real executable is not.
+ */
+async function scrubAnalyzerBinariesFromPath(): Promise<string> {
+  const dirs = (process.env.PATH || "").split(":").filter(Boolean);
+  const keep: string[] = [];
+
+  for (const dir of dirs) {
+    let hasAnalyzerBinary = false;
+    for (const name of KNOWN_ANALYZER_BINARY_NAMES) {
+      try {
+        await access(join(dir, name), fsConstants.X_OK);
+        hasAnalyzerBinary = true;
+        break;
+      } catch {
+        // Not present/executable in this directory - keep checking others
+      }
+    }
+    if (!hasAnalyzerBinary) {
+      keep.push(dir);
+    }
+  }
+
+  return keep.join(":");
+}
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -80,13 +118,10 @@ describe("analyzer discover integration tests", () => {
     });
 
     it("should not create session.json when no analyzer installed", async () => {
-      // Scrub any globally-installed analyzer binaries (e.g. codebase-memory-mcp
-      // installed via npm --prefix ~/.npm-global) from PATH so this test reflects
-      // a true "no analyzer" environment even when one is present on the host.
-      const scrubbedPath = (process.env.PATH || "")
-        .split(":")
-        .filter((dir) => !dir.includes(".npm-global"))
-        .join(":");
+      // Scrub PATH of any directory that actually contains a known analyzer
+      // binary, so this test reflects a true "no analyzer" environment even
+      // when one is installed on the host (locally or in CI's release gate).
+      const scrubbedPath = await scrubAnalyzerBinariesFromPath();
 
       const result = await runDr(["analyzer", "discover"], {
         cwd: tempDir.path,
