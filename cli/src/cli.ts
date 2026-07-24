@@ -607,6 +607,26 @@ The --viewer-path option allows loading a local build of the web UI:
     });
   });
 
+program
+  .command("mcp")
+  .description("Start MCP server for AI assistant integration (stdio transport)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr mcp
+
+On first launch, generates an API key and asks where to store it (interactive
+sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
+printed to stderr on every launch and must be supplied via DR_MCP_API_KEY:
+
+  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }`
+  )
+  .action(async () => {
+    const { mcpCommand } = await import("./commands/mcp.js");
+    await mcpCommand();
+  });
+
 // AI Integration command
 program
   .command("chat [client] [withDanger]")
