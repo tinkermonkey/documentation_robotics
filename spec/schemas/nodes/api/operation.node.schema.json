@@ -39,7 +39,16 @@
         "http_method": {
           "type": "string",
           "description": "HTTP method for this operation",
-          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"]
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS",
+            "TRACE"
+          ]
         },
         "http_path": {
           "type": "string",

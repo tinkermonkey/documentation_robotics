@@ -170,8 +170,15 @@ dr validate --orphans --output orphans.json
         "type": "api.operation",
         "status": "connectable",
         "reachablePredicates": ["realizes", "references"],
-        "reachableTargetTypes": ["application.applicationfunction", "application.applicationservice"],
-        "needsTypes": ["application.applicationfunction", "application.applicationservice", "business.businessprocess"]
+        "reachableTargetTypes": [
+          "application.applicationfunction",
+          "application.applicationservice"
+        ],
+        "needsTypes": [
+          "application.applicationfunction",
+          "application.applicationservice",
+          "business.businessprocess"
+        ]
       },
       {
         "id": "api.info.x",
@@ -189,7 +196,10 @@ dr validate --orphans --output orphans.json
         "status": "connectable",
         "reachablePredicates": ["serves", "accesses"],
         "reachableTargetTypes": ["application.applicationservice"],
-        "needsTypes": ["application.applicationservice", "data-store.collection"]
+        "needsTypes": [
+          "application.applicationservice",
+          "data-store.collection"
+        ]
       }
     ]
   }
