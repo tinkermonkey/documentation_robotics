@@ -6,3 +6,5 @@ motivation.goal.manage-tasks:
   layer_id: motivation
   name: Manage Personal Tasks
   description: Allow users to manage their personal task lists
+  attributes:
+    priority: high

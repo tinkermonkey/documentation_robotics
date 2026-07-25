@@ -6,3 +6,5 @@ todo-api-service:
   layer_id: application
   name: Todo API Service
   description: Application service implementing task management
+  attributes:
+    serviceType: synchronous

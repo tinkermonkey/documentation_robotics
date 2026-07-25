@@ -71,6 +71,8 @@ describe("Element id/path persistence", () => {
       "Customer Satisfaction",
       "--description",
       "Increase customer satisfaction score",
+      "--attributes",
+      JSON.stringify({ priority: "high" }),
     ]);
 
     expect(result.exitCode).toBe(0);
@@ -122,6 +124,8 @@ describe("Element id/path persistence", () => {
       "motivation",
       "goal",
       "increase-revenue",
+      "--attributes",
+      JSON.stringify({ priority: "high" }),
     ]);
 
     expect(result.exitCode).toBe(0);

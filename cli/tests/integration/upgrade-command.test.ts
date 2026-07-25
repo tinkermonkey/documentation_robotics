@@ -443,7 +443,7 @@ describe("upgrade command - unified flow", () => {
       // Verify model spec version was updated to latest (0.8.3)
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.8.3");
+      expect(updatedManifest.spec_version).toBe("0.8.4");
     });
 
     it("should handle chained migrations across multiple versions", async () => {
@@ -467,7 +467,7 @@ describe("upgrade command - unified flow", () => {
       // Should complete all migrations and reach latest version (0.8.3)
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.8.3");
+      expect(updatedManifest.spec_version).toBe("0.8.4");
     });
 
     it("should show migration steps in output", async () => {
@@ -530,7 +530,7 @@ describe("upgrade command - unified flow", () => {
       // Model should be upgraded to latest version (0.8.3)
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.8.3");
+      expect(updatedManifest.spec_version).toBe("0.8.4");
     });
 
     it("should complete both upgrades successfully", async () => {
