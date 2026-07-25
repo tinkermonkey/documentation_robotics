@@ -5,7 +5,7 @@ priority: high
 pipelines:
   - name: "Add and update motivation goal"
     steps:
-      - command: "add motivation goal test-goal --name 'Test Strategic Goal' --description 'Test goal for verification'"
+      - command: "add motivation goal test-goal --name 'Test Strategic Goal' --description 'Test goal for verification' --attributes '{\"priority\": \"medium\"}'"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -32,7 +32,7 @@ pipelines:
 
   - name: "Add application component lifecycle"
     steps:
-      - command: "add application component test-component --name 'Test Component' --description 'Test application component'"
+      - command: "add application component test-component --name 'Test Component' --description 'Test application component' --attributes '{\"type\": \"generic\"}'"
         files_to_compare:
           - manifest.yaml
           - 04_application/application_component.yaml
@@ -113,7 +113,7 @@ pipelines:
 
   - name: "Add testing test case sketch with update"
     steps:
-      - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification'"
+      - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification' --attributes '{\"status\": \"draft\"}'"
         files_to_compare:
           - manifest.yaml
           - 12_testing/test_case_sketch.yaml
