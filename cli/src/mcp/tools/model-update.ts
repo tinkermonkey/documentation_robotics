@@ -155,10 +155,13 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
         after.attributes = args.attributes;
       }
 
+      const hasSourceReferenceUpdate =
+        args.sourceFile || args.sourceSymbol || args.sourceProvenance || args.sourceRepoRemote || args.sourceRepoCommit;
+
       if (args.clearSourceReference) {
         elem.setSourceReference(undefined);
         after.sourceReference = undefined;
-      } else if (args.sourceFile) {
+      } else if (hasSourceReferenceUpdate) {
         const newRef = buildSourceReference(args);
         if (newRef) {
           elem.setSourceReference(newRef);

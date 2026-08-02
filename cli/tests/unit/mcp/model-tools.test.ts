@@ -345,6 +345,24 @@ describe("MCP model tools", () => {
         expect(data.error).toContain("Invalid element type");
       });
     });
+
+    it("writes a source reference for file-optional provenance without a sourceFile", async () => {
+      await withProject(async (rootPath) => {
+        const result = await modelUpdateHandler({
+          id: "business.businessservice.payments",
+          sourceProvenance: "generated",
+          rootPath,
+        });
+        const data = parse(result);
+        expect(data.status).toBe("updated");
+
+        const model = await loadModel(rootPath);
+        const layer = await model.getLayer("business");
+        expect(layer?.getElement("business.businessservice.payments")?.source_reference?.provenance).toBe(
+          "generated"
+        );
+      });
+    });
   });
 
   describe("model_delete", () => {

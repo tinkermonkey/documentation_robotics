@@ -54,9 +54,10 @@ export async function loadModel(rootPath?: string, options?: ModelOptions): Prom
 }
 
 /** Wraps structured data as the tool's JSON text content. */
-export function jsonResult(data: unknown): CallToolResult {
+export function jsonResult(data: unknown, options?: { isError?: boolean }): CallToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    ...(options?.isError ? { isError: true } : {}),
   };
 }
 

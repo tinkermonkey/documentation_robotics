@@ -80,14 +80,23 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
     }
 
     let deletedCount = 0;
+    const skippedDependents: string[] = [];
     if (args.cascade && dependents.length > 0) {
       for (const depId of [...dependents].reverse()) {
         const depLayerName = await findElementLayer(model, depId);
-        if (!depLayerName) continue;
+        if (!depLayerName) {
+          console.error(`[mcp] model_delete: cascade dependent "${depId}" not found, skipping`);
+          skippedDependents.push(depId);
+          continue;
+        }
 
         const depLayer = (await model.getLayer(depLayerName))!;
         const depElement = depLayer.getElement(depId);
-        if (!depElement) continue;
+        if (!depElement) {
+          console.error(`[mcp] model_delete: cascade dependent "${depId}" not found, skipping`);
+          skippedDependents.push(depId);
+          continue;
+        }
 
         const depHandler = new MutationHandler(model, depId, depLayerName);
         await depHandler.executeDelete(depElement);
@@ -108,6 +117,7 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
       id: args.id,
       layer: layerName,
       cascadedDeletes: deletedCount,
+      ...(skippedDependents.length > 0 ? { skippedDependents } : {}),
     });
   });
 }

@@ -40,22 +40,28 @@ export async function chatLaunchHandler(args: ChatLaunchArgs): Promise<CallToolR
     const availableClients = await detectAvailableClients();
 
     if (availableClients.length === 0) {
-      return jsonResult({
-        status: "unavailable",
-        message: "No AI coding agent is installed. Install Claude Code or GitHub Copilot.",
-      });
+      return jsonResult(
+        {
+          status: "unavailable",
+          message: "No AI coding agent is installed. Install Claude Code or GitHub Copilot.",
+        },
+        { isError: true }
+      );
     }
 
     let selected = availableClients[0];
     if (args.client) {
       const match = availableClients.find((client) => client.getClientName() === args.client);
       if (!match) {
-        return jsonResult({
-          status: "unavailable",
-          message: `"${args.client}" is not installed or not available. Available: ${availableClients
-            .map((client) => client.getClientName())
-            .join(", ")}`,
-        });
+        return jsonResult(
+          {
+            status: "unavailable",
+            message: `"${args.client}" is not installed or not available. Available: ${availableClients
+              .map((client) => client.getClientName())
+              .join(", ")}`,
+          },
+          { isError: true }
+        );
       }
       selected = match;
     }

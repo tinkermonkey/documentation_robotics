@@ -89,7 +89,7 @@ describe("MCP chat tools", () => {
 
       await withProject(async (rootPath) => {
         const result = await chatLaunchHandler({ prompt: "hello", rootPath });
-        expect(result.isError).toBeFalsy();
+        expect(result.isError).toBe(true);
         const data = parse(result);
         expect(data.status).toBe("unavailable");
         expect(data.message).toContain("No AI coding agent is installed");
@@ -106,7 +106,7 @@ describe("MCP chat tools", () => {
 
       await withProject(async (rootPath) => {
         const result = await chatLaunchHandler({ prompt: "hello", client: "Claude Code", rootPath });
-        expect(result.isError).toBeFalsy();
+        expect(result.isError).toBe(true);
         const data = parse(result);
         expect(data.status).toBe("unavailable");
         expect(data.message).toContain("Claude Code");

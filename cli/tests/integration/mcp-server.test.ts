@@ -678,7 +678,7 @@ exit 0
     await startServer(false);
 
     const result = await callTool("chat_launch", { prompt: "Describe the model" });
-    expect(result.isError).toBeFalsy();
+    expect(result.isError).toBe(true);
     const data = parseToolJSON(result);
     expect(data.status).toBe("unavailable");
     expect(data.message).toContain("No AI coding agent is installed");
