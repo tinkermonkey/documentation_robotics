@@ -15,6 +15,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { isTelemetryEnabled, startActiveSpan } from "../telemetry/index.js";
 import {
   changesetListTool,
   changesetShowTool,
@@ -61,7 +62,18 @@ export class McpToolRegistry {
       server.registerTool(
         tool.name,
         { description: tool.description, inputSchema: tool.inputSchema },
-        tool.handler
+        (args: any) =>
+          startActiveSpan(
+            `mcp.tool.${tool.name}`,
+            async (span) => {
+              const result = await tool.handler(args);
+              if (isTelemetryEnabled && result?.isError) {
+                span.setStatus({ code: 2 });
+              }
+              return result;
+            },
+            { "mcp.tool.name": tool.name }
+          )
       );
     }
   }

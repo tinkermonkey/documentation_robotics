@@ -34,6 +34,11 @@ export interface EnsureKeyResult {
   isNew: boolean;
 }
 
+export interface RotateKeyResult {
+  key: string;
+  path: string;
+}
+
 /** Prompts the user for a storage path, given the default path to offer. */
 export type ApiKeyStoragePrompt = (defaultPath: string) => Promise<string>;
 
@@ -105,5 +110,30 @@ export class ApiKeyManager {
     });
 
     return { key, path: chosenPath, isNew: true };
+  }
+
+  /**
+   * Force-generate a new API key, overwriting whatever is at the configured
+   * (or default) storage path, regardless of whether a key already exists
+   * there. Unlike `ensureKey`, this always writes a fresh key.
+   *
+   * @param promptForPath Called only when no storage path is yet configured,
+   *   to ask the user where to store it. When omitted, `defaultKeyPath` is
+   *   used without prompting.
+   */
+  async rotate(promptForPath?: ApiKeyStoragePrompt): Promise<RotateKeyResult> {
+    const config = await loadDRConfig();
+    const path =
+      config.mcp?.api_key_path ??
+      (promptForPath ? await promptForPath(this.defaultKeyPath) : this.defaultKeyPath);
+
+    const key = this.generate();
+    await this.store(path, key);
+    await saveDRConfig({
+      ...config,
+      mcp: { ...config.mcp, api_key_path: path },
+    });
+
+    return { key, path };
   }
 }

@@ -263,6 +263,44 @@ dr chat github-copilot                   # Use GitHub Copilot, save as preferenc
 
 **Note**: Chat requires either [Claude Code CLI](https://claude.ai/download) or [GitHub Copilot CLI](https://github.com/github/gh-copilot) to be installed and authenticated. The CLI will auto-detect available clients and prompt you to choose if both are installed. You can also explicitly specify which client to use.
 
+### MCP Server
+
+`dr mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio, exposing the architecture model (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat) as tools an MCP-aware AI client can call directly.
+
+```bash
+# Start the server (run by your MCP client, not typically by hand)
+dr mcp
+
+# Rotate the API key: generates a new key, overwrites it at the configured
+# storage path, and prints it — without touching the server process
+dr mcp --regenerate-key
+```
+
+**API key**:
+
+- On first launch, `dr mcp` generates a random API key and stores it on disk with `0600` permissions. Interactive sessions are prompted for a storage path; non-interactive launches (the normal case — an MCP client spawning `dr mcp`) default to `~/.dr-mcp-key`.
+- The chosen path is recorded under `mcp.api_key_path` in `~/.dr-config.yaml` (or the path from `DR_CONFIG_PATH`, if set), so subsequent launches reuse the same key without re-prompting.
+- Every launch prints the current key to stderr (never stdout, which carries the MCP protocol) and requires the client to supply it back via the `DR_MCP_API_KEY` environment variable. The connection is rejected if `DR_MCP_API_KEY` is missing or doesn't match.
+- Run `dr mcp --regenerate-key` to rotate the key (e.g. after a suspected leak). This overwrites the key at its existing configured path (or the default path, prompting once if none is configured yet), updates `~/.dr-config.yaml`, prints the new key, and exits without starting the server — no manual deletion of config or key files required.
+
+**Configuring an MCP client**:
+
+Point your MCP client at the `dr` binary and pass the key via `env`:
+
+```json
+{
+  "mcpServers": {
+    "documentation-robotics": {
+      "command": "dr",
+      "args": ["mcp"],
+      "env": {
+        "DR_MCP_API_KEY": "<key printed by dr mcp>"
+      }
+    }
+  }
+}
+```
+
 ## Configuration
 
 ### Model Structure

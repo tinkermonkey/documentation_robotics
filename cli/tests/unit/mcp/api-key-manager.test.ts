@@ -183,4 +183,54 @@ describe("ApiKeyManager", () => {
       expect(second.key).not.toBe(first.key);
     });
   });
+
+  describe("rotate()", () => {
+    it("overwrites the key at the already-configured path without prompting", async () => {
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "rotate-key");
+
+      const original = await manager.ensureKey(async () => keyPath);
+
+      let promptCalled = false;
+      const rotated = await manager.rotate(async (defaultPath) => {
+        promptCalled = true;
+        return defaultPath;
+      });
+
+      expect(promptCalled).toBe(false);
+      expect(rotated.path).toBe(keyPath);
+      expect(rotated.key).not.toBe(original.key);
+      expect(await manager.load(keyPath)).toBe(rotated.key);
+    });
+
+    it("generates a new key even when the existing key file is still present", async () => {
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "still-present-key");
+
+      const first = await manager.ensureKey(async () => keyPath);
+      expect(existsSync(keyPath)).toBe(true);
+
+      const second = await manager.rotate();
+
+      expect(second.key).not.toBe(first.key);
+      expect(second.path).toBe(keyPath);
+    });
+
+    it("uses the injected default path and prompts when no key is configured yet", async () => {
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "prompted-rotate-key");
+
+      const result = await manager.rotate(async (defaultPath) => {
+        expect(defaultPath.length).toBeGreaterThan(0);
+        return keyPath;
+      });
+
+      expect(result.path).toBe(keyPath);
+      expect(existsSync(keyPath)).toBe(true);
+
+      const { loadDRConfig } = await import("../../../src/config");
+      const config = await loadDRConfig();
+      expect(config.mcp?.api_key_path).toBe(keyPath);
+    });
+  });
 });

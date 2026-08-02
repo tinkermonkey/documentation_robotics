@@ -610,21 +610,29 @@ The --viewer-path option allows loading a local build of the web UI:
 program
   .command("mcp")
   .description("Start MCP server for AI assistant integration (stdio transport)")
+  .option(
+    "--regenerate-key",
+    "Generate a new MCP API key, overwrite it at the configured storage path, and print it (does not start the server)"
+  )
   .addHelpText(
     "after",
     `
 Examples:
   $ dr mcp
+  $ dr mcp --regenerate-key
 
 On first launch, generates an API key and asks where to store it (interactive
 sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
 printed to stderr on every launch and must be supplied via DR_MCP_API_KEY:
 
-  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }`
+  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }
+
+Use --regenerate-key to rotate the key (e.g. after a suspected leak) without
+manually deleting the stored key file or config.`
   )
-  .action(async () => {
+  .action(async (options) => {
     const { mcpCommand } = await import("./commands/mcp.js");
-    await mcpCommand();
+    await mcpCommand({ regenerateKey: options.regenerateKey });
   });
 
 // AI Integration command

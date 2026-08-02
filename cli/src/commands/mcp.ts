@@ -10,6 +10,7 @@ import { isCancel, text } from "@clack/prompts";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
 import { McpResourceRegistry } from "../mcp/resource-registry.js";
 import { McpToolRegistry } from "../mcp/tool-registry.js";
+import { endSpan, isTelemetryEnabled, startActiveSpan, startSpan } from "../telemetry/index.js";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 
 // Declare build-time constant (substituted by esbuild)
@@ -34,10 +35,30 @@ const promptForKeyPath: ApiKeyStoragePrompt = async (defaultPath) => {
   return result.trim();
 };
 
-export async function mcpCommand(): Promise<void> {
+export interface McpCommandOptions {
+  /** Force-generate a new API key, overwrite it at the configured storage path, and exit. */
+  regenerateKey?: boolean;
+}
+
+export async function mcpCommand(options: McpCommandOptions = {}): Promise<void> {
   const keyManager = new ApiKeyManager();
 
   try {
+    if (options.regenerateKey) {
+      await startActiveSpan("mcp.key.rotate", async (span) => {
+        const isInteractive = process.stdin.isTTY === true;
+        const { key, path } = await keyManager.rotate(
+          isInteractive ? promptForKeyPath : undefined
+        );
+        if (isTelemetryEnabled) {
+          span.setAttribute("mcp.key.path", path);
+        }
+        process.stderr.write(`Generated new MCP API key, stored at ${path}\n`);
+        process.stderr.write(`MCP API key: ${key}\n`);
+      });
+      return;
+    }
+
     const isInteractive = process.stdin.isTTY === true;
     const { key, path, isNew } = await keyManager.ensureKey(
       isInteractive ? promptForKeyPath : undefined
@@ -63,21 +84,33 @@ export async function mcpCommand(): Promise<void> {
       throw new CLIError("MCP authentication failed: invalid or missing DR_MCP_API_KEY", 1);
     }
 
-    const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
-    const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+    const transport = await startActiveSpan(
+      "mcp.server.start",
+      async (span) => {
+        const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+        const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
 
-    const server = new McpServer({
-      name: "documentation-robotics",
-      version: cliVersion,
-    });
+        const server = new McpServer({
+          name: "documentation-robotics",
+          version: cliVersion,
+        });
 
-    // Register the model tool surface (list/show/search/add/update/delete/
-    // validate/export/trace/stats/info) and the spec/model manifest resources.
-    new McpToolRegistry().registerAll(server);
-    await new McpResourceRegistry().registerAll(server);
+        // Register the model tool surface (list/show/search/add/update/delete/
+        // validate/export/trace/stats/info) and the spec/model manifest resources.
+        new McpToolRegistry().registerAll(server);
+        await new McpResourceRegistry().registerAll(server);
 
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
+        if (isTelemetryEnabled) {
+          span.setAttribute("mcp.server.name", "documentation-robotics");
+          span.setAttribute("mcp.server.version", cliVersion);
+        }
+
+        const serverTransport = new StdioServerTransport();
+        await server.connect(serverTransport);
+        return serverTransport;
+      },
+      { "mcp.server.transport": "stdio" }
+    );
 
     process.stderr.write("Documentation Robotics MCP server ready (stdio)\n");
 
@@ -86,6 +119,10 @@ export async function mcpCommand(): Promise<void> {
     await new Promise<void>((resolve) => {
       transport.onclose = () => resolve();
     });
+
+    if (isTelemetryEnabled) {
+      endSpan(startSpan("mcp.server.stop"));
+    }
   } catch (error) {
     if (error instanceof CLIError) {
       throw error;
