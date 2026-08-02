@@ -76,6 +76,9 @@ const SEMANTIC_FORMATS = new Set(["openapi", "archimate", "jsonschema", "json-sc
 
 export async function modelExportHandler(args: ModelExportArgs): Promise<CallToolResult> {
   return runTool(async () => {
+    // Unlike "model_validate", this exports the base model as-is and does not project
+    // the active changeset onto it — matching `dr export`. A staged-but-uncommitted
+    // change will not appear in the export output.
     const model = await loadModel(args.rootPath);
     const manager = buildExportManager();
     const format = args.format.toLowerCase();

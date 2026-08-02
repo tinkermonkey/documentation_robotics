@@ -6,6 +6,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Element } from "../../core/element.js";
+import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 export interface ModelSearchArgs {
@@ -41,6 +42,14 @@ function matchesSourceFile(element: Element, sourceFilePath: string): boolean {
 
 export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToolResult> {
   return runTool(async () => {
+    if (!args.query && !args.sourceFile && !args.layer && !args.type) {
+      throw new CLIError(
+        "At least one of query, sourceFile, layer, or type must be provided",
+        ErrorCategory.USER,
+        ['Use "model_list" to list all elements without filtering']
+      );
+    }
+
     const model = await loadModel(args.rootPath);
     const isSourceFileSearch = !!args.sourceFile;
     const queryLower = (args.query ?? "").toLowerCase();

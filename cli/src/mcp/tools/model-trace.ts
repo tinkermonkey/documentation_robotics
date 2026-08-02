@@ -22,7 +22,7 @@ const inputSchema = {
   direction: z
     .enum(["up", "down", "both"])
     .optional()
-    .describe("'up' = what this element depends on, 'down' = what depends on it, 'both' (default)."),
+    .describe("'up' = what depends on this element (dependents), 'down' = what this element depends on (dependencies), 'both' (default)."),
   depth: z.number().int().positive().optional().describe("Maximum trace depth. Omit for unlimited."),
   rootPath: rootPathSchema,
 };

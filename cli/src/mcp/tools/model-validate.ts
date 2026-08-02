@@ -31,10 +31,17 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
   return runTool(async () => {
     const model = await loadModel(args.rootPath, args.layers ? { layers: args.layers } : {});
 
+    // `Validator` is typed to accept `Model`, but a projected changeset is a
+    // `ProjectedModel` (manifest/layers/relationships only, no `rootPath` or the
+    // mutation methods `Model` exposes). The validation pipeline only reads
+    // `rootPath` for telemetry (validator.ts), so it's carried over explicitly
+    // rather than left undefined. This mirrors the identical cast in
+    // `cli/src/commands/validate.ts`; a proper fix would give `Validator` a
+    // narrower "validatable model" interface shared by both types.
     const activeChangesetId = model.getActiveChangesetId();
     const modelToValidate = (
       activeChangesetId
-        ? await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)
+        ? { ...(await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)), rootPath: model.rootPath }
         : model
     ) as unknown as Model;
 

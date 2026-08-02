@@ -85,6 +85,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       model.addLayer(layerObj);
     }
 
+    const now = new Date().toISOString();
     const element = new Element({
       id: elementUUID,
       path: elementPath,
@@ -95,8 +96,8 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
       description: args.description,
       attributes: args.attributes ?? {},
       metadata: {
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: now,
+        updated_at: now,
         version: 1,
       },
       layer: args.layer,

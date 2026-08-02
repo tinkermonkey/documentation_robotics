@@ -87,6 +87,10 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       args.type ||
       args.attributes ||
       args.sourceFile ||
+      args.sourceSymbol ||
+      args.sourceProvenance ||
+      args.sourceRepoRemote ||
+      args.sourceRepoCommit ||
       args.clearSourceReference;
 
     if (!hasUpdates) {

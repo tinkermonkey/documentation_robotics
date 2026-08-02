@@ -11,7 +11,7 @@ import { z, type ZodRawShape } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
 import type { ModelOptions } from "../../types/index.js";
-import { CLIError, getErrorMessage } from "../../utils/errors.js";
+import { CLIError, getErrorMessage, type ErrorContext } from "../../utils/errors.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
 export const rootPathSchema = z
@@ -43,6 +43,7 @@ export function jsonResult(data: unknown): CallToolResult {
 /** Converts a thrown error into a structured, non-throwing tool error result. */
 export function errorResult(error: unknown): CallToolResult {
   if (error instanceof CLIError) {
+    const context: ErrorContext | undefined = error.context;
     return {
       content: [
         {
@@ -50,8 +51,11 @@ export function errorResult(error: unknown): CallToolResult {
           text: JSON.stringify(
             {
               error: error.message,
-              category: ErrorCategoryName(error.exitCode),
+              category: errorCategoryName(error.exitCode),
               suggestions: error.suggestions ?? [],
+              ...(context?.operation ? { operation: context.operation } : {}),
+              ...(context?.relatedElements ? { relatedElements: context.relatedElements } : {}),
+              ...(context?.partialProgress ? { partialProgress: context.partialProgress } : {}),
             },
             null,
             2
@@ -68,7 +72,7 @@ export function errorResult(error: unknown): CallToolResult {
   };
 }
 
-function ErrorCategoryName(exitCode: number): string {
+function errorCategoryName(exitCode: number): string {
   switch (exitCode) {
     case 1:
       return "user";

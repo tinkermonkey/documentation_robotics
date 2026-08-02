@@ -48,6 +48,9 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
       ]);
     }
 
+    // Cascade is scoped to cross-layer references only, matching `dr delete`. This is
+    // narrower than "model_trace", which also follows intra-layer relationships.yaml
+    // edges — a dependent found by model_trace may not be included in a cascade delete.
     const registry = new ReferenceRegistry();
     for (const l of model.layers.values()) {
       for (const el of l.listElements()) {
@@ -98,13 +101,6 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
     const stagingManager = mutationHandler.getStagingManager();
     const activeChangeset = await stagingManager.getActive();
     const staged = !!(activeChangeset && activeChangeset.status === "staged");
-
-    if (!staged) {
-      const staleCount = elementsToRemove.reduce((n, eid) => n + model.relationships.deleteForElement(eid), 0);
-      if (staleCount > 0) {
-        await model.saveRelationships();
-      }
-    }
 
     return jsonResult({
       status: staged ? "staged" : "deleted",
