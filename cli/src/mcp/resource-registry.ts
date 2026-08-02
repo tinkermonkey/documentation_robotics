@@ -19,7 +19,8 @@ import { getErrorMessage } from "../utils/errors.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUNDLED_SCHEMAS_DIR = path.join(__dirname, "../schemas/bundled");
 
-async function readBundledSchema(fileName: string): Promise<string> {
+/** Exported for direct unit testing of the ENOENT-to-actionable-error translation. */
+export async function readBundledSchema(fileName: string): Promise<string> {
   try {
     return await fs.readFile(path.join(BUNDLED_SCHEMAS_DIR, fileName), "utf-8");
   } catch (error) {

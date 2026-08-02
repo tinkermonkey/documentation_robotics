@@ -41,8 +41,12 @@ export async function loadModel(rootPath?: string, options?: ModelOptions): Prom
     if (error instanceof CLIError) {
       throw error;
     }
-    const message = getErrorMessage(error);
-    if (message.includes("No DR project") || message.includes("Model not found")) {
+    const message = getErrorMessage(error).toLowerCase();
+    if (
+      message.includes("no dr project") ||
+      message.includes("model not found") ||
+      message.includes("no model found")
+    ) {
       throw new ModelNotFoundError(rootPath);
     }
     throw error;
