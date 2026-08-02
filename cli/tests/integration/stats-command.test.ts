@@ -33,9 +33,21 @@ describe("stats command", () => {
     await runDr(["init", "--name", "Layer Stats Model"], { cwd: tempDir.path });
 
     // Add elements to different layers
-    await runDr(["add", "api", "operation", "test-operation-1", "--name", "GET /users"], {
-      cwd: tempDir.path,
-    });
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "test-operation-1",
+        "--name",
+        "GET /users",
+        "--attributes",
+        '{"operationId":"getUsers","summary":"Get users","tags":"users"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
     await runDr(["add", "business", "businessservice", "test-service-1", "--name", "User Service"], {
       cwd: tempDir.path,
     });
@@ -53,9 +65,21 @@ describe("stats command", () => {
     await runDr(["init", "--name", "Relationship Stats"], { cwd: tempDir.path });
 
     // Add elements
-    await runDr(["add", "motivation", "goal", "test-goal-1", "--name", "Satisfy users"], {
-      cwd: tempDir.path,
-    });
+    await runDr(
+      [
+        "add",
+        "motivation",
+        "goal",
+        "test-goal-1",
+        "--name",
+        "Satisfy users",
+        "--attributes",
+        '{"priority":"high"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
     await runDr(["add", "business", "service", "test-service-1", "--name", "User Service"], {
       cwd: tempDir.path,
     });
@@ -149,12 +173,36 @@ describe("stats command", () => {
     await runDr(["init", "--name", "Verbose Stats"], { cwd: tempDir.path });
 
     // Add different element types
-    await runDr(["add", "api", "operation", "operation-1", "--name", "Operation 1"], {
-      cwd: tempDir.path,
-    });
-    await runDr(["add", "api", "operation", "operation-2", "--name", "Operation 2"], {
-      cwd: tempDir.path,
-    });
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-1",
+        "--name",
+        "Operation 1",
+        "--attributes",
+        '{"operationId":"operation1","summary":"Operation 1","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-2",
+        "--name",
+        "Operation 2",
+        "--attributes",
+        '{"operationId":"operation2","summary":"Operation 2","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
 
     const result = await runDr(["stats", "--verbose"], { cwd: tempDir.path });
 
@@ -169,9 +217,21 @@ describe("stats command", () => {
 
     // Add multiple elements to different layers
     for (let i = 1; i <= 5; i++) {
-      await runDr(["add", "api", "operation", `operation-${i}`, "--name", `Operation ${i}`], {
-        cwd: tempDir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "api",
+          "operation",
+          `operation-${i}`,
+          "--name",
+          `Operation ${i}`,
+          "--attributes",
+          `{"operationId":"operation${i}","summary":"Operation ${i}","tags":"ops"}`,
+        ],
+        {
+          cwd: tempDir.path,
+        }
+      );
     }
 
     for (let i = 1; i <= 3; i++) {
@@ -219,9 +279,21 @@ describe("stats command", () => {
     await runDr(["init", "--name", "No Relationships Model"], { cwd: tempDir.path });
 
     // Add an element but no relationships
-    await runDr(["add", "api", "operation", "operation-1", "--name", "Lonely Operation"], {
-      cwd: tempDir.path,
-    });
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-1",
+        "--name",
+        "Lonely Operation",
+        "--attributes",
+        '{"operationId":"lonelyOperation","summary":"Lonely Operation","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
 
     const result = await runDr(["stats"], { cwd: tempDir.path });
 
@@ -257,10 +329,25 @@ describe("stats command", () => {
     await runDr(["init", "--name", "Complex JSON"], { cwd: tempDir.path });
 
     // Add elements to multiple layers
-    await runDr(["add", "motivation", "goal", "goal-1", "--name", "Goal 1"], { cwd: tempDir.path });
-    await runDr(["add", "api", "operation", "operation-1", "--name", "Operation 1"], {
-      cwd: tempDir.path,
-    });
+    await runDr(
+      ["add", "motivation", "goal", "goal-1", "--name", "Goal 1", "--attributes", '{"priority":"high"}'],
+      { cwd: tempDir.path }
+    );
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-1",
+        "--name",
+        "Operation 1",
+        "--attributes",
+        '{"operationId":"operation1","summary":"Operation 1","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
 
     const result = await runDr(["stats", "--format", "json"], { cwd: tempDir.path });
 

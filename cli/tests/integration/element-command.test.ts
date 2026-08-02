@@ -31,7 +31,15 @@ describe("Element Subcommand Group", () => {
 
   describe("element add", () => {
     it("should add an element to a layer via element add", async () => {
-      const result = await runDr("element", "add", "motivation", "goal", "Test Goal");
+      const result = await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
 
       expect(result.exitCode).toBe(0);
 
@@ -52,7 +60,9 @@ describe("Element Subcommand Group", () => {
         "goal",
         "Customer Satisfaction",
         "--description",
-        "Ensure customers are satisfied"
+        "Ensure customers are satisfied",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
       );
 
       expect(result.exitCode).toBe(0);
@@ -92,9 +102,33 @@ describe("Element Subcommand Group", () => {
   describe("element list", () => {
     beforeEach(async () => {
       // Add some test elements
-      await runDr("element", "add", "motivation", "goal", "Goal One");
-      await runDr("element", "add", "motivation", "goal", "Goal Two");
-      await runDr("element", "add", "motivation", "stakeholder", "Stakeholder One");
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Goal One",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Goal Two",
+        "--attributes",
+        JSON.stringify({ priority: "medium" })
+      );
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "stakeholder",
+        "Stakeholder One",
+        "--attributes",
+        JSON.stringify({ type: "internal" })
+      );
     });
 
     it("should list all elements in a layer via element list", async () => {
@@ -125,7 +159,15 @@ describe("Element Subcommand Group", () => {
   describe("element show", () => {
     beforeEach(async () => {
       // Add test element
-      await runDr("element", "add", "motivation", "goal", "Get Order");
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Get Order",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should display element details via element show", async () => {
@@ -146,8 +188,24 @@ describe("Element Subcommand Group", () => {
   describe("element delete", () => {
     beforeEach(async () => {
       // Add test elements
-      await runDr("element", "add", "motivation", "goal", "Goal To Delete");
-      await runDr("element", "add", "motivation", "goal", "Goal To Keep");
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Goal To Delete",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Goal To Keep",
+        "--attributes",
+        JSON.stringify({ priority: "medium" })
+      );
     });
 
     it("should delete element via element delete with --force", async () => {
@@ -176,7 +234,15 @@ describe("Element Subcommand Group", () => {
   describe("element update", () => {
     beforeEach(async () => {
       // Add test element
-      await runDr("element", "add", "motivation", "goal", "Original Goal");
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "Original Goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should update element name via element update", async () => {

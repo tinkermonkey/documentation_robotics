@@ -24,24 +24,7 @@
  * ```
  */
 
-import { homedir } from "node:os";
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { parse } from "yaml";
-import { join } from "node:path";
-
-/**
- * Configuration structure parsed from ~/.dr-config.yaml
- */
-interface DRConfig {
-  telemetry?: {
-    otlp?: {
-      endpoint?: string;
-      logs_endpoint?: string;
-      service_name?: string;
-    };
-  };
-}
+import { loadDRConfig } from "../config.js";
 
 /**
  * Resolved OTLP configuration with all required fields
@@ -53,8 +36,6 @@ export interface OTLPConfig {
   /** True only when an endpoint was explicitly set via env var or config file. */
   isExplicitlyConfigured: boolean;
 }
-
-const CONFIG_FILENAME = ".dr-config.yaml";
 
 /**
  * Load OTLP configuration from multiple sources.
@@ -83,60 +64,10 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
     isExplicitlyConfigured: false,
   };
 
-  // Load file configuration (Priority 2)
-  let fileConfig: DRConfig = {};
-  // Support DR_CONFIG_PATH override for testing; default to ~/.dr-config.yaml
-  const configPath = process.env.DR_CONFIG_PATH ?? join(homedir(), CONFIG_FILENAME);
-
-  if (existsSync(configPath)) {
-    try {
-      const content = await readFile(configPath, "utf-8");
-      fileConfig = parse(content) as DRConfig;
-    } catch (error) {
-      // Provide specific error messages based on error type
-      if (error instanceof Error) {
-        const errorMsg = error.message;
-
-        // File permission errors
-        if (errorMsg.includes("EACCES") || errorMsg.includes("permission denied")) {
-          process.stderr.write(
-            `Error: Cannot read config file ${configPath} - permission denied\n`
-          );
-          process.stderr.write("Suggestions:\n");
-          process.stderr.write(`  • Check file permissions with: ls -l ${configPath}\n`);
-          process.stderr.write("  • Ensure you have read access to the file\n");
-          process.stderr.write(`  • Try: chmod 644 ${configPath}\n`);
-        }
-        // YAML parse errors
-        else if (
-          errorMsg.includes("YAMLException") ||
-          error.name === "YAMLException" ||
-          errorMsg.includes("bad indentation") ||
-          errorMsg.includes("unexpected")
-        ) {
-          process.stderr.write(`Error: Invalid YAML syntax in ${configPath}\n`);
-          process.stderr.write(`Details: ${errorMsg}\n`);
-          process.stderr.write("Suggestions:\n");
-          process.stderr.write("  • Validate your YAML syntax at https://www.yamllint.com/\n");
-          process.stderr.write("  • Check for proper indentation (use spaces, not tabs)\n");
-          process.stderr.write("  • Verify colons have spaces after them\n");
-        }
-        // File encoding or other I/O errors
-        else {
-          process.stderr.write(`Error: Failed to load config file ${configPath}\n`);
-          process.stderr.write(`Details: ${errorMsg}\n`);
-          process.stderr.write("Suggestions:\n");
-          process.stderr.write("  • Verify the file is valid UTF-8 encoded text\n");
-          process.stderr.write("  • Check if the file system is accessible\n");
-          process.stderr.write("  • Try recreating the file if it may be corrupted\n");
-        }
-        process.stderr.write(`Using default OTLP configuration due to config file error\n`);
-      } else {
-        process.stderr.write(`Warning: Failed to parse ${configPath}, using defaults\n`);
-      }
-    }
-  }
-
+  // Load file configuration (Priority 2) via the shared DR config loader.
+  // Malformed/unreadable config files are reported to stderr there and
+  // resolve to an empty object here, matching prior loadOTLPConfig() behavior.
+  const fileConfig = await loadDRConfig();
   const otlp = fileConfig?.telemetry?.otlp;
 
   // Helper to check if env var is effectively set (not empty after trim)

@@ -36,40 +36,46 @@ describe("regression: type-normalization", () => {
         abbreviatedType: "service",
         canonicalType: "applicationservice",
         name: "test-service",
+        attributes: { serviceType: "synchronous" },
       },
       {
         layer: "application",
         abbreviatedType: "component",
         canonicalType: "applicationcomponent",
         name: "test-component",
+        attributes: { type: "generic" },
       },
       {
         layer: "business",
         abbreviatedType: "service",
         canonicalType: "businessservice",
         name: "test-service",
+        attributes: undefined,
       },
       {
         layer: "business",
         abbreviatedType: "process",
         canonicalType: "businessprocess",
         name: "test-process",
+        attributes: undefined,
       },
       {
         layer: "technology",
         abbreviatedType: "service",
         canonicalType: "technologyservice",
         name: "test-service",
+        attributes: { serviceType: "compute" },
       },
     ];
 
-    testCases.forEach(({ layer, abbreviatedType, canonicalType, name }) => {
+    testCases.forEach(({ layer, abbreviatedType, canonicalType, name, attributes }) => {
       it(`should store canonical spec_node_id when adding ${layer} ${abbreviatedType}`, async () => {
         // Add element using abbreviated type name
-        const result = await runDr(
-          ["add", layer, abbreviatedType, name],
-          { cwd: workdir.path }
-        );
+        const args = ["add", layer, abbreviatedType, name];
+        if (attributes) {
+          args.push("--attributes", JSON.stringify(attributes));
+        }
+        const result = await runDr(args, { cwd: workdir.path });
         expect(result.exitCode).toBe(0);
 
         // Load model and verify spec_node_id is canonical form
@@ -90,12 +96,28 @@ describe("regression: type-normalization", () => {
   describe("validation pipeline with abbreviated types", () => {
     it("should pass validation after adding elements with abbreviated type names", async () => {
       // Add elements using different abbreviated types
-      await runDr(["add", "application", "service", "auth-service"], {
-        cwd: workdir.path,
-      });
-      await runDr(["add", "application", "component", "auth-component"], {
-        cwd: workdir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "application",
+          "service",
+          "auth-service",
+          "--attributes",
+          JSON.stringify({ serviceType: "synchronous" }),
+        ],
+        { cwd: workdir.path }
+      );
+      await runDr(
+        [
+          "add",
+          "application",
+          "component",
+          "auth-component",
+          "--attributes",
+          JSON.stringify({ type: "generic" }),
+        ],
+        { cwd: workdir.path }
+      );
       await runDr(["add", "business", "service", "user-service"], {
         cwd: workdir.path,
       });
@@ -117,7 +139,14 @@ describe("regression: type-normalization", () => {
       // (e.g., "application.service" instead of "application.applicationservice"),
       // validation would fail because the schema expects the canonical form.
       const result = await runDr(
-        ["add", "application", "service", "regression-test"],
+        [
+          "add",
+          "application",
+          "service",
+          "regression-test",
+          "--attributes",
+          JSON.stringify({ serviceType: "synchronous" }),
+        ],
         { cwd: workdir.path }
       );
       expect(result.exitCode).toBe(0);

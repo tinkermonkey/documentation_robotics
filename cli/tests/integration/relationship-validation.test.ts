@@ -44,7 +44,14 @@ describe("Relationship Validation", () => {
     it("should report N > 0 relationships validated when model contains relationships", async () => {
       // Create elements in data-store layer
       await runDr("add", "data-store", "collection", "Customer Data");
-      await runDr("add", "data-store", "field", "Customer ID");
+      await runDr(
+        "add",
+        "data-store",
+        "field",
+        "Customer ID",
+        "--attributes",
+        '{"dataType":"VARCHAR"}'
+      );
 
       // Add intra-layer relationship between them
       const addRelResult = await runDr(
@@ -74,7 +81,14 @@ describe("Relationship Validation", () => {
   describe("validate strict mode flags missing optional fields", () => {
     it("should produce different output with --strict flag when descriptions are missing", async () => {
       // Create a goal without description
-      await runDr("add", "motivation", "goal", "Test Goal");
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        '{"priority":"medium"}'
+      );
 
       // Run standard validate
       const standardResult = await runDr("validate");
@@ -100,7 +114,14 @@ describe("Relationship Validation", () => {
   describe("orphan warning count in body matches summary", () => {
     it("should report orphaned element in both body and summary with matching counts", async () => {
       // Create an isolated goal that has no relationships
-      await runDr("add", "motivation", "goal", "Orphan Test Goal");
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Orphan Test Goal",
+        "--attributes",
+        '{"priority":"medium"}'
+      );
 
       // Run validate with verbose output to see body warnings
       const result = await runDr("validate", "--verbose");
@@ -124,8 +145,22 @@ describe("Relationship Validation", () => {
     it("should accurately count when multiple relationships exist in a single layer", async () => {
       // Create three elements in data-store layer
       await runDr("add", "data-store", "collection", "Orders");
-      await runDr("add", "data-store", "field", "Order ID");
-      await runDr("add", "data-store", "field", "Customer ID");
+      await runDr(
+        "add",
+        "data-store",
+        "field",
+        "Order ID",
+        "--attributes",
+        '{"dataType":"VARCHAR"}'
+      );
+      await runDr(
+        "add",
+        "data-store",
+        "field",
+        "Customer ID",
+        "--attributes",
+        '{"dataType":"VARCHAR"}'
+      );
 
       // Add two relationships
       const rel1 = await runDr(

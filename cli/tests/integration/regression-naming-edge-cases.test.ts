@@ -34,9 +34,19 @@ describe("regression: naming-edge-cases", () => {
   describe("name with embedded dot", () => {
     it("should handle name with embedded dot (Node.js) correctly", async () => {
       // Add element with name containing a dot
-      const result = await runDr(["add", "technology", "service", "Node.js"], {
-        cwd: workdir.path,
-      });
+      const result = await runDr(
+        [
+          "add",
+          "technology",
+          "service",
+          "Node.js",
+          "--attributes",
+          JSON.stringify({ serviceType: "compute" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       // Should succeed (exit 0)
       expect(result.exitCode).toBe(0);
@@ -61,9 +71,19 @@ describe("regression: naming-edge-cases", () => {
 
     it("dr validate should report 0 errors for element with dot in name", async () => {
       // Add element with embedded dot
-      await runDr(["add", "technology", "service", "Node.js"], {
-        cwd: workdir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "technology",
+          "service",
+          "Node.js",
+          "--attributes",
+          JSON.stringify({ serviceType: "compute" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       // Run validation
       const result = await runDr(["validate"], { cwd: workdir.path });
@@ -79,9 +99,19 @@ describe("regression: naming-edge-cases", () => {
   describe("name with special characters", () => {
     it("should handle name with special characters (Auth & Session) correctly", async () => {
       // Add element with special characters
-      const result = await runDr(["add", "application", "service", "Auth & Session"], {
-        cwd: workdir.path,
-      });
+      const result = await runDr(
+        [
+          "add",
+          "application",
+          "service",
+          "Auth & Session",
+          "--attributes",
+          JSON.stringify({ serviceType: "synchronous" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       // Should succeed (exit 0)
       expect(result.exitCode).toBe(0);
@@ -105,9 +135,19 @@ describe("regression: naming-edge-cases", () => {
 
     it("dr validate should report 0 errors for element with special characters", async () => {
       // Add element with special characters
-      await runDr(["add", "application", "service", "Auth & Session"], {
-        cwd: workdir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "application",
+          "service",
+          "Auth & Session",
+          "--attributes",
+          JSON.stringify({ serviceType: "synchronous" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       // Run validation
       const result = await runDr(["validate"], { cwd: workdir.path });
@@ -121,9 +161,19 @@ describe("regression: naming-edge-cases", () => {
 
     it("should strip multiple special characters from name", async () => {
       // Test with multiple different special characters
-      const result = await runDr(["add", "motivation", "goal", "User@#$Experience"], {
-        cwd: workdir.path,
-      });
+      const result = await runDr(
+        [
+          "add",
+          "motivation",
+          "goal",
+          "User@#$Experience",
+          "--attributes",
+          JSON.stringify({ priority: "medium" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       expect(result.exitCode).toBe(0);
 
@@ -231,9 +281,19 @@ describe("regression: naming-edge-cases", () => {
   describe("edge case: names that almost collapse", () => {
     it("should handle name with mostly special chars but valid result (A@@@B)", async () => {
       // Name with valid chars surrounded by special chars
-      const result = await runDr(["add", "motivation", "goal", "A@@@B"], {
-        cwd: workdir.path,
-      });
+      const result = await runDr(
+        [
+          "add",
+          "motivation",
+          "goal",
+          "A@@@B",
+          "--attributes",
+          JSON.stringify({ priority: "medium" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       // Should succeed because "A@@@B" → "ab" (still has 2 valid chars)
       expect(result.exitCode).toBe(0);
@@ -251,9 +311,19 @@ describe("regression: naming-edge-cases", () => {
 
     it("should handle name with dot and special chars combined (Node@.js$)", async () => {
       // Test combination of dot and special chars
-      const result = await runDr(["add", "technology", "service", "Node@.js$"], {
-        cwd: workdir.path,
-      });
+      const result = await runDr(
+        [
+          "add",
+          "technology",
+          "service",
+          "Node@.js$",
+          "--attributes",
+          JSON.stringify({ serviceType: "compute" }),
+        ],
+        {
+          cwd: workdir.path,
+        }
+      );
 
       expect(result.exitCode).toBe(0);
 

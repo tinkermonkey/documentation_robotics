@@ -271,16 +271,6 @@ describe("Relationship Command Orchestrator Hooks", () => {
       }
 
       // Create a chain of cross-layer relationships
-      // business -> motivation (via delivers-value)
-      model.relationships.add({
-        source: "business.businessservice.business-businessservice-service-a",
-        target: "motivation.value.motivation-value-business-value",
-        predicate: "delivers-value",
-        layer: "business",
-        targetLayer: "motivation",
-        category: "structural",
-      });
-
       // application -> business (via aggregates)
       model.relationships.add({
         source: "application.service.application-service-service-b",

@@ -90,7 +90,7 @@ async function initializeTestModel(dir: string): Promise<void> {
  * Add test elements to the model
  */
 async function addTestElements(dir: string): Promise<void> {
-  const elements = [
+  const elements: [string, string, string, string, string, Record<string, unknown>?][] = [
     [
       "business",
       "businessservice",
@@ -104,13 +104,26 @@ async function addTestElements(dir: string): Promise<void> {
       "customer-app",
       "Customer App",
       "Customer-facing application",
+      { serviceType: "synchronous" },
     ],
-    ["api", "operation", "get-customers", "Get Customers", "Retrieve customer list"],
+    [
+      "api",
+      "operation",
+      "get-customers",
+      "Get Customers",
+      "Retrieve customer list",
+      { operationId: "getCustomers", summary: "Retrieve customer list", tags: "customers" },
+    ],
   ];
 
-  for (const [layer, type, id, name, description] of elements) {
+  for (const [layer, type, id, name, description, attributes] of elements) {
+    const cmd = ["node", CLI_PATH, "add", layer, type, id, "--name", name, "--description", description];
+    if (attributes) {
+      cmd.push("--attributes", JSON.stringify(attributes));
+    }
+
     const result = spawnSync({
-      cmd: ["node", CLI_PATH, "add", layer, type, id, "--name", name, "--description", description],
+      cmd,
       cwd: dir,
       stdio: ["pipe", "pipe", "pipe"],
     });

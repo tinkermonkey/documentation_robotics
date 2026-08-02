@@ -5,7 +5,7 @@ priority: medium
 pipelines:
   - name: "Projection operations"
     steps:
-      - command: "add motivation goal project-test-goal --name 'Goal for Projection' --description 'Goal that will be projected'"
+      - command: 'add motivation goal project-test-goal --name ''Goal for Projection'' --description ''Goal that will be projected'' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -25,7 +25,7 @@ pipelines:
           - 08_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field trace-test-column --name 'trace_field' --description 'Field for tracing'"
+      - command: 'add data-store field trace-test-column --name ''trace_field'' --description ''Field for tracing'' --attributes ''{"dataType": "STRING"}'''
         files_to_compare:
           - manifest.yaml
           - 08_data-store/field.yaml
@@ -90,7 +90,7 @@ pipelines:
           - 08_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field rel-cmd-column --name 'rel_field' --description 'Field for relationship command test'"
+      - command: 'add data-store field rel-cmd-column --name ''rel_field'' --description ''Field for relationship command test'' --attributes ''{"dataType": "STRING"}'''
         files_to_compare:
           - manifest.yaml
           - 08_data-store/field.yaml

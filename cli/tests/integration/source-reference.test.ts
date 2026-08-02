@@ -37,6 +37,8 @@ describe("Source Reference CLI Integration Tests", () => {
         "auth-validate",
         "--name",
         "Auth Validation",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/auth/validator.ts",
         "--source-provenance",
@@ -55,6 +57,12 @@ describe("Source Reference CLI Integration Tests", () => {
         "create-customer",
         "--name",
         "Create Customer Operation",
+        "--attributes",
+        JSON.stringify({
+          operationId: "createCustomer",
+          summary: "Create a new customer",
+          tags: "customer",
+        }),
         "--source-file",
         "src/api/endpoints/customer.ts",
         "--source-symbol",
@@ -184,6 +192,8 @@ describe("Source Reference CLI Integration Tests", () => {
           `policy-${provenanceTypes[i]}`,
           "--name",
           `Policy ${provenanceTypes[i]}`,
+          "--attributes",
+          JSON.stringify({ priority: 1, target: "endpoint" }),
           "--source-file",
           "src/auth/policy.ts",
           "--source-provenance",
@@ -198,7 +208,16 @@ describe("Source Reference CLI Integration Tests", () => {
   describe("update command with source references", () => {
     beforeEach(async () => {
       // Create an element to update
-      await runDr("add", "security", "securitypolicy", "auth-policy", "--name", "Auth Policy");
+      await runDr(
+        "add",
+        "security",
+        "securitypolicy",
+        "auth-policy",
+        "--name",
+        "Auth Policy",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" })
+      );
     });
 
     it("should update element to add source reference", async () => {
@@ -327,6 +346,8 @@ describe("Source Reference CLI Integration Tests", () => {
         "auth-policy",
         "--name",
         "Auth Policy",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/auth/validator.ts",
         "--source-symbol",
@@ -368,7 +389,9 @@ describe("Source Reference CLI Integration Tests", () => {
         "securitypolicy",
         "no-source-policy",
         "--name",
-        "Policy Without Source"
+        "Policy Without Source",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" })
       );
 
       const result = await runDr("show", "security.securitypolicy.no-source-policy");
@@ -386,6 +409,8 @@ describe("Source Reference CLI Integration Tests", () => {
         "simple-policy",
         "--name",
         "Simple Policy",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/policy.ts",
         "--source-provenance",
@@ -410,6 +435,8 @@ describe("Source Reference CLI Integration Tests", () => {
         "no-repo-policy",
         "--name",
         "Policy Without Repo",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/policy.ts",
         "--source-provenance",
@@ -436,6 +463,8 @@ describe("Source Reference CLI Integration Tests", () => {
         "Authentication Service",
         "--description",
         "Core authentication component",
+        "--attributes",
+        JSON.stringify({ type: "internal" }),
         "--source-file",
         "src/services/auth.ts",
         "--source-provenance",

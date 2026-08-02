@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runDr as runDrHelper, createTempWorkdir } from "../helpers/cli-runner.js";
+import { runDr as runDrHelper, createTempWorkdir, stripAnsi } from "../helpers/cli-runner.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -38,6 +38,8 @@ function parseTraceOutput(output: string, section: "Dependencies" | "Dependents"
   directItems: string[];
   transitiveItems: string[];
 } {
+  output = stripAnsi(output);
+
   // Look for the section header: "Dependencies (X direct, Y transitive):" or "Dependents (X direct, Y transitive):"
   const headerRegex = new RegExp(
     `${section}\\s+\\((\\d+)\\s+direct,\\s+(\\d+)\\s+transitive\\):`

@@ -3,16 +3,15 @@
  */
 
 import ansis from "ansis";
-import { getCliBundledSpecVersion } from "../utils/spec-version.js";
+import { getCliBundledSpecVersion, getCliVersion } from "../utils/spec-version.js";
 import { isTelemetryBuiltIn, isTelemetryConfigured } from "../telemetry/detect.js";
 import { getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
 
-// Declare build-time constants (substituted by esbuild)
+// Declare build-time constant (substituted by esbuild)
 declare const GIT_HASH: string;
-declare const CLI_VERSION: string;
 
 const gitHash = typeof GIT_HASH !== "undefined" ? GIT_HASH : "unknown";
-const cliVersion = typeof CLI_VERSION !== "undefined" ? CLI_VERSION : "0.1.3";
+const cliVersion = getCliVersion();
 
 export async function versionCommand(): Promise<void> {
   const specVersion = getCliBundledSpecVersion();

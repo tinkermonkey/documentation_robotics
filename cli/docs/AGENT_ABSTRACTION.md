@@ -178,9 +178,7 @@ export class MyCustomAgent implements CodingAgent {
 
   spawn(options: SpawnAgentOptions): AgentProcess {
     // Build command arguments
-    const args = [
-      /* ... */
-    ];
+    const args = [/* ... */];
 
     // Spawn subprocess
     const proc = spawn(this.command, args, {

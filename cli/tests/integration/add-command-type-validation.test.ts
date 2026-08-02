@@ -65,6 +65,8 @@ describe("Add Command - Type Validation", () => {
         "customer-satisfaction",
         "--description",
         "Test goal",
+        "--attributes",
+        '{"priority":"high"}',
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -79,6 +81,8 @@ describe("Add Command - Type Validation", () => {
         "create-order",
         "--description",
         "Test operation",
+        "--attributes",
+        '{"operationId":"createOrder","summary":"Create an order","tags":"orders"}',
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -171,10 +175,34 @@ describe("Add Command - Type Validation", () => {
   describe("Type validation with different layers", () => {
     it("should validate types for all layers", async () => {
       const testCases = [
-        { layer: "motivation", validType: "goal", invalidType: "operation" },
-        { layer: "business", validType: "businessservice", invalidType: "goal" },
-        { layer: "api", validType: "operation", invalidType: "goal" },
-        { layer: "data-store", validType: "view", invalidType: "goal" },
+        {
+          layer: "motivation",
+          validType: "goal",
+          invalidType: "operation",
+          attributes: { priority: "medium" },
+        },
+        {
+          layer: "business",
+          validType: "businessservice",
+          invalidType: "goal",
+          attributes: {},
+        },
+        {
+          layer: "api",
+          validType: "operation",
+          invalidType: "goal",
+          attributes: {
+            operationId: "testOperation",
+            summary: "Test operation",
+            tags: "test",
+          },
+        },
+        {
+          layer: "data-store",
+          validType: "view",
+          invalidType: "goal",
+          attributes: {},
+        },
       ];
 
       for (const testCase of testCases) {
@@ -186,6 +214,8 @@ describe("Add Command - Type Validation", () => {
           `test-${testCase.validType}`,
           "--description",
           `Test ${testCase.validType}`,
+          "--attributes",
+          JSON.stringify(testCase.attributes),
         ]);
         expect(validResult.exitCode).toBe(0);
 

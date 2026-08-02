@@ -69,6 +69,10 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 
 - **[dr-init.md](../commands/dr-init.md)** — Initialize new models
 
+### MCP Integration
+
+- **[MCP_SERVER.md](MCP_SERVER.md)** — Configure an MCP client (Claude Code or otherwise) to connect to `dr mcp`, including the API key setup and rotation
+
 ### Skills & Agents
 
 - **[dr-codebase-memory/SKILL.md](../skills/dr_codebase_memory/SKILL.md)** — Codebase memory and context management
