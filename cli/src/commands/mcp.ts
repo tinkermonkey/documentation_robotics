@@ -7,30 +7,14 @@
  */
 
 import { isCancel, text } from "@clack/prompts";
-import { createRequire } from "node:module";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
 import { McpResourceRegistry } from "../mcp/resource-registry.js";
 import { McpToolRegistry } from "../mcp/tool-registry.js";
 import { startActiveSpan } from "../telemetry/index.js";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
+import { getCliVersion } from "../utils/spec-version.js";
 
-// Declare build-time constant (substituted by esbuild)
-declare const CLI_VERSION: string;
-
-// Fallback for dev-mode runs that bypass esbuild's substitution (e.g. `tsx src/cli.ts`).
-// Read directly from package.json instead of a hardcoded literal so this can't drift
-// out of sync with the actual CLI version on every release.
-function resolveDevVersion(): string {
-  try {
-    const require = createRequire(import.meta.url);
-    const pkg = require("../../package.json") as { version?: string };
-    return pkg.version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
-}
-
-const cliVersion = typeof CLI_VERSION !== "undefined" ? CLI_VERSION : resolveDevVersion();
+const cliVersion = getCliVersion();
 
 /**
  * Prompt the user (via stdout/stdin) for where to store a newly generated API key.

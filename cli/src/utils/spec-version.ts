@@ -6,13 +6,10 @@
 
 import { readJSON, fileExists } from "./file-io.js";
 import { join } from "path";
+import { createRequire } from "node:module";
 
-/**
- * CLI version
- * This should match the version in ../package.json
- * Updated during release process
- */
-const CLI_VERSION = "0.1.3";
+// Declare build-time constant (substituted by esbuild)
+declare const CLI_VERSION: string;
 
 /**
  * Bundled spec version
@@ -21,13 +18,24 @@ const CLI_VERSION = "0.1.3";
  */
 const BUNDLED_SPEC_VERSION = "0.8.4";
 
+// Dev-mode fallback (e.g. `tsx src/cli.ts`) that reads package.json directly, so it can't drift.
+function resolveDevVersion(): string {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require("../../package.json") as { version?: string };
+    return pkg.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
 /**
  * Get the CLI version
  *
  * @returns CLI version string
  */
 export function getCliVersion(): string {
-  return CLI_VERSION;
+  return typeof CLI_VERSION !== "undefined" ? CLI_VERSION : resolveDevVersion();
 }
 
 /**

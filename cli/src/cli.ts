@@ -44,6 +44,7 @@ import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage } from "./utils/errors.js";
+import { getCliVersion } from "./utils/spec-version.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -89,9 +90,7 @@ async function extractExitCode(error: unknown): Promise<number> {
   return 1;
 }
 
-// Declare build-time constant (substituted by esbuild)
-declare const CLI_VERSION: string;
-const cliVersion = typeof CLI_VERSION !== "undefined" ? CLI_VERSION : "0.1.3";
+const cliVersion = getCliVersion();
 
 const program = new Command();
 
