@@ -1,14 +1,23 @@
 /**
  * Unit tests for MCP shared tool helpers (`cli/src/mcp/tools/shared.ts`):
- * `loadModel`'s error translation and `runTool`'s unconditional stderr logging.
+ * `loadModel`'s error translation, the model cache, and `runTool`'s
+ * unconditional stderr logging.
  */
 
-import { describe, it, expect, vi } from "bun:test";
+import { describe, it, expect, vi, beforeEach } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadModel, runTool, jsonResult } from "../../../src/mcp/tools/shared.js";
+import {
+  loadModel,
+  reloadModel,
+  clearModelCache,
+  runTool,
+  jsonResult,
+} from "../../../src/mcp/tools/shared.js";
 import { CLIError, ModelNotFoundError, ErrorCategory } from "../../../src/utils/errors.js";
+import { Model } from "../../../src/core/model.js";
+import { createTestWorkdir } from "../../helpers/golden-copy.js";
 
 function tmpProjectDir(): string {
   return join(tmpdir(), `dr-mcp-shared-unit-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -64,6 +73,95 @@ describe("MCP shared tool helpers", () => {
           exitCode: ErrorCategory.NOT_FOUND,
         });
       } finally {
+        await rm(rootPath, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("model cache", () => {
+    beforeEach(() => {
+      clearModelCache();
+    });
+
+    it("returns the identical Model instance across repeated loadModel() calls (cache hit)", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const first = await loadModel(workdir.path);
+        const second = await loadModel(workdir.path);
+        expect(second).toBe(first);
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("returns a different instance than a prior loadModel() after reloadModel() (cache replacement)", async () => {
+      const workdir = await createTestWorkdir();
+      try {
+        const loaded = await loadModel(workdir.path);
+        const reloaded = await reloadModel(workdir.path);
+        expect(reloaded).not.toBe(loaded);
+
+        // Subsequent loadModel() calls should now return the reloaded instance.
+        const cached = await loadModel(workdir.path);
+        expect(cached).toBe(reloaded);
+      } finally {
+        await workdir.cleanup();
+      }
+    });
+
+    it("evicts a failed loadModel() so a subsequent call retries (cache eviction on failure)", async () => {
+      const rootPath = tmpProjectDir();
+      await mkdir(rootPath, { recursive: true });
+      try {
+        await expect(loadModel(rootPath)).rejects.toThrow(ModelNotFoundError);
+
+        // The failure must not have poisoned the cache: a retry should hit disk
+        // again rather than replay the cached rejection.
+        const loadSpy = vi.spyOn(Model, "load").mockResolvedValueOnce({} as Model);
+        try {
+          await expect(loadModel(rootPath)).resolves.toBeDefined();
+          expect(loadSpy).toHaveBeenCalledTimes(1);
+        } finally {
+          loadSpy.mockRestore();
+        }
+      } finally {
+        await rm(rootPath, { recursive: true, force: true });
+      }
+    });
+
+    it("does not let a stale rejection from an older promise evict a newer cache entry (race fix)", async () => {
+      const rootPath = tmpProjectDir();
+      await mkdir(rootPath, { recursive: true });
+
+      // loadModel("A") creates P1 (kept pending); reloadModel("A") then replaces
+      // the cache entry with P2, which resolves immediately. P1 rejecting afterwards
+      // must not evict P2 from the cache.
+      let rejectFirst: (error: unknown) => void = () => {};
+      const firstLoad = new Promise<Model>((_resolve, reject) => {
+        rejectFirst = reject;
+      });
+      const secondModel = {} as Model;
+      const loadSpy = vi
+        .spyOn(Model, "load")
+        .mockImplementationOnce(() => firstLoad)
+        .mockImplementationOnce(async () => secondModel);
+
+      try {
+        const p1 = loadModel(rootPath);
+        p1.catch(() => {}); // expected to reject later; avoid an unhandled-rejection warning
+
+        const reloaded = await reloadModel(rootPath);
+        expect(reloaded).toBe(secondModel);
+
+        rejectFirst(new Error("stale failure"));
+        // Flush the microtask queue so the stale .catch() handler runs.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const cached = await loadModel(rootPath);
+        expect(cached).toBe(reloaded);
+        expect(loadSpy).toHaveBeenCalledTimes(2);
+      } finally {
+        loadSpy.mockRestore();
         await rm(rootPath, { recursive: true, force: true });
       }
     });

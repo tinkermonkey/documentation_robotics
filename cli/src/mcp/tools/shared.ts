@@ -45,6 +45,11 @@ function modelCacheKey(rootPath?: string): string {
   return rootPath ?? "";
 }
 
+/** Test-only escape hatch: clears the module-private model cache between test cases. */
+export function clearModelCache(): void {
+  modelCache.clear();
+}
+
 /** Reads the model fresh from disk, translating "no model found" into a CLIError consistently. */
 async function readModelFromDisk(rootPath?: string): Promise<Model> {
   try {
@@ -77,8 +82,7 @@ export async function loadModel(rootPath?: string): Promise<Model> {
 
   const promise = readModelFromDisk(rootPath);
   modelCache.set(key, promise);
-  // Don't let a failed load poison the cache for subsequent (possibly-fixed) calls.
-  promise.catch(() => modelCache.delete(key));
+  evictOnFailure(key, promise);
   return promise;
 }
 
@@ -87,8 +91,21 @@ export async function reloadModel(rootPath?: string): Promise<Model> {
   const key = modelCacheKey(rootPath);
   const promise = readModelFromDisk(rootPath);
   modelCache.set(key, promise);
-  promise.catch(() => modelCache.delete(key));
+  evictOnFailure(key, promise);
   return promise;
+}
+
+/**
+ * Don't let a failed load poison the cache for subsequent (possibly-fixed) calls.
+ * Guarded by identity: if a newer promise has since replaced this one for `key`
+ * (e.g. a concurrent reloadModel()), a stale rejection must not evict it.
+ */
+function evictOnFailure(key: string, promise: Promise<Model>): void {
+  promise.catch(() => {
+    if (modelCache.get(key) === promise) {
+      modelCache.delete(key);
+    }
+  });
 }
 
 /** Wraps structured data as the tool's JSON text content. */
