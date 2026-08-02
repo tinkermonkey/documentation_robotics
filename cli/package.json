@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
-    "pretest": "[ -f dist/cli.js ] || npm run build",
+    "pretest": "npm run build",
     "build:debug": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
     "build:ci": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts --strict && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
@@ -27,15 +27,15 @@
     "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/audit/ ./tests/unit/export/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test ./tests/unit/analyzers/ ; bun test ./tests/unit/mcp/ ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
     "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/scripts/ ./tests/unit/audit/ ./tests/unit/export/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test ./tests/unit/analyzers/ ; bun test ./tests/unit/mcp/ ; bun test tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
     "test:generated": "bun test tests/unit/generators/*.test.ts",
-    "test:integration": "[ -f dist/cli.js ] || npm run build && bun test tests/integration/*.test.ts",
+    "test:integration": "npm run build && bun test tests/integration/*.test.ts",
     "test:validators": "bun test --concurrent ./tests/unit/validators/",
     "test:compatibility": "bun test --concurrent tests/compatibility",
-    "test:all": "[ -f dist/cli.js ] || npm run build && bun test --concurrent ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/integrations/base-manager.test.ts",
-    "test:coverage": "[ -f dist/cli.js ] || npm run build && bun test --concurrent --coverage ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage tests/unit/integrations/base-manager.test.ts",
-    "test:coverage:html": "[ -f dist/cli.js ] || npm run build && bun test --concurrent --coverage --coverage-reporter=html ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=html tests/unit/integrations/base-manager.test.ts",
-    "test:coverage:ci": "[ -f dist/cli.js ] || npm run build && bun test --concurrent --coverage --coverage-reporter=lcov ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=lcov tests/unit/integrations/base-manager.test.ts && node scripts/validate-coverage-threshold.js",
+    "test:all": "npm run build && bun test --concurrent ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/integrations/base-manager.test.ts",
+    "test:coverage": "npm run build && bun test --concurrent --coverage ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage tests/unit/integrations/base-manager.test.ts",
+    "test:coverage:html": "npm run build && bun test --concurrent --coverage --coverage-reporter=html ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=html tests/unit/integrations/base-manager.test.ts",
+    "test:coverage:ci": "npm run build && bun test --concurrent --coverage --coverage-reporter=lcov ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=lcov tests/unit/integrations/base-manager.test.ts && node scripts/validate-coverage-threshold.js",
     "test:perf": "bun test tests/performance/**/*.test.ts",
-    "test:smoke": "[ -f dist/cli.js ] || npm run build && bash scripts/run-smoke-tests.sh"
+    "test:smoke": "npm run build && bash scripts/run-smoke-tests.sh"
   },
   "keywords": [
     "architecture",
