@@ -10,7 +10,7 @@ import { isCancel, text } from "@clack/prompts";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
 import { McpResourceRegistry } from "../mcp/resource-registry.js";
 import { McpToolRegistry } from "../mcp/tool-registry.js";
-import { endSpan, isTelemetryEnabled, startActiveSpan, startSpan } from "../telemetry/index.js";
+import { startActiveSpan } from "../telemetry/index.js";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 
 // Declare build-time constant (substituted by esbuild)
@@ -50,9 +50,7 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
         const { key, path } = await keyManager.rotate(
           isInteractive ? promptForKeyPath : undefined
         );
-        if (isTelemetryEnabled) {
-          span.setAttribute("mcp.key.path", path);
-        }
+        span.setAttribute("mcp.key.path", path);
         process.stderr.write(`Generated new MCP API key, stored at ${path}\n`);
         process.stderr.write(`MCP API key: ${key}\n`);
       });
@@ -100,10 +98,8 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
         new McpToolRegistry().registerAll(server);
         await new McpResourceRegistry().registerAll(server);
 
-        if (isTelemetryEnabled) {
-          span.setAttribute("mcp.server.name", "documentation-robotics");
-          span.setAttribute("mcp.server.version", cliVersion);
-        }
+        span.setAttribute("mcp.server.name", "documentation-robotics");
+        span.setAttribute("mcp.server.version", cliVersion);
 
         const serverTransport = new StdioServerTransport();
         await server.connect(serverTransport);
@@ -115,14 +111,12 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
     process.stderr.write("Documentation Robotics MCP server ready (stdio)\n");
 
     // Keep the process alive for the lifetime of the stdio session; the
-    // transport closes (and the process exits) when stdin closes.
+    // transport closes (and the process exits) when stdin closes. Shutdown
+    // is implicit in the `mcp.server.start` span's end, so no separate
+    // zero-duration "stop" span is recorded here.
     await new Promise<void>((resolve) => {
       transport.onclose = () => resolve();
     });
-
-    if (isTelemetryEnabled) {
-      endSpan(startSpan("mcp.server.stop"));
-    }
   } catch (error) {
     if (error instanceof CLIError) {
       throw error;

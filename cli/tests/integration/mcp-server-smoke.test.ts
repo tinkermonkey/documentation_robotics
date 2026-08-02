@@ -10,9 +10,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import path from "node:path";
 
-const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
+const CLI_PATH = join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
 
 const MODEL_TOOL_NAMES = [

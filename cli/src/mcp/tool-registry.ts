@@ -68,7 +68,10 @@ export class McpToolRegistry {
             async (span) => {
               const result = await tool.handler(args);
               if (isTelemetryEnabled && result?.isError) {
-                span.setStatus({ code: 2 });
+                const firstContent = result.content?.[0];
+                const message =
+                  firstContent?.type === "text" ? firstContent.text : "Tool returned an error";
+                span.setStatus({ code: 2, message });
               }
               return result;
             },
