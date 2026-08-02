@@ -31,6 +31,12 @@ const MODEL_TOOL_NAMES = [
   "changeset_show",
   "chat_status",
   "chat_launch",
+  "annotation_list",
+  "annotation_get",
+  "annotation_create",
+  "annotation_update",
+  "annotation_delete",
+  "annotation_reply",
 ];
 
 interface McpProcess {

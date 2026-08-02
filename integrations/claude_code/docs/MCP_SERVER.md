@@ -5,7 +5,9 @@ description: Configure an MCP client to connect to the Documentation Robotics MC
 
 # Documentation Robotics MCP Server
 
-`dr mcp` runs the CLI as a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio, exposing model tools (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat) to any MCP-aware AI client — Claude Code included.
+`dr mcp` runs the CLI as a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio, exposing model tools (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat, annotations) to any MCP-aware AI client — Claude Code included.
+
+Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`) mirror the capabilities of the REST server's `/api/annotations/*` endpoints. Unlike the REST server's in-memory, per-process annotation store, the MCP tools persist annotations to `documentation-robotics/annotations/` on disk, so they survive across MCP sessions.
 
 ## Configuring Claude Code
 

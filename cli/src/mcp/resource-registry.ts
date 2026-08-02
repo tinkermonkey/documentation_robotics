@@ -6,12 +6,14 @@
  * - dr://spec/base           — base schemas + predicates shared across layers
  * - dr://spec/layer/{name}   — node/relationship schemas for a single layer
  * - dr://model/manifest      — metadata and layer summary for the current model
+ * - dr://model/annotations   — all annotations across the current model
  */
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { AnnotationStore } from "../core/annotation-store.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { Model } from "../core/model.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -122,6 +124,30 @@ export class McpResourceRegistry {
           };
         } catch (error) {
           throw new Error(`Failed to load model manifest: ${getErrorMessage(error)}`);
+        }
+      }
+    );
+
+    server.registerResource(
+      "model-annotations",
+      "dr://model/annotations",
+      {
+        title: "Model annotations",
+        description: "All annotations on elements in the current architecture model.",
+        mimeType: "application/json",
+      },
+      async (uri) => {
+        try {
+          const model = await Model.load();
+          const store = new AnnotationStore(model.rootPath);
+          const annotations = await store.list();
+          return {
+            contents: [
+              { uri: uri.href, mimeType: "application/json", text: JSON.stringify({ annotations }, null, 2) },
+            ],
+          };
+        } catch (error) {
+          throw new Error(`Failed to load model annotations: ${getErrorMessage(error)}`);
         }
       }
     );

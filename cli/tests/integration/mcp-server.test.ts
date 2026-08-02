@@ -62,6 +62,12 @@ const MODEL_TOOL_NAMES = [
   "changeset_show",
   "chat_status",
   "chat_launch",
+  "annotation_list",
+  "annotation_get",
+  "annotation_create",
+  "annotation_update",
+  "annotation_delete",
+  "annotation_reply",
 ];
 
 interface McpProcess {
@@ -229,6 +235,7 @@ describe("dr mcp model tools and resources", () => {
   let configDir: string;
   let state: McpProcess;
   let nextId = 1;
+  let annotationId: string;
 
   beforeAll(async () => {
     project = await createTempWorkdir();
@@ -404,6 +411,75 @@ describe("dr mcp model tools and resources", () => {
     expect(showData.element.description).toBe("Updated via MCP");
   });
 
+  it("annotation_create adds an annotation to the test element, persisted to disk", async () => {
+    const result = await callTool("annotation_create", {
+      elementId: "business.businessservice.test-service",
+      content: "Needs a description review",
+      author: "reviewer",
+      tags: ["needs-review"],
+    });
+    const data = parseToolJSON(result);
+    expect(data.elementId).toBe("business.businessservice.test-service");
+    expect(data.author).toBe("reviewer");
+    expect(data.resolved).toBe(false);
+    annotationId = data.id;
+  });
+
+  it("annotation_create rejects an annotation on a nonexistent element", async () => {
+    const result = await callTool("annotation_create", {
+      elementId: "business.businessservice.does-not-exist",
+      content: "orphaned annotation",
+    });
+    expect(result.isError).toBe(true);
+    const data = parseToolJSON(result);
+    expect(data.category).toBe("not_found");
+  });
+
+  it("annotation_list finds the created annotation, filtered by elementId", async () => {
+    const result = await callTool("annotation_list", { elementId: "business.businessservice.test-service" });
+    const data = parseToolJSON(result);
+    expect(data.annotations.some((a: any) => a.id === annotationId)).toBe(true);
+  });
+
+  it("annotation_get returns the annotation by ID", async () => {
+    const result = await callTool("annotation_get", { annotationId });
+    const data = parseToolJSON(result);
+    expect(data.content).toBe("Needs a description review");
+    expect(data.tags).toEqual(["needs-review"]);
+  });
+
+  it("annotation_update partially updates content and resolved state", async () => {
+    const result = await callTool("annotation_update", { annotationId, resolved: true });
+    const data = parseToolJSON(result);
+    expect(data.resolved).toBe(true);
+    expect(data.content).toBe("Needs a description review");
+    expect(typeof data.updatedAt).toBe("string");
+  });
+
+  it("annotation_reply adds a reply visible on subsequent annotation_get calls", async () => {
+    const replyResult = await callTool("annotation_reply", {
+      annotationId,
+      author: "author",
+      content: "Fixed in the next commit",
+    });
+    const replyData = parseToolJSON(replyResult);
+    expect(replyData.content).toBe("Fixed in the next commit");
+
+    const getResult = await callTool("annotation_get", { annotationId });
+    const getData = parseToolJSON(getResult);
+    expect(getData.replies).toHaveLength(1);
+    expect(getData.replies[0].content).toBe("Fixed in the next commit");
+  });
+
+  it("annotation_delete removes the annotation", async () => {
+    const result = await callTool("annotation_delete", { annotationId });
+    const data = parseToolJSON(result);
+    expect(data.status).toBe("deleted");
+
+    const getResult = await callTool("annotation_get", { annotationId });
+    expect(getResult.isError).toBe(true);
+  });
+
   it("model_delete removes the element through MutationHandler", async () => {
     const result = await callTool("model_delete", { id: "business.businessservice.test-service" });
     const data = parseToolJSON(result);
@@ -423,6 +499,7 @@ describe("dr mcp model tools and resources", () => {
     expect(uris).toContain("dr://spec/manifest");
     expect(uris).toContain("dr://spec/base");
     expect(uris).toContain("dr://model/manifest");
+    expect(uris).toContain("dr://model/annotations");
     expect(uris).toContain("dr://spec/layer/api");
     expect(uris.length).toBeGreaterThanOrEqual(15);
   });
@@ -450,6 +527,12 @@ describe("dr mcp model tools and resources", () => {
     const result = await readResource("dr://model/manifest");
     const data = JSON.parse(result.contents[0].text);
     expect(data.name).toBe("MCP Tools Test Model");
+  });
+
+  it("reads the dr://model/annotations resource", async () => {
+    const result = await readResource("dr://model/annotations");
+    const data = JSON.parse(result.contents[0].text);
+    expect(Array.isArray(data.annotations)).toBe(true);
   });
 });
 
