@@ -8,6 +8,8 @@
 
 import { isCancel, text } from "@clack/prompts";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
+import { McpResourceRegistry } from "../mcp/resource-registry.js";
+import { McpToolRegistry } from "../mcp/tool-registry.js";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 
 // Declare build-time constant (substituted by esbuild)
@@ -63,20 +65,16 @@ export async function mcpCommand(): Promise<void> {
 
     const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
     const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
-    const { ListToolsRequestSchema } = await import("@modelcontextprotocol/sdk/types.js");
 
     const server = new McpServer({
       name: "documentation-robotics",
       version: cliVersion,
     });
 
-    // No tools registered yet — this phase establishes the server shell and
-    // the initialize/tools/list handshake only. Advertise the tools
-    // capability with an empty list handler directly on the underlying
-    // low-level Server, since McpServer only wires up tools/list once at
-    // least one tool has been registered via server.tool()/registerTool().
-    server.server.registerCapabilities({ tools: {} });
-    server.server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: [] }));
+    // Register the model tool surface (list/show/search/add/update/delete/
+    // validate/export/trace/stats/info) and the spec/model manifest resources.
+    new McpToolRegistry().registerAll(server);
+    await new McpResourceRegistry().registerAll(server);
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
