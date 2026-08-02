@@ -90,6 +90,24 @@ describe("ApiKeyManager", () => {
       const loaded = await manager.load(keyPath);
       expect(loaded).toBe("dr-mcp-abc123");
     });
+
+    it("throws when the key file is empty", async () => {
+      const { writeFile } = await import("node:fs/promises");
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "key-file-empty");
+      await writeFile(keyPath, "");
+
+      await expect(manager.load(keyPath)).rejects.toThrow(/empty or corrupt/);
+    });
+
+    it("throws when the key file contains only whitespace", async () => {
+      const { writeFile } = await import("node:fs/promises");
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "key-file-whitespace");
+      await writeFile(keyPath, "   \n\n  ");
+
+      await expect(manager.load(keyPath)).rejects.toThrow(/empty or corrupt/);
+    });
   });
 
   describe("validate()", () => {
@@ -182,6 +200,33 @@ describe("ApiKeyManager", () => {
       expect(second.isNew).toBe(true);
       expect(second.key).not.toBe(first.key);
     });
+
+    it("throws instead of regenerating when the config file is corrupted", async () => {
+      const { writeFile } = await import("node:fs/promises");
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "corrupted-config-key");
+
+      await manager.ensureKey(async () => keyPath);
+      const keyBefore = await readFile(keyPath, "utf-8");
+
+      await writeFile(configPath, "invalid: yaml: content: [");
+
+      await expect(manager.ensureKey(async () => keyPath)).rejects.toThrow(/corrupted/);
+
+      const keyAfter = await readFile(keyPath, "utf-8");
+      expect(keyAfter).toBe(keyBefore);
+    });
+
+    it("propagates the empty-key-file error instead of masking it", async () => {
+      const { writeFile } = await import("node:fs/promises");
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "empty-existing-key");
+
+      await manager.ensureKey(async () => keyPath);
+      await writeFile(keyPath, "");
+
+      await expect(manager.ensureKey(async () => keyPath)).rejects.toThrow(/empty or corrupt/);
+    });
   });
 
   describe("rotate()", () => {
@@ -231,6 +276,22 @@ describe("ApiKeyManager", () => {
       const { loadDRConfig } = await import("../../../src/config");
       const config = await loadDRConfig();
       expect(config.mcp?.api_key_path).toBe(keyPath);
+    });
+
+    it("throws instead of regenerating at the default path when the config file is corrupted", async () => {
+      const { writeFile } = await import("node:fs/promises");
+      const manager = new ApiKeyManager();
+      const keyPath = join(testDir, "corrupted-config-rotate-key");
+
+      await manager.ensureKey(async () => keyPath);
+      const keyBefore = await readFile(keyPath, "utf-8");
+
+      await writeFile(configPath, "invalid: yaml: content: [");
+
+      await expect(manager.rotate(async () => keyPath)).rejects.toThrow(/corrupted/);
+
+      const keyAfter = await readFile(keyPath, "utf-8");
+      expect(keyAfter).toBe(keyBefore);
     });
   });
 });

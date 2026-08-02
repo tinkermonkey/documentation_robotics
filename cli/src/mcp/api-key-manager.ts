@@ -13,7 +13,7 @@ import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { loadDRConfig, saveDRConfig } from "../config.js";
+import { DRConfig, DRConfigParseError, loadDRConfig, saveDRConfig } from "../config.js";
 
 /** Owner read/write only — the key file must not be group/world readable. */
 const KEY_FILE_MODE = 0o600;
@@ -58,7 +58,16 @@ export class ApiKeyManager {
   /** Read a previously stored key from disk. */
   async load(path: string): Promise<string> {
     const content = await readFile(path, "utf-8");
-    return content.trim();
+    const key = content.trim();
+
+    if (!key) {
+      throw new Error(
+        `API key file at ${path} is empty or corrupt. ` +
+          "Delete it and re-run to generate a new key, or restore a valid key file."
+      );
+    }
+
+    return key;
   }
 
   /** Write a key to disk with owner-only permissions. */
@@ -82,6 +91,30 @@ export class ApiKeyManager {
   }
 
   /**
+   * Load the DR config, refusing to proceed if the file exists but is
+   * corrupted. Without this, a corrupted config looks identical to "no key
+   * configured yet", which would cause `ensureKey`/`rotate` to silently
+   * generate a new key and overwrite `mcp.api_key_path` — orphaning any
+   * valid key already on disk and breaking every MCP client configured with
+   * the old one.
+   */
+  private async loadConfigOrThrow(): Promise<DRConfig> {
+    try {
+      return await loadDRConfig({ strict: true });
+    } catch (error) {
+      if (error instanceof DRConfigParseError) {
+        throw new Error(
+          `Cannot determine the configured MCP API key path: ${error.configPath} is corrupted. ` +
+            "Fix or remove this file before continuing — proceeding could orphan an existing key " +
+            "and break already-configured MCP clients.",
+          { cause: error }
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Resolve the API key to use for this session: load it from the previously
    * configured path, or generate+store a new one on first use.
    *
@@ -90,7 +123,7 @@ export class ApiKeyManager {
    *   `defaultKeyPath` is used without prompting.
    */
   async ensureKey(promptForPath?: ApiKeyStoragePrompt): Promise<EnsureKeyResult> {
-    const config = await loadDRConfig();
+    const config = await this.loadConfigOrThrow();
     const existingPath = config.mcp?.api_key_path;
 
     if (existingPath && existsSync(existingPath)) {
@@ -122,7 +155,7 @@ export class ApiKeyManager {
    *   used without prompting.
    */
   async rotate(promptForPath?: ApiKeyStoragePrompt): Promise<RotateKeyResult> {
-    const config = await loadDRConfig();
+    const config = await this.loadConfigOrThrow();
     const path =
       config.mcp?.api_key_path ??
       (promptForPath ? await promptForPath(this.defaultKeyPath) : this.defaultKeyPath);

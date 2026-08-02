@@ -41,6 +41,22 @@ export interface DRConfig {
 const CONFIG_FILENAME = ".dr-config.yaml";
 
 /**
+ * Thrown by `loadDRConfig({ strict: true })` when the config file exists but
+ * cannot be parsed. Callers that would otherwise silently treat a corrupted
+ * config as "nothing configured" — and take a destructive action like
+ * regenerating a secret — should opt into strict mode and handle this.
+ */
+export class DRConfigParseError extends Error {
+  constructor(
+    public readonly configPath: string,
+    options?: { cause?: unknown }
+  ) {
+    super(`Failed to parse ${configPath}`, options);
+    this.name = "DRConfigParseError";
+  }
+}
+
+/**
  * Resolve the path to the DR config file.
  * Supports DR_CONFIG_PATH override for testing; defaults to ~/.dr-config.yaml.
  */
@@ -50,10 +66,16 @@ export function getDRConfigPath(): string {
 
 /**
  * Load the DR config file, returning an empty object if it does not exist or
- * cannot be parsed. Errors are reported to stderr but never thrown, since a
- * malformed config file should degrade to defaults rather than crash the CLI.
+ * cannot be parsed. Errors are reported to stderr but never thrown by default,
+ * since a malformed config file should degrade to defaults rather than crash
+ * the CLI for most callers (e.g. telemetry).
+ *
+ * Pass `{ strict: true }` to instead throw a `DRConfigParseError` when the
+ * file exists but fails to parse. Use this for callers where treating a
+ * corrupted config the same as "nothing configured" would cause data loss
+ * (e.g. regenerating and overwriting a secret whose path is recorded here).
  */
-export async function loadDRConfig(): Promise<DRConfig> {
+export async function loadDRConfig(options?: { strict?: boolean }): Promise<DRConfig> {
   const configPath = getDRConfigPath();
 
   if (!existsSync(configPath)) {
@@ -66,6 +88,9 @@ export async function loadDRConfig(): Promise<DRConfig> {
     return (parsed ?? {}) as DRConfig;
   } catch (error) {
     reportConfigLoadError(configPath, error);
+    if (options?.strict) {
+      throw new DRConfigParseError(configPath, { cause: error });
+    }
     return {};
   }
 }

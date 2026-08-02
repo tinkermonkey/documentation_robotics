@@ -7,7 +7,7 @@ import { mkdir, rm, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getDRConfigPath, loadDRConfig, saveDRConfig } from "../../src/config";
+import { DRConfigParseError, getDRConfigPath, loadDRConfig, saveDRConfig } from "../../src/config";
 
 const originalDRConfigPath = process.env.DR_CONFIG_PATH;
 
@@ -71,6 +71,26 @@ mcp:
 
     const config = await loadDRConfig();
     expect(config).toEqual({});
+  });
+
+  it("throws a DRConfigParseError for invalid YAML when strict is requested", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(configPath, "invalid: yaml: content: [");
+
+    await expect(loadDRConfig({ strict: true })).rejects.toThrow(DRConfigParseError);
+  });
+
+  it("does not throw in strict mode when the config file does not exist", async () => {
+    const config = await loadDRConfig({ strict: true });
+    expect(config).toEqual({});
+  });
+
+  it("does not throw in strict mode when the config file is valid", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(configPath, "mcp:\n  api_key_path: '/tmp/key'\n");
+
+    const config = await loadDRConfig({ strict: true });
+    expect(config.mcp?.api_key_path).toBe("/tmp/key");
   });
 });
 
