@@ -12,7 +12,7 @@ pipelines:
           - 08_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field rel-count-field --name 'test_field' --description 'Field for relationship counting' --attributes '{\"dataType\": \"STRING\"}'"
+      - command: 'add data-store field rel-count-field --name ''test_field'' --description ''Field for relationship counting'' --attributes ''{"dataType": "STRING"}'''
         files_to_compare:
           - manifest.yaml
           - 08_data-store/field.yaml
@@ -45,7 +45,7 @@ pipelines:
   - name: "Validate strict mode flags missing descriptions"
     description: "Verifies that dr validate --strict reports missing descriptions as warnings"
     steps:
-      - command: "add motivation goal strict-test-goal --name 'Strict Mode Test Goal' --description '' --attributes '{\"priority\": \"medium\"}'"
+      - command: 'add motivation goal strict-test-goal --name ''Strict Mode Test Goal'' --description '''' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -66,7 +66,7 @@ pipelines:
   - name: "Orphan warning count shown in connectivity warnings"
     description: "Verifies that orphaned elements are reported with connectivity warnings"
     steps:
-      - command: "add motivation goal orphan-test-goal --name 'Orphan Test Goal' --description 'Isolated goal with no connections' --attributes '{\"priority\": \"medium\"}'"
+      - command: 'add motivation goal orphan-test-goal --name ''Orphan Test Goal'' --description ''Isolated goal with no connections'' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -95,13 +95,13 @@ pipelines:
           - 08_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field multi-rel-count-field-1 --name 'field_1' --description 'First field for counting' --attributes '{\"dataType\": \"STRING\"}'"
+      - command: 'add data-store field multi-rel-count-field-1 --name ''field_1'' --description ''First field for counting'' --attributes ''{"dataType": "STRING"}'''
         files_to_compare:
           - manifest.yaml
           - 08_data-store/field.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field multi-rel-count-field-2 --name 'field_2' --description 'Second field for counting' --attributes '{\"dataType\": \"STRING\"}'"
+      - command: 'add data-store field multi-rel-count-field-2 --name ''field_2'' --description ''Second field for counting'' --attributes ''{"dataType": "STRING"}'''
         files_to_compare:
           - manifest.yaml
           - 08_data-store/field.yaml
