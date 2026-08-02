@@ -25,6 +25,7 @@ import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { modelValidateHandler } from "../../../src/mcp/tools/model-validate.js";
 import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
+import { modelReloadHandler } from "../../../src/mcp/tools/model-reload.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -421,6 +422,47 @@ describe("MCP model tools", () => {
         const layer = await model.getLayer("business");
         expect(layer?.getElement("business.businessservice.payments")).toBeDefined();
       });
+    });
+  });
+
+  describe("model_reload", () => {
+    it("reports a summary reflecting the current on-disk state", async () => {
+      await withProject(async (rootPath) => {
+        const result = await modelReloadHandler({ rootPath });
+        const data = parse(result);
+        expect(data.status).toBe("reloaded");
+        expect(data.totalElements).toBe(2);
+        expect(data.layers.find((l: any) => l.name === "business")?.elementCount).toBe(2);
+      });
+    });
+
+    it("reflects changes made on disk since the last tool call", async () => {
+      await withProject(async (rootPath) => {
+        await modelAddHandler({
+          layer: "business",
+          type: "businessservice",
+          name: "invoicing",
+          rootPath,
+        });
+
+        const result = await modelReloadHandler({ rootPath });
+        const data = parse(result);
+        expect(data.totalElements).toBe(3);
+      });
+    });
+
+    it("returns a structured error when no model exists at rootPath", async () => {
+      const rootPath = join(
+        tmpdir(),
+        `dr-mcp-tools-unit-no-model-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      );
+      await mkdir(rootPath, { recursive: true });
+      try {
+        const result = await modelReloadHandler({ rootPath });
+        expect(result.isError).toBe(true);
+      } finally {
+        await rm(rootPath, { recursive: true, force: true });
+      }
     });
   });
 });

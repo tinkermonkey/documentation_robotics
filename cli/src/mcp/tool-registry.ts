@@ -6,17 +6,26 @@
  * Mutation tools: model_add, model_update, model_delete (via MutationHandler).
  * Pipeline tools: model_validate, model_export (via the shared validator
  * pipeline and export handlers).
+ * Lifecycle tools: model_reload (force a full re-read from disk).
+ * Changeset tools: changeset_list, changeset_show (via StagingAreaManager).
+ * Chat tools: chat_status, chat_launch (via the coding-agents chat clients).
  *
- * See "Tool Surface Design" and "Phase 2: Core Tools" in the architecture design.
+ * See "Tool Surface Design" and "Phase 2: Core Tools" / "Phase 3: Changesets
+ * and Chat" in the architecture design.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  changesetListTool,
+  changesetShowTool,
+  chatLaunchTool,
+  chatStatusTool,
   modelAddTool,
   modelDeleteTool,
   modelExportTool,
   modelInfoTool,
   modelListTool,
+  modelReloadTool,
   modelSearchTool,
   modelShowTool,
   modelStatsTool,
@@ -38,6 +47,11 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   modelDeleteTool,
   modelValidateTool,
   modelExportTool,
+  modelReloadTool,
+  changesetListTool,
+  changesetShowTool,
+  chatStatusTool,
+  chatLaunchTool,
 ];
 
 export class McpToolRegistry {
