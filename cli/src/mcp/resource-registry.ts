@@ -20,7 +20,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUNDLED_SCHEMAS_DIR = path.join(__dirname, "../schemas/bundled");
 
 async function readBundledSchema(fileName: string): Promise<string> {
-  return fs.readFile(path.join(BUNDLED_SCHEMAS_DIR, fileName), "utf-8");
+  try {
+    return await fs.readFile(path.join(BUNDLED_SCHEMAS_DIR, fileName), "utf-8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(
+        `Bundled schema "${fileName}" is missing from ${BUNDLED_SCHEMAS_DIR}. ` +
+          `This usually means the CLI build is incomplete or corrupted — run "npm run build" in cli/ to regenerate it.`
+      );
+    }
+    throw error;
+  }
 }
 
 export class McpResourceRegistry {

@@ -11,7 +11,12 @@ import { z, type ZodRawShape } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
 import type { ModelOptions } from "../../types/index.js";
-import { CLIError, getErrorMessage, type ErrorContext } from "../../utils/errors.js";
+import {
+  CLIError,
+  ModelNotFoundError,
+  getErrorMessage,
+  type ErrorContext,
+} from "../../utils/errors.js";
 
 /** Shared input field: lets a client point at a model outside the server's cwd. */
 export const rootPathSchema = z
@@ -30,7 +35,18 @@ export interface McpToolDefinition<Args = any> {
 
 /** Loads the architecture model, translating "no model found" into a CLIError consistently. */
 export async function loadModel(rootPath?: string, options?: ModelOptions): Promise<Model> {
-  return Model.load(rootPath, options);
+  try {
+    return await Model.load(rootPath, options);
+  } catch (error) {
+    if (error instanceof CLIError) {
+      throw error;
+    }
+    const message = getErrorMessage(error);
+    if (message.includes("No DR project") || message.includes("Model not found")) {
+      throw new ModelNotFoundError(rootPath);
+    }
+    throw error;
+  }
 }
 
 /** Wraps structured data as the tool's JSON text content. */
@@ -94,6 +110,23 @@ export async function runTool(fn: () => Promise<CallToolResult>): Promise<CallTo
   try {
     return await fn();
   } catch (error) {
+    logToolError(error);
     return errorResult(error);
+  }
+}
+
+/**
+ * Logs a tool failure to stderr unconditionally (independent of telemetry
+ * settings, which are off by default) so server operators have visibility
+ * into failures. Non-CLIError exceptions include their stack trace, since
+ * that's otherwise discarded once errorResult() reduces them to a message.
+ */
+function logToolError(error: unknown): void {
+  if (error instanceof CLIError) {
+    console.error(`[mcp] tool error: ${error.message}`);
+  } else if (error instanceof Error) {
+    console.error(`[mcp] tool error: ${error.stack ?? error.message}`);
+  } else {
+    console.error(`[mcp] tool error: ${getErrorMessage(error)}`);
   }
 }
