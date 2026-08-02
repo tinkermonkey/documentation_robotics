@@ -19,7 +19,7 @@ const inputSchema = {
 
 export async function modelInfoHandler(args: ModelInfoArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const model = await loadModel(args.rootPath, args.layer ? { layers: [args.layer] } : {});
+    const model = await loadModel(args.rootPath);
     const manifest = model.manifest;
 
     const modelSummary = {

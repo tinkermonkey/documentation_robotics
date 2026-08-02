@@ -22,7 +22,7 @@ const inputSchema = {
 
 export async function changesetShowHandler(args: ChangesetShowArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const model = await loadModel(args.rootPath, { lazyLoad: true });
+    const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = await manager.load(args.changesetId);
 

@@ -10,6 +10,7 @@ import { isCancel, text } from "@clack/prompts";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
 import { McpResourceRegistry } from "../mcp/resource-registry.js";
 import { McpToolRegistry } from "../mcp/tool-registry.js";
+import { loadModel } from "../mcp/tools/shared.js";
 import { startActiveSpan } from "../telemetry/index.js";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 import { getCliVersion } from "../utils/spec-version.js";
@@ -96,6 +97,19 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
         // validate/export/trace/stats/info) and the spec/model manifest resources.
         new McpToolRegistry().registerAll(server);
         await new McpResourceRegistry().registerAll(server);
+
+        // Warm the model cache at startup so it's loaded once and held in memory
+        // for the session (see the architecture design's Model Lifecycle), rather
+        // than waiting for the first tool call. Best-effort: a server started
+        // outside a DR project (or before one exists) still starts up cleanly —
+        // the first tool call that supplies a valid rootPath will load and cache it.
+        try {
+          await loadModel();
+        } catch (error) {
+          process.stderr.write(
+            `[mcp] model warmup skipped: ${getErrorMessage(error)}\n`
+          );
+        }
 
         span.setAttribute("mcp.server.name", "documentation-robotics");
         span.setAttribute("mcp.server.version", cliVersion);

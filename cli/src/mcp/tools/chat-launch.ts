@@ -36,7 +36,7 @@ const inputSchema = {
 
 export async function chatLaunchHandler(args: ChatLaunchArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const model = await loadModel(args.rootPath, { lazyLoad: true });
+    const model = await loadModel(args.rootPath);
     const availableClients = await detectAvailableClients();
 
     if (availableClients.length === 0) {

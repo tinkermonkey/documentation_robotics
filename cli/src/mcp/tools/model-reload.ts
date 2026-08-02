@@ -2,18 +2,17 @@
  * model_reload — force a full, non-lazy reload of the architecture model from
  * disk and report a summary of what was read.
  *
- * Every other MCP tool already loads the model fresh from disk on each call
- * (see `loadModel()` in shared.ts — there is no cross-call cache), so this
- * tool cannot go stale the way the REST/visualization server's long-lived
- * `this.model` field can (see `setupFileWatcher()` in
- * `cli/src/server/server.ts`). It exists for parity with that server's
- * explicit reload behavior and as a way for an MCP client to confirm the
- * current on-disk state after external edits, without guessing which other
- * tool call would trigger a fresh read.
+ * Per the architecture design's Model Lifecycle, `loadModel()` (shared.ts) loads
+ * the model once per rootPath and holds it in memory for reuse across tool calls,
+ * the same way the REST/visualization server holds a long-lived `this.model` field
+ * (see `setupFileWatcher()` in `cli/src/server/server.ts`). That cache can go stale
+ * after edits made outside this MCP session (e.g. the CLI or another process editing
+ * files on disk), so this tool exists to force a fresh read and refresh the cache —
+ * the MCP equivalent of that server's file-watcher-triggered reload.
  */
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 export interface ModelReloadArgs {
   rootPath?: string;
@@ -25,7 +24,7 @@ const inputSchema = {
 
 export async function modelReloadHandler(args: ModelReloadArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const model = await loadModel(args.rootPath, { lazyLoad: false });
+    const model = await reloadModel(args.rootPath);
 
     const layers: Array<{ name: string; elementCount: number }> = [];
     for (const layerName of model.getLayerNames()) {

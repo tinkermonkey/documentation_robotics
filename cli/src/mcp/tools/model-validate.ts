@@ -29,7 +29,7 @@ const inputSchema = {
 
 export async function modelValidateHandler(args: ModelValidateArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const model = await loadModel(args.rootPath, args.layers ? { layers: args.layers } : {});
+    const model = await loadModel(args.rootPath);
 
     // `Validator` is typed to accept `Model`, but a projected changeset is a
     // `ProjectedModel` (manifest/layers/relationships only, no `rootPath` or the
@@ -39,11 +39,25 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     // `cli/src/commands/validate.ts`; a proper fix would give `Validator` a
     // narrower "validatable model" interface shared by both types.
     const activeChangesetId = model.getActiveChangesetId();
-    const modelToValidate = (
+    let modelToValidate = (
       activeChangesetId
         ? { ...(await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)), rootPath: model.rootPath }
         : model
     ) as unknown as Model;
+
+    // `loadModel()` returns the full cached model (all layers), so a `layers` scope
+    // is applied here rather than at load time. Copies the layers Map onto a new
+    // object instead of mutating `model.layers` directly, since that Map is the
+    // shared cached instance other tool calls read from.
+    if (args.layers && args.layers.length > 0) {
+      const requestedLayers = new Set(args.layers);
+      modelToValidate = {
+        ...modelToValidate,
+        layers: new Map(
+          Array.from(modelToValidate.layers.entries()).filter(([name]) => requestedLayers.has(name))
+        ),
+      } as unknown as Model;
+    }
 
     if (args.orphans) {
       const stats = ValidationFormatter.calculateStats(modelToValidate);

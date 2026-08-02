@@ -20,9 +20,7 @@ const inputSchema = {
 
 export async function modelShowHandler(args: ModelShowArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    // Infer the layer from the element ID prefix to avoid loading all 12 layers.
-    const inferredLayer = args.id.includes(".") ? args.id.split(".")[0] : undefined;
-    const model = await loadModel(args.rootPath, inferredLayer ? { layers: [inferredLayer] } : {});
+    const model = await loadModel(args.rootPath);
 
     const layerName = await findElementLayer(model, args.id);
     if (!layerName) {

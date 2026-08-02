@@ -10,7 +10,6 @@
 import { z, type ZodRawShape } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
-import type { ModelOptions } from "../../types/index.js";
 import {
   CLIError,
   ModelNotFoundError,
@@ -33,10 +32,25 @@ export interface McpToolDefinition<Args = any> {
   handler: (args: Args) => Promise<CallToolResult>;
 }
 
-/** Loads the architecture model, translating "no model found" into a CLIError consistently. */
-export async function loadModel(rootPath?: string, options?: ModelOptions): Promise<Model> {
+/**
+ * Per-rootPath cache of the loaded architecture model, held for the lifetime of the
+ * MCP server process (see the architecture design's Model Lifecycle: the Model is
+ * loaded once and reused across tool calls rather than reread from disk on every
+ * invocation). Keyed by the raw `rootPath` argument (`""` for the server's default
+ * cwd), matching how MCP clients address a model across calls.
+ */
+const modelCache = new Map<string, Promise<Model>>();
+
+function modelCacheKey(rootPath?: string): string {
+  return rootPath ?? "";
+}
+
+/** Reads the model fresh from disk, translating "no model found" into a CLIError consistently. */
+async function readModelFromDisk(rootPath?: string): Promise<Model> {
   try {
-    return await Model.load(rootPath, options);
+    // Always a full, non-lazy load: the cached instance must be able to answer any
+    // tool call regardless of which layers/options the first caller happened to need.
+    return await Model.load(rootPath, { lazyLoad: false });
   } catch (error) {
     if (error instanceof CLIError) {
       throw error;
@@ -51,6 +65,30 @@ export async function loadModel(rootPath?: string, options?: ModelOptions): Prom
     }
     throw error;
   }
+}
+
+/** Returns the cached model for this rootPath, loading it from disk on first use. */
+export async function loadModel(rootPath?: string): Promise<Model> {
+  const key = modelCacheKey(rootPath);
+  const cached = modelCache.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = readModelFromDisk(rootPath);
+  modelCache.set(key, promise);
+  // Don't let a failed load poison the cache for subsequent (possibly-fixed) calls.
+  promise.catch(() => modelCache.delete(key));
+  return promise;
+}
+
+/** Forces a fresh read from disk, replacing any cached instance for this rootPath. */
+export async function reloadModel(rootPath?: string): Promise<Model> {
+  const key = modelCacheKey(rootPath);
+  const promise = readModelFromDisk(rootPath);
+  modelCache.set(key, promise);
+  promise.catch(() => modelCache.delete(key));
+  return promise;
 }
 
 /** Wraps structured data as the tool's JSON text content. */

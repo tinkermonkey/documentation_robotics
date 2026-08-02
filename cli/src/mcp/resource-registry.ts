@@ -15,8 +15,8 @@ import { fileURLToPath } from "node:url";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AnnotationStore } from "../core/annotation-store.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
-import { Model } from "../core/model.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { loadModel } from "./tools/shared.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUNDLED_SCHEMAS_DIR = path.join(__dirname, "../schemas/bundled");
@@ -108,7 +108,7 @@ export class McpResourceRegistry {
       },
       async (uri) => {
         try {
-          const model = await Model.load();
+          const model = await loadModel();
           const manifest = {
             name: model.manifest.name,
             version: model.manifest.version,
@@ -138,7 +138,7 @@ export class McpResourceRegistry {
       },
       async (uri) => {
         try {
-          const model = await Model.load();
+          const model = await loadModel();
           const store = new AnnotationStore(model.rootPath);
           const annotations = await store.list();
           return {

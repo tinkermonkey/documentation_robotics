@@ -77,7 +77,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
 
     validateSourceReferenceOptions(args);
 
-    const model = await loadModel(args.rootPath, { layers: [args.layer] });
+    const model = await loadModel(args.rootPath);
 
     let layerObj = await model.getLayer(args.layer);
     if (!layerObj) {

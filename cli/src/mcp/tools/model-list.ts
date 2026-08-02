@@ -27,7 +27,7 @@ const inputSchema = {
 export async function modelListHandler(args: ModelListArgs): Promise<CallToolResult> {
   return runTool(async () => {
     if (args.layer) {
-      const model = await loadModel(args.rootPath, { layers: [args.layer] });
+      const model = await loadModel(args.rootPath);
       const layer = await model.getLayer(args.layer);
       if (!layer) {
         throw new CLIError(`Layer ${args.layer} not found`, ErrorCategory.NOT_FOUND, [
