@@ -6,9 +6,10 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+import yaml from "yaml";
 import { AnnotationStore } from "../../../src/core/annotation-store.js";
 
 async function withStore(fn: (store: AnnotationStore, rootPath: string) => Promise<void>): Promise<void> {
@@ -116,6 +117,51 @@ describe("AnnotationStore", () => {
   it("rejects an ID that sanitizes to an empty string", async () => {
     await withStore(async (store) => {
       await expect(store.get("..")).rejects.toThrow(/Invalid annotation ID/);
+    });
+  });
+
+  it("rejects a hand-edited annotation file missing required fields (e.g. tags)", async () => {
+    await withStore(async (store, rootPath) => {
+      const annotationsDir = join(rootPath, "documentation-robotics", "annotations");
+      await store.create({ elementId: "api.endpoint.create-order", content: "placeholder" });
+      const filePath = join(annotationsDir, "corrupt.yaml");
+      await writeFile(
+        filePath,
+        yaml.stringify({
+          id: "corrupt",
+          elementId: "api.endpoint.create-order",
+          author: "alice",
+          content: "missing tags field",
+          createdAt: new Date().toISOString(),
+          resolved: false,
+          replies: [],
+        })
+      );
+
+      await expect(store.get("corrupt")).rejects.toThrow(/invalid annotation data/);
+    });
+  });
+
+  it("list() skips a corrupt annotation file instead of failing the whole list", async () => {
+    await withStore(async (store, rootPath) => {
+      const valid = await store.create({ elementId: "api.endpoint.create-order", content: "valid" });
+
+      const annotationsDir = join(rootPath, "documentation-robotics", "annotations");
+      await writeFile(
+        join(annotationsDir, "corrupt.yaml"),
+        yaml.stringify({
+          id: "corrupt",
+          elementId: "api.endpoint.create-order",
+          author: "alice",
+          content: "missing tags field",
+          createdAt: new Date().toISOString(),
+          resolved: false,
+          replies: [],
+        })
+      );
+
+      const results = await store.list();
+      expect(results.map((a) => a.id)).toEqual([valid.id]);
     });
   });
 });

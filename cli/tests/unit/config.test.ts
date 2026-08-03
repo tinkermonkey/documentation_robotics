@@ -92,6 +92,29 @@ mcp:
     const config = await loadDRConfig({ strict: true });
     expect(config.mcp?.api_key_path).toBe("/tmp/key");
   });
+
+  it("returns an empty object (not a throw) when a known section has the wrong shape", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(configPath, "mcp: 42\n");
+
+    const config = await loadDRConfig();
+    expect(config).toEqual({});
+  });
+
+  it("throws a DRConfigParseError when a known section has the wrong shape and strict is requested", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(configPath, "mcp: 42\n");
+
+    await expect(loadDRConfig({ strict: true })).rejects.toThrow(DRConfigParseError);
+  });
+
+  it("preserves unknown top-level keys instead of stripping them", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(configPath, "mcp:\n  api_key_path: '/tmp/key'\nfuture_section:\n  some_field: 'value'\n");
+
+    const config = await loadDRConfig();
+    expect((config as Record<string, unknown>).future_section).toEqual({ some_field: "value" });
+  });
 });
 
 describe("saveDRConfig()", () => {
@@ -133,5 +156,17 @@ describe("saveDRConfig()", () => {
     const updated = await loadDRConfig();
     expect(updated.telemetry?.otlp?.service_name).toBe("existing-service");
     expect(updated.mcp?.api_key_path).toBe("/tmp/key");
+  });
+
+  it("round-trips an unrecognized section without dropping it (read-modify-write on a newer config)", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(configPath, "mcp:\n  api_key_path: '/tmp/key'\nfuture_section:\n  some_field: 'value'\n");
+
+    const current = await loadDRConfig();
+    await saveDRConfig({ ...current, mcp: { api_key_path: "/tmp/new-key" } });
+
+    const updated = await loadDRConfig();
+    expect(updated.mcp?.api_key_path).toBe("/tmp/new-key");
+    expect((updated as Record<string, unknown>).future_section).toEqual({ some_field: "value" });
   });
 });

@@ -27,24 +27,29 @@ import { z } from "zod";
  * Runtime schema for ~/.dr-config.yaml, used to validate parsed YAML before it
  * is trusted as a `DRConfig`. Keep in sync with the shape documented above.
  */
-const DRConfigSchema = z.object({
-  telemetry: z
-    .object({
-      otlp: z
-        .object({
-          endpoint: z.string().optional(),
-          logs_endpoint: z.string().optional(),
-          service_name: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  mcp: z
-    .object({
-      api_key_path: z.string().optional(),
-    })
-    .optional(),
-});
+const DRConfigSchema = z
+  .object({
+    telemetry: z
+      .object({
+        otlp: z
+          .object({
+            endpoint: z.string().optional(),
+            logs_endpoint: z.string().optional(),
+            service_name: z.string().optional(),
+          })
+          .passthrough()
+          .optional(),
+      })
+      .passthrough()
+      .optional(),
+    mcp: z
+      .object({
+        api_key_path: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
 
 /**
  * Configuration structure parsed from ~/.dr-config.yaml

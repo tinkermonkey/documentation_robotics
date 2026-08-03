@@ -71,7 +71,7 @@ export class AnnotationStore {
     this.annotationsDir = path.join(rootPath, "documentation-robotics", "annotations");
   }
 
-  /** Lists all annotations, optionally filtered to a single element, oldest first. */
+  /** Lists all annotations, optionally filtered to a single element, oldest first. Skips (and warns on) individual files that fail to load rather than failing the whole list. */
   async list(elementId?: string): Promise<Annotation[]> {
     if (!(await fileExists(this.annotationsDir))) {
       return [];
@@ -82,7 +82,16 @@ export class AnnotationStore {
 
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith(".yaml")) continue;
-      const annotation = await this.get(entry.name.slice(0, -".yaml".length));
+      const id = entry.name.slice(0, -".yaml".length);
+
+      let annotation: Annotation | null;
+      try {
+        annotation = await this.get(id);
+      } catch (error) {
+        process.stderr.write(`Warning: Skipping annotation '${id}': ${getErrorMessage(error)}\n`);
+        continue;
+      }
+
       if (annotation && (!elementId || annotation.elementId === elementId)) {
         annotations.push(annotation);
       }
