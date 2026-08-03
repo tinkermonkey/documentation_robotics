@@ -200,9 +200,9 @@ export class AnnotationStore {
     return path.join(this.annotationsDir, `${this.sanitizeId(id)}.yaml`);
   }
 
-  /** Strips path-traversal and separator characters so an annotation ID can't escape annotationsDir. */
+  /** Whitelists safe characters so an annotation ID can't escape annotationsDir via path traversal. */
   private sanitizeId(id: string): string {
-    const sanitized = id.replace(/\.\./g, "").replace(/[/\\]/g, "");
+    const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, "");
     if (!sanitized) {
       throw new Error(`Invalid annotation ID '${id}'`);
     }
