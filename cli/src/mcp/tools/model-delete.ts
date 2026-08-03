@@ -11,7 +11,7 @@ import { DependencyTracker, TraceDirection } from "../../core/dependency-tracker
 import { MutationHandler } from "../../core/mutation-handler.js";
 import { ReferenceRegistry } from "../../core/reference-registry.js";
 import { findElementLayer } from "../../utils/element-utils.js";
-import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -76,6 +76,7 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
 
     let deletedCount = 0;
     const skippedDependents: string[] = [];
+    const cascadeDeleted: string[] = [];
     if (args.cascade && dependents.length > 0) {
       for (const depId of [...dependents].reverse()) {
         const depLayerName = await findElementLayer(model, depId);
@@ -94,7 +95,25 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
         }
 
         const depHandler = new MutationHandler(model, depId, depLayerName);
-        await depHandler.executeDelete(depElement);
+        try {
+          await depHandler.executeDelete(depElement);
+        } catch (error) {
+          throw new CLIError(
+            `Failed to delete dependent element "${depId}": ${getErrorMessage(error)}`,
+            ErrorCategory.SYSTEM,
+            [
+              `${cascadeDeleted.length} dependent element(s) were deleted before the error`,
+              'Use "model_validate" to check the model for broken references',
+              `"${args.id}" was not deleted — you can retry the operation once dependents are resolved`,
+            ],
+            {
+              operation: "model_delete (cascade)",
+              relatedElements: cascadeDeleted,
+              partialProgress: { completed: cascadeDeleted.length, total: dependents.length },
+            }
+          );
+        }
+        cascadeDeleted.push(depId);
         deletedCount++;
       }
     }

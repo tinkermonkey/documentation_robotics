@@ -490,6 +490,88 @@ describe("MCP model tools", () => {
       });
     });
 
+    it("reports partial progress without deleting the target when a mid-cascade delete fails", async () => {
+      await withProject(async (rootPath) => {
+        await modelAddHandler({
+          layer: "business",
+          type: "businessprocess",
+          name: "invoice-processing",
+          description: "Invoice processing",
+          rootPath,
+        });
+        await modelAddHandler({
+          layer: "application",
+          type: "applicationfunction",
+          name: "billing-app",
+          description: "Billing application function",
+          rootPath,
+        });
+
+        let model = await loadModel(rootPath);
+        const bizLayer = (await model.getLayer("business"))!;
+        const invoiceProcessing = bizLayer.getElement("business.businessprocess.invoice-processing")!;
+        invoiceProcessing.references = [
+          {
+            source: invoiceProcessing.path || invoiceProcessing.id,
+            target: "business.businessservice.payments",
+            type: "uses",
+          },
+        ];
+        bizLayer.updateElement(invoiceProcessing);
+        await model.saveLayer("business");
+
+        const appLayer = (await model.getLayer("application"))!;
+        const billingApp = appLayer.getElement("application.applicationfunction.billing-app")!;
+        billingApp.references = [
+          {
+            source: billingApp.path || billingApp.id,
+            target: "business.businessservice.payments",
+            type: "uses",
+          },
+        ];
+        appLayer.updateElement(billingApp);
+        await model.saveLayer("application");
+
+        // Cascade processes dependents in reverse of `dependents` order (application-layer
+        // before business-layer here), so replacing the business-layer backing file with a
+        // directory forces the *second* dependent's delete to fail with an I/O error, after
+        // the first has already been removed — simulating a mid-cascade failure.
+        const businessProcessFile = join(
+          rootPath,
+          "documentation-robotics",
+          "model",
+          "02_business",
+          "business_process.yaml"
+        );
+        await rm(businessProcessFile, { force: true });
+        await mkdir(businessProcessFile);
+
+        const result = await modelDeleteHandler({
+          id: "business.businessservice.payments",
+          cascade: true,
+          rootPath,
+        });
+
+        expect(result.isError).toBe(true);
+        const data = parse(result);
+        expect(data.category).toBe("system");
+        expect(data.error).toContain("invoice-processing");
+        expect(data.partialProgress).toEqual({ completed: 1, total: 2 });
+        expect(data.relatedElements).toEqual(["application.applicationfunction.billing-app"]);
+
+        // The target must not have been deleted, and the failure must be recoverable:
+        // the successfully-cascaded dependent is gone, but the target survives for a retry.
+        model = await loadModel(rootPath);
+        const bizLayerAfter = (await model.getLayer("business"))!;
+        expect(bizLayerAfter.getElement("business.businessservice.payments")).toBeDefined();
+
+        const appLayerAfter = (await model.getLayer("application"))!;
+        expect(
+          appLayerAfter.getElement("application.applicationfunction.billing-app")
+        ).toBeUndefined();
+      });
+    });
+
     it("previews deletions without mutating the model when dryRun is set", async () => {
       await withProject(async (rootPath) => {
         const result = await modelDeleteHandler({
