@@ -3,12 +3,12 @@
  * disk and report a summary of what was read.
  *
  * `loadModel()` (shared.ts) loads the model once per rootPath and holds it in
- * memory for reuse across tool calls,
- * the same way the REST/visualization server holds a long-lived `this.model` field
- * (see `setupFileWatcher()` in `cli/src/server/server.ts`). That cache can go stale
- * after edits made outside this MCP session (e.g. the CLI or another process editing
- * files on disk), so this tool exists to force a fresh read and refresh the cache —
- * the MCP equivalent of that server's file-watcher-triggered reload.
+ * memory for reuse across tool calls, the same way the REST/visualization server
+ * holds a long-lived `this.model` field (see `setupFileWatcher()` in
+ * `cli/src/server/server.ts`). That cache can go stale after edits made outside
+ * this MCP session (e.g. the CLI or another process editing files on disk), so
+ * this tool exists to force a fresh read and refresh the cache — the MCP
+ * equivalent of that server's file-watcher-triggered reload.
  */
 
 import type { z } from "zod";
