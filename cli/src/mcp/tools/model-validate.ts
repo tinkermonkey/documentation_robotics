@@ -6,6 +6,8 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Model } from "../../core/model.js";
+import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
+import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { ValidationFormatter } from "../../validators/validation-formatter.js";
 import { Validator } from "../../validators/validator.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -45,6 +47,17 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     // object instead of mutating `model.layers` directly, since that Map is the
     // shared cached instance other tool calls read from.
     if (args.layers && args.layers.length > 0) {
+      const unknownLayers = args.layers.filter((name) => !isValidLayer(name));
+      if (unknownLayers.length > 0) {
+        const validLayers = getAllLayerIds();
+        const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(validLayers)}`];
+        for (const unknown of unknownLayers) {
+          const similar = findSimilar(unknown, validLayers, 3);
+          if (similar.length > 0) suggestions.unshift(`Did you mean "${similar.join(" or ")}" instead of "${unknown}"?`);
+        }
+        throw new CLIError(`Unknown layer(s): ${unknownLayers.join(", ")}`, ErrorCategory.USER, suggestions);
+      }
+
       const requestedLayers = new Set(args.layers);
       modelToValidate = {
         ...modelToValidate,

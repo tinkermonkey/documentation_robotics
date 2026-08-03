@@ -135,6 +135,24 @@ describe("MCP model tools", () => {
         expect(data.count).toBe(0);
       });
     });
+
+    it("returns a structured error for an unknown layer filter", async () => {
+      await withProject(async (rootPath) => {
+        const result = await modelSearchHandler({ layer: "not-a-real-layer", rootPath });
+        expect(result.isError).toBe(true);
+        const data = parse(result);
+        expect(data.category).toBe("user");
+      });
+    });
+
+    it("returns a structured error for an unknown type filter", async () => {
+      await withProject(async (rootPath) => {
+        const result = await modelSearchHandler({ type: "not-a-real-type", rootPath });
+        expect(result.isError).toBe(true);
+        const data = parse(result);
+        expect(data.category).toBe("user");
+      });
+    });
   });
 
   describe("model_stats", () => {
@@ -202,6 +220,15 @@ describe("MCP model tools", () => {
         const result = await modelValidateHandler({ orphans: true, rootPath });
         const data = parse(result);
         expect(data.orphanCount).toBe(2);
+      });
+    });
+
+    it("returns a structured error instead of a false valid:true for an unknown layer", async () => {
+      await withProject(async (rootPath) => {
+        const result = await modelValidateHandler({ layers: ["aplication"], rootPath });
+        expect(result.isError).toBe(true);
+        const data = parse(result);
+        expect(data.category).toBe("user");
       });
     });
   });
@@ -276,6 +303,43 @@ describe("MCP model tools", () => {
         const data = parse(result);
         expect(data.error).toContain("invalid attributes");
       });
+    });
+
+    it("does not leave a phantom empty layer in the cached model after a validation failure", async () => {
+      // Standalone (not withProject) so the "motivation" layer directory is
+      // removed before the model for this rootPath is ever loaded/cached —
+      // this makes `model.getLayer("motivation")` return undefined, forcing
+      // model-add down the new-Layer path whose validation-failure cleanup
+      // this test covers. Uses a layer/type pair ("motivation.assessment")
+      // not exercised by any other test in this file, since `SchemaValidator`
+      // shares a static compiled-schema registry across instances that isn't
+      // safe under concurrent validation of the same type.
+      const rootPath = join(
+        tmpdir(),
+        `dr-mcp-tools-unit-phantom-layer-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      );
+      await mkdir(rootPath, { recursive: true });
+      await Model.init(rootPath, { name: "Phantom Layer Test Model", version: "0.1.0" });
+      await rm(join(rootPath, "documentation-robotics", "model", "01_motivation"), {
+        recursive: true,
+        force: true,
+      });
+
+      try {
+        const result = await modelAddHandler({
+          layer: "motivation",
+          type: "assessment",
+          name: "broken-assessment",
+          attributes: {},
+          rootPath,
+        });
+        expect(result.isError).toBe(true);
+
+        const model = await loadModel(rootPath);
+        expect(model.getLayerNames()).not.toContain("motivation");
+      } finally {
+        await rm(rootPath, { recursive: true, force: true });
+      }
     });
 
     it("returns a structured error when the element already exists", async () => {

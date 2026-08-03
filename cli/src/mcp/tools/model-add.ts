@@ -68,9 +68,10 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
     const model = await loadModel(args.rootPath);
 
     let layerObj = await model.getLayer(args.layer);
+    let isNewLayer = false;
     if (!layerObj) {
       layerObj = new Layer(args.layer);
-      model.addLayer(layerObj);
+      isNewLayer = true;
     }
 
     const now = new Date().toISOString();
@@ -115,6 +116,10 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         `Use "model_update" to modify it`,
         `Use "model_delete" to remove it first if you want to recreate it`,
       ]);
+    }
+
+    if (isNewLayer) {
+      model.addLayer(layerObj);
     }
 
     const mutationHandler = new MutationHandler(model, elementPath, args.layer);

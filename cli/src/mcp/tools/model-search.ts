@@ -6,7 +6,9 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Element } from "../../core/element.js";
-import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
+import { NODE_TYPES } from "../../generated/node-types.js";
+import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
@@ -42,6 +44,36 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
         ErrorCategory.USER,
         ['Use "model_list" to list all elements without filtering']
       );
+    }
+
+    if (args.layer && !isValidLayer(args.layer)) {
+      const validLayers = getAllLayerIds();
+      const similar = findSimilar(args.layer, validLayers, 3);
+      const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(validLayers)}`];
+      if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+      throw new CLIError(`Unknown layer "${args.layer}"`, ErrorCategory.USER, suggestions);
+    }
+
+    if (args.type) {
+      const candidateTypes = args.layer
+        ? Array.from(NODE_TYPES.values()).filter((t) => t.layer === args.layer)
+        : Array.from(NODE_TYPES.values());
+      const isKnownType = candidateTypes.some((t) => t.type === args.type);
+      if (!isKnownType) {
+        const validTypeNames = Array.from(new Set(candidateTypes.map((t) => t.type))).sort();
+        const similar = findSimilar(args.type, validTypeNames, 3);
+        const suggestions: string[] = [
+          args.layer
+            ? `Valid types for ${args.layer}: ${formatValidOptions(validTypeNames)}`
+            : `Valid types: ${formatValidOptions(validTypeNames)}`,
+        ];
+        if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+        throw new CLIError(
+          `Unknown element type "${args.type}"${args.layer ? ` for layer "${args.layer}"` : ""}`,
+          ErrorCategory.USER,
+          suggestions
+        );
+      }
     }
 
     const model = await loadModel(args.rootPath);
