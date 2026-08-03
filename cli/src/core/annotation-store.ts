@@ -13,28 +13,38 @@ import { readFile, readdir, rm } from "fs/promises";
 import { randomBytes } from "crypto";
 import path from "path";
 import yaml from "yaml";
+import { z } from "zod";
 import { atomicWrite, ensureDir, fileExists } from "../utils/file-io.js";
 import { FileLock } from "../utils/file-lock.js";
 import { getErrorMessage } from "../utils/errors.js";
 
-export interface AnnotationReply {
-  id: string;
-  author: string;
-  content: string;
-  createdAt: string;
-}
+const AnnotationReplySchema = z.object({
+  id: z.string(),
+  author: z.string(),
+  content: z.string(),
+  createdAt: z.string(),
+});
 
-export interface Annotation {
-  id: string;
-  elementId: string;
-  author: string;
-  content: string;
-  createdAt: string;
-  updatedAt?: string;
-  tags: string[];
-  resolved: boolean;
-  replies: AnnotationReply[];
-}
+/**
+ * Runtime schema for an annotation file on disk, used to validate parsed YAML
+ * before it is trusted as an `Annotation` — hand-edited files can otherwise
+ * omit required fields (e.g. `tags`) and crash downstream consumers.
+ */
+const AnnotationSchema = z.object({
+  id: z.string(),
+  elementId: z.string(),
+  author: z.string(),
+  content: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+  tags: z.array(z.string()),
+  resolved: z.boolean(),
+  replies: z.array(AnnotationReplySchema),
+});
+
+export type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
+
+export type Annotation = z.infer<typeof AnnotationSchema>;
 
 export interface AnnotationCreateInput {
   elementId: string;
@@ -87,12 +97,21 @@ export class AnnotationStore {
       return null;
     }
 
+    let parsed: unknown;
     try {
       const content = await readFile(filePath, "utf-8");
-      return yaml.parse(content) as Annotation;
+      parsed = yaml.parse(content);
     } catch (error) {
       throw new Error(`Failed to load annotation '${id}': ${getErrorMessage(error)}`);
     }
+
+    const result = AnnotationSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new Error(
+        `Failed to load annotation '${id}': invalid annotation data - ${result.error.message}`
+      );
+    }
+    return result.data;
   }
 
   async create(input: AnnotationCreateInput): Promise<Annotation> {

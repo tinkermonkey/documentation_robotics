@@ -21,22 +21,35 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parse, stringify } from "yaml";
+import { z } from "zod";
+
+/**
+ * Runtime schema for ~/.dr-config.yaml, used to validate parsed YAML before it
+ * is trusted as a `DRConfig`. Keep in sync with the shape documented above.
+ */
+const DRConfigSchema = z.object({
+  telemetry: z
+    .object({
+      otlp: z
+        .object({
+          endpoint: z.string().optional(),
+          logs_endpoint: z.string().optional(),
+          service_name: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  mcp: z
+    .object({
+      api_key_path: z.string().optional(),
+    })
+    .optional(),
+});
 
 /**
  * Configuration structure parsed from ~/.dr-config.yaml
  */
-export interface DRConfig {
-  telemetry?: {
-    otlp?: {
-      endpoint?: string;
-      logs_endpoint?: string;
-      service_name?: string;
-    };
-  };
-  mcp?: {
-    api_key_path?: string;
-  };
-}
+export type DRConfig = z.infer<typeof DRConfigSchema>;
 
 const CONFIG_FILENAME = ".dr-config.yaml";
 
@@ -85,7 +98,15 @@ export async function loadDRConfig(options?: { strict?: boolean }): Promise<DRCo
   try {
     const content = await readFile(configPath, "utf-8");
     const parsed = parse(content);
-    return (parsed ?? {}) as DRConfig;
+    if (parsed === null || parsed === undefined) {
+      return {};
+    }
+
+    const result = DRConfigSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new Error(`Invalid config shape: ${result.error.message}`);
+    }
+    return result.data;
   } catch (error) {
     reportConfigLoadError(configPath, error);
     if (options?.strict) {
