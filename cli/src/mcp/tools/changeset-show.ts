@@ -10,15 +10,12 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ChangesetShowArgs {
-  changesetId: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   changesetId: z.string().describe("Changeset ID or name."),
   rootPath: rootPathSchema,
 };
+
+export type ChangesetShowArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function changesetShowHandler(args: ChangesetShowArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -46,7 +43,7 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
   });
 }
 
-export const changesetShowTool: McpToolDefinition<ChangesetShowArgs> = {
+export const changesetShowTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_show",
   description: "Show a single changeset's full detail including its description, stats, and list of changes.",
   inputSchema,

@@ -4,17 +4,16 @@
  * `cli/src/server/schemas.ts`).
  */
 
+import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ChangesetListArgs {
-  rootPath?: string;
-}
-
 const inputSchema = {
   rootPath: rootPathSchema,
 };
+
+export type ChangesetListArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function changesetListHandler(args: ChangesetListArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -44,7 +43,7 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
   });
 }
 
-export const changesetListTool: McpToolDefinition<ChangesetListArgs> = {
+export const changesetListTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_list",
   description: "List all staged changesets, mirroring the REST GET /api/changesets endpoint.",
   inputSchema,

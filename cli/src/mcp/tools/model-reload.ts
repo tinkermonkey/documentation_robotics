@@ -11,16 +11,15 @@
  * the MCP equivalent of that server's file-watcher-triggered reload.
  */
 
+import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-
-export interface ModelReloadArgs {
-  rootPath?: string;
-}
 
 const inputSchema = {
   rootPath: rootPathSchema,
 };
+
+export type ModelReloadArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelReloadHandler(args: ModelReloadArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -46,7 +45,7 @@ export async function modelReloadHandler(args: ModelReloadArgs): Promise<CallToo
   });
 }
 
-export const modelReloadTool: McpToolDefinition<ModelReloadArgs> = {
+export const modelReloadTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_reload",
   description: "Force a full reload of the architecture model from disk and report a summary of its current state.",
   inputSchema,

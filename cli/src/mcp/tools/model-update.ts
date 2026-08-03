@@ -15,21 +15,6 @@ import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelUpdateArgs {
-  id: string;
-  name?: string;
-  description?: string;
-  type?: string;
-  attributes?: Record<string, unknown>;
-  sourceFile?: string;
-  sourceSymbol?: string;
-  sourceProvenance?: "extracted" | "manual" | "inferred" | "generated";
-  sourceRepoRemote?: string;
-  sourceRepoCommit?: string;
-  clearSourceReference?: boolean;
-  rootPath?: string;
-}
-
 const inputSchema = {
   id: z.string().describe("Element ID or path to update."),
   name: z.string().optional(),
@@ -44,6 +29,8 @@ const inputSchema = {
   clearSourceReference: z.boolean().optional().describe("Remove the element's source reference. Cannot be combined with other source options."),
   rootPath: rootPathSchema,
 };
+
+export type ModelUpdateArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 function validateUpdateSourceReferenceOptions(args: ModelUpdateArgs): void {
   const hasSourceOptions =
@@ -185,7 +172,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
   });
 }
 
-export const modelUpdateTool: McpToolDefinition<ModelUpdateArgs> = {
+export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_update",
   description: "Update an existing element's name, description, type, attributes, or source reference.",
   inputSchema,

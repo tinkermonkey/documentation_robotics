@@ -7,15 +7,12 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelInfoArgs {
-  layer?: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   layer: z.string().optional().describe("Show details for a single layer instead of the whole-model summary."),
   rootPath: rootPathSchema,
 };
+
+export type ModelInfoArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelInfoHandler(args: ModelInfoArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -64,7 +61,7 @@ export async function modelInfoHandler(args: ModelInfoArgs): Promise<CallToolRes
   });
 }
 
-export const modelInfoTool: McpToolDefinition<ModelInfoArgs> = {
+export const modelInfoTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_info",
   description: "Get model metadata and a summary of layers (or a single layer's element type breakdown).",
   inputSchema,

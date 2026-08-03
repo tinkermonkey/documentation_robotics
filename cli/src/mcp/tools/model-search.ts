@@ -9,14 +9,6 @@ import type { Element } from "../../core/element.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelSearchArgs {
-  query?: string;
-  layer?: string;
-  type?: string;
-  sourceFile?: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   query: z
     .string()
@@ -27,6 +19,8 @@ const inputSchema = {
   sourceFile: z.string().optional().describe("Find elements whose source_reference points at this file path."),
   rootPath: rootPathSchema,
 };
+
+export type ModelSearchArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 function normalizePath(filePath: string): string {
   return filePath.replace(/^\.\//, "").replace(/\\/g, "/");
@@ -111,7 +105,7 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
   });
 }
 
-export const modelSearchTool: McpToolDefinition<ModelSearchArgs> = {
+export const modelSearchTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_search",
   description: "Search for elements across the model by name/ID substring or by source file reference.",
   inputSchema,

@@ -9,12 +9,6 @@ import { CANONICAL_LAYER_NAMES } from "../../core/layers.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelListArgs {
-  layer?: string;
-  type?: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   layer: z
     .string()
@@ -23,6 +17,8 @@ const inputSchema = {
   type: z.string().optional().describe("Restrict results to a single element type."),
   rootPath: rootPathSchema,
 };
+
+export type ModelListArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelListHandler(args: ModelListArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -75,7 +71,7 @@ export async function modelListHandler(args: ModelListArgs): Promise<CallToolRes
   });
 }
 
-export const modelListTool: McpToolDefinition<ModelListArgs> = {
+export const modelListTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_list",
   description:
     "List elements in the architecture model, optionally scoped to a layer and/or element type.",

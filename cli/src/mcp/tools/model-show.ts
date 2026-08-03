@@ -8,15 +8,12 @@ import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelShowArgs {
-  id: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   id: z.string().describe("Element ID or path (e.g. 'api.operation.create-order')."),
   rootPath: rootPathSchema,
 };
+
+export type ModelShowArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelShowHandler(args: ModelShowArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -50,7 +47,7 @@ export async function modelShowHandler(args: ModelShowArgs): Promise<CallToolRes
   });
 }
 
-export const modelShowTool: McpToolDefinition<ModelShowArgs> = {
+export const modelShowTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_show",
   description: "Show a single element's full details, attributes, and relationships.",
   inputSchema,

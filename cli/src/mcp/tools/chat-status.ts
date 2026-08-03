@@ -4,13 +4,14 @@
  * JSON-RPC method (`cli/src/server/server.ts`).
  */
 
+import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { detectAvailableClients, selectChatClient } from "../../coding-agents/chat-utils.js";
 import { jsonResult, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ChatStatusArgs {}
-
 const inputSchema = {};
+
+export type ChatStatusArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function chatStatusHandler(_args: ChatStatusArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -30,7 +31,7 @@ export async function chatStatusHandler(_args: ChatStatusArgs): Promise<CallTool
   });
 }
 
-export const chatStatusTool: McpToolDefinition<ChatStatusArgs> = {
+export const chatStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "chat_status",
   description: "Report which AI coding agents (Claude Code, GitHub Copilot) are installed and available.",
   inputSchema,

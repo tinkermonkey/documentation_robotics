@@ -12,13 +12,6 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { detectAvailableClients } from "../../coding-agents/chat-utils.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ChatLaunchArgs {
-  prompt: string;
-  client?: string;
-  agent?: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   prompt: z.string().min(1).describe("The message to send to the AI coding agent."),
   client: z
@@ -33,6 +26,8 @@ const inputSchema = {
     .describe('Optional agent/skill name to invoke. Defaults to "dr-architect".'),
   rootPath: rootPathSchema,
 };
+
+export type ChatLaunchArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function chatLaunchHandler(args: ChatLaunchArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -80,7 +75,7 @@ export async function chatLaunchHandler(args: ChatLaunchArgs): Promise<CallToolR
   });
 }
 
-export const chatLaunchTool: McpToolDefinition<ChatLaunchArgs> = {
+export const chatLaunchTool: McpToolDefinition<typeof inputSchema> = {
   name: "chat_launch",
   description:
     "Send a single prompt to an installed AI coding agent (Claude Code or GitHub Copilot) in run-to-completion mode and return its full response.",

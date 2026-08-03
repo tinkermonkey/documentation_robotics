@@ -10,13 +10,6 @@ import { ValidationFormatter } from "../../validators/validation-formatter.js";
 import { Validator } from "../../validators/validator.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelValidateArgs {
-  layers?: string[];
-  strict?: boolean;
-  orphans?: boolean;
-  rootPath?: string;
-}
-
 const inputSchema = {
   layers: z.array(z.string()).optional().describe("Restrict validation to these layers. Omit to validate the whole model."),
   strict: z.boolean().optional().describe("Also flag elements with no description as warnings."),
@@ -26,6 +19,8 @@ const inputSchema = {
     .describe("Return only the orphaned-elements report instead of running full validation."),
   rootPath: rootPathSchema,
 };
+
+export type ModelValidateArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelValidateHandler(args: ModelValidateArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -110,7 +105,7 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
   });
 }
 
-export const modelValidateTool: McpToolDefinition<ModelValidateArgs> = {
+export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_validate",
   description: "Run the full schema/naming/reference/semantic/relationship validation pipeline against the model.",
   inputSchema,

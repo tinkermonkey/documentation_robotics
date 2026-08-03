@@ -3,6 +3,7 @@
  * `POST /api/annotations` on the REST server.
  */
 
+import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AnnotationStore } from "../../core/annotation-store.js";
 import { findElementLayer } from "../../utils/element-utils.js";
@@ -15,14 +16,6 @@ import {
 } from "./annotation-shared.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface AnnotationCreateArgs {
-  elementId: string;
-  content: string;
-  author?: string;
-  tags?: string[];
-  rootPath?: string;
-}
-
 const inputSchema = {
   elementId: elementIdSchema,
   content: annotationContentSchema,
@@ -30,6 +23,8 @@ const inputSchema = {
   tags: annotationTagsSchema,
   rootPath: rootPathSchema,
 };
+
+export type AnnotationCreateArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function annotationCreateHandler(args: AnnotationCreateArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -54,7 +49,7 @@ export async function annotationCreateHandler(args: AnnotationCreateArgs): Promi
   });
 }
 
-export const annotationCreateTool: McpToolDefinition<AnnotationCreateArgs> = {
+export const annotationCreateTool: McpToolDefinition<typeof inputSchema> = {
   name: "annotation_create",
   description: "Create a new annotation on a model element.",
   inputSchema,

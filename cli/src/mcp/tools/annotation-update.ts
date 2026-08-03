@@ -11,14 +11,6 @@ import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { annotationContentSchema, annotationIdSchema, annotationTagsSchema } from "./annotation-shared.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface AnnotationUpdateArgs {
-  annotationId: string;
-  content?: string;
-  tags?: string[];
-  resolved?: boolean;
-  rootPath?: string;
-}
-
 const inputSchema = {
   annotationId: annotationIdSchema,
   content: annotationContentSchema.optional(),
@@ -26,6 +18,8 @@ const inputSchema = {
   resolved: z.boolean().optional().describe("Mark the annotation resolved or unresolved."),
   rootPath: rootPathSchema,
 };
+
+export type AnnotationUpdateArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function annotationUpdateHandler(args: AnnotationUpdateArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -51,7 +45,7 @@ export async function annotationUpdateHandler(args: AnnotationUpdateArgs): Promi
   });
 }
 
-export const annotationUpdateTool: McpToolDefinition<AnnotationUpdateArgs> = {
+export const annotationUpdateTool: McpToolDefinition<typeof inputSchema> = {
   name: "annotation_update",
   description: "Partially update an annotation's content, tags, or resolved state.",
   inputSchema,

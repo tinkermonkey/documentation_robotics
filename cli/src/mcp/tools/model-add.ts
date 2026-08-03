@@ -17,20 +17,6 @@ import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelAddArgs {
-  layer: string;
-  type: string;
-  name: string;
-  description?: string;
-  attributes?: Record<string, unknown>;
-  sourceFile?: string;
-  sourceSymbol?: string;
-  sourceProvenance?: "extracted" | "manual" | "inferred" | "generated";
-  sourceRepoRemote?: string;
-  sourceRepoCommit?: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   layer: z.string().describe("Canonical layer name (e.g. 'api', 'data-model')."),
   type: z.string().describe("Element type within the layer (e.g. 'operation', 'entity')."),
@@ -44,6 +30,8 @@ const inputSchema = {
   sourceRepoCommit: z.string().optional().describe("Full 40-character Git commit SHA."),
   rootPath: rootPathSchema,
 };
+
+export type ModelAddArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -149,7 +137,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
   });
 }
 
-export const modelAddTool: McpToolDefinition<ModelAddArgs> = {
+export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_add",
   description: "Add a new element to a layer, validated against its spec schema.",
   inputSchema,

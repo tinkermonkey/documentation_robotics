@@ -25,11 +25,14 @@ export const rootPathSchema = z
     "Absolute path to the project root containing documentation-robotics/. Defaults to the MCP server's working directory."
   );
 
-export interface McpToolDefinition<Args = any> {
+export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
   name: string;
   description: string;
-  inputSchema: ZodRawShape;
-  handler: (args: Args) => Promise<CallToolResult>;
+  inputSchema: Shape;
+  // Method-shorthand (not an arrow-typed property) so tool definitions with
+  // differently-shaped Args can share the heterogeneous MODEL_TOOLS array in
+  // tool-registry.ts without a manual cast back to `any` at the storage site.
+  handler(args: z.infer<z.ZodObject<Shape>>): Promise<CallToolResult>;
 }
 
 /**

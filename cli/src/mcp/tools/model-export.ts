@@ -19,13 +19,6 @@ import { Validator } from "../../validators/validator.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelExportArgs {
-  format: string;
-  layers?: string[];
-  includeSources?: boolean;
-  rootPath?: string;
-}
-
 const inputSchema = {
   format: z
     .string()
@@ -34,6 +27,8 @@ const inputSchema = {
   includeSources: z.boolean().optional().describe("Include source_reference provenance in the export, where supported."),
   rootPath: rootPathSchema,
 };
+
+export type ModelExportArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 function buildExportManager(): ExportManager {
   const manager = new ExportManager();
@@ -110,7 +105,7 @@ export async function modelExportHandler(args: ModelExportArgs): Promise<CallToo
   });
 }
 
-export const modelExportTool: McpToolDefinition<ModelExportArgs> = {
+export const modelExportTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_export",
   description: "Export the architecture model to ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, or Markdown.",
   inputSchema,

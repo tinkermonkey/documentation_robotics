@@ -2,17 +2,16 @@
  * model_stats — aggregate statistics about the architecture model. Mirrors `dr stats`.
  */
 
+import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StatsCollector } from "../../core/stats-collector.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelStatsArgs {
-  rootPath?: string;
-}
-
 const inputSchema = {
   rootPath: rootPathSchema,
 };
+
+export type ModelStatsArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelStatsHandler(args: ModelStatsArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -23,7 +22,7 @@ export async function modelStatsHandler(args: ModelStatsArgs): Promise<CallToolR
   });
 }
 
-export const modelStatsTool: McpToolDefinition<ModelStatsArgs> = {
+export const modelStatsTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_stats",
   description: "Get aggregate statistics about the architecture model: element counts, relationships, coverage, and orphans.",
   inputSchema,

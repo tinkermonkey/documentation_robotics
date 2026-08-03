@@ -3,21 +3,19 @@
  * `DELETE /api/annotations/:annotationId` on the REST server.
  */
 
+import type { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { AnnotationStore } from "../../core/annotation-store.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { annotationIdSchema } from "./annotation-shared.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface AnnotationDeleteArgs {
-  annotationId: string;
-  rootPath?: string;
-}
-
 const inputSchema = {
   annotationId: annotationIdSchema,
   rootPath: rootPathSchema,
 };
+
+export type AnnotationDeleteArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function annotationDeleteHandler(args: AnnotationDeleteArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -35,7 +33,7 @@ export async function annotationDeleteHandler(args: AnnotationDeleteArgs): Promi
   });
 }
 
-export const annotationDeleteTool: McpToolDefinition<AnnotationDeleteArgs> = {
+export const annotationDeleteTool: McpToolDefinition<typeof inputSchema> = {
   name: "annotation_delete",
   description: "Delete an annotation and its replies.",
   inputSchema,

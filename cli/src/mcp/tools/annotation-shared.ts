@@ -6,7 +6,10 @@ import { z } from "zod";
 
 export const annotationIdSchema = z.string().min(1).describe("Annotation ID (e.g. 'ann-1700000000000-a1b2c3d4').");
 
-export const elementIdSchema = z.string().describe("Target element ID (e.g. 'api.endpoint.create-order').");
+export const elementIdSchema = z
+  .string()
+  .min(1)
+  .describe("Target element ID (e.g. 'api.endpoint.create-order').");
 
 export const annotationContentSchema = z
   .string()

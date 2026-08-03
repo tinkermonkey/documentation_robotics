@@ -13,14 +13,6 @@ import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelDeleteArgs {
-  id: string;
-  cascade?: boolean;
-  force?: boolean;
-  dryRun?: boolean;
-  rootPath?: string;
-}
-
 const inputSchema = {
   id: z.string().describe("Element ID or path to delete."),
   cascade: z.boolean().optional().describe("Also delete elements that depend on this one."),
@@ -28,6 +20,8 @@ const inputSchema = {
   dryRun: z.boolean().optional().describe("Preview what would be deleted without making changes."),
   rootPath: rootPathSchema,
 };
+
+export type ModelDeleteArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -122,7 +116,7 @@ export async function modelDeleteHandler(args: ModelDeleteArgs): Promise<CallToo
   });
 }
 
-export const modelDeleteTool: McpToolDefinition<ModelDeleteArgs> = {
+export const modelDeleteTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_delete",
   description: "Delete an element, optionally cascading to elements that depend on it.",
   inputSchema,

@@ -10,13 +10,6 @@ import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
-export interface ModelTraceArgs {
-  id: string;
-  direction?: "up" | "down" | "both";
-  depth?: number;
-  rootPath?: string;
-}
-
 const inputSchema = {
   id: z.string().describe("Element ID or path to trace."),
   direction: z
@@ -26,6 +19,8 @@ const inputSchema = {
   depth: z.number().int().positive().optional().describe("Maximum trace depth. Omit for unlimited."),
   rootPath: rootPathSchema,
 };
+
+export type ModelTraceArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 export async function modelTraceHandler(args: ModelTraceArgs): Promise<CallToolResult> {
   return runTool(async () => {
@@ -90,7 +85,7 @@ export async function modelTraceHandler(args: ModelTraceArgs): Promise<CallToolR
   });
 }
 
-export const modelTraceTool: McpToolDefinition<ModelTraceArgs> = {
+export const modelTraceTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_trace",
   description: "Trace dependents and/or dependencies of an element across cross-layer references and relationships.",
   inputSchema,

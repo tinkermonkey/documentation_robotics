@@ -77,7 +77,7 @@ export class McpToolRegistry {
       server.registerTool(
         tool.name,
         { description: tool.description, inputSchema: tool.inputSchema },
-        (args: any) =>
+        (args: Parameters<typeof tool.handler>[0]) =>
           startActiveSpan(
             `mcp.tool.${tool.name}`,
             async (span) => {
