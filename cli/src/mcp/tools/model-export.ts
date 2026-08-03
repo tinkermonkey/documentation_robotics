@@ -107,7 +107,8 @@ export async function modelExportHandler(args: ModelExportArgs): Promise<CallToo
 
 export const modelExportTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_export",
-  description: "Export the architecture model to ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, or Markdown.",
+  description:
+    "Export the architecture model to ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, Markdown, or Markdown with Mermaid diagrams.",
   inputSchema,
   handler: modelExportHandler,
 };

@@ -1,6 +1,6 @@
 /**
  * McpResourceRegistry — registers spec and model manifest resources onto an
- * MCP server, per the "MCP Resources" section of the architecture design.
+ * MCP server.
  *
  * - dr://spec/manifest       — index of all 12 compiled specification layers
  * - dr://spec/base           — base schemas + predicates shared across layers

@@ -1,8 +1,7 @@
 /**
  * MCP server command - Starts an MCP server for AI assistant integration
  *
- * Runs in-process over stdio (see ADR: In-Process Server over Subprocess in the
- * architecture design). All non-protocol output goes to stderr, since stdout
+ * Runs in-process over stdio. All non-protocol output goes to stderr, since stdout
  * carries the MCP JSON-RPC transport once the server is connected.
  */
 
@@ -99,10 +98,10 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
         await new McpResourceRegistry().registerAll(server);
 
         // Warm the model cache at startup so it's loaded once and held in memory
-        // for the session (see the architecture design's Model Lifecycle), rather
-        // than waiting for the first tool call. Best-effort: a server started
-        // outside a DR project (or before one exists) still starts up cleanly —
-        // the first tool call that supplies a valid rootPath will load and cache it.
+        // for the session, rather than waiting for the first tool call. Best-effort:
+        // a server started outside a DR project (or before one exists) still starts
+        // up cleanly — the first tool call that supplies a valid rootPath will load
+        // and cache it.
         try {
           await loadModel();
         } catch (error) {

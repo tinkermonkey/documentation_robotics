@@ -2,8 +2,8 @@
  * model_reload — force a full, non-lazy reload of the architecture model from
  * disk and report a summary of what was read.
  *
- * Per the architecture design's Model Lifecycle, `loadModel()` (shared.ts) loads
- * the model once per rootPath and holds it in memory for reuse across tool calls,
+ * `loadModel()` (shared.ts) loads the model once per rootPath and holds it in
+ * memory for reuse across tool calls,
  * the same way the REST/visualization server holds a long-lived `this.model` field
  * (see `setupFileWatcher()` in `cli/src/server/server.ts`). That cache can go stale
  * after edits made outside this MCP session (e.g. the CLI or another process editing

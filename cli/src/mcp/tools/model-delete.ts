@@ -1,7 +1,8 @@
 /**
  * model_delete — delete an element (optionally cascading to dependents).
- * Mirrors `dr delete --force`, since an MCP session has no interactive
- * confirmation channel; operates through the shared MutationHandler.
+ * Mirrors `dr delete`, but since an MCP session has no interactive confirmation
+ * channel, the caller must pass `force` or `cascade` explicitly when dependents
+ * exist rather than being prompted; operates through the shared MutationHandler.
  */
 
 import { z } from "zod";

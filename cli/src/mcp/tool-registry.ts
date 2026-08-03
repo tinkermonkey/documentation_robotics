@@ -12,9 +12,6 @@
  * Annotation tools: annotation_list, annotation_get, annotation_create,
  * annotation_update, annotation_delete, annotation_reply (via AnnotationStore),
  * mirroring the REST server's /api/annotations/* endpoints.
- *
- * See "Tool Surface Design" and "Phase 2: Core Tools" / "Phase 3: Changesets
- * and Chat" in the architecture design.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

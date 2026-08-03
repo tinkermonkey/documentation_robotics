@@ -2,9 +2,8 @@
  * Shared helpers for MCP model tool handlers.
  *
  * Centralizes model loading and the CLIError -> structured error content
- * translation (Domain Logic Invocation / Error Handling patterns from the
- * architecture design) so individual tool handlers stay focused on their
- * own domain logic.
+ * translation so individual tool handlers stay focused on their own domain
+ * logic.
  */
 
 import { z, type ZodRawShape } from "zod";
@@ -37,10 +36,10 @@ export interface McpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
 
 /**
  * Per-rootPath cache of the loaded architecture model, held for the lifetime of the
- * MCP server process (see the architecture design's Model Lifecycle: the Model is
- * loaded once and reused across tool calls rather than reread from disk on every
- * invocation). Keyed by the raw `rootPath` argument (`""` for the server's default
- * cwd), matching how MCP clients address a model across calls.
+ * MCP server process: the Model is loaded once and reused across tool calls rather
+ * than reread from disk on every invocation. Keyed by the raw `rootPath` argument
+ * (`""` for the server's default cwd), matching how MCP clients address a model
+ * across calls.
  */
 const modelCache = new Map<string, Promise<Model>>();
 
