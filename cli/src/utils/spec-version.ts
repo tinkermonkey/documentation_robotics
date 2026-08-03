@@ -24,7 +24,12 @@ function resolveDevVersion(): string {
     const require = createRequire(import.meta.url);
     const pkg = require("../../package.json") as { version?: string };
     return pkg.version ?? "0.0.0";
-  } catch {
+  } catch (error) {
+    console.error(
+      `Failed to resolve dev-mode CLI version from package.json, falling back to "0.0.0": ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
     return "0.0.0";
   }
 }
