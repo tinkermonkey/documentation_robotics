@@ -9,7 +9,7 @@ export const annotationIdSchema = z.string().min(1).describe("Annotation ID (e.g
 export const elementIdSchema = z
   .string()
   .min(1)
-  .describe("Target element ID (e.g. 'api.endpoint.create-order').");
+  .describe("Target element ID (e.g. 'api.operation.create-order').");
 
 export const annotationContentSchema = z
   .string()
