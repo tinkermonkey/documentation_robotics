@@ -109,6 +109,35 @@ jobs:
         working-directory: ./cli
         run: npm run build:ci
 
+      - name: Simulate fresh consumer install
+        working-directory: ./cli
+        run: |
+          set -euo pipefail
+
+          # Pack exactly what would be published, then install it the way a
+          # real consumer would: `npm install -g`, which only fetches
+          # `dependencies`, never `devDependencies`. This is the check that
+          # would have caught @opentelemetry/api-logs and glob being
+          # misclassified as devDependencies (see #797) - a plain `npm
+          # install` in this repo checkout installs devDependencies too and
+          # would never have surfaced the bug.
+          PACK_FILE=$(npm pack --silent 2>/dev/null | tail -n1)
+          echo "Packed tarball: $PACK_FILE"
+
+          INSTALL_PREFIX=$(mktemp -d)
+          npm install --global --omit=dev --prefix "$INSTALL_PREFIX" "$(pwd)/$PACK_FILE"
+
+          export PATH="$INSTALL_PREFIX/bin:$PATH"
+          echo "Resolved dr binary: $(command -v dr)"
+
+          echo "--- dr --version ---"
+          dr --version
+
+          echo "--- dr --help ---"
+          dr --help > /dev/null
+
+          echo "✓ Fresh install smoke test passed"
+
       - name: Install codebase-memory-mcp (analyzer test dependency)
         run: npm install -g codebase-memory-mcp
 
