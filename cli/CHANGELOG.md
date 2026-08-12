@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-08-12
+
+**Specification Support:** v0.8.4
+
+### Fixed
+
+- **`dr visualize` no longer requires Bun**: the visualization server had a hard runtime
+  dependency on Bun-specific APIs (`Bun.serve()`, `hono/bun`, `Bun.spawn`/`Bun.spawnSync`,
+  `Bun.watch`), so it needed a separate Bun install even though `dr` itself runs fine under
+  plain Node.js — the actionable-error workaround shipped in 0.1.7 (#799) only softened the
+  landing. Replaced with `@hono/node-server`, `@hono/node-ws`, `node:child_process`, and
+  `chokidar`, and changed the CLI to spawn the server subprocess via `process.execPath`
+  (whichever runtime is already running the CLI) instead of a literal `bun` binary. `dr
+  visualize` now works end-to-end — HTTP, WebSocket, file watching, and the AI chat feature —
+  on a machine with only Node.js installed. (#800)
+- **Chat subprocess spawn failures no longer crash the whole server**: `launchClaudeCodeChat`/
+  `launchCopilotChat` had no error handler on the newly-Node `child_process.spawn()` call.
+  Node reports spawn failures (e.g. `claude`/`gh`/`copilot` missing from `PATH`) asynchronously
+  via an `'error'` event rather than a synchronous throw, and an unhandled one crashed the
+  entire `dr visualize` process — dropping every connected client — instead of failing just the
+  one chat request that triggered it.
+- **Hung chat subprocesses could never be force-killed**: the SIGTERM→SIGKILL escalation logic
+  checked `proc.killed`, which under Node means "`kill()` was called," not "the process actually
+  exited" (Bun's `Subprocess.killed`, which this code was originally written against, means the
+  latter) — so a subprocess that ignored SIGTERM was never escalated to SIGKILL and leaked
+  indefinitely instead of being cleaned up.
+- **`dr visualize` crashed instead of showing a clean error when the port was already in use**:
+  a bind failure (e.g. `EADDRINUSE` from a still-running previous instance) is reported
+  asynchronously by Node's HTTP server; `start()` now waits for it and surfaces an actionable
+  "port already in use" message instead of an unhandled exception.
+
+(#803)
+
 ## [0.1.7] - 2026-08-12
 
 cli-v0.1.6 was tagged but never published — CI's release gate failed on analyzer
