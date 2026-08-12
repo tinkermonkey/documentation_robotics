@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Capability",
+  "description": "An ability the product possesses, independent of how it's implemented",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.capability"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "capability"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the capability"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["proposed", "planned", "developing", "delivered", "deprecated"],
+          "description": "Lifecycle status of the capability"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    }
+  }
+}

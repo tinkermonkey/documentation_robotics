@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Milestone",
+  "description": "A time-bound delivery target grouping features or capabilities",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.milestone"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "milestone"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the milestone"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["proposed", "planned", "active", "completed", "cancelled"],
+          "description": "Milestone status"
+        }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    }
+  }
+}
