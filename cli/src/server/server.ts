@@ -315,8 +315,9 @@ export class VisualizationServer {
    * Set up the WebSocket adapter for this server instance
    * This is called in the constructor to support WebSocket functionality via @hono/node-ws,
    * which works identically under Node.js and Bun (both implement Node's http module).
-   * Wrapped in try/catch so a WS setup failure degrades gracefully instead of crashing
-   * the whole server (e.g. non-server contexts like generating the OpenAPI spec).
+   * Wrapped in try/catch as a defensive guard so a WS setup failure would degrade the
+   * server gracefully (no /ws route) rather than crash construction entirely, in case
+   * this ever becomes fallible again in the future.
    */
   private loadWebSocketAdapter(): void {
     try {
@@ -1380,7 +1381,7 @@ export class VisualizationServer {
 
           try {
             // Extract the actual message data
-            // In Hono/Bun, message is a MessageEvent with a data property
+            // In Hono's WebSocket helper, message is a MessageEvent with a data property
             const rawData = (message as any).data ?? message;
 
             // Handle different message types (string, Buffer, ArrayBuffer)
@@ -2069,6 +2070,35 @@ export class VisualizationServer {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
+      // Node reports spawn failures (e.g. ENOENT if `claude` isn't on PATH) asynchronously
+      // via an 'error' event rather than a synchronous throw. Without this handler, an
+      // unhandled 'error' event on the ChildProcess EventEmitter throws and crashes the
+      // whole server (server-entry.ts's uncaughtException handler tears the process down)
+      // instead of just failing this one chat request.
+      proc.on("error", (err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(
+          `[Claude Code] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
+        );
+        this.activeChatProcesses.delete(conversationId);
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Failed to launch Claude Code: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(
+            `[Claude Code] Failed to send spawn-error notification: ${getErrorMessage(sendError)}`
+          );
+        }
+      });
+
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
 
@@ -2283,6 +2313,19 @@ export class VisualizationServer {
         stdio: ["ignore", "pipe", "pipe"],
       });
 
+      // Log why we're falling back to standalone copilot, for debuggability: `gh`
+      // missing (ENOENT), `gh` present but the copilot extension isn't installed
+      // (non-zero exit), or another spawn failure are otherwise indistinguishable.
+      if (ghResult.error) {
+        console.warn(
+          `[Copilot] 'gh copilot --version' probe failed to spawn: ${getErrorMessage(ghResult.error)}`
+        );
+      } else if (ghResult.status !== 0 && process.env.VERBOSE) {
+        console.log(
+          `[Copilot] 'gh copilot' unavailable (exit ${ghResult.status}), falling back to standalone 'copilot'`
+        );
+      }
+
       if (ghResult.status === 0) {
         cmd = ["gh", "copilot", "explain"];
 
@@ -2308,6 +2351,34 @@ export class VisualizationServer {
       const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
         stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      // See the matching handler in launchClaudeCodeChat: Node reports spawn failures
+      // (e.g. ENOENT if `gh`/`copilot` isn't on PATH) asynchronously via an 'error'
+      // event, and an unhandled one would crash the whole server instead of just this
+      // one chat request.
+      proc.on("error", (err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(
+          `[Copilot] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
+        );
+        this.activeChatProcesses.delete(conversationId);
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Failed to launch GitHub Copilot: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(
+            `[Copilot] Failed to send spawn-error notification: ${getErrorMessage(sendError)}`
+          );
+        }
       });
 
       // Store active process
@@ -2409,9 +2480,10 @@ export class VisualizationServer {
   private setupFileWatcher(): void {
     const modelPath = `${this.model.rootPath}/documentation-robotics/model`;
 
-    // Use chokidar for cross-platform recursive watching. Node's built-in fs.watch
-    // only supports the `recursive` option on macOS and Windows (not Linux), which
-    // would silently drop file-change events on Linux dev/CI machines.
+    // Use chokidar for consistent, well-tested cross-platform recursive watching
+    // rather than Node's built-in recursive fs.watch (Linux support for the
+    // `recursive` option only landed in Node 19.1.0, and its maturity/event
+    // semantics still vary more by platform than chokidar's).
     try {
       this.watcher = chokidar.watch(modelPath, {
         persistent: true,
@@ -3219,6 +3291,22 @@ export class VisualizationServer {
       fetch: this.app.fetch,
     });
 
+    // Node reports bind failures (e.g. EADDRINUSE from a still-running previous
+    // instance) asynchronously via an 'error' event rather than a synchronous throw.
+    // Waiting on it here turns that into a clean, catchable rejection instead of an
+    // unhandled 'error' event that would otherwise crash the whole process via
+    // server-entry.ts's uncaughtException handler.
+    await new Promise<void>((resolve, reject) => {
+      this._server!.once("listening", resolve);
+      this._server!.once("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "EADDRINUSE") {
+          reject(new Error(`Port ${port} is already in use. Try a different port with --port <port>.`));
+        } else {
+          reject(err);
+        }
+      });
+    });
+
     // Wire up the WebSocket upgrade handler on the underlying HTTP server
     this.injectWebSocket?.(this._server);
 
@@ -3256,6 +3344,20 @@ export class VisualizationServer {
   }
 
   /**
+   * Whether a child process has actually terminated.
+   *
+   * NOTE: Node's `ChildProcess.killed` means "kill() was successfully used to send a
+   * signal" — it does NOT mean the process has exited (a process can ignore SIGTERM
+   * and keep running with `.killed === true`). This differs from Bun's
+   * `Subprocess.killed`, which does mean "has the process exited". Use exitCode/
+   * signalCode (set only once the process has actually terminated) instead of
+   * `.killed` to decide whether retry/escalation is still needed.
+   */
+  private hasExited(proc: ChildProcess): boolean {
+    return proc.exitCode !== null || proc.signalCode !== null;
+  }
+
+  /**
    * Kill a process with retry logic and exponential backoff
    * Attempts graceful SIGTERM first, then force SIGKILL if needed
    */
@@ -3270,7 +3372,7 @@ export class VisualizationServer {
 
     while (attempt < maxRetries) {
       try {
-        if (proc.killed) {
+        if (this.hasExited(proc)) {
           // Process already terminated
           return;
         }
@@ -3281,7 +3383,7 @@ export class VisualizationServer {
         // Wait for process to exit gracefully
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        if (proc.killed) {
+        if (this.hasExited(proc)) {
           return;
         }
       } catch (error) {
@@ -3298,7 +3400,7 @@ export class VisualizationServer {
 
     // Force kill if graceful shutdown failed
     try {
-      if (!proc.killed) {
+      if (!this.hasExited(proc)) {
         proc.kill("SIGKILL");
         console.warn(
           `[${label}] Process for conversation ${conversationId} did not respond to SIGTERM, force killed with SIGKILL`

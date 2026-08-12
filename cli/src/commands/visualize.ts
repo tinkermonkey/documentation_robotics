@@ -106,7 +106,7 @@ export async function visualizeCommand(
       logDebug("[Telemetry] TELEMETRY_ENABLED is false - no spans will be created")
     }
 
-    // Spawn server in Bun subprocess with environment variables
+    // Build environment variables for the server subprocess
     const env: Record<string, string> = {
       ...process.env,
       DR_VISUALIZE_PORT: String(port),
@@ -159,8 +159,9 @@ export async function visualizeCommand(
         const chunk = data.toString()
         serverOutput += chunk
 
-        // Process each line individually: Bun's pipe buffering often batches multiple
-        // console.log calls (e.g. "running at" + "TOKEN:") into a single data event.
+        // Process each line individually: stdio pipe buffering can batch multiple
+        // console.log calls (e.g. "running at" + "TOKEN:") into a single data event,
+        // regardless of runtime.
         // Using startsWith/substring on the whole chunk would either miss the TOKEN line
         // (when "running at" is first) or extract a malformed token (when trailing lines
         // are appended), causing the browser to open with the wrong token and get a 403.
