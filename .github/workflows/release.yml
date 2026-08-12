@@ -109,6 +109,59 @@ jobs:
         working-directory: ./cli
         run: npm run build:ci
 
+      - name: Simulate fresh consumer install
+        working-directory: ./cli
+        run: |
+          set -euo pipefail
+
+          # Pack exactly what would be published, then install it the way a
+          # real consumer would: `npm install -g`, which only fetches
+          # `dependencies`, never `devDependencies`. This is the check that
+          # would have caught @opentelemetry/api-logs and glob being
+          # misclassified as devDependencies (see #797) - a plain `npm
+          # install` in this repo checkout installs devDependencies too and
+          # would never have surfaced the bug. --omit=dev is redundant here
+          # (npm never installs a target package's own devDependencies) but
+          # documents the intent explicitly.
+          #
+          # --loglevel=warn (not --silent) so a real `npm pack` failure still
+          # prints npm's error text instead of leaving a bare, unexplained
+          # non-zero exit in the CI log.
+          PACK_FILE=$(npm pack --loglevel=warn | tail -n1)
+          if [ -z "$PACK_FILE" ]; then
+            echo "::error::npm pack produced no output; expected a tarball filename"
+            exit 1
+          fi
+          echo "Packed tarball: $PACK_FILE"
+
+          INSTALL_PREFIX=$(mktemp -d)
+          npm install --global --omit=dev --prefix "$INSTALL_PREFIX" "$(pwd)/$PACK_FILE"
+
+          # Resolve as a checked assignment, not inline in an echo argument -
+          # a failed `command -v` inside an echo's command substitution does
+          # not trip `set -e`, so this would otherwise silently pass through
+          # even if `dr` failed to install. Also assert the resolved binary
+          # is actually the one we just installed, not some other `dr` that
+          # happened to already be on PATH.
+          export PATH="$INSTALL_PREFIX/bin:$PATH"
+          DR_BIN="$(command -v dr)"
+          echo "Resolved dr binary: $DR_BIN"
+          case "$DR_BIN" in
+            "$INSTALL_PREFIX"/*) ;;
+            *)
+              echo "::error::dr resolved to '$DR_BIN', expected a path under $INSTALL_PREFIX"
+              exit 1
+              ;;
+          esac
+
+          echo "--- dr --version ---"
+          dr --version
+
+          echo "--- dr --help ---"
+          dr --help | head -20
+
+          echo "✓ Fresh install smoke test passed"
+
       - name: Install codebase-memory-mcp (analyzer test dependency)
         run: npm install -g codebase-memory-mcp
 
