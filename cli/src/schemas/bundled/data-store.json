@@ -2,7 +2,7 @@
   "specVersion": "0.8.4",
   "layer": {
     "id": "data-store",
-    "number": 8,
+    "number": 9,
     "name": "Data Store Layer",
     "description": "Layer 8: Data Store Layer",
     "inspired_by": {

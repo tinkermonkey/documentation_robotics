@@ -2,7 +2,7 @@
   "specVersion": "0.8.4",
   "layer": {
     "id": "navigation",
-    "number": 10,
+    "number": 11,
     "name": "Navigation Layer",
     "description": "Layer 10: Navigation Layer",
     "inspired_by": {

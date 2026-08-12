@@ -91,6 +91,7 @@ const REF_REWRITE_RULES: Array<[RegExp, string]> = [
 const LAYER_ORDER = [
   "motivation",
   "business",
+  "product",
   "security",
   "application",
   "technology",
@@ -107,22 +108,24 @@ const LAYER_ORDER = [
 const LAYER_FILE_PREFIX_MAP: Record<string, string> = {
   "01-motivation": "motivation",
   "02-business": "business",
-  "03-security": "security",
-  "04-application": "application",
-  "05-technology": "technology",
-  "06-api": "api",
-  "07-data-model": "data-model",
-  "08-data-store": "data-store",
-  "09-ux": "ux",
-  "10-navigation": "navigation",
-  "11-apm": "apm",
-  "12-testing": "testing",
+  "03-product": "product",
+  "04-security": "security",
+  "05-application": "application",
+  "06-technology": "technology",
+  "07-api": "api",
+  "08-data-model": "data-model",
+  "09-data-store": "data-store",
+  "10-ux": "ux",
+  "11-navigation": "navigation",
+  "12-apm": "apm",
+  "13-testing": "testing",
 };
 
 // Node schema folder name → canonical layer ID
 const NODE_FOLDER_TO_LAYER: Record<string, string> = {
   motivation: "motivation",
   business: "business",
+  product: "product",
   security: "security",
   application: "application",
   technology: "technology",
@@ -202,7 +205,7 @@ interface AttributeMapping {
 
 interface AnalyzerNodeMapping {
   cbm_label: string;
-  dr_layer: "motivation" | "business" | "security" | "application" | "technology" | "api" | "data-model" | "data-store" | "ux" | "navigation" | "apm" | "testing";
+  dr_layer: "motivation" | "business" | "product" | "security" | "application" | "technology" | "api" | "data-model" | "data-store" | "ux" | "navigation" | "apm" | "testing";
   dr_element_type: string;
   confidence: "high" | "medium" | "low";
   description?: string;

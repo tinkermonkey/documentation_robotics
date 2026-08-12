@@ -913,7 +913,7 @@
     "scheduled-for": {
       "predicate": "scheduled-for",
       "inverse": "schedules",
-      "category": "product",
+      "category": "structural",
       "description": "Element is assigned to a time-bound delivery target",
       "archimate_alignment": null,
       "semantics": {
@@ -926,7 +926,7 @@
     "precedes": {
       "predicate": "precedes",
       "inverse": "follows",
-      "category": "product",
+      "category": "behavioral",
       "description": "Element comes before another in a temporal sequence",
       "archimate_alignment": null,
       "semantics": {

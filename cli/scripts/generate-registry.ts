@@ -61,11 +61,12 @@ interface LayerDistFile {
 
 /**
  * Expected layer count for the architecture model
- * The current 12-layer model is a specification invariant (expected value validated at build time).
+ * The current 13-layer model includes the Product layer inserted at position 3.
+ * This is a specification invariant (expected value validated at build time).
  * Future expansion would require updating this constant, layer instance files, and layer schemas.
  * See: spec/layers/ for all layer definitions
  */
-const EXPECTED_LAYER_COUNT = 12;
+const EXPECTED_LAYER_COUNT = 13;
 
 interface LayerMetadata {
   id: string;

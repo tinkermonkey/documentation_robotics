@@ -2,7 +2,7 @@
   "specVersion": "0.8.4",
   "layer": {
     "id": "security",
-    "number": 3,
+    "number": 4,
     "name": "Security Layer",
     "description": "Layer 3: Security Layer",
     "inspired_by": {

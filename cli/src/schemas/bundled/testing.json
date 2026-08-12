@@ -2,7 +2,7 @@
   "specVersion": "0.8.4",
   "layer": {
     "id": "testing",
-    "number": 12,
+    "number": 13,
     "name": "Testing Layer",
     "description": "Layer 12: Testing Layer",
     "inspired_by": {

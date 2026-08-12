@@ -2,7 +2,7 @@
   "specVersion": "0.8.4",
   "layer": {
     "id": "application",
-    "number": 4,
+    "number": 5,
     "name": "Application Layer",
     "description": "Layer 4: Application Layer",
     "inspired_by": {

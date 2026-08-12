@@ -2,7 +2,7 @@
   "specVersion": "0.8.4",
   "layer": {
     "id": "api",
-    "number": 6,
+    "number": 7,
     "name": "API Layer",
     "description": "Layer 6: API Layer",
     "inspired_by": {
