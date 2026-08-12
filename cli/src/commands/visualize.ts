@@ -324,7 +324,30 @@ export async function visualizeCommand(
 
     // Handle process errors
     serverProcess.on("error", (error) => {
-      const message = `Failed to start visualization server: ${error.message}`
+      const errorCode = (error as NodeJS.ErrnoException).code
+      let message: string
+      let suggestions: string[] | undefined
+
+      if (errorCode === "ENOENT") {
+        // `dr visualize` currently spawns its server as a Bun subprocess (see #800 for
+        // the plan to remove this dependency). On a fresh `npm install -g` there's no
+        // reason Bun would be present, so this is an expected, actionable failure mode
+        // rather than an unexpected crash - explain it instead of surfacing the raw
+        // "spawn bun ENOENT".
+        message = "dr visualize requires the Bun runtime, which was not found on this system."
+        suggestions = [
+          "Install Bun: https://bun.sh/docs/installation",
+          "  curl -fsSL https://bun.sh/install | bash   (macOS/Linux)",
+          "  powershell -c \"irm bun.sh/install.ps1 | iex\"   (Windows)",
+          "After installing, make sure `bun` is on your PATH, then re-run `dr visualize`.",
+          "Tracking issue: https://github.com/tinkermonkey/documentation_robotics/issues/800",
+        ]
+      } else if (errorCode === "EACCES") {
+        message = "dr visualize could not run the Bun runtime: permission denied."
+        suggestions = ["Check that the `bun` executable on your PATH is executable (chmod +x)."]
+      } else {
+        message = `Failed to start visualization server: ${error.message}`
+      }
 
       // Record error in startup span if still active
       if (isTelemetryEnabled && serverStartupSpan) {
@@ -339,9 +362,10 @@ export async function visualizeCommand(
         })()
       }
 
-      // Print error before throwing (CLI wrapper expects CLIError messages to be pre-printed)
-      console.error(message)
-      const cliError = new CLIError(message, 1)
+      // Don't print here: rejecting propagates this CLIError up through the catch block
+      // below to the top-level CLI handler, which prints `.format()` (including
+      // `suggestions`) exactly once. Printing here too would duplicate the whole block.
+      const cliError = new CLIError(message, 1, suggestions)
       if (rejectKeepAlive) {
         rejectKeepAlive(cliError)
       }
