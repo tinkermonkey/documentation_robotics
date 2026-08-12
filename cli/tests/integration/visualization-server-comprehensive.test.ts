@@ -664,6 +664,75 @@ describe.serial("Visualization Server - File Watching", () => {
     const reloadedLayer = await reloadedModel.getLayer("motivation");
     expect(reloadedLayer?.elements.size).toBe(initialCount + 1);
   });
+
+  // The test above only proves the file changed on disk - it reloads the model itself
+  // independently rather than checking anything about the server's own watcher/broadcast
+  // behavior, so it would pass identically even if the watcher (chokidar, since PR #803's
+  // Bun -> Node migration) were completely broken. This test instead asserts the server's
+  // actual watcher-driven side effect: that editing a model file causes a live WebSocket
+  // client to receive a "model.updated" broadcast with the updated data.
+  it("should broadcast model.updated over WebSocket when a watched file changes", async () => {
+    const ws = new WebSocket(`ws://localhost:${watchingPort}/ws`);
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("WebSocket never opened")), 10000);
+      ws.onopen = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      ws.onerror = (err) => {
+        clearTimeout(timer);
+        reject(err);
+      };
+    });
+
+    // The previous test in this describe.serial block also edits a model file and
+    // triggers the same watcher/broadcast; a stray "model.updated" from that edit can
+    // still be in flight when this test's WS connects. Only resolve on the broadcast
+    // that actually reflects *this* test's edit, not just the first one that arrives.
+    const updatePromise = new Promise<any>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Timed out waiting for model.updated broadcast containing motivation-goal-g4"));
+      }, 10000);
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data as string);
+        // Match on `name` rather than `id`: the model layer may normalize/rewrite the
+        // id it was constructed with (e.g. to a UUID with a separate dot-notation
+        // `path`), so `name` is the more reliable identifier for what we just added.
+        if (
+          message.type === "model.updated" &&
+          message.data?.nodes?.some((n: any) => n.name === "Broadcast Test Goal")
+        ) {
+          clearTimeout(timer);
+          resolve(message);
+        }
+      };
+    });
+
+    const motivationLayer = await model.getLayer("motivation");
+    if (motivationLayer) {
+      motivationLayer.addElement(
+        new Element({
+          id: "motivation-goal-g4",
+          name: "Broadcast Test Goal",
+          type: "goal",
+          description: "Added to trigger a watcher broadcast",
+          attributes: {},
+          relationships: [],
+          references: [],
+          layer: "motivation",
+        })
+      );
+      await model.saveLayer("motivation");
+    }
+
+    const update = await updatePromise;
+    expect(update.type).toBe("model.updated");
+    expect(update.data).toBeDefined();
+    expect(Array.isArray(update.data.nodes)).toBe(true);
+    expect(update.data.nodes.some((n: any) => n.name === "Broadcast Test Goal")).toBe(true);
+
+    ws.close();
+  }, 15000);
 });
 
 describe.serial("Visualization Server - Changesets", () => {
