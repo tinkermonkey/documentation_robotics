@@ -137,13 +137,15 @@ export class StdioClient {
    * Initialize the analyzer with client information
    *
    * Sends an initialize request and waits for the response.
-   * Times out after 2 seconds if no response is received.
+   * Times out after 5 seconds if no response is received. Was 2 seconds,
+   * but that became too tight for slower analyzer binary cold starts
+   * (observed failing in CI against codebase-memory-mcp 0.10.x - see #802).
    *
    * @param clientInfo Client information object
    * @throws Error if initialize times out or fails
    */
   async initialize(clientInfo: Record<string, unknown>): Promise<unknown> {
-    return this.callTool("initialize", clientInfo, { timeout: 2000 });
+    return this.callTool("initialize", clientInfo, { timeout: 5000 });
   }
 
   /**

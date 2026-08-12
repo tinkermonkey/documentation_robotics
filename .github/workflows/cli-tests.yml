@@ -76,7 +76,7 @@ jobs:
           # These tests require special handling:
           # - Visualization tests use describe.serial due to port conflicts and file watching
           # - Performance tests create large data structures for benchmarking
-          time bun test tests/integration/visualization-server*.test.ts tests/integration/telemetry-config-integration.test.ts tests/performance/**/*.test.ts
+          time bun test --timeout=30000 tests/integration/visualization-server*.test.ts tests/integration/telemetry-config-integration.test.ts tests/performance/**/*.test.ts
 
   spec-validation:
     name: Validate Specification and Schemas
