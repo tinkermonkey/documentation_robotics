@@ -6,48 +6,15 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
+import { serve } from "@hono/node-server";
+import { createNodeWebSocket } from "@hono/node-ws";
+import { spawn, spawnSync, type ChildProcess } from "child_process";
+import chokidar from "chokidar";
 import { randomBytes } from "crypto";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import path from "path";
 
-// hono/bun imports are conditional - they're only available in Bun runtime
-// For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
-// These are conditionally loaded in loadBunAdapters() and remain undefined in non-Bun runtimes
-// Bun-specific WebSocket upgrade middleware from hono/bun
-// Only available in Bun runtime; undefined in Node.js/tsx
-let upgradeWebSocket: any;
-// Bun-specific WebSocket middleware from hono/bun
-// Only available in Bun runtime; undefined in Node.js/tsx
-let websocket: any;
-
-/**
- * NOTE: Module-scoped WebSocket adapter state
- *
- * upgradeWebSocket and websocket are declared as module-level let variables and mutated
- * in the constructor via loadBunAdapters(). This creates intentional coupling between
- * VisualizationServer instances: they all share the same adapter references.
- *
- * DESIGN RATIONALE:
- * - These adapters are loaded from the Bun runtime at module-load time and are immutable
- *   after initialization. The Bun runtime itself is global state.
- * - In practice, all VisualizationServer instances will call loadBunAdapters() with the same
- *   inputs and will get the same results (or the same errors).
- * - Creating separate instance-level copies would add unnecessary memory overhead without
- *   providing benefits, since the adapters cannot be meaningfully different per instance.
- * - The coupling is acceptable because:
- *   1. These are runtime environment adapters, not request-specific state
- *   2. They are immutable after initialization (set once in first constructor call)
- *   3. Tests and production code all use a single VisualizationServer instance per process
- *
- * ALTERNATIVE APPROACHES (rejected):
- * - Instance properties: Would duplicate adapter references unnecessarily
- * - Lazy initialization in methods: Would cause per-request overhead
- * - Singleton pattern: Would require additional infrastructure without clear benefits
- *
- * If future requirements demand multiple independent VisualizationServer instances
- * with different WebSocket configurations, this design can be revisited.
- */
 const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
@@ -132,8 +99,9 @@ type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
 // Derive ClientAnnotation type from AnnotationSchema with proper serialization
 type ClientAnnotation = z.infer<typeof AnnotationSchema>;
 
-// Type for WebSocket context from Hono/Bun
-// Defines the interface for WebSocket operations within the Hono/Bun environment
+// Type for WebSocket context from Hono's WebSocket helper (hono/ws), shared by all
+// runtime adapters (@hono/node-ws, hono/bun, hono/cloudflare-workers, etc.)
+// Defines the interface for WebSocket operations within the Hono environment
 interface HonoWSContext {
   send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: { compress?: boolean }): void;
   close(code?: number, reason?: string): void;
@@ -152,7 +120,9 @@ export interface VisualizationServerOptions {
 export class VisualizationServer {
   private app: OpenAPIHono;
   private model: Model;
-  private _server?: any; // Bun.serve return type, loaded dynamically
+  private _server?: ReturnType<typeof serve>; // Node HTTP server returned by @hono/node-server
+  private upgradeWebSocket?: ReturnType<typeof createNodeWebSocket>["upgradeWebSocket"];
+  private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
@@ -164,7 +134,7 @@ export class VisualizationServer {
   private authEnabled: boolean = true;
   private withDanger: boolean = false; // Danger mode disabled by default
   private viewerPath?: string; // Optional custom viewer path
-  private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
+  private activeChatProcesses: Map<string, ChildProcess> = new Map(); // conversationId -> spawned chat process
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
@@ -270,8 +240,10 @@ export class VisualizationServer {
     this.app = new OpenAPIHono();
     this.model = model;
 
-    // Load Bun-specific imports if available (for WebSocket support in Bun runtime)
-    this.loadBunAdapters();
+    // Set up the WebSocket adapter for this app instance (works under both
+    // Node.js and Bun, since @hono/node-server/@hono/node-ws use Node's
+    // http module, which Bun also implements).
+    this.loadWebSocketAdapter();
 
     // Auth configuration (CLI options override environment variables)
     this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
@@ -340,30 +312,25 @@ export class VisualizationServer {
   }
 
   /**
-   * Load Bun-specific WebSocket adapters if available
-   * This is called in the constructor to support WebSocket functionality in Bun runtime
-   * In Node.js/tsx environments (e.g., generating OpenAPI spec), these imports are skipped
+   * Set up the WebSocket adapter for this server instance
+   * This is called in the constructor to support WebSocket functionality via @hono/node-ws,
+   * which works identically under Node.js and Bun (both implement Node's http module).
+   * Wrapped in try/catch so a WS setup failure degrades gracefully instead of crashing
+   * the whole server (e.g. non-server contexts like generating the OpenAPI spec).
    */
-  private loadBunAdapters(): void {
-    // Check if we're running in Bun runtime by checking for Bun global
-    if (typeof (global as any).Bun !== "undefined") {
-      try {
-        // Use dynamic import for Bun-specific adapters
-        // This is safe to call only in Bun runtime
-        const honoModule = require("hono/bun") as any;
-        upgradeWebSocket = honoModule.upgradeWebSocket;
-        websocket = honoModule.websocket;
-      } catch (error) {
-        // Log error details for production debugging (not just VERBOSE mode)
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[Server] WARNING: Could not load WebSocket adapters from hono/bun: ${message}. ` +
-            `WebSocket endpoints (/ws) will not be available. ` +
-            `Please ensure 'hono' is installed and the Bun runtime is properly configured.`
-        );
-        if (process.env.VERBOSE && error instanceof Error && error.stack) {
-          console.debug("[Server] Stack trace:", error.stack);
-        }
+  private loadWebSocketAdapter(): void {
+    try {
+      const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: this.app });
+      this.injectWebSocket = injectWebSocket;
+      this.upgradeWebSocket = upgradeWebSocket;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[Server] WARNING: Could not set up WebSocket adapter: ${message}. ` +
+          `WebSocket endpoints (/ws) will not be available.`
+      );
+      if (process.env.VERBOSE && error instanceof Error && error.stack) {
+        console.debug("[Server] Stack trace:", error.stack);
       }
     }
   }
@@ -1309,8 +1276,8 @@ export class VisualizationServer {
     this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
 
     // WebSocket endpoint
-    // Only register if WebSocket adapter is available (Bun runtime)
-    if (upgradeWebSocket) {
+    // Only register if the WebSocket adapter was set up successfully
+    if (this.upgradeWebSocket) {
       this.app.get(
         "/ws",
         async (c, next) => {
@@ -1372,7 +1339,7 @@ export class VisualizationServer {
 
           return next();
         },
-        upgradeWebSocket(() => ({
+        this.upgradeWebSocket(() => ({
         onOpen: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket connection
           await this.recordWebSocketEvent("ws.connection.open", {
@@ -2097,23 +2064,19 @@ export class VisualizationServer {
       cmd.push("--verbose", "--output-format", "stream-json");
 
       // Launch claude with dr-architect agent for comprehensive DR expertise
-      const proc = Bun.spawn({
-        cmd,
+      const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
-        stdin: "pipe",
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
 
       // Send user message via stdin (like Python prototype)
-      proc.stdin?.write(new TextEncoder().encode(message));
+      proc.stdin?.write(message);
       proc.stdin?.end();
 
       // Stream stdout (JSON events)
-      const stdoutReader = proc.stdout.getReader();
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
@@ -2121,11 +2084,8 @@ export class VisualizationServer {
         let buffer = "";
 
         try {
-          while (true) {
-            const { done, value } = await stdoutReader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
+          for await (const chunkBuf of proc.stdout!) {
+            const chunk = decoder.decode(chunkBuf, { stream: true });
             buffer += chunk;
 
             // Process complete lines (JSON events)
@@ -2225,7 +2185,7 @@ export class VisualizationServer {
           }
 
           // Wait for process to complete
-          const exitCode = await proc.exited;
+          const exitCode = await this.waitForExit(proc);
 
           // Clean up
           this.activeChatProcesses.delete(conversationId);
@@ -2319,13 +2279,11 @@ export class VisualizationServer {
       let cmd: string[];
 
       // Check if gh CLI with copilot extension is available
-      const ghResult = Bun.spawnSync({
-        cmd: ["gh", "copilot", "--version"],
-        stdout: "pipe",
-        stderr: "pipe",
+      const ghResult = spawnSync("gh", ["copilot", "--version"], {
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
-      if (ghResult.exitCode === 0) {
+      if (ghResult.status === 0) {
         cmd = ["gh", "copilot", "explain"];
 
         // Add allow-all-tools flag if withDanger is enabled
@@ -2347,30 +2305,23 @@ export class VisualizationServer {
       }
 
       // Launch GitHub Copilot
-      const proc = Bun.spawn({
-        cmd,
+      const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
-        stdin: "pipe",
-        stdout: "pipe",
-        stderr: "pipe",
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
 
       // GitHub Copilot outputs plain text/markdown (not JSON)
-      const stdoutReader = proc.stdout.getReader();
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
         let accumulatedText = "";
 
         try {
-          while (true) {
-            const { done, value } = await stdoutReader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
+          for await (const chunkBuf of proc.stdout!) {
+            const chunk = decoder.decode(chunkBuf, { stream: true });
             accumulatedText += chunk;
 
             // Send text chunk as it arrives
@@ -2389,7 +2340,7 @@ export class VisualizationServer {
           }
 
           // Wait for process to complete
-          const exitCode = await proc.exited;
+          const exitCode = await this.waitForExit(proc);
 
           // Clean up
           this.activeChatProcesses.delete(conversationId);
@@ -2458,47 +2409,49 @@ export class VisualizationServer {
   private setupFileWatcher(): void {
     const modelPath = `${this.model.rootPath}/documentation-robotics/model`;
 
-    // Use Bun's global watch API (cast to any due to type definitions)
-    const bunWatch = (globalThis as any).Bun?.watch;
-    if (!bunWatch) {
-      console.warn("[Watcher] Bun.watch not available, file watching disabled");
-      return;
-    }
-
+    // Use chokidar for cross-platform recursive watching. Node's built-in fs.watch
+    // only supports the `recursive` option on macOS and Windows (not Linux), which
+    // would silently drop file-change events on Linux dev/CI machines.
     try {
-      this.watcher = bunWatch(modelPath, {
-        recursive: true,
-        onChange: async (_event: string, path: string) => {
-          if (process.env.VERBOSE) {
-            console.log(`[Watcher] File changed: ${path}`);
-          }
+      this.watcher = chokidar.watch(modelPath, {
+        persistent: true,
+        ignoreInitial: true,
+      });
 
-          try {
-            // Reload model and changesets
-            this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
-            await this.loadChangesetsFromDisk();
+      this.watcher.on("all", async (_event: string, path: string) => {
+        if (process.env.VERBOSE) {
+          console.log(`[Watcher] File changed: ${path}`);
+        }
 
-            // Broadcast update to all clients
-            const modelData = await this.serializeModel();
-            const message = JSON.stringify({
-              type: "model.updated",
-              data: modelData,
-              timestamp: new Date().toISOString(),
-            });
+        try {
+          // Reload model and changesets
+          this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
+          await this.loadChangesetsFromDisk();
 
-            for (const client of this.clients) {
-              try {
-                client.send(message);
-              } catch (error) {
-                const msg = getErrorMessage(error);
-                console.warn(`[Watcher] Failed to send update: ${msg}`);
-              }
+          // Broadcast update to all clients
+          const modelData = await this.serializeModel();
+          const message = JSON.stringify({
+            type: "model.updated",
+            data: modelData,
+            timestamp: new Date().toISOString(),
+          });
+
+          for (const client of this.clients) {
+            try {
+              client.send(message);
+            } catch (error) {
+              const msg = getErrorMessage(error);
+              console.warn(`[Watcher] Failed to send update: ${msg}`);
             }
-          } catch (error) {
-            const message = getErrorMessage(error);
-            console.error(`[Watcher] Failed to reload model: ${message}`);
           }
-        },
+        } catch (error) {
+          const message = getErrorMessage(error);
+          console.error(`[Watcher] Failed to reload model: ${message}`);
+        }
+      });
+
+      this.watcher.on("error", (err: unknown) => {
+        console.warn(`[Watcher] Could not watch ${modelPath}: ${getErrorMessage(err)}`);
       });
     } catch (err) {
       console.warn(`[Watcher] Could not watch ${modelPath}: ${err}`);
@@ -3259,14 +3212,15 @@ export class VisualizationServer {
 
     this.setupFileWatcher();
 
-    // Dynamically import serve from bun to allow usage with non-Bun runtimes
-    const { serve } = await import("bun");
-
+    // @hono/node-server works identically under Node.js and Bun (both implement
+    // Node's http module), so no runtime-specific branching is needed here.
     this._server = serve({
       port,
       fetch: this.app.fetch,
-      websocket, // Add WebSocket handler from hono/bun
     });
+
+    // Wire up the WebSocket upgrade handler on the underlying HTTP server
+    this.injectWebSocket?.(this._server);
 
     console.log(`✓ Visualization server running at http://localhost:${port}`);
   }
@@ -3286,11 +3240,27 @@ export class VisualizationServer {
   }
 
   /**
+   * Wait for a spawned child process to exit and resolve with its exit code
+   * Node's ChildProcess doesn't expose a Bun-style `.exited` promise, so this
+   * wraps the "exit" event (or the already-set exitCode, if it fired before
+   * we started listening).
+   */
+  private waitForExit(proc: ChildProcess): Promise<number> {
+    return new Promise((resolve) => {
+      if (proc.exitCode !== null) {
+        resolve(proc.exitCode);
+        return;
+      }
+      proc.once("exit", (code) => resolve(code ?? 0));
+    });
+  }
+
+  /**
    * Kill a process with retry logic and exponential backoff
    * Attempts graceful SIGTERM first, then force SIGKILL if needed
    */
   private async killProcessWithRetry(
-    proc: any,
+    proc: ChildProcess,
     conversationId: string,
     label: string
   ): Promise<void> {
@@ -3366,7 +3336,11 @@ export class VisualizationServer {
 
     // Stop the server
     if (this._server) {
-      this._server.stop();
+      this._server.close((error) => {
+        if (error && process.env.VERBOSE) {
+          console.warn(`[SERVER] Error while closing HTTP server: ${getErrorMessage(error)}`);
+        }
+      });
     }
   }
 }

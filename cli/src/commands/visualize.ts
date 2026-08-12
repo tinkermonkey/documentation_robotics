@@ -139,7 +139,11 @@ export async function visualizeCommand(
       logDebug(`Using custom viewer from: ${options.viewerPath}`)
     }
 
-    const serverProcess = spawn("bun", ["run", serverEntryPath], {
+    // Reuse whichever runtime is currently executing the CLI (node or bun) to launch
+    // the server subprocess. server-entry.ts has no Bun-specific dependencies (see #800),
+    // so this works identically under Node.js or Bun — and unlike spawning a literal
+    // "bun" binary, process.execPath is guaranteed to exist since it's already running.
+    const serverProcess = spawn(process.execPath, [serverEntryPath], {
       cwd: process.cwd(),
       stdio: ["pipe", "pipe", "pipe"],
       env,
@@ -328,23 +332,13 @@ export async function visualizeCommand(
       let message: string
       let suggestions: string[] | undefined
 
-      if (errorCode === "ENOENT") {
-        // `dr visualize` currently spawns its server as a Bun subprocess (see #800 for
-        // the plan to remove this dependency). On a fresh `npm install -g` there's no
-        // reason Bun would be present, so this is an expected, actionable failure mode
-        // rather than an unexpected crash - explain it instead of surfacing the raw
-        // "spawn bun ENOENT".
-        message = "dr visualize requires the Bun runtime, which was not found on this system."
-        suggestions = [
-          "Install Bun: https://bun.sh/docs/installation",
-          "  curl -fsSL https://bun.sh/install | bash   (macOS/Linux)",
-          "  powershell -c \"irm bun.sh/install.ps1 | iex\"   (Windows)",
-          "After installing, make sure `bun` is on your PATH, then re-run `dr visualize`.",
-          "Tracking issue: https://github.com/tinkermonkey/documentation_robotics/issues/800",
-        ]
-      } else if (errorCode === "EACCES") {
-        message = "dr visualize could not run the Bun runtime: permission denied."
-        suggestions = ["Check that the `bun` executable on your PATH is executable (chmod +x)."]
+      // The server subprocess is launched via process.execPath (the same node/bun
+      // binary already running this CLI), so it's always present - ENOENT here would
+      // indicate something unusual about the runtime environment rather than a missing
+      // dependency (see #800: this used to hard-depend on a separately installed `bun`).
+      if (errorCode === "EACCES") {
+        message = `dr visualize could not run the visualization server: permission denied executing ${process.execPath}.`
+        suggestions = [`Check that ${process.execPath} is executable (chmod +x).`]
       } else {
         message = `Failed to start visualization server: ${error.message}`
       }
