@@ -26,7 +26,13 @@
         },
         "status": {
           "type": "string",
-          "enum": ["proposed", "planned", "developing", "delivered", "deprecated"],
+          "enum": [
+            "proposed",
+            "planned",
+            "developing",
+            "delivered",
+            "deprecated"
+          ],
           "description": "Lifecycle status of the capability"
         },
         "properties": {
