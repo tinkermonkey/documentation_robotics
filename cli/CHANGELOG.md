@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.6] - 2026-08-12
+## [0.1.7] - 2026-08-12
+
+cli-v0.1.6 was tagged but never published — CI's release gate failed on analyzer
+integration tests that had always been running under a silently-broken timeout
+config (see CI notes below). No npm package or GitHub release was ever created
+for 0.1.6, so its entry is renamed to 0.1.7 rather than superseded by a new one.
 
 **Specification Support:** v0.8.4
 
@@ -34,6 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   isolated prefix before every release — simulating a real `npm install -g` consumer install —
   then runs `dr --version`/`dr --help` as a release gate. This class of dependency-classification
   bug can no longer reach a publish.
+- Fixed the analyzer MCP `initialize` handshake timeout (2000ms → 5000ms) and the test suite's
+  real per-test timeout, which had silently been Bun's 5000ms default rather than the intended
+  30s — `bunfig.toml`'s `timeoutMs` key was never a real Bun config option. Both issues surfaced
+  together when `codebase-memory-mcp` (an external, unpinned CI dependency) got slower across
+  three releases in 48 hours. Now set via an explicit `--timeout=30000` flag on every `bun test`
+  invocation. See #802 for the full investigation.
 
 ## [0.1.5] - 2026-07-23
 
