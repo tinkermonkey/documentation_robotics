@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-12
+
+**Specification Support:** v0.8.4
+
+### Fixed
+
+- **Fresh installs were broken**: `npm install -g @documentation-robotics/cli` failed with
+  `Cannot find module '@opentelemetry/api-logs'`, then (once worked around) `Cannot find
+  module 'glob'`. Both packages — along with the rest of the `@opentelemetry/*` family that's
+  actually reachable at runtime — were misclassified as `devDependencies`, which npm does not
+  install for consumers of a published package, even though they're imported unconditionally
+  by core, always-loaded code (`telemetry/index.ts`, `core/relationship-catalog.ts`). Moved
+  the reachable packages to `dependencies`; kept the rest (only ever loaded by an internal
+  debug build variant that's never published) in `devDependencies` to avoid bloating installs.
+  (#797)
+- **`dr visualize` now fails elegantly when Bun isn't installed**: it spawns its server as a
+  Bun subprocess, which previously crashed with a raw, unexplained `spawn bun ENOENT` on any
+  machine without Bun (true for every fresh install, since Bun is devDependency-only). It now
+  shows an actionable error with install instructions instead. `dr visualize` still requires
+  Bun for now — removing that dependency entirely is tracked in #800. (#799)
+
+### CI
+
+- The release pipeline now packs the CLI and installs it globally with `--omit=dev` into an
+  isolated prefix before every release — simulating a real `npm install -g` consumer install —
+  then runs `dr --version`/`dr --help` as a release gate. This class of dependency-classification
+  bug can no longer reach a publish.
+
 ## [0.1.5] - 2026-07-23
 
 **Specification Support:** v0.8.4
