@@ -2098,6 +2098,10 @@ export class VisualizationServer {
           );
         }
       });
+      // A failed spawn also destroys the stdio streams Node already created, which can
+      // raise a second, separate unhandled 'error' event on `proc.stdin` itself. Swallow
+      // it here since the handler above already reports the failure to the client.
+      proc.stdin?.on("error", () => {});
 
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
@@ -2235,6 +2239,15 @@ export class VisualizationServer {
             })
           );
         } catch (error) {
+          // A process that never actually spawned (see the proc.on("error", ...)
+          // handler above, which already reported this failure to the client) has no
+          // pid - Node assigns one synchronously only once posix_spawn succeeds. Bail
+          // out here instead of sending a second, duplicate JSON-RPC response for the
+          // same request or trying to kill a process that never started.
+          if (!proc.pid) {
+            return;
+          }
+
           const errorMsg = getErrorMessage(error);
 
           ws.send(
@@ -2380,6 +2393,9 @@ export class VisualizationServer {
           );
         }
       });
+      // See the matching guard in launchClaudeCodeChat: a failed spawn can also raise a
+      // separate unhandled 'error' event on the stdin stream Node already created.
+      proc.stdin?.on("error", () => {});
 
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
@@ -2431,6 +2447,13 @@ export class VisualizationServer {
             })
           );
         } catch (error) {
+          // See the matching guard in launchClaudeCodeChat: a process that never
+          // actually spawned has no pid, and its own proc.on("error", ...) handler
+          // above already reported the failure - avoid a duplicate response/kill.
+          if (!proc.pid) {
+            return;
+          }
+
           const errorMsg = getErrorMessage(error);
 
           ws.send(
