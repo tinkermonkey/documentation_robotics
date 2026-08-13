@@ -8,7 +8,7 @@ describe("MigrationRegistry", () => {
     it("should return the latest available version", () => {
       const registry = new MigrationRegistry();
       const latest = registry.getLatestVersion();
-      expect(latest).toBe("0.8.3");
+      expect(latest).toBe("0.9.0");
     });
   });
 
@@ -29,7 +29,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const path = registry.getMigrationPath("0.5.0");
       expect(path.length).toBeGreaterThan(0);
-      expect(path[path.length - 1].toVersion).toBe("0.8.3");
+      expect(path[path.length - 1].toVersion).toBe("0.9.0");
     });
 
     it("should return migration path from 0.5.0 to 0.6.0", () => {
@@ -49,7 +49,12 @@ describe("MigrationRegistry", () => {
 
     it("should return false when no migration is needed", () => {
       const registry = new MigrationRegistry();
-      expect(registry.requiresMigration("0.8.3")).toBe(false);
+      expect(registry.requiresMigration("0.9.0")).toBe(false);
+    });
+
+    it("should return true when 0.8.4 needs migration to latest", () => {
+      const registry = new MigrationRegistry();
+      expect(registry.requiresMigration("0.8.4")).toBe(true);
     });
   });
 
@@ -69,7 +74,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary("0.5.0");
 
-      expect(summary.targetVersion).toBe("0.8.3");
+      expect(summary.targetVersion).toBe("0.9.0");
     });
   });
 

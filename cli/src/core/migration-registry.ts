@@ -191,6 +191,76 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.8.4 to v0.9.0: Product Layer Introduction
+    this.migrations.push({
+      fromVersion: "0.8.4",
+      toVersion: "0.9.0",
+      description: "Product Layer Introduction (Spec v0.9.0)",
+      apply: async (model: Model) => {
+        const fs = await import("fs/promises");
+        const pathModule = await import("path");
+
+        const modelDir = `${model.rootPath}/documentation-robotics/model`;
+        let filesModified = 0;
+
+        try {
+          // Verify model directory exists
+          await fs.access(modelDir);
+        } catch {
+          // Model directory doesn't exist - nothing to migrate
+          return {
+            migrationsApplied: 1,
+            filesModified: 0,
+            description:
+              "Spec version updated to 0.9.0 (Product layer introduced; no model directories to migrate)",
+          };
+        }
+
+        // Rename existing layer directories: shift from 03-12 to 04-13
+        // Must do this in reverse order (12→13, 11→12, ..., 03→04) to avoid conflicts
+        const renameMap = [
+          ["12_testing", "13_testing"],
+          ["11_apm", "12_apm"],
+          ["10_navigation", "11_navigation"],
+          ["09_ux", "10_ux"],
+          ["08_data-store", "09_data-store"],
+          ["07_data-model", "08_data-model"],
+          ["06_api", "07_api"],
+          ["05_technology", "06_technology"],
+          ["04_application", "05_application"],
+          ["03_security", "04_security"],
+        ];
+
+        for (const [oldName, newName] of renameMap) {
+          const oldPath = pathModule.join(modelDir, oldName);
+          const newPath = pathModule.join(modelDir, newName);
+
+          try {
+            await fs.rename(oldPath, newPath);
+            filesModified++;
+          } catch (e) {
+            // Directory might not exist or is already in correct location - continue
+            // This is not an error condition since models may have been partially migrated
+          }
+        }
+
+        // Create new product layer directory (it will be empty for now)
+        const productPath = pathModule.join(modelDir, "03_product");
+        try {
+          await fs.mkdir(productPath, { recursive: true });
+        } catch {
+          // Directory might already exist - that's fine
+        }
+
+        return {
+          migrationsApplied: 1,
+          filesModified,
+          description:
+            "Spec version updated to 0.9.0 (Product layer introduced at layer 3; Security through Testing shifted from layers 3–12 to 4–13)",
+        };
+      },
+    });
   }
 
   /**
