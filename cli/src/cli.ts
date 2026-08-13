@@ -304,9 +304,9 @@ program
     "after",
     `
 Supported formats:
-  archimate    Export to ArchiMate XML (layers 1, 2, 4, 5)
-  openapi      Export to OpenAPI 3.0 specification (layer 6)
-  jsonschema   Export to JSON Schema (layer 7)
+  archimate    Export to ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Export to OpenAPI 3.0 specification (layer 7)
+  jsonschema   Export to JSON Schema (layer 8)
   plantuml     Export to PlantUML diagram
   graphml      Export to GraphML (graph visualization)
   markdown     Export to Markdown documentation
@@ -340,8 +340,8 @@ program
     "after",
     `
 Supported formats:
-  archimate    Import from ArchiMate XML (layers 1, 2, 4, 5)
-  openapi      Import from OpenAPI 3.0 specification (layer 6)
+  archimate    Import from ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Import from OpenAPI 3.0 specification (layer 7)
 
 Examples:
   $ dr import archimate --input model.xml

@@ -2,12 +2,12 @@
  * Spec Reference Installer
  *
  * Manages the .dr/ folder, which stores:
- *   - The 14 compiled spec files in .dr/spec/ for agent and user access
+ *   - The 15 compiled spec files in .dr/spec/ for agent and user access
  *   - The installed spec version in .dr/manifest.json
  *   - Changesets in .dr/changesets/
  *
- * The spec files in .dr/spec/ are the same 14 compiled JSON files bundled
- * with the CLI (manifest.json, base.json, {layer}.json x12). They are copied
+ * The spec files in .dr/spec/ are the same 15 compiled JSON files bundled
+ * with the CLI (manifest.json, base.json, {layer}.json x13). They are copied
  * from the CLI's bundled schemas on every install/upgrade so agents, skills,
  * and end users can read the spec directly from the project directory.
  */
@@ -45,7 +45,7 @@ function getBundledSpecDir(): string {
  * Install or update the .dr/ spec reference folder.
  *
  * Creates:
- * - .dr/spec/            — 14 compiled spec files (manifest.json, base.json, {layer}.json x12)
+ * - .dr/spec/            — 15 compiled spec files (manifest.json, base.json, {layer}.json x13)
  * - .dr/manifest.json    — installed spec version record
  * - .dr/changesets/      — directory for model changesets
  * - .dr/README.md        — informational readme
@@ -63,7 +63,7 @@ export async function installSpecReference(
   await ensureDir(drPath);
   await ensureDir(join(drPath, "changesets"));
 
-  // Copy the 14 bundled compiled spec files to .dr/spec/
+  // Copy the 15 bundled compiled spec files to .dr/spec/
   // This gives agents, skills, and end users direct file access to the spec.
   // Remove first to clear any stale files or subdirectories from old formats.
   const bundledDir = getBundledSpecDir();
@@ -95,7 +95,7 @@ This directory is managed by the Documentation Robotics CLI.
 
 ## Structure
 
-- \`spec/\`          — Compiled spec files (14 JSON files: manifest, base, one per layer)
+- \`spec/\`          — Compiled spec files (15 JSON files: manifest, base, one per layer)
 - \`manifest.json\`  — Spec version information
 - \`changesets/\`    — Model changesets (active and saved)
 
@@ -105,7 +105,7 @@ The \`spec/\` directory contains the complete compiled specification:
 
 - \`manifest.json\`  — Layer index with node type and relationship counts
 - \`base.json\`      — Base schemas and predicate definitions
-- \`{layer}.json\`   — One file per layer (12 total), each containing:
+- \`{layer}.json\`   — One file per layer (13 total), each containing:
   - \`layer\`               — Layer metadata (id, name, description, node_types)
   - \`nodeSchemas\`         — JSON Schema definitions for all node types in the layer
   - \`relationshipSchemas\` — Flat relationship definitions for all relationships in the layer

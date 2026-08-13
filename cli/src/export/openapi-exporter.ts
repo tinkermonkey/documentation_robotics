@@ -86,7 +86,7 @@ interface EndpointMapping {
 }
 
 /**
- * OpenAPI 3.0 Exporter for layer 6 (API)
+ * OpenAPI 3.0 Exporter for layer 7 (API)
  */
 export class OpenAPIExporter implements Exporter {
   name = "OpenAPI";

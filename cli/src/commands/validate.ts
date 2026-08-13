@@ -71,7 +71,7 @@ async function validateSchemaSynchronization(): Promise<void> {
 
   // Resolve paths relative to project root
   const projectRoot = path.resolve(__dirname, "../../..");
-  // Compare spec/dist/ (14 compiled flat files) vs dist/schemas/bundled/ (same 14 files)
+  // Compare spec/dist/ (15 compiled flat files) vs dist/schemas/bundled/ (same 15 files)
   // spec/schemas/ contains individual source files; spec/dist/ is the compiled distribution
   const specSchemaDir = path.join(projectRoot, "spec", "dist");
   const bundledSchemaDir = path.join(__dirname, "../schemas/bundled");

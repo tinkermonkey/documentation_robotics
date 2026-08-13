@@ -1,8 +1,8 @@
 /**
  * SpecDataLoader - Loads specification metadata from compiled bundled dist files
  *
- * Reads directly from the 14 compiled JSON files in cli/src/schemas/bundled/:
- *   manifest.json, base.json, {layer}.json (x12)
+ * Reads directly from the 15 compiled JSON files in cli/src/schemas/bundled/:
+ *   manifest.json, base.json, {layer}.json (x13)
  *
  * Never reads from .dr/ or expanded individual schema files.
  */

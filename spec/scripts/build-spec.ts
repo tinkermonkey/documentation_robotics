@@ -7,7 +7,7 @@
  * distribution format in spec/dist/:
  *   - manifest.json                      — index of all layers with counts
  *   - base.json                          — all base schemas + predicates
- *   - {layer}.json (x12)                 — per-layer: metadata + nodeSchemas + relationshipSchemas
+ *   - {layer}.json (x13)                 — per-layer: metadata + nodeSchemas + relationshipSchemas
  *   - analyzers/manifest.json            — index of all compiled analyzers
  *   - analyzers/{analyzer_name}.json     — per-analyzer: compiled analyzer mappings
  *
