@@ -45,7 +45,7 @@ export class ModelReportOrchestrator {
   }
 
   /**
-   * Regenerate all 12 layer reports.
+   * Regenerate all 13 layer reports.
    * Lets mkdir errors propagate so callers can handle them with proper telemetry.
    */
   async regenerateAll(): Promise<void> {
@@ -53,7 +53,7 @@ export class ModelReportOrchestrator {
     const reportDir = this.getReportDir();
     await fs.mkdir(reportDir, { recursive: true });
 
-    // Generate all 12 layer reports
+    // Generate all 13 layer reports
     for (const layerName of CANONICAL_LAYER_NAMES) {
       await this.generateLayerReport(layerName);
     }
@@ -96,7 +96,7 @@ export class ModelReportOrchestrator {
   }
 
   /**
-   * Check if all 12 report files exist and are initialized.
+   * Check if all 13 report files exist and are initialized.
    * Returns false only if files don't exist (ENOENT); propagates other errors like EACCES, EMFILE, EIO.
    */
   private async isInitialized(): Promise<boolean> {

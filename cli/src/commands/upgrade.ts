@@ -122,7 +122,7 @@ async function checkAndGenerateReports(
   console.log(ansis.yellow("\n⚠ No layer reports found"));
 
   if (options.dryRun) {
-    console.log(ansis.yellow("[DRY RUN] Would generate all 12 layer reports\n"));
+    console.log(ansis.yellow("[DRY RUN] Would generate all 13 layer reports\n"));
     return;
   }
 

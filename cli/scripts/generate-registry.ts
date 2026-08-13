@@ -492,7 +492,7 @@ const LAYER_METADATA_${toIdentifier(l.id)}: LayerMetadata = /*#__PURE__*/ {
  */
 export interface LayerMetadata {
   id: string;           // "motivation", "data-store", etc. (canonical hyphenated form)
-  number: number;       // 1-12
+  number: number;       // 1-13
   name: string;         // "Motivation Layer", "Data Store Layer"
   description: string;  // Layer description
   nodeTypes: string[];  // ["motivation.goal", "motivation.requirement", ...]
@@ -506,14 +506,14 @@ export interface LayerMetadata {
 ${constants}
 
 /**
- * All 12 layers with metadata, indexed by layer ID
+ * All 13 layers with metadata, indexed by layer ID
  */
 export const LAYERS: Map<string, LayerMetadata> = /*#__PURE__*/ new Map([
 ${mapEntries}
 ]);
 
 /**
- * All 12 layers with metadata, indexed by layer number for O(1) lookup
+ * All 13 layers with metadata, indexed by layer number for O(1) lookup
  */
 export const LAYERS_BY_NUMBER: Map<number, LayerMetadata> = /*#__PURE__*/ new Map([
 ${mapEntriesByNumber}
@@ -525,7 +525,7 @@ ${mapEntriesByNumber}
 export const LAYER_HIERARCHY: readonly number[] = /*#__PURE__*/ [${layerHierarchy}] as const;
 
 /**
- * Get layer metadata by layer number (1-12)
+ * Get layer metadata by layer number (1-13)
  */
 export function getLayerByNumber(n: number): LayerMetadata | undefined {
   return LAYERS_BY_NUMBER.get(n);
@@ -776,7 +776,7 @@ function generateLayerTypes(layers: LayerMetadata[]): string {
  */
 
 /**
- * Union type of all valid layer IDs in the 12-layer architecture model
+ * Union type of all valid layer IDs in the 13-layer architecture model
  */
 export type LayerId = ${layerIdType};
 

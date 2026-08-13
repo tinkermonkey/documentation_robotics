@@ -536,6 +536,7 @@ export class Model {
     const layerOrder = [
       "motivation",
       "business",
+      "product",
       "security",
       "application",
       "technology",
