@@ -215,6 +215,7 @@ export class VisualizationServer {
    * or found through other resolution strategies
    */
   private static readonly LAYER_FALLBACK: Record<string, string> = {
+    product: "business.businessservice",
     security: "business.businessprocess",
     technology: "application.applicationservice",
     api: "business.businessprocess",

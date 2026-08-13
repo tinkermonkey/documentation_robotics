@@ -665,6 +665,17 @@ describe("VisualizationServer", () => {
     });
 
     describe("layer fallbacks", () => {
+      it("should use LAYER_FALLBACK for product layer", () => {
+        const result = server["resolveViewerSpecNodeId"](
+          "product-unknown-custom-type",
+          "product",
+          "unknown",
+          ""
+        );
+
+        expect(result).toBe("business.businessservice");
+      });
+
       it("should use LAYER_FALLBACK for security layer", () => {
         const result = server["resolveViewerSpecNodeId"](
           "security-unknown-custom-type",
