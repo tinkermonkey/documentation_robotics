@@ -239,9 +239,16 @@ export class MigrationRegistry {
           try {
             await fs.rename(oldPath, newPath);
             filesModified++;
-          } catch (e) {
-            // Directory might not exist or is already in correct location - continue
-            // This is not an error condition since models may have been partially migrated
+          } catch (error) {
+            const err = error as { code?: string };
+            // ENOENT is expected when a directory hasn't been created yet
+            if (err.code === "ENOENT") {
+              continue;
+            }
+            // Log warnings for unexpected errors to aid diagnostics
+            console.warn(
+              `Warning: Failed to rename ${oldName} to ${newName}: ${getErrorMessage(error)}`
+            );
           }
         }
 
