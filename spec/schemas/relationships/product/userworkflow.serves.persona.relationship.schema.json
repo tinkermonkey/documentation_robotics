@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UserWorkflow serves Persona",
+  "description": "Defines relationship: product.userworkflow serves product.persona",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "product.userworkflow.serves.product.persona"
+    },
+    "source_spec_node_id": {
+      "const": "product.userworkflow"
+    },
+    "source_layer": {
+      "const": "product"
+    },
+    "destination_spec_node_id": {
+      "const": "product.persona"
+    },
+    "destination_layer": {
+      "const": "product"
+    },
+    "predicate": {
+      "const": "serves"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

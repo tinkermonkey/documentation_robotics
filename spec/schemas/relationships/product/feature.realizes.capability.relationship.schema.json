@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Feature realizes Capability",
+  "description": "Defines relationship: product.feature realizes product.capability",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "product.feature.realizes.product.capability"
+    },
+    "source_spec_node_id": {
+      "const": "product.feature"
+    },
+    "source_layer": {
+      "const": "product"
+    },
+    "destination_spec_node_id": {
+      "const": "product.capability"
+    },
+    "destination_layer": {
+      "const": "product"
+    },
+    "predicate": {
+      "const": "realizes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

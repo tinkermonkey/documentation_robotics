@@ -28,7 +28,7 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
       name: "Staging Orchestrator Test Model",
       description: "Model for testing staging orchestrator hooks",
       version: "1.0.0",
-      specVersion: "0.8.3",
+      specVersion: "0.8.4",
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
     });

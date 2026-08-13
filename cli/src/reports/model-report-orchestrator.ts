@@ -1,7 +1,7 @@
 /**
  * Model Report Orchestrator
  *
- * Coordinates report generation across all 12 architecture layers.
+ * Coordinates report generation across all 13 architecture layers.
  * Determines which reports need regeneration and manages the report directory.
  */
 
@@ -26,7 +26,7 @@ export class ModelReportOrchestrator {
 
   /**
    * Regenerate reports for a specific set of affected layers.
-   * On first invocation or when reports don't exist, regenerates all 12 reports.
+   * On first invocation or when reports don't exist, regenerates all 13 reports.
    * Invalid layer names in the affected set are skipped with a warning.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {
@@ -45,7 +45,7 @@ export class ModelReportOrchestrator {
   }
 
   /**
-   * Regenerate all 12 layer reports.
+   * Regenerate all 13 layer reports.
    * Lets mkdir errors propagate so callers can handle them with proper telemetry.
    */
   async regenerateAll(): Promise<void> {
@@ -53,7 +53,7 @@ export class ModelReportOrchestrator {
     const reportDir = this.getReportDir();
     await fs.mkdir(reportDir, { recursive: true });
 
-    // Generate all 12 layer reports
+    // Generate all 13 layer reports
     for (const layerName of CANONICAL_LAYER_NAMES) {
       await this.generateLayerReport(layerName);
     }
@@ -96,7 +96,7 @@ export class ModelReportOrchestrator {
   }
 
   /**
-   * Check if all 12 report files exist and are initialized.
+   * Check if all 13 report files exist and are initialized.
    * Returns false only if files don't exist (ENOENT); propagates other errors like EACCES, EMFILE, EIO.
    */
   private async isInitialized(): Promise<boolean> {

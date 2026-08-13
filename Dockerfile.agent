@@ -57,9 +57,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Bun runtime globally (so orchestrator user can access it)
-ENV BUN_INSTALL=/usr/local
-RUN curl -fsSL https://bun.sh/install | bash
+# Install Bun runtime globally via npm (more reliable than curl installer)
+RUN npm install -g bun
 
 # Install codebase-memory-mcp MCP server for code knowledge graph analysis
 # Official install: npm install -g codebase-memory-mcp

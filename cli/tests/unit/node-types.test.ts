@@ -159,7 +159,7 @@ describe("Node Type Index", () => {
   });
 
   describe("Type coverage", () => {
-    it("should have types for all 12 layers", () => {
+    it("should have types for all 13 layers", () => {
       const layers = new Set<string>();
       for (const info of NODE_TYPES.values()) {
         layers.add(info.layer);
@@ -168,6 +168,7 @@ describe("Node Type Index", () => {
       const expectedLayers = [
         "motivation",
         "business",
+        "product",
         "security",
         "application",
         "technology",

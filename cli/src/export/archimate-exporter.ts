@@ -5,8 +5,9 @@ import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 /**
- * ArchiMate XML Exporter for layers 1, 2, 4, 5
+ * ArchiMate XML Exporter for layers 1, 2, 5, 6 (Motivation, Business, Application, Technology)
  * Generates valid ArchiMate 3.2 XML format
+ * Note: Product layer (layer 3) does not participate in ArchiMate export
  */
 export class ArchiMateExporter implements Exporter {
   name = "ArchiMate";

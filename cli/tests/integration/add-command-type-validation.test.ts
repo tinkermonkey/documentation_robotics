@@ -65,6 +65,8 @@ describe("Add Command - Type Validation", () => {
         "customer-satisfaction",
         "--description",
         "Test goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" }),
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -79,6 +81,8 @@ describe("Add Command - Type Validation", () => {
         "create-order",
         "--description",
         "Test operation",
+        "--attributes",
+        JSON.stringify({ operationId: "createOrder", summary: "Create Order", tags: "orders" }),
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -173,20 +177,34 @@ describe("Add Command - Type Validation", () => {
       const testCases = [
         { layer: "motivation", validType: "goal", invalidType: "operation" },
         { layer: "business", validType: "businessservice", invalidType: "goal" },
+        { layer: "product", validType: "capability", invalidType: "goal" },
         { layer: "api", validType: "operation", invalidType: "goal" },
         { layer: "data-store", validType: "view", invalidType: "goal" },
       ];
 
       for (const testCase of testCases) {
         // Valid type should work
-        const validResult = await runCLICommand(workdir.path, [
+        const validCmd = [
           "add",
           testCase.layer,
           testCase.validType,
           `test-${testCase.validType}`,
           "--description",
           `Test ${testCase.validType}`,
-        ]);
+        ];
+
+        // Add required attributes for specific types
+        if (testCase.layer === "motivation" && testCase.validType === "goal") {
+          validCmd.push("--attributes", JSON.stringify({ priority: "high" }));
+        } else if (testCase.layer === "product" && testCase.validType === "capability") {
+          validCmd.push("--attributes", JSON.stringify({ status: "proposed" }));
+        } else if (testCase.layer === "product" && testCase.validType === "feature") {
+          validCmd.push("--attributes", JSON.stringify({ priority: "high", status: "proposed" }));
+        } else if (testCase.layer === "api" && testCase.validType === "operation") {
+          validCmd.push("--attributes", JSON.stringify({ operationId: "testOp", summary: "Test Operation", tags: "test" }));
+        }
+
+        const validResult = await runCLICommand(workdir.path, validCmd);
         expect(validResult.exitCode).toBe(0);
 
         // Invalid type should fail
@@ -198,6 +216,117 @@ describe("Add Command - Type Validation", () => {
         ]);
         expect(invalidResult.exitCode).not.toBe(0);
       }
+    });
+  });
+
+  describe("Product layer element CRUD", () => {
+    it("should accept valid product.capability type", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "capability",
+        "customer-support",
+        "--description",
+        "Customer support capability",
+        "--attributes",
+        JSON.stringify({ status: "proposed" }),
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("customer-support");
+    });
+
+    it("should accept valid product.feature type", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "feature",
+        "user-authentication",
+        "--description",
+        "User authentication feature",
+        "--attributes",
+        JSON.stringify({ priority: "high", status: "developing" }),
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("user-authentication");
+    });
+
+    it("should accept valid product.persona type", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "persona",
+        "enterprise-admin",
+        "--description",
+        "Enterprise administrator persona",
+        "--attributes",
+        JSON.stringify({ category: "primary", proficiency: "advanced" }),
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("enterprise-admin");
+    });
+
+    it("should accept valid product.milestone type", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "milestone",
+        "v1-release",
+        "--description",
+        "Version 1 release milestone",
+        "--attributes",
+        JSON.stringify({ status: "planned" }),
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("v1-release");
+    });
+
+    it("should accept valid product.userworkflow type", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "userworkflow",
+        "checkout-flow",
+        "--description",
+        "Checkout user workflow",
+        "--attributes",
+        JSON.stringify({ complexity: "moderate" }),
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("checkout-flow");
+    });
+
+    it("should reject invalid type in product layer", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "operation",
+        "test-element",
+      ]);
+
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stdout + result.stderr).toContain("Invalid element type");
+    });
+
+    it("should validate required attributes for product.feature", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "product",
+        "feature",
+        "test-feature",
+        "--description",
+        "Test feature without required attributes",
+        "--attributes",
+        JSON.stringify({ status: "proposed" }),
+      ]);
+
+      expect(result.exitCode).not.toBe(0);
+      const output = result.stdout + result.stderr;
+      expect(output).toMatch(/priority|required/i);
     });
   });
 });

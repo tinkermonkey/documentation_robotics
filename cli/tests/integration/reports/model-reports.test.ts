@@ -28,7 +28,7 @@ describe('ModelReportOrchestrator Integration', () => {
     return workdir;
   }
 
-  it('should generate all 12 layer reports on first run', async () => {
+  it('should generate all 13 layer reports on first run', async () => {
     const workdir_temp = getWorkdir();
     const model = await Model.load(workdir_temp.path);
 
@@ -39,7 +39,7 @@ describe('ModelReportOrchestrator Integration', () => {
     const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
     await orchestrator.regenerateAll();
 
-    // Verify all 12 reports exist
+    // Verify all 13 reports exist
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
 
     for (const layerName of CANONICAL_LAYER_NAMES) {
@@ -186,9 +186,9 @@ describe('ModelReportOrchestrator Integration', () => {
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
 
     // Check specific examples
-    const apiPath = path.join(reportsDir, '06-api-layer-report.md');
-    const dataModelPath = path.join(reportsDir, '07-data-model-layer-report.md');
-    const testingPath = path.join(reportsDir, '12-testing-layer-report.md');
+    const apiPath = path.join(reportsDir, '07-api-layer-report.md');
+    const dataModelPath = path.join(reportsDir, '08-data-model-layer-report.md');
+    const testingPath = path.join(reportsDir, '13-testing-layer-report.md');
 
     const apiExists = await fs.access(apiPath)
       .then(() => true)

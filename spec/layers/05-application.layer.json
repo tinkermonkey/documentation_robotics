@@ -1,8 +1,8 @@
 {
   "id": "application",
-  "number": 4,
+  "number": 5,
   "name": "Application Layer",
-  "description": "Layer 4: Application Layer",
+  "description": "Layer 5: Application Layer",
   "inspired_by": {
     "standard": "ArchiMate 3.2",
     "version": "3.2",

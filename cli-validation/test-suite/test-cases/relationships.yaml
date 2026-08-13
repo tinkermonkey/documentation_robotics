@@ -5,7 +5,7 @@ priority: high
 pipelines:
   - name: "Create and delete relationships"
     steps:
-      - command: "add motivation goal rel-base-goal --name 'Baseline Goal' --description 'Goal for relationships'"
+      - command: 'add motivation goal rel-base-goal --name ''Baseline Goal'' --description ''Goal for relationships'' --attributes ''{"priority":"high"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -15,16 +15,16 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "add data-store collection rel-test-table --name 'test_collection' --description 'Collection for relationship test'"
+      - command: 'add data-store collection rel-test-table --name ''test_collection'' --description ''Collection for relationship test'' --attributes ''{"collectionType":"TABLE"}'''
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field rel-test-column --name 'test_field' --description 'Field for relationship test'"
+      - command: 'add data-store field rel-test-column --name ''test_field'' --description ''Field for relationship test'' --attributes ''{"dataType":"string"}'''
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/field.yaml
+          - 09_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.rel-test-table data-store.field.rel-test-column --predicate composes"
@@ -44,13 +44,13 @@ pipelines:
       - command: "delete data-store.collection.rel-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.field.rel-test-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/field.yaml
+          - 09_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "delete motivation.goal.rel-base-goal --force"
@@ -61,22 +61,22 @@ pipelines:
 
   - name: "Multiple relationship types"
     steps:
-      - command: "add data-store collection multi-rel-table --name 'multi_collection' --description 'Collection for multi-relationship test'"
+      - command: 'add data-store collection multi-rel-table --name ''multi_collection'' --description ''Collection for multi-relationship test'' --attributes ''{"collectionType":"TABLE"}'''
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field multi-rel-col-1 --name 'field_1' --description 'First field'"
+      - command: 'add data-store field multi-rel-col-1 --name ''field_1'' --description ''First field'' --attributes ''{"dataType":"string"}'''
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/field.yaml
+          - 09_data-store/field.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field multi-rel-col-2 --name 'field_2' --description 'Second field'"
+      - command: 'add data-store field multi-rel-col-2 --name ''field_2'' --description ''Second field'' --attributes ''{"dataType":"string"}'''
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/field.yaml
+          - 09_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.multi-rel-table data-store.field.multi-rel-col-1 --predicate composes"
@@ -96,26 +96,26 @@ pipelines:
       - command: "delete data-store.collection.multi-rel-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
           - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.field.multi-rel-col-1 --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/field.yaml
+          - 09_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.field.multi-rel-col-2 --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/field.yaml
+          - 09_data-store/field.yaml
         expect_exit_code: 0
 
   - name: "Negative test: Cross-layer relationships not supported"
     description: "Verify that cross-layer relationships (higher→lower) are properly rejected or handled by the CLI"
     steps:
-      - command: "add motivation goal cross-layer-goal --name 'Cross Layer Goal' --description 'Goal for cross-layer test'"
+      - command: 'add motivation goal cross-layer-goal --name ''Cross Layer Goal'' --description ''Goal for cross-layer test'' --attributes ''{"priority":"high"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml

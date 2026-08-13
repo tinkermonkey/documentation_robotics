@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.9.0",
   "layers": [
     {
       "id": "motivation",
@@ -16,78 +16,85 @@
       "relationshipCount": 73
     },
     {
-      "id": "security",
+      "id": "product",
       "number": 3,
+      "name": "Product Layer",
+      "nodeTypeCount": 5,
+      "relationshipCount": 19
+    },
+    {
+      "id": "security",
+      "number": 4,
       "name": "Security Layer",
       "nodeTypeCount": 29,
       "relationshipCount": 183
     },
     {
       "id": "application",
-      "number": 4,
+      "number": 5,
       "name": "Application Layer",
       "nodeTypeCount": 9,
       "relationshipCount": 79
     },
     {
       "id": "technology",
-      "number": 5,
+      "number": 6,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
       "relationshipCount": 128
     },
     {
       "id": "api",
-      "number": 6,
+      "number": 7,
       "name": "API Layer",
       "nodeTypeCount": 27,
       "relationshipCount": 196
     },
     {
       "id": "data-model",
-      "number": 7,
+      "number": 8,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
       "relationshipCount": 71
     },
     {
       "id": "data-store",
-      "number": 8,
+      "number": 9,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
       "relationshipCount": 106
     },
     {
       "id": "ux",
-      "number": 9,
+      "number": 10,
       "name": "UX Layer",
       "nodeTypeCount": 22,
       "relationshipCount": 188
     },
     {
       "id": "navigation",
-      "number": 10,
+      "number": 11,
       "name": "Navigation Layer",
       "nodeTypeCount": 11,
       "relationshipCount": 122
     },
     {
       "id": "apm",
-      "number": 11,
+      "number": 12,
       "name": "APM Observability Layer",
       "nodeTypeCount": 15,
       "relationshipCount": 138
     },
     {
       "id": "testing",
-      "number": 12,
+      "number": 13,
       "name": "Testing Layer",
       "nodeTypeCount": 17,
       "relationshipCount": 202
     }
   ],
   "totals": {
-    "nodeTypes": 186,
-    "relationships": 1566
+    "nodeTypes": 191,
+    "relationships": 1585
   }
 }

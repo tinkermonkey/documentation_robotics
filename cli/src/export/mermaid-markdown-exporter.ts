@@ -9,7 +9,7 @@ import { getErrorMessage } from "../utils/errors.js";
  * Mermaid Markdown Exporter - generates comprehensive markdown documentation
  * with Mermaid diagrams and formatted tables
  *
- * Supports all 12 layers and includes:
+ * Supports all 13 layers and includes:
  * - Architecture overview diagrams with Mermaid
  * - Layer-specific visualizations
  * - Formatted markdown tables

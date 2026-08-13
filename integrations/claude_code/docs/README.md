@@ -72,7 +72,7 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 ### Skills & Agents
 
 - **[dr-codebase-memory/SKILL.md](../skills/dr_codebase_memory/SKILL.md)** — Codebase memory and context management
-- Layer-specific skills (Layer 1-12)
+- Layer-specific skills (Layer 1-13)
 
 ---
 
@@ -160,7 +160,7 @@ integrations/claude_code/
 ├── skills/                      ← Specialized knowledge modules
 │   ├── dr_codebase_memory/
 │   ├── dr_01_motivation_layer/
-│   ├── ... (all 12 layers)
+│   ├── ... (all 13 layers)
 │   └── dr_engineering_guide/
 │
 └── agents/                      ← Specialized agents

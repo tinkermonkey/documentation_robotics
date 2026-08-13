@@ -17,7 +17,7 @@ interface PlantUMLElementEntry {
 
 /**
  * PlantUML Exporter - generates PlantUML syntax for diagram visualization
- * Supports all 12 layers
+ * Supports all 13 layers
  *
  * Exports the model as PlantUML component diagram syntax with layers,
  * elements, relationships, and optional source references.

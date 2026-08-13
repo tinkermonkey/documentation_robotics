@@ -65,24 +65,25 @@ describe("Chat JSON Event Parsing", () => {
 });
 
 describe("System Prompt Building", () => {
-  it("should include all 12 layers in prompt", () => {
+  it("should include all 13 layers in prompt", () => {
     const prompt = `You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
 
 ## Your Expertise
 
-You understand the **full 12-layer DR architecture**:
+You understand the **full 13-layer DR architecture**:
 1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
 2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
-3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
-4. Application (Layer 4) - HOW: components, services, interfaces, events
-5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
-6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
-7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
-8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
-9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
-10. Navigation (Layer 10) - FLOW: Multi-Modal routing
-11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
-12. Testing (Layer 12) - VERIFY: ISP Coverage Model`;
+3. Product (Layer 3) - WHAT: product features, capabilities, personas, milestones
+4. Security (Layer 4) - WHO/PROTECTION: actors, roles, policies, threats
+5. Application (Layer 5) - HOW: components, services, interfaces, events
+6. Technology (Layer 6) - WITH: platforms, frameworks, infrastructure
+7. API (Layer 7) - CONTRACTS: OpenAPI 3.0.3 specs
+8. Data Model (Layer 8) - STRUCTURE: JSON Schema Draft 7
+9. Datastore (Layer 9) - PERSISTENCE: SQL DDL
+10. UX (Layer 10) - EXPERIENCE: Three-Tier Architecture
+11. Navigation (Layer 11) - FLOW: Multi-Modal routing
+12. APM (Layer 12) - OBSERVE: OpenTelemetry 1.0+
+13. Testing (Layer 13) - VERIFY: ISP Coverage Model`;
 
     expect(prompt).toContain("Motivation");
     expect(prompt).toContain("Business");
@@ -146,7 +147,7 @@ describe("JSON-RPC 2.0 Message Formatting", () => {
         method: "chat.response.chunk",
         params: {
           conversation_id: "conv-1-12345",
-          content: "This model has 12 layers...",
+          content: "This model has 13 layers...",
           is_final: false,
           timestamp: new Date().toISOString(),
         },

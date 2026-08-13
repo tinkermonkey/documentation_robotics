@@ -66,10 +66,21 @@ describe("regression: type-normalization", () => {
     testCases.forEach(({ layer, abbreviatedType, canonicalType, name }) => {
       it(`should store canonical spec_node_id when adding ${layer} ${abbreviatedType}`, async () => {
         // Add element using abbreviated type name
-        const result = await runDr(
-          ["add", layer, abbreviatedType, name],
-          { cwd: workdir.path }
-        );
+        const cmd = ["add", layer, abbreviatedType, name];
+
+        // Add required attributes for specific types
+        if (layer === "application" && abbreviatedType === "service") {
+          cmd.push("--attributes");
+          cmd.push('{"serviceType":"synchronous"}');
+        } else if (layer === "application" && abbreviatedType === "component") {
+          cmd.push("--attributes");
+          cmd.push('{"type":"generic"}');
+        } else if (layer === "technology" && abbreviatedType === "service") {
+          cmd.push("--attributes");
+          cmd.push('{"serviceType":"compute"}');
+        }
+
+        const result = await runDr(cmd, { cwd: workdir.path });
         expect(result.exitCode).toBe(0);
 
         // Load model and verify spec_node_id is canonical form
@@ -90,7 +101,7 @@ describe("regression: type-normalization", () => {
   describe("validation pipeline with abbreviated types", () => {
     it("should pass validation after adding elements with abbreviated type names", async () => {
       // Add elements using different abbreviated types
-      await runDr(["add", "application", "service", "auth-service"], {
+      await runDr(["add", "application", "service", "auth-service", "--attributes", '{"serviceType":"synchronous"}'], {
         cwd: workdir.path,
       });
       await runDr(["add", "application", "component", "auth-component"], {
@@ -117,7 +128,7 @@ describe("regression: type-normalization", () => {
       // (e.g., "application.service" instead of "application.applicationservice"),
       // validation would fail because the schema expects the canonical form.
       const result = await runDr(
-        ["add", "application", "service", "regression-test"],
+        ["add", "application", "service", "regression-test", "--attributes", '{"serviceType":"synchronous"}'],
         { cwd: workdir.path }
       );
       expect(result.exitCode).toBe(0);

@@ -8,7 +8,7 @@ import { escapeMarkdown, valueToMarkdown, getLayerDescription } from "./markdown
 
 /**
  * Markdown Exporter - generates comprehensive markdown documentation
- * Supports all 12 layers
+ * Supports all 13 layers
  */
 export class MarkdownExporter implements Exporter {
   name = "Markdown";

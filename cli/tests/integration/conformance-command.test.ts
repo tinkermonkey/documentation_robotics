@@ -90,7 +90,7 @@ describe("conformance command", () => {
 
   it("should work with multiple elements across layers", async () => {
     await runDr(["init", "--name", "Multi-layer Model"], { cwd: tempDir.path });
-    await runDr(["add", "motivation", "goal", "motivation-goal-test-1", "--name", "Goal"], {
+    await runDr(["add", "motivation", "goal", "motivation-goal-test-1", "--name", "Goal", "--attributes", '{"priority":"high"}'], {
       cwd: tempDir.path,
     });
     await runDr(

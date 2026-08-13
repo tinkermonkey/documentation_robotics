@@ -248,7 +248,7 @@ function formatRelationshipsSection(lines: string[], report: ReportData): void {
 function formatDataModelSection(lines: string[], report: ReportData): void {
   const dataModel = report.dataModel;
 
-  lines.push(ansis.bold("Data Model (Layer 7):"));
+  lines.push(ansis.bold("Data Model (Layer 8):"));
   lines.push(
     `  ${ansis.gray("Total Entities:")}  ${dataModel.entityCount}`
   );
@@ -369,7 +369,7 @@ function formatRelationshipsMarkdown(lines: string[], report: ReportData): void 
 function formatDataModelMarkdown(lines: string[], report: ReportData): void {
   const dataModel = report.dataModel;
 
-  lines.push("## Data Model (Layer 7)");
+  lines.push("## Data Model (Layer 8)");
   lines.push("");
   lines.push("### Overview");
   lines.push("| Metric | Value |");

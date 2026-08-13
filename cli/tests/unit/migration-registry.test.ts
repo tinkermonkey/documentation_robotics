@@ -1,14 +1,17 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { MigrationRegistry } from "../../src/core/migration-registry.js";
 import { Model } from "../../src/core/model.js";
 import { Manifest } from "../../src/core/manifest.js";
+import { mkdir, rm, readdir, writeFile, access as fsAccess } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
 
 describe("MigrationRegistry", () => {
   describe("getLatestVersion", () => {
     it("should return the latest available version", () => {
       const registry = new MigrationRegistry();
       const latest = registry.getLatestVersion();
-      expect(latest).toBe("0.8.3");
+      expect(latest).toBe("0.9.0");
     });
   });
 
@@ -29,7 +32,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const path = registry.getMigrationPath("0.5.0");
       expect(path.length).toBeGreaterThan(0);
-      expect(path[path.length - 1].toVersion).toBe("0.8.3");
+      expect(path[path.length - 1].toVersion).toBe("0.9.0");
     });
 
     it("should return migration path from 0.5.0 to 0.6.0", () => {
@@ -49,7 +52,12 @@ describe("MigrationRegistry", () => {
 
     it("should return false when no migration is needed", () => {
       const registry = new MigrationRegistry();
-      expect(registry.requiresMigration("0.8.3")).toBe(false);
+      expect(registry.requiresMigration("0.9.0")).toBe(false);
+    });
+
+    it("should return true when 0.8.4 needs migration to latest", () => {
+      const registry = new MigrationRegistry();
+      expect(registry.requiresMigration("0.8.4")).toBe(true);
     });
   });
 
@@ -69,7 +77,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary("0.5.0");
 
-      expect(summary.targetVersion).toBe("0.8.3");
+      expect(summary.targetVersion).toBe("0.9.0");
     });
   });
 
@@ -137,6 +145,333 @@ describe("MigrationRegistry", () => {
 
       expect(result.applied).toHaveLength(0);
       expect(result.totalChanges).toBe(0);
+    });
+  });
+
+  describe("v0.8.4 → v0.9.0 migration (filesystem operations)", () => {
+    let tempRootPath: string;
+
+    beforeEach(async () => {
+      tempRootPath = join(
+        tmpdir(),
+        `dr-test-migration-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+      );
+      await mkdir(tempRootPath, { recursive: true });
+    });
+
+    afterEach(async () => {
+      try {
+        await rm(tempRootPath, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors in tests
+      }
+    });
+
+    it("should rename all 10 layer directories and create product layer", async () => {
+      const modelDir = join(tempRootPath, "documentation-robotics/model");
+
+      // Create old 12-layer structure (03_security through 12_testing)
+      const oldLayers = [
+        "03_security",
+        "04_application",
+        "05_technology",
+        "06_api",
+        "07_data-model",
+        "08_data-store",
+        "09_ux",
+        "10_navigation",
+        "11_apm",
+        "12_testing",
+      ];
+
+      for (const layer of oldLayers) {
+        await mkdir(join(modelDir, layer), { recursive: true });
+      }
+
+      // Create model with 0.8.4 spec version
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.8.4",
+        toVersion: "0.9.0",
+      });
+
+      // Verify migration was applied
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].to).toBe("0.9.0");
+
+      // Verify all old directories were renamed
+      const dirs = await readdir(modelDir);
+      expect(dirs).toContain("04_security");
+      expect(dirs).toContain("05_application");
+      expect(dirs).toContain("06_technology");
+      expect(dirs).toContain("07_api");
+      expect(dirs).toContain("08_data-model");
+      expect(dirs).toContain("09_data-store");
+      expect(dirs).toContain("10_ux");
+      expect(dirs).toContain("11_navigation");
+      expect(dirs).toContain("12_apm");
+      expect(dirs).toContain("13_testing");
+
+      // Verify new product layer was created
+      expect(dirs).toContain("03_product");
+
+      // Verify old names are gone
+      expect(dirs).not.toContain("03_security");
+      expect(dirs).not.toContain("12_testing");
+
+      // Verify filesModified count (10 successful renames)
+      expect(result.applied[0].changes?.filesModified).toBe(10);
+    });
+
+    it("should handle gracefully when model directory does not exist", async () => {
+      // Don't create any directories
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.8.4",
+        toVersion: "0.9.0",
+      });
+
+      // Migration should succeed with no files modified but still count as 1 migration applied
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].to).toBe("0.9.0");
+      expect(result.applied[0].changes?.filesModified).toBe(0);
+      expect(result.totalChanges).toBe(1);
+    });
+
+    it("should handle partial migrations (some directories already renamed)", async () => {
+      const modelDir = join(tempRootPath, "documentation-robotics/model");
+
+      // Create a partially migrated structure
+      // Some old names still exist, some new names already exist
+      const partiallMigratedLayers = [
+        "03_security", // Old name, should be renamed
+        "05_application", // Already renamed (new name)
+        "05_technology", // Old name, should be renamed
+      ];
+
+      for (const layer of partiallMigratedLayers) {
+        await mkdir(join(modelDir, layer), { recursive: true });
+      }
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.8.4",
+        toVersion: "0.9.0",
+      });
+
+      // Migration should complete successfully
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].to).toBe("0.9.0");
+
+      // Verify directories exist in correct form
+      const dirs = await readdir(modelDir);
+      expect(dirs).toContain("04_security"); // Renamed from 03_security
+      expect(dirs).toContain("06_technology"); // Renamed from 05_technology
+      expect(dirs).toContain("05_application"); // Already existed
+    });
+
+    it("should create product layer directory even when no other layers exist", async () => {
+      const modelDir = join(tempRootPath, "documentation-robotics/model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.8.4",
+        toVersion: "0.9.0",
+      });
+
+      expect(result.applied).toHaveLength(1);
+      const dirs = await readdir(modelDir);
+      expect(dirs).toContain("03_product");
+    });
+
+    it("should update manifest spec version to 0.9.0", async () => {
+      const modelDir = join(tempRootPath, "documentation-robotics/model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      await registry.applyMigrations(model, {
+        fromVersion: "0.8.4",
+        toVersion: "0.9.0",
+      });
+
+      // Verify manifest was updated
+      expect(model.manifest.specVersion).toBe("0.9.0");
+    });
+
+    it("should throw when fs.access fails with permission denied", async () => {
+      const restrictedDir = join(tempRootPath, "restricted-model");
+      const modelDir = join(restrictedDir, "documentation-robotics/model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(restrictedDir, manifest);
+      const registry = new MigrationRegistry();
+
+      // Restrict permissions on the model directory to trigger permission error
+      // This requires running as non-root (uid != 0)
+      const { chmod } = await import("fs/promises");
+      await chmod(modelDir, 0o000);
+
+      try {
+        await registry.applyMigrations(model, {
+          fromVersion: "0.8.4",
+          toVersion: "0.9.0",
+        });
+        // If we reach here, the test should fail
+        throw new Error("Expected migration to throw permission error");
+      } catch (error) {
+        // Verify a permission-related error was thrown (not silently ignored)
+        // The key test: permission errors should be re-thrown, not handled as success
+        expect(error).toBeDefined();
+        const err = error as any;
+        // The error should not be "Expected migration to throw permission error" (our own thrown error)
+        // which means applyMigrations actually threw an error
+        expect(err.message).not.toBe("Expected migration to throw permission error");
+      } finally {
+        // Restore permissions for cleanup
+        try {
+          await chmod(modelDir, 0o755);
+        } catch {
+          // Ignore restore errors, directory will be cleaned up anyway
+        }
+      }
+    });
+
+    it("should fail migration and not update spec version when rename fails", async () => {
+      const modelDir = join(tempRootPath, "documentation-robotics/model");
+
+      // Create a scenario where rename will fail: put a file where we expect a directory
+      await mkdir(modelDir, { recursive: true });
+
+      // Create the old layer directory
+      await mkdir(join(modelDir, "03_security"), { recursive: true });
+
+      // Create a file at the target rename location to cause EEXIST with contents
+      // First create 04_security as a file (not a directory) to cause rename to fail
+      await writeFile(join(modelDir, "04_security"), "this is a file, not a directory");
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      try {
+        await registry.applyMigrations(model, {
+          fromVersion: "0.8.4",
+          toVersion: "0.9.0",
+        });
+        // If we reach here, the test should fail because an error should have been thrown
+        throw new Error("Expected migration to throw rename error");
+      } catch (error) {
+        // Verify the error was thrown
+        expect(error).toBeDefined();
+
+        // Verify spec version was NOT updated due to the error
+        expect(model.manifest.specVersion).toBe("0.8.4");
+      }
+    });
+
+    it("should track and report rename failures in error field", async () => {
+      const modelDir = join(tempRootPath, "documentation-robotics/model");
+
+      // Create a scenario where one rename will fail
+      await mkdir(modelDir, { recursive: true });
+
+      // Create an old layer directory that will fail to rename
+      await mkdir(join(modelDir, "03_security"), { recursive: true });
+
+      // Create a file where the target directory should go, causing rename to fail
+      await writeFile(join(modelDir, "04_security"), "blocking file");
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.8.4",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      try {
+        await registry.applyMigrations(model, {
+          fromVersion: "0.8.4",
+          toVersion: "0.9.0",
+        });
+        throw new Error("Expected migration to fail with rename error");
+      } catch (error) {
+        // Verify error contains information about the failed rename
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        expect(errorMessage).toContain("03_security");
+
+        // Verify spec version was not bumped (because migration threw error)
+        expect(model.manifest.specVersion).toBe("0.8.4");
+      }
     });
   });
 });

@@ -124,10 +124,11 @@ describe("PlantUMLExporter", () => {
     expect(output.includes('Test \\"Goal\\" with quotes')).toBe(true);
   });
 
-  it("should support all 12 layers", async () => {
+  it("should support all 13 layers", async () => {
     const allLayers = [
       "motivation",
       "business",
+      "product",
       "security",
       "application",
       "technology",
@@ -152,12 +153,23 @@ describe("PlantUMLExporter", () => {
     }
 
     const output = await exporter.export(model, {
-      layers: allLayers.slice(0, 3),
+      layers: allLayers,
     });
 
+    // Verify all 13 layers are included in the output
     expect(output.includes('package "motivation"')).toBe(true);
     expect(output.includes('package "business"')).toBe(true);
+    expect(output.includes('package "product"')).toBe(true);
     expect(output.includes('package "security"')).toBe(true);
+    expect(output.includes('package "application"')).toBe(true);
+    expect(output.includes('package "technology"')).toBe(true);
+    expect(output.includes('package "api"')).toBe(true);
+    expect(output.includes('package "data-model"')).toBe(true);
+    expect(output.includes('package "data-store"')).toBe(true);
+    expect(output.includes('package "ux"')).toBe(true);
+    expect(output.includes('package "navigation"')).toBe(true);
+    expect(output.includes('package "apm"')).toBe(true);
+    expect(output.includes('package "testing"')).toBe(true);
   });
 
   it("should handle elements with relationships", async () => {

@@ -45,6 +45,7 @@ export interface ExportFormatInfo {
 export const LAYER_COLORS: Record<string, string> = {
   motivation: "FFE4E1",
   business: "E6F3FF",
+  product: "E6FFD9",
   security: "FFE6E6",
   application: "E6FFE6",
   technology: "FFFFE6",
@@ -58,7 +59,7 @@ export const LAYER_COLORS: Record<string, string> = {
 };
 
 /**
- * All 12 supported layers (from generated registry)
+ * All 13 supported layers (from generated registry)
  */
 export const ALL_LAYERS: string[] = getAllLayerIds();
 

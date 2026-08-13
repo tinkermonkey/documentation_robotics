@@ -131,7 +131,7 @@ Examples:
   $ dr init
   $ dr init claudetoreum
   $ dr init "Enterprise Architecture" --author "Team A"
-  $ dr init --name "My Project" --description "12-layer federated model"`
+  $ dr init --name "My Project" --description "13-layer federated model"`
   )
   .action((name, options) => initCommand({ ...options, name: options.name || name }));
 
@@ -304,9 +304,9 @@ program
     "after",
     `
 Supported formats:
-  archimate    Export to ArchiMate XML (layers 1, 2, 4, 5)
-  openapi      Export to OpenAPI 3.0 specification (layer 6)
-  jsonschema   Export to JSON Schema (layer 7)
+  archimate    Export to ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Export to OpenAPI 3.0 specification (layer 7)
+  jsonschema   Export to JSON Schema (layer 8)
   plantuml     Export to PlantUML diagram
   graphml      Export to GraphML (graph visualization)
   markdown     Export to Markdown documentation
@@ -340,8 +340,8 @@ program
     "after",
     `
 Supported formats:
-  archimate    Import from ArchiMate XML (layers 1, 2, 4, 5)
-  openapi      Import from OpenAPI 3.0 specification (layer 6)
+  archimate    Import from ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Import from OpenAPI 3.0 specification (layer 7)
 
 Examples:
   $ dr import archimate --input model.xml
@@ -420,7 +420,7 @@ Report types:
   comprehensive  Full report with statistics, relationships, and data model (default)
   statistics     Statistics and quality metrics
   relationships  Relationship analysis and classification
-  data-model     Layer 7 data model analysis
+  data-model     Layer 8 data model analysis
   quality        Quality metrics and recommendations
 
 Output formats:

@@ -68,9 +68,13 @@ describe("Element id/path persistence", () => {
       "add",
       "motivation",
       "goal",
+      "customer-satisfaction",
+      "--name",
       "Customer Satisfaction",
       "--description",
       "Increase customer satisfaction score",
+      "--attributes",
+      '{"priority":"high"}',
     ]);
 
     expect(result.exitCode).toBe(0);
@@ -122,6 +126,10 @@ describe("Element id/path persistence", () => {
       "motivation",
       "goal",
       "increase-revenue",
+      "--name",
+      "Increase Revenue",
+      "--attributes",
+      '{"priority":"critical"}',
     ]);
 
     expect(result.exitCode).toBe(0);

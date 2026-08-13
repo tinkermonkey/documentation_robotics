@@ -96,6 +96,7 @@ Return ONLY a JSON array (no prose, no markdown outside the array) with one obje
     const standards: Record<string, string> = {
       motivation: "ArchiMate 3.2",
       business: "ArchiMate 3.2",
+      product: "Product Management Practice",
       security: "NIST SP 800-53",
       application: "ArchiMate 3.2",
       technology: "ArchiMate 3.2",

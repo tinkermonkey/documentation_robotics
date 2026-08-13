@@ -28,7 +28,7 @@ A shared, multi-layered model of a software system addresses this directly. It c
 
 ## A Federated Architecture Model
 
-The Documentation Robotics specification defines a 12-layer federated model spanning motivation through observability. Each layer captures a distinct aspect of the system — from business intent and security policy down to API contracts, data schemas, and test strategies — using established standards (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) wherever possible.
+The Documentation Robotics specification defines a 13-layer federated model spanning motivation through observability. Each layer captures a distinct aspect of the system — from business intent and security policy down to API contracts, data schemas, and test strategies — using established standards (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) wherever possible.
 
 The model has two complementary views: the **current model** represents the actual state of the system today, and **changesets** represent a proposed future state — a set of model changes across layers that together define a coherent set of requirements. A changeset can specify not just that a new feature is needed, but _how every layer of the system changes to support it_: what new business capability it enables, what API contract it exposes, what data it stores, what it should test.
 
@@ -48,7 +48,7 @@ This keeps humans at the conceptual level — focused on goals, architecture, an
 
 ## Quick Links
 
-- **[Read the Specification](spec/)** - Complete specification with all 12 layers
+- **[Read the Specification](spec/)** - Complete specification with all 13 layers
 - **[Use the CLI Tool](cli/)** - Install and use the `dr` command
 - **[Recent Updates](spec/CHANGELOG.md)** - See what's new in the specification
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
@@ -61,12 +61,12 @@ This keeps humans at the conceptual level — focused on goals, architecture, an
 **Location:** [`spec/`](spec/)
 **Status:** Stable
 
-The Documentation Robotics specification defines a standards-based approach to modeling software across 12 interconnected layers.
+The Documentation Robotics specification defines a standards-based approach to modeling software across 13 interconnected layers.
 
 **Key Features:**
 
 - **Standards** - Inspired by ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
-- **12 Layers** - Motivation through APM/Observability, modeling most aspects of a software system with source file references for traceability
+- **13 Layers** - Motivation through APM/Observability, modeling most aspects of a software system with source file references for traceability
 - **Relationships Modeling** - Explicit relationships between model elements for functional modeling, interdependency analysis and impact assessment
 
 **Quick Start:**
@@ -194,7 +194,7 @@ documentation_robotics/
 │   ├── VERSION                  # Spec version (see badges above)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
-│   ├── layers/                  # 12 layer instance files (.layer.json)
+│   ├── layers/                  # 13 layer instance files (.layer.json)
 │   ├── schemas/                 # JSON Schema definitions
 │   │   ├── base/                #   Core base schemas + predicates
 │   │   ├── nodes/               #   Per-type node schemas (by layer)
@@ -221,30 +221,31 @@ documentation_robotics/
 └── LICENSE                      # MIT License
 ```
 
-## The 12 Layers
+## The 13 Layers
 
-The specification defines 12 interconnected layers:
+The specification defines 13 interconnected layers:
 
-| #   | Layer                                                | Focus        | Standard      | Notes                                                   |
-| --- | ---------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY          | ArchiMate 3.2 |                                                         |
-| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT         | ArchiMate 3.2 |                                                         |
-| 03  | [Security](spec/layers/03-security.layer.json)       | WHO CAN      | _Custom_      |                                                         |
-| 04  | [Application](spec/layers/04-application.layer.json) | HOW          | ArchiMate 3.2 |                                                         |
-| 05  | [Technology](spec/layers/05-technology.layer.json)   | WITH WHAT    | ArchiMate 3.2 |                                                         |
-| 06  | [API](spec/layers/06-api.layer.json)                 | INTERFACE    | OpenAPI 3.0   |                                                         |
-| 07  | [Data Model](spec/layers/07-data-model.layer.json)   | STRUCTURE    | JSON Schema   |                                                         |
-| 08  | [Data Store](spec/layers/08-data-store.layer.json)   | STORAGE      | SQL DDL       |                                                         |
-| 09  | [UX](spec/layers/09-ux.layer.json)                   | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 10  | [Navigation](spec/layers/10-navigation.layer.json)   | FLOW         | _Custom_      |                                                         |
-| 11  | [APM/Observability](spec/layers/11-apm.layer.json)   | OBSERVE      | OpenTelemetry |                                                         |
-| 12  | [Testing](spec/layers/12-testing.layer.json)         | VERIFY       | _Custom_      |                                                         |
+| #   | Layer                                                | Focus         | Standard      | Notes                                                   |
+| --- | ---------------------------------------------------- | ------------- | ------------- | ------------------------------------------------------- |
+| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY           | ArchiMate 3.2 |                                                         |
+| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT          | ArchiMate 3.2 |                                                         |
+| 03  | [Product](spec/layers/03-product.layer.json)         | WHAT DELIVERS | _Custom_      |                                                         |
+| 04  | [Security](spec/layers/04-security.layer.json)       | WHO CAN       | _Custom_      |                                                         |
+| 05  | [Application](spec/layers/05-application.layer.json) | HOW           | ArchiMate 3.2 |                                                         |
+| 06  | [Technology](spec/layers/06-technology.layer.json)   | WITH WHAT     | ArchiMate 3.2 |                                                         |
+| 07  | [API](spec/layers/07-api.layer.json)                 | INTERFACE     | OpenAPI 3.0   |                                                         |
+| 08  | [Data Model](spec/layers/08-data-model.layer.json)   | STRUCTURE     | JSON Schema   |                                                         |
+| 09  | [Data Store](spec/layers/09-data-store.layer.json)   | STORAGE       | SQL DDL       |                                                         |
+| 10  | [UX](spec/layers/10-ux.layer.json)                   | PRESENTATION  | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
+| 11  | [Navigation](spec/layers/11-navigation.layer.json)   | FLOW          | _Custom_      |                                                         |
+| 12  | [APM/Observability](spec/layers/12-apm.layer.json)   | OBSERVE       | OpenTelemetry |                                                         |
+| 13  | [Testing](spec/layers/13-testing.layer.json)         | VERIFY        | _Custom_      |                                                         |
 
 ## Standards Leveraged
 
 This project maximizes use of existing standards:
 
-- **ArchiMate 3.2** - Motivation, Business, Application, Technology layers
+- **ArchiMate 3.2** - Motivation, Business, Application (layer 5), Technology (layer 6)
 - **OpenAPI 3.0** - API specifications
 - **JSON Schema Draft 7** - Data model definitions
 - **OpenTelemetry 1.0+** - Observability and tracing

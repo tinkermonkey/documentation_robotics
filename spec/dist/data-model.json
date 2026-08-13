@@ -1,10 +1,10 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.9.0",
   "layer": {
     "id": "data-model",
-    "number": 7,
+    "number": 8,
     "name": "Data Model Layer",
-    "description": "Layer 7: Data Model Layer",
+    "description": "Layer 8: Data Model Layer",
     "inspired_by": {
       "standard": "JSON Schema Draft 7",
       "version": "Draft 7",

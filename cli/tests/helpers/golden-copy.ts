@@ -328,16 +328,17 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       const layerDirs = [
         "01_motivation",
         "02_business",
-        "03_security",
-        "04_application",
-        "05_technology",
-        "06_api",
-        "07_data-model",
-        "08_data-store",
-        "09_ux",
-        "10_navigation",
-        "11_apm",
-        "12_testing",
+        "03_product",
+        "04_security",
+        "05_application",
+        "06_technology",
+        "07_api",
+        "08_data-model",
+        "09_data-store",
+        "10_ux",
+        "11_navigation",
+        "12_apm",
+        "13_testing",
       ];
 
       const modelDir = join(path, "documentation-robotics", "model");

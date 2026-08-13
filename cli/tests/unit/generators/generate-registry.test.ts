@@ -39,16 +39,16 @@ describe("Generator: generate-registry", () => {
       expect(typeof registry.getAllLayers).toBe("function");
     });
 
-    it("should contain all 12 layers", async () => {
+    it("should contain all 13 layers", async () => {
       const registry = await import("../../../src/generated/layer-registry.js");
 
       const layers = registry.getAllLayers();
       expect(Array.isArray(layers)).toBe(true);
-      expect(layers.length).toBe(12);
+      expect(layers.length).toBe(13);
 
-      // Verify layers are numbered 1-12
+      // Verify layers are numbered 1-13
       const layerNumbers = layers.map((l: any) => l.number);
-      expect(layerNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+      expect(layerNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     });
 
     it("should have correct layer properties", async () => {

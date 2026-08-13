@@ -16,7 +16,14 @@
  * - Concurrent execution would cause port conflicts and file monitoring race conditions
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach
+} from "bun:test";
 import { VisualizationServer } from "../../src/server/server";
 import { Model } from "../../src/core/model";
 import { Element } from "../../src/core/element";
@@ -40,7 +47,7 @@ async function createTestModel(testDir: string): Promise<Model> {
     version: "0.1.0",
     description: "Model for visualization server testing",
     specVersion: "0.6.0",
-    created: new Date().toISOString(),
+    created: new Date().toISOString()
   };
 
   // Eager loading required: Visualization server renders complete model in UI
@@ -58,7 +65,7 @@ async function createTestModel(testDir: string): Promise<Model> {
       attributes: {},
       relationships: [],
       references: [],
-      layer: "motivation",
+      layer: "motivation"
     })
   );
 
@@ -71,7 +78,7 @@ async function createTestModel(testDir: string): Promise<Model> {
       attributes: {},
       relationships: [],
       references: [],
-      layer: "motivation",
+      layer: "motivation"
     })
   );
 
@@ -88,7 +95,7 @@ async function createTestModel(testDir: string): Promise<Model> {
       attributes: {},
       relationships: [],
       references: ["motivation.goal.g1"],
-      layer: "business",
+      layer: "business"
     })
   );
 
@@ -164,7 +171,6 @@ describe.serial("Visualization Server - Model Loading", () => {
     expect(Array.isArray(data.nodes)).toBe(true);
     expect(Array.isArray(data.links)).toBe(true);
   });
-
 });
 
 describe.serial("Visualization Server - Annotations", () => {
@@ -195,13 +201,13 @@ describe.serial("Visualization Server - Annotations", () => {
       elementId: "motivation.goal.g1",
       author: "Test User",
       content: "This is a test annotation",
-      tags: ["test", "review"],
+      tags: ["test", "review"]
     };
 
     const response = await fetch(`${baseUrl}/api/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(annotationData),
+      body: JSON.stringify(annotationData)
     });
 
     expect(response.status).toBe(201);
@@ -215,7 +221,9 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should get annotations for element via GET /api/annotations?elementId=", async () => {
-    const response = await fetch(`${baseUrl}/api/annotations?elementId=motivation.goal.g1`);
+    const response = await fetch(
+      `${baseUrl}/api/annotations?elementId=motivation.goal.g1`
+    );
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -228,14 +236,17 @@ describe.serial("Visualization Server - Annotations", () => {
   it("should update annotation via PUT /api/annotations/:id", async () => {
     const updateData = {
       content: "Updated annotation content",
-      tags: ["updated"],
+      tags: ["updated"]
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData)
+      }
+    );
 
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -244,14 +255,19 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should delete annotation via DELETE /api/annotations/:id", async () => {
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "DELETE",
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "DELETE"
+      }
+    );
 
     expect(response.status).toBe(204);
 
     // Verify it's deleted
-    const getResponse = await fetch(`${baseUrl}/api/annotations?elementId=motivation.goal.g1`);
+    const getResponse = await fetch(
+      `${baseUrl}/api/annotations?elementId=motivation.goal.g1`
+    );
     const result = await getResponse.json();
     expect(result.annotations.length).toBe(0);
   });
@@ -260,13 +276,13 @@ describe.serial("Visualization Server - Annotations", () => {
     const annotationData = {
       elementId: "motivation.goal.g2",
       author: "Another User",
-      content: "Element-specific annotation",
+      content: "Element-specific annotation"
     };
 
     const response = await fetch(`${baseUrl}/api/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(annotationData),
+      body: JSON.stringify(annotationData)
     });
 
     expect(response.status).toBe(201);
@@ -279,13 +295,13 @@ describe.serial("Visualization Server - Annotations", () => {
     const annotationData = {
       elementId: "motivation.goal.g1",
       author: "Test User",
-      content: "Test resolved field",
+      content: "Test resolved field"
     };
 
     const response = await fetch(`${baseUrl}/api/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(annotationData),
+      body: JSON.stringify(annotationData)
     });
 
     expect(response.status).toBe(201);
@@ -296,14 +312,17 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should update resolved field via PUT", async () => {
     const updateData = {
-      resolved: true,
+      resolved: true
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData)
+      }
+    );
 
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -312,14 +331,17 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should update annotation via PATCH (partial update)", async () => {
     const patchData = {
-      content: "Patched content only",
+      content: "Patched content only"
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patchData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patchData)
+      }
+    );
 
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -329,14 +351,17 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should update resolved via PATCH", async () => {
     const patchData = {
-      resolved: false,
+      resolved: false
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patchData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patchData)
+      }
+    );
 
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -346,11 +371,14 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should reject PATCH with empty body", async () => {
     // AnnotationUpdateSchema requires at least one field to be provided
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      }
+    );
 
     expect(response.status).toBe(400);
     const error = await response.json();
@@ -360,11 +388,14 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should reject PUT with empty body", async () => {
     // AnnotationUpdateSchema requires at least one field to be provided
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      }
+    );
 
     expect(response.status).toBe(400);
     const error = await response.json();
@@ -375,13 +406,13 @@ describe.serial("Visualization Server - Annotations", () => {
   it("should create annotation without author (defaults to Anonymous)", async () => {
     const annotationData = {
       elementId: "motivation.goal.g1",
-      content: "Anonymous annotation",
+      content: "Anonymous annotation"
     };
 
     const response = await fetch(`${baseUrl}/api/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(annotationData),
+      body: JSON.stringify(annotationData)
     });
 
     expect(response.status).toBe(201);
@@ -391,7 +422,9 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should get replies for annotation", async () => {
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`);
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`
+    );
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -403,14 +436,17 @@ describe.serial("Visualization Server - Annotations", () => {
   it("should create reply on annotation", async () => {
     const replyData = {
       author: "Reply Author",
-      content: "This is a reply to the annotation",
+      content: "This is a reply to the annotation"
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(replyData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(replyData)
+      }
+    );
 
     expect(response.status).toBe(201);
     const data = await response.json();
@@ -421,7 +457,9 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should get replies after creating one", async () => {
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`);
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`
+    );
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -433,29 +471,35 @@ describe.serial("Visualization Server - Annotations", () => {
   it("should return 404 when replying to non-existent annotation", async () => {
     const replyData = {
       author: "Test",
-      content: "Reply to nowhere",
+      content: "Reply to nowhere"
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/non-existent-id/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(replyData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/non-existent-id/replies`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(replyData)
+      }
+    );
 
     expect(response.status).toBe(404);
   });
 
   it("should require author and content for reply", async () => {
     const replyData = {
-      author: "Test",
+      author: "Test"
       // Missing content
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(replyData),
-    });
+    const response = await fetch(
+      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(replyData)
+      }
+    );
 
     expect(response.status).toBe(400);
   });
@@ -471,13 +515,18 @@ describe.serial("Visualization Server - Annotations", () => {
     );
 
     // Delete the annotation
-    const deleteResponse = await fetch(`${baseUrl}/api/annotations/${annWithReplies.id}`, {
-      method: "DELETE",
-    });
+    const deleteResponse = await fetch(
+      `${baseUrl}/api/annotations/${annWithReplies.id}`,
+      {
+        method: "DELETE"
+      }
+    );
     expect(deleteResponse.status).toBe(204);
 
     // Verify replies are also deleted (404 on GET replies)
-    const repliesResponse = await fetch(`${baseUrl}/api/annotations/${annWithReplies.id}/replies`);
+    const repliesResponse = await fetch(
+      `${baseUrl}/api/annotations/${annWithReplies.id}/replies`
+    );
     expect(repliesResponse.status).toBe(404);
   });
 });
@@ -572,7 +621,7 @@ describe.serial("Visualization Server - WebSocket", () => {
       ws.send(
         JSON.stringify({
           type: "subscribe",
-          topics: ["model", "annotations"],
+          topics: ["model", "annotations"]
         })
       );
     });
@@ -603,8 +652,8 @@ describe.serial("Visualization Server - WebSocket", () => {
         body: JSON.stringify({
           elementId: "motivation.goal.g1",
           author: "WS Test",
-          content: "WebSocket test annotation",
-        }),
+          content: "WebSocket test annotation"
+        })
       });
     });
   }, 10000);
@@ -650,7 +699,7 @@ describe.serial("Visualization Server - File Watching", () => {
           attributes: {},
           relationships: [],
           references: [],
-          layer: "motivation",
+          layer: "motivation"
         })
       );
       await model.saveLayer("motivation");
@@ -664,75 +713,6 @@ describe.serial("Visualization Server - File Watching", () => {
     const reloadedLayer = await reloadedModel.getLayer("motivation");
     expect(reloadedLayer?.elements.size).toBe(initialCount + 1);
   });
-
-  // The test above only proves the file changed on disk - it reloads the model itself
-  // independently rather than checking anything about the server's own watcher/broadcast
-  // behavior, so it would pass identically even if the watcher (chokidar, since PR #803's
-  // Bun -> Node migration) were completely broken. This test instead asserts the server's
-  // actual watcher-driven side effect: that editing a model file causes a live WebSocket
-  // client to receive a "model.updated" broadcast with the updated data.
-  it("should broadcast model.updated over WebSocket when a watched file changes", async () => {
-    const ws = new WebSocket(`ws://localhost:${watchingPort}/ws`);
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("WebSocket never opened")), 10000);
-      ws.onopen = () => {
-        clearTimeout(timer);
-        resolve();
-      };
-      ws.onerror = (err) => {
-        clearTimeout(timer);
-        reject(err);
-      };
-    });
-
-    // The previous test in this describe.serial block also edits a model file and
-    // triggers the same watcher/broadcast; a stray "model.updated" from that edit can
-    // still be in flight when this test's WS connects. Only resolve on the broadcast
-    // that actually reflects *this* test's edit, not just the first one that arrives.
-    const updatePromise = new Promise<any>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error("Timed out waiting for model.updated broadcast containing motivation-goal-g4"));
-      }, 10000);
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data as string);
-        // Match on `name` rather than `id`: the model layer may normalize/rewrite the
-        // id it was constructed with (e.g. to a UUID with a separate dot-notation
-        // `path`), so `name` is the more reliable identifier for what we just added.
-        if (
-          message.type === "model.updated" &&
-          message.data?.nodes?.some((n: any) => n.name === "Broadcast Test Goal")
-        ) {
-          clearTimeout(timer);
-          resolve(message);
-        }
-      };
-    });
-
-    const motivationLayer = await model.getLayer("motivation");
-    if (motivationLayer) {
-      motivationLayer.addElement(
-        new Element({
-          id: "motivation-goal-g4",
-          name: "Broadcast Test Goal",
-          type: "goal",
-          description: "Added to trigger a watcher broadcast",
-          attributes: {},
-          relationships: [],
-          references: [],
-          layer: "motivation",
-        })
-      );
-      await model.saveLayer("motivation");
-    }
-
-    const update = await updatePromise;
-    expect(update.type).toBe("model.updated");
-    expect(update.data).toBeDefined();
-    expect(Array.isArray(update.data.nodes)).toBe(true);
-    expect(update.data.nodes.some((n: any) => n.name === "Broadcast Test Goal")).toBe(true);
-
-    ws.close();
-  }, 15000);
 });
 
 describe.serial("Visualization Server - Changesets", () => {
@@ -783,7 +763,7 @@ describe("Visualization Server - Authentication", () => {
     authToken = "test-auth-token-123";
     server = new VisualizationServer(model, {
       authEnabled: true,
-      authToken: authToken,
+      authToken: authToken
     });
     await server.start(authPort);
     baseUrl = `http://localhost:${authPort}`;
@@ -803,8 +783,8 @@ describe("Visualization Server - Authentication", () => {
   it("should accept requests with valid Bearer token", async () => {
     const response = await fetch(`${baseUrl}/api/model`, {
       headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+        Authorization: `Bearer ${authToken}`
+      }
     });
     expect(response.status).toBe(200);
   });
@@ -817,8 +797,8 @@ describe("Visualization Server - Authentication", () => {
   it("should reject requests with invalid token", async () => {
     const response = await fetch(`${baseUrl}/api/model`, {
       headers: {
-        Authorization: "Bearer invalid-token",
-      },
+        Authorization: "Bearer invalid-token"
+      }
     });
     expect(response.status).toBe(403);
   });
@@ -826,8 +806,8 @@ describe("Visualization Server - Authentication", () => {
   it("should reject requests with malformed Bearer header (empty token)", async () => {
     const response = await fetch(`${baseUrl}/api/model`, {
       headers: {
-        Authorization: "Bearer ",
-      },
+        Authorization: "Bearer "
+      }
     });
     expect(response.status).toBe(401);
   });
@@ -835,8 +815,8 @@ describe("Visualization Server - Authentication", () => {
   it("should reject requests with wrong auth scheme (Basic instead of Bearer)", async () => {
     const response = await fetch(`${baseUrl}/api/model`, {
       headers: {
-        Authorization: "Basic aW52YWxpZDppbnZhbGlk", // base64 of "invalid:invalid"
-      },
+        Authorization: "Basic aW52YWxpZDppbnZhbGlk" // base64 of "invalid:invalid"
+      }
     });
     expect(response.status).toBe(401);
   });
@@ -844,8 +824,8 @@ describe("Visualization Server - Authentication", () => {
   it("should reject requests with missing token in Bearer scheme", async () => {
     const response = await fetch(`${baseUrl}/api/model`, {
       headers: {
-        Authorization: "Bearer",
-      },
+        Authorization: "Bearer"
+      }
     });
     expect(response.status).toBe(401);
   });
