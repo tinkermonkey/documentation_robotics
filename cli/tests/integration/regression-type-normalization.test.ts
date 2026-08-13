@@ -72,6 +72,12 @@ describe("regression: type-normalization", () => {
         if (layer === "application" && abbreviatedType === "service") {
           cmd.push("--attributes");
           cmd.push('{"serviceType":"synchronous"}');
+        } else if (layer === "application" && abbreviatedType === "component") {
+          cmd.push("--attributes");
+          cmd.push('{"type":"generic"}');
+        } else if (layer === "technology" && abbreviatedType === "service") {
+          cmd.push("--attributes");
+          cmd.push('{"serviceType":"compute"}');
         }
 
         const result = await runDr(cmd, { cwd: workdir.path });
@@ -122,7 +128,7 @@ describe("regression: type-normalization", () => {
       // (e.g., "application.service" instead of "application.applicationservice"),
       // validation would fail because the schema expects the canonical form.
       const result = await runDr(
-        ["add", "application", "service", "regression-test"],
+        ["add", "application", "service", "regression-test", "--attributes", '{"serviceType":"synchronous"}'],
         { cwd: workdir.path }
       );
       expect(result.exitCode).toBe(0);

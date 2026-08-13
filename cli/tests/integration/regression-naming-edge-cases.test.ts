@@ -34,7 +34,7 @@ describe("regression: naming-edge-cases", () => {
   describe("name with embedded dot", () => {
     it("should handle name with embedded dot (Node.js) correctly", async () => {
       // Add element with name containing a dot
-      const result = await runDr(["add", "technology", "service", "Node.js"], {
+      const result = await runDr(["add", "technology", "service", "Node.js", "--attributes", '{"serviceType":"compute"}'], {
         cwd: workdir.path,
       });
 
@@ -251,7 +251,7 @@ describe("regression: naming-edge-cases", () => {
 
     it("should handle name with dot and special chars combined (Node@.js$)", async () => {
       // Test combination of dot and special chars
-      const result = await runDr(["add", "technology", "service", "Node@.js$"], {
+      const result = await runDr(["add", "technology", "service", "Node@.js$", "--attributes", '{"serviceType":"messaging"}'], {
         cwd: workdir.path,
       });
 
