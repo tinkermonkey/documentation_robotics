@@ -223,7 +223,7 @@ pipelines:
       - command: 'add product userworkflow payment-checkout --name ''Payment Checkout Workflow'' --description ''User workflow for payment checkout'' --attributes ''{"complexity":"moderate"}'''
         files_to_compare:
           - manifest.yaml
-          - 03_product/userworkflow.yaml
+          - 03_product/user_workflow.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -231,7 +231,7 @@ pipelines:
 
       - command: "update product.userworkflow.payment-checkout --name 'Simplified Payment Checkout'"
         files_to_compare:
-          - 03_product/userworkflow.yaml
+          - 03_product/user_workflow.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -239,7 +239,7 @@ pipelines:
       - command: "delete product.userworkflow.payment-checkout --force"
         files_to_compare:
           - manifest.yaml
-          - 03_product/userworkflow.yaml
+          - 03_product/user_workflow.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
