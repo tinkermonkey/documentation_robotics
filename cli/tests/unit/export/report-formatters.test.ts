@@ -15,7 +15,7 @@ describe("Report Formatters", () => {
       statistics: {
         totalElements: 100,
         totalRelationships: 50,
-        totalLayers: 12,
+        totalLayers: 13,
         populatedLayers: 6,
       },
       validation: {

@@ -285,12 +285,13 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(Array.isArray(data.elements)).toBe(true);
     });
 
-    it("should return all 12 standard layers", async () => {
+    it("should return all 13 standard layers", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const layers = [
         "motivation",
         "business",
+        "product",
         "security",
         "application",
         "technology",
