@@ -53,7 +53,7 @@ describe("stats command", () => {
     await runDr(["init", "--name", "Relationship Stats"], { cwd: tempDir.path });
 
     // Add elements
-    await runDr(["add", "motivation", "goal", "test-goal-1", "--name", "Satisfy users", "--attributes", "priority":"high"}], {
+    await runDr(["add", "motivation", "goal", "test-goal-1", "--name", "Satisfy users", "--attributes", '{"priority":"high"}'], {
       cwd: tempDir.path,
     });
     await runDr(["add", "business", "service", "test-service-1", "--name", "User Service"], {
@@ -257,7 +257,7 @@ describe("stats command", () => {
     await runDr(["init", "--name", "Complex JSON"], { cwd: tempDir.path });
 
     // Add elements to multiple layers
-    await runDr(["add", "motivation", "goal", "goal-1", "--name", "Goal 1", "--attributes", "priority":"high"}], { cwd: tempDir.path });
+    await runDr(["add", "motivation", "goal", "goal-1", "--name", "Goal 1", "--attributes", '{"priority":"high"}'], { cwd: tempDir.path });
     await runDr(["add", "api", "operation", "operation-1", "--name", "Operation 1"], {
       cwd: tempDir.path,
     });

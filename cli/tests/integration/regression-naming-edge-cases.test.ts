@@ -79,7 +79,7 @@ describe("regression: naming-edge-cases", () => {
   describe("name with special characters", () => {
     it("should handle name with special characters (Auth & Session) correctly", async () => {
       // Add element with special characters
-      const result = await runDr(["add", "application", "service", "Auth & Session", "--attributes", "{"serviceType":"synchronous"}"], {
+      const result = await runDr(["add", "application", "service", "Auth & Session", "--attributes", '{"serviceType":"synchronous"}'], {
         cwd: workdir.path,
       });
 
@@ -121,7 +121,7 @@ describe("regression: naming-edge-cases", () => {
 
     it("should strip multiple special characters from name", async () => {
       // Test with multiple different special characters
-      const result = await runDr(["add", "motivation", "goal", "User@#$Experience", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "User@#$Experience", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -144,7 +144,7 @@ describe("regression: naming-edge-cases", () => {
   describe("all-special-character name", () => {
     it("should reject name that is entirely special characters (@@@) with user-friendly error", async () => {
       // Add element with name that is ONLY special characters
-      const result = await runDr(["add", "motivation", "goal", "@@@", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "@@@", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -163,7 +163,7 @@ describe("regression: naming-edge-cases", () => {
     it("should reject name that collapses to empty (---) with user-friendly error", async () => {
       // Add element with name that is only hyphens (will collapse to empty after stripping)
       // Note: use -- to signal end of options so --- is treated as a name argument, not a flag
-      const result = await runDr(["add", "motivation", "goal", "--", "---", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "--", "---", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -180,7 +180,7 @@ describe("regression: naming-edge-cases", () => {
     });
 
     it("should reject name that is all exclamation marks (!!!!) with user-friendly error", async () => {
-      const result = await runDr(["add", "motivation", "goal", "!!!!", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "!!!!", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -192,7 +192,7 @@ describe("regression: naming-edge-cases", () => {
     });
 
     it("should reject name that is all asterisks (****) with user-friendly error", async () => {
-      const result = await runDr(["add", "motivation", "goal", "****", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "****", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -204,7 +204,7 @@ describe("regression: naming-edge-cases", () => {
     });
 
     it("should reject name that is all hashes (####) with user-friendly error", async () => {
-      const result = await runDr(["add", "motivation", "goal", "####", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "####", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -216,7 +216,7 @@ describe("regression: naming-edge-cases", () => {
     });
 
     it("should reject name that is all ampersands (&&&&) with user-friendly error", async () => {
-      const result = await runDr(["add", "motivation", "goal", "&&&&", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "&&&&", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 
@@ -231,7 +231,7 @@ describe("regression: naming-edge-cases", () => {
   describe("edge case: names that almost collapse", () => {
     it("should handle name with mostly special chars but valid result (A@@@B)", async () => {
       // Name with valid chars surrounded by special chars
-      const result = await runDr(["add", "motivation", "goal", "A@@@B", "--attributes", "priority":"high"}], {
+      const result = await runDr(["add", "motivation", "goal", "A@@@B", "--attributes", '{"priority":"high"}'], {
         cwd: workdir.path,
       });
 

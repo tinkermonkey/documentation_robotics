@@ -88,7 +88,7 @@ describe("CLI Commands Integration Tests", () => {
     // Model is already initialized in the global beforeEach hook
 
     it("should add an element to a layer", async () => {
-      const result = await runDr("add", "motivation", "goal", "Test Goal", "--attributes", "priority":"high"});
+      const result = await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
 
       expect(result.exitCode).toBe(0);
 
@@ -225,7 +225,7 @@ describe("CLI Commands Integration Tests", () => {
     it("should fail with invalid element ID containing underscores", async () => {
       // With Python format, underscores in names are auto-converted to hyphens
       // so this test now passes and creates motivation.goal.test-goal
-      const result = await runDr("add", "motivation", "goal", "test_goal_test", "--attributes", "priority":"high"});
+      const result = await runDr("add", "motivation", "goal", "test_goal_test", "--attributes", '{"priority":"high"}');
 
       expect(result.exitCode).toBe(0); // Now succeeds - underscores converted to hyphens
     });
@@ -259,7 +259,7 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Original Name", "--attributes", "priority":"high"});
+      await runDr("add", "motivation", "goal", "Original Name", "--attributes", '{"priority":"high"}');
     });
 
     it("should update element name", async () => {
@@ -345,7 +345,7 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", "priority":"high"});
+      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
     });
 
     it("should delete element with force flag", async () => {
@@ -402,7 +402,7 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", "priority":"high"});
+      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
     });
 
     it("should display element details", async () => {
@@ -423,7 +423,7 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Goal 1", "--attributes", "priority":"high"});
+      await runDr("add", "motivation", "goal", "Goal 1", "--attributes", '{"priority":"high"}');
       await runDr("add", "motivation", "goal", "Goal 2", "--attributes", "priority=medium");
       await runDr("add", "motivation", "driver", "Driver 1");
     });

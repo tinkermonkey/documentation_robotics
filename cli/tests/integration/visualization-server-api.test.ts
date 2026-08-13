@@ -114,7 +114,7 @@ async function addTestElements(dir: string): Promise<void> {
     // Add serviceType attribute for application services
     if (type === "applicationservice") {
       cmd.push("--attributes");
-      cmd.push("{"serviceType":"synchronous"}");
+      cmd.push('{"serviceType":"synchronous"}');
     }
 
     const result = spawnSync({

@@ -71,7 +71,7 @@ describe("regression: type-normalization", () => {
         // Add required attributes for specific types
         if (layer === "application" && abbreviatedType === "service") {
           cmd.push("--attributes");
-          cmd.push("{"serviceType":"synchronous"}");
+          cmd.push('{"serviceType":"synchronous"}');
         }
 
         const result = await runDr(cmd, { cwd: workdir.path });
@@ -95,7 +95,7 @@ describe("regression: type-normalization", () => {
   describe("validation pipeline with abbreviated types", () => {
     it("should pass validation after adding elements with abbreviated type names", async () => {
       // Add elements using different abbreviated types
-      await runDr(["add", "application", "service", "auth-service", "--attributes", "{"serviceType":"synchronous"}"], {
+      await runDr(["add", "application", "service", "auth-service", "--attributes", '{"serviceType":"synchronous"}'], {
         cwd: workdir.path,
       });
       await runDr(["add", "application", "component", "auth-component"], {
