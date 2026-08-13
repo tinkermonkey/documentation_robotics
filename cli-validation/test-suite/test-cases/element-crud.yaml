@@ -5,7 +5,7 @@ priority: high
 pipelines:
   - name: "Add and update motivation goal"
     steps:
-      - command: "add motivation goal test-goal --name 'Test Strategic Goal' --description 'Test goal for verification'"
+      - command: "add motivation goal test-goal --name 'Test Strategic Goal' --description 'Test goal for verification' --attributes '{\"priority\":\"high\"}'"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -32,10 +32,10 @@ pipelines:
 
   - name: "Add application component lifecycle"
     steps:
-      - command: "add application component test-component --name 'Test Component' --description 'Test application component'"
+      - command: "add application component test-component --name 'Test Component' --description 'Test application component' --attributes '{\"type\":\"generic\"}'"
         files_to_compare:
           - manifest.yaml
-          - 04_application/application_component.yaml
+          - 05_application/application_component.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -50,13 +50,13 @@ pipelines:
 
       - command: "update application.applicationcomponent.test-component --name 'Updated Component'"
         files_to_compare:
-          - 04_application/application_component.yaml
+          - 05_application/application_component.yaml
         expect_exit_code: 0
 
       - command: "delete application.applicationcomponent.test-component --force"
         files_to_compare:
           - manifest.yaml
-          - 04_application/application_component.yaml
+          - 05_application/application_component.yaml
         expect_exit_code: 0
 
   - name: "Add API operation with update"
@@ -64,7 +64,7 @@ pipelines:
       - command: 'add api operation test-operation --name ''Test Operation'' --description ''Test API operation'' --attributes ''{"operationId":"test-operation","summary":"Test Operation","tags":"test"}'''
         files_to_compare:
           - manifest.yaml
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -72,7 +72,7 @@ pipelines:
 
       - command: "update api.operation.test-operation --name 'Updated Operation'"
         files_to_compare:
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -80,17 +80,17 @@ pipelines:
       - command: "delete api.operation.test-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
   - name: "Add datastore collection with update"
     steps:
-      - command: "add data-store collection test-table --name 'test_collection' --description 'Test collection'"
+      - command: "add data-store collection test-table --name 'test_collection' --description 'Test collection' --attributes '{\"collectionType\":\"TABLE\"}'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -98,7 +98,7 @@ pipelines:
 
       - command: "update data-store.collection.test-table --name 'updated_collection'"
         files_to_compare:
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -106,17 +106,17 @@ pipelines:
       - command: "delete data-store.collection.test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
   - name: "Add testing test case sketch with update"
     steps:
-      - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification'"
+      - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification' --attributes '{\"status\":\"draft\"}'"
         files_to_compare:
           - manifest.yaml
-          - 12_testing/test_case_sketch.yaml
+          - 13_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -124,7 +124,7 @@ pipelines:
 
       - command: "update testing.testcasesketch.test-case --name 'Updated Test Case'"
         files_to_compare:
-          - 12_testing/test_case_sketch.yaml
+          - 13_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -132,7 +132,7 @@ pipelines:
       - command: "delete testing.testcasesketch.test-case --force"
         files_to_compare:
           - manifest.yaml
-          - 12_testing/test_case_sketch.yaml
+          - 13_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
