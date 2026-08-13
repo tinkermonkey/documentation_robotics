@@ -32,7 +32,7 @@ pipelines:
 
   - name: "Export to OpenAPI specification"
     steps:
-      - command: "add api operation export-test-operation --name 'Export Test Operation' --description 'Temporary operation for export test' --attributes '{\"operationId\":\"export-test-operation\",\"summary\":\"Export Test Operation\",\"tags\":\"export\"}'"
+      - command: 'add api operation export-test-operation --name ''Export Test Operation'' --description ''Temporary operation for export test'' --attributes ''{"operationId":"export-test-operation","summary":"Export Test Operation","tags":"export"}'''
         files_to_compare:
           - manifest.yaml
           - 07_api/operation.yaml
@@ -53,7 +53,7 @@ pipelines:
 
   - name: "Export to JSON Schema"
     steps:
-      - command: "add data-model objectschema schema-test-object --name 'Test Object' --description 'Object for JSON schema export' --attributes '{\"type\":\"object\"}'"
+      - command: 'add data-model objectschema schema-test-object --name ''Test Object'' --description ''Object for JSON schema export'' --attributes ''{"type":"object"}'''
         files_to_compare:
           - manifest.yaml
           - 08_data-model/object_schema.yaml

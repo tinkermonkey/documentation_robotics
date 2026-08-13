@@ -5,7 +5,7 @@ priority: medium
 pipelines:
   - name: "Projection operations"
     steps:
-      - command: "add motivation goal project-test-goal --name 'Goal for Projection' --description 'Goal that will be projected' --attributes '{\"priority\":\"high\"}'"
+      - command: 'add motivation goal project-test-goal --name ''Goal for Projection'' --description ''Goal that will be projected'' --attributes ''{"priority":"high"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -19,13 +19,13 @@ pipelines:
 
   - name: "Trace dependencies for element"
     steps:
-      - command: "add data-store collection trace-test-table --name 'trace_collection' --description 'Collection for tracing' --attributes '{\"collectionType\":\"TABLE\"}'"
+      - command: 'add data-store collection trace-test-table --name ''trace_collection'' --description ''Collection for tracing'' --attributes ''{"collectionType":"TABLE"}'''
         files_to_compare:
           - manifest.yaml
           - 09_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field trace-test-column --name 'trace_field' --description 'Field for tracing' --attributes '{\"dataType\":\"string\"}'"
+      - command: 'add data-store field trace-test-column --name ''trace_field'' --description ''Field for tracing'' --attributes ''{"dataType":"string"}'''
         files_to_compare:
           - manifest.yaml
           - 09_data-store/field.yaml
@@ -84,13 +84,13 @@ pipelines:
 
   - name: "Relationship operations via relationship command"
     steps:
-      - command: "add data-store collection rel-cmd-table --name 'rel_collection' --description 'Collection for relationship command test' --attributes '{\"collectionType\":\"TABLE\"}'"
+      - command: 'add data-store collection rel-cmd-table --name ''rel_collection'' --description ''Collection for relationship command test'' --attributes ''{"collectionType":"TABLE"}'''
         files_to_compare:
           - manifest.yaml
           - 09_data-store/collection.yaml
         expect_exit_code: 0
 
-      - command: "add data-store field rel-cmd-column --name 'rel_field' --description 'Field for relationship command test' --attributes '{\"dataType\":\"string\"}'"
+      - command: 'add data-store field rel-cmd-column --name ''rel_field'' --description ''Field for relationship command test'' --attributes ''{"dataType":"string"}'''
         files_to_compare:
           - manifest.yaml
           - 09_data-store/field.yaml
