@@ -87,11 +87,11 @@ describe("Error Message Scenarios", () => {
 
     it("should error when adding duplicate element", async () => {
       // Add first time
-      const result1 = await runDr("add", "motivation", "goal", "test-goal");
+      const result1 = await runDr("add", "motivation", "goal", "test-goal", "--attributes", "priority":"high"});
       expect(result1.exitCode).toBe(0);
 
       // Add same element again
-      const result2 = await runDr("add", "motivation", "goal", "test-goal");
+      const result2 = await runDr("add", "motivation", "goal", "test-goal", "--attributes", "priority":"high"});
       expect(result2.exitCode).toBe(1);
       expect(result2.stderr).toContain("already exists");
       // Should include helpful suggestions
@@ -132,7 +132,7 @@ describe("Error Message Scenarios", () => {
   describe("Delete Command Errors", () => {
     beforeEach(async () => {
       await runDr("init", "--name", "Test Model");
-      await runDr("add", "motivation", "goal", "increase-revenue");
+      await runDr("add", "motivation", "goal", "increase-revenue", "--attributes", "priority":"high"});
       await runDr("add", "business", "service", "customer-service");
     });
 

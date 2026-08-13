@@ -31,7 +31,7 @@ describe("Element Subcommand Group", () => {
 
   describe("element add", () => {
     it("should add an element to a layer via element add", async () => {
-      const result = await runDr("element", "add", "motivation", "goal", "Test Goal");
+      const result = await runDr("element", "add", "motivation", "goal", "Test Goal", "--attributes", "priority":"high"});
 
       expect(result.exitCode).toBe(0);
 
@@ -92,8 +92,8 @@ describe("Element Subcommand Group", () => {
   describe("element list", () => {
     beforeEach(async () => {
       // Add some test elements
-      await runDr("element", "add", "motivation", "goal", "Goal One");
-      await runDr("element", "add", "motivation", "goal", "Goal Two");
+      await runDr("element", "add", "motivation", "goal", "Goal One", "--attributes", "priority":"high"});
+      await runDr("element", "add", "motivation", "goal", "Goal Two", "--attributes", "priority":"high"});
       await runDr("element", "add", "motivation", "stakeholder", "Stakeholder One");
     });
 
@@ -125,7 +125,7 @@ describe("Element Subcommand Group", () => {
   describe("element show", () => {
     beforeEach(async () => {
       // Add test element
-      await runDr("element", "add", "motivation", "goal", "Get Order");
+      await runDr("element", "add", "motivation", "goal", "Get Order", "--attributes", "priority":"high"});
     });
 
     it("should display element details via element show", async () => {
@@ -146,8 +146,8 @@ describe("Element Subcommand Group", () => {
   describe("element delete", () => {
     beforeEach(async () => {
       // Add test elements
-      await runDr("element", "add", "motivation", "goal", "Goal To Delete");
-      await runDr("element", "add", "motivation", "goal", "Goal To Keep");
+      await runDr("element", "add", "motivation", "goal", "Goal To Delete", "--attributes", "priority":"high"});
+      await runDr("element", "add", "motivation", "goal", "Goal To Keep", "--attributes", "priority":"high"});
     });
 
     it("should delete element via element delete with --force", async () => {
@@ -176,7 +176,7 @@ describe("Element Subcommand Group", () => {
   describe("element update", () => {
     beforeEach(async () => {
       // Add test element
-      await runDr("element", "add", "motivation", "goal", "Original Goal");
+      await runDr("element", "add", "motivation", "goal", "Original Goal", "--attributes", "priority":"high"});
     });
 
     it("should update element name via element update", async () => {

@@ -31,7 +31,7 @@ describe("Flag Effectiveness Tests", () => {
           name: "Flag Test Model - Strict",
           version: "1.0.0",
           description: "Test model for --strict flag effectiveness",
-          specVersion: "0.8.3",
+          specVersion: "0.8.4",
           created: new Date().toISOString(),
         },
         { lazyLoad: false }
@@ -174,7 +174,7 @@ describe("Flag Effectiveness Tests", () => {
           name: "Flag Test Model - Verbose",
           version: "1.0.0",
           description: "Test model for --verbose flag effectiveness",
-          specVersion: "0.8.3",
+          specVersion: "0.8.4",
           created: new Date().toISOString(),
         },
         { lazyLoad: false }

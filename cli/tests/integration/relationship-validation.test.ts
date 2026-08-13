@@ -74,7 +74,7 @@ describe("Relationship Validation", () => {
   describe("validate strict mode flags missing optional fields", () => {
     it("should produce different output with --strict flag when descriptions are missing", async () => {
       // Create a goal without description
-      await runDr("add", "motivation", "goal", "Test Goal");
+      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", "priority":"high"});
 
       // Run standard validate
       const standardResult = await runDr("validate");
@@ -100,7 +100,7 @@ describe("Relationship Validation", () => {
   describe("orphan warning count in body matches summary", () => {
     it("should report orphaned element in both body and summary with matching counts", async () => {
       // Create an isolated goal that has no relationships
-      await runDr("add", "motivation", "goal", "Orphan Test Goal");
+      await runDr("add", "motivation", "goal", "Orphan Test Goal", "--attributes", "priority":"high"});
 
       // Run validate with verbose output to see body warnings
       const result = await runDr("validate", "--verbose");

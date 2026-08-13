@@ -201,7 +201,7 @@ ignore:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       const routes: DiscoveredRoute[] = [
@@ -242,7 +242,7 @@ spec_version: "0.8.3"`
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create source files that will be checked
@@ -341,7 +341,7 @@ get-products:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       const apiYaml = `
@@ -404,7 +404,7 @@ get-products:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       const routes: DiscoveredRoute[] = [];
@@ -434,7 +434,7 @@ spec_version: "0.8.3"`
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create API layer with operation that has http_method/http_path but no source_reference
@@ -495,7 +495,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create source file for the matched route
@@ -593,7 +593,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create source file
@@ -682,7 +682,7 @@ get-health:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create a malformed YAML file

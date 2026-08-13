@@ -109,8 +109,16 @@ async function addTestElements(dir: string): Promise<void> {
   ];
 
   for (const [layer, type, id, name, description] of elements) {
+    const cmd = ["node", CLI_PATH, "add", layer, type, id, "--name", name, "--description", description];
+
+    // Add serviceType attribute for application services
+    if (type === "applicationservice") {
+      cmd.push("--attributes");
+      cmd.push("{"serviceType":"synchronous"}");
+    }
+
     const result = spawnSync({
-      cmd: ["node", CLI_PATH, "add", layer, type, id, "--name", name, "--description", description],
+      cmd,
       cwd: dir,
       stdio: ["pipe", "pipe", "pipe"],
     });

@@ -27,7 +27,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
       name: "Relationship Orchestrator Test",
       description: "Test model for relationship orchestrator hooks",
       version: "1.0.0",
-      specVersion: "0.8.3",
+      specVersion: "0.8.4",
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
     });

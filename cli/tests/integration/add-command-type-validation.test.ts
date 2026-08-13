@@ -65,6 +65,8 @@ describe("Add Command - Type Validation", () => {
         "customer-satisfaction",
         "--description",
         "Test goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" }),
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -79,6 +81,8 @@ describe("Add Command - Type Validation", () => {
         "create-order",
         "--description",
         "Test operation",
+        "--attributes",
+        JSON.stringify({ operationId: "createOrder", summary: "Create Order", tags: "orders" }),
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -179,14 +183,23 @@ describe("Add Command - Type Validation", () => {
 
       for (const testCase of testCases) {
         // Valid type should work
-        const validResult = await runCLICommand(workdir.path, [
+        const validCmd = [
           "add",
           testCase.layer,
           testCase.validType,
           `test-${testCase.validType}`,
           "--description",
           `Test ${testCase.validType}`,
-        ]);
+        ];
+
+        // Add required attributes for specific types
+        if (testCase.layer === "motivation" && testCase.validType === "goal") {
+          validCmd.push("--attributes", JSON.stringify({ priority: "high" }));
+        } else if (testCase.layer === "api" && testCase.validType === "operation") {
+          validCmd.push("--attributes", JSON.stringify({ operationId: "testOp", summary: "Test Operation", tags: "test" }));
+        }
+
+        const validResult = await runCLICommand(workdir.path, validCmd);
         expect(validResult.exitCode).toBe(0);
 
         // Invalid type should fail
