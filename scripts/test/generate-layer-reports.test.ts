@@ -155,16 +155,16 @@ describe("generate-layer-reports.ts", () => {
     expect(errorMessage).toMatch(/Failed to parse|invalid/i);
   });
 
-  it("should produce reports for all 12 layers", async () => {
-    // Verify that we can read all 12 layer definitions
+  it("should produce reports for all 13 layers", async () => {
+    // Verify that we can read all 13 layer definitions
     const specDir = path.join(__dirname, "../../spec");
     const layersDir = path.join(specDir, "layers");
 
     const layerFiles = await fs.readdir(layersDir);
     const layerJsons = layerFiles.filter((f) => f.endsWith(".layer.json"));
 
-    // We should have exactly 12 layers
-    expect(layerJsons.length).toBe(12);
+    // We should have exactly 13 layers
+    expect(layerJsons.length).toBe(13);
 
     // Each should be parseable
     for (const file of layerJsons) {

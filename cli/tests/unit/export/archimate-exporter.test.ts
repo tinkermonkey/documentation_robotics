@@ -372,4 +372,58 @@ describe("ArchiMateExporter", () => {
 
     expect(output.includes("src/test&lt;&gt;&amp;&quot;file.ts")).toBe(true);
   });
+
+  it("should exclude product layer from export", async () => {
+    const productLayer = new Layer("product");
+    const capability = new Element({
+      id: "product-capability-test",
+      type: "capability",
+      name: "Test Capability",
+      description: "A test product capability",
+    });
+    productLayer.addElement(capability);
+    model.addLayer(productLayer);
+
+    const output = await exporter.export(model, {});
+
+    // Product layer should not appear in the export
+    expect(output.includes("product-capability-test")).toBe(false);
+    expect(output.includes("Test Capability")).toBe(false);
+  });
+
+  it("should not include product layer in export when explicitly requested", async () => {
+    const productLayer = new Layer("product");
+    const capability = new Element({
+      id: "product-capability-test",
+      type: "capability",
+      name: "Test Capability",
+      description: "A test product capability",
+    });
+    productLayer.addElement(capability);
+    model.addLayer(productLayer);
+
+    // Even if product layer is requested, it should be excluded
+    const output = await exporter.export(model, {
+      layers: ["motivation", "product", "business"],
+    });
+
+    // Product layer should not appear in the export
+    expect(output.includes("product-capability-test")).toBe(false);
+    expect(output.includes("Test Capability")).toBe(false);
+    // But motivation and business should be included
+    expect(output.includes("motivation-goal-test-goal")).toBe(true);
+  });
+
+  it("should verify supported layers are correctly configured", async () => {
+    // Verify that only ArchiMate-compatible layers are supported
+    expect(exporter.supportedLayers).toEqual([
+      "motivation",
+      "business",
+      "application",
+      "technology",
+    ]);
+    expect(exporter.supportedLayers).not.toContain("product");
+    expect(exporter.supportedLayers).not.toContain("api");
+    expect(exporter.supportedLayers).not.toContain("data-model");
+  });
 });
