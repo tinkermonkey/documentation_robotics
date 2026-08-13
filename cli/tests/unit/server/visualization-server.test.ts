@@ -853,11 +853,12 @@ describe("VisualizationServer", () => {
   });
 
   describe("VALID_SPEC_NODE_IDS synchronization with bundled spec", () => {
-    it("should load all 12 layers from bundled spec", () => {
-      // Check that all 12 layers are present in VALID_SPEC_NODE_IDS
+    it("should load all 13 layers from bundled spec", () => {
+      // Check that all 13 layers are present in VALID_SPEC_NODE_IDS
       const expectedLayers = [
         "motivation",
         "business",
+        "product",
         "security",
         "application",
         "technology",
@@ -883,11 +884,11 @@ describe("VisualizationServer", () => {
 
       // Verify that most layers have node types
       // Some layers may have empty arrays if the spec build has issues,
-      // but at least 10 of the 12 should have content
+      // but at least 11 of the 13 should have content
       const layersWithNodeTypes = Object.values(validSpecNodeIds).filter(
         (nodeIds) => nodeIds.length > 0
       ).length;
-      expect(layersWithNodeTypes).toBeGreaterThanOrEqual(10);
+      expect(layersWithNodeTypes).toBeGreaterThanOrEqual(11);
     });
 
     it("should not have silent drift when spec nodes are added", () => {

@@ -81,7 +81,7 @@ describe('ModelReportDataCollector', () => {
     expect(dataModelData.layerNumber).toBe(7);
 
     const testingData = collector.collectLayerData(model, 'testing');
-    expect(testingData.layerNumber).toBe(12);
+    expect(testingData.layerNumber).toBe(13);
   });
 
   it('should return correct element list with deterministic sorting', () => {

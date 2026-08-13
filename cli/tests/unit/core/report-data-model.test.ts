@@ -44,7 +44,7 @@ describe("ReportDataModel", () => {
     expect(stats.statistics).toBeDefined();
     expect(stats.statistics.totalElements).toBeGreaterThanOrEqual(0);
     expect(stats.statistics.totalRelationships).toBeGreaterThanOrEqual(0);
-    expect(stats.statistics.totalLayers).toBe(12);
+    expect(stats.statistics.totalLayers).toBe(13);
   });
 
   it("should collect relationship analysis", async () => {
@@ -225,7 +225,7 @@ describe("ReportDataModel", () => {
     // Even with minimal data, these should never be negative
     expect(stats.statistics.totalElements).toBeGreaterThanOrEqual(0);
     expect(stats.statistics.totalRelationships).toBeGreaterThanOrEqual(0);
-    expect(stats.statistics.totalLayers).toBe(12);
+    expect(stats.statistics.totalLayers).toBe(13);
   });
 
   it("should handle layer compliance with invalid layer names", async () => {

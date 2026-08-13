@@ -124,10 +124,11 @@ describe("PlantUMLExporter", () => {
     expect(output.includes('Test \\"Goal\\" with quotes')).toBe(true);
   });
 
-  it("should support all 12 layers", async () => {
+  it("should support all 13 layers", async () => {
     const allLayers = [
       "motivation",
       "business",
+      "product",
       "security",
       "application",
       "technology",

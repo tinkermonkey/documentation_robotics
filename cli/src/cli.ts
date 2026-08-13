@@ -131,7 +131,7 @@ Examples:
   $ dr init
   $ dr init claudetoreum
   $ dr init "Enterprise Architecture" --author "Team A"
-  $ dr init --name "My Project" --description "12-layer federated model"`
+  $ dr init --name "My Project" --description "13-layer federated model"`
   )
   .action((name, options) => initCommand({ ...options, name: options.name || name }));
 

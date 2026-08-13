@@ -2,7 +2,7 @@
  * Unit tests for SpecDataLoader
  *
  * Tests specification data loading from the bundled compiled dist format
- * (14 JSON files: manifest.json, base.json, {layer}.json x12).
+ * (15 JSON files: manifest.json, base.json, {layer}.json x13).
  */
 
 import { describe, it, expect, beforeEach } from "bun:test";
@@ -27,7 +27,7 @@ describe("SpecDataLoader", () => {
 
       expect(data.layers).toBeDefined();
       expect(Array.isArray(data.layers)).toBe(true);
-      expect(data.layers.length).toBe(12);
+      expect(data.layers.length).toBe(13);
 
       const firstLayer = data.layers[0];
       expect(firstLayer).toHaveProperty("id");
@@ -184,7 +184,7 @@ describe("SpecDataLoader", () => {
       const loader = new SpecDataLoader({ bundledDir: testBundledDir });
       const data = await loader.load();
       expect(data).toBeDefined();
-      expect(data.layers.length).toBe(12);
+      expect(data.layers.length).toBe(13);
     });
 
     it("should fall back to development spec/dist path if no option given", async () => {
@@ -197,7 +197,7 @@ describe("SpecDataLoader", () => {
       const data = await loader.load();
 
       expect(data).toBeDefined();
-      expect(data.layers.length).toBe(12);
+      expect(data.layers.length).toBe(13);
       expect(data.nodeTypes.length).toBeGreaterThanOrEqual(184);
     });
 

@@ -68,8 +68,8 @@ describe("MermaidMarkdownExporter", () => {
       expect(exporter.name).toBe("Mermaid Markdown");
     });
 
-    it("should support all 12 layers", () => {
-      expect(exporter.supportedLayers.length).toBe(12);
+    it("should support all 13 layers", () => {
+      expect(exporter.supportedLayers.length).toBe(13);
       expect(exporter.supportedLayers).toContain("motivation");
       expect(exporter.supportedLayers).toContain("data-model");
       expect(exporter.supportedLayers).toContain("testing");

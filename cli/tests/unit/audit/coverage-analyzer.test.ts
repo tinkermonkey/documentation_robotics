@@ -26,7 +26,7 @@ describe("CoverageAnalyzer", () => {
 
     expect(analysisResult).toBeDefined();
     expect(analysisResult.results).toBeDefined();
-    expect(analysisResult.results.length).toBe(12); // 12 layers
+    expect(analysisResult.results.length).toBe(13); // 13 layers
     expect(analysisResult.isComplete).toBe(true); // No errors
 
     // Each result should have required properties
