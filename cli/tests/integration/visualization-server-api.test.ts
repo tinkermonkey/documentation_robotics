@@ -7,7 +7,15 @@
  * - Concurrent execution would cause port conflicts and server startup failures
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach
+} from "bun:test";
 import { mkdir, rm } from "fs/promises";
 import { join } from "path";
 import { spawnSync } from "bun";
@@ -25,7 +33,10 @@ let serverProcess: any = null;
 /**
  * Helper to wait for server to be ready
  */
-async function waitForServer(url: string, timeout: number = STARTUP_TIMEOUT): Promise<boolean> {
+async function waitForServer(
+  url: string,
+  timeout: number = STARTUP_TIMEOUT
+): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     try {
@@ -44,16 +55,27 @@ async function waitForServer(url: string, timeout: number = STARTUP_TIMEOUT): Pr
  */
 async function startServer(cwd: string, port: number): Promise<any> {
   const process = Bun.spawn({
-    cmd: ["bun", CLI_PATH, "visualize", "--port", String(port), "--no-browser", "--no-auth"],
+    cmd: [
+      "bun",
+      CLI_PATH,
+      "visualize",
+      "--port",
+      String(port),
+      "--no-browser",
+      "--no-auth"
+    ],
     cwd,
-    stdio: ["ignore", "pipe", "pipe"], // Capture output
+    stdio: ["ignore", "pipe", "pipe"] // Capture output
   });
 
   // Give server a moment to start
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // Wait for health endpoint to confirm server is ready
-  const ready = await waitForServer(`http://localhost:${port}/health`, STARTUP_TIMEOUT);
+  const ready = await waitForServer(
+    `http://localhost:${port}/health`,
+    STARTUP_TIMEOUT
+  );
   if (!ready) {
     console.error(`Server failed to start. Port: ${port}, CWD: ${cwd}`);
     process.kill();
@@ -75,14 +97,16 @@ async function initializeTestModel(dir: string): Promise<void> {
       "--name",
       "API Test Model",
       "--description",
-      "Model for API testing",
+      "Model for API testing"
     ],
     cwd: dir,
-    stdio: ["pipe", "pipe", "pipe"],
+    stdio: ["pipe", "pipe", "pipe"]
   });
 
   if (result.exitCode !== 0) {
-    throw new Error(`Failed to initialize test model: ${result.stderr?.toString()}`);
+    throw new Error(
+      `Failed to initialize test model: ${result.stderr?.toString()}`
+    );
   }
 }
 
@@ -96,35 +120,63 @@ async function addTestElements(dir: string): Promise<void> {
       "businessservice",
       "customer-service",
       "Customer Service",
-      "Handles customer interactions",
+      "Handles customer interactions"
     ],
     [
       "application",
       "applicationservice",
       "customer-app",
       "Customer App",
-      "Customer-facing application",
+      "Customer-facing application"
     ],
-    ["api", "operation", "get-customers", "Get Customers", "Retrieve customer list"],
+    [
+      "api",
+      "operation",
+      "get-customers",
+      "Get Customers",
+      "Retrieve customer list"
+    ]
   ];
 
   for (const [layer, type, id, name, description] of elements) {
-    const cmd = ["node", CLI_PATH, "add", layer, type, id, "--name", name, "--description", description];
+    const cmd = [
+      "node",
+      CLI_PATH,
+      "add",
+      layer,
+      type,
+      id,
+      "--name",
+      name,
+      "--description",
+      description
+    ];
 
-    // Add serviceType attribute for application services
+    // Add required attributes for specific types
     if (type === "applicationservice") {
       cmd.push("--attributes");
       cmd.push('{"serviceType":"synchronous"}');
+    } else if (type === "operation") {
+      cmd.push("--attributes");
+      cmd.push(
+        JSON.stringify({
+          operationId: id,
+          summary: name,
+          tags: "operations"
+        })
+      );
     }
 
     const result = spawnSync({
       cmd,
       cwd: dir,
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"]
     });
 
     if (result.exitCode !== 0) {
-      throw new Error(`Failed to add element ${id}: ${result.stderr?.toString()}`);
+      throw new Error(
+        `Failed to add element ${id}: ${result.stderr?.toString()}`
+      );
     }
   }
 
@@ -170,7 +222,9 @@ describe.serial("Visualization Server API Endpoints", () => {
       const response = await fetch(`http://localhost:${testPort}/api/model`);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("application/json");
+      expect(response.headers.get("content-type")).toContain(
+        "application/json"
+      );
 
       const data = await response.json();
 
@@ -200,7 +254,9 @@ describe.serial("Visualization Server API Endpoints", () => {
       const response = await fetch(`http://localhost:${testPort}/api/model`);
       const data = await response.json();
 
-      const businessNodes = data.nodes.filter((n: any) => n.layer_id === "business");
+      const businessNodes = data.nodes.filter(
+        (n: any) => n.layer_id === "business"
+      );
       expect(businessNodes.length).toBeGreaterThan(0);
 
       const node = businessNodes[0];
@@ -216,7 +272,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should return specific layer data", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api/layers/business`
+      );
 
       expect(response.status).toBe(200);
 
@@ -242,11 +300,13 @@ describe.serial("Visualization Server API Endpoints", () => {
         "ux",
         "navigation",
         "apm",
-        "testing",
+        "testing"
       ];
 
       for (const layerName of layers) {
-        const response = await fetch(`http://localhost:${testPort}/api/layers/${layerName}`);
+        const response = await fetch(
+          `http://localhost:${testPort}/api/layers/${layerName}`
+        );
 
         // Layer may be empty (404) or have data (200)
         expect([200, 404]).toContain(response.status);
@@ -262,7 +322,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should return 400 for invalid layer name format", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api/layers/non-existent-layer`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api/layers/non-existent-layer`
+      );
 
       expect(response.status).toBe(400);
 
@@ -273,7 +335,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should include elements with all required fields", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api/layers/business`
+      );
       const data = await response.json();
 
       if (data.elements.length > 0) {
@@ -306,12 +370,16 @@ describe.serial("Visualization Server API Endpoints", () => {
       serverProcess = await startServer(testDir, testPort);
 
       // Get OpenAPI spec
-      let specResponse = await fetch(`http://localhost:${testPort}/api-spec.json`);
+      let specResponse = await fetch(
+        `http://localhost:${testPort}/api-spec.json`
+      );
       let spec: any = null;
       if (specResponse.status === 200) {
         spec = await specResponse.json();
       } else {
-        specResponse = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+        specResponse = await fetch(
+          `http://localhost:${testPort}/api-spec.yaml`
+        );
         if (specResponse.status === 200) {
           // For YAML, we'd need to parse it, but the important check is that it exists
           expect(specResponse.status).toBe(200);
@@ -372,7 +440,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should return 404 for unknown routes", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api/unknown-route`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api/unknown-route`
+      );
 
       expect(response.status).toBe(404);
     });
@@ -427,8 +497,8 @@ describe.serial("Visualization Server API Endpoints", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             author: "Test User",
-            content: "Test reply",
-          }),
+            content: "Test reply"
+          })
         }
       );
 
@@ -453,7 +523,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should return OpenAPI specification at /api-spec.yaml", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api-spec.yaml`
+      );
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toMatch(/json/);
@@ -466,7 +538,9 @@ describe.serial("Visualization Server API Endpoints", () => {
 
       // Validate info section
       expect(spec).toHaveProperty("info");
-      expect(spec.info.title).toBe("Documentation Robotics Visualization Server API");
+      expect(spec.info.title).toBe(
+        "Documentation Robotics Visualization Server API"
+      );
       expect(spec.info).toHaveProperty("version");
       expect(spec.info).toHaveProperty("description");
 
@@ -492,7 +566,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should include all REST endpoints in OpenAPI spec", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api-spec.yaml`
+      );
       const spec = await response.json();
 
       const expectedEndpoints = [
@@ -500,7 +576,7 @@ describe.serial("Visualization Server API Endpoints", () => {
         "/api/model",
         "/api/spec",
         "/api/annotations",
-        "/api/changesets",
+        "/api/changesets"
       ];
 
       for (const endpoint of expectedEndpoints) {
@@ -526,7 +602,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     it("should have valid OpenAPI paths with methods", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api-spec.yaml`
+      );
       const spec = await response.json();
 
       // Verify /health endpoint has GET method
