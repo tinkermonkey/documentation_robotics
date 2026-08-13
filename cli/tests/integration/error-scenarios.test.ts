@@ -248,7 +248,7 @@ describe("Error Message Scenarios", () => {
   describe("Dry-run and Recovery Guidance", () => {
     beforeEach(async () => {
       await runDr("init", "--name", "Test Model");
-      await runDr("add", "motivation", "goal", "goal-1");
+      await runDr("add", "motivation", "goal", "goal-1", "--attributes", '{"priority":"high"}');
     });
 
     it("should support --dry-run for delete operations", async () => {
