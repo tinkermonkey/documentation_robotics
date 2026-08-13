@@ -326,11 +326,11 @@ Milestone: "Q3 2024 Release"
 **Add Commands:**
 
 ```bash
-dr add product persona <name> --description <desc> --category <category> --proficiency <proficiency>
-dr add product capability <name> --description <desc> --status <status>
-dr add product feature <name> --description <desc> --priority <priority> --status <status> --size <size>
-dr add product user-workflow <name> --description <desc> --complexity <complexity>
-dr add product milestone <name> --description <desc> --status <status>
+dr add product persona <name> --description <desc> --attributes '{"category":"<category>","proficiency":"<proficiency>"}'
+dr add product capability <name> --description <desc> --attributes '{"status":"<status>"}'
+dr add product feature <name> --description <desc> --attributes '{"priority":"<priority>","status":"<status>","size":"<size>"}'
+dr add product user-workflow <name> --description <desc> --attributes '{"complexity":"<complexity>"}'
+dr add product milestone <name> --description <desc> --attributes '{"status":"<status>"}'
 ```
 
 **Relationship Commands:**

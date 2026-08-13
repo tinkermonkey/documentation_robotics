@@ -123,11 +123,11 @@ This layer uses a **custom specification** designed for product planning, priori
 
 ```bash
 # Add entities
-dr add product persona <name> --category primary --proficiency intermediate
-dr add product capability <name> --status planned
-dr add product feature <name> --priority high --status developing --size m
-dr add product user-workflow <name> --complexity moderate
-dr add product milestone <name> --status planned
+dr add product persona <name> --attributes '{"category":"primary","proficiency":"intermediate"}'
+dr add product capability <name> --attributes '{"status":"planned"}'
+dr add product feature <name> --attributes '{"priority":"high","status":"developing","size":"m"}'
+dr add product user-workflow <name> --attributes '{"complexity":"moderate"}'
+dr add product milestone <name> --attributes '{"status":"planned"}'
 
 # Create relationships
 dr relationship add <source> <dest> --predicate realizes

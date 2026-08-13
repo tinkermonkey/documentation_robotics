@@ -417,15 +417,15 @@ class UserProfile:
 # Identify primary personas
 dr add product persona "power-user" \
   --description "Expert user who uses all advanced features" \
-  --category primary --proficiency advanced
+  --attributes '{"category":"primary","proficiency":"advanced"}'
 
 dr add product persona "casual-user" \
   --description "Occasional user focused on core features" \
-  --category primary --proficiency novice
+  --attributes '{"category":"primary","proficiency":"novice"}'
 
 dr add product persona "admin" \
   --description "System administrator managing users and settings" \
-  --category primary --proficiency expert
+  --attributes '{"category":"primary","proficiency":"expert"}'
 ```
 
 ### Step 2: Define Product Capabilities
@@ -434,15 +434,15 @@ dr add product persona "admin" \
 # Product-level abilities (outcome-focused)
 dr add product capability "user-authentication" \
   --description "Authenticate and authorize users" \
-  --status planned
+  --attributes '{"status":"planned"}'
 
 dr add product capability "data-export" \
   --description "Export user data in multiple formats" \
-  --status proposed
+  --attributes '{"status":"proposed"}'
 
 dr add product capability "real-time-collaboration" \
   --description "Enable multiple users to collaborate simultaneously" \
-  --status developing
+  --attributes '{"status":"developing"}'
 ```
 
 ### Step 3: Define Features
@@ -451,15 +451,15 @@ dr add product capability "real-time-collaboration" \
 # User-visible features (deliverable units)
 dr add product feature "multi-factor-authentication" \
   --description "Two-factor auth via TOTP or SMS" \
-  --priority high --size m --status developing
+  --attributes '{"priority":"high","size":"m","status":"developing"}'
 
 dr add product feature "csv-export" \
   --description "Export data to CSV format" \
-  --priority medium --size s --status planned
+  --attributes '{"priority":"medium","size":"s","status":"planned"}'
 
 dr add product feature "live-cursor-tracking" \
   --description "See other users' cursor positions in real-time" \
-  --priority high --size l --status proposed
+  --attributes '{"priority":"high","size":"l","status":"proposed"}'
 ```
 
 ### Step 4: Map Features to Capabilities
@@ -496,15 +496,15 @@ dr relationship add product.feature.csv-export \
 # User journeys through product
 dr add product user-workflow "basic-authentication-flow" \
   --description "Standard login and session management" \
-  --complexity simple
+  --attributes '{"complexity":"simple"}'
 
 dr add product user-workflow "secure-authentication-flow" \
   --description "Multi-factor authentication workflow" \
-  --complexity moderate
+  --attributes '{"complexity":"moderate"}'
 
 dr add product user-workflow "collaboration-session" \
   --description "Join and participate in real-time collaboration" \
-  --complexity complex
+  --attributes '{"complexity":"complex"}'
 ```
 
 ### Step 7: Map Workflows to Features
@@ -524,11 +524,11 @@ dr relationship add product.user-workflow.collaboration-session \
 # Delivery roadmap
 dr add product milestone "q3-security-release" \
   --description "Security-focused quarterly release" \
-  --status planned
+  --attributes '{"status":"planned"}'
 
 dr add product milestone "q4-collaboration-release" \
   --description "Real-time collaboration release" \
-  --status proposed
+  --attributes '{"status":"proposed"}'
 ```
 
 ### Step 9: Schedule Features to Milestones
@@ -650,11 +650,11 @@ UserWorkflow: "Power User Data Analysis"
 **Add Commands:**
 
 ```bash
-dr add product persona <name> --description <desc> --category <category> --proficiency <proficiency>
-dr add product capability <name> --description <desc> --status <status>
-dr add product feature <name> --description <desc> --priority <priority> --status <status> --size <size>
-dr add product user-workflow <name> --description <desc> --complexity <complexity>
-dr add product milestone <name> --description <desc> --status <status>
+dr add product persona <name> --description <desc> --attributes '{"category":"<category>","proficiency":"<proficiency>"}'
+dr add product capability <name> --description <desc> --attributes '{"status":"<status>"}'
+dr add product feature <name> --description <desc> --attributes '{"priority":"<priority>","status":"<status>","size":"<size>"}'
+dr add product user-workflow <name> --description <desc> --attributes '{"complexity":"<complexity>"}'
+dr add product milestone <name> --description <desc> --attributes '{"status":"<status>"}'
 ```
 
 **Relationship Commands:**
