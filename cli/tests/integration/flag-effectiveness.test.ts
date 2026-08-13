@@ -70,6 +70,7 @@ describe("Flag Effectiveness Tests", () => {
         type: "requirement",
         name: "System Performance",
         // No description field at all
+        attributes: { requirementType: "functional", priority: "high" },
       });
 
       motivationLayer.addElement(goalWithDesc);
