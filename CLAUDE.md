@@ -234,10 +234,23 @@ Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — the
 
 ### 4. Export Format Compatibility
 
-- ArchiMate only supports layers 1, 2, 4, 5
-- OpenAPI only supports layer 6
-- JSON Schema only supports layer 7
-- Check format compatibility before exporting
+**Standard-Specific Exporters:**
+- **ArchiMate** (layers 1, 2, 5, 6): Exports Motivation, Business, Application, and Technology layers in standard ArchiMate 3.2 XML format
+- **OpenAPI** (layer 7): Exports API layer in OpenAPI 3.0 specification format
+- **JSON Schema** (layer 8): Exports Data Model layer in JSON Schema Draft 7 format
+- **Product Layer** (layer 3): Does NOT participate in ArchiMate, OpenAPI, or JSON Schema export since none of these standards cover product-management concepts (personas, capabilities, features, milestones, workflows)
+
+**Generic Exporters:**
+- **Markdown** (all 13 layers): Exports comprehensive markdown documentation including Product layer
+- **PlantUML** (all 13 layers): Generates PlantUML diagrams for all layers including Product
+- **Mermaid** (all 13 layers): Generates Mermaid diagrams with all layer visualizations
+- **GraphML** (all 13 layers): Exports graph format compatible with visualization tools
+
+**Layer Color Scheme:**
+Product layer uses color `E6FFD9` (light green) for consistent visualization across all generic exporters.
+
+**Export Validation:**
+All exporters validate layer support before exporting. Attempting to export unsupported layers to standard-specific formats will raise an error.
 
 ### 5. Version Bumps
 
