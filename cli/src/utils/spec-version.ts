@@ -12,14 +12,14 @@ import { join } from "path";
  * This should match the version in ../package.json
  * Updated during release process
  */
-const CLI_VERSION = "0.1.3";
+const CLI_VERSION = "0.1.8";
 
 /**
  * Bundled spec version
  * This should match the version in ../../../spec/VERSION
  * Updated during build process
  */
-const BUNDLED_SPEC_VERSION = "0.8.4";
+const BUNDLED_SPEC_VERSION = "0.9.0";
 
 /**
  * Get the CLI version

@@ -7,7 +7,57 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-13
+
+### Breaking Changes
+
+- **BREAKING: 13-Layer Architecture Model** — Added Product layer at position 3, shifting Security through Testing to positions 4–13:
+  - **Layer Renumbering**: All existing layer files renamed and number fields updated (10 layer instances affected)
+    - Security: 3 → 4
+    - Application: 4 → 5
+    - Technology: 5 → 6
+    - API: 6 → 7
+    - Data Model: 7 → 8
+    - Data Store: 8 → 9
+    - UX: 9 → 10
+    - Navigation: 10 → 11
+    - APM: 11 → 12
+    - Testing: 12 → 13
+  - **Impact**: Layer filesystem prefixes and archive paths update (e.g., `03_security/` → `04_security/`). Cross-layer references remain stable (use layer names not numbers). Filesystem-based models require directory renames during migration; see migration guide.
+
 ### Added
+
+- **Product Layer (Layer 3)** — New layer modeling product planning and management concerns, positioned between Business (2) and Security (4):
+  - **Five v1 node types**: `product.persona` (user archetypes with behavioral attributes), `product.capability` (externally-facing product abilities), `product.feature` (user-visible functionality units), `product.userworkflow` (user-facing task sequences), `product.milestone` (time-bound delivery targets)
+  - **Full layer instance** at `spec/layers/03-product.layer.json` with all node type registrations
+  - **Five node type schemas** in `spec/schemas/nodes/product/` extending base `spec-node.schema.json`, each with layer-specific attributes (e.g., persona category/proficiency, feature priority/size/status, capability status, workflow complexity, milestone status)
+- **Product Layer Predicates** — Two new predicates in `spec/schemas/base/predicates.json`:
+  - `scheduled-for` (inverse: `schedules`) — Feature/Capability assignment to Milestone (bidirectional, non-transitive, non-symmetric, non-reflexive)
+  - `precedes` (inverse: `follows`) — Milestone sequencing (bidirectional, transitive, non-symmetric, non-reflexive)
+- **~19 Product Layer Relationship Schemas** in `spec/schemas/relationships/product/`:
+  - **9 intra-layer**: `capability→capability` (aggregates), `feature→capability` (realizes), `feature→persona` (serves), `feature→milestone` (scheduled-for), `capability→milestone` (scheduled-for), `workflow→persona` (serves), `workflow→feature` (composes), `milestone→milestone` (precedes), `feature→feature` (depends-on)
+  - **6 cross-layer to Motivation**: `persona→stakeholder` (realizes), `feature→requirement` (satisfies), `capability→goal` (supports), `workflow→outcome` (delivers), `feature→value` (delivers-value), `capability→requirement` (fulfills)
+  - **4 cross-layer to Business**: `feature→businessservice` (realizes), `workflow→businessprocess` (aggregates), `capability→businessfunction` (realizes), `persona→businessrole` (serves)
+- **Build Pipeline Updates** — Extended `spec/scripts/build-spec.ts` with Product layer support:
+  - Added `product` to `LAYER_ORDER` array at index 2
+  - Added `03-product` to `LAYER_FILE_PREFIX_MAP`
+  - Updated all shifted layer prefixes (04-security through 13-testing)
+  - Added `product` to `NODE_FOLDER_TO_LAYER` mapping and `dr_layer` TypeScript union type
+- **Spec Distribution** — Compiled `spec/dist/` now includes `product.json` (product layer node/relationship schemas) alongside updated manifest and renumbered layer files (14 → 15 total files)
+
+### Changed
+
+- **Layer Numbering Schema** — All 12 existing layers renumbered to accommodate Product layer insertion (affects layer instance files, archive paths, layer-specific documentation, but not cross-layer references which use layer names)
+
+### Compatibility
+
+- **Cross-Layer References**: Remain stable — all reference resolution uses layer *names* (motivation, business, product, security, …, testing), not numbers
+- **Element IDs**: Unchanged — follow `{layer}.{type}.{kebab-case}` format with layer names, not numbers
+- **CLI Compatibility**: CLI v0.1.8+ supports all 13 layers. No CLI version bump required for this spec release; CLI already updated in parallel phases.
+
+### Added
+
+- **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
 
 - **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
   mappings that bridge external code analysis tools to the architecture model:
