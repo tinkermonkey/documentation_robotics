@@ -26,7 +26,7 @@ export class ModelReportOrchestrator {
 
   /**
    * Regenerate reports for a specific set of affected layers.
-   * On first invocation or when reports don't exist, regenerates all 12 reports.
+   * On first invocation or when reports don't exist, regenerates all 13 reports.
    * Invalid layer names in the affected set are skipped with a warning.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {

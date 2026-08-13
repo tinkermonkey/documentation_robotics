@@ -420,7 +420,7 @@ Report types:
   comprehensive  Full report with statistics, relationships, and data model (default)
   statistics     Statistics and quality metrics
   relationships  Relationship analysis and classification
-  data-model     Layer 7 data model analysis
+  data-model     Layer 8 data model analysis
   quality        Quality metrics and recommendations
 
 Output formats:
