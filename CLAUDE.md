@@ -467,10 +467,10 @@ const workdir = await createTestWorkdir(); // Cloned from golden copy
 
 ## Standards
 
-- **ArchiMate 3.2** - Layers 1, 2, 4, 5
-- **OpenAPI 3.0** - Layer 6
-- **JSON Schema Draft 7** - Layer 7
-- **OpenTelemetry** - Layer 11
+- **ArchiMate 3.2** - Layers 1, 2, 5, 6
+- **OpenAPI 3.0** - Layer 7
+- **JSON Schema Draft 7** - Layer 8
+- **OpenTelemetry** - Layer 12
 
 ## Design Philosophy
 

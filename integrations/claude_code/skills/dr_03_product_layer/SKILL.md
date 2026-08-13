@@ -13,13 +13,13 @@ triggers:
     "product planning",
     "product management"
   ]
-version: 0.9.0
+version: 0.8.4
 ---
 
 # Product Layer Skill
 
 **Layer Number:** 03
-**Specification:** Metadata Model Spec v0.9.0
+**Specification:** Metadata Model Spec v0.8.4
 **Purpose:** Defines product personas, capabilities, features, user workflows, and milestones that represent what the product does and for whom.
 
 ---

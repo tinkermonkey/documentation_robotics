@@ -49,7 +49,7 @@ When ambiguous, ask: "Are you about to start building this, currently building i
 ### Checklist to Work Through
 
 **1. Layer Coverage Check**
-Map the proposed change to the 12-layer model:
+Map the proposed change to the 13-layer model:
 
 - Which layers are touched? (List them explicitly)
 - Which layers are conspicuously absent? (e.g., a new service with no APM or security)
@@ -155,7 +155,7 @@ dr schema node <spec-node-id>
 "Your service should match the ApplicationService spec type, which means: single responsibility, exposes at most one API contract, references exactly one business service."
 
 **5. Suggest Implementation Order**
-Based on the 12-layer model, suggest bottom-up implementation:
+Based on the 13-layer model, suggest bottom-up implementation:
 
 1. Data model / data store first (schema before logic)
 2. Application service next (business logic)
