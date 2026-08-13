@@ -110,7 +110,7 @@ dr init my-awesome-api
 **What was created:**
 
 - `documentation-robotics/model/manifest.yaml` — Project metadata
-- `documentation-robotics/model/{NN}_{layer-name}/` — Empty layer directories for all 12 layers (e.g., `01_motivation/`, `02_business/`, ..., `12_testing/`)
+- `documentation-robotics/model/{NN}_{layer-name}/` — Empty layer directories for all 13 layers (e.g., `01_motivation/`, `02_business/`, `03_product/`, ..., `13_testing/`)
 - `.dr/` — Local DR configuration directory
 
 (Use `--verbose` to see additional details about the model setup)
@@ -285,7 +285,7 @@ I see this is a new model with no existing elements.
 I can extract in two ways:
 
 1. Recipe Mode (recommended)
-   Walks through all 12 layers in the correct architectural order,
+   Walks through all 13 layers in the correct architectural order,
    with checkpoints to review and validate each layer before proceeding.
    Takes longer but produces a complete, well-structured model.
 
@@ -748,7 +748,7 @@ dr analyzer index             # Index the codebase (~2 minutes)
 /dr-map ./src --tech "Python FastAPI PostgreSQL"
 
 # At prompt: Select Recipe Mode
-# Work through all 12 layers, validating at each checkpoint
+# Work through all 13 layers, validating at each checkpoint
 # Take ~5-10 minutes to complete
 
 # Step 4: Verify alignment

@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-**Documentation Robotics** is a toolkit for managing federated architecture data models across 12 interconnected layers.
+**Documentation Robotics** is a toolkit for managing federated architecture data models across 13 interconnected layers.
 
 **Components:**
 
 1. **CLI Tool (`cli/`)** - TypeScript implementation for managing architecture models
-2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
+2. **Metadata Model Specification** - Formal documentation defining the 13-layer model
 
 **Current Versions:** CLI v0.1.3, Spec v0.8.3
 
@@ -17,13 +17,13 @@
 documentation_robotics/
 ├── spec/                        # SPECIFICATION (source of truth)
 │   ├── VERSION                  # Spec version number
-│   ├── layers/                  # 12 SpecLayer instance files (.layer.json)
+│   ├── layers/                  # 13 SpecLayer instance files (.layer.json)
 │   ├── scripts/                 # Spec build tooling
 │   │   └── build-spec.ts        #   Compiles spec source → spec/dist/ (run: npm run build:spec)
 │   ├── dist/                    # COMPILED SPEC (committed, auto-generated)
 │   │   ├── manifest.json        #   Index of all layers
 │   │   ├── base.json            #   All base schemas + predicates consolidated
-│   │   └── {layer}.json         #   One per layer (12 files): nodeSchemas + relationshipSchemas
+│   │   └── {layer}.json         #   One per layer (13 files): nodeSchemas + relationshipSchemas
 │   └── schemas/                 # All JSON Schema definitions (hand-maintained)
 │       ├── base/                #   Core schemas: spec-node, spec-layer, spec-node-relationship,
 │       │                        #   attribute-spec, source-references, predicates.json
@@ -46,7 +46,7 @@ documentation_robotics/
     │   └── schemas/bundled/    # Compiled spec dist files (synced from spec/dist/)
     │       ├── manifest.json   #   Index of all layers
     │       ├── base.json       #   All base schemas + predicates
-    │       └── {layer}.json    #   14 total flat JSON files (no subdirectories)
+    │       └── {layer}.json    #   15 total flat JSON files (no subdirectories)
     └── tests/                  # Unit & integration tests (~114 test files)
 ```
 
@@ -69,7 +69,7 @@ See `cli/README.md` for complete setup and usage documentation.
 - **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/package.json`)
 - **Schema synchronization workflow**:
   1. Edit hand-maintained spec source files in `spec/schemas/` and `spec/layers/`
-  2. Run `npm run build:spec` at repo root → compiles to `spec/dist/` (14 JSON files)
+  2. Run `npm run build:spec` at repo root → compiles to `spec/dist/` (15 JSON files)
   3. Commit `spec/dist/` alongside your spec edits
   4. Run `npm run build` in `cli/` → syncs `spec/dist/` → `cli/src/schemas/bundled/`
 - **Sources of truth (hand-maintained)**:
@@ -117,16 +117,17 @@ See `cli/README.md` for complete setup and usage documentation.
 | ----- | -------------- | --------------------------- | --------------------------------------------------- |
 | 1     | `motivation`   | `01-motivation.layer.json`  | Single word, no hyphen                              |
 | 2     | `business`     | `02-business.layer.json`    | Single word, no hyphen                              |
-| 3     | `security`     | `03-security.layer.json`    | Single word, no hyphen                              |
-| 4     | `application`  | `04-application.layer.json` | Single word, no hyphen                              |
-| 5     | `technology`   | `05-technology.layer.json`  | Single word, no hyphen                              |
-| 6     | `api`          | `06-api.layer.json`         | Single word, no hyphen                              |
-| 7     | `data-model`   | `07-data-model.layer.json`  | **Hyphenated** - use `data-model`, not `data_model` |
-| 8     | `data-store`   | `08-data-store.layer.json`  | **Hyphenated** - use `data-store`, not `datastore`  |
-| 9     | `ux`           | `09-ux.layer.json`          | Single word, no hyphen                              |
-| 10    | `navigation`   | `10-navigation.layer.json`  | Single word, no hyphen                              |
-| 11    | `apm`          | `11-apm.layer.json`         | **Short form internally** - schema uses full name   |
-| 12    | `testing`      | `12-testing.layer.json`     | Single word, no hyphen                              |
+| 3     | `product`      | `03-product.layer.json`     | Single word, no hyphen                              |
+| 4     | `security`     | `04-security.layer.json`    | Single word, no hyphen                              |
+| 5     | `application`  | `05-application.layer.json` | Single word, no hyphen                              |
+| 6     | `technology`   | `06-technology.layer.json`  | Single word, no hyphen                              |
+| 7     | `api`          | `07-api.layer.json`         | Single word, no hyphen                              |
+| 8     | `data-model`   | `08-data-model.layer.json`  | **Hyphenated** - use `data-model`, not `data_model` |
+| 9     | `data-store`   | `09-data-store.layer.json`  | **Hyphenated** - use `data-store`, not `datastore`  |
+| 10    | `ux`           | `10-ux.layer.json`          | Single word, no hyphen                              |
+| 11    | `navigation`   | `11-navigation.layer.json`  | Single word, no hyphen                              |
+| 12    | `apm`          | `12-apm.layer.json`         | **Short form internally** - schema uses full name   |
+| 13    | `testing`      | `13-testing.layer.json`     | Single word, no hyphen                              |
 
 **Key Rules**:
 
@@ -139,22 +140,23 @@ See `cli/README.md` for complete setup and usage documentation.
 - Always validate references exist before creating
 - Use reference registry for lookups and validation
 
-## The 12-Layer Architecture Model
+## The 13-Layer Architecture Model
 
-Federated architecture model spanning 12 interconnected layers:
+Federated architecture model spanning 13 interconnected layers:
 
 1. **Motivation** - Goals, requirements, stakeholders (ArchiMate)
 2. **Business** - Business processes and services (ArchiMate)
-3. **Security** - Authentication, authorization, threats
-4. **Application** - Application services and components (ArchiMate)
-5. **Technology** - Infrastructure and platforms (ArchiMate)
-6. **API** - REST APIs and operations (OpenAPI)
-7. **Data Model** - Entities and relationships (JSON Schema)
-8. **Data Store** - Database schemas
-9. **UX** - User interface components
-10. **Navigation** - Application routing
-11. **APM** - Observability and monitoring (OpenTelemetry)
-12. **Testing** - Test strategies, test cases, test data
+3. **Product** - Personas, capabilities, features, workflows, milestones
+4. **Security** - Authentication, authorization, threats
+5. **Application** - Application services and components (ArchiMate)
+6. **Technology** - Infrastructure and platforms (ArchiMate)
+7. **API** - REST APIs and operations (OpenAPI)
+8. **Data Model** - Entities and relationships (JSON Schema)
+9. **Data Store** - Database schemas
+10. **UX** - User interface components
+11. **Navigation** - Application routing
+12. **APM** - Observability and monitoring (OpenTelemetry)
+13. **Testing** - Test strategies, test cases, test data
 
 **Key Principle:** Elements in higher layers reference elements in lower layers, creating a dependency graph.
 
@@ -177,9 +179,9 @@ Federated architecture model spanning 12 interconnected layers:
 
 ### Export System (`export/`)
 
-- **ArchiMate** - Layers 1, 2, 4, 5
-- **OpenAPI** - Layer 6 (API)
-- **JSON Schema** - Layer 7 (Data Model)
+- **ArchiMate** - Layers 1, 2, 5, 6
+- **OpenAPI** - Layer 7 (API)
+- **JSON Schema** - Layer 8 (Data Model)
 - **PlantUML** - Visual diagrams
 - **Markdown** - Documentation
 
@@ -302,7 +304,7 @@ For command reference, see `integrations/claude_code/`.
 
 ### Relationship Audit
 
-Audit intra-layer relationships across all 12 layers for coverage, semantic duplicates, gaps, and balance.
+Audit intra-layer relationships across all 13 layers for coverage, semantic duplicates, gaps, and balance.
 
 **Key Features:**
 

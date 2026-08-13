@@ -12,11 +12,11 @@
 
 ## Overview
 
-This directory contains the complete Documentation Robotics Specification, a standards-based approach to modeling enterprise and software architecture as a federated architecture data model across 12 interconnected layers.
+This directory contains the complete Documentation Robotics Specification, a standards-based approach to modeling enterprise and software architecture as a federated architecture data model across 13 interconnected layers.
 
 ## Quick Links
 
-- **[Browse Layer Specifications](layers/)** - 12 interconnected layers
+- **[Browse Layer Specifications](layers/)** - 13 interconnected layers
 - **[Use the CLI](../cli/)** - Reference implementation
 - **[Contribute](CONTRIBUTING.md)** - How to contribute
 - **[Governance](GOVERNANCE.md)** - Change process
@@ -34,8 +34,8 @@ spec/
 ├── layers/                     # Layer instance files (normative source of truth)
 │   ├── 01-motivation.layer.json    # Layer metadata, entity types, relationship declarations
 │   ├── 02-business.layer.json
-│   ├── ...                         # One .layer.json per layer (12 total)
-│   └── 12-testing.layer.json
+│   ├── ...                         # One .layer.json per layer (13 total)
+│   └── 13-testing.layer.json
 │
 ├── schemas/                    # JSON Schemas (normative)
 │   ├── base/                        # Spec-level base schemas
@@ -50,12 +50,12 @@ spec/
 │   ├── nodes/                       # Per-type node schemas (.node.schema.json)
 │   │   ├── motivation/                  # Per-layer subdirectories
 │   │   ├── business/
-│   │   ├── ...                          # 12 layers total
+│   │   ├── ...                          # 13 layers total
 │   │   └── testing/
 │   └── relationships/               # Per-type relationship schemas (.relationship.schema.json)
 │       ├── motivation/                  # Per-layer subdirectories
 │       ├── business/
-│       ├── ...                          # 12 layers total
+│       ├── ...                          # 13 layers total
 │       └── testing/
 │
 ├── browser/                    # Generated layer reports (human-readable markdown)
@@ -115,7 +115,7 @@ For the broader motivation, see [Why a Multi-Layer Model?](../README.md#why-a-mu
 
 ## How to Read This Specification
 
-1. Start with the [main README](../README.md) - Get the big picture and understand the 12-layer architecture
+1. Start with the [main README](../README.md) - Get the big picture and understand the 13-layer architecture
 2. Browse [layer specifications](layers/) relevant to your work
 3. Use the [CLI tool](../cli/) to validate and work with models
 
@@ -129,37 +129,38 @@ This specification **leverages existing standards** for most of its layers:
 
 | Standard            | Layers         | Status      |
 | ------------------- | -------------- | ----------- |
-| ArchiMate 3.2       | 01, 02, 04, 05 | Established |
-| OpenAPI 3.0         | 06             | Established |
-| JSON Schema Draft 7 | 07             | Established |
-| OpenTelemetry 1.0+  | 11             | Established |
-| SQL DDL             | 08             | Established |
-| **Custom**          | 03, 09, 10, 12 | New         |
+| ArchiMate 3.2       | 01, 02, 05, 06 | Established |
+| OpenAPI 3.0         | 07             | Established |
+| JSON Schema Draft 7 | 08             | Established |
+| OpenTelemetry 1.0+  | 12             | Established |
+| SQL DDL             | 09             | Established |
+| **Custom**          | 03, 04, 10, 11, 13 | New         |
 
 **Result:** Maximum tool ecosystem compatibility with only 33% custom invention.
 
 For more details, see [Standards Leveraged](../README.md#standards-leveraged) in the main README.
 
-### 12 Interconnected Layers
+### 13 Interconnected Layers
 
-The specification defines 12 layers that cover the complete software system lifecycle:
+The specification defines 13 layers that cover the complete software system lifecycle:
 
 ```
 01. Motivation       WHY        Goals, requirements, stakeholders
 02. Business         WHAT       Business processes and services
-03. Security         WHO CAN    Access control and policies
-04. Application      HOW        Application services and components
-05. Technology       WITH WHAT  Technology stack and platforms
-06. API              INTERFACE  Service contracts (OpenAPI)
-07. Data Model       STRUCTURE  Data definitions (JSON Schema)
-08. Data Store       STORAGE    Database schemas (SQL DDL)
-09. UX               PRESENT    User experience (three-tier: libraries, applications, specs)
-10. Navigation       FLOW       Navigation and routing
-11. APM              OBSERVE    Monitoring and tracing (OTel)
-12. Testing          VERIFY     Test coverage modeling
+03. Product          WHAT DELIVERS Personas, capabilities, features, workflows, milestones
+04. Security         WHO CAN    Access control and policies
+05. Application      HOW        Application services and components
+06. Technology       WITH WHAT  Technology stack and platforms
+07. API              INTERFACE  Service contracts (OpenAPI)
+08. Data Model       STRUCTURE  Data definitions (JSON Schema)
+09. Data Store       STORAGE    Database schemas (SQL DDL)
+10. UX               PRESENT    User experience (three-tier: libraries, applications, specs)
+11. Navigation       FLOW       Navigation and routing
+12. APM              OBSERVE    Monitoring and tracing (OTel)
+13. Testing          VERIFY     Test coverage modeling
 ```
 
-For detailed layer descriptions and relationships, see [The 12 Layers](../README.md#the-12-layers) in the main README.
+For detailed layer descriptions and relationships, see [The 13 Layers](../README.md#the-13-layers) in the main README.
 
 Each layer specification includes:
 
@@ -188,10 +189,10 @@ Each layer validates independently, then cross-layer references are validated.
 
 Layers are ordered to match **real-world design workflow**:
 
-1. **Strategy First** (Layers 01-03) - Why, what, who can
-2. **Architecture** (Layers 04-05) - How and with what (technology as constraint)
-3. **Detailed Design** (Layers 06-10) - Specifications within tech constraints
-4. **Operations** (Layer 11) - Runtime observability
+1. **Strategy First** (Layers 01-03) - Why, what, what delivers
+2. **Architecture** (Layers 04-06) - Who can, how, with what (technology as constraint)
+3. **Detailed Design** (Layers 07-11) - Specifications within tech constraints
+4. **Operations** (Layer 12) - Runtime observability
 
 See [CHANGELOG.md](CHANGELOG.md) for layer design rationale.
 
