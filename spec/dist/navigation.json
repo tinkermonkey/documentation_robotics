@@ -4,7 +4,7 @@
     "id": "navigation",
     "number": 11,
     "name": "Navigation Layer",
-    "description": "Layer 10: Navigation Layer",
+    "description": "Layer 11: Navigation Layer",
     "inspired_by": {
       "standard": "SPA Navigation Patterns",
       "version": "1.0",

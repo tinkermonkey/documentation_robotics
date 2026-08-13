@@ -4,7 +4,7 @@
     "id": "data-store",
     "number": 9,
     "name": "Data Store Layer",
-    "description": "Layer 8: Data Store Layer",
+    "description": "Layer 9: Data Store Layer",
     "inspired_by": {
       "standard": "ISO/IEC 9075 (SQL) + Paradigm Extensions",
       "version": "2024",
