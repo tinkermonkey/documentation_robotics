@@ -237,7 +237,7 @@ export class MigrationRegistry {
           ["03_security", "04_security"],
         ];
 
-        let renameErrors: string[] = [];
+        const renameErrors: string[] = [];
 
         for (const [oldName, newName] of renameMap) {
           const oldPath = pathModule.join(modelDir, oldName);
@@ -384,8 +384,13 @@ export class MigrationRegistry {
 
           results.totalChanges += result.migrationsApplied;
 
-          // Update model's spec version
-          model.manifest.specVersion = migration.toVersion;
+          // Only update model's spec version if migration succeeded (no error field)
+          if (!result.error) {
+            model.manifest.specVersion = migration.toVersion;
+          } else {
+            // If migration has errors, throw to prevent partial success state
+            throw new Error(result.error);
+          }
         } catch (error) {
           throw new Error(
             `Migration ${migration.fromVersion} → ${migration.toVersion} failed: ${
