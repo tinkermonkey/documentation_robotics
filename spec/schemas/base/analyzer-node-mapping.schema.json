@@ -36,6 +36,7 @@
             "enum": [
               "motivation",
               "business",
+              "product",
               "security",
               "application",
               "technology",
@@ -47,7 +48,7 @@
               "apm",
               "testing"
             ],
-            "description": "Canonical DR layer name. Must be one of the 12 layers with correct naming (e.g., 'data-model' not 'data_model')."
+            "description": "Canonical DR layer name. Must be one of the 13 layers with correct naming (e.g., 'data-model' not 'data_model')."
           },
           "dr_element_type": {
             "type": "string",
