@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { MigrationRegistry } from "../../src/core/migration-registry.js";
 import { Model } from "../../src/core/model.js";
 import { Manifest } from "../../src/core/manifest.js";
@@ -349,17 +349,10 @@ describe("MigrationRegistry", () => {
       expect(model.manifest.specVersion).toBe("0.9.0");
     });
 
-    it("should throw when fs.access fails with EACCES (permission denied)", async () => {
-      const modelDir = join(tempRootPath, "documentation-robotics/model");
-
-      // Create a directory with restricted permissions to simulate EACCES
-      // This test ensures permission errors are thrown, not silently ignored
-      const restrictedDir = join(tempRootPath, "restricted");
-      await mkdir(restrictedDir, { recursive: true });
-
-      // Create subdirectory structure to simulate model directory
-      const modelPath = join(restrictedDir, "documentation-robotics/model");
-      await mkdir(modelPath, { recursive: true });
+    it("should throw when fs.access fails with permission denied", async () => {
+      const restrictedDir = join(tempRootPath, "restricted-model");
+      const modelDir = join(restrictedDir, "documentation-robotics/model");
+      await mkdir(modelDir, { recursive: true });
 
       const manifest = new Manifest({
         name: "test-model",
@@ -370,24 +363,35 @@ describe("MigrationRegistry", () => {
       });
 
       const model = new Model(restrictedDir, manifest);
-
-      // Override model rootPath to point to a directory we can't access
-      model.rootPath = join(tempRootPath, "nonexistent-permission-denied");
-
       const registry = new MigrationRegistry();
+
+      // Restrict permissions on the model directory to trigger permission error
+      // This requires running as non-root (uid != 0)
+      const { chmod } = await import("fs/promises");
+      await chmod(modelDir, 0o000);
 
       try {
         await registry.applyMigrations(model, {
           fromVersion: "0.8.4",
           toVersion: "0.9.0",
         });
-        // If we reach here, the test should fail because an error should have been thrown
-        throw new Error("Expected migration to throw EACCES error");
+        // If we reach here, the test should fail
+        throw new Error("Expected migration to throw permission error");
       } catch (error) {
-        // Verify the error was thrown (not silently ignored)
-        const err = error as { code?: string; message?: string };
-        // Should be some kind of error (EACCES or similar access error)
+        // Verify a permission-related error was thrown (not silently ignored)
+        // The key test: permission errors should be re-thrown, not handled as success
         expect(error).toBeDefined();
+        const err = error as any;
+        // The error should not be "Expected migration to throw permission error" (our own thrown error)
+        // which means applyMigrations actually threw an error
+        expect(err.message).not.toBe("Expected migration to throw permission error");
+      } finally {
+        // Restore permissions for cleanup
+        try {
+          await chmod(modelDir, 0o755);
+        } catch {
+          // Ignore restore errors, directory will be cleaned up anyway
+        }
       }
     });
 
