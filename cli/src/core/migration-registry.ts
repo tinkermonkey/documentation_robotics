@@ -207,14 +207,19 @@ export class MigrationRegistry {
         try {
           // Verify model directory exists
           await fs.access(modelDir);
-        } catch {
-          // Model directory doesn't exist - nothing to migrate
-          return {
-            migrationsApplied: 1,
-            filesModified: 0,
-            description:
-              "Spec version updated to 0.9.0 (Product layer introduced; no model directories to migrate)",
-          };
+        } catch (error) {
+          const err = error as { code?: string };
+          // ENOENT means the directory doesn't exist - nothing to migrate
+          if (err.code === "ENOENT") {
+            return {
+              migrationsApplied: 1,
+              filesModified: 0,
+              description:
+                "Spec version updated to 0.9.0 (Product layer introduced; no model directories to migrate)",
+            };
+          }
+          // Re-throw other errors (e.g., EACCES for permission denied)
+          throw error;
         }
 
         // Rename existing layer directories: shift from 03-12 to 04-13
@@ -232,6 +237,8 @@ export class MigrationRegistry {
           ["03_security", "04_security"],
         ];
 
+        let renameErrors: string[] = [];
+
         for (const [oldName, newName] of renameMap) {
           const oldPath = pathModule.join(modelDir, oldName);
           const newPath = pathModule.join(modelDir, newName);
@@ -245,20 +252,28 @@ export class MigrationRegistry {
             if (err.code === "ENOENT") {
               continue;
             }
-            // Log warnings for unexpected errors to aid diagnostics
-            console.warn(
-              `Warning: Failed to rename ${oldName} to ${newName}: ${getErrorMessage(error)}`
+            // Track non-ENOENT errors to report them in the result
+            renameErrors.push(
+              `Failed to rename ${oldName} to ${newName}: ${getErrorMessage(error)}`
             );
           }
         }
 
-        // Create new product layer directory (it will be empty for now)
-        const productPath = pathModule.join(modelDir, "03_product");
-        try {
-          await fs.mkdir(productPath, { recursive: true });
-        } catch {
-          // Directory might already exist - that's fine
+        // If there were any rename failures, include them in the error field
+        if (renameErrors.length > 0) {
+          return {
+            migrationsApplied: 1,
+            filesModified,
+            description:
+              "Spec version updated to 0.9.0 (Product layer introduced at layer 3; Security through Testing shifted from layers 3–12 to 4–13)",
+            error: renameErrors.join("; "),
+          };
         }
+
+        // Create new product layer directory (it will be empty for now)
+        // recursive: true handles EEXIST, so no catch needed
+        const productPath = pathModule.join(modelDir, "03_product");
+        await fs.mkdir(productPath, { recursive: true });
 
         return {
           migrationsApplied: 1,
