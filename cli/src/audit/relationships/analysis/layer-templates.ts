@@ -63,6 +63,42 @@ export const LAYER_TEMPLATES: LayerTemplate[] = [
     ],
   },
   {
+    layer: "product",
+    standard: "Product Management Practice",
+    patterns: [
+      {
+        sourcePattern: "feature",
+        destinationPattern: "capability",
+        predicate: "realizes",
+        description: "Features realize capabilities",
+      },
+      {
+        sourcePattern: "capability",
+        destinationPattern: "milestone",
+        predicate: "scheduled-for",
+        description: "Capabilities are scheduled for milestones",
+      },
+      {
+        sourcePattern: "feature",
+        destinationPattern: "milestone",
+        predicate: "scheduled-for",
+        description: "Features are scheduled for milestones",
+      },
+      {
+        sourcePattern: "feature",
+        destinationPattern: "feature",
+        predicate: "depends-on",
+        description: "Features depend on other features",
+      },
+      {
+        sourcePattern: "userworkflow",
+        destinationPattern: "feature",
+        predicate: "composes",
+        description: "User workflows compose features",
+      },
+    ],
+  },
+  {
     layer: "security",
     standard: "NIST SP 800-53",
     patterns: [

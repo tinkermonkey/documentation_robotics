@@ -1,4 +1,5 @@
 import type { CoverageMetrics } from "../../types.js";
+import { getLayerOrder } from "../../../core/layers.js";
 
 /**
  * Optional spec context passed to interLayerValidation() to ground the prompt
@@ -231,23 +232,8 @@ Rules:
    * Returns 0 if the layer name is unrecognized.
    */
   private getLayerNumber(layer: string): number {
-    const order = [
-      "motivation",
-      "business",
-      "product",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-    const idx = order.indexOf(layer);
-    return idx >= 0 ? idx + 1 : 0;
+    const layerNum = getLayerOrder(layer);
+    return layerNum >= 0 ? layerNum : 0;
   }
 
   /**
