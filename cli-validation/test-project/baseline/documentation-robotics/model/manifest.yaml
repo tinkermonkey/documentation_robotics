@@ -26,68 +26,74 @@ layers:
       actor: 1
       process: 1
       service: 1
-  security:
+  product:
     order: 3
+    name: Product
+    path: documentation-robotics/model/03_product/
+    enabled: true
+    elements: {}
+  security:
+    order: 4
     name: Security
-    path: documentation-robotics/model/03_security/
+    path: documentation-robotics/model/04_security/
     enabled: true
     elements: {}
   application:
-    order: 4
+    order: 5
     name: Application
-    path: documentation-robotics/model/04_application/
+    path: documentation-robotics/model/05_application/
     enabled: true
     elements:
       service: 1
   technology:
-    order: 5
+    order: 6
     name: Technology
-    path: documentation-robotics/model/05_technology/
+    path: documentation-robotics/model/06_technology/
     enabled: true
     elements: {}
   api:
-    order: 6
+    order: 7
     name: Api
-    path: documentation-robotics/model/06_api/
+    path: documentation-robotics/model/07_api/
     enabled: true
     elements:
       operation: 4
   data-model:
-    order: 7
+    order: 8
     name: Data model
-    path: documentation-robotics/model/07_data-model/
+    path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
       entity: 1
   data-store:
-    order: 8
+    order: 9
     name: Data store
-    path: documentation-robotics/model/08_data-store/
+    path: documentation-robotics/model/09_data-store/
     enabled: true
     elements:
       column: 3
       table: 1
   ux:
-    order: 9
+    order: 10
     name: Ux
-    path: documentation-robotics/model/09_ux/
+    path: documentation-robotics/model/10_ux/
     enabled: true
     elements: {}
   navigation:
-    order: 10
+    order: 11
     name: Navigation
-    path: documentation-robotics/model/10_navigation/
+    path: documentation-robotics/model/11_navigation/
     enabled: true
     elements: {}
   apm:
-    order: 11
+    order: 12
     name: Apm
-    path: documentation-robotics/model/11_apm/
+    path: documentation-robotics/model/12_apm/
     enabled: true
     elements: {}
   testing:
-    order: 12
+    order: 13
     name: Testing
-    path: documentation-robotics/model/12_testing/
+    path: documentation-robotics/model/13_testing/
     enabled: true
     elements: {}

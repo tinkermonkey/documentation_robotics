@@ -1154,16 +1154,17 @@ function getLayerNumber(layerName: string): string {
   const layerMap: Record<string, string> = {
     motivation: "01_motivation",
     business: "02_business",
-    security: "03_security",
-    application: "04_application",
-    technology: "05_technology",
-    api: "06_api",
-    "data-model": "07_data-model",
-    "data-store": "08_data-store",
-    ux: "09_ux",
-    navigation: "10_navigation",
-    apm: "11_apm",
-    testing: "12_testing"
+    product: "03_product",
+    security: "04_security",
+    application: "05_application",
+    technology: "06_technology",
+    api: "07_api",
+    "data-model": "08_data-model",
+    "data-store": "09_data-store",
+    ux: "10_ux",
+    navigation: "11_navigation",
+    apm: "12_apm",
+    testing: "13_testing"
   };
   return layerMap[layerName] || layerName;
 }

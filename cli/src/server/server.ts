@@ -158,6 +158,7 @@ export class VisualizationServer {
     const requiredLayers = [
       "motivation",
       "business",
+      "product",
       "security",
       "application",
       "technology",
