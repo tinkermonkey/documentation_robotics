@@ -55,9 +55,9 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 - **Element IDs**: Unchanged — follow `{layer}.{type}.{kebab-case}` format with layer names, not numbers
 - **CLI Compatibility**: CLI v0.1.8+ supports all 13 layers. No CLI version bump required for this spec release; CLI already updated in parallel phases.
 
-### Added
+## [Unreleased] - Future Work
 
-- **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
+### Added
 
 - **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
   mappings that bridge external code analysis tools to the architecture model:
