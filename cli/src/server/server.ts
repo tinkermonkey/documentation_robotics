@@ -20,6 +20,7 @@ import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
@@ -155,27 +156,12 @@ export class VisualizationServer {
    */
   private static loadValidSpecNodeIds(): Record<string, string[]> {
     const result: Record<string, string[]> = {};
-    const requiredLayers = [
-      "motivation",
-      "business",
-      "product",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
 
     // Get the directory of this file to build absolute path to bundled schemas
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const bundledDir = path.join(__dirname, "..", "schemas", "bundled");
 
-    for (const layer of requiredLayers) {
+    for (const layer of CANONICAL_LAYER_NAMES) {
       try {
         // Build absolute path to the layer's compiled spec file
         const specFilePath = path.join(bundledDir, `${layer}.json`);
