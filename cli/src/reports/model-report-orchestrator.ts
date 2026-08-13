@@ -1,7 +1,7 @@
 /**
  * Model Report Orchestrator
  *
- * Coordinates report generation across all 12 architecture layers.
+ * Coordinates report generation across all 13 architecture layers.
  * Determines which reports need regeneration and manages the report directory.
  */
 

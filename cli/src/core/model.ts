@@ -533,24 +533,8 @@ export class Model {
     };
 
     // Generate layer structure from current model state
-    const layerOrder = [
-      "motivation",
-      "business",
-      "product",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-
-    for (let i = 0; i < layerOrder.length; i++) {
-      const layerName = layerOrder[i];
+    for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
+      const layerName = CANONICAL_LAYER_NAMES[i];
       const layer = this.layers.get(layerName);
       const orderNum = String(i + 1).padStart(2, "0");
 
