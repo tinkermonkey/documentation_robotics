@@ -127,13 +127,13 @@ For the broader motivation, see [Why a Multi-Layer Model?](../README.md#why-a-mu
 
 This specification **leverages existing standards** for most of its layers:
 
-| Standard            | Layers         | Status      |
-| ------------------- | -------------- | ----------- |
-| ArchiMate 3.2       | 01, 02, 05, 06 | Established |
-| OpenAPI 3.0         | 07             | Established |
-| JSON Schema Draft 7 | 08             | Established |
-| OpenTelemetry 1.0+  | 12             | Established |
-| SQL DDL             | 09             | Established |
+| Standard            | Layers             | Status      |
+| ------------------- | ------------------ | ----------- |
+| ArchiMate 3.2       | 01, 02, 05, 06     | Established |
+| OpenAPI 3.0         | 07                 | Established |
+| JSON Schema Draft 7 | 08                 | Established |
+| OpenTelemetry 1.0+  | 12                 | Established |
+| SQL DDL             | 09                 | Established |
 | **Custom**          | 03, 04, 10, 11, 13 | New         |
 
 **Result:** Maximum tool ecosystem compatibility with only 33% custom invention.

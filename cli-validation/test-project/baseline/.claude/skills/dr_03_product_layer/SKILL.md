@@ -42,13 +42,13 @@ This layer uses a **custom specification** designed for product planning, priori
 
 ## Entity Types
 
-| Entity Type | Description | Key Attributes |
-|---|---|---|
-| **Persona** | User archetype with shared goals, behaviors, pain points | category (primary, secondary, served, negative), proficiency (novice, intermediate, advanced, expert) |
-| **Capability** | Product ability independent of implementation | status (proposed, planned, developing, delivered, deprecated), properties |
-| **Feature** | User-visible unit of functionality delivering capabilities | priority (critical, high, medium, low, informational), status, size (xs, s, m, l, xl) |
-| **UserWorkflow** | Sequence of user-facing steps to accomplish a goal | complexity (simple, moderate, complex), properties |
-| **Milestone** | Time-bound delivery target grouping features/capabilities | status (proposed, planned, active, completed, cancelled) |
+| Entity Type      | Description                                                | Key Attributes                                                                                        |
+| ---------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Persona**      | User archetype with shared goals, behaviors, pain points   | category (primary, secondary, served, negative), proficiency (novice, intermediate, advanced, expert) |
+| **Capability**   | Product ability independent of implementation              | status (proposed, planned, developing, delivered, deprecated), properties                             |
+| **Feature**      | User-visible unit of functionality delivering capabilities | priority (critical, high, medium, low, informational), status, size (xs, s, m, l, xl)                 |
+| **UserWorkflow** | Sequence of user-facing steps to accomplish a goal         | complexity (simple, moderate, complex), properties                                                    |
+| **Milestone**    | Time-bound delivery target grouping features/capabilities  | status (proposed, planned, active, completed, cancelled)                                              |
 
 ---
 
@@ -98,18 +98,22 @@ This layer uses a **custom specification** designed for product planning, priori
 ## Common Modeling Patterns
 
 **Feature Hierarchy:**
+
 - Capability → aggregates → sub-Capabilities
 - Milestone → contains → Features and Capabilities
 
 **Persona-Driven Development:**
+
 - Persona → served by → Features
 - Persona → realizes → Stakeholder
 
 **Roadmap Planning:**
+
 - Feature → scheduled-for → Milestone
 - Milestone → precedes → Milestone
 
 **Workflow Design:**
+
 - UserWorkflow → composes → Features
 - UserWorkflow → serves → Personas
 

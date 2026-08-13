@@ -45,13 +45,13 @@ This layer uses a **custom specification** designed for product planning, priori
 > **CLI Introspection:** Run `dr schema types product` for the authoritative, always-current list of node types.
 > Run `dr schema node <type-id>` for full attribute details on any type.
 
-| Entity Type | Description | Key Attributes |
-|---|---|---|
-| **Persona** | User archetype with shared goals, behaviors, pain points | category (primary, secondary, served, negative), proficiency (novice, intermediate, advanced, expert) |
-| **Capability** | Product ability independent of implementation | status (proposed, planned, developing, delivered, deprecated), properties |
-| **Feature** | User-visible unit of functionality delivering capabilities | priority (critical, high, medium, low, informational), status, size (xs, s, m, l, xl) |
-| **UserWorkflow** | Sequence of user-facing steps to accomplish a goal | complexity (simple, moderate, complex), properties |
-| **Milestone** | Time-bound delivery target grouping features/capabilities | status (proposed, planned, active, completed, cancelled) |
+| Entity Type      | Description                                                | Key Attributes                                                                                        |
+| ---------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Persona**      | User archetype with shared goals, behaviors, pain points   | category (primary, secondary, served, negative), proficiency (novice, intermediate, advanced, expert) |
+| **Capability**   | Product ability independent of implementation              | status (proposed, planned, developing, delivered, deprecated), properties                             |
+| **Feature**      | User-visible unit of functionality delivering capabilities | priority (critical, high, medium, low, informational), status, size (xs, s, m, l, xl)                 |
+| **UserWorkflow** | Sequence of user-facing steps to accomplish a goal         | complexity (simple, moderate, complex), properties                                                    |
+| **Milestone**    | Time-bound delivery target grouping features/capabilities  | status (proposed, planned, active, completed, cancelled)                                              |
 
 ---
 
@@ -59,17 +59,17 @@ This layer uses a **custom specification** designed for product planning, priori
 
 The Product layer models product structure and planning via these core relationships:
 
-| Source | Predicate | Destination | Cardinality | Rationale |
-|--------|-----------|-------------|-------------|-----------|
-| `product.capability` | `aggregates` | `product.capability` | many-to-many | Capability decomposition into sub-capabilities |
-| `product.feature` | `realizes` | `product.capability` | many-to-many | Feature delivers a capability |
-| `product.feature` | `serves` | `product.persona` | many-to-many | Feature targets a persona |
-| `product.feature` | `scheduled-for` | `product.milestone` | many-to-many | Feature assigned to delivery milestone |
-| `product.capability` | `scheduled-for` | `product.milestone` | many-to-many | Capability assigned to milestone |
-| `product.userworkflow` | `serves` | `product.persona` | many-to-many | Workflow designed for a persona |
-| `product.userworkflow` | `composes` | `product.feature` | many-to-many | Workflow composed of features |
-| `product.milestone` | `precedes` | `product.milestone` | many-to-many | Milestone sequencing |
-| `product.feature` | `depends-on` | `product.feature` | many-to-many | Feature dependency |
+| Source                 | Predicate       | Destination          | Cardinality  | Rationale                                      |
+| ---------------------- | --------------- | -------------------- | ------------ | ---------------------------------------------- |
+| `product.capability`   | `aggregates`    | `product.capability` | many-to-many | Capability decomposition into sub-capabilities |
+| `product.feature`      | `realizes`      | `product.capability` | many-to-many | Feature delivers a capability                  |
+| `product.feature`      | `serves`        | `product.persona`    | many-to-many | Feature targets a persona                      |
+| `product.feature`      | `scheduled-for` | `product.milestone`  | many-to-many | Feature assigned to delivery milestone         |
+| `product.capability`   | `scheduled-for` | `product.milestone`  | many-to-many | Capability assigned to milestone               |
+| `product.userworkflow` | `serves`        | `product.persona`    | many-to-many | Workflow designed for a persona                |
+| `product.userworkflow` | `composes`      | `product.feature`    | many-to-many | Workflow composed of features                  |
+| `product.milestone`    | `precedes`      | `product.milestone`  | many-to-many | Milestone sequencing                           |
+| `product.feature`      | `depends-on`    | `product.feature`    | many-to-many | Feature dependency                             |
 
 ---
 
@@ -79,25 +79,25 @@ The Product layer models product structure and planning via these core relations
 
 Product layer references Motivation layer to justify product decisions with strategic goals:
 
-| Predicate | Source | Target | Rationale |
-|-----------|--------|--------|-----------|
-| `realizes` | Persona | Stakeholder | Persona concretizes stakeholder archetypes |
-| `satisfies` | Feature | Requirement | Feature satisfies business/user requirements |
-| `supports` | Capability | Goal | Capability supports strategic goals |
-| `delivers` | UserWorkflow | Outcome | Workflow delivers business outcomes |
-| `delivers-value` | Feature | Value | Feature delivers business value |
-| `fulfills` | Capability | Requirement | Capability fulfills requirements |
+| Predicate        | Source       | Target      | Rationale                                    |
+| ---------------- | ------------ | ----------- | -------------------------------------------- |
+| `realizes`       | Persona      | Stakeholder | Persona concretizes stakeholder archetypes   |
+| `satisfies`      | Feature      | Requirement | Feature satisfies business/user requirements |
+| `supports`       | Capability   | Goal        | Capability supports strategic goals          |
+| `delivers`       | UserWorkflow | Outcome     | Workflow delivers business outcomes          |
+| `delivers-value` | Feature      | Value       | Feature delivers business value              |
+| `fulfills`       | Capability   | Requirement | Capability fulfills requirements             |
 
 ### Outgoing References (Product → Business)
 
 Product layer references Business layer to align with organizational services and roles:
 
-| Predicate | Source | Target | Rationale |
-|-----------|--------|--------|-----------|
-| `realizes` | Feature | BusinessService | Feature realizes a business service |
-| `aggregates` | UserWorkflow | BusinessProcess | Workflow aggregates business processes |
-| `realizes` | Capability | BusinessFunction | Capability realizes a business function |
-| `serves` | Persona | BusinessRole | Persona is served by a business role |
+| Predicate    | Source       | Target           | Rationale                               |
+| ------------ | ------------ | ---------------- | --------------------------------------- |
+| `realizes`   | Feature      | BusinessService  | Feature realizes a business service     |
+| `aggregates` | UserWorkflow | BusinessProcess  | Workflow aggregates business processes  |
+| `realizes`   | Capability   | BusinessFunction | Capability realizes a business function |
+| `serves`     | Persona      | BusinessRole     | Persona is served by a business role    |
 
 ### Incoming References (Lower Layers → Product)
 
@@ -115,16 +115,19 @@ Higher layers (Security through Testing) reference Product layer for feature-lev
 A Persona is a **user archetype** representing a class of users with shared goals, behaviors, and pain points.
 
 **Distinction from Stakeholder (Motivation layer):**
+
 - **Stakeholder** - Organizational relationship (internal/external/regulatory/customer)
 - **Persona** - Behavioral archetype with usage patterns and proficiency levels
 
 **Categories:**
+
 - **Primary** - Core user the product is designed for
 - **Secondary** - Important but not primary user
 - **Served** - User who benefits indirectly
 - **Negative** - User archetype the product explicitly doesn't serve
 
 **Proficiency Levels:**
+
 - **Novice** - First-time users, minimal technical background
 - **Intermediate** - Recurring users with some experience
 - **Advanced** - Power users with domain expertise
@@ -137,10 +140,12 @@ A Persona is a **user archetype** representing a class of users with shared goal
 A Capability is an **ability the product possesses**, independent of how it's implemented.
 
 **Distinction from BusinessFunction (Business layer):**
+
 - **BusinessFunction** - Internal organizational grouping of behavior
 - **Capability** - Externally-facing product ability
 
 **Lifecycle Statuses:**
+
 - **Proposed** - Idea under evaluation
 - **Planned** - Scheduled for development
 - **Developing** - Currently being built
@@ -154,10 +159,12 @@ A Capability is an **ability the product possesses**, independent of how it's im
 A Feature is a **user-visible unit of functionality** that delivers one or more capabilities and is the primary unit of product planning.
 
 **Distinction from Requirement (Motivation layer):**
-- **Requirement** - What system *must* do (functional/non-functional/regulatory)
+
+- **Requirement** - What system _must_ do (functional/non-functional/regulatory)
 - **Feature** - Planned unit of value with prioritization, sizing, and lifecycle
 
 **Priority Levels:**
+
 - **Critical** - Product cannot function without it
 - **High** - Core functionality users expect
 - **Medium** - Valuable enhancement
@@ -165,6 +172,7 @@ A Feature is a **user-visible unit of functionality** that delivers one or more 
 - **Informational** - Documentation or informational
 
 **Sizing Estimates:**
+
 - **XS** - < 1 day of effort
 - **S** - 1–3 days
 - **M** - 1–2 weeks
@@ -178,6 +186,7 @@ A Feature is a **user-visible unit of functionality** that delivers one or more 
 A UserWorkflow is a **sequence of user-facing steps** through the product to accomplish a goal.
 
 **Complexity Assessment:**
+
 - **Simple** - Linear flow, 2–3 steps, minimal decision points
 - **Moderate** - Multiple branches, 5–10 steps, some conditional logic
 - **Complex** - Many decision points, 10+ steps, cross-system integration
@@ -189,6 +198,7 @@ A UserWorkflow is a **sequence of user-facing steps** through the product to acc
 A Milestone is a **time-bound delivery target** grouping features or capabilities.
 
 **Lifecycle Statuses:**
+
 - **Proposed** - Candidate milestone under evaluation
 - **Planned** - Scheduled for planning and estimation
 - **Active** - Development underway

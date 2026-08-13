@@ -225,21 +225,21 @@ documentation_robotics/
 
 The specification defines 13 interconnected layers:
 
-| #   | Layer                                                | Focus        | Standard      | Notes                                                   |
-| --- | ---------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY          | ArchiMate 3.2 |                                                         |
-| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT         | ArchiMate 3.2 |                                                         |
-| 03  | [Product](spec/layers/03-product.layer.json)         | WHAT DELIVERS | _Custom_     |                                                         |
-| 04  | [Security](spec/layers/04-security.layer.json)       | WHO CAN      | _Custom_      |                                                         |
-| 05  | [Application](spec/layers/05-application.layer.json) | HOW          | ArchiMate 3.2 |                                                         |
-| 06  | [Technology](spec/layers/06-technology.layer.json)   | WITH WHAT    | ArchiMate 3.2 |                                                         |
-| 07  | [API](spec/layers/07-api.layer.json)                 | INTERFACE    | OpenAPI 3.0   |                                                         |
-| 08  | [Data Model](spec/layers/08-data-model.layer.json)   | STRUCTURE    | JSON Schema   |                                                         |
-| 09  | [Data Store](spec/layers/09-data-store.layer.json)   | STORAGE      | SQL DDL       |                                                         |
-| 10  | [UX](spec/layers/10-ux.layer.json)                   | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 11  | [Navigation](spec/layers/11-navigation.layer.json)   | FLOW         | _Custom_      |                                                         |
-| 12  | [APM/Observability](spec/layers/12-apm.layer.json)   | OBSERVE      | OpenTelemetry |                                                         |
-| 13  | [Testing](spec/layers/13-testing.layer.json)         | VERIFY       | _Custom_      |                                                         |
+| #   | Layer                                                | Focus         | Standard      | Notes                                                   |
+| --- | ---------------------------------------------------- | ------------- | ------------- | ------------------------------------------------------- |
+| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY           | ArchiMate 3.2 |                                                         |
+| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT          | ArchiMate 3.2 |                                                         |
+| 03  | [Product](spec/layers/03-product.layer.json)         | WHAT DELIVERS | _Custom_      |                                                         |
+| 04  | [Security](spec/layers/04-security.layer.json)       | WHO CAN       | _Custom_      |                                                         |
+| 05  | [Application](spec/layers/05-application.layer.json) | HOW           | ArchiMate 3.2 |                                                         |
+| 06  | [Technology](spec/layers/06-technology.layer.json)   | WITH WHAT     | ArchiMate 3.2 |                                                         |
+| 07  | [API](spec/layers/07-api.layer.json)                 | INTERFACE     | OpenAPI 3.0   |                                                         |
+| 08  | [Data Model](spec/layers/08-data-model.layer.json)   | STRUCTURE     | JSON Schema   |                                                         |
+| 09  | [Data Store](spec/layers/09-data-store.layer.json)   | STORAGE       | SQL DDL       |                                                         |
+| 10  | [UX](spec/layers/10-ux.layer.json)                   | PRESENTATION  | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
+| 11  | [Navigation](spec/layers/11-navigation.layer.json)   | FLOW          | _Custom_      |                                                         |
+| 12  | [APM/Observability](spec/layers/12-apm.layer.json)   | OBSERVE       | OpenTelemetry |                                                         |
+| 13  | [Testing](spec/layers/13-testing.layer.json)         | VERIFY        | _Custom_      |                                                         |
 
 ## Standards Leveraged
 
