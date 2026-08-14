@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-08-14
+
+**Specification Support:** v0.9.0
+
+### Changed
+
+- **Bundled viewer bumped to v0.5.1**: picks up the new page view (a document-form alternative to
+  the graph, with breadcrumb/stat-grid/facts/row tables for Model/Schema layers, spec node types, and
+  model elements), a Heimdall spring-based force layout for the graph, and a WCAG 2.1 AA color-contrast
+  fix on the new page-view table headers. `@tinkermonkey/heimdall-ui` is now resolved to an exact
+  npm-registry version rather than a pinned git commit. No CLI-side API changes required — the viewer
+  continues to consume the existing `/api/model` and `/api/spec` shapes.
+
 ## [0.1.8] - 2026-08-12
 
 **Specification Support:** v0.8.4
