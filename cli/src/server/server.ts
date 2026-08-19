@@ -139,6 +139,8 @@ export class VisualizationServer {
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
+  private _testClaudeCmdOverride?: string[];
+  private _testCopilotCmdOverride?: string[];
 
   /**
    * Valid spec node IDs per layer
@@ -2052,6 +2054,11 @@ export class VisualizationServer {
 
       cmd.push("--verbose", "--output-format", "stream-json");
 
+      // Test hook: allow tests to substitute a fixture command for the real claude binary
+      if (this._testClaudeCmdOverride) {
+        cmd.splice(0, cmd.length, ...this._testClaudeCmdOverride);
+      }
+
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
@@ -2309,43 +2316,54 @@ export class VisualizationServer {
       // Determine which command to use (gh copilot or standalone copilot)
       let cmd: string[];
 
-      // Check if gh CLI with copilot extension is available
-      const ghResult = spawnSync("gh", ["copilot", "--version"], {
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      // Test hook: skip the spawnSync probe when test override is set
+      if (!this._testCopilotCmdOverride) {
+        // Check if gh CLI with copilot extension is available
+        const ghResult = spawnSync("gh", ["copilot", "--version"], {
+          stdio: ["ignore", "pipe", "pipe"],
+        });
 
-      // Log why we're falling back to standalone copilot, for debuggability: `gh`
-      // missing (ENOENT), `gh` present but the copilot extension isn't installed
-      // (non-zero exit), or another spawn failure are otherwise indistinguishable.
-      if (ghResult.error) {
-        console.warn(
-          `[Copilot] 'gh copilot --version' probe failed to spawn: ${getErrorMessage(ghResult.error)}`
-        );
-      } else if (ghResult.status !== 0 && process.env.VERBOSE) {
-        console.log(
-          `[Copilot] 'gh copilot' unavailable (exit ${ghResult.status}), falling back to standalone 'copilot'`
-        );
+        // Log why we're falling back to standalone copilot, for debuggability: `gh`
+        // missing (ENOENT), `gh` present but the copilot extension isn't installed
+        // (non-zero exit), or another spawn failure are otherwise indistinguishable.
+        if (ghResult.error) {
+          console.warn(
+            `[Copilot] 'gh copilot --version' probe failed to spawn: ${getErrorMessage(ghResult.error)}`
+          );
+        } else if (ghResult.status !== 0 && process.env.VERBOSE) {
+          console.log(
+            `[Copilot] 'gh copilot' unavailable (exit ${ghResult.status}), falling back to standalone 'copilot'`
+          );
+        }
+
+        if (ghResult.status === 0) {
+          cmd = ["gh", "copilot", "explain"];
+
+          // Add allow-all-tools flag if withDanger is enabled
+          if (this.withDanger) {
+            cmd.push("--allow-all-tools");
+          }
+
+          cmd.push(message);
+        } else {
+          // Try standalone copilot
+          cmd = ["copilot", "explain"];
+
+          // Add allow-all-tools flag if withDanger is enabled
+          if (this.withDanger) {
+            cmd.push("--allow-all-tools");
+          }
+
+          cmd.push(message);
+        }
+      } else {
+        // Test hook: initialize cmd to empty array for override replacement
+        cmd = [];
       }
 
-      if (ghResult.status === 0) {
-        cmd = ["gh", "copilot", "explain"];
-
-        // Add allow-all-tools flag if withDanger is enabled
-        if (this.withDanger) {
-          cmd.push("--allow-all-tools");
-        }
-
-        cmd.push(message);
-      } else {
-        // Try standalone copilot
-        cmd = ["copilot", "explain"];
-
-        // Add allow-all-tools flag if withDanger is enabled
-        if (this.withDanger) {
-          cmd.push("--allow-all-tools");
-        }
-
-        cmd.push(message);
+      // Test hook: allow tests to substitute a fixture command for the real copilot binary
+      if (this._testCopilotCmdOverride) {
+        cmd.splice(0, cmd.length, ...this._testCopilotCmdOverride);
       }
 
       // Launch GitHub Copilot
