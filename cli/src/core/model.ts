@@ -62,22 +62,33 @@ function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
 /**
  * Graph-internal bookkeeping keys that `layer.ts`'s node<->Element conversion stuffs into the
  * same flat `attributes`/`properties` bag the underlying graph structure uses for everything
- * (it has no separate channel for them) — `__references__`/`__relationships__` mirror
- * `element.references`/`element.relationships`, which are real, separately-typed fields on
- * `Element` and get serialized to their own place (references inline, relationships to
- * relationships.yaml). These must never reach the persisted YAML's `attributes` object.
+ * (it has no separate channel for them) — `__references__`/`__relationships__`/`__semanticId__`
+ * mirror `element.references`/`element.relationships`/`element.semanticId`, which are real,
+ * separately-typed fields on `Element` and get serialized to their own place (references
+ * inline, relationships to relationships.yaml, semanticId isn't persisted at all — it only
+ * exists to resolve legacy-format elements during a single load). These must never reach the
+ * persisted YAML's `attributes` object.
  *
  * Double-underscore-prefixed specifically so a schema author would have to go out of their way
- * to collide with one — confirmed zero of the 191 node schemas declare an attribute with either
- * name. Contrast with the *type-blind* set this replaced, which also unconditionally stripped
- * plain `"source"`/`"x-source-reference"` — both of which ARE legitimate, sometimes-required
- * domain attributes on 41 node schemas across 8 layers (e.g. security.accesscondition.source),
- * and neither of which is ever actually used as internal bookkeeping anywhere in this codebase.
- * That collision silently destroyed real data on every save for any element of one of those 41
- * types, without ever failing validation (validation runs on the in-memory element, before this
- * stripping) — see CHANGELOG for the incident this fixes.
+ * to collide with one — confirmed zero of the 191 node schemas declare an attribute with any of
+ * these names. Contrast with the *type-blind* set this replaced, which also unconditionally
+ * stripped plain `"source"`/`"x-source-reference"` — both of which ARE legitimate, sometimes-
+ * required domain attributes on 41 node schemas across 8 layers (e.g.
+ * security.accesscondition.source), and neither of which is ever actually used as internal
+ * bookkeeping anywhere in this codebase. That collision silently destroyed real data on every
+ * save for any element of one of those 41 types, without ever failing validation (validation
+ * runs on the in-memory element, before this stripping) — see CHANGELOG for the incident this
+ * fixes.
+ *
+ * `__semanticId__` is listed here purely as defense-in-depth, not as the primary guard: it can
+ * only ever reach `attributes` via `GraphModel.fromElement()` aliasing `properties` and
+ * `attributes` to the same object, which `layer.ts`'s bookkeeping-key injection would then
+ * mutate through. That aliasing is fixed at the source in graph-model.ts (`properties` is now
+ * always an independent copy), so `__semanticId__` should never actually arrive here — but
+ * listing it means a regression of that aliasing fix fails safe instead of silently reopening
+ * the same leak `__semanticId__` briefly caused.
  */
-const ALWAYS_INTERNAL_ATTRIBUTE_KEYS = new Set(["__references__", "__relationships__"]);
+const ALWAYS_INTERNAL_ATTRIBUTE_KEYS = new Set(["__references__", "__relationships__", "__semanticId__"]);
 
 /**
  * Whether `key` should survive persistence in `specNodeId`'s `attributes`.

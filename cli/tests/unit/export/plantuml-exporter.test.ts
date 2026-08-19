@@ -347,4 +347,67 @@ describe("PlantUMLExporter", () => {
 
     expect(output.includes('src/components/\\"special\\"/test.ts')).toBe(true);
   });
+
+  // Regression coverage for a bug found alongside the source/x-source-reference persistence
+  // collision: extractSourceReference() read properties["x-source-reference"]/
+  // properties.source.reference as a schema-blind legacy fallback for elements with no
+  // structural source_reference. security.accesscondition declares "source" as a real,
+  // required domain attribute — that value must never be misread as code provenance.
+  it("does not mistake a schema-declared 'source' domain attribute for legacy provenance", async () => {
+    const layer = new Layer("security");
+    const element = new Element({
+      id: "security-accesscondition-test",
+      spec_node_id: "security.accesscondition",
+      type: "accesscondition",
+      layer_id: "security",
+      name: "Test Condition",
+      attributes: {
+        field: "request.user.role",
+        operator: "eq",
+        value: "admin",
+        message: "Role must be admin",
+        // Deliberately shaped like what extractSourceReference's legacy fallback expects
+        // (an object with repository.url), to prove the schema-aware guard skips it even
+        // when it would otherwise "match". Real accesscondition.source is documented as a
+        // plain string; this shape is intentionally adversarial for this test.
+        source: { repository: { url: "https://internal-vcs.example/not-provenance" } },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, { includeSources: true });
+
+    expect(output.includes("not-provenance")).toBe(false);
+    expect(output.includes("Repo:")).toBe(false);
+  });
+
+  it("still uses the legacy properties fallback for a node type with no schema declaring that attribute", async () => {
+    const layer = new Layer("motivation");
+    const element = new Element({
+      id: "motivation-goal-legacy-source",
+      type: "goal",
+      name: "Legacy Source Goal",
+      attributes: {
+        // motivation.goal does not declare "x-source-reference" — the legacy fallback should
+        // still apply for genuinely unmigrated data of this shape.
+        "x-source-reference": {
+          locations: [{ file: "src/legacy/goal.ts", symbol: "LegacyGoal" }],
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, { includeSources: true });
+
+    expect(output.includes("Source: src/legacy/goal.ts")).toBe(true);
+    expect(output.includes("Symbol: LegacyGoal")).toBe(true);
+  });
 });

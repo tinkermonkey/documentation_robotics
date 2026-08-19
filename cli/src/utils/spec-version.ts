@@ -12,7 +12,7 @@ import { join } from "path";
  * This should match the version in ../package.json
  * Updated during release process
  */
-const CLI_VERSION = "0.1.11";
+const CLI_VERSION = "0.1.12";
 
 /**
  * Bundled spec version

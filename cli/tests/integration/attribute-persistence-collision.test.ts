@@ -127,6 +127,46 @@ describe("Model.saveLayer — attribute persistence must not collide with intern
     expect(persisted.attributes?.__relationships__).toBeUndefined();
   });
 
+  it("does not leak __semanticId__ into persisted attributes (legacy-format element with a real domain attribute)", async () => {
+    // Regression test for a bug found alongside the source/x-source-reference collision:
+    // GraphModel.fromElement() aliased `properties` and `attributes` to the same object, so
+    // layer.ts's __semanticId__ bookkeeping injection (triggered by element.semanticId, which
+    // legacy-format elements carry) mutated `attributes` too — and model.ts's internal-key
+    // filter only knew about __references__/__relationships__, so __semanticId__ passed
+    // straight through into persisted YAML. This goes through the REAL injection path
+    // (layer.addElement(), which is what actually sets __semanticId__ on the node) rather than
+    // simulating it directly in attributes, so it would have failed before the fix.
+    const manifest = new Manifest({ name: "Test Model", version: "1.0.0" });
+    const model = new Model(testDir, manifest);
+    const layer = new Layer("security");
+    model.addLayer(layer);
+
+    const element = new Element({
+      id: "33333333-3333-4333-8333-333333333333",
+      path: "security.accesscondition.semantic-id-test",
+      spec_node_id: "security.accesscondition",
+      type: "accesscondition",
+      layer_id: "security",
+      name: "Semantic ID Test",
+      attributes: {
+        field: "x",
+        operator: "eq",
+        value: "y",
+        message: "z",
+        source: "real domain value, must survive",
+      },
+      semanticId: "legacy.security.accesscondition.old-slug",
+    } as any);
+    layer.addElement(element);
+
+    await model.saveLayer("security");
+
+    const yamlData = await readSoleYamlFile(`${testDir}/documentation-robotics/model`);
+    const persisted = yamlData["security.accesscondition.semantic-id-test"];
+    expect(persisted.attributes?.source).toBe("real domain value, must survive");
+    expect(persisted.attributes?.__semanticId__).toBeUndefined();
+  });
+
   // Scales with the schema set: iterates every CURRENT node type with declared attributes,
   // rather than a fixed list of the 41 types known to be affected today. A future schema
   // colliding with __references__/__relationships__ fails this immediately.

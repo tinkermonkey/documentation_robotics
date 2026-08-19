@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { GraphModel, type GraphNode, type GraphEdge } from "../../src/core/graph-model.js";
+import { Element } from "../../src/core/element.js";
 
 describe("GraphModel", () => {
   let graph: GraphModel;
@@ -602,6 +603,56 @@ describe("GraphModel", () => {
       graph.clear();
       expect(graph.getNodeCount()).toBe(0);
       expect(graph.getEdgeCount()).toBe(0);
+    });
+  });
+
+  describe("fromElement — properties/attributes independence", () => {
+    // Regression test for the __semanticId__ persistence leak (fixed alongside the
+    // attribute-collision bug): `Layer`'s node<->Element conversion mutates
+    // `node.properties` in place to stash graph-internal bookkeeping keys
+    // (__references__/__relationships__/__semanticId__). If `properties` and `attributes`
+    // were the same object reference, those mutations would leak into `attributes` too —
+    // which is exactly what `Model.saveLayer()` persists to YAML.
+    test("node.properties and node.attributes must not be the same object reference", () => {
+      const element = new Element({
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        path: "security.accesscondition.example",
+        spec_node_id: "security.accesscondition",
+        type: "accesscondition",
+        layer_id: "security",
+        layer: "security",
+        name: "example",
+        attributes: { source: "some-real-domain-value" },
+      });
+
+      const node = GraphModel.fromElement(element);
+
+      expect(node.properties).not.toBe(node.attributes);
+
+      // Mutating properties (as layer.ts does to stash bookkeeping keys) must not affect
+      // attributes.
+      (node.properties as Record<string, unknown>)["__semanticId__"] = "legacy.slug.id";
+      (node.properties as Record<string, unknown>)["__references__"] = [];
+
+      expect(node.attributes).toEqual({ source: "some-real-domain-value" });
+      expect(node.attributes).not.toHaveProperty("__semanticId__");
+      expect(node.attributes).not.toHaveProperty("__references__");
+    });
+
+    test("attributes is undefined (not an empty aliased object) when the element has no attributes", () => {
+      const element = new Element({
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        path: "motivation.goal.example",
+        spec_node_id: "motivation.goal",
+        type: "goal",
+        layer_id: "motivation",
+        layer: "motivation",
+        name: "example",
+      });
+
+      const node = GraphModel.fromElement(element);
+      expect(node.attributes).toBeUndefined();
+      expect(node.properties).toEqual({});
     });
   });
 });

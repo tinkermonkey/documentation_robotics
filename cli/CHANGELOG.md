@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-08-19
+
+**Specification Support:** v0.9.0
+
+### Fixed
+
+Follow-up audit of the 0.1.11 attribute-collision fix, searching the codebase for other places
+that hand-munge model data using a hardcoded name/naming-convention filter instead of consulting
+the actual schema. Found and fixed three more instances of the same defect class:
+
+- **`__semanticId__` (a third graph-internal bookkeeping key, alongside `__references__`/
+  `__relationships__`) could leak into persisted `attributes`**, reopening the same class of bug
+  0.1.11 fixed. Root cause: `GraphModel.fromElement()` aliased `node.properties` and
+  `node.attributes` to the *same object* whenever attributes were non-empty, so `layer.ts`'s
+  in-place mutation of `properties` (to stash bookkeeping keys with no separate channel on
+  `GraphNode`) silently mutated `attributes` too — and `attributes` is exactly what gets
+  persisted. `model.ts`'s 0.1.11 filter only knew about two of the three keys actually injected,
+  so `__semanticId__` (set on legacy-format elements converted to UUID) passed straight through.
+  Fixed at the source: `properties` is now always an independent copy, so no future bookkeeping
+  key can repeat this leak regardless of whether `model.ts`'s allowlist is kept in sync
+  (`__semanticId__` was also added there, as defense-in-depth only).
+- **`ReferenceRegistry` misread `api.link.operationRef`** (a schema-declared OpenAPI URL
+  fragment, e.g. `"#/paths/~1users/get"`) **as a cross-element reference**, feeding `dr trace`
+  and `dr delete`'s dependency graph. It matched a hardcoded reference-property list and the
+  `*Ref`/`*Reference` naming convention purely by coincidence — no check confirmed the value
+  actually looked like a DR element id. Fixed by requiring the value to match the shape of a
+  real element reference (UUID or a `{layer}.{type}.{slug}` id with a known layer prefix) before
+  registering it, without weakening the existing broken-reference detection (a value that looks
+  like a reference but doesn't resolve is still flagged).
+- **`dr export plantuml --include-sources` could mislabel real domain data as source-code
+  provenance.** `extractSourceReference()`'s legacy fallback read
+  `properties["x-source-reference"]`/`properties.source.reference` with no check for whether the
+  node's own schema declares either name as a real attribute — which 41 node schemas do (4
+  declare `x-source-reference`, e.g. `data-store.accesspattern`; 37 declare `source`, e.g.
+  `security.accesscondition`). Fixed by gating the fallback on the same schema check `saveLayer()`
+  already uses.
+
 ## [0.1.11] - 2026-08-19
 
 **Specification Support:** v0.9.0

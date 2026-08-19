@@ -1,5 +1,6 @@
 import Graph from "graphology";
 import type { Reference, Element } from "../types/index.js";
+import { looksLikeElementReference } from "../utils/element-reference-shape.js";
 
 
 /**
@@ -20,7 +21,12 @@ export class ReferenceRegistry {
   private targetIndex: Map<string, Reference[]>;
   private typeIndex: Map<string, Reference[]>;
 
-  // Known reference property names from Python CLI
+  // Known reference property names from Python CLI. NOTE: matching one of these names (or the
+  // *Ref/*Reference naming convention scanNestedReferences uses) is necessary but not
+  // sufficient — the attribute's VALUE also has to look like an element id
+  // (looksLikeElementReference) before we register it as a reference. Name alone isn't
+  // reliable: e.g. api.link.operationRef is a schema-declared OpenAPI URL fragment, not a DR
+  // element reference, and matches "*Ref" purely by naming coincidence.
   private static readonly KNOWN_REF_PROPERTIES = new Set([
     "realizes",
     "realizedBy",
@@ -160,16 +166,18 @@ export class ReferenceRegistry {
         if (ReferenceRegistry.KNOWN_REF_PROPERTIES.has(propName)) {
           // Handle string value
           if (typeof propValue === "string") {
-            this.addReference({
-              source: elementId,
-              target: propValue,
-              type: propName,
-            });
+            if (looksLikeElementReference(propValue)) {
+              this.addReference({
+                source: elementId,
+                target: propValue,
+                type: propName,
+              });
+            }
           }
           // Handle array of strings
           else if (Array.isArray(propValue)) {
             for (const target of propValue) {
-              if (typeof target === "string") {
+              if (typeof target === "string" && looksLikeElementReference(target)) {
                 this.addReference({
                   source: elementId,
                   target: target,
@@ -222,17 +230,19 @@ export class ReferenceRegistry {
       if (key.endsWith("Ref") || key.endsWith("Reference")) {
         // Handle string value
         if (typeof value === "string") {
-          references.push({
-            source: sourceId,
-            target: value,
-            type: key,
-            description: `Nested reference at ${currentPath}`,
-          });
+          if (looksLikeElementReference(value)) {
+            references.push({
+              source: sourceId,
+              target: value,
+              type: key,
+              description: `Nested reference at ${currentPath}`,
+            });
+          }
         }
         // Handle array of strings
         else if (Array.isArray(value)) {
           for (const target of value) {
-            if (typeof target === "string") {
+            if (typeof target === "string" && looksLikeElementReference(target)) {
               references.push({
                 source: sourceId,
                 target: target,
