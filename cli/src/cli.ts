@@ -41,6 +41,7 @@ import { reportsCommands } from "./commands/reports.js";
 import { auditCommand } from "./commands/audit.js";
 import { auditDiffCommand } from "./commands/audit-diff.js";
 import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
+import { repairAttributeCollisionCommand } from "./commands/repair.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage } from "./utils/errors.js";
@@ -517,6 +518,36 @@ Examples:
   $ dr audit:snapshots clear`
   )
   .action((action, options) => auditSnapshotsCommand({ ...options, action }));
+
+// Repair command - Detect and recover data lost to fixed data-integrity bugs
+program
+  .command("repair:attribute-collision")
+  .description(
+    'Find and best-effort-recover model data lost to a fixed bug where saveLayer() stripped "source"/"x-source-reference" attributes from every element, even when a node type\'s schema declared one as a real (sometimes required) attribute'
+  )
+  .option("--apply", "Restore recoverable values found in changeset history (default: report only)")
+  .option("--format <format>", "Output format: text (default), json")
+  .option("--output <path>", "Write the report to a file instead of stdout")
+  .addHelpText(
+    "after",
+    `
+This repairs damage from a fixed bug in Model.saveLayer(): a hardcoded, type-blind "internal
+fields" blocklist unconditionally stripped any attribute literally named "source" or
+"x-source-reference" from every element's attributes before writing YAML, regardless of whether
+the element's own schema declared it as a real domain attribute. 41 of 191 node schemas across 8
+layers do (3 mark it required, meaning affected elements fail validation today).
+
+Recovery is best-effort: values can only be restored if they still exist in changeset history
+(committing a changeset does not delete it). Elements with no recoverable value are always
+reported, never fabricated — you'll need to re-supply those manually with
+"dr update <id> --attributes '{...}'".
+
+Examples:
+  $ dr repair:attribute-collision                    # Report only — no changes made
+  $ dr repair:attribute-collision --apply             # Restore every recoverable value
+  $ dr repair:attribute-collision --format json --output report.json`
+  )
+  .action((options) => repairAttributeCollisionCommand(options));
 
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");

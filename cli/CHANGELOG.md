@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-08-19
+
+**Specification Support:** v0.9.0
+
+### Fixed
+
+- **`dr add`/`dr update` silently dropped `attributes.source`/`attributes.x-source-reference` on
+  every save**, even when the element's own schema declared one as a real (sometimes required)
+  domain attribute. `Model.saveLayer()` treated both names as internal graph-bookkeeping fields —
+  a hardcoded, type-blind blocklist, applied to every node type regardless of what its schema
+  actually declares — and stripped them from `attributes` before writing YAML. Validation ran on
+  the in-memory element *before* this stripping, so `dr add`/`dr update` always reported success;
+  the corruption only surfaced later, disconnected from the write that caused it, the next time
+  the element was loaded or validated (a hard failure for the 3 node types that mark the
+  attribute required; permanent, completely silent data loss for the 38 that leave it optional).
+  Affected 41 of 191 node schemas across 8 layers (API, APM, Data Store, Navigation, Security,
+  Technology, Testing, UX) — reported from `security.accesscondition.attributes.source`, a
+  required attribute. `saveLayer()` now only strips a key that the element's own schema doesn't
+  declare, so this class of collision can't silently recur for some other attribute name.
+
+### Added
+
+- **`dr repair:attribute-collision`**: detects and best-effort-recovers data lost to the bug
+  above in existing models. Scans every element for a schema-declared `source`/
+  `x-source-reference` attribute that's currently missing, then searches changeset history
+  (committing a changeset does not delete it) for the most recent value that was recorded before
+  the bug stripped it. Report-only by default; `--apply` restores every recoverable value and
+  re-saves the affected layers. Elements with no recoverable value are always reported, never
+  fabricated — those need `dr update <id> --attributes '{...}'` to re-supply the value manually.
+  `--format json` for automation.
+
+### Testing
+
+- **`npm test`'s integration-test glob silently ran only 9 of 75 files** (`tests/integration/**/*.test.ts`
+  matches "one directory, then a file" under `/bin/sh` — the shell npm actually uses for scripts —
+  which requires at least one intermediate directory; the 66 files sitting directly in
+  `tests/integration/` were never collected at all). Discovered while adding this release's own
+  regression tests, which are in that directory and initially weren't running either. Fixed by
+  passing bare directory paths instead (`./tests/integration/`), matching the convention already
+  used elsewhere in the same script — `bun test` recurses a directory on its own, no shell glob
+  needed. Same fix applied to `test:integration` and `test:perf`, which had the same problem.
+  Running the full 75-file suite together for what may be the first time surfaced 5 pre-existing,
+  reproducible failures in `dr trace`'s dependency-chain counting (`tests/integration/trace-populated.test.ts`),
+  confirmed unrelated to this release (they fail identically with this release's changes reverted)
+  and unrelated to the glob fix itself (they reproduce in isolation) — left as a known issue for a
+  follow-up release, not fixed here.
+
 ## [0.1.10] - 2026-08-19
 
 **Specification Support:** v0.9.0
