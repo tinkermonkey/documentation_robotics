@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-08-19
+
+**Specification Support:** v0.9.0
+
+### Changed
+
+- **Bundled viewer bumped to v0.6.0**: `@tinkermonkey/heimdall-ui` moves `0.5.2` → `0.7.0`, and the
+  Model/Schema graph is substantially reworked on top of it — new galaxy/clustered layout engines
+  with a Layout/Boundaries/Node-margin/Relations control flyout, the Inspector is now a floating,
+  auto-hiding detail drawer instead of a permanent sidebar column, selections made from the nav
+  tree or a cross-layer link now pan the graph to bring themselves into view instead of leaving you
+  to go find them, Fullscreen now keeps the layout controls and inspector visible instead of
+  dropping them, dark canvas is the default on first visit, and view/selection state now round-trips
+  through the URL (deep-linkable, bookmarkable, shareable). No CLI-side API changes required — the
+  viewer continues to consume the existing `/api/model` and `/api/spec` shapes.
+
 ## [0.1.9] - 2026-08-14
 
 **Specification Support:** v0.9.0
