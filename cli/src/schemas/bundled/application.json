@@ -1073,6 +1073,17 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationservice.accesses.application.dataobject": {
+      "id": "application.applicationservice.accesses.application.dataobject",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationservice.constrained-by.security.accesscondition": {
       "id": "application.applicationservice.constrained-by.security.accesscondition",
       "source_spec_node_id": "application.applicationservice",
