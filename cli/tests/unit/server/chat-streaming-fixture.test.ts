@@ -111,9 +111,18 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const toolInvokes = notifications.filter((m) => m.method === "chat.tool.invoke");
     expect(toolInvokes.length).toBeGreaterThan(0);
 
-    // Should have tool result
+    // Should have tool result, with params.result matching the fixture's emitted `result`
+    // event and params.conversation_id matching the request's conversation ID
     const toolResults = notifications.filter((m) => m.method === "chat.tool.result");
-    expect(toolResults.length).toBeGreaterThan(0);
+    expect(toolResults.length).toBe(1);
+    expect(toolResults[0].params.conversation_id).toBe(conversationId);
+    expect(toolResults[0].params.result).toEqual([
+      {
+        type: "tool_result",
+        tool_use_id: "tool_123",
+        content: "Analysis complete: function returns a number literal.",
+      },
+    ]);
 
     // Cleanup
     expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
