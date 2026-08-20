@@ -70,7 +70,8 @@ export async function runDr(args: string[], options?: RunDrOptions): Promise<CLI
     // Ensure PATH includes /usr/local/bin for node executable
     const env = options?.env ? { ...process.env, ...options.env } : { ...process.env };
 
-    if (!env.PATH?.includes("/usr/local/bin")) {
+    // Only add /usr/local/bin if user didn't explicitly provide PATH
+    if (options?.env?.PATH === undefined && !env.PATH?.includes("/usr/local/bin")) {
       env.PATH = `/usr/local/bin:${env.PATH}`;
     }
 

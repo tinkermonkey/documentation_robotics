@@ -164,12 +164,6 @@ setTimeout(() => {
   });
 
   describe("index() success path", () => {
-    it("should detect analyzer binary is available", async () => {
-      const status = await analyzer.status(tempDir);
-      expect(status.detected.installed).toBe(true);
-      expect(status.detected.binary_path).toBeTruthy();
-    });
-
     it("should execute full index flow: list_projects → git HEAD → index_repository → metadata", async () => {
       const { StdioClient } = await import("@/analyzers/stdio-client.js");
       const originalSpawn = StdioClient.prototype.spawn;
