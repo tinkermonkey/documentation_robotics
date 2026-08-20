@@ -55,7 +55,7 @@
       "number": 8,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 71
+      "relationshipCount": 74
     },
     {
       "id": "data-store",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 191,
-    "relationships": 1585
+    "relationships": 1588
   }
 }

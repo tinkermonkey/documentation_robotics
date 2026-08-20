@@ -777,6 +777,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-model.objectschema.maps-to.data-store.collection": {
+      "id": "data-model.objectschema.maps-to.data-store.collection",
+      "source_spec_node_id": "data-model.objectschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "maps-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "data-model.objectschema.maps-to.api.requestbody": {
       "id": "data-model.objectschema.maps-to.api.requestbody",
       "source_spec_node_id": "data-model.objectschema",
@@ -883,6 +894,28 @@
       "destination_spec_node_id": "security.securityconstraints",
       "destination_layer": "security",
       "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.objectschema.serves.application.applicationcomponent": {
+      "id": "data-model.objectschema.serves.application.applicationcomponent",
+      "source_spec_node_id": "data-model.objectschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.objectschema.serves.application.applicationfunction": {
+      "id": "data-model.objectschema.serves.application.applicationfunction",
+      "source_spec_node_id": "data-model.objectschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
