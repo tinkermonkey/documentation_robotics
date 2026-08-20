@@ -182,4 +182,45 @@ describe("dr validate staged-changeset visibility", () => {
     expect(output).toContain(changesetId);
     expect(output).not.toContain("2 staged change");
   });
+
+  it("shows a staged-changes notice in --orphans mode when a changeset is active", async () => {
+    const storage = new StagedChangesetStorage(workdir.path);
+    const changesetId = "notice-orphans-test-changeset";
+    const changeset = await storage.create(changesetId, "Orphans Notice Test", undefined, "base-snapshot");
+
+    changeset.changes = [
+      {
+        type: "add",
+        elementId: "motivation.goal.new-goal",
+        layerName: "motivation",
+        after: {
+          id: "motivation.goal.new-goal",
+          spec_node_id: "motivation.goal",
+          layer_id: "motivation",
+          type: "goal",
+          name: "New Goal",
+          description: "A staged goal",
+          attributes: { priority: "medium" },
+        },
+        sequenceNumber: 0,
+      },
+    ];
+    await storage.save(changeset);
+    await activateChangeset(workdir.path, changesetId);
+
+    const output = await captureConsole(() =>
+      validateCommand({ model: workdir.path, orphans: true })
+    );
+
+    expect(output).toContain("1 staged change");
+    expect(output).toContain(changesetId);
+  });
+
+  it("shows no staged-changes notice in --orphans mode when no changeset is active", async () => {
+    const output = await captureConsole(() =>
+      validateCommand({ model: workdir.path, orphans: true })
+    );
+
+    expect(output).not.toContain("staged change");
+  });
 });
