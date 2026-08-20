@@ -2316,8 +2316,10 @@ export class VisualizationServer {
       // Determine which command to use (gh copilot or standalone copilot)
       let cmd: string[];
 
-      // Test hook: skip the spawnSync probe when test override is set
-      if (!this._testCopilotCmdOverride) {
+      // Test hook: allow tests to substitute a fixture command for the real copilot binary
+      if (this._testCopilotCmdOverride) {
+        cmd = [...this._testCopilotCmdOverride];
+      } else {
         // Check if gh CLI with copilot extension is available
         const ghResult = spawnSync("gh", ["copilot", "--version"], {
           stdio: ["ignore", "pipe", "pipe"],
@@ -2356,14 +2358,6 @@ export class VisualizationServer {
 
           cmd.push(message);
         }
-      } else {
-        // Test hook: initialize cmd to empty array for override replacement
-        cmd = [];
-      }
-
-      // Test hook: allow tests to substitute a fixture command for the real copilot binary
-      if (this._testCopilotCmdOverride) {
-        cmd.splice(0, cmd.length, ...this._testCopilotCmdOverride);
       }
 
       // Launch GitHub Copilot
