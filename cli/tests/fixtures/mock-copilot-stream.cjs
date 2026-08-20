@@ -5,11 +5,19 @@
  * Emits plain text/markdown content across multiple discrete write() calls
  * to simulate realistic streaming output from `gh copilot` or `copilot` commands.
  *
- * Environment variables:
- * - EXIT_CODE: Exit code to use (default: 0)
+ * Command-line arguments:
+ * - --exit-code N: Exit code to use (default: 0)
+ *
+ * Backward compatibility: Also accepts environment variables as fallback
  */
 
-const EXIT_CODE = parseInt(process.env.EXIT_CODE || "0", 10);
+const args = process.argv.slice(2);
+const getArgValue = (name) => {
+  const idx = args.indexOf(name);
+  return idx >= 0 && idx + 1 < args.length ? args[idx + 1] : null;
+};
+
+const EXIT_CODE = parseInt(getArgValue("--exit-code") || process.env.EXIT_CODE || "0", 10);
 
 // Text chunks to emit across multiple writes
 const chunks = [

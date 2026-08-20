@@ -5,43 +5,56 @@
  * Emits newline-delimited JSON events mimicking `claude --output-format stream-json`.
  * Produces a controllable sequence of events for testing chunk boundaries and event accumulation.
  *
- * Environment variables:
- * - EXIT_CODE: Exit code to use (default: 0)
- * - SPLIT_CHUNKS: Split one JSON line across two write() calls to test chunk-boundary buffering
- * - NO_FINAL_NEWLINE: Omit the trailing newline on the last emitted line
+ * Command-line arguments:
+ * - --exit-code N: Exit code to use (default: 0)
+ * - --split-chunks: Split one JSON line across two write() calls to test chunk-boundary buffering
+ * - --no-final-newline: Omit the trailing newline on the last emitted line
+ *
+ * Backward compatibility: Also accepts environment variables as fallback
  */
 
-const EXIT_CODE = parseInt(process.env.EXIT_CODE || "0", 10);
-const SPLIT_CHUNKS = process.env.SPLIT_CHUNKS === "true";
-const NO_FINAL_NEWLINE = process.env.NO_FINAL_NEWLINE === "true";
+const args = process.argv.slice(2);
+const hasArg = (name) => args.includes(name);
+const getArgValue = (name) => {
+  const idx = args.indexOf(name);
+  return idx >= 0 && idx + 1 < args.length ? args[idx + 1] : null;
+};
+
+const EXIT_CODE = parseInt(getArgValue("--exit-code") || process.env.EXIT_CODE || "0", 10);
+const SPLIT_CHUNKS = hasArg("--split-chunks") || process.env.SPLIT_CHUNKS === "true";
+const NO_FINAL_NEWLINE = hasArg("--no-final-newline") || process.env.NO_FINAL_NEWLINE === "true";
 
 // Define the event sequence
 const events = [
   {
     type: "assistant",
-    content: [
-      {
-        type: "text",
-        text: "Hello, I'm Claude. How can I help you today?",
-      },
-    ],
+    message: {
+      content: [
+        {
+          type: "text",
+          text: "Hello, I'm Claude. How can I help you today?",
+        },
+      ],
+    },
   },
   {
     type: "assistant",
-    content: [
-      {
-        type: "tool_use",
-        id: "tool_123",
-        name: "analyze_code",
-        input: {
-          code: "function test() { return 42; }",
+    message: {
+      content: [
+        {
+          type: "tool_use",
+          id: "tool_123",
+          name: "analyze_code",
+          input: {
+            code: "function test() { return 42; }",
+          },
         },
-      },
-    ],
+      ],
+    },
   },
   {
     type: "result",
-    content: [
+    result: [
       {
         type: "tool_result",
         tool_use_id: "tool_123",
@@ -51,12 +64,14 @@ const events = [
   },
   {
     type: "assistant",
-    content: [
-      {
-        type: "text",
-        text: "The function is straightforward and returns the constant 42.",
-      },
-    ],
+    message: {
+      content: [
+        {
+          type: "text",
+          text: "The function is straightforward and returns the constant 42.",
+        },
+      ],
+    },
   },
 ];
 
