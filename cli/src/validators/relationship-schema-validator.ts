@@ -519,15 +519,6 @@ export class RelationshipValidator {
     return null;
   }
 
-  /**
-   * Extract layer name from element ID
-   *
-   * Element IDs follow the format: {layer}.{type}.{name}
-   * This method extracts the first segment (layer name).
-   *
-   * @param elementId - The element ID (e.g., "motivation.goal.customer-satisfaction")
-   * @returns The layer name, or null if the ID cannot be parsed
-   */
   private extractLayerFromElementId(elementId: string): string | null {
     const parts = elementId.split(".");
     if (parts.length < 2) {
