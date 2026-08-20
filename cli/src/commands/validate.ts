@@ -12,6 +12,7 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
+import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 
 
 export interface ValidateOptions {
@@ -288,6 +289,38 @@ async function validateOrphansOnly(model: Model, outputPath?: string): Promise<v
   }
 }
 
+/**
+ * Print a notice that staged changes from the active changeset were projected into the
+ * model before validation, so users don't mistake correctly-projected staged state for
+ * a validator bug. Scoped to the layers actually included in this validation run.
+ */
+async function reportStagedChangesIncluded(
+  rootPath: string,
+  changesetId: string,
+  validatedLayerNames: Iterable<string>
+): Promise<void> {
+  const changeset = await new StagedChangesetStorage(rootPath).load(changesetId);
+  if (!changeset || changeset.changes.length === 0) {
+    return;
+  }
+
+  const validatedLayers = new Set(validatedLayerNames);
+  const relevantChangeCount = changeset.changes.filter((change) =>
+    validatedLayers.has(change.layerName)
+  ).length;
+
+  if (relevantChangeCount === 0) {
+    return;
+  }
+
+  console.log(
+    ansis.cyan(
+      `ℹ Including ${relevantChangeCount} staged change${relevantChangeCount === 1 ? "" : "s"} from changeset '${changesetId}'`
+    )
+  );
+  console.log();
+}
+
 export async function validateCommand(options: ValidateOptions): Promise<void> {
   // Annotate the root cli.execute span with validate-specific attributes
   const activeSpan = getActiveSpan();
@@ -325,6 +358,15 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       const modelForOrphans = activeChangesetId
         ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
         : model;
+
+      if (activeChangesetId) {
+        await reportStagedChangesIncluded(
+          model.rootPath,
+          activeChangesetId,
+          options.layers && options.layers.length > 0 ? options.layers : modelForOrphans.layers.keys()
+        );
+      }
+
       await validateOrphansOnly(modelForOrphans, options.output);
 
       if (activeSpan) {
@@ -341,6 +383,14 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     const modelToValidate = activeChangesetId
       ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
       : model;
+
+    if (activeChangesetId) {
+      await reportStagedChangesIncluded(
+        model.rootPath,
+        activeChangesetId,
+        options.layers && options.layers.length > 0 ? options.layers : modelToValidate.layers.keys()
+      );
+    }
 
     const result = await validator.validateModel(modelToValidate);
 
