@@ -9,6 +9,7 @@
  * - --exit-code N: Exit code to use (default: 0)
  * - --split-chunks: Split one JSON line across two write() calls to test chunk-boundary buffering
  * - --no-final-newline: Omit the trailing newline on the last emitted line
+ * - --emit-non-json: Inject a plain-text line after the first JSON event for fallback testing
  *
  * Backward compatibility: Also accepts environment variables as fallback
  */
@@ -23,6 +24,7 @@ const getArgValue = (name) => {
 const EXIT_CODE = parseInt(getArgValue("--exit-code") || process.env.EXIT_CODE || "0", 10);
 const SPLIT_CHUNKS = hasArg("--split-chunks") || process.env.SPLIT_CHUNKS === "true";
 const NO_FINAL_NEWLINE = hasArg("--no-final-newline") || process.env.NO_FINAL_NEWLINE === "true";
+const EMIT_NON_JSON = hasArg("--emit-non-json") || process.env.EMIT_NON_JSON === "true";
 
 // Define the event sequence
 const events = [
@@ -96,6 +98,11 @@ function emitEvents() {
       }
     } else {
       process.stdout.write(line + (shouldOmitNewline ? "" : "\n"));
+    }
+
+    // Inject a non-JSON line after the first event if flag is set
+    if (EMIT_NON_JSON && i === 0) {
+      process.stdout.write("This is not JSON\n");
     }
   }
 }

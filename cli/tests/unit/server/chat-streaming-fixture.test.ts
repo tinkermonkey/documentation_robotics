@@ -23,7 +23,7 @@
  * - Shared helpers (createFakeWs, waitFor) to assert WebSocket sends
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { Model } from "../../../src/core/model.js";
 import { VisualizationServer } from "../../../src/server/server.js";
 import { tmpdir } from "os";
@@ -163,9 +163,16 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
 
     expect(completion.result.status).toBe("complete");
 
-    // Verify we got notifications (shouldn't be corrupted by split)
+    // The split happens on the second event (tool_use at i === 1)
+    // Verify it appears exactly once with correct values
     const notifications = ws.sent.filter((m) => m.method);
-    expect(notifications.length).toBeGreaterThan(0);
+    const toolInvokes = notifications.filter((m) => m.method === "chat.tool.invoke");
+
+    expect(toolInvokes.length).toBe(1);
+    expect(toolInvokes[0].params.tool_name).toBe("analyze_code");
+    expect(toolInvokes[0].params.tool_input).toEqual({
+      code: "function test() { return 42; }",
+    });
 
     await cleanupTestServer(server, testDir);
   });
@@ -200,14 +207,12 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
+      "--emit-non-json",
     ]);
 
     const conversationId = `conv-non-json-${randomUUID()}`;
     const ws = createFakeWs();
 
-    // Use a custom fixture that emits non-JSON text
-    // For now, we'll verify that the implementation handles it gracefully
-    // by using the normal fixture and checking for text chunks
     await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-5");
 
     const completion = await waitFor(() =>
@@ -215,6 +220,15 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     );
 
     expect(completion.result.status).toBe("complete");
+
+    // Verify that the non-JSON line was forwarded as a raw text chunk
+    const notifications = ws.sent.filter((m) => m.method);
+    const textChunks = notifications.filter((m) => m.method === "chat.response.chunk");
+
+    // Should have at least one text chunk containing the raw non-JSON line
+    expect(
+      textChunks.some((m) => m.params.content && m.params.content.includes("This is not JSON"))
+    ).toBe(true);
 
     await cleanupTestServer(server, testDir);
   });
