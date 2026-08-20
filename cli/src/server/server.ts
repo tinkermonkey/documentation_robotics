@@ -2479,7 +2479,24 @@ export class VisualizationServer {
 
       // Start streaming in background
       streamOutput().catch((err) => {
-        console.error(`[Copilot] Stream error: ${getErrorMessage(err)}`);
+        const errorMsg = getErrorMessage(err);
+        console.error(`[Copilot] Stream error: ${errorMsg}`);
+
+        // Notify client of stream failure via WebSocket
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Stream error: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(`[Copilot] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
+        }
       });
     } catch (error) {
       const errorMsg = getErrorMessage(error);
