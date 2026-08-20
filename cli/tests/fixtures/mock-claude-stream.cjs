@@ -11,7 +11,7 @@
  * - --no-final-newline: Omit the trailing newline on the last emitted line
  * - --emit-non-json: Inject a plain-text line after the first JSON event for fallback testing
  *
- * Backward compatibility: Also accepts environment variables as fallback
+ * Each option also accepts an equivalent environment variable as a fallback.
  */
 
 const args = process.argv.slice(2);
