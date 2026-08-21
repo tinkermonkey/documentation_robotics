@@ -299,26 +299,34 @@ async function reportStagedChangesIncluded(
   changesetId: string,
   validatedLayerNames: Iterable<string>
 ): Promise<void> {
-  const changeset = await new StagedChangesetStorage(rootPath).load(changesetId);
-  if (!changeset || changeset.changes.length === 0) {
-    return;
+  try {
+    const changeset = await new StagedChangesetStorage(rootPath).load(changesetId);
+    if (!changeset || changeset.changes.length === 0) {
+      return;
+    }
+
+    const validatedLayers = new Set(validatedLayerNames);
+    const relevantChangeCount = changeset.changes.filter((change) =>
+      validatedLayers.has(change.layerName)
+    ).length;
+
+    if (relevantChangeCount === 0) {
+      return;
+    }
+
+    console.log(
+      ansis.cyan(
+        `ℹ Including ${relevantChangeCount} staged change${relevantChangeCount === 1 ? "" : "s"} from changeset '${changesetId}'`
+      )
+    );
+    console.log();
+  } catch (error) {
+    // Changeset is corrupted or unreadable, but this is purely informational.
+    // Log a warning and continue validation rather than crashing.
+    const message = getErrorMessage(error);
+    console.warn(ansis.yellow(`⚠ Could not load changeset '${changesetId}': ${message}`));
+    console.log();
   }
-
-  const validatedLayers = new Set(validatedLayerNames);
-  const relevantChangeCount = changeset.changes.filter((change) =>
-    validatedLayers.has(change.layerName)
-  ).length;
-
-  if (relevantChangeCount === 0) {
-    return;
-  }
-
-  console.log(
-    ansis.cyan(
-      `ℹ Including ${relevantChangeCount} staged change${relevantChangeCount === 1 ? "" : "s"} from changeset '${changesetId}'`
-    )
-  );
-  console.log();
 }
 
 export async function validateCommand(options: ValidateOptions): Promise<void> {

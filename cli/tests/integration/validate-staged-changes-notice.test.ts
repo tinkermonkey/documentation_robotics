@@ -26,8 +26,10 @@ async function captureConsole(fn: () => Promise<void>): Promise<string> {
   const logs: string[] = [];
   const originalLog = console.log;
   const originalError = console.error;
+  const originalWarn = console.warn;
   console.log = (...args: any[]) => logs.push(args.join(" "));
   console.error = (...args: any[]) => logs.push(args.join(" "));
+  console.warn = (...args: any[]) => logs.push(args.join(" "));
 
   try {
     await fn();
@@ -36,6 +38,7 @@ async function captureConsole(fn: () => Promise<void>): Promise<string> {
   } finally {
     console.log = originalLog;
     console.error = originalError;
+    console.warn = originalWarn;
   }
 
   return logs.join("\n");
@@ -222,5 +225,31 @@ describe("dr validate staged-changeset visibility", () => {
     );
 
     expect(output).not.toContain("staged change");
+  });
+
+  it("gracefully handles corrupted changeset by printing warning and continuing validation", async () => {
+    const storage = new StagedChangesetStorage(workdir.path);
+    const changesetId = "corrupted-changeset";
+    const changeset = await storage.create(changesetId, "Corrupted", undefined, "base-snapshot");
+
+    // Save the changeset
+    await storage.save(changeset);
+
+    // Corrupt it by making the YAML invalid
+    const changesetPath = path.join(workdir.path, "documentation-robotics", "changesets", changesetId);
+    const changesPath = path.join(changesetPath, "changes.yaml");
+    await writeFile(changesPath, "invalid: yaml: content: [", "utf-8");
+
+    // Activate the corrupted changeset
+    await activateChangeset(workdir.path, changesetId);
+
+    // Validate should not crash, but should print a warning and continue
+    const output = await captureConsole(() => validateCommand({ model: workdir.path }));
+
+    // Should show a warning about the corrupted changeset but still complete validation
+    expect(output).toContain("Could not load changeset");
+    expect(output).toContain(changesetId);
+    // Validation should still run and report success (since the model is valid)
+    expect(output).not.toContain("Validation failed");
   });
 });
