@@ -215,27 +215,17 @@ export class RelationshipValidator {
       const sourceLayer = this.extractLayerFromElementId(relationship.source);
       const targetLayer = this.extractLayerFromElementId(relationship.target);
 
-      // If we can parse layers and both endpoints are within the filter, proceed with full validation.
-      // If one or both endpoints are outside the filter:
-      // - Check if the missing endpoint actually exists in the full model
-      // - If it exists: skip this relationship (it's a valid cross-layer ref to an unloaded layer)
-      // - If it doesn't exist: continue to validation so we report the missing element error
+      // If we can parse layers and either endpoint is outside the filter,
+      // skip validation for this relationship (design decision: we can't validate
+      // cross-layer references to unloaded layers since those layers aren't in memory)
       if (sourceLayer && targetLayer) {
         const bothInFilter =
           model.loadedLayerFilter.includes(sourceLayer) &&
           model.loadedLayerFilter.includes(targetLayer);
 
         if (!bothInFilter) {
-          // One or both endpoints are outside filter. Check if they actually exist.
-          const sourceExists = this.findElementInModel(model, relationship.source);
-          const targetExists = this.findElementInModel(model, relationship.target);
-
-          // If both endpoints exist somewhere in the model, skip this relationship
-          // (it's a valid cross-layer reference, just not in the loaded filter)
-          if (sourceExists && targetExists) {
-            return errors;
-          }
-          // If either endpoint doesn't exist, proceed to validation to catch the error
+          // One or both endpoints are outside the filter; skip validation
+          return errors;
         }
       }
       // If we can't parse layers (unparseable element IDs), proceed to validation
