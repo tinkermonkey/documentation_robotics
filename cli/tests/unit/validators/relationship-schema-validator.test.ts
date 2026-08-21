@@ -923,4 +923,124 @@ describe("RelationshipValidator", () => {
     });
 
   });
+
+  describe("layer filtering with --layers option", () => {
+    it("should report missing elements with unparseable IDs even under --layers filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      model.loadedLayerFilter = ["motivation"];
+
+      const layer = new Layer("motivation", [
+        new Element({
+          id: "d8b0d8b0-d8b0-4d8b-a8b0-d8b0d8b0d8be",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 1",
+        }),
+      ]);
+
+      model.addLayer(layer);
+
+      // Add relationship with unparseable element ID (like a UUID without proper formatting)
+      // This should NOT be silently skipped but should proceed to validation and report missing element
+      model.relationships.add({
+        source: "d8b0d8b0-d8b0-4d8b-a8b0-d8b0d8b0d8be",
+        target: "f1c1c1c1-c1c1-4c1c-b1c1-c1c1c1c1c1c1", // unparseable/missing element
+        predicate: "depends-on",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should report error for missing target element
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.some((e) => e.message.includes("not found"))).toBe(true);
+    });
+
+    it("should report genuinely missing cross-layer targets even under --layers filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      model.loadedLayerFilter = ["motivation"];
+
+      const layer = new Layer("motivation", [
+        new Element({
+          id: "motivation.goal.test-goal",
+          path: "motivation.goal.test-goal",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Test Goal",
+        }),
+      ]);
+
+      model.addLayer(layer);
+
+      // Add relationship where target doesn't exist in ANY layer (not just filtered layers)
+      // With --layers=motivation filter, this would previously be skipped without error
+      model.relationships.add({
+        source: "motivation.goal.test-goal",
+        target: "business.process.missing-process", // doesn't exist anywhere
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should still report error for missing target even though it's outside the filter
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.some((e) => e.message.includes("not found"))).toBe(true);
+    });
+
+    it("should skip validation for valid cross-layer references when endpoints exist but are outside --layers filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      model.loadedLayerFilter = ["motivation"];
+
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation.goal.goal1",
+          path: "motivation.goal.goal1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 1",
+        }),
+      ]);
+
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "business.process.process1",
+          path: "business.process.process1",
+          spec_node_id: "business.process",
+          type: "process",
+          layer_id: "business",
+          name: "Process 1",
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+      model.addLayer(businessLayer);
+
+      // Add cross-layer relationship where target is in unloaded layer
+      model.relationships.add({
+        source: "motivation.goal.goal1",
+        target: "business.process.process1",
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should NOT report error because both endpoints exist (even though business is outside filter)
+      const notFoundErrors = result.errors.filter((e) => e.message.includes("not found"));
+      expect(notFoundErrors).toHaveLength(0);
+    });
+  });
 });
