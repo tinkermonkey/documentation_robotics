@@ -215,21 +215,31 @@ export class RelationshipValidator {
       const sourceLayer = this.extractLayerFromElementId(relationship.source);
       const targetLayer = this.extractLayerFromElementId(relationship.target);
 
-      // Skip validation if either endpoint is outside the filter
-      // (Design decision: we cannot validate cross-layer references when the target layer is not
-      // loaded, since we can't check if the target element actually exists in that unloaded layer.
-      // This is a known limitation of --layers filtering: broken cross-layer relationships to
-      // nonexistent elements in unloaded layers will not be reported.)
-      if (!sourceLayer || !targetLayer) {
-        return errors; // Can't parse layer, skip to avoid false positives
-      }
+      // If we can parse layers and both endpoints are within the filter, proceed with full validation.
+      // If one or both endpoints are outside the filter:
+      // - Check if the missing endpoint actually exists in the full model
+      // - If it exists: skip this relationship (it's a valid cross-layer ref to an unloaded layer)
+      // - If it doesn't exist: continue to validation so we report the missing element error
+      if (sourceLayer && targetLayer) {
+        const bothInFilter =
+          model.loadedLayerFilter.includes(sourceLayer) &&
+          model.loadedLayerFilter.includes(targetLayer);
 
-      if (
-        !model.loadedLayerFilter.includes(sourceLayer) ||
-        !model.loadedLayerFilter.includes(targetLayer)
-      ) {
-        return errors; // Endpoint is outside filter; skip this relationship
+        if (!bothInFilter) {
+          // One or both endpoints are outside filter. Check if they actually exist.
+          const sourceExists = this.findElementInModel(model, relationship.source);
+          const targetExists = this.findElementInModel(model, relationship.target);
+
+          // If both endpoints exist somewhere in the model, skip this relationship
+          // (it's a valid cross-layer reference, just not in the loaded filter)
+          if (sourceExists && targetExists) {
+            return errors;
+          }
+          // If either endpoint doesn't exist, proceed to validation to catch the error
+        }
       }
+      // If we can't parse layers (unparseable element IDs), proceed to validation
+      // where findElementInModel will fail with a proper error message
     }
 
     // Find source and destination elements
