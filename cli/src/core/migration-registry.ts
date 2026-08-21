@@ -283,6 +283,24 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.9.0 to v0.10.0: Schema enhancements and spec improvements
+    this.migrations.push({
+      fromVersion: "0.9.0",
+      toVersion: "0.10.0",
+      description: "Schema enhancements and spec improvements (Spec v0.10.0)",
+      apply: async () => {
+        // Spec-only enhancements - no model data format changes:
+        // - Enhanced schema definitions across all layers
+        // - Improved validation and documentation
+        // - Existing models remain fully compatible
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.10.0 (Schema enhancements and spec improvements)",
+        };
+      },
+    });
   }
 
   /**

@@ -210,6 +210,28 @@ export class RelationshipValidator {
   ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
     const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
 
+    // Check if relationship crosses layer boundary when --layers filter is active
+    if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
+      const sourceLayer = this.extractLayerFromElementId(relationship.source);
+      const targetLayer = this.extractLayerFromElementId(relationship.target);
+
+      // If we can parse layers and either endpoint is outside the filter,
+      // skip validation for this relationship (design decision: we can't validate
+      // cross-layer references to unloaded layers since those layers aren't in memory)
+      if (sourceLayer && targetLayer) {
+        const bothInFilter =
+          model.loadedLayerFilter.includes(sourceLayer) &&
+          model.loadedLayerFilter.includes(targetLayer);
+
+        if (!bothInFilter) {
+          // One or both endpoints are outside the filter; skip validation
+          return errors;
+        }
+      }
+      // If we can't parse layers (unparseable element IDs), proceed to validation
+      // where findElementInModel will fail with a proper error message
+    }
+
     // Find source and destination elements
     const sourceElement = this.findElementInModel(model, relationship.source);
     const targetElement = this.findElementInModel(model, relationship.target);
@@ -498,6 +520,14 @@ export class RelationshipValidator {
       }
     }
     return null;
+  }
+
+  private extractLayerFromElementId(elementId: string): string | null {
+    const parts = elementId.split(".");
+    if (parts.length < 2) {
+      return null;
+    }
+    return parts[0];
   }
 
 }

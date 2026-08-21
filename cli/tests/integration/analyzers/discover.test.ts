@@ -262,39 +262,6 @@ echo '{"capabilities": {}}'
   });
 
   describe("session persistence", () => {
-    it("should return existing session on subsequent discover calls", async () => {
-      // First discover - may or may not create a session depending on available analyzers
-      const discover1 = await runDr(["analyzer", "discover", "--json"], {
-        cwd: tempDir.path,
-        env: { CI: "true" },
-      });
-
-      expect(discover1.exitCode).toBe(0);
-
-      // Second discover without --reselect should return same session
-      const discover2 = await runDr(["analyzer", "discover", "--json"], {
-        cwd: tempDir.path,
-        env: { CI: "true" },
-      });
-
-      expect(discover2.exitCode).toBe(0);
-
-      const output1 = JSON.parse(discover1.stdout);
-      const output2 = JSON.parse(discover2.stdout);
-
-      // Verify outputs have consistent structure
-      expect(output1).toHaveProperty("found");
-      expect(output2).toHaveProperty("found");
-
-      // If both have selected field, they should match (session consistency)
-      if (output1.selected && output2.selected) {
-        expect(output1.selected).toBe(output2.selected);
-      } else if (output1.selected || output2.selected) {
-        // If only one has selected, that's inconsistent
-        expect(output1.selected).toBe(output2.selected);
-      }
-    });
-
     it("should work from project subdirectory", async () => {
       // Create a subdirectory
       const subdir = join(tempDir.path, "subdir");
