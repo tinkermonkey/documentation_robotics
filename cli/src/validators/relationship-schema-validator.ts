@@ -216,7 +216,10 @@ export class RelationshipValidator {
       const targetLayer = this.extractLayerFromElementId(relationship.target);
 
       // Skip validation if either endpoint is outside the filter
-      // (it may be a valid cross-layer relationship with a valid target in an unloaded layer)
+      // (Design decision: we cannot validate cross-layer references when the target layer is not
+      // loaded, since we can't check if the target element actually exists in that unloaded layer.
+      // This is a known limitation of --layers filtering: broken cross-layer relationships to
+      // nonexistent elements in unloaded layers will not be reported.)
       if (!sourceLayer || !targetLayer) {
         return errors; // Can't parse layer, skip to avoid false positives
       }
