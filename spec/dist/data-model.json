@@ -202,7 +202,10 @@
               "description": "Schema applied to all property names of the object instance for name validation"
             },
             "required": {
-              "type": "string"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
             "additionalProperties": {
               "type": "string"
