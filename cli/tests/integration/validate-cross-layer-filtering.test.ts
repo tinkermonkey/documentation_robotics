@@ -330,4 +330,80 @@ describe("cross-layer relationship validation under --layers filtering", () => {
     );
     expect(dataModelOutput).not.toContain("not found");
   });
+
+  it("correctly applies layer filter to projected model with active changeset", async () => {
+    // Set up a model with elements in multiple layers and cross-layer relationships
+    const model = await Model.init(
+      workdir.path,
+      {
+        name: "Cross-Layer Changeset Test",
+        version: "1.0.0",
+        description: "Test layer filtering with staged changes",
+        specVersion: "0.8.4",
+        created: new Date().toISOString(),
+      },
+      { lazyLoad: false }
+    );
+
+    // Create business layer with a service
+    const businessLayer = new Layer("business");
+    businessLayer.addElement(
+      new Element({
+        id: "business.businessservice.payment-processing",
+        spec_node_id: "business.businessservice",
+        layer_id: "business",
+        type: "businessservice",
+        name: "Payment Processing Service",
+        description: "Processes payments",
+      })
+    );
+    model.addLayer(businessLayer);
+
+    // Create motivation layer with a goal
+    const motivationLayer = new Layer("motivation");
+    motivationLayer.addElement(
+      new Element({
+        id: "motivation.goal.financial-security",
+        spec_node_id: "motivation.goal",
+        layer_id: "motivation",
+        type: "goal",
+        name: "Financial Security",
+        description: "Ensure financial security",
+      })
+    );
+    model.addLayer(motivationLayer);
+
+    // Add a cross-layer relationship
+    model.relationships.add({
+      source: "business.businessservice.payment-processing",
+      target: "motivation.goal.financial-security",
+      predicate: "realizes",
+      layer: "business",
+      properties: {},
+    });
+
+    await model.saveManifest();
+    await model.saveLayer("business");
+    await model.saveLayer("motivation");
+    await model.saveRelationships();
+
+    // Load model with layer filter
+    const filteredModel = await Model.load(workdir.path, {
+      lazyLoad: false,
+      layers: ["business"],
+    });
+
+    // Verify loadedLayerFilter is set
+    expect(filteredModel.loadedLayerFilter).toEqual(["business"]);
+
+    // Validate with the filtered model - should not report spurious errors for cross-layer relationships
+    const output = await captureConsole(() =>
+      validateCommand({ model: workdir.path, layers: ["business"] })
+    );
+
+    // The motivation goal should not be reported as not found
+    // because the relationship crosses into an unloaded layer
+    expect(output).not.toContain("motivation.goal.financial-security");
+    expect(output).not.toContain("not found");
+  });
 });
