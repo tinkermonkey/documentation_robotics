@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-08-21
+
+**Specification Support:** v0.9.0 (now formally tagged as `spec-v0.9.0`; CLI content support is unchanged from 0.1.12)
+
+### Changed
+
+- **Bundled viewer bumped to v0.6.1**: `documentation_robotics_viewer` moves `0.6.0` → `0.6.1`,
+  picking up native `heimdall-ui` 0.8.0 edge-hover support and model-graph/node-page fixes. No
+  CLI-side API changes required — the viewer continues to consume the existing `/api/model` and
+  `/api/spec` shapes.
+
+### Testing
+
+- **Added end-to-end coverage for the pre-0.8.2 legacy slug-id migration** in
+  `Model.load()`/`loadLayer()` (`tests/integration/model-legacy-migration.test.ts`). Previously
+  this migration — which rewrites a legacy `id: {layer}.{type}.{slug}` element to a deterministic
+  UUID `id` plus a `path` carrying the old slug, transparently on every load — only had thin,
+  indirect unit coverage (`model-deterministic-uuid.test.ts`) that never actually loaded a
+  legacy-format YAML file through the real `Model.load()` API. The new tests write real pre-0.8.2
+  YAML to disk and verify: the migration fires and produces a stable, deterministic UUID across
+  repeated loads; an already-migrated (UUID id + path) element passes through unchanged; and the
+  migration works for layers beyond `motivation` (verified against `product`, added in spec
+  v0.9.0).
+
+### Documentation
+
+- Corrected `CLAUDE.md` and `README.md`, which both described a `.dr/changesets` →
+  `documentation-robotics/changesets` auto-migration (with `.dr.backup/` rollback) that no longer
+  exists in source — it was removed in an earlier fix and the docs were never updated. Both now
+  point at the actual mechanism for spec-version model migrations: `dr upgrade`, driven by
+  `MigrationRegistry` (`cli/src/core/migration-registry.ts`).
+- Fixed a dangling "see migration guide" reference in `spec/CHANGELOG.md`'s 0.9.0 entry — no such
+  guide exists; the reference now points at `dr upgrade`, which already automates the 13-layer
+  renumbering migration (and has been covered by `migration-registry.test.ts` and
+  `upgrade-command.test.ts` since it shipped).
+
 ## [0.1.12] - 2026-08-19
 
 **Specification Support:** v0.9.0
