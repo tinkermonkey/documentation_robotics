@@ -289,7 +289,7 @@ your-project/
 │       └── ...
 ```
 
-**Legacy models**: Old projects using `.dr/` directory will auto-migrate changesets to `documentation-robotics/changesets/` on first use.
+**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths.
 
 ### Specification Reference
 

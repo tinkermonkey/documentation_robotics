@@ -7,36 +7,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
-### Added
-
-- **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
-  mappings that bridge external code analysis tools to the architecture model:
-  - New directory structure at `spec/analyzers/{analyzer-name}/` containing analyzer definitions
-  - Four new base schemas for analyzer compilation: `analyzer-spec.schema.json`,
-    `analyzer-node-mapping.schema.json`, `analyzer-edge-mapping.schema.json`, and
-    `analyzer-heuristics.schema.json` — all validated during spec build
-- **Codebase Memory (CBM) Analyzer Mapping** — First analyzer mapping (`cbm`) covering semantic
-  code structures from the Codebase Memory MCP:
-  - Node label mappings: **Route** → `api.operation`, **Function** → `application.applicationfunction`,
-    **Method** → `application.applicationfunction`, **Class** → `application.applicationcomponent`,
-    **Module** → `application.applicationcomponent`
-  - Edge type mappings: HTTP calls → `consumes`, request handlers → `provides`, with unmappable
-    edges (function calls, imports, inheritance) marked with `null` dr_relationship
-  - Extraction heuristics for guiding semantic graph generation from source code
-- **Build Pipeline Enhancements** — Extended `spec/scripts/build-spec.ts` with analyzer
-  compilation and validation that compiles all analyzer directories into `spec/dist/analyzers/`:
-  - Validates required files exist: `analyzer.json`, `node-mapping.json`, `edge-mapping.json`,
-    `extraction-heuristics.json`
-  - Validates all `dr_layer` values use canonical layer names and `dr_relationship` values exist in `predicates.json` (null allowed for unmappable edges)
-  - Generates packed analyzer artifacts with indexed node mappings and edge types
-  - Creates `spec/dist/analyzers/manifest.json` listing all compiled analyzers with versions
-
-### Changed
-
-- **Spec Build Output** now includes `spec/dist/analyzers/` subtree alongside layer and base schema
-  files, expanding the compiled specification to cover analyzer-to-model mappings
-
-## [0.9.0] - 2026-08-13
+## [0.9.0] - 2026-08-21
 
 ### Breaking Changes
 
@@ -52,7 +23,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     - Navigation: 10 → 11
     - APM: 11 → 12
     - Testing: 12 → 13
-  - **Impact**: Layer filesystem prefixes and archive paths update (e.g., `03_security/` → `04_security/`). Cross-layer references remain stable (use layer names not numbers). Filesystem-based models require directory renames during migration; see migration guide.
+  - **Impact**: Layer filesystem prefixes and archive paths update (e.g., `03_security/` → `04_security/`). Cross-layer references remain stable (use layer names not numbers). Filesystem-based models are migrated automatically by running `dr upgrade` (CLI v0.1.8+), which renames the affected layer directories and updates `manifest.yaml` in place — no manual steps required.
 
 ### Added
 
@@ -73,10 +44,33 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - Updated all shifted layer prefixes (04-security through 13-testing)
   - Added `product` to `NODE_FOLDER_TO_LAYER` mapping and `dr_layer` TypeScript union type
 - **Spec Distribution** — Compiled `spec/dist/` now includes `product.json` (product layer node/relationship schemas) alongside updated manifest and renumbered layer files (14 → 15 total files)
+- **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer
+  mappings that bridge external code analysis tools to the architecture model:
+  - New directory structure at `spec/analyzers/{analyzer-name}/` containing analyzer definitions
+  - Four new base schemas for analyzer compilation: `analyzer-spec.schema.json`,
+    `analyzer-node-mapping.schema.json`, `analyzer-edge-mapping.schema.json`, and
+    `analyzer-heuristics.schema.json` — all validated during spec build
+- **Codebase Memory (CBM) Analyzer Mapping** — First analyzer mapping (`cbm`) covering semantic
+  code structures from the Codebase Memory MCP:
+  - Node label mappings: **Route** → `api.operation`, **Function** → `application.applicationfunction`,
+    **Method** → `application.applicationfunction`, **Class** → `application.applicationcomponent`,
+    **Module** → `application.applicationcomponent`
+  - Edge type mappings: HTTP calls → `consumes`, request handlers → `provides`, with unmappable
+    edges (function calls, imports, inheritance) marked with `null` dr_relationship
+  - Extraction heuristics for guiding semantic graph generation from source code
+- **Analyzer Build Pipeline** — Extended `spec/scripts/build-spec.ts` with analyzer
+  compilation and validation that compiles all analyzer directories into `spec/dist/analyzers/`:
+  - Validates required files exist: `analyzer.json`, `node-mapping.json`, `edge-mapping.json`,
+    `extraction-heuristics.json`
+  - Validates all `dr_layer` values use canonical layer names and `dr_relationship` values exist in `predicates.json` (null allowed for unmappable edges)
+  - Generates packed analyzer artifacts with indexed node mappings and edge types
+  - Creates `spec/dist/analyzers/manifest.json` listing all compiled analyzers with versions
 
 ### Changed
 
 - **Layer Numbering Schema** — All 12 existing layers renumbered to accommodate Product layer insertion (affects layer instance files, archive paths, layer-specific documentation, but not cross-layer references which use layer names)
+- **Spec Build Output** now includes `spec/dist/analyzers/` subtree alongside layer and base schema
+  files, expanding the compiled specification to cover analyzer-to-model mappings
 
 ### Compatibility
 
