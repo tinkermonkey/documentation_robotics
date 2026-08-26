@@ -41,6 +41,7 @@ export class ReferenceValidator {
           element.references || [],
           layerName,
           allElementIds,
+          model,
           result
         );
       }
@@ -74,11 +75,21 @@ export class ReferenceValidator {
     references: Array<{ target: string; type?: string }>,
     sourceLayerName: string,
     validIds: Set<string>,
+    model: Model,
     result: ValidationResult
   ): void {
     for (const ref of references) {
       // Check target exists
       if (!validIds.has(ref.target)) {
+        // Skip validation for references to unloaded layers when filter is active
+        if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
+          const targetLayerName = this.extractLayerFromId(ref.target);
+          if (!model.loadedLayerFilter.includes(targetLayerName)) {
+            // Target is in an unloaded layer; skip this reference
+            continue;
+          }
+        }
+
         result.addError({
           layer: sourceLayerName,
           elementId,
