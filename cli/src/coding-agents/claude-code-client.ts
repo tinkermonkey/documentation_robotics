@@ -17,6 +17,7 @@ import { spawnSync, spawn, ChildProcess } from "child_process";
 import ansis from "ansis";
 import { getChatLogger } from "../utils/chat-logger.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { formatForClaudeCode } from "./default-permissions.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -420,9 +421,12 @@ export class ClaudeCodeClient extends BaseChatClient {
   private getProcessArgs(options?: ChatOptions, isFirstMessage: boolean = true): string[] {
     const args = ["--print"];
 
-    // Add dangerously-skip-permissions flag if withDanger is enabled
+    // Apply permissions: either full access or read-safe allowlist
     if (options?.withDanger) {
       args.push("--dangerously-skip-permissions");
+    } else {
+      // Add read-safe permissions allowlist for default mode
+      args.push("--allowedTools", formatForClaudeCode());
     }
 
     args.push("--verbose", "--output-format", "stream-json");

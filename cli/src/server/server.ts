@@ -26,6 +26,7 @@ import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
+import { formatForClaudeCode } from "../coding-agents/default-permissions.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -2047,9 +2048,12 @@ export class VisualizationServer {
       // Build command arguments
       const cmd = ["claude", "--agent", "dr-architect", "--print"];
 
-      // Add dangerously-skip-permissions flag if withDanger is enabled
+      // Apply permissions: either full access or read-safe allowlist
       if (this.withDanger) {
         cmd.push("--dangerously-skip-permissions");
+      } else {
+        // Add read-safe permissions allowlist for default mode
+        cmd.push("--allowedTools", formatForClaudeCode());
       }
 
       cmd.push("--verbose", "--output-format", "stream-json");
