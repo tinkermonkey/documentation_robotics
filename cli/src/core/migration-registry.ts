@@ -284,20 +284,112 @@ export class MigrationRegistry {
       },
     });
 
-    // Migration from v0.9.0 to v0.10.0: Schema enhancements and spec improvements
+    // Migration from v0.9.0 to v0.10.0: Data Model objectschema.required type change
     this.migrations.push({
       fromVersion: "0.9.0",
       toVersion: "0.10.0",
-      description: "Schema enhancements and spec improvements (Spec v0.10.0)",
-      apply: async () => {
-        // Spec-only enhancements - no model data format changes:
-        // - Enhanced schema definitions across all layers
-        // - Improved validation and documentation
-        // - Existing models remain fully compatible
+      description: "Data Model objectschema.required type change (Spec v0.10.0)",
+      apply: async (model: Model) => {
+        const fs = await import("fs/promises");
+        const pathModule = await import("path");
+        const YAML = await import("yaml");
+
+        const modelDir = `${model.rootPath}/documentation-robotics/model`;
+        const dataModelDir = pathModule.join(modelDir, "08_data-model");
+        let filesModified = 0;
+
+        try {
+          // Verify data model directory exists
+          await fs.access(dataModelDir);
+        } catch (error) {
+          const err = error as { code?: string };
+          // ENOENT means the directory doesn't exist - nothing to migrate
+          if (err.code === "ENOENT") {
+            return {
+              migrationsApplied: 1,
+              filesModified: 0,
+              description:
+                "Spec version updated to 0.10.0 (objectschema.required type changed from string to array; no model data to migrate)",
+            };
+          }
+          // Re-throw other errors
+          throw error;
+        }
+
+        // Scan all YAML files in the data model directory
+        const files = await fs.readdir(dataModelDir);
+        const migrationErrors: string[] = [];
+
+        for (const file of files) {
+          if (!file.endsWith(".yaml") && !file.endsWith(".yml")) {
+            continue;
+          }
+
+          const filePath = pathModule.join(dataModelDir, file);
+          try {
+            const content = await fs.readFile(filePath, "utf-8");
+            let modified = false;
+            const doc = YAML.parse(content);
+
+            if (!doc || typeof doc !== "object") {
+              continue;
+            }
+
+            // Iterate through all elements in the file
+            for (const [, element] of Object.entries(doc)) {
+              if (
+                !element ||
+                typeof element !== "object" ||
+                (element as Record<string, unknown>).spec_node_id !== "data-model.objectschema"
+              ) {
+                continue;
+              }
+
+              const elem = element as Record<string, unknown>;
+              const attributes = elem.attributes as Record<string, unknown> | undefined;
+
+              if (attributes && typeof attributes === "object") {
+                const required = attributes.required;
+
+                // Check if required field exists and is a string
+                if (required && typeof required === "string") {
+                  // Convert comma-separated string to array
+                  attributes.required = required
+                    .split(",")
+                    .map((item: string) => item.trim())
+                    .filter((item: string) => item.length > 0);
+                  modified = true;
+                }
+              }
+            }
+
+            // Write back if modified
+            if (modified) {
+              await fs.writeFile(filePath, YAML.stringify(doc), "utf-8");
+              filesModified++;
+            }
+          } catch (error) {
+            migrationErrors.push(
+              `Failed to migrate ${file}: ${getErrorMessage(error)}`
+            );
+          }
+        }
+
+        if (migrationErrors.length > 0) {
+          return {
+            migrationsApplied: 1,
+            filesModified,
+            description:
+              "Spec version updated to 0.10.0 (objectschema.required converted from string to array)",
+            error: migrationErrors.join("; "),
+          };
+        }
+
         return {
           migrationsApplied: 1,
-          filesModified: 0,
-          description: "Spec version updated to 0.10.0 (Schema enhancements and spec improvements)",
+          filesModified,
+          description:
+            "Spec version updated to 0.10.0 (objectschema.required converted from string to array)",
         };
       },
     });
@@ -311,9 +403,11 @@ export class MigrationRegistry {
       return "0.7.0";
     }
 
-    // Return the highest toVersion from all migrations
+    // Return the highest toVersion from all migrations using proper version comparison
     const versions = this.migrations.map((m) => m.toVersion);
-    return versions.sort().reverse()[0];
+    return versions.reduce((max, current) => {
+      return this.compareVersions(current, max) > 0 ? current : max;
+    });
   }
 
   /**

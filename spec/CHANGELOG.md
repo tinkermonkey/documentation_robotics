@@ -7,6 +7,13 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **BREAKING: `objectschema.required` Type Change** — The `required` field on `data-model.objectschema` nodes changed from `{"type": "string"}` to `{"type": "array", "items": {"type": "string"}}` in `spec/schemas/nodes/data-model/objectschema.node.schema.json`:
+  - **Rationale**: JSON Schema Draft 7 standard specifies `required` as an array of property names. The string format was non-standard and prevented accurate schema validation.
+  - **Impact**: Existing `objectschema` elements with string-typed `required` values will fail schema validation after upgrade.
+  - **Migration**: Automatic upgrade path provided via CLI migration 0.9.0→0.10.0. Comma-separated string values (e.g., `"id,name,email"`) are automatically converted to array format (e.g., `["id", "name", "email"]`). No manual migration steps required; migration runs transparently on next CLI use.
+
 ### Added
 
 - **Analyzer Mappings Framework** — Introduced `spec/analyzers/` as the canonical home for analyzer

@@ -11,7 +11,7 @@ describe("MigrationRegistry", () => {
     it("should return the latest available version", () => {
       const registry = new MigrationRegistry();
       const latest = registry.getLatestVersion();
-      expect(latest).toBe("0.9.0");
+      expect(latest).toBe("0.10.0");
     });
   });
 
@@ -32,7 +32,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const path = registry.getMigrationPath("0.5.0");
       expect(path.length).toBeGreaterThan(0);
-      expect(path[path.length - 1].toVersion).toBe("0.9.0");
+      expect(path[path.length - 1].toVersion).toBe("0.10.0");
     });
 
     it("should return migration path from 0.5.0 to 0.6.0", () => {
@@ -52,7 +52,7 @@ describe("MigrationRegistry", () => {
 
     it("should return false when no migration is needed", () => {
       const registry = new MigrationRegistry();
-      expect(registry.requiresMigration("0.9.0")).toBe(false);
+      expect(registry.requiresMigration("0.10.0")).toBe(false);
     });
 
     it("should return true when 0.8.4 needs migration to latest", () => {
@@ -77,7 +77,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary("0.5.0");
 
-      expect(summary.targetVersion).toBe("0.9.0");
+      expect(summary.targetVersion).toBe("0.10.0");
     });
   });
 
@@ -472,6 +472,310 @@ describe("MigrationRegistry", () => {
         // Verify spec version was not bumped (because migration threw error)
         expect(model.manifest.specVersion).toBe("0.8.4");
       }
+    });
+  });
+
+  describe("v0.9.0 → v0.10.0 migration (objectschema.required type change)", () => {
+    let tempRootPath: string;
+
+    beforeEach(async () => {
+      tempRootPath = join(
+        tmpdir(),
+        `dr-test-migration-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+      );
+      await mkdir(tempRootPath, { recursive: true });
+    });
+
+    afterEach(async () => {
+      try {
+        await rm(tempRootPath, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors in tests
+      }
+    });
+
+    it("should convert string required field to array in objectschema elements", async () => {
+      const { writeFile: yamlWriteFile } = await import("fs/promises");
+      const YAML = await import("yaml");
+
+      const modelDir = join(tempRootPath, "documentation-robotics/model/08_data-model");
+      await mkdir(modelDir, { recursive: true });
+
+      // Create an objectschema element with string-typed required field
+      const objectschemaData = {
+        "user-schema": {
+          id: "user-schema",
+          path: "data-model.objectschema.user-schema",
+          spec_node_id: "data-model.objectschema",
+          type: "objectschema",
+          layer_id: "data-model",
+          name: "User Schema",
+          description: "User object schema",
+          attributes: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              email: { type: "string" },
+            },
+            required: "id,name,email", // String format - should be converted to array
+          },
+        },
+      };
+
+      const schemaPath = join(modelDir, "objectschema.yaml");
+      await yamlWriteFile(schemaPath, YAML.stringify(objectschemaData), "utf-8");
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.9.0",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.9.0",
+        toVersion: "0.10.0",
+      });
+
+      // Verify migration was applied
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].to).toBe("0.10.0");
+      expect(result.applied[0].changes?.filesModified).toBe(1);
+
+      // Verify the file was updated correctly
+      const content = await (
+        await import("fs/promises")
+      ).readFile(schemaPath, "utf-8");
+      const migratedData = YAML.parse(content);
+
+      // Verify required field is now an array
+      expect(Array.isArray(migratedData["user-schema"].attributes.required)).toBe(true);
+      expect(migratedData["user-schema"].attributes.required).toEqual([
+        "id",
+        "name",
+        "email",
+      ]);
+
+      // Verify manifest version was updated
+      expect(model.manifest.specVersion).toBe("0.10.0");
+    });
+
+    it("should handle objectschema elements that already have array-typed required field", async () => {
+      const { writeFile: yamlWriteFile } = await import("fs/promises");
+      const YAML = await import("yaml");
+
+      const modelDir = join(tempRootPath, "documentation-robotics/model/08_data-model");
+      await mkdir(modelDir, { recursive: true });
+
+      // Create an objectschema element that already has array-typed required field
+      const objectschemaData = {
+        "product-schema": {
+          id: "product-schema",
+          path: "data-model.objectschema.product-schema",
+          spec_node_id: "data-model.objectschema",
+          type: "objectschema",
+          layer_id: "data-model",
+          name: "Product Schema",
+          description: "Product object schema",
+          attributes: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+            },
+            required: ["id", "name"], // Already an array - should not be modified
+          },
+        },
+      };
+
+      const schemaPath = join(modelDir, "objectschema.yaml");
+      await yamlWriteFile(schemaPath, YAML.stringify(objectschemaData), "utf-8");
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.9.0",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.9.0",
+        toVersion: "0.10.0",
+      });
+
+      // Verify migration was applied but file was not modified (no conversion needed)
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].changes?.filesModified).toBe(0);
+      expect(model.manifest.specVersion).toBe("0.10.0");
+    });
+
+    it("should handle mixed content in data-model directory", async () => {
+      const { writeFile: yamlWriteFile } = await import("fs/promises");
+      const YAML = await import("yaml");
+
+      const modelDir = join(tempRootPath, "documentation-robotics/model/08_data-model");
+      await mkdir(modelDir, { recursive: true });
+
+      // Create multiple files with different elements
+      const objectschemaData = {
+        "user-schema": {
+          id: "user-schema",
+          path: "data-model.objectschema.user-schema",
+          spec_node_id: "data-model.objectschema",
+          type: "objectschema",
+          layer_id: "data-model",
+          name: "User Schema",
+          attributes: {
+            type: "object",
+            required: "id,email", // String format
+          },
+        },
+      };
+
+      const entityData = {
+        "user-entity": {
+          id: "user-entity",
+          path: "data-model.entity.user-entity",
+          spec_node_id: "data-model.entity",
+          type: "entity",
+          layer_id: "data-model",
+          name: "User Entity",
+          description: "User entity",
+        },
+      };
+
+      await yamlWriteFile(
+        join(modelDir, "objectschema.yaml"),
+        YAML.stringify(objectschemaData),
+        "utf-8"
+      );
+      await yamlWriteFile(
+        join(modelDir, "entity.yaml"),
+        YAML.stringify(entityData),
+        "utf-8"
+      );
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.9.0",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.9.0",
+        toVersion: "0.10.0",
+      });
+
+      // Verify migration processed both files but only modified the one with objectschema
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].changes?.filesModified).toBe(1);
+
+      // Verify the objectschema file was updated
+      const content = await (
+        await import("fs/promises")
+      ).readFile(join(modelDir, "objectschema.yaml"), "utf-8");
+      const migratedData = YAML.parse(content);
+      expect(migratedData["user-schema"].attributes.required).toEqual(["id", "email"]);
+
+      // Verify the entity file was not modified
+      const entityContent = await (
+        await import("fs/promises")
+      ).readFile(join(modelDir, "entity.yaml"), "utf-8");
+      const entityData2 = YAML.parse(entityContent);
+      expect(entityData2["user-entity"].spec_node_id).toBe("data-model.entity");
+    });
+
+    it("should handle gracefully when data-model directory does not exist", async () => {
+      // Don't create any directories
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.9.0",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, {
+        fromVersion: "0.9.0",
+        toVersion: "0.10.0",
+      });
+
+      // Migration should succeed with no files modified
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].to).toBe("0.10.0");
+      expect(result.applied[0].changes?.filesModified).toBe(0);
+      expect(model.manifest.specVersion).toBe("0.10.0");
+    });
+
+    it("should handle required field with spaces in comma-separated values", async () => {
+      const { writeFile: yamlWriteFile } = await import("fs/promises");
+      const YAML = await import("yaml");
+
+      const modelDir = join(tempRootPath, "documentation-robotics/model/08_data-model");
+      await mkdir(modelDir, { recursive: true });
+
+      const objectschemaData = {
+        "schema-with-spaces": {
+          id: "schema-with-spaces",
+          path: "data-model.objectschema.schema-with-spaces",
+          spec_node_id: "data-model.objectschema",
+          type: "objectschema",
+          layer_id: "data-model",
+          name: "Schema with Spaces",
+          attributes: {
+            type: "object",
+            required: "id , name , email", // Spaces around values
+          },
+        },
+      };
+
+      const schemaPath = join(modelDir, "objectschema.yaml");
+      await yamlWriteFile(schemaPath, YAML.stringify(objectschemaData), "utf-8");
+
+      const manifest = new Manifest({
+        name: "test-model",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        specVersion: "0.9.0",
+      });
+
+      const model = new Model(tempRootPath, manifest);
+      const registry = new MigrationRegistry();
+
+      await registry.applyMigrations(model, {
+        fromVersion: "0.9.0",
+        toVersion: "0.10.0",
+      });
+
+      const content = await (
+        await import("fs/promises")
+      ).readFile(schemaPath, "utf-8");
+      const migratedData = YAML.parse(content);
+
+      // Verify spaces were trimmed
+      expect(migratedData["schema-with-spaces"].attributes.required).toEqual([
+        "id",
+        "name",
+        "email",
+      ]);
     });
   });
 });
