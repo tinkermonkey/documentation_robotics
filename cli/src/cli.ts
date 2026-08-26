@@ -624,7 +624,7 @@ Default mode (read-safe permissions) enables:
   - Reading the documentation-robotics/ model folder
   - Reading the .dr/ configuration folder
 
-The --with-danger flag enables unrestricted mode for chat functionality:
+Dangerous mode (--with-danger) enables unrestricted access:
   - Claude Code: --dangerously-skip-permissions (full tool access)
   - GitHub Copilot: --allow-all-tools (full tool access)
 
