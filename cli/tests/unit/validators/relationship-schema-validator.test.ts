@@ -923,4 +923,177 @@ describe("RelationshipValidator", () => {
     });
 
   });
+
+  describe("layer filtering with --layers option", () => {
+    it("should report missing elements with unparseable IDs even under --layers filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      model.loadedLayerFilter = ["motivation"];
+
+      const layer = new Layer("motivation", [
+        new Element({
+          id: "d8b0d8b0-d8b0-4d8b-a8b0-d8b0d8b0d8be",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 1",
+        }),
+      ]);
+
+      model.addLayer(layer);
+
+      // Add relationship with unparseable element ID (like a UUID without proper formatting)
+      // This should NOT be silently skipped but should proceed to validation and report missing element
+      model.relationships.add({
+        source: "d8b0d8b0-d8b0-4d8b-a8b0-d8b0d8b0d8be",
+        target: "f1c1c1c1-c1c1-4c1c-b1c1-c1c1c1c1c1c1", // unparseable/missing element
+        predicate: "depends-on",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should report error for missing target element
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.some((e) => e.message.includes("not found"))).toBe(true);
+    });
+
+    it("should skip validation when both endpoints are outside the filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      // Only load motivation layer
+      model.loadedLayerFilter = ["motivation"];
+
+      // Add business layer but NOT in filter
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "business.process.1",
+          spec_node_id: "business.businessprocess",
+          type: "businessprocess",
+          layer_id: "business",
+          name: "Process 1",
+        }),
+        new Element({
+          id: "business.process.2",
+          spec_node_id: "business.businessprocess",
+          type: "businessprocess",
+          layer_id: "business",
+          name: "Process 2",
+        }),
+      ]);
+
+      model.addLayer(businessLayer);
+
+      // Add relationship in unloaded layer with missing target
+      model.relationships.add({
+        source: "business.process.1",
+        target: "business.process.missing", // This doesn't exist, but we won't check since both endpoints are outside filter
+        predicate: "flows-to",
+        layer: "business",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should skip validation since both endpoints are outside filter
+      expect(result.errors.filter((e) => e.message.includes("not found"))).toHaveLength(0);
+    });
+
+    it("should validate source in filter but target outside filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      // Only load motivation layer
+      model.loadedLayerFilter = ["motivation"];
+
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 1",
+        }),
+      ]);
+
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "business-process-1",
+          spec_node_id: "business.businessprocess",
+          type: "businessprocess",
+          layer_id: "business",
+          name: "Process 1",
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+      model.addLayer(businessLayer);
+
+      // Relationship: source in filter (motivation), target outside filter (business exists but in unloaded layer)
+      model.relationships.add({
+        source: "motivation-goal-1",
+        target: "business-process-1",
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should skip full schema validation since target is outside filter
+      // but should NOT report missing target error (since it exists)
+      expect(result.errors.filter((e) => e.message.includes("target") && e.message.includes("not found"))).toHaveLength(0);
+    });
+
+    it("should validate target in filter but source outside filter", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+      // Only load business layer
+      model.loadedLayerFilter = ["business"];
+
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 1",
+        }),
+      ]);
+
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "business-process-1",
+          spec_node_id: "business.businessprocess",
+          type: "businessprocess",
+          layer_id: "business",
+          name: "Process 1",
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+      model.addLayer(businessLayer);
+
+      // Relationship: source outside filter (motivation), target in filter (business)
+      model.relationships.add({
+        source: "motivation-goal-1",
+        target: "business-process-1",
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should skip full schema validation since source is outside filter
+      // but should validate that target exists in loaded layer
+      expect(result.errors.filter((e) => e.message.includes("source") && e.message.includes("not found"))).toHaveLength(0);
+      expect(result.errors.filter((e) => e.message.includes("target") && e.message.includes("not found"))).toHaveLength(0);
+    });
+
+  });
 });

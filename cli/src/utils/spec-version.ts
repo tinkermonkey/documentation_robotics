@@ -19,7 +19,7 @@ const CLI_VERSION = "0.1.12";
  * This should match the version in ../../../spec/VERSION
  * Updated during build process
  */
-const BUNDLED_SPEC_VERSION = "0.9.0";
+const BUNDLED_SPEC_VERSION = "0.10.0";
 
 /**
  * Get the CLI version

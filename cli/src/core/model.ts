@@ -125,6 +125,7 @@ export class Model {
   layers: Map<string, Layer>;
   relationships: Relationships;
   lazyLoad: boolean;
+  loadedLayerFilter?: string[];
   private loadedLayers: Set<string>;
   private virtualProjectionEngine?: VirtualProjectionEngine;
   /** ID of the currently active changeset, or null if none is active. Set during load(). */
@@ -139,6 +140,7 @@ export class Model {
     this.layers = new Map();
     this.relationships = new Relationships();
     this.lazyLoad = options.lazyLoad ?? false;
+    this.loadedLayerFilter = options.layers;
     this.loadedLayers = new Set();
   }
 
