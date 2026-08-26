@@ -9,7 +9,7 @@
 1. **CLI Tool (`cli/`)** - TypeScript implementation for managing architecture models
 2. **Metadata Model Specification** - Formal documentation defining the 13-layer model
 
-**Current Versions:** CLI v0.1.12, Spec v0.9.0
+**Current Versions:** CLI v0.1.13, Spec v0.9.0
 
 ## Repository Structure
 
@@ -193,8 +193,7 @@ Federated architecture model spanning 13 interconnected layers:
   - Layers: `documentation-robotics/model/{layer-number}_{layer-name}/`
 - **Changesets** in `documentation-robotics/changesets/` directory
   - Each changeset: `{changeset-id}/metadata.yaml` and `changes.yaml`
-  - Migration: Old `.dr/changesets/` auto-migrates to new location on first use
-  - Backup: `.dr.backup/changesets/` created during migration for rollback
+- **Spec-version model migrations** (e.g. layer renumbering) are handled by `dr upgrade`, driven by `cli/src/core/migration-registry.ts` — see `MigrationRegistry` for the version-to-version migration path and `cli/src/commands/upgrade.ts` for the CLI flow
 
 ## Common Pitfalls
 
