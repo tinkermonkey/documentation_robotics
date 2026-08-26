@@ -105,24 +105,34 @@ describe("Default Read-Safe Permissions", () => {
       expect(typeof result).toBe("string");
     });
 
-    it("should return comma-separated tool names", () => {
+    it("should return comma-separated tool specifications with scopes", () => {
       const result = formatForClaudeCode();
-      const toolNames = result.split(",");
-      expect(toolNames.length).toBeGreaterThan(0);
-      toolNames.forEach((name) => {
-        expect(name).toBeDefined();
-        expect(name.length).toBeGreaterThan(0);
+      const toolSpecs = result.split(",");
+      expect(toolSpecs.length).toBeGreaterThan(0);
+      toolSpecs.forEach((spec) => {
+        expect(spec).toBeDefined();
+        expect(spec.length).toBeGreaterThan(0);
       });
     });
 
-    it("should include Bash tool", () => {
+    it("should include Bash tool with dr scope", () => {
       const result = formatForClaudeCode();
-      expect(result).toContain("Bash");
+      expect(result).toContain("Bash(dr *");
     });
 
-    it("should include Read tool", () => {
+    it("should include Read tool with scopes", () => {
       const result = formatForClaudeCode();
-      expect(result).toContain("Read");
+      expect(result).toContain("Read(");
+    });
+
+    it("should include documentation-robotics scope", () => {
+      const result = formatForClaudeCode();
+      expect(result).toContain("Read(documentation-robotics)");
+    });
+
+    it("should include .dr scope", () => {
+      const result = formatForClaudeCode();
+      expect(result).toContain("Read(.dr)");
     });
 
     it("should not have trailing or leading commas", () => {
@@ -130,11 +140,10 @@ describe("Default Read-Safe Permissions", () => {
       expect(result).not.toMatch(/^,|,$/);
     });
 
-    it("should have unique tool names (no duplicates)", () => {
+    it("should have one entry per permission (no deduplication)", () => {
       const result = formatForClaudeCode();
-      const toolNames = result.split(",");
-      const uniqueNames = new Set(toolNames);
-      expect(uniqueNames.size).toBe(toolNames.length);
+      const specs = result.split(",");
+      expect(specs.length).toBe(DEFAULT_READ_SAFE_PERMISSIONS.length);
     });
   });
 
@@ -234,6 +243,7 @@ describe("Default Read-Safe Permissions", () => {
         (p) => p.name === "Read" && p.description.includes("documentation-robotics")
       );
       expect(docRoboticsRead).toBeDefined();
+      expect(docRoboticsRead?.scope).toBe("documentation-robotics");
       expect(docRoboticsRead?.allowsWrite).toBe(false);
     });
 

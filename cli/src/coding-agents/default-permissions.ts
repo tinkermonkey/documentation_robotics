@@ -13,7 +13,7 @@
  * The read-safe allowlist covers exactly four capabilities:
  * 1. Running the `dr` CLI
  * 2. Reading the codebase
- * 3. Reading the `documentation-robotics/` folder (.dr/)
+ * 3. Reading the `documentation-robotics/` folder
  * 4. Reading the `.dr/` folder
  */
 
@@ -45,6 +45,7 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: ToolPermission[] = [
   {
     name: "Bash",
     description: "Execute the dr CLI tool for model queries and operations",
+    scope: "dr *",
     allowsWrite: false,
   },
   {
@@ -55,8 +56,8 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: ToolPermission[] = [
   },
   {
     name: "Read",
-    description: "Read from the documentation-robotics model folder (.dr/)",
-    scope: ".dr",
+    description: "Read from the documentation-robotics model folder",
+    scope: "documentation-robotics",
     allowsWrite: false,
   },
   {
@@ -70,15 +71,21 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: ToolPermission[] = [
 /**
  * Convert read-safe permissions to Claude Code CLI format
  *
- * Claude Code uses the --allowedTools flag with a comma-separated list of tool names.
- * This function formats the permission list as expected by Claude Code's --allowedTools parameter.
+ * Claude Code uses the --allowedTools flag with scoped tool permissions.
+ * This function formats the permission list as expected by Claude Code's --allowedTools parameter,
+ * including scope constraints for each tool (e.g., "Bash(dr *),Read(.),Read(documentation-robotics)").
  *
  * @returns String formatted for Claude Code --allowedTools flag
  */
 export function formatForClaudeCode(): string {
-  // Extract unique tool names and format as comma-separated list
-  const toolNames = Array.from(new Set(DEFAULT_READ_SAFE_PERMISSIONS.map((p) => p.name)));
-  return toolNames.join(",");
+  // Format each permission as "ToolName" or "ToolName(scope)" with scope constraints
+  const formatted = DEFAULT_READ_SAFE_PERMISSIONS.map((p) => {
+    if (p.scope) {
+      return `${p.name}(${p.scope})`;
+    }
+    return p.name;
+  });
+  return formatted.join(",");
 }
 
 /**
