@@ -960,43 +960,5 @@ describe("RelationshipValidator", () => {
       expect(result.errors.some((e) => e.message.includes("not found"))).toBe(true);
     });
 
-    it("should report genuinely missing cross-layer targets under --layers filter", async () => {
-      const validator = new RelationshipValidator();
-      await validator.initialize();
-
-      const model = createTestModel();
-      // Only load motivation layer
-      model.loadedLayerFilter = ["motivation"];
-
-      const layer = new Layer("motivation", [
-        new Element({
-          id: "motivation.goal.cust-sat",
-          spec_node_id: "motivation.goal",
-          type: "goal",
-          layer_id: "motivation",
-          name: "Customer Satisfaction",
-        }),
-      ]);
-
-      model.addLayer(layer);
-
-      // Add cross-layer relationship pointing to non-existent business element
-      // Even though the business layer is outside the filter, the genuinely
-      // missing target should still be reported as an error
-      model.relationships.add({
-        source: "motivation.goal.cust-sat",
-        target: "business.process.nonexistent", // This target doesn't exist anywhere
-        predicate: "enables",
-        layer: "motivation",
-      });
-
-      const result = await validator.validateModel(model);
-
-      // Should report error for missing target element, even under --layers filter
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) =>
-        e.message.includes("not found") && e.message.includes("business.process.nonexistent")
-      )).toBe(true);
-    });
   });
 });

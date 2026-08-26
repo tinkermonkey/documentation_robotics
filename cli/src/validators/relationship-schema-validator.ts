@@ -210,31 +210,26 @@ export class RelationshipValidator {
   ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
     const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
 
-    // When --layers filter is active, only skip validation if BOTH endpoints are
-    // definitely outside the filter. For any other case (unparseable IDs, mixed
-    // in/out-of-filter, or one/both in filter), proceed to validation where proper
-    // error handling will occur. This ensures:
-    // 1. Unparseable element IDs don't silently bypass validation
-    // 2. Genuinely missing cross-layer targets produce errors even under filtering
+    // Check if relationship crosses layer boundary when --layers filter is active
     if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
       const sourceLayer = this.extractLayerFromElementId(relationship.source);
       const targetLayer = this.extractLayerFromElementId(relationship.target);
 
-      // Only skip if BOTH layers can be extracted AND both are outside the filter
-      // This preserves validation for:
-      // - Unparseable IDs (where sourceLayer or targetLayer is null)
-      // - Cross-layer relationships with one endpoint in filter
-      // - Any case where we need proper error reporting
-      if (sourceLayer !== null && targetLayer !== null) {
-        const bothOutsideFilter =
-          !model.loadedLayerFilter.includes(sourceLayer) &&
-          !model.loadedLayerFilter.includes(targetLayer);
+      // If we can parse layers and either endpoint is outside the filter,
+      // skip validation for this relationship (design decision: we can't validate
+      // cross-layer references to unloaded layers since those layers aren't in memory)
+      if (sourceLayer && targetLayer) {
+        const bothInFilter =
+          model.loadedLayerFilter.includes(sourceLayer) &&
+          model.loadedLayerFilter.includes(targetLayer);
 
-        if (bothOutsideFilter) {
-          // Both endpoints are definitely outside the filter; skip validation
+        if (!bothInFilter) {
+          // One or both endpoints are outside the filter; skip validation
           return errors;
         }
       }
+      // If we can't parse layers (unparseable element IDs), proceed to validation
+      // where findElementInModel will fail with a proper error message
     }
 
     // Find source and destination elements
