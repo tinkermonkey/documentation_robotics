@@ -127,3 +127,19 @@ export function validateReadSafeConstraints(): void {
     );
   }
 }
+
+/**
+ * Convert read-safe permissions to GitHub Copilot CLI format
+ *
+ * GitHub Copilot CLI may support a --allowedTools flag (or equivalent) for granular permission control.
+ * This function formats the permission list similarly to Claude Code for potential future Copilot versions
+ * that support granular scoped permissions. If the installed Copilot version doesn't support this flag,
+ * the caller should gracefully degrade (e.g., launch without the flag, with a warning).
+ *
+ * Format: "Bash(dr *),Read(.),Read(documentation-robotics),Read(.dr)"
+ *
+ * @returns String formatted for Copilot --allowedTools flag (if supported)
+ */
+export function formatForCopilot(): string {
+  return formatForClaudeCode();
+}

@@ -26,7 +26,7 @@ import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
-import { formatForClaudeCode } from "../coding-agents/default-permissions.js";
+import { formatForClaudeCode, formatForCopilot } from "../coding-agents/default-permissions.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -2053,6 +2053,71 @@ export class VisualizationServer {
   }
 
   /**
+   * Add permission flags to Copilot command based on withDanger setting
+   * Applies read-safe permissions when withDanger is false, with graceful degradation
+   * if the installed Copilot CLI doesn't support granular permission flags.
+   * @param cmd The command array to modify (will be mutated)
+   * @param variant The Copilot variant for error messages (e.g., "gh copilot" or "copilot")
+   */
+  private addCopilotPermissionFlags(cmd: string[], variant: string): void {
+    if (this.withDanger) {
+      // Danger mode: try to use --allow-all-tools flag
+      try {
+        const helpResult = spawnSync(
+          cmd[0],
+          cmd[0] === "gh" ? ["copilot", "--help"] : ["--help"],
+          { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
+        );
+        if (
+          helpResult.stdout?.includes("--allow-all-tools") ||
+          helpResult.stdout?.includes("allow-all-tools")
+        ) {
+          cmd.push("--allow-all-tools");
+        } else {
+          console.warn(
+            `Note: --allow-all-tools flag not supported by your ${variant} version. ` +
+              `Launching without full permission grant.`
+          );
+        }
+      } catch (error) {
+        // If check fails, try adding the flag anyway
+        cmd.push("--allow-all-tools");
+      }
+    } else {
+      // Default mode: apply read-safe permissions if supported
+      try {
+        const helpResult = spawnSync(
+          cmd[0],
+          cmd[0] === "gh" ? ["copilot", "--help"] : ["--help"],
+          { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
+        );
+
+        const helpText = helpResult.stdout || "";
+        const supportsAllowedTools =
+          helpText.includes("--allowedTools") ||
+          helpText.includes("allowedTools") ||
+          helpText.includes("--allowed-tools") ||
+          helpText.includes("allowed-tools");
+
+        if (supportsAllowedTools) {
+          cmd.push("--allowedTools", formatForCopilot());
+        } else {
+          // Graceful degradation: use default permissions without flag
+          console.warn(
+            `Note: Your ${variant} version doesn't support granular permissions. ` +
+              `Consider upgrading @github/copilot for permission controls.`
+          );
+        }
+      } catch (error) {
+        // On check failure, gracefully fall back to no-permission default
+        console.warn(
+          `Note: Could not verify ${variant} permission support. Launching with default permissions.`
+        );
+      }
+    }
+  }
+
+  /**
    * Launch Claude Code CLI with dr-architect agent and stream responses
    */
   private async launchClaudeCodeChat(
@@ -2350,22 +2415,12 @@ export class VisualizationServer {
 
         if (ghResult.status === 0) {
           cmd = ["gh", "copilot", "explain"];
-
-          // Add allow-all-tools flag if withDanger is enabled
-          if (this.withDanger) {
-            cmd.push("--allow-all-tools");
-          }
-
+          this.addCopilotPermissionFlags(cmd, "gh copilot");
           cmd.push(message);
         } else {
           // Try standalone copilot
           cmd = ["copilot", "explain"];
-
-          // Add allow-all-tools flag if withDanger is enabled
-          if (this.withDanger) {
-            cmd.push("--allow-all-tools");
-          }
-
+          this.addCopilotPermissionFlags(cmd, "copilot");
           cmd.push(message);
         }
       }

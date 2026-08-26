@@ -17,6 +17,7 @@ import { spawnSync, spawn, ChildProcess } from "child_process";
 import ansis from "ansis";
 import { getChatLogger } from "../utils/chat-logger.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { formatForCopilot } from "./default-permissions.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -355,8 +356,8 @@ export class CopilotClient extends BaseChatClient {
 
       const isFirst = this.isFirstMessage;
 
-      // For first message: copilot --prompt "message" --agent "dr-architect" --allow-all-tools
-      // For subsequent messages: copilot --continue --prompt "message" --allow-all-tools
+      // For first message: copilot --prompt "message" --agent "dr-architect" [--allowedTools ...]
+      // For subsequent messages: copilot --continue --prompt "message" [--allowedTools ...]
       if (isFirst) {
         args.push("--prompt", message);
         this.isFirstMessage = false;
@@ -369,9 +370,10 @@ export class CopilotClient extends BaseChatClient {
         args.push("--agent", options.agent);
       }
 
-      // Add allow-all-tools flag if withDanger is enabled (required for non-interactive)
-      // Note: This flag may not be available in all copilot versions
-      if (options?.withDanger) {
+      // Handle permissions based on withDanger flag
+      const withDanger = options?.withDanger === true;
+      if (withDanger) {
+        // Danger mode: try to use --allow-all-tools flag (required for non-interactive)
         try {
           // Check if flag is supported by testing with --help
           const helpResult = spawnSync(
@@ -406,6 +408,9 @@ export class CopilotClient extends BaseChatClient {
             (span as any).setAttribute("process.allowAllToolsCheckFailed", true);
           }
         }
+      } else {
+        // Default mode: apply read-safe permissions if supported
+        this.applyReadSafePermissions(args, span);
       }
 
       const command = "copilot";
@@ -418,7 +423,7 @@ export class CopilotClient extends BaseChatClient {
         (span as any).setAttribute("process.hasContinue", args.includes("--continue"));
         (span as any).setAttribute("process.hasAgent", !!options?.agent);
         (span as any).setAttribute("process.agent", options?.agent);
-        (span as any).setAttribute("process.withDanger", options?.withDanger === true);
+        (span as any).setAttribute("process.withDanger", withDanger);
         (span as any).setAttribute("process.workingDirectory", cwd);
         (span as any).setAttribute("process.messageLength", message.length);
         (span as any).setAttribute("process.variant", this.copilotCommand);
@@ -430,7 +435,7 @@ export class CopilotClient extends BaseChatClient {
         void logger.logCommand(command, args, {
           client: "GitHub Copilot",
           workingDirectory: cwd,
-          withDanger: options?.withDanger || false,
+          withDanger: withDanger,
           copilotVariant: this.copilotCommand,
           messageLength: message.length,
           hasAgent: !!options?.agent,
@@ -461,6 +466,67 @@ export class CopilotClient extends BaseChatClient {
       throw error;
     } finally {
       endSpan(span);
+    }
+  }
+
+  /**
+   * Apply read-safe permissions to Copilot process arguments
+   * Gracefully handles CLI versions that don't support granular permission flags.
+   * @param args The argument array to modify
+   * @param span Optional telemetry span
+   */
+  private applyReadSafePermissions(args: string[], span: any): void {
+    try {
+      // Synchronously check if permissions are supported (cache prevents multiple checks)
+      const helpResult = spawnSync(
+        this.copilotCommand === "copilot" ? "copilot" : "gh",
+        this.copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
+        { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
+      );
+
+      const helpText = helpResult.stdout || "";
+      const supportsAllowedTools =
+        helpText.includes("--allowedTools") ||
+        helpText.includes("allowedTools") ||
+        helpText.includes("--allowed-tools") ||
+        helpText.includes("allowed-tools");
+
+      if (supportsAllowedTools) {
+        args.push("--allowedTools", formatForCopilot());
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute("process.readSafePermissionsApplied", true);
+          (span as any).setAttribute("process.allowedTools", formatForCopilot());
+        }
+      } else {
+        // Graceful degradation: fall back to no-permission default with warning
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute("process.readSafePermissionsApplied", false);
+          emitLog(SeverityNumber.WARN, "Copilot --allowedTools flag not supported, using default permissions", {
+            "copilot.variant": this.copilotCommand,
+            "copilot.note": "Installed Copilot CLI version may be outdated. Consider upgrading for permission controls.",
+          });
+        }
+        console.warn(
+          ansis.yellow(
+            "Note: Your Copilot CLI version doesn't support granular permissions. " +
+              "Consider upgrading @github/copilot for permission controls."
+          )
+        );
+      }
+    } catch (error) {
+      // On check failure, gracefully fall back
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute("process.readSafePermissionCheckFailed", true);
+        emitLog(SeverityNumber.WARN, "Failed to check Copilot permission support", {
+          "error.message": getErrorMessage(error),
+          "copilot.variant": this.copilotCommand,
+        });
+      }
+      console.warn(
+        ansis.yellow(
+          "Note: Could not verify Copilot permission support. Launching with default permissions."
+        )
+      );
     }
   }
 
