@@ -7,20 +7,21 @@ A command-line tool for managing comprehensive architecture models that span fro
 
 ## What is Documentation Robotics?
 
-Documentation Robotics helps you build and maintain a **federated architecture model** across 12 interconnected layers:
+Documentation Robotics helps you build and maintain a **federated architecture model** across 13 interconnected layers:
 
 1. **Motivation** - Goals, requirements, stakeholders
 2. **Business** - Business processes and services
-3. **Security** - Authentication, authorization, threats
-4. **Application** - Application services and components
-5. **Technology** - Infrastructure and platforms
-6. **API** - REST APIs and operations
-7. **Data Model** - Entities and relationships
-8. **Data Store** - Database schemas
-9. **UX** - User interface components
-10. **Navigation** - Application routing
-11. **APM** - Observability and monitoring
-12. **Testing** - Test strategies and cases
+3. **Product** - Personas, capabilities, features, workflows, milestones
+4. **Security** - Authentication, authorization, threats
+5. **Application** - Application services and components
+6. **Technology** - Infrastructure and platforms
+7. **API** - REST APIs and operations
+8. **Data Model** - Entities and relationships
+9. **Data Store** - Database schemas
+10. **UX** - User interface components
+11. **Navigation** - Application routing
+12. **APM** - Observability and monitoring
+13. **Testing** - Test strategies and cases
 
 **Key Benefits:**
 
@@ -326,7 +327,7 @@ your-project/
 │       └── ...
 ```
 
-**Legacy models**: Old projects using `.dr/` directory will auto-migrate changesets to `documentation-robotics/changesets/` on first use.
+**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths.
 
 ### Specification Reference
 
@@ -336,7 +337,7 @@ When you run `dr init`, the CLI installs a complete copy of the Documentation Ro
 your-project/
 ├── .dr/
 │   ├── spec/
-│   │   ├── layers/              # 12 layer definitions
+│   │   ├── layers/              # 13 layer definitions
 │   │   └── schemas/
 │   │       ├── base/            # 8 base schemas
 │   │       ├── nodes/           # 354 node type schemas
@@ -425,7 +426,7 @@ my-viewer/
 
 ## Generating Layer Reports
 
-To generate comprehensive markdown reports for all 12 architecture layers:
+To generate comprehensive markdown reports for all 13 architecture layers:
 
 ```bash
 npm run generate:layer-reports
@@ -433,9 +434,9 @@ npm run generate:layer-reports
 
 This command:
 
-- Loads 354 node schemas, 252 relationship schemas, 12 layer definitions, and 47 predicates
+- Loads 354 node schemas, 252 relationship schemas, 13 layer definitions, and 47 predicates
 - Computes per-layer statistics and relationship classifications
-- Generates 12 markdown reports in `spec/browser/` with Mermaid diagrams
+- Generates 13 markdown reports in `spec/browser/` with Mermaid diagrams
 - Generates `spec/browser/README.md` with overview and dependency matrix
 
 **Output Location**: `spec/browser/{NN}-{layer-name}-layer-report.md`
@@ -582,7 +583,7 @@ dr relationship --help       # Relationship commands
 
 ### Documentation
 
-- 📚 [Full Specification](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec) - The 12-layer model in detail
+- 📚 [Full Specification](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec) - The 13-layer model in detail
 - 🛠️ [Contributing Guide](./CONTRIBUTING.md) - For developers working on the CLI
 - 📦 [npm Package](https://www.npmjs.com/package/@documentation-robotics/cli)
 
@@ -723,7 +724,7 @@ If not installed, see instructions above in the "AI Chat Setup" section.
 ## What's Next?
 
 - ⭐ **Star the project** on [GitHub](https://github.com/tinkermonkey/documentation_robotics)
-- 📖 **Read the spec** to understand the 12-layer model
+- 📖 **Read the spec** to understand the 13-layer model
 - 🎨 **Try visualization** with `dr visualize`
 - 🤖 **Chat with AI** about your architecture (Claude Code or GitHub Copilot)
 - 🚀 **Export to standards** (ArchiMate, OpenAPI)

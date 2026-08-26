@@ -3,7 +3,7 @@
 # Skips the download if the correct version is already present.
 set -euo pipefail
 
-VIEWER_VERSION="0.4.0"
+VIEWER_VERSION="0.6.1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VIEWER_DIR="$SCRIPT_DIR/../src/viewer"
 VERSION_FILE="$VIEWER_DIR/version.json"

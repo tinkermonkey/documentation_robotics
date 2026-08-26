@@ -1,7 +1,8 @@
 /**
  * Visualization Server Entry Point
- * This is a Bun-specific entry point for running the visualization server
- * It receives configuration via environment variables and starts the server
+ * This is spawned as a subprocess by `dr visualize` (see cli/src/commands/visualize.ts),
+ * using whichever runtime (Node.js or Bun) is already running the parent CLI process.
+ * It receives configuration via environment variables and starts the server.
  */
 
 import { Model } from "./core/model.js";

@@ -11,15 +11,15 @@ import { join } from "path";
 describe("dr validate --schemas", () => {
   const cliPath = join(import.meta.dir, "../../dist/cli.js");
 
-  it("should report all 14 bundled schemas as synchronized with spec/dist/", () => {
+  it("should report all 15 bundled schemas as synchronized with spec/dist/", () => {
     const output = execSync(`node ${cliPath} validate --schemas`, {
       encoding: "utf-8",
     });
 
     expect(output).toContain("All schemas synchronized");
-    // 14 file checks + 1 summary line = at least 15 ✓ marks
+    // 15 file checks + 1 summary line = at least 16 ✓ marks
     const checks = (output.match(/✓/g) || []).length;
-    expect(checks).toBeGreaterThanOrEqual(15);
+    expect(checks).toBeGreaterThanOrEqual(16);
   });
 
   it("should pass without errors (exit code 0)", () => {

@@ -251,6 +251,83 @@ describe("ReferenceRegistry", () => {
 
       expect(registry.getReferencesFrom("01-goal-test")).toEqual([]);
     });
+
+    // Regression coverage for a bug where attribute NAME alone (a KNOWN_REF_PROPERTIES match,
+    // or the *Ref/*Reference naming convention) was treated as sufficient evidence that the
+    // attribute's VALUE was a DR element reference — with no check on the value's shape. Real
+    // collision: api.link.operationRef is a schema-declared OpenAPI URL fragment
+    // ("#/paths/~1users/get"), not an element id, yet matched the "*Ref" convention.
+    describe("attribute-name heuristic requires the value to look like an element reference", () => {
+      it("registers a *Ref-named attribute whose value looks like a real element id", () => {
+        const elem = {
+          id: "api.endpoint.get-users",
+          type: "endpoint",
+          name: "Get Users",
+          attributes: {
+            applicationServiceRef: "business.service.user-management",
+          },
+        };
+
+        registry.registerElement(elem);
+
+        const refs = registry.getReferencesFrom("api.endpoint.get-users");
+        expect(refs).toHaveLength(1);
+        expect(refs[0]).toMatchObject({
+          target: "business.service.user-management",
+          type: "applicationServiceRef",
+        });
+      });
+
+      it("does NOT register a *Ref-named attribute whose value is a URL fragment, not an element id", () => {
+        // api.link.operationRef's real schema: "A relative or absolute URL reference to an
+        // operation" — mutually exclusive with operationId, never a DR element reference.
+        const elem = {
+          id: "api.link.example",
+          type: "link",
+          name: "Example Link",
+          attributes: {
+            operationRef: "#/paths/~1users/get",
+          },
+        };
+
+        registry.registerElement(elem);
+
+        expect(registry.getReferencesFrom("api.link.example")).toEqual([]);
+      });
+
+      it("also gates the top-level KNOWN_REF_PROPERTIES match on value shape", () => {
+        const elem = {
+          id: "business.process.example",
+          type: "process",
+          name: "Example",
+          attributes: {
+            // "uses" is a KNOWN_REF_PROPERTIES entry; a URL-shaped value is not a reference.
+            uses: "https://example.com/not-an-element",
+          },
+        };
+
+        registry.registerElement(elem);
+
+        expect(registry.getReferencesFrom("business.process.example")).toEqual([]);
+      });
+
+      it("still registers a UUID-shaped *Ref value", () => {
+        const elem = {
+          id: "api.endpoint.get-orders",
+          type: "endpoint",
+          name: "Get Orders",
+          attributes: {
+            schemaRef: "550e8400-e29b-41d4-a716-446655440000",
+          },
+        };
+
+        registry.registerElement(elem);
+
+        const refs = registry.getReferencesFrom("api.endpoint.get-orders");
+        expect(refs).toHaveLength(1);
+        expect(refs[0].target).toBe("550e8400-e29b-41d4-a716-446655440000");
+      });
+    });
   });
 
   describe("findBrokenReferences", () => {

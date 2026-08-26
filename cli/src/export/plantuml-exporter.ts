@@ -3,6 +3,7 @@ import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { getNodeType, type SpecNodeId } from "../generated/node-types.js";
 
 /**
  * PlantUML element entry for diagram generation
@@ -17,7 +18,7 @@ interface PlantUMLElementEntry {
 
 /**
  * PlantUML Exporter - generates PlantUML syntax for diagram visualization
- * Supports all 12 layers
+ * Supports all 13 layers
  *
  * Exports the model as PlantUML component diagram syntax with layers,
  * elements, relationships, and optional source references.
@@ -179,16 +180,27 @@ export class PlantUMLExporter implements Exporter {
   private extractSourceReference(node: any): string | null {
     if (!node) return null;
 
-    // Try node.source_reference first (primary field on GraphNode)
+    // Try node.source_reference first (primary, structurally-typed field on GraphNode)
     let sourceRef = node.source_reference;
 
-    // Fall back to x-source-reference in properties
-    if (!sourceRef) {
+    // Legacy fallback for pre-migration data that stored provenance directly under
+    // properties["x-source-reference"] / properties.source.reference instead of the
+    // first-class source_reference field. Only trust these fallbacks when the node's OWN
+    // schema does NOT declare "x-source-reference"/"source" as a real attribute — 4 node
+    // types (data-store.accesspattern/collection/field/storedlogic) declare
+    // "x-source-reference", and 37 more declare "source", as genuine domain string
+    // attributes (e.g. security.accesscondition.source); for those, node.properties[...]
+    // holds real domain data, not source-code provenance, and reading it here would
+    // silently mislabel it as "Source:"/"Repo:" in the generated diagram.
+    const nodeType = node.spec_node_id ? getNodeType(node.spec_node_id as SpecNodeId) : undefined;
+    const declaresAttribute = (key: string): boolean =>
+      !!nodeType && (nodeType.requiredAttributes.includes(key) || nodeType.optionalAttributes.includes(key));
+
+    if (!sourceRef && !declaresAttribute("x-source-reference")) {
       sourceRef = node.properties?.["x-source-reference"];
     }
 
-    // Fall back to nested source.reference format
-    if (!sourceRef && node.properties?.source?.reference) {
+    if (!sourceRef && !declaresAttribute("source") && node.properties?.source?.reference) {
       sourceRef = node.properties.source.reference;
     }
 

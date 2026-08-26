@@ -191,6 +191,208 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.8.4 to v0.9.0: Product Layer Introduction
+    this.migrations.push({
+      fromVersion: "0.8.4",
+      toVersion: "0.9.0",
+      description: "Product Layer Introduction (Spec v0.9.0)",
+      apply: async (model: Model) => {
+        const fs = await import("fs/promises");
+        const pathModule = await import("path");
+
+        const modelDir = `${model.rootPath}/documentation-robotics/model`;
+        let filesModified = 0;
+
+        try {
+          // Verify model directory exists
+          await fs.access(modelDir);
+        } catch (error) {
+          const err = error as { code?: string };
+          // ENOENT means the directory doesn't exist - nothing to migrate
+          if (err.code === "ENOENT") {
+            return {
+              migrationsApplied: 1,
+              filesModified: 0,
+              description:
+                "Spec version updated to 0.9.0 (Product layer introduced; no model directories to migrate)",
+            };
+          }
+          // Re-throw other errors (e.g., EACCES for permission denied)
+          throw error;
+        }
+
+        // Rename existing layer directories: shift from 03-12 to 04-13
+        // Must do this in reverse order (12→13, 11→12, ..., 03→04) to avoid conflicts
+        const renameMap = [
+          ["12_testing", "13_testing"],
+          ["11_apm", "12_apm"],
+          ["10_navigation", "11_navigation"],
+          ["09_ux", "10_ux"],
+          ["08_data-store", "09_data-store"],
+          ["07_data-model", "08_data-model"],
+          ["06_api", "07_api"],
+          ["05_technology", "06_technology"],
+          ["04_application", "05_application"],
+          ["03_security", "04_security"],
+        ];
+
+        const renameErrors: string[] = [];
+
+        for (const [oldName, newName] of renameMap) {
+          const oldPath = pathModule.join(modelDir, oldName);
+          const newPath = pathModule.join(modelDir, newName);
+
+          try {
+            await fs.rename(oldPath, newPath);
+            filesModified++;
+          } catch (error) {
+            const err = error as { code?: string };
+            // ENOENT is expected when a directory hasn't been created yet
+            if (err.code === "ENOENT") {
+              continue;
+            }
+            // Track non-ENOENT errors to report them in the result
+            renameErrors.push(
+              `Failed to rename ${oldName} to ${newName}: ${getErrorMessage(error)}`
+            );
+          }
+        }
+
+        // If there were any rename failures, include them in the error field
+        if (renameErrors.length > 0) {
+          return {
+            migrationsApplied: 1,
+            filesModified,
+            description:
+              "Spec version updated to 0.9.0 (Product layer introduced at layer 3; Security through Testing shifted from layers 3–12 to 4–13)",
+            error: renameErrors.join("; "),
+          };
+        }
+
+        // Create new product layer directory (it will be empty for now)
+        // recursive: true handles EEXIST, so no catch needed
+        const productPath = pathModule.join(modelDir, "03_product");
+        await fs.mkdir(productPath, { recursive: true });
+
+        return {
+          migrationsApplied: 1,
+          filesModified,
+          description:
+            "Spec version updated to 0.9.0 (Product layer introduced at layer 3; Security through Testing shifted from layers 3–12 to 4–13)",
+        };
+      },
+    });
+
+    // Migration from v0.9.0 to v0.10.0: Data Model objectschema.required type change
+    this.migrations.push({
+      fromVersion: "0.9.0",
+      toVersion: "0.10.0",
+      description: "Data Model objectschema.required type change (Spec v0.10.0)",
+      apply: async (model: Model) => {
+        const fs = await import("fs/promises");
+        const pathModule = await import("path");
+        const YAML = await import("yaml");
+
+        const modelDir = `${model.rootPath}/documentation-robotics/model`;
+        const dataModelDir = pathModule.join(modelDir, "08_data-model");
+        let filesModified = 0;
+
+        try {
+          // Verify data model directory exists
+          await fs.access(dataModelDir);
+        } catch (error) {
+          const err = error as { code?: string };
+          // ENOENT means the directory doesn't exist - nothing to migrate
+          if (err.code === "ENOENT") {
+            return {
+              migrationsApplied: 1,
+              filesModified: 0,
+              description:
+                "Spec version updated to 0.10.0 (objectschema.required type changed from string to array; no model data to migrate)",
+            };
+          }
+          // Re-throw other errors
+          throw error;
+        }
+
+        // Scan all YAML files in the data model directory
+        const files = await fs.readdir(dataModelDir);
+        const migrationErrors: string[] = [];
+
+        for (const file of files) {
+          if (!file.endsWith(".yaml") && !file.endsWith(".yml")) {
+            continue;
+          }
+
+          const filePath = pathModule.join(dataModelDir, file);
+          try {
+            const content = await fs.readFile(filePath, "utf-8");
+            let modified = false;
+            const doc = YAML.parse(content);
+
+            if (!doc || typeof doc !== "object") {
+              continue;
+            }
+
+            // Iterate through all elements in the file
+            for (const [, element] of Object.entries(doc)) {
+              if (
+                !element ||
+                typeof element !== "object" ||
+                (element as Record<string, unknown>).spec_node_id !== "data-model.objectschema"
+              ) {
+                continue;
+              }
+
+              const elem = element as Record<string, unknown>;
+              const attributes = elem.attributes as Record<string, unknown> | undefined;
+
+              if (attributes && typeof attributes === "object") {
+                const required = attributes.required;
+
+                // Check if required field exists and is a string
+                if (required && typeof required === "string") {
+                  // Convert comma-separated string to array
+                  attributes.required = required
+                    .split(",")
+                    .map((item: string) => item.trim())
+                    .filter((item: string) => item.length > 0);
+                  modified = true;
+                }
+              }
+            }
+
+            // Write back if modified
+            if (modified) {
+              await fs.writeFile(filePath, YAML.stringify(doc), "utf-8");
+              filesModified++;
+            }
+          } catch (error) {
+            migrationErrors.push(
+              `Failed to migrate ${file}: ${getErrorMessage(error)}`
+            );
+          }
+        }
+
+        if (migrationErrors.length > 0) {
+          return {
+            migrationsApplied: 1,
+            filesModified,
+            description:
+              "Spec version updated to 0.10.0 (objectschema.required converted from string to array)",
+            error: migrationErrors.join("; "),
+          };
+        }
+
+        return {
+          migrationsApplied: 1,
+          filesModified,
+          description:
+            "Spec version updated to 0.10.0 (objectschema.required converted from string to array)",
+        };
+      },
+    });
   }
 
   /**
@@ -201,9 +403,11 @@ export class MigrationRegistry {
       return "0.7.0";
     }
 
-    // Return the highest toVersion from all migrations
+    // Return the highest toVersion from all migrations using proper version comparison
     const versions = this.migrations.map((m) => m.toVersion);
-    return versions.sort().reverse()[0];
+    return versions.reduce((max, current) => {
+      return this.compareVersions(current, max) > 0 ? current : max;
+    });
   }
 
   /**
@@ -292,8 +496,13 @@ export class MigrationRegistry {
 
           results.totalChanges += result.migrationsApplied;
 
-          // Update model's spec version
-          model.manifest.specVersion = migration.toVersion;
+          // Only update model's spec version if migration succeeded (no error field)
+          if (!result.error) {
+            model.manifest.specVersion = migration.toVersion;
+          } else {
+            // If migration has errors, throw to prevent partial success state
+            throw new Error(result.error);
+          }
         } catch (error) {
           throw new Error(
             `Migration ${migration.fromVersion} → ${migration.toVersion} failed: ${

@@ -210,9 +210,71 @@ export class RelationshipValidator {
   ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
     const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
 
-    // Find source and destination elements
-    const sourceElement = this.findElementInModel(model, relationship.source);
-    const targetElement = this.findElementInModel(model, relationship.target);
+    // Variables to cache found elements and avoid redundant lookups
+    let sourceElement: any = null;
+    let targetElement: any = null;
+    let bothInFilterAndFound = false;
+
+    // Check if relationship crosses layer boundary when --layers filter is active
+    if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
+      const sourceLayer = this.extractLayerFromElementId(relationship.source);
+      const targetLayer = this.extractLayerFromElementId(relationship.target);
+
+      // If we can parse layers and both endpoints are within the filter, proceed with full validation.
+      // If one or both endpoints are outside the filter, only skip if both endpoints are
+      // in unloaded layers. If either endpoint is in a loaded layer, we must validate it.
+      if (sourceLayer && targetLayer) {
+        const sourceInFilter = model.loadedLayerFilter.includes(sourceLayer);
+        const targetInFilter = model.loadedLayerFilter.includes(targetLayer);
+
+        // Skip only if BOTH endpoints are in unloaded layers
+        if (!sourceInFilter && !targetInFilter) {
+          return errors;
+        }
+
+        // If at least one endpoint is in a loaded layer, check if both elements exist in loaded layers
+        // If one is missing from a loaded layer, report error (genuine break)
+        if (sourceInFilter) {
+          sourceElement = this.findElementInModel(model, relationship.source);
+          if (!sourceElement) {
+            errors.push({
+              layer: relationship.layer,
+              elementId: relationship.source,
+              message: `Relationship source element '${relationship.source}' not found`,
+            });
+            return errors;
+          }
+        }
+
+        if (targetInFilter) {
+          targetElement = this.findElementInModel(model, relationship.target);
+          if (!targetElement) {
+            errors.push({
+              layer: relationship.layer,
+              elementId: relationship.target,
+              message: `Relationship target element '${relationship.target}' not found`,
+            });
+            return errors;
+          }
+        }
+
+        // If one or both endpoints are in unloaded layers, skip full validation
+        if (!sourceInFilter || !targetInFilter) {
+          return errors;
+        }
+
+        // Both endpoints are in loaded layers and we've already found them
+        bothInFilterAndFound = true;
+      }
+      // If we can't parse layers (unparseable element IDs), proceed to validation
+      // where findElementInModel will fail with a proper error message
+    }
+
+    // Find source and destination elements only if we haven't already found them
+    if (!bothInFilterAndFound) {
+      sourceElement = this.findElementInModel(model, relationship.source);
+      targetElement = this.findElementInModel(model, relationship.target);
+    }
 
     if (!sourceElement) {
       errors.push({
@@ -498,6 +560,14 @@ export class RelationshipValidator {
       }
     }
     return null;
+  }
+
+  private extractLayerFromElementId(elementId: string): string | null {
+    const parts = elementId.split(".");
+    if (parts.length < 2) {
+      return null;
+    }
+    return parts[0];
   }
 
 }

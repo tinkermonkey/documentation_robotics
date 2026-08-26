@@ -8,6 +8,7 @@
 export const LAYER_DESCRIPTIONS = {
   motivation: "Goals, requirements, drivers, and strategic outcomes of the architecture.",
   business: "Business processes, functions, roles, and services.",
+  product: "Product features, capabilities, personas, and milestones.",
   security: "Authentication, authorization, security threats, and controls.",
   application: "Application components, services, and interactions.",
   technology: "Infrastructure, platforms, systems, and technology components.",

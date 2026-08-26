@@ -351,7 +351,7 @@ describe("Schema Validator Consistency", () => {
           JSON.stringify({
             type: "object",
             properties: { name: "string", price: "number" },
-            required: "name",
+            required: ["name"],
             minProperties: 1,
             maxProperties: 100,
           }),

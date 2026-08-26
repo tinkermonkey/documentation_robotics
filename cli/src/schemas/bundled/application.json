@@ -1,10 +1,10 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.10.0",
   "layer": {
     "id": "application",
-    "number": 4,
+    "number": 5,
     "name": "Application Layer",
-    "description": "Layer 4: Application Layer",
+    "description": "Layer 5: Application Layer",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -1068,6 +1068,17 @@
       "source_layer": "application",
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.accesses.application.dataobject": {
+      "id": "application.applicationservice.accesses.application.dataobject",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",

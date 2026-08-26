@@ -132,7 +132,9 @@
       "Bash(gh run list:*)",
       "Bash(gh run watch:*)",
       "Bash(npm pkg:*)",
-      "Bash(npx bun test:*)"
+      "Bash(npx bun test:*)",
+      "Bash(do python3 -c \"import json; json.load(open(''$schema''))\")",
+      "Bash(git diff:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -18,7 +18,7 @@ Analyze an existing codebase and automatically generate a Documentation Robotics
 
 ## Two Modes: Recipe vs. Targeted
 
-**Recipe Mode** (default for new/empty models): Extracts all 12 layers in a prescribed bottom-up order with validation checkpoints between each layer. Best for building a complete model from scratch — ensures no layers are skipped and lower layers (infrastructure, data) are populated before higher layers (business, motivation) are inferred.
+**Recipe Mode** (default for new/empty models): Extracts all 13 layers in a prescribed bottom-up order with validation checkpoints between each layer. Best for building a complete model from scratch — ensures no layers are skipped and lower layers (infrastructure, data) are populated before higher layers (business, motivation) are inferred.
 
 **Targeted Mode** (default if `--layers` is specified or model has existing elements): Extracts specific layers without step-by-step checkpoints. Best for focused extraction or incremental additions to an existing model.
 
@@ -59,7 +59,7 @@ I see this is a new model with no existing elements.
 
 I can extract in two ways:
 
-1. Recipe Mode (recommended) — Walks through all 12 layers in the correct
+1. Recipe Mode (recommended) — Walks through all 13 layers in the correct
    architectural order, with checkpoints to review and validate each layer
    before proceeding. Takes longer but produces a complete, well-structured model.
 

@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.10.0",
   "schemas": {
     "spec-node": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -596,6 +596,7 @@
         "optimizes",
         "owns",
         "performs",
+        "precedes",
         "protects",
         "provides",
         "realizes",
@@ -606,6 +607,7 @@
         "requires",
         "resolves-with",
         "satisfies",
+        "scheduled-for",
         "serves",
         "specializes",
         "supports",
@@ -1614,6 +1616,32 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "scheduled-for": {
+      "predicate": "scheduled-for",
+      "inverse": "schedules",
+      "category": "structural",
+      "description": "Element is assigned to a time-bound delivery target",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "precedes": {
+      "predicate": "precedes",
+      "inverse": "follows",
+      "category": "behavioral",
+      "description": "Element comes before another in a temporal sequence",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
         "symmetry": false,
         "reflexivity": false
       }

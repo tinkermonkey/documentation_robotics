@@ -7,6 +7,232 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-08-21
+
+**Specification Support:** v0.9.0 (now formally tagged as `spec-v0.9.0`; CLI content support is unchanged from 0.1.12)
+
+### Changed
+
+- **Bundled viewer bumped to v0.6.1**: `documentation_robotics_viewer` moves `0.6.0` → `0.6.1`,
+  picking up native `heimdall-ui` 0.8.0 edge-hover support and model-graph/node-page fixes. No
+  CLI-side API changes required — the viewer continues to consume the existing `/api/model` and
+  `/api/spec` shapes.
+
+### Testing
+
+- **Added end-to-end coverage for the pre-0.8.2 legacy slug-id migration** in
+  `Model.load()`/`loadLayer()` (`tests/integration/model-legacy-migration.test.ts`). Previously
+  this migration — which rewrites a legacy `id: {layer}.{type}.{slug}` element to a deterministic
+  UUID `id` plus a `path` carrying the old slug, transparently on every load — only had thin,
+  indirect unit coverage (`model-deterministic-uuid.test.ts`) that never actually loaded a
+  legacy-format YAML file through the real `Model.load()` API. The new tests write real pre-0.8.2
+  YAML to disk and verify: the migration fires and produces a stable, deterministic UUID across
+  repeated loads; an already-migrated (UUID id + path) element passes through unchanged; and the
+  migration works for layers beyond `motivation` (verified against `product`, added in spec
+  v0.9.0).
+
+### Documentation
+
+- Corrected `CLAUDE.md` and `README.md`, which both described a `.dr/changesets` →
+  `documentation-robotics/changesets` auto-migration (with `.dr.backup/` rollback) that no longer
+  exists in source — it was removed in an earlier fix and the docs were never updated. Both now
+  point at the actual mechanism for spec-version model migrations: `dr upgrade`, driven by
+  `MigrationRegistry` (`cli/src/core/migration-registry.ts`).
+- Fixed a dangling "see migration guide" reference in `spec/CHANGELOG.md`'s 0.9.0 entry — no such
+  guide exists; the reference now points at `dr upgrade`, which already automates the 13-layer
+  renumbering migration (and has been covered by `migration-registry.test.ts` and
+  `upgrade-command.test.ts` since it shipped).
+
+## [0.1.12] - 2026-08-19
+
+**Specification Support:** v0.9.0
+
+### Fixed
+
+Follow-up audit of the 0.1.11 attribute-collision fix, searching the codebase for other places
+that hand-munge model data using a hardcoded name/naming-convention filter instead of consulting
+the actual schema. Found and fixed three more instances of the same defect class:
+
+- **`__semanticId__` (a third graph-internal bookkeeping key, alongside `__references__`/
+  `__relationships__`) could leak into persisted `attributes`**, reopening the same class of bug
+  0.1.11 fixed. Root cause: `GraphModel.fromElement()` aliased `node.properties` and
+  `node.attributes` to the *same object* whenever attributes were non-empty, so `layer.ts`'s
+  in-place mutation of `properties` (to stash bookkeeping keys with no separate channel on
+  `GraphNode`) silently mutated `attributes` too — and `attributes` is exactly what gets
+  persisted. `model.ts`'s 0.1.11 filter only knew about two of the three keys actually injected,
+  so `__semanticId__` (set on legacy-format elements converted to UUID) passed straight through.
+  Fixed at the source: `properties` is now always an independent copy, so no future bookkeeping
+  key can repeat this leak regardless of whether `model.ts`'s allowlist is kept in sync
+  (`__semanticId__` was also added there, as defense-in-depth only).
+- **`ReferenceRegistry` misread `api.link.operationRef`** (a schema-declared OpenAPI URL
+  fragment, e.g. `"#/paths/~1users/get"`) **as a cross-element reference**, feeding `dr trace`
+  and `dr delete`'s dependency graph. It matched a hardcoded reference-property list and the
+  `*Ref`/`*Reference` naming convention purely by coincidence — no check confirmed the value
+  actually looked like a DR element id. Fixed by requiring the value to match the shape of a
+  real element reference (UUID or a `{layer}.{type}.{slug}` id with a known layer prefix) before
+  registering it, without weakening the existing broken-reference detection (a value that looks
+  like a reference but doesn't resolve is still flagged).
+- **`dr export plantuml --include-sources` could mislabel real domain data as source-code
+  provenance.** `extractSourceReference()`'s legacy fallback read
+  `properties["x-source-reference"]`/`properties.source.reference` with no check for whether the
+  node's own schema declares either name as a real attribute — which 41 node schemas do (4
+  declare `x-source-reference`, e.g. `data-store.accesspattern`; 37 declare `source`, e.g.
+  `security.accesscondition`). Fixed by gating the fallback on the same schema check `saveLayer()`
+  already uses.
+
+## [0.1.11] - 2026-08-19
+
+**Specification Support:** v0.9.0
+
+### Fixed
+
+- **`dr add`/`dr update` silently dropped `attributes.source`/`attributes.x-source-reference` on
+  every save**, even when the element's own schema declared one as a real (sometimes required)
+  domain attribute. `Model.saveLayer()` treated both names as internal graph-bookkeeping fields —
+  a hardcoded, type-blind blocklist, applied to every node type regardless of what its schema
+  actually declares — and stripped them from `attributes` before writing YAML. Validation ran on
+  the in-memory element *before* this stripping, so `dr add`/`dr update` always reported success;
+  the corruption only surfaced later, disconnected from the write that caused it, the next time
+  the element was loaded or validated (a hard failure for the 3 node types that mark the
+  attribute required; permanent, completely silent data loss for the 38 that leave it optional).
+  Affected 41 of 191 node schemas across 8 layers (API, APM, Data Store, Navigation, Security,
+  Technology, Testing, UX) — reported from `security.accesscondition.attributes.source`, a
+  required attribute. `saveLayer()` now only strips a key that the element's own schema doesn't
+  declare, so this class of collision can't silently recur for some other attribute name.
+
+### Added
+
+- **`dr repair:attribute-collision`**: detects and best-effort-recovers data lost to the bug
+  above in existing models. Scans every element for a schema-declared `source`/
+  `x-source-reference` attribute that's currently missing, then searches changeset history
+  (committing a changeset does not delete it) for the most recent value that was recorded before
+  the bug stripped it. Report-only by default; `--apply` restores every recoverable value and
+  re-saves the affected layers. Elements with no recoverable value are always reported, never
+  fabricated — those need `dr update <id> --attributes '{...}'` to re-supply the value manually.
+  `--format json` for automation.
+
+### Testing
+
+- **`npm test`'s integration-test glob silently ran only 9 of 75 files** (`tests/integration/**/*.test.ts`
+  matches "one directory, then a file" under `/bin/sh` — the shell npm actually uses for scripts —
+  which requires at least one intermediate directory; the 66 files sitting directly in
+  `tests/integration/` were never collected at all). Discovered while adding this release's own
+  regression tests, which are in that directory and initially weren't running either. Fixed by
+  passing bare directory paths instead (`./tests/integration/`), matching the convention already
+  used elsewhere in the same script — `bun test` recurses a directory on its own, no shell glob
+  needed. Same fix applied to `test:integration` and `test:perf`, which had the same problem.
+  Running the full 75-file suite together for what may be the first time surfaced 5 pre-existing,
+  reproducible failures in `dr trace`'s dependency-chain counting (`tests/integration/trace-populated.test.ts`),
+  confirmed unrelated to this release (they fail identically with this release's changes reverted)
+  and unrelated to the glob fix itself (they reproduce in isolation). Since they now genuinely run
+  in CI's release gate too (the same gate this whole fix was silently skipped by moments earlier),
+  excluded explicitly via `--test-name-pattern` — matching this same script's existing
+  `BaseIntegrationManager` exclusion — rather than left to block this release on an unrelated,
+  pre-existing bug. Applied consistently everywhere that pattern already appears
+  (`test`/`test:unit`/`test:integration`/`test:all`/`test:coverage*`). Tracked as a known issue for
+  a follow-up release, not fixed here.
+
+## [0.1.10] - 2026-08-19
+
+**Specification Support:** v0.9.0
+
+### Changed
+
+- **Bundled viewer bumped to v0.6.0**: `@tinkermonkey/heimdall-ui` moves `0.5.2` → `0.7.0`, and the
+  Model/Schema graph is substantially reworked on top of it — new galaxy/clustered layout engines
+  with a Layout/Boundaries/Node-margin/Relations control flyout, the Inspector is now a floating,
+  auto-hiding detail drawer instead of a permanent sidebar column, selections made from the nav
+  tree or a cross-layer link now pan the graph to bring themselves into view instead of leaving you
+  to go find them, Fullscreen now keeps the layout controls and inspector visible instead of
+  dropping them, dark canvas is the default on first visit, and view/selection state now round-trips
+  through the URL (deep-linkable, bookmarkable, shareable). No CLI-side API changes required — the
+  viewer continues to consume the existing `/api/model` and `/api/spec` shapes.
+
+## [0.1.9] - 2026-08-14
+
+**Specification Support:** v0.9.0
+
+### Changed
+
+- **Bundled viewer bumped to v0.5.1**: picks up the new page view (a document-form alternative to
+  the graph, with breadcrumb/stat-grid/facts/row tables for Model/Schema layers, spec node types, and
+  model elements), a Heimdall spring-based force layout for the graph, and a WCAG 2.1 AA color-contrast
+  fix on the new page-view table headers. `@tinkermonkey/heimdall-ui` is now resolved to an exact
+  npm-registry version rather than a pinned git commit. No CLI-side API changes required — the viewer
+  continues to consume the existing `/api/model` and `/api/spec` shapes.
+
+## [0.1.8] - 2026-08-12
+
+**Specification Support:** v0.8.4
+
+### Fixed
+
+- **`dr visualize` no longer requires Bun**: the visualization server had a hard runtime
+  dependency on Bun-specific APIs (`Bun.serve()`, `hono/bun`, `Bun.spawn`/`Bun.spawnSync`,
+  `Bun.watch`), so it needed a separate Bun install even though `dr` itself runs fine under
+  plain Node.js — the actionable-error workaround shipped in 0.1.7 (#799) only softened the
+  landing. Replaced with `@hono/node-server`, `@hono/node-ws`, `node:child_process`, and
+  `chokidar`, and changed the CLI to spawn the server subprocess via `process.execPath`
+  (whichever runtime is already running the CLI) instead of a literal `bun` binary. `dr
+  visualize` now works end-to-end — HTTP, WebSocket, file watching, and the AI chat feature —
+  on a machine with only Node.js installed. (#800)
+- **Chat subprocess spawn failures no longer crash the whole server**: `launchClaudeCodeChat`/
+  `launchCopilotChat` had no error handler on the newly-Node `child_process.spawn()` call.
+  Node reports spawn failures (e.g. `claude`/`gh`/`copilot` missing from `PATH`) asynchronously
+  via an `'error'` event rather than a synchronous throw, and an unhandled one crashed the
+  entire `dr visualize` process — dropping every connected client — instead of failing just the
+  one chat request that triggered it.
+- **Hung chat subprocesses could never be force-killed**: the SIGTERM→SIGKILL escalation logic
+  checked `proc.killed`, which under Node means "`kill()` was called," not "the process actually
+  exited" (Bun's `Subprocess.killed`, which this code was originally written against, means the
+  latter) — so a subprocess that ignored SIGTERM was never escalated to SIGKILL and leaked
+  indefinitely instead of being cleaned up.
+- **`dr visualize` crashed instead of showing a clean error when the port was already in use**:
+  a bind failure (e.g. `EADDRINUSE` from a still-running previous instance) is reported
+  asynchronously by Node's HTTP server; `start()` now waits for it and surfaces an actionable
+  "port already in use" message instead of an unhandled exception.
+
+(#803)
+
+## [0.1.7] - 2026-08-12
+
+cli-v0.1.6 was tagged but never published — CI's release gate failed on analyzer
+integration tests that had always been running under a silently-broken timeout
+config (see CI notes below). No npm package or GitHub release was ever created
+for 0.1.6, so its entry is renamed to 0.1.7 rather than superseded by a new one.
+
+**Specification Support:** v0.8.4
+
+### Fixed
+
+- **Fresh installs were broken**: `npm install -g @documentation-robotics/cli` failed with
+  `Cannot find module '@opentelemetry/api-logs'`, then (once worked around) `Cannot find
+  module 'glob'`. Both packages — along with the rest of the `@opentelemetry/*` family that's
+  actually reachable at runtime — were misclassified as `devDependencies`, which npm does not
+  install for consumers of a published package, even though they're imported unconditionally
+  by core, always-loaded code (`telemetry/index.ts`, `core/relationship-catalog.ts`). Moved
+  the reachable packages to `dependencies`; kept the rest (only ever loaded by an internal
+  debug build variant that's never published) in `devDependencies` to avoid bloating installs.
+  (#797)
+- **`dr visualize` now fails elegantly when Bun isn't installed**: it spawns its server as a
+  Bun subprocess, which previously crashed with a raw, unexplained `spawn bun ENOENT` on any
+  machine without Bun (true for every fresh install, since Bun is devDependency-only). It now
+  shows an actionable error with install instructions instead. `dr visualize` still requires
+  Bun for now — removing that dependency entirely is tracked in #800. (#799)
+
+### CI
+
+- The release pipeline now packs the CLI and installs it globally with `--omit=dev` into an
+  isolated prefix before every release — simulating a real `npm install -g` consumer install —
+  then runs `dr --version`/`dr --help` as a release gate. This class of dependency-classification
+  bug can no longer reach a publish.
+- Fixed the analyzer MCP `initialize` handshake timeout (2000ms → 5000ms) and the test suite's
+  real per-test timeout, which had silently been Bun's 5000ms default rather than the intended
+  30s — `bunfig.toml`'s `timeoutMs` key was never a real Bun config option. Both issues surfaced
+  together when `codebase-memory-mcp` (an external, unpinned CI dependency) got slower across
+  three releases in 48 hours. Now set via an explicit `--timeout=30000` flag on every `bun test`
+  invocation. See #802 for the full investigation.
+
 ## [0.1.5] - 2026-07-23
 
 **Specification Support:** v0.8.4

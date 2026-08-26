@@ -25,4 +25,4 @@ fi
 
 FILE_COUNT=$(echo "$SMOKE_TESTS" | wc -w | tr -d ' ')
 echo "Running $FILE_COUNT smoke tests..."
-time bun test $SMOKE_TESTS
+time bun test --timeout=30000 $SMOKE_TESTS

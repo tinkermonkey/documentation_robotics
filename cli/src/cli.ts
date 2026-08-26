@@ -41,6 +41,7 @@ import { reportsCommands } from "./commands/reports.js";
 import { auditCommand } from "./commands/audit.js";
 import { auditDiffCommand } from "./commands/audit-diff.js";
 import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
+import { repairAttributeCollisionCommand } from "./commands/repair.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage } from "./utils/errors.js";
@@ -130,7 +131,7 @@ Examples:
   $ dr init
   $ dr init claudetoreum
   $ dr init "Enterprise Architecture" --author "Team A"
-  $ dr init --name "My Project" --description "12-layer federated model"`
+  $ dr init --name "My Project" --description "13-layer federated model"`
   )
   .action((name, options) => initCommand({ ...options, name: options.name || name }));
 
@@ -303,9 +304,9 @@ program
     "after",
     `
 Supported formats:
-  archimate    Export to ArchiMate XML (layers 1, 2, 4, 5)
-  openapi      Export to OpenAPI 3.0 specification (layer 6)
-  jsonschema   Export to JSON Schema (layer 7)
+  archimate    Export to ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Export to OpenAPI 3.0 specification (layer 7)
+  jsonschema   Export to JSON Schema (layer 8)
   plantuml     Export to PlantUML diagram
   graphml      Export to GraphML (graph visualization)
   markdown     Export to Markdown documentation
@@ -339,8 +340,8 @@ program
     "after",
     `
 Supported formats:
-  archimate    Import from ArchiMate XML (layers 1, 2, 4, 5)
-  openapi      Import from OpenAPI 3.0 specification (layer 6)
+  archimate    Import from ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Import from OpenAPI 3.0 specification (layer 7)
 
 Examples:
   $ dr import archimate --input model.xml
@@ -419,7 +420,7 @@ Report types:
   comprehensive  Full report with statistics, relationships, and data model (default)
   statistics     Statistics and quality metrics
   relationships  Relationship analysis and classification
-  data-model     Layer 7 data model analysis
+  data-model     Layer 8 data model analysis
   quality        Quality metrics and recommendations
 
 Output formats:
@@ -516,6 +517,36 @@ Examples:
   $ dr audit:snapshots clear`
   )
   .action((action, options) => auditSnapshotsCommand({ ...options, action }));
+
+// Repair command - Detect and recover data lost to fixed data-integrity bugs
+program
+  .command("repair:attribute-collision")
+  .description(
+    'Find and best-effort-recover model data lost to a fixed bug where saveLayer() stripped "source"/"x-source-reference" attributes from every element, even when a node type\'s schema declared one as a real (sometimes required) attribute'
+  )
+  .option("--apply", "Restore recoverable values found in changeset history (default: report only)")
+  .option("--format <format>", "Output format: text (default), json")
+  .option("--output <path>", "Write the report to a file instead of stdout")
+  .addHelpText(
+    "after",
+    `
+This repairs damage from a fixed bug in Model.saveLayer(): a hardcoded, type-blind "internal
+fields" blocklist unconditionally stripped any attribute literally named "source" or
+"x-source-reference" from every element's attributes before writing YAML, regardless of whether
+the element's own schema declared it as a real domain attribute. 41 of 191 node schemas across 8
+layers do (3 mark it required, meaning affected elements fail validation today).
+
+Recovery is best-effort: values can only be restored if they still exist in changeset history
+(committing a changeset does not delete it). Elements with no recoverable value are always
+reported, never fabricated — you'll need to re-supply those manually with
+"dr update <id> --attributes '{...}'".
+
+Examples:
+  $ dr repair:attribute-collision                    # Report only — no changes made
+  $ dr repair:attribute-collision --apply             # Restore every recoverable value
+  $ dr repair:attribute-collision --format json --output report.json`
+  )
+  .action((options) => repairAttributeCollisionCommand(options));
 
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");

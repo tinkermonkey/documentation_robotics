@@ -18,7 +18,7 @@ export async function showCommand(id: string, options: { model?: string } = {}):
     "show.execute",
     async (span) => {
       try {
-        // Load only the inferred layer when possible (performance: avoids loading all 12 layers)
+        // Load only the inferred layer when possible (performance: avoids loading all 13 layers)
         const model = await Model.load(
           options.model,
           inferredLayer ? { layers: [inferredLayer] } : {}

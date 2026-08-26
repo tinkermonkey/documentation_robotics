@@ -4,7 +4,7 @@ import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 /**
- * JSON Schema Draft 7 Exporter for layer 7 (Data Model)
+ * JSON Schema Draft 7 Exporter for layer 8 (Data Model)
  */
 export class JsonSchemaExporter implements Exporter {
   name = "JSON Schema";

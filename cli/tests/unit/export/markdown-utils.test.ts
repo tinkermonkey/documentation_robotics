@@ -113,6 +113,7 @@ describe("markdown-utils", () => {
       const standardLayers = [
         "motivation",
         "business",
+        "product",
         "security",
         "application",
         "technology",
@@ -134,10 +135,11 @@ describe("markdown-utils", () => {
   });
 
   describe("LAYER_DESCRIPTIONS", () => {
-    it("should have descriptions for all 12 layers", () => {
+    it("should have descriptions for all 13 layers", () => {
       const layers = [
         "motivation",
         "business",
+        "product",
         "security",
         "application",
         "technology",
@@ -157,8 +159,8 @@ describe("markdown-utils", () => {
       }
     });
 
-    it("should have exactly 12 layer descriptions", () => {
-      expect(Object.keys(LAYER_DESCRIPTIONS).length).toBe(12);
+    it("should have exactly 13 layer descriptions", () => {
+      expect(Object.keys(LAYER_DESCRIPTIONS).length).toBe(13);
     });
   });
 

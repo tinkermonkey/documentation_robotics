@@ -1,6 +1,15 @@
 [test]
 root = "."
-timeoutMs = 30000
+
+# NOTE: bun's [test] section has no timeout/timeoutMs key (verified against
+# Bun's documented bunfig.toml schema) - a `timeoutMs = 30000` entry here
+# previously did nothing. The real per-test default (Bun's own default is
+# 5000ms) is set via the `--timeout=30000` flag on every `bun test`
+# invocation in package.json's scripts and scripts/run-smoke-tests.sh -
+# tests/setup.ts also calls jest.setTimeout(30000) as a best-effort fallback
+# for ad-hoc single-file runs, but verified that alone is NOT reliable under
+# this file's `workers = 4` parallel execution, so don't rely on it alone.
+# See #802.
 
 # Parallel Test Execution Configuration
 # Enables parallel test execution using worker threads

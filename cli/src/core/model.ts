@@ -59,6 +59,57 @@ function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
   return type;
 }
 
+/**
+ * Graph-internal bookkeeping keys that `layer.ts`'s node<->Element conversion stuffs into the
+ * same flat `attributes`/`properties` bag the underlying graph structure uses for everything
+ * (it has no separate channel for them) — `__references__`/`__relationships__`/`__semanticId__`
+ * mirror `element.references`/`element.relationships`/`element.semanticId`, which are real,
+ * separately-typed fields on `Element` and get serialized to their own place (references
+ * inline, relationships to relationships.yaml, semanticId isn't persisted at all — it only
+ * exists to resolve legacy-format elements during a single load). These must never reach the
+ * persisted YAML's `attributes` object.
+ *
+ * Double-underscore-prefixed specifically so a schema author would have to go out of their way
+ * to collide with one — confirmed zero of the 191 node schemas declare an attribute with any of
+ * these names. Contrast with the *type-blind* set this replaced, which also unconditionally
+ * stripped plain `"source"`/`"x-source-reference"` — both of which ARE legitimate, sometimes-
+ * required domain attributes on 41 node schemas across 8 layers (e.g.
+ * security.accesscondition.source), and neither of which is ever actually used as internal
+ * bookkeeping anywhere in this codebase. That collision silently destroyed real data on every
+ * save for any element of one of those 41 types, without ever failing validation (validation
+ * runs on the in-memory element, before this stripping) — see CHANGELOG for the incident this
+ * fixes.
+ *
+ * `__semanticId__` is listed here purely as defense-in-depth, not as the primary guard: it can
+ * only ever reach `attributes` via `GraphModel.fromElement()` aliasing `properties` and
+ * `attributes` to the same object, which `layer.ts`'s bookkeeping-key injection would then
+ * mutate through. That aliasing is fixed at the source in graph-model.ts (`properties` is now
+ * always an independent copy), so `__semanticId__` should never actually arrive here — but
+ * listing it means a regression of that aliasing fix fails safe instead of silently reopening
+ * the same leak `__semanticId__` briefly caused.
+ */
+const ALWAYS_INTERNAL_ATTRIBUTE_KEYS = new Set(["__references__", "__relationships__", "__semanticId__"]);
+
+/**
+ * Whether `key` should survive persistence in `specNodeId`'s `attributes`.
+ *
+ * Only ever strips the two confirmed-always-internal keys above, and even then only when the
+ * node type's OWN schema doesn't declare that name as a real attribute — so if some future
+ * schema ever legitimately needs an attribute literally called `__references__` (unlikely, but
+ * the whole point of this function is to not have to trust "unlikely" again), it still survives.
+ * Nothing else is ever stripped: the class of bug this fixes was a hardcoded, type-blind
+ * reserved-word blocklist making that same "trust the list, not the schema" mistake for
+ * `source`/`x-source-reference`. Consulting the schema instead of a fixed string list is what
+ * keeps this from silently recurring for some other attribute name in the future.
+ */
+function isPersistableAttribute(specNodeId: string | undefined, key: string): boolean {
+  if (!ALWAYS_INTERNAL_ATTRIBUTE_KEYS.has(key)) return true;
+  if (!specNodeId) return false;
+  const nodeType = getNodeType(specNodeId as SpecNodeId);
+  if (!nodeType) return false;
+  return nodeType.requiredAttributes.includes(key) || nodeType.optionalAttributes.includes(key);
+}
+
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -74,6 +125,7 @@ export class Model {
   layers: Map<string, Layer>;
   relationships: Relationships;
   lazyLoad: boolean;
+  loadedLayerFilter?: string[];
   private loadedLayers: Set<string>;
   private virtualProjectionEngine?: VirtualProjectionEngine;
   /** ID of the currently active changeset, or null if none is active. Set during load(). */
@@ -88,6 +140,7 @@ export class Model {
     this.layers = new Map();
     this.relationships = new Relationships();
     this.lazyLoad = options.lazyLoad ?? false;
+    this.loadedLayerFilter = options.layers;
     this.loadedLayers = new Set();
   }
 
@@ -420,12 +473,6 @@ export class Model {
       elementsByType.get(typeKey)!.elements.push(element);
     }
 
-    // Internal graph fields — never written to YAML
-    const INTERNAL_FIELDS = new Set([
-      "__references__", "__relationships__",
-      "source", "x-source-reference",
-    ]);
-
     // Write each type to its own YAML file
     for (const [, { stem, elements }] of elementsByType) {
       const filename = `${stem}.yaml`;
@@ -436,10 +483,14 @@ export class Model {
       for (const element of elements) {
         const json = element.toJSON();
 
-        // Clean attributes: remove graph-internal keys that should not be persisted
+        // Clean attributes: remove graph-internal keys that should not be persisted — see
+        // isPersistableAttribute's own doc for why this checks the schema rather than a
+        // hardcoded name list.
         const cleanAttrs = json.attributes
           ? Object.fromEntries(
-              Object.entries(json.attributes).filter(([k]) => !INTERNAL_FIELDS.has(k))
+              Object.entries(json.attributes).filter(([k]) =>
+                isPersistableAttribute(json.spec_node_id, k)
+              )
             )
           : undefined;
 
@@ -533,23 +584,8 @@ export class Model {
     };
 
     // Generate layer structure from current model state
-    const layerOrder = [
-      "motivation",
-      "business",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-
-    for (let i = 0; i < layerOrder.length; i++) {
-      const layerName = layerOrder[i];
+    for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
+      const layerName = CANONICAL_LAYER_NAMES[i];
       const layer = this.layers.get(layerName);
       const orderNum = String(i + 1).padStart(2, "0");
 

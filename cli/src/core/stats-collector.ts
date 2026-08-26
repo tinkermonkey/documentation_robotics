@@ -151,6 +151,7 @@ export class StatsCollector {
     const expectedTypes: Record<string, number> = {
       motivation: 4, // goals, principles, requirements, stakeholders
       business: 2, // capabilities, services
+      product: 5, // capabilities, features, milestones, personas, workflows
       security: 4, // policies, threats, etc
       application: 2, // services, components
       technology: 4, // frameworks, libraries, databases, platforms

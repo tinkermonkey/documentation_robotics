@@ -1,8 +1,8 @@
 {
   "id": "apm",
-  "number": 11,
+  "number": 12,
   "name": "APM Observability Layer",
-  "description": "Layer 11: APM Observability Layer",
+  "description": "Layer 12: APM Observability Layer",
   "inspired_by": {
     "standard": "OpenTelemetry",
     "version": "1.0",

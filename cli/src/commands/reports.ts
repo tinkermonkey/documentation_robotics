@@ -14,12 +14,12 @@ import { getErrorMessage } from "../utils/errors.js";
 export function reportsCommands(parent: Command): void {
   parent
     .command("regenerate")
-    .description("Delete existing layer reports and regenerate all 12 markdown reports")
+    .description("Delete existing layer reports and regenerate all 13 markdown reports")
     .addHelpText(
       "after",
       `
 Examples:
-  $ dr reports regenerate    # Delete existing reports and regenerate all 12 layer reports`
+  $ dr reports regenerate    # Delete existing reports and regenerate all 13 layer reports`
     )
     .action(async () => {
       await reportsRegenerateCommand();
@@ -27,7 +27,7 @@ Examples:
 }
 
 /**
- * Delete existing layer reports and regenerate all 12 markdown reports.
+ * Delete existing layer reports and regenerate all 13 markdown reports.
  */
 export async function reportsRegenerateCommand(): Promise<void> {
   try {
@@ -46,7 +46,7 @@ export async function reportsRegenerateCommand(): Promise<void> {
 }
 
 /**
- * Delete existing reports directory and regenerate all 12 layer reports.
+ * Delete existing reports directory and regenerate all 13 layer reports.
  * Exported for use in the upgrade command.
  */
 export async function regenerateLayerReports(projectRoot: string): Promise<void> {
@@ -63,10 +63,10 @@ export async function regenerateLayerReports(projectRoot: string): Promise<void>
   const model = await Model.load(projectRoot);
 
   const orchestrator = new ModelReportOrchestrator(model, projectRoot);
-  console.log(ansis.dim("Generating 12 layer reports..."));
+  console.log(ansis.dim("Generating 13 layer reports..."));
   await orchestrator.regenerateAll();
 
-  console.log(ansis.green("✓ All 12 layer reports regenerated"));
+  console.log(ansis.green("✓ All 13 layer reports regenerated"));
   console.log(ansis.dim("  Reports written to: documentation-robotics/reports/"));
 }
 

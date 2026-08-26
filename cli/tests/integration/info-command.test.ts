@@ -27,8 +27,8 @@ describe("info command", () => {
     expect(result.stdout).toContain("Test Info Model");
   });
 
-  it("should display information for all 12 layers", async () => {
-    await runDr(["init", "--name", "Twelve Layer Model"], { cwd: tempDir.path });
+  it("should display information for all 13 layers", async () => {
+    await runDr(["init", "--name", "Thirteen Layer Model"], { cwd: tempDir.path });
 
     const result = await runDr(["info"], { cwd: tempDir.path });
 
@@ -50,12 +50,13 @@ describe("info command", () => {
     expect(result.stdout).toContain("api");
   });
 
-  it("should display information for each of the 12 layers", async () => {
+  it("should display information for each of the 13 layers", async () => {
     await runDr(["init", "--name", "All Layers Test"], { cwd: tempDir.path });
 
     const layers = [
       "motivation",
       "business",
+      "product",
       "security",
       "application",
       "technology",

@@ -28,7 +28,7 @@ describe('ModelReportOrchestrator Integration', () => {
     return workdir;
   }
 
-  it('should generate all 12 layer reports on first run', async () => {
+  it('should generate all 13 layer reports on first run', async () => {
     const workdir_temp = getWorkdir();
     const model = await Model.load(workdir_temp.path);
 
@@ -39,7 +39,7 @@ describe('ModelReportOrchestrator Integration', () => {
     const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
     await orchestrator.regenerateAll();
 
-    // Verify all 12 reports exist
+    // Verify all 13 reports exist
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
 
     for (const layerName of CANONICAL_LAYER_NAMES) {
@@ -186,9 +186,9 @@ describe('ModelReportOrchestrator Integration', () => {
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
 
     // Check specific examples
-    const apiPath = path.join(reportsDir, '06-api-layer-report.md');
-    const dataModelPath = path.join(reportsDir, '07-data-model-layer-report.md');
-    const testingPath = path.join(reportsDir, '12-testing-layer-report.md');
+    const apiPath = path.join(reportsDir, '07-api-layer-report.md');
+    const dataModelPath = path.join(reportsDir, '08-data-model-layer-report.md');
+    const testingPath = path.join(reportsDir, '13-testing-layer-report.md');
 
     const apiExists = await fs.access(apiPath)
       .then(() => true)
@@ -217,7 +217,7 @@ describe('ModelReportOrchestrator Integration', () => {
     await orchestrator.regenerateAll();
 
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
-    const apiPath = path.join(reportsDir, '06-api-layer-report.md');
+    const apiPath = path.join(reportsDir, '07-api-layer-report.md');
 
     const content = await fs.readFile(apiPath, 'utf-8');
 
@@ -239,7 +239,7 @@ describe('ModelReportOrchestrator Integration', () => {
 
     // Record initial API report content
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
-    const apiReportPath = path.join(reportsDir, '06-api-layer-report.md');
+    const apiReportPath = path.join(reportsDir, '07-api-layer-report.md');
     const initialContent = await fs.readFile(apiReportPath, 'utf-8');
     const initialLength = initialContent.length;
 
@@ -319,7 +319,7 @@ describe('ModelReportOrchestrator Integration', () => {
 
     // Valid layers should have been processed without error
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
-    const apiPath = path.join(reportsDir, '06-api-layer-report.md');
+    const apiPath = path.join(reportsDir, '07-api-layer-report.md');
     const motivationPath = path.join(reportsDir, '01-motivation-layer-report.md');
 
     const apiExists = await fs.access(apiPath)
@@ -382,7 +382,7 @@ describe('Mutation → Report Generation Integration', () => {
     });
 
     // Verify report file was created
-    const apiReportPath = path.join(reportsDir, '06-api-layer-report.md');
+    const apiReportPath = path.join(reportsDir, '07-api-layer-report.md');
     const exists = await fs.access(apiReportPath)
       .then(() => true)
       .catch(() => false);
@@ -405,7 +405,7 @@ describe('Mutation → Report Generation Integration', () => {
     await orchestrator.regenerateAll();
 
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
-    const apiReportPath = path.join(reportsDir, '06-api-layer-report.md');
+    const apiReportPath = path.join(reportsDir, '07-api-layer-report.md');
     const initialContent = await fs.readFile(apiReportPath, 'utf-8');
 
     // Get an existing element from the API layer to delete
@@ -437,8 +437,8 @@ describe('Mutation → Report Generation Integration', () => {
     await orchestrator.regenerateAll();
 
     const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
-    const apiReportPath = path.join(reportsDir, '06-api-layer-report.md');
-    const appReportPath = path.join(reportsDir, '04-application-layer-report.md');
+    const apiReportPath = path.join(reportsDir, '07-api-layer-report.md');
+    const appReportPath = path.join(reportsDir, '05-application-layer-report.md');
 
     const initialApiContent = await fs.readFile(apiReportPath, 'utf-8');
     const initialAppContent = await fs.readFile(appReportPath, 'utf-8');

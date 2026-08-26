@@ -5,7 +5,7 @@ import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 /**
- * OpenAPI 3.0 Importer for layer 6 (API)
+ * OpenAPI 3.0 Importer for layer 7 (API)
  * Parses OpenAPI JSON specifications and creates graph nodes/edges
  */
 export class OpenAPIImporter implements Importer {

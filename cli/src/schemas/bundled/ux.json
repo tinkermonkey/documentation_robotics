@@ -1,10 +1,10 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.10.0",
   "layer": {
     "id": "ux",
-    "number": 9,
+    "number": 10,
     "name": "UX Layer",
-    "description": "Layer 9: UX Layer",
+    "description": "Layer 10: UX Layer",
     "inspired_by": {
       "standard": "HTML 5.3",
       "version": "5.3",

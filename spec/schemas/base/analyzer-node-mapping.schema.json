@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "analyzer-node-mapping.schema.json",
   "title": "AnalyzerNodeMapping",
-  "description": "Schema for node type mappings. Defines how analyzer output node types are mapped to DR model node types across the 12 layers.",
+  "description": "Schema for node type mappings. Defines how analyzer output node types are mapped to DR model node types across the 13 layers.",
   "type": "object",
   "required": ["mappings"],
   "additionalProperties": false,
@@ -36,6 +36,7 @@
             "enum": [
               "motivation",
               "business",
+              "product",
               "security",
               "application",
               "technology",
@@ -47,7 +48,7 @@
               "apm",
               "testing"
             ],
-            "description": "Canonical DR layer name. Must be one of the 12 layers with correct naming (e.g., 'data-model' not 'data_model')."
+            "description": "Canonical DR layer name. Must be one of the 13 layers with correct naming (e.g., 'data-model' not 'data_model')."
           },
           "dr_element_type": {
             "type": "string",

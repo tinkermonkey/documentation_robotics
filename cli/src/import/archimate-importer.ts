@@ -6,7 +6,7 @@ import { getErrorMessage } from "../utils/errors.js";
 import { DOMParser } from "@xmldom/xmldom";
 
 /**
- * ArchiMate XML Importer for layers 1, 2, 4, 5
+ * ArchiMate XML Importer for layers 1, 2, 5, 6
  * Parses ArchiMate 3.2 XML and creates graph nodes/edges
  */
 export class ArchiMateImporter implements Importer {

@@ -27,7 +27,7 @@ version: 0.8.3
 
 ## Layer Overview
 
-The Motivation Layer is the **highest layer** in the 12-layer architecture and provides governance to all other layers. It describes:
+The Motivation Layer is the **highest layer** in the 13-layer architecture and provides governance to all other layers. It describes:
 
 - **WHY** - The reasons and drivers behind architectural decisions
 - **WHO** - Stakeholders with interests in the outcome
@@ -165,7 +165,7 @@ IS this a semantic definition, interpretation, or piece of knowledge attached to
 | **Layer 4 (Application)** | ApplicationService supports Goals, delivers Value, governed by Principles; ApplicationFunction fulfills Requirements              |
 | **Layer 5 (Technology)**  | TechnologyService supports Goals, governed by Principles; Node fulfills Requirements, constrained by Constraints                  |
 | **Layer 6 (API)**         | Operation supports Goals (x-supports-goals), fulfills Requirements, governed by Principles, constrained by Constraints            |
-| **Layer 7-12**            | All layers can reference Principles, Constraints, Requirements, Goals for governance and traceability                             |
+| **Layer 7-13**            | All layers can reference Principles, Constraints, Requirements, Goals for governance and traceability                             |
 
 **Design Pattern:** Lower layers "look up" to the Motivation layer to justify WHY they exist and WHAT value they deliver.
 

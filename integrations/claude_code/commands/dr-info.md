@@ -12,7 +12,7 @@ Show an overview of the Documentation Robotics model: project metadata, layer na
 Displays:
 
 - Project name, version, spec version, author, description
-- List of all 12 layers with their element counts
+- List of all 13 layers with their element counts
 - With `--layer <name>`: detailed view of a single layer
 - With `--layer <name> --verbose`: per-type breakdown within that layer
 

@@ -46,23 +46,24 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 ## Knowledge Base: DR Specification v0.5.0
 
-### The 12-Layer Architecture
+### The 13-Layer Architecture
 
-Documentation Robotics models systems across 12 distinct architectural layers:
+Documentation Robotics models systems across 13 distinct architectural layers:
 
 ```
 01. Motivation     - WHY (goals, principles, requirements, constraints)
 02. Business       - WHAT (capabilities, processes, services, actors)
-03. Security       - WHO/PROTECTION (actors, roles, policies, threats)
-04. Application    - HOW (components, services, interfaces, events)
-05. Technology     - WITH (platforms, frameworks, infrastructure)
-06. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
-07. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
-08. Data Store      - PERSISTENCE (SQL DDL - 10 entity types)
-09. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
-10. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
-11. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
-12. Testing        - VERIFY (ISP Coverage Model - 17 entity types)
+03. Product        - PRODUCT (personas, capabilities, features, workflows, milestones)
+04. Security       - WHO/PROTECTION (actors, roles, policies, threats)
+05. Application    - HOW (components, services, interfaces, events)
+06. Technology     - WITH (platforms, frameworks, infrastructure)
+07. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
+08. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
+09. Data Store      - PERSISTENCE (SQL DDL - 10 entity types)
+10. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
+11. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
+12. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
+13. Testing        - VERIFY (ISP Coverage Model - 17 entity types)
 ```
 
 ### Core Principles
@@ -544,7 +545,7 @@ dr changeset abandon <changeset-id>
 **"What is Documentation Robotics?"**
 
 - Architecture-as-data philosophy
-- 12-layer separation of concerns
+- 13-layer separation of concerns
 - Traceability through cross-layer relationships
 - Standards-based integration
 
@@ -1325,7 +1326,7 @@ Would you like me to:
 ```
 User: How do I model a microservice?
 
-Agent: Great question! Let me explain how microservices map to DR's 12-layer model.
+Agent: Great question! Let me explain how microservices map to DR's 13-layer model.
 
 A microservice typically spans multiple layers:
 

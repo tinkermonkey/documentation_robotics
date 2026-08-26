@@ -106,7 +106,7 @@ export async function visualizeCommand(
       logDebug("[Telemetry] TELEMETRY_ENABLED is false - no spans will be created")
     }
 
-    // Spawn server in Bun subprocess with environment variables
+    // Build environment variables for the server subprocess
     const env: Record<string, string> = {
       ...process.env,
       DR_VISUALIZE_PORT: String(port),
@@ -139,7 +139,11 @@ export async function visualizeCommand(
       logDebug(`Using custom viewer from: ${options.viewerPath}`)
     }
 
-    const serverProcess = spawn("bun", ["run", serverEntryPath], {
+    // Reuse whichever runtime is currently executing the CLI (node or bun) to launch
+    // the server subprocess. server-entry.ts has no Bun-specific dependencies (see #800),
+    // so this works identically under Node.js or Bun — and unlike spawning a literal
+    // "bun" binary, process.execPath is guaranteed to exist since it's already running.
+    const serverProcess = spawn(process.execPath, [serverEntryPath], {
       cwd: process.cwd(),
       stdio: ["pipe", "pipe", "pipe"],
       env,
@@ -155,8 +159,9 @@ export async function visualizeCommand(
         const chunk = data.toString()
         serverOutput += chunk
 
-        // Process each line individually: Bun's pipe buffering often batches multiple
-        // console.log calls (e.g. "running at" + "TOKEN:") into a single data event.
+        // Process each line individually: stdio pipe buffering can batch multiple
+        // console.log calls (e.g. "running at" + "TOKEN:") into a single data event,
+        // regardless of runtime.
         // Using startsWith/substring on the whole chunk would either miss the TOKEN line
         // (when "running at" is first) or extract a malformed token (when trailing lines
         // are appended), causing the browser to open with the wrong token and get a 403.
@@ -324,7 +329,20 @@ export async function visualizeCommand(
 
     // Handle process errors
     serverProcess.on("error", (error) => {
-      const message = `Failed to start visualization server: ${error.message}`
+      const errorCode = (error as NodeJS.ErrnoException).code
+      let message: string
+      let suggestions: string[] | undefined
+
+      // The server subprocess is launched via process.execPath (the same node/bun
+      // binary already running this CLI), so it's always present - ENOENT here would
+      // indicate something unusual about the runtime environment rather than a missing
+      // dependency (see #800: this used to hard-depend on a separately installed `bun`).
+      if (errorCode === "EACCES") {
+        message = `dr visualize could not run the visualization server: permission denied executing ${process.execPath}.`
+        suggestions = [`Check that ${process.execPath} is executable (chmod +x).`]
+      } else {
+        message = `Failed to start visualization server: ${error.message}`
+      }
 
       // Record error in startup span if still active
       if (isTelemetryEnabled && serverStartupSpan) {
@@ -339,9 +357,10 @@ export async function visualizeCommand(
         })()
       }
 
-      // Print error before throwing (CLI wrapper expects CLIError messages to be pre-printed)
-      console.error(message)
-      const cliError = new CLIError(message, 1)
+      // Don't print here: rejecting propagates this CLIError up through the catch block
+      // below to the top-level CLI handler, which prints `.format()` (including
+      // `suggestions`) exactly once. Printing here too would duplicate the whole block.
+      const cliError = new CLIError(message, 1, suggestions)
       if (rejectKeepAlive) {
         rejectKeepAlive(cliError)
       }

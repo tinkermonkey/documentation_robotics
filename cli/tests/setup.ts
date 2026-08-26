@@ -21,7 +21,25 @@
  */
 
 import { randomUUID } from "crypto";
+import { jest } from "bun:test";
 import { GoldenCopyCacheManager } from "../dist/core/golden-copy-cache.js";
+
+// Best-effort default per-test timeout for ad-hoc `bun test <file>` runs
+// invoked directly (outside the npm scripts below). Bun's own default is
+// 5000ms, which is too tight for integration tests that shell out to real
+// analyzer binaries (see #802). bunfig.toml's `[test]` section has no
+// timeout/timeoutMs key - it was never a real Bun config option, so a
+// previous `timeoutMs = 30000` entry there silently did nothing.
+//
+// NOT authoritative: verified this doesn't reliably propagate to Bun's
+// parallel test workers (bunfig.toml's `workers = 4`) - under real
+// multi-file concurrent runs it intermittently has no effect at all, which
+// is worse than useless since it looks configured but isn't. The real fix
+// is the `--timeout=30000` flag added directly to every `bun test`
+// invocation in package.json's scripts and scripts/run-smoke-tests.sh,
+// which is immune to that worker-isolation gap. Keep this call only as a
+// convenience for developers running a single file by hand.
+jest.setTimeout(30000);
 
 // Global test configuration for parallel execution
 declare global {

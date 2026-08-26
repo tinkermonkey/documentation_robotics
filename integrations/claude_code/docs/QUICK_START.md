@@ -175,7 +175,7 @@ dr analyzer index
 /dr-verify               # Answer prompts interactively
 ```
 
-**Pro tip:** Recipe Mode walks you through all 12 layers with checkpoints. Most thorough approach.
+**Pro tip:** Recipe Mode walks you through all 13 layers with checkpoints. Most thorough approach.
 
 ---
 

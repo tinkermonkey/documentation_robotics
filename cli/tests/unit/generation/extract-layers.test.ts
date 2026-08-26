@@ -32,20 +32,21 @@ describe("Layer Extraction", () => {
     expect(nodeTypes).toContain("motivation.stakeholder");
   });
 
-  test("should identify all 12 layer instances", async () => {
+  test("should identify all 13 layer instances", async () => {
     const layerFiles = [
       "01-motivation.layer.json",
       "02-business.layer.json",
-      "03-security.layer.json",
-      "04-application.layer.json",
-      "05-technology.layer.json",
-      "06-api.layer.json",
-      "07-data-model.layer.json",
-      "08-data-store.layer.json",
-      "09-ux.layer.json",
-      "10-navigation.layer.json",
-      "11-apm.layer.json",
-      "12-testing.layer.json",
+      "03-product.layer.json",
+      "04-security.layer.json",
+      "05-application.layer.json",
+      "06-technology.layer.json",
+      "07-api.layer.json",
+      "08-data-model.layer.json",
+      "09-data-store.layer.json",
+      "10-ux.layer.json",
+      "11-navigation.layer.json",
+      "12-apm.layer.json",
+      "13-testing.layer.json",
     ];
 
     for (const file of layerFiles) {

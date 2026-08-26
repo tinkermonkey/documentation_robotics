@@ -262,7 +262,7 @@ Or per layer if a global list is unavailable:
 ```bash
 dr list motivation --json
 dr list business --json
-# ... repeat for all 12 layers
+# ... repeat for all 13 layers
 ```
 
 Build a table of populated layers — layers with at least 1 element:

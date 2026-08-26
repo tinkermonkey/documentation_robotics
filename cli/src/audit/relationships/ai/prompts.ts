@@ -1,4 +1,5 @@
 import type { CoverageMetrics } from "../../types.js";
+import { getLayerOrder } from "../../../core/layers.js";
 
 /**
  * Optional spec context passed to interLayerValidation() to ground the prompt
@@ -146,7 +147,7 @@ Respond with ONLY the following JSON, wrapped in a json code block (no other tex
         ? `\n## Valid Cross-Layer Predicates\nOnly use predicates from this list:\n${context.availablePredicates.map((p) => `- ${p}`).join("\n")}\n`
         : `\n## Commonly Valid Cross-Layer Predicates\nUse one of: realizes, serves, accesses, uses, references, triggers, monitors, tests, covers, satisfies, implements, depends-on, maps-to, requires\n`;
 
-    return `You are an architecture spec analyst for the Documentation Robotics 12-layer model.
+    return `You are an architecture spec analyst for the Documentation Robotics 13-layer model.
 
 ## Task
 Identify cross-layer relationship schemas that are MISSING from the spec for the layer pair:
@@ -158,26 +159,27 @@ A "missing schema" is a relationship type that:
 - Enables traceability, governance, or cross-cutting concern validation across this boundary
 - Follows the correct reference direction: ${concreteLayer} → ${abstractLayer}
 
-## The 12-Layer Model (concrete → abstract)
+## The 13-Layer Model (concrete → abstract)
 
 | # | Layer | Standard | Representative Node Types |
 |---|-------|----------|--------------------------|
-| 12 | testing | IEEE 829 | testsuite, testcase, testdata, teststrategy, testcoverage |
-| 11 | apm | OpenTelemetry | metric, trace, span, alert, dashboard, traceconfiguration |
-| 10 | navigation | Router patterns | route, menu, menuitem, breadcrumb, flow, tab |
-|  9 | ux | Component patterns | view, subview, librarycomponent, actioncomponent, formcomponent |
-|  8 | data-store | DB patterns | database, table, collection, index, view |
-|  7 | data-model | JSON Schema | entity, attribute, relationship, enum, type |
-|  6 | api | OpenAPI 3.0 | operation, pathitem, requestbody, response, schema, securityscheme |
-|  5 | technology | ArchiMate | node, device, systemsoftware, technologyservice, infrastructureservice |
-|  4 | application | ArchiMate | applicationcomponent, applicationservice, applicationfunction, applicationinterface |
-|  3 | security | NIST SP 800-53 | secureresource, securitypolicy, threat, control, accesscontrol |
+| 13 | testing | IEEE 829 | testsuite, testcase, testdata, teststrategy, testcoverage |
+| 12 | apm | OpenTelemetry | metric, trace, span, alert, dashboard, traceconfiguration |
+| 11 | navigation | Router patterns | route, menu, menuitem, breadcrumb, flow, tab |
+| 10 | ux | Component patterns | view, subview, librarycomponent, actioncomponent, formcomponent |
+|  9 | data-store | DB patterns | database, table, collection, index, view |
+|  8 | data-model | JSON Schema | entity, attribute, relationship, enum, type |
+|  7 | api | OpenAPI 3.0 | operation, pathitem, requestbody, response, schema, securityscheme |
+|  6 | technology | ArchiMate | node, device, systemsoftware, technologyservice, infrastructureservice |
+|  5 | application | ArchiMate | applicationcomponent, applicationservice, applicationfunction, applicationinterface |
+|  4 | security | NIST SP 800-53 | secureresource, securitypolicy, threat, control, accesscontrol |
+|  3 | product | Product Management | persona, capability, feature, userworkflow, milestone |
 |  2 | business | ArchiMate | businessprocess, businessservice, businessfunction, businessrole, businessobject |
 |  1 | motivation | ArchiMate | goal, driver, requirement, principle, constraint, outcome, stakeholder |
 
 ## Reference Direction Rule
 CONCRETE layers (higher numbers, closer to implementation) reference ABSTRACT layers (lower numbers, closer to goals). References flow downward through the stack:
-  testing(12) → apm(11) → navigation(10) → ux(9) → data-store(8) → data-model(7) → api(6) → technology(5) → application(4) → security(3) → business(2) → motivation(1)
+  testing(13) → apm(12) → navigation(11) → ux(10) → data-store(9) → data-model(8) → api(7) → technology(6) → application(5) → security(4) → product(3) → business(2) → motivation(1)
 
 For this pair, valid schemas define relationships **from ${concreteLayer} node types to ${abstractLayer} node types**.
 ${existingSection}${predicateSection}
@@ -226,26 +228,12 @@ Rules:
   }
 
   /**
-   * Get the canonical layer number (1–12) for a layer name.
+   * Get the canonical layer number (1–13) for a layer name.
    * Returns 0 if the layer name is unrecognized.
    */
   private getLayerNumber(layer: string): number {
-    const order = [
-      "motivation",
-      "business",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-    const idx = order.indexOf(layer);
-    return idx >= 0 ? idx + 1 : 0;
+    const layerNum = getLayerOrder(layer);
+    return layerNum >= 0 ? layerNum : 0;
   }
 
   /**
@@ -258,6 +246,7 @@ Rules:
       motivation: "goal, driver, requirement, principle, constraint, outcome, stakeholder",
       business:
         "businessprocess, businessservice, businessfunction, businessrole, businessobject, businessactor, product",
+      product: "persona, capability, feature, userworkflow, milestone",
       security: "secureresource, securitypolicy, threat, control, accesscontrol, identitysubject",
       application:
         "applicationcomponent, applicationservice, applicationfunction, applicationinterface, applicationevent",
@@ -281,6 +270,7 @@ Rules:
     const standards: Record<string, string> = {
       motivation: "ArchiMate 3.2",
       business: "ArchiMate 3.2",
+      product: "Product Management Practice",
       security: "NIST SP 800-53",
       application: "ArchiMate 3.2",
       technology: "ArchiMate 3.2",

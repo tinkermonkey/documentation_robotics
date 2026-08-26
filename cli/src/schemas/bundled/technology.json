@@ -1,10 +1,10 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.10.0",
   "layer": {
     "id": "technology",
-    "number": 5,
+    "number": 6,
     "name": "Technology Layer",
-    "description": "Layer 5: Technology Layer",
+    "description": "Layer 6: Technology Layer",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",

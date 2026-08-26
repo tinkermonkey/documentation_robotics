@@ -1,5 +1,5 @@
 ---
-description: Use natural language to add, update, or query architecture model elements across all 12 layers
+description: Use natural language to add, update, or query architecture model elements across all 13 layers
 argument-hint: "<natural language request>"
 ---
 

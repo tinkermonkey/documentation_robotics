@@ -53,10 +53,11 @@ describe("Node Type Extraction", () => {
     }
   });
 
-  test("should generate node schemas for all 12 layers", async () => {
+  test("should generate node schemas for all 13 layers", async () => {
     const layerIds = [
       "motivation",
       "business",
+      "product",
       "security",
       "application",
       "technology",

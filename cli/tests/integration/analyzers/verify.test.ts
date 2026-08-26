@@ -72,7 +72,7 @@ describe("Verify Integration - Full Verify Flow", () => {
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create API layer with operation
@@ -123,7 +123,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create API layer
@@ -176,7 +176,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create API layer with one operation
@@ -263,7 +263,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create source file
@@ -332,7 +332,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create ignore file with path rule
@@ -416,7 +416,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create ignore file with handler glob rule
@@ -496,7 +496,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create source file
@@ -581,7 +581,7 @@ get-users:
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       // Create empty API layer
@@ -622,7 +622,7 @@ spec_version: "0.8.3"`
         `project:
   name: "Test Project"
   version: "1.0.0"
-spec_version: "0.8.3"`
+spec_version: "0.8.4"`
       );
 
       const apiYaml = `

@@ -28,6 +28,7 @@ export interface ProjectedModel {
   manifest: Manifest;
   layers: Map<string, Layer>;
   relationships: Relationships;
+  loadedLayerFilter?: string[];
   isProjection: true; // Always true; marks this as a temporary virtual projection
 }
 
@@ -415,6 +416,7 @@ export class VirtualProjectionEngine {
       manifest: baseModel.manifest,
       layers: projectedLayers,
       relationships: baseModel.relationships,
+      loadedLayerFilter: baseModel.loadedLayerFilter,
       isProjection: true,
     };
 

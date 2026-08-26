@@ -548,7 +548,20 @@ export class GraphModel implements IGraphModel {
       type: element.type,
       name: element.name,
       description: element.description,
-      properties: element.attributes || {},
+      // `properties` is a SEPARATE COPY of `attributes`, never the same object reference.
+      // `Layer`'s node<->Element conversion (layer.ts's constructor/addElement) mutates
+      // `node.properties` in place to stash graph-internal bookkeeping keys
+      // (__references__/__relationships__/__semanticId__) that have no separate channel
+      // on GraphNode. If `properties` and `attributes` aliased the same object (as they
+      // did before), those mutations leaked straight into `attributes` too — and
+      // `attributes` is exactly what `Model.saveLayer()` persists to YAML and what
+      // `Layer.elements`/`getElement()` read back as the element's real domain data.
+      // That aliasing is what let `__semanticId__` (added after __references__/
+      // __relationships__ were already accounted for elsewhere) slip past
+      // model.ts's internal-key filter and get written into persisted YAML. Copying
+      // here means a future bookkeeping key added to layer.ts's `nodeProperties` can
+      // never repeat that leak, regardless of whether model.ts's filter is kept in sync.
+      properties: element.attributes ? { ...element.attributes } : {},
       spec_node_id: element.spec_node_id || undefined,
       layer_id: element.layer_id || undefined,
       attributes: element.attributes && Object.keys(element.attributes).length > 0

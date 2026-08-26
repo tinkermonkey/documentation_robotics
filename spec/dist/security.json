@@ -1,10 +1,10 @@
 {
-  "specVersion": "0.8.4",
+  "specVersion": "0.10.0",
   "layer": {
     "id": "security",
-    "number": 3,
+    "number": 4,
     "name": "Security Layer",
-    "description": "Layer 3: Security Layer",
+    "description": "Layer 4: Security Layer",
     "inspired_by": {
       "standard": "NIST SP 800-53",
       "version": "5.1",

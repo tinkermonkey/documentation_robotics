@@ -319,4 +319,69 @@ describe("ReferenceValidator", () => {
 
     expect(result.isValid()).toBe(true);
   });
+
+  describe("loadedLayerFilter behavior", () => {
+    it("should skip validation for references targeting unloaded layers when filter is active", () => {
+      const validator = new ReferenceValidator();
+      const model = createTestModel();
+
+      // Only load motivation layer
+      model.loadedLayerFilter = ["motivation"];
+
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-revenue",
+          type: "Goal",
+          name: "Increase Revenue",
+          // Reference to element in unloaded layer (business)
+          references: [{ target: "business-process-sales-nonexistent", type: "implements" }],
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+
+      const result = validator.validateModel(model);
+
+      // Should skip validation and not report error since target is in unloaded layer
+      expect(result.isValid()).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should report missing elements in loaded layers even when filter is active", () => {
+      const validator = new ReferenceValidator();
+      const model = createTestModel();
+
+      // Load both motivation and business layers
+      model.loadedLayerFilter = ["motivation", "business"];
+
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-revenue",
+          type: "Goal",
+          name: "Increase Revenue",
+          // Reference to element in loaded layer but doesn't exist
+          references: [{ target: "business-process-nonexistent", type: "implements" }],
+        }),
+      ]);
+
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "business-process-sales",
+          type: "Process",
+          name: "Sales Process",
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+      model.addLayer(businessLayer);
+
+      const result = validator.validateModel(model);
+
+      // Should report error since target is in a loaded layer but doesn't exist
+      expect(result.isValid()).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].message).toContain("Broken reference");
+      expect(result.errors[0].message).toContain("business-process-nonexistent");
+    });
+  });
 });
