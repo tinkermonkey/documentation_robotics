@@ -425,7 +425,6 @@ export class ClaudeCodeClient extends BaseChatClient {
     if (options?.withDanger) {
       args.push("--dangerously-skip-permissions");
     } else {
-      // Add read-safe permissions allowlist for default mode
       args.push("--allowedTools", formatForClaudeCode());
     }
 

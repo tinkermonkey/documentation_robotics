@@ -1,15 +1,5 @@
-/**
- * Integration tests for read-safe permissions in Claude Code launch paths
- *
- * Tests verify that:
- * 1. `dr chat` (Claude Code, default mode) passes the read-safe allowlist
- * 2. `dr visualize` (Claude Code, default mode) passes the read-safe allowlist
- * 3. Default-mode sessions cannot write/edit/delete files
- * 4. --with-danger behavior remains unchanged
- * 5. Read operations work without permission prompts in default mode
- */
-
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+// Integration tests for read-safe permissions in Claude Code launch paths
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ClaudeCodeClient } from "../../src/coding-agents/claude-code-client.js";
 import { ChatOptions } from "../../src/coding-agents/base-chat-client.js";
 import { formatForClaudeCode } from "../../src/coding-agents/default-permissions.js";
@@ -17,7 +7,7 @@ import { VisualizationServer } from "../../src/server/server.js";
 import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-describe("Default Permissions in Launch Paths (Phase 2)", () => {
+describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
   let workdir: any;
   let testModel: Model;
 
@@ -169,19 +159,8 @@ describe("Default Permissions in Launch Paths (Phase 2)", () => {
 
     describe("Default mode permission handling", () => {
       it("should include --allowedTools in launch args when withDanger is false", () => {
-        // Access the private method via type casting for testing
-        const buildCommand = (withDanger: boolean) => {
-          const cmd = ["claude", "--agent", "dr-architect", "--print"];
-          if (withDanger) {
-            cmd.push("--dangerously-skip-permissions");
-          } else {
-            cmd.push("--allowedTools", formatForClaudeCode());
-          }
-          cmd.push("--verbose", "--output-format", "stream-json");
-          return cmd;
-        };
-
-        const args = buildCommand(false);
+        // Call the actual buildClaudeChatArgs method via type casting for testing
+        const args = (server as any).buildClaudeChatArgs();
 
         expect(args).toContain("--allowedTools");
         const allowedToolsIndex = args.indexOf("--allowedTools");
@@ -190,18 +169,8 @@ describe("Default Permissions in Launch Paths (Phase 2)", () => {
       });
 
       it("should NOT include --dangerously-skip-permissions in default mode", () => {
-        const buildCommand = (withDanger: boolean) => {
-          const cmd = ["claude", "--agent", "dr-architect", "--print"];
-          if (withDanger) {
-            cmd.push("--dangerously-skip-permissions");
-          } else {
-            cmd.push("--allowedTools", formatForClaudeCode());
-          }
-          cmd.push("--verbose", "--output-format", "stream-json");
-          return cmd;
-        };
-
-        const args = buildCommand(false);
+        // Call the actual buildClaudeChatArgs method via type casting for testing
+        const args = (server as any).buildClaudeChatArgs();
 
         expect(args).not.toContain("--dangerously-skip-permissions");
       });
@@ -211,18 +180,8 @@ describe("Default Permissions in Launch Paths (Phase 2)", () => {
       it("should use --dangerously-skip-permissions when withDanger is true", () => {
         const dangerServer = new VisualizationServer(testModel, { withDanger: true });
 
-        const buildCommand = (withDanger: boolean) => {
-          const cmd = ["claude", "--agent", "dr-architect", "--print"];
-          if (withDanger) {
-            cmd.push("--dangerously-skip-permissions");
-          } else {
-            cmd.push("--allowedTools", formatForClaudeCode());
-          }
-          cmd.push("--verbose", "--output-format", "stream-json");
-          return cmd;
-        };
-
-        const args = buildCommand(true);
+        // Call the actual buildClaudeChatArgs method on the danger server
+        const args = (dangerServer as any).buildClaudeChatArgs();
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");
@@ -323,17 +282,10 @@ describe("Default Permissions in Launch Paths (Phase 2)", () => {
       });
 
       it("should still use --dangerously-skip-permissions in server", () => {
-        const buildCommand = (withDanger: boolean) => {
-          const cmd = ["claude", "--agent", "dr-architect", "--print"];
-          if (withDanger) {
-            cmd.push("--dangerously-skip-permissions");
-          } else {
-            cmd.push("--allowedTools", formatForClaudeCode());
-          }
-          return cmd;
-        };
+        const dangerServer = new VisualizationServer(testModel, { withDanger: true });
 
-        const args = buildCommand(true);
+        // Call the actual buildClaudeChatArgs method on the danger server
+        const args = (dangerServer as any).buildClaudeChatArgs();
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");

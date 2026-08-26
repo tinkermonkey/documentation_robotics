@@ -2036,6 +2036,23 @@ export class VisualizationServer {
   }
 
   /**
+   * Build command arguments for Claude Code launch
+   */
+  private buildClaudeChatArgs(): string[] {
+    const cmd = ["claude", "--agent", "dr-architect", "--print"];
+
+    // Apply permissions: either full access or read-safe allowlist
+    if (this.withDanger) {
+      cmd.push("--dangerously-skip-permissions");
+    } else {
+      cmd.push("--allowedTools", formatForClaudeCode());
+    }
+
+    cmd.push("--verbose", "--output-format", "stream-json");
+    return cmd;
+  }
+
+  /**
    * Launch Claude Code CLI with dr-architect agent and stream responses
    */
   private async launchClaudeCodeChat(
@@ -2045,18 +2062,7 @@ export class VisualizationServer {
     requestId: string | number | undefined
   ): Promise<void> {
     try {
-      // Build command arguments
-      const cmd = ["claude", "--agent", "dr-architect", "--print"];
-
-      // Apply permissions: either full access or read-safe allowlist
-      if (this.withDanger) {
-        cmd.push("--dangerously-skip-permissions");
-      } else {
-        // Add read-safe permissions allowlist for default mode
-        cmd.push("--allowedTools", formatForClaudeCode());
-      }
-
-      cmd.push("--verbose", "--output-format", "stream-json");
+      const cmd = this.buildClaudeChatArgs();
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary
       if (this._testClaudeCmdOverride) {
