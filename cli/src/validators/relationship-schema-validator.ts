@@ -210,6 +210,11 @@ export class RelationshipValidator {
   ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
     const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
 
+    // Variables to cache found elements and avoid redundant lookups
+    let sourceElement: any = null;
+    let targetElement: any = null;
+    let bothInFilterAndFound = false;
+
     // Check if relationship crosses layer boundary when --layers filter is active
     if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
       const sourceLayer = this.extractLayerFromElementId(relationship.source);
@@ -230,7 +235,7 @@ export class RelationshipValidator {
         // If at least one endpoint is in a loaded layer, check if both elements exist in loaded layers
         // If one is missing from a loaded layer, report error (genuine break)
         if (sourceInFilter) {
-          const sourceElement = this.findElementInModel(model, relationship.source);
+          sourceElement = this.findElementInModel(model, relationship.source);
           if (!sourceElement) {
             errors.push({
               layer: relationship.layer,
@@ -242,7 +247,7 @@ export class RelationshipValidator {
         }
 
         if (targetInFilter) {
-          const targetElement = this.findElementInModel(model, relationship.target);
+          targetElement = this.findElementInModel(model, relationship.target);
           if (!targetElement) {
             errors.push({
               layer: relationship.layer,
@@ -257,14 +262,19 @@ export class RelationshipValidator {
         if (!sourceInFilter || !targetInFilter) {
           return errors;
         }
+
+        // Both endpoints are in loaded layers and we've already found them
+        bothInFilterAndFound = true;
       }
       // If we can't parse layers (unparseable element IDs), proceed to validation
       // where findElementInModel will fail with a proper error message
     }
 
-    // Find source and destination elements (for full validation when no filter or all in filter)
-    const sourceElement = this.findElementInModel(model, relationship.source);
-    const targetElement = this.findElementInModel(model, relationship.target);
+    // Find source and destination elements only if we haven't already found them
+    if (!bothInFilterAndFound) {
+      sourceElement = this.findElementInModel(model, relationship.source);
+      targetElement = this.findElementInModel(model, relationship.target);
+    }
 
     if (!sourceElement) {
       errors.push({
