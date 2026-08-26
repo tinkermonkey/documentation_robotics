@@ -45,6 +45,7 @@ import { repairAttributeCollisionCommand } from "./commands/repair.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage } from "./utils/errors.js";
+import { getCliVersion } from "./utils/spec-version.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -90,9 +91,7 @@ async function extractExitCode(error: unknown): Promise<number> {
   return 1;
 }
 
-// Declare build-time constant (substituted by esbuild)
-declare const CLI_VERSION: string;
-const cliVersion = typeof CLI_VERSION !== "undefined" ? CLI_VERSION : "0.1.3";
+const cliVersion = getCliVersion();
 
 const program = new Command();
 
@@ -636,6 +635,34 @@ The --viewer-path option allows loading a local build of the web UI:
       withDanger: options.withDanger,
       viewerPath: options.viewerPath,
     });
+  });
+
+program
+  .command("mcp")
+  .description("Start MCP server for AI assistant integration (stdio transport)")
+  .option(
+    "--regenerate-key",
+    "Generate a new MCP API key, overwrite it at the configured storage path, and print it (does not start the server)"
+  )
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr mcp
+  $ dr mcp --regenerate-key
+
+On first launch, generates an API key and asks where to store it (interactive
+sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
+printed to stderr on every launch and must be supplied via DR_MCP_API_KEY:
+
+  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }
+
+Use --regenerate-key to rotate the key (e.g. after a suspected leak) without
+manually deleting the stored key file or config.`
+  )
+  .action(async (options) => {
+    const { mcpCommand } = await import("./commands/mcp.js");
+    await mcpCommand({ regenerateKey: options.regenerateKey });
   });
 
 // AI Integration command

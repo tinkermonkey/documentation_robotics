@@ -31,7 +31,7 @@ describe("Flag Effectiveness Tests", () => {
           name: "Flag Test Model - Strict",
           version: "1.0.0",
           description: "Test model for --strict flag effectiveness",
-          specVersion: "0.8.4",
+          specVersion: "0.8.3",
           created: new Date().toISOString(),
         },
         { lazyLoad: false }
@@ -70,7 +70,7 @@ describe("Flag Effectiveness Tests", () => {
         type: "requirement",
         name: "System Performance",
         // No description field at all
-        attributes: { requirementType: "functional", priority: "high" },
+        attributes: { requirementType: "non-functional", priority: "high" },
       });
 
       motivationLayer.addElement(goalWithDesc);
@@ -175,7 +175,7 @@ describe("Flag Effectiveness Tests", () => {
           name: "Flag Test Model - Verbose",
           version: "1.0.0",
           description: "Test model for --verbose flag effectiveness",
-          specVersion: "0.8.4",
+          specVersion: "0.8.3",
           created: new Date().toISOString(),
         },
         { lazyLoad: false }

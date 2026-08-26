@@ -36,7 +36,7 @@ pipelines:
 
   - name: "Element inspection"
     steps:
-      - command: 'add motivation goal inspect-test-goal --name ''Test Goal for Inspection'' --description ''Goal to inspect'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal inspect-test-goal --name ''Test Goal for Inspection'' --description ''Goal to inspect'' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -64,7 +64,7 @@ pipelines:
   - name: "Invalid element ID format"
     description: "Verify that underscores in element IDs are normalized to hyphens"
     steps:
-      - command: 'add motivation goal invalid_id_with_underscore --name ''Invalid ID'' --description ''Testing invalid ID format'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal invalid_id_with_underscore --name ''Invalid ID'' --description ''Testing invalid ID format'' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -81,13 +81,13 @@ pipelines:
   - name: "Duplicate element creation"
     description: "Verify error when attempting to create duplicate element"
     steps:
-      - command: 'add motivation goal dup-test-goal --name ''Duplicate Test'' --description ''First goal'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal dup-test-goal --name ''Duplicate Test'' --description ''First goal'' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
         expect_exit_code: 0
 
-      - command: 'add motivation goal dup-test-goal --name ''Duplicate Test 2'' --description ''Second goal with same ID'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal dup-test-goal --name ''Duplicate Test 2'' --description ''Second goal with same ID'' --attributes ''{"priority": "medium"}'''
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:
@@ -105,7 +105,7 @@ pipelines:
       - command: 'add api operation missing-name-operation --description ''Missing required name'' --attributes ''{"operationId":"missing-name-operation","summary":"Missing Name Operation","tags":"test"}'''
         files_to_compare:
           - manifest.yaml
-          - 07_api/operation.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "missing-name-operation"
@@ -113,16 +113,16 @@ pipelines:
       - command: "delete api.operation.missing-name-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 07_api/operation.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
 
   - name: "Reference to non-existent element"
     description: "Verify validation when referencing non-existent elements"
     steps:
-      - command: 'add data-store collection ref-test-table --name ''test_collection'' --description ''Collection for reference test'' --attributes ''{"collectionType":"TABLE"}'''
+      - command: "add data-store collection ref-test-table --name 'test_collection' --description 'Collection for reference test'"
         files_to_compare:
           - manifest.yaml
-          - 09_data-store/collection.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.ref-test-table nonexistent-element --predicate composes"
@@ -134,7 +134,7 @@ pipelines:
       - command: "delete data-store.collection.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 09_data-store/collection.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
   - name: "Invalid layer name"

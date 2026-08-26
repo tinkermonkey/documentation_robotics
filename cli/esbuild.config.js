@@ -15,10 +15,10 @@ try {
 }
 
 // Capture CLI version from package.json at build time
-let cliVersion = '0.1.3';
+let cliVersion = '0.0.0';
 try {
   const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
-  cliVersion = pkg.version || '0.1.3';
+  cliVersion = pkg.version || '0.0.0';
 } catch (error) {
   console.warn('Warning: Could not read CLI version from package.json.');
 }

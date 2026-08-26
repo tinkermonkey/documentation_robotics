@@ -57,28 +57,23 @@ else
 fi
 
 # ============================================================================
-# Build CLI if dist/cli.js is missing (required for integration tests)
+# Force-rebuild CLI (required for integration tests)
 # ============================================================================
 # Integration tests depend on the compiled CLI binary at cli/dist/cli.js.
 # The test setup (tests/setup.ts) imports from dist/core/golden-copy-cache.js
 # and the CLI runner (tests/helpers/cli-runner.ts) spawns node dist/cli.js.
 # Since source code is bind-mounted at runtime, the dist/ directory must be
 # built after the mount is in place.
-if [ -d "$CLI_DIR/src" ] && [ ! -f "$CLI_DIR/dist/cli.js" ]; then
-  echo "[agent-entrypoint] CLI dist/cli.js not found — building CLI..."
+#
+# IMPORTANT: Always force-rebuild — never rely on dist/cli.js existence.
+# A stale dist/cli.js from a prior repair cycle will silently pass an
+# existence check but test against outdated code, producing false failures
+# (e.g., dependency counts of 0, direct/transitive count mismatches).
+if [ -d "$CLI_DIR/src" ]; then
+  echo "[agent-entrypoint] Force-rebuilding CLI to ensure dist/ matches current source..."
 
-  # Clean stale build artifacts to prevent type definition mismatches.
-  # Stale .tsbuildinfo or cached .d.ts files in dist/ can cause TypeScript
-  # to see outdated function signatures (e.g., isValidLayerName expecting
-  # CanonicalLayerName instead of string). Removing dist/ and tsbuildinfo
-  # forces a clean compilation from source.
-  if [ -d "$CLI_DIR/dist" ]; then
-    echo "[agent-entrypoint] Removing stale dist/ to prevent type cache issues..."
-    rm -rf "$CLI_DIR/dist"
-  fi
-  if [ -f "$CLI_DIR/tsconfig.tsbuildinfo" ]; then
-    rm -f "$CLI_DIR/tsconfig.tsbuildinfo"
-  fi
+  # Remove stale build artifacts unconditionally.
+  rm -rf "$CLI_DIR/dist" "$CLI_DIR/tsconfig.tsbuildinfo"
 
   # Install root dependencies (needed for build:spec via tsx)
   if [ -f "$PROJECT_DIR/package.json" ] && [ ! -d "$PROJECT_DIR/node_modules" ]; then

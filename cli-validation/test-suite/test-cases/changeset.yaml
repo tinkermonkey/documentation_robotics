@@ -19,7 +19,7 @@ pipelines:
         expect_stdout_contains:
           - "Activated"
 
-      - command: 'add motivation goal lifecycle-goal-001 --name ''Lifecycle Test Goal'' --description ''Goal created within changeset'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal lifecycle-goal-001 --name ''Lifecycle Test Goal'' --description ''Goal created within changeset'' --attributes ''{"priority": "medium"}'''
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
@@ -74,7 +74,7 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: 'add motivation goal multi-goal-001 --name ''Multi Goal'' --description ''Goal for deletion testing'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal multi-goal-001 --name ''Multi Goal'' --description ''Goal for deletion testing'' --attributes ''{"priority": "medium"}'''
         files_to_compare: []
         expect_exit_code: 0
 

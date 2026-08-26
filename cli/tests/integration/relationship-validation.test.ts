@@ -18,10 +18,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
 import { createTempWorkdir } from "../helpers/cli-runner.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> } = {
-  path: "",
-  cleanup: async () => {}
-};
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 async function runDr(
   ...args: string[]
@@ -53,7 +50,7 @@ describe("Relationship Validation", () => {
         "field",
         "Customer ID",
         "--attributes",
-        '{"dataType":"string"}'
+        '{"dataType":"VARCHAR"}'
       );
 
       // Add intra-layer relationship between them
@@ -74,9 +71,7 @@ describe("Relationship Validation", () => {
       expect(result.stdout).toContain("relationships validated");
 
       // Extract the number from "X relationships validated"
-      const relationshipMatch = result.stdout.match(
-        /(\d+)\s+relationships?\s+validated/i
-      );
+      const relationshipMatch = result.stdout.match(/(\d+)\s+relationships?\s+validated/i);
       expect(relationshipMatch).toBeDefined();
       const relationshipCount = parseInt(relationshipMatch![1], 10);
       expect(relationshipCount).toBeGreaterThan(0);
@@ -92,7 +87,7 @@ describe("Relationship Validation", () => {
         "goal",
         "Test Goal",
         "--attributes",
-        '{"priority":"high"}'
+        '{"priority":"medium"}'
       );
 
       // Run standard validate
@@ -125,7 +120,7 @@ describe("Relationship Validation", () => {
         "goal",
         "Orphan Test Goal",
         "--attributes",
-        '{"priority":"high"}'
+        '{"priority":"medium"}'
       );
 
       // Run validate with verbose output to see body warnings
@@ -137,9 +132,7 @@ describe("Relationship Validation", () => {
       expect(result.stdout).toContain("orphaned");
 
       // Extract warning count from summary (format: "0 error(s), N warning(s)")
-      const summaryMatch = result.stdout.match(
-        /(\d+)\s+error\(s\),\s+(\d+)\s+warning\(s\)/
-      );
+      const summaryMatch = result.stdout.match(/(\d+)\s+error\(s\),\s+(\d+)\s+warning\(s\)/);
       expect(summaryMatch).toBeDefined();
 
       const warningCount = parseInt(summaryMatch![2], 10);
@@ -158,7 +151,7 @@ describe("Relationship Validation", () => {
         "field",
         "Order ID",
         "--attributes",
-        '{"dataType":"string"}'
+        '{"dataType":"VARCHAR"}'
       );
       await runDr(
         "add",
@@ -166,7 +159,7 @@ describe("Relationship Validation", () => {
         "field",
         "Customer ID",
         "--attributes",
-        '{"dataType":"string"}'
+        '{"dataType":"VARCHAR"}'
       );
 
       // Add two relationships
@@ -196,9 +189,7 @@ describe("Relationship Validation", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("relationships validated");
 
-      const relationshipMatch = result.stdout.match(
-        /(\d+)\s+relationships?\s+validated/i
-      );
+      const relationshipMatch = result.stdout.match(/(\d+)\s+relationships?\s+validated/i);
       expect(relationshipMatch).toBeDefined();
       const relationshipCount = parseInt(relationshipMatch![1], 10);
       expect(relationshipCount).toBeGreaterThanOrEqual(2);

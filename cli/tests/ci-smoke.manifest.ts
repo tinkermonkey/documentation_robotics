@@ -51,4 +51,7 @@ export const SMOKE_TESTS: string[] = [
 
   // Cross-Layer References
   "tests/integration/source-reference.test.ts",
+
+  // MCP Server
+  "tests/integration/mcp-server-smoke.test.ts",
 ];

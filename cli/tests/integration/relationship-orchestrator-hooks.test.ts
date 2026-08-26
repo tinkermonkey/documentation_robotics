@@ -27,7 +27,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
       name: "Relationship Orchestrator Test",
       description: "Test model for relationship orchestrator hooks",
       version: "1.0.0",
-      specVersion: "0.8.4",
+      specVersion: "0.8.3",
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
     });
@@ -46,13 +46,11 @@ describe("Relationship Command Orchestrator Hooks", () => {
       id: "motivation.goal.motivation-goal-goal-a",
       type: "goal",
       name: "Goal A",
-      attributes: { priority: "high" },
     }));
     motivationLayer.addElement(new Element({
       id: "motivation.goal.motivation-goal-goal-b",
       type: "goal",
       name: "Goal B",
-      attributes: { priority: "high" },
     }));
 
     businessLayer.addElement(new Element({
@@ -62,24 +60,21 @@ describe("Relationship Command Orchestrator Hooks", () => {
     }));
 
     applicationLayer.addElement(new Element({
-      id: "application.applicationservice.application-service-service-b",
-      type: "applicationservice",
+      id: "application.service.application-service-service-b",
+      type: "service",
       name: "Service B",
-      attributes: { serviceType: "synchronous" },
     }));
 
     apiLayer.addElement(new Element({
       id: "api.endpoint.api-endpoint-endpoint-1",
       type: "endpoint",
       name: "Endpoint 1",
-      attributes: { operationId: "get-endpoint", summary: "Get endpoint", tags: "endpoint" },
     }));
 
     dataModelLayer.addElement(new Element({
-      id: "data-model.schemadefinition.data-model-entity-entity-1",
-      type: "schemadefinition",
+      id: "data-model.entity.data-model-entity-entity-1",
+      type: "entity",
       name: "Entity 1",
-      attributes: { title: "Entity", type: "object" },
     }));
 
     model.addLayer(motivationLayer);
@@ -134,10 +129,21 @@ describe("Relationship Command Orchestrator Hooks", () => {
 
     it("should handle relationships between different layers", async () => {
       // This test verifies the handler correctly passes all affected layers to regenerate
-      // using a valid cross-layer relationship (application.service -> business.businessservice)
+      // using a valid cross-layer relationship (business.businessservice -> motivation.value via delivers-value)
 
       let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
+
+      // First, add a motivation value to test against
+      const motivationLayer = await model.getLayer("motivation");
+      if (motivationLayer) {
+        motivationLayer.addElement(new Element({
+          id: "motivation.value.motivation-value-customer-value",
+          type: "value",
+          name: "Customer Value",
+        }));
+        await model.saveLayer("motivation");
+      }
 
       const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
         regenerateCallCount++;
@@ -145,21 +151,21 @@ describe("Relationship Command Orchestrator Hooks", () => {
       });
 
       try {
-        // Test with a valid cross-layer relationship from application to business
+        // Test with a valid cross-layer relationship from business to motivation
         // The handler should identify and pass both layers to regenerate
         await addRelationshipHandler(
           model,
-          "application.applicationservice.application-service-service-b",
           "business.businessservice.business-businessservice-service-a",
-          "realizes"
+          "motivation.value.motivation-value-customer-value",
+          "delivers-value"
         );
 
         // Verify both layers were passed to regenerate by the handler
         expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.size).toBe(2);
-        expect(regenerateCalledWith!.has("application")).toBe(true);
         expect(regenerateCalledWith!.has("business")).toBe(true);
+        expect(regenerateCalledWith!.has("motivation")).toBe(true);
       } finally {
         regenerateSpy.mockRestore();
       }
@@ -212,7 +218,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
       // Setup: Add cross-layer relationship first
       model.relationships.add({
         source: "api.endpoint.api-endpoint-endpoint-1",
-        target: "data-model.schemadefinition.data-model-entity-entity-1",
+        target: "data-model.entity.data-model-entity-entity-1",
         predicate: "returns",
         layer: "api",
         targetLayer: "data-model",
@@ -234,7 +240,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
         await deleteRelationshipHandler(
           model,
           "api.endpoint.api-endpoint-endpoint-1",
-          "data-model.schemadefinition.data-model-entity-entity-1"
+          "data-model.entity.data-model-entity-entity-1"
         );
 
         // Verify both layers were passed to regenerate by the handler
@@ -250,27 +256,28 @@ describe("Relationship Command Orchestrator Hooks", () => {
 
     it("should include transitively related layers when computing affected layers", async () => {
       // This test verifies that the orchestrator computes transitive relationships
-      // by creating a chain: application -> business -> motivation
+      // by creating a chain: motivation -> business -> application
       // When we modify a relationship in business, all three layers should be regenerated
 
+      // Setup: First add a motivation value that can be targeted
+      const motivationLayer = await model.getLayer("motivation");
+      if (motivationLayer) {
+        motivationLayer.addElement(new Element({
+          id: "motivation.value.motivation-value-business-value",
+          type: "value",
+          name: "Business Value",
+        }));
+        await model.saveLayer("motivation");
+      }
+
       // Create a chain of cross-layer relationships
-      // application -> business (via realizes)
+      // application -> business (via aggregates)
       model.relationships.add({
-        source: "application.applicationservice.application-service-service-b",
+        source: "application.service.application-service-service-b",
         target: "business.businessservice.business-businessservice-service-a",
-        predicate: "realizes",
+        predicate: "aggregates",
         layer: "application",
         targetLayer: "business",
-        category: "structural",
-      });
-
-      // business -> motivation (via realizes) - different goal
-      model.relationships.add({
-        source: "business.businessservice.business-businessservice-service-a",
-        target: "motivation.goal.motivation-goal-goal-b",
-        predicate: "realizes",
-        layer: "business",
-        targetLayer: "motivation",
         category: "structural",
       });
 
@@ -286,13 +293,13 @@ describe("Relationship Command Orchestrator Hooks", () => {
       });
 
       try {
-        // Add a NEW relationship in the business layer (to goal-a, not goal-b which we created above)
-        // This should cascade to both motivation and application layers
+        // Add a new relationship in the business layer, which should cascade
+        // to both motivation and application layers
         await addRelationshipHandler(
           model,
           "business.businessservice.business-businessservice-service-a",
-          "motivation.goal.motivation-goal-goal-a",
-          "realizes"
+          "motivation.value.motivation-value-business-value",
+          "delivers-value"
         );
 
         // Verify all transitively affected layers are included

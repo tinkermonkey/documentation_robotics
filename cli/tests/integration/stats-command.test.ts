@@ -6,10 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTempWorkdir, runDr, stripAnsi } from "../helpers/cli-runner.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> } = {
-  path: "",
-  cleanup: async () => {}
-};
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 describe("stats command", () => {
   beforeEach(async () => {
@@ -32,10 +29,40 @@ describe("stats command", () => {
     expect(result.stdout).toContain("Elements by Layer");
   });
 
-  it("should display relationship statistics", async () => {
-    await runDr(["init", "--name", "Relationship Stats"], {
-      cwd: tempDir.path
+  it("should show element counts by layer", async () => {
+    await runDr(["init", "--name", "Layer Stats Model"], { cwd: tempDir.path });
+
+    // Add elements to different layers
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "test-operation-1",
+        "--name",
+        "GET /users",
+        "--attributes",
+        '{"operationId":"getUsers","summary":"Get users","tags":"users"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
+    await runDr(["add", "business", "businessservice", "test-service-1", "--name", "User Service"], {
+      cwd: tempDir.path,
     });
+
+    const result = await runDr(["stats"], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    const output = stripAnsi(result.stdout);
+    expect(output).toContain("api");
+    expect(output).toContain("business");
+    expect(output).toContain("2 elements");
+  });
+
+  it("should display relationship statistics", async () => {
+    await runDr(["init", "--name", "Relationship Stats"], { cwd: tempDir.path });
 
     // Add elements
     await runDr(
@@ -47,36 +74,21 @@ describe("stats command", () => {
         "--name",
         "Satisfy users",
         "--attributes",
-        '{"priority":"high"}'
+        '{"priority":"high"}',
       ],
       {
-        cwd: tempDir.path
+        cwd: tempDir.path,
       }
     );
-    await runDr(
-      [
-        "add",
-        "business",
-        "service",
-        "test-service-1",
-        "--name",
-        "User Service"
-      ],
-      {
-        cwd: tempDir.path
-      }
-    );
+    await runDr(["add", "business", "service", "test-service-1", "--name", "User Service"], {
+      cwd: tempDir.path,
+    });
 
     // Add relationship
     await runDr(
-      [
-        "relationship",
-        "add",
-        "motivation.goal.test-goal-1",
-        "business.service.test-service-1"
-      ],
+      ["relationship", "add", "motivation.goal.test-goal-1", "business.service.test-service-1"],
       {
-        cwd: tempDir.path
+        cwd: tempDir.path,
       }
     );
 
@@ -104,9 +116,7 @@ describe("stats command", () => {
   it("should support JSON format", async () => {
     await runDr(["init", "--name", "JSON Stats"], { cwd: tempDir.path });
 
-    const result = await runDr(["stats", "--format", "json"], {
-      cwd: tempDir.path
-    });
+    const result = await runDr(["stats", "--format", "json"], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
 
@@ -122,9 +132,7 @@ describe("stats command", () => {
   it("should support markdown format", async () => {
     await runDr(["init", "--name", "Markdown Stats"], { cwd: tempDir.path });
 
-    const result = await runDr(["stats", "--format", "markdown"], {
-      cwd: tempDir.path
-    });
+    const result = await runDr(["stats", "--format", "markdown"], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("# Markdown Stats");
@@ -137,30 +145,21 @@ describe("stats command", () => {
     await runDr(["init", "--name", "File Output Stats"], { cwd: tempDir.path });
 
     // Test JSON file output
-    const jsonResult = await runDr(["stats", "--output", "stats.json"], {
-      cwd: tempDir.path
-    });
+    const jsonResult = await runDr(["stats", "--output", "stats.json"], { cwd: tempDir.path });
     expect(jsonResult.exitCode).toBe(0);
     expect(jsonResult.stdout).toContain("stats.json");
 
     // Read the file
     const fs = await import("fs/promises");
-    const jsonContent = await fs.readFile(
-      `${tempDir.path}/stats.json`,
-      "utf-8"
-    );
+    const jsonContent = await fs.readFile(`${tempDir.path}/stats.json`, "utf-8");
     const stats = JSON.parse(jsonContent);
     expect(stats.project.name).toBe("File Output Stats");
   });
 
   it("should save markdown to file", async () => {
-    await runDr(["init", "--name", "Markdown File Stats"], {
-      cwd: tempDir.path
-    });
+    await runDr(["init", "--name", "Markdown File Stats"], { cwd: tempDir.path });
 
-    const result = await runDr(["stats", "--output", "stats.md"], {
-      cwd: tempDir.path
-    });
+    const result = await runDr(["stats", "--output", "stats.md"], { cwd: tempDir.path });
     expect(result.exitCode).toBe(0);
 
     // Read the file
@@ -168,6 +167,84 @@ describe("stats command", () => {
     const mdContent = await fs.readFile(`${tempDir.path}/stats.md`, "utf-8");
     expect(mdContent).toContain("# Markdown File Stats");
     expect(mdContent).toContain("## Overview");
+  });
+
+  it("should show detailed element types with verbose flag", async () => {
+    await runDr(["init", "--name", "Verbose Stats"], { cwd: tempDir.path });
+
+    // Add different element types
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-1",
+        "--name",
+        "Operation 1",
+        "--attributes",
+        '{"operationId":"operation1","summary":"Operation 1","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-2",
+        "--name",
+        "Operation 2",
+        "--attributes",
+        '{"operationId":"operation2","summary":"Operation 2","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
+
+    const result = await runDr(["stats", "--verbose"], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("operation");
+    // Should show type breakdowns
+    expect(result.stdout).toContain("2");
+  });
+
+  it("should handle models with many elements", async () => {
+    await runDr(["init", "--name", "Large Model Stats"], { cwd: tempDir.path });
+
+    // Add multiple elements to different layers
+    for (let i = 1; i <= 5; i++) {
+      await runDr(
+        [
+          "add",
+          "api",
+          "operation",
+          `operation-${i}`,
+          "--name",
+          `Operation ${i}`,
+          "--attributes",
+          `{"operationId":"operation${i}","summary":"Operation ${i}","tags":"ops"}`,
+        ],
+        {
+          cwd: tempDir.path,
+        }
+      );
+    }
+
+    for (let i = 1; i <= 3; i++) {
+      await runDr(["add", "business", "businessservice", `service-${i}`, "--name", `Service ${i}`], {
+        cwd: tempDir.path,
+      });
+    }
+
+    const result = await runDr(["stats"], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    const output = stripAnsi(result.stdout);
+    expect(output).toContain("8 elements");
   });
 
   it("should show validation status", async () => {
@@ -198,6 +275,34 @@ describe("stats command", () => {
     expect(hasProgressBar).toBe(true);
   });
 
+  it("should handle models without relationships gracefully", async () => {
+    await runDr(["init", "--name", "No Relationships Model"], { cwd: tempDir.path });
+
+    // Add an element but no relationships
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-1",
+        "--name",
+        "Lonely Operation",
+        "--attributes",
+        '{"operationId":"lonelyOperation","summary":"Lonely Operation","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
+
+    const result = await runDr(["stats"], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should show at least 1 element
+    const output = stripAnsi(result.stdout);
+    expect(output).toContain("1 elements");
+  });
+
   it("should format dates nicely in output", async () => {
     await runDr(["init", "--name", "Date Format Test"], { cwd: tempDir.path });
 
@@ -218,5 +323,46 @@ describe("stats command", () => {
       const parsedDate = new Date(dateStr);
       expect(isNaN(parsedDate.getTime())).toBe(false);
     }
+  });
+
+  it("should provide JSON with nested structure", async () => {
+    await runDr(["init", "--name", "Complex JSON"], { cwd: tempDir.path });
+
+    // Add elements to multiple layers
+    await runDr(
+      ["add", "motivation", "goal", "goal-1", "--name", "Goal 1", "--attributes", '{"priority":"high"}'],
+      { cwd: tempDir.path }
+    );
+    await runDr(
+      [
+        "add",
+        "api",
+        "operation",
+        "operation-1",
+        "--name",
+        "Operation 1",
+        "--attributes",
+        '{"operationId":"operation1","summary":"Operation 1","tags":"ops"}',
+      ],
+      {
+        cwd: tempDir.path,
+      }
+    );
+
+    const result = await runDr(["stats", "--format", "json"], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+
+    const stats = JSON.parse(result.stdout);
+
+    // Verify nested structure
+    expect(stats.project).toBeDefined();
+    expect(stats.project.name).toBe("Complex JSON");
+    expect(stats.statistics).toBeDefined();
+    expect(stats.statistics.totalElements).toBe(2);
+    expect(stats.layers).toBeInstanceOf(Array);
+    expect(stats.relationships).toBeDefined();
+    expect(stats.completeness).toBeDefined();
+    expect(stats.completeness.byLayer).toBeDefined();
   });
 });

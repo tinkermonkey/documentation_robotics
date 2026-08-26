@@ -38,7 +38,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Auth Validation",
         "--attributes",
-        '{"priority":1,"target":"user"}',
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/auth/validator.ts",
         "--source-provenance",
@@ -58,7 +58,11 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Create Customer Operation",
         "--attributes",
-        '{"operationId":"create-customer","summary":"Create a customer","tags":"customer"}',
+        JSON.stringify({
+          operationId: "createCustomer",
+          summary: "Create a new customer",
+          tags: "customer",
+        }),
         "--source-file",
         "src/api/endpoints/customer.ts",
         "--source-symbol",
@@ -189,7 +193,7 @@ describe("Source Reference CLI Integration Tests", () => {
           "--name",
           `Policy ${provenanceTypes[i]}`,
           "--attributes",
-          '{"priority":1,"target":"data"}',
+          JSON.stringify({ priority: 1, target: "endpoint" }),
           "--source-file",
           "src/auth/policy.ts",
           "--source-provenance",
@@ -212,7 +216,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Auth Policy",
         "--attributes",
-        '{"priority":1,"target":"user"}'
+        JSON.stringify({ priority: 1, target: "endpoint" })
       );
     });
 
@@ -343,7 +347,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Auth Policy",
         "--attributes",
-        '{"priority":1,"target":"user"}',
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/auth/validator.ts",
         "--source-symbol",
@@ -387,7 +391,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Policy Without Source",
         "--attributes",
-        '{"priority":1,"target":"data"}'
+        JSON.stringify({ priority: 1, target: "endpoint" })
       );
 
       const result = await runDr("show", "security.securitypolicy.no-source-policy");
@@ -406,7 +410,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Simple Policy",
         "--attributes",
-        '{"priority":2,"target":"service"}',
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/policy.ts",
         "--source-provenance",
@@ -432,7 +436,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "--name",
         "Policy Without Repo",
         "--attributes",
-        '{"priority":3,"target":"role"}',
+        JSON.stringify({ priority: 1, target: "endpoint" }),
         "--source-file",
         "src/policy.ts",
         "--source-provenance",
@@ -453,14 +457,14 @@ describe("Source Reference CLI Integration Tests", () => {
       const addResult = await runDr(
         "add",
         "application",
-        "applicationservice",
+        "applicationcomponent",
         "auth-service",
         "--name",
         "Authentication Service",
         "--description",
         "Core authentication component",
         "--attributes",
-        '{"serviceType":"synchronous"}',
+        JSON.stringify({ type: "internal" }),
         "--source-file",
         "src/services/auth.ts",
         "--source-provenance",
@@ -471,7 +475,7 @@ describe("Source Reference CLI Integration Tests", () => {
       // Step 2: Update to add symbol and repository context
       const updateResult = await runDr(
         "update",
-        "application.applicationservice.auth-service",
+        "application.applicationcomponent.auth-service",
         "--source-file",
         "src/services/auth.ts",
         "--source-symbol",
@@ -486,7 +490,7 @@ describe("Source Reference CLI Integration Tests", () => {
       expect(updateResult.exitCode).toBe(0);
 
       // Step 3: Display and verify all information
-      const showResult = await runDr("show", "application.applicationservice.auth-service");
+      const showResult = await runDr("show", "application.applicationcomponent.auth-service");
       expect(showResult.exitCode).toBe(0);
       expect(showResult.stdout).toContain("Authentication Service");
       expect(showResult.stdout).toContain("Core authentication component");

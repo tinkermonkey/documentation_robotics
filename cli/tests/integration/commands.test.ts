@@ -54,12 +54,11 @@ describe("CLI Commands Integration Tests", () => {
       );
 
       // Verify layer directories were created
-      for (let i = 1; i <= 13; i++) {
+      for (let i = 1; i <= 12; i++) {
         const layerNum = String(i).padStart(2, "0");
         const layers = [
           "motivation",
           "business",
-          "product",
           "security",
           "application",
           "technology",
@@ -88,7 +87,14 @@ describe("CLI Commands Integration Tests", () => {
     // Model is already initialized in the global beforeEach hook
 
     it("should add an element to a layer", async () => {
-      const result = await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
+      const result = await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
 
       expect(result.exitCode).toBe(0);
 
@@ -121,10 +127,10 @@ describe("CLI Commands Integration Tests", () => {
 
     it("should fail if element already exists", async () => {
       // Add element first
-      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
+      await runDr("add", "motivation", "goal", "Test Goal");
 
       // Try to add again
-      const result = await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
+      const result = await runDr("add", "motivation", "goal", "Test Goal");
 
       expect(result.exitCode).toBe(1);
     });
@@ -151,7 +157,7 @@ describe("CLI Commands Integration Tests", () => {
         "--description",
         "A test operation",
         "--attributes",
-        JSON.stringify({ operationId: "testOp", summary: "Test Operation", tags: "test" })
+        JSON.stringify({ operationId: "testOperation", summary: "Test operation", tags: "test" })
       );
 
       expect(result.exitCode).toBe(0);
@@ -225,7 +231,14 @@ describe("CLI Commands Integration Tests", () => {
     it("should fail with invalid element ID containing underscores", async () => {
       // With Python format, underscores in names are auto-converted to hyphens
       // so this test now passes and creates motivation.goal.test-goal
-      const result = await runDr("add", "motivation", "goal", "test_goal_test", "--attributes", '{"priority":"high"}');
+      const result = await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "test_goal_test",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
 
       expect(result.exitCode).toBe(0); // Now succeeds - underscores converted to hyphens
     });
@@ -259,7 +272,14 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Original Name", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Original Name",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should update element name", async () => {
@@ -345,7 +365,14 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should delete element with force flag", async () => {
@@ -402,7 +429,14 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should display element details", async () => {
@@ -423,9 +457,30 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Goal 1", "--attributes", '{"priority":"high"}');
-      await runDr("add", "motivation", "goal", "Goal 2", "--attributes", '{"priority":"medium"}');
-      await runDr("add", "motivation", "driver", "Driver 1", "--attributes", '{"category":"market"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Goal 1",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Goal 2",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "add",
+        "motivation",
+        "driver",
+        "Driver 1",
+        "--attributes",
+        JSON.stringify({ category: "market" })
+      );
     });
 
     it("should list all elements in layer", async () => {
@@ -484,7 +539,14 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("should handle multiple layers", async () => {
-      await runDr("add", "api", "operation", "Test Operation", "--attributes", JSON.stringify({ operationId: "testOp", summary: "Test Operation", tags: "test" }));
+      await runDr(
+        "add",
+        "api",
+        "operation",
+        "Test Operation",
+        "--attributes",
+        JSON.stringify({ operationId: "testOperation", summary: "Test operation", tags: "test" })
+      );
 
       const result1 = await runDr("list", "motivation");
       const result2 = await runDr("list", "api");
@@ -501,8 +563,22 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Improve System", "--attributes", '{"priority":"high"}');
-      await runDr("add", "motivation", "goal", "Enhance Security", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Improve System",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Enhance Security",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
       await runDr("add", "business", "businessprocess", "User Authentication");
     });
 
@@ -609,7 +685,7 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Test Goal", "--attributes", '{"priority":"high"}');
+      await runDr("add", "motivation", "goal", "Test Goal");
     });
 
     it("should validate valid model", async () => {
@@ -631,7 +707,7 @@ describe("CLI Commands Integration Tests", () => {
         "--name",
         "Test Goal",
         "--attributes",
-        '{"priority":"high"}'
+        JSON.stringify({ priority: "high" })
       );
 
       expect(result.exitCode).toBe(0);
@@ -643,8 +719,28 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("should list elements via element subcommand", async () => {
-      await runDr("element", "add", "motivation", "goal", "goal-1", "--name", "Goal 1", "--attributes", '{"priority":"high"}');
-      await runDr("element", "add", "motivation", "goal", "goal-2", "--name", "Goal 2", "--attributes", '{"priority":"medium"}');
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "goal-1",
+        "--name",
+        "Goal 1",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "goal-2",
+        "--name",
+        "Goal 2",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
 
       const result = await runDr("element", "list", "motivation");
 
@@ -665,7 +761,7 @@ describe("CLI Commands Integration Tests", () => {
         "--description",
         "Test Description",
         "--attributes",
-        '{"priority":"high"}'
+        JSON.stringify({ priority: "high" })
       );
 
       const result = await runDr("show", "motivation.goal.test-goal");
@@ -675,7 +771,17 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("show command should display element metadata", async () => {
-      await runDr("element", "add", "motivation", "goal", "test-goal", "--name", "Test Goal", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "test-goal",
+        "--name",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
 
       const result = await runDr("show", "motivation.goal.test-goal");
 
@@ -692,8 +798,28 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("element list should support --json output", async () => {
-      await runDr("element", "add", "motivation", "goal", "motivation-goal-1", "--name", "Goal 1", "--attributes", '{"priority":"high"}');
-      await runDr("element", "add", "motivation", "goal", "motivation-goal-2", "--name", "Goal 2", "--attributes", '{"priority":"medium"}');
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "motivation-goal-1",
+        "--name",
+        "Goal 1",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "motivation-goal-2",
+        "--name",
+        "Goal 2",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
 
       const result = await runDr("element", "list", "motivation", "--json");
 
@@ -706,7 +832,17 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("element list should filter by type with --type option", async () => {
-      await runDr("element", "add", "motivation", "goal", "motivation-goal-1", "--name", "Goal 1", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "element",
+        "add",
+        "motivation",
+        "goal",
+        "motivation-goal-1",
+        "--name",
+        "Goal 1",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
       await runDr(
         "element",
         "add",
@@ -714,7 +850,9 @@ describe("CLI Commands Integration Tests", () => {
         "driver",
         "motivation-driver-1",
         "--name",
-        "Driver 1"
+        "Driver 1",
+        "--attributes",
+        JSON.stringify({ category: "market" })
       );
 
       const result = await runDr("element", "list", "motivation", "--type", "goal");
@@ -730,9 +868,30 @@ describe("CLI Commands Integration Tests", () => {
       // Ensure parent setup has completed before this nested setup runs
       await ensureSetup();
       // Model is already initialized; add test data
-      await runDr("add", "motivation", "goal", "Goal 1", "--attributes", '{"priority":"high"}');
-      await runDr("add", "motivation", "goal", "Goal 2", "--attributes", '{"priority":"high"}');
-      await runDr("add", "motivation", "goal", "Goal 3", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Goal 1",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Goal 2",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Goal 3",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should add relationship between elements", async () => {
@@ -759,7 +918,14 @@ describe("CLI Commands Integration Tests", () => {
 
     it("should add valid cross-layer relationship", async () => {
       await runDr("add", "business", "businessservice", "Core Service");
-      await runDr("add", "motivation", "value", "Customer Value", "--attributes", '{"valueType":"financial"}');
+      await runDr(
+        "add",
+        "motivation",
+        "value",
+        "Customer Value",
+        "--attributes",
+        JSON.stringify({ valueType: "financial" })
+      );
 
       const result = await runDr(
         "relationship",
@@ -801,7 +967,14 @@ describe("CLI Commands Integration Tests", () => {
 
     it("should list cross-layer relationships with layer context", async () => {
       await runDr("add", "business", "businessservice", "Core Service");
-      await runDr("add", "motivation", "value", "Customer Value", "--attributes", '{"valueType":"financial"}');
+      await runDr(
+        "add",
+        "motivation",
+        "value",
+        "Customer Value",
+        "--attributes",
+        JSON.stringify({ valueType: "financial" })
+      );
       await runDr(
         "relationship", "add",
         "business.businessservice.core-service",
@@ -818,7 +991,14 @@ describe("CLI Commands Integration Tests", () => {
 
     it("should show cross-layer relationship with source and target layer", async () => {
       await runDr("add", "business", "businessservice", "Core Service");
-      await runDr("add", "motivation", "value", "Customer Value", "--attributes", '{"valueType":"financial"}');
+      await runDr(
+        "add",
+        "motivation",
+        "value",
+        "Customer Value",
+        "--attributes",
+        JSON.stringify({ valueType: "financial" })
+      );
       await runDr(
         "relationship", "add",
         "business.businessservice.core-service",
@@ -840,7 +1020,14 @@ describe("CLI Commands Integration Tests", () => {
 
     it("should delete cross-layer relationship", async () => {
       await runDr("add", "business", "businessservice", "Core Service");
-      await runDr("add", "motivation", "value", "Customer Value", "--attributes", '{"valueType":"financial"}');
+      await runDr(
+        "add",
+        "motivation",
+        "value",
+        "Customer Value",
+        "--attributes",
+        JSON.stringify({ valueType: "financial" })
+      );
       await runDr(
         "relationship", "add",
         "business.businessservice.core-service",

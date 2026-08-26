@@ -87,11 +87,25 @@ describe("Error Message Scenarios", () => {
 
     it("should error when adding duplicate element", async () => {
       // Add first time
-      const result1 = await runDr("add", "motivation", "goal", "test-goal", "--attributes", '{"priority":"high"}');
+      const result1 = await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "test-goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
       expect(result1.exitCode).toBe(0);
 
       // Add same element again
-      const result2 = await runDr("add", "motivation", "goal", "test-goal", "--attributes", '{"priority":"high"}');
+      const result2 = await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "test-goal",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
       expect(result2.exitCode).toBe(1);
       expect(result2.stderr).toContain("already exists");
       // Should include helpful suggestions
@@ -132,7 +146,7 @@ describe("Error Message Scenarios", () => {
   describe("Delete Command Errors", () => {
     beforeEach(async () => {
       await runDr("init", "--name", "Test Model");
-      await runDr("add", "motivation", "goal", "increase-revenue", "--attributes", '{"priority":"high"}');
+      await runDr("add", "motivation", "goal", "increase-revenue");
       await runDr("add", "business", "service", "customer-service");
     });
 
@@ -248,7 +262,14 @@ describe("Error Message Scenarios", () => {
   describe("Dry-run and Recovery Guidance", () => {
     beforeEach(async () => {
       await runDr("init", "--name", "Test Model");
-      await runDr("add", "motivation", "goal", "goal-1", "--attributes", '{"priority":"high"}');
+      await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "goal-1",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
+      );
     });
 
     it("should support --dry-run for delete operations", async () => {

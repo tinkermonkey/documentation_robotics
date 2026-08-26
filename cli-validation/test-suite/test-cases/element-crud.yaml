@@ -5,7 +5,7 @@ priority: high
 pipelines:
   - name: "Add and update motivation goal"
     steps:
-      - command: 'add motivation goal test-goal --name ''Test Strategic Goal'' --description ''Test goal for verification'' --attributes ''{"priority":"high"}'''
+      - command: 'add motivation goal test-goal --name ''Test Strategic Goal'' --description ''Test goal for verification'' --attributes ''{"priority": "medium"}'''
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goal.yaml
@@ -32,10 +32,10 @@ pipelines:
 
   - name: "Add application component lifecycle"
     steps:
-      - command: 'add application component test-component --name ''Test Component'' --description ''Test application component'' --attributes ''{"type":"generic"}'''
+      - command: 'add application component test-component --name ''Test Component'' --description ''Test application component'' --attributes ''{"type": "generic"}'''
         files_to_compare:
           - manifest.yaml
-          - 05_application/application_component.yaml
+          - 04_application/application_component.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -50,13 +50,13 @@ pipelines:
 
       - command: "update application.applicationcomponent.test-component --name 'Updated Component'"
         files_to_compare:
-          - 05_application/application_component.yaml
+          - 04_application/application_component.yaml
         expect_exit_code: 0
 
       - command: "delete application.applicationcomponent.test-component --force"
         files_to_compare:
           - manifest.yaml
-          - 05_application/application_component.yaml
+          - 04_application/application_component.yaml
         expect_exit_code: 0
 
   - name: "Add API operation with update"
@@ -64,7 +64,7 @@ pipelines:
       - command: 'add api operation test-operation --name ''Test Operation'' --description ''Test API operation'' --attributes ''{"operationId":"test-operation","summary":"Test Operation","tags":"test"}'''
         files_to_compare:
           - manifest.yaml
-          - 07_api/operation.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -72,7 +72,7 @@ pipelines:
 
       - command: "update api.operation.test-operation --name 'Updated Operation'"
         files_to_compare:
-          - 07_api/operation.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -80,17 +80,17 @@ pipelines:
       - command: "delete api.operation.test-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 07_api/operation.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
   - name: "Add datastore collection with update"
     steps:
-      - command: 'add data-store collection test-table --name ''test_collection'' --description ''Test collection'' --attributes ''{"collectionType":"TABLE"}'''
+      - command: "add data-store collection test-table --name 'test_collection' --description 'Test collection'"
         files_to_compare:
           - manifest.yaml
-          - 09_data-store/collection.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -98,7 +98,7 @@ pipelines:
 
       - command: "update data-store.collection.test-table --name 'updated_collection'"
         files_to_compare:
-          - 09_data-store/collection.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -106,150 +106,17 @@ pipelines:
       - command: "delete data-store.collection.test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 09_data-store/collection.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Deleted"
-
-  - name: "Add product capability with update"
-    steps:
-      - command: 'add product capability user-management --name ''User Management Capability'' --description ''Capability to manage users'' --attributes ''{"status":"proposed"}'''
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/capability.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-          - "user-management"
-
-      - command: "update product.capability.user-management --name 'Updated User Management'"
-        files_to_compare:
-          - 03_product/capability.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Updated"
-
-      - command: "delete product.capability.user-management --force"
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/capability.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Deleted"
-
-  - name: "Add product feature with update"
-    steps:
-      - command: 'add product feature two-factor-auth --name ''Two Factor Authentication'' --description ''Feature for two-factor authentication'' --attributes ''{"priority":"high","status":"developing"}'''
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/feature.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-          - "two-factor-auth"
-
-      - command: "update product.feature.two-factor-auth --name 'Enhanced Two Factor Authentication'"
-        files_to_compare:
-          - 03_product/feature.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Updated"
-
-      - command: "delete product.feature.two-factor-auth --force"
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/feature.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Deleted"
-
-  - name: "Add product persona lifecycle"
-    steps:
-      - command: 'add product persona power-user --name ''Power User Persona'' --description ''Persona for power users'' --attributes ''{"category":"primary","proficiency":"advanced"}'''
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/persona.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-          - "power-user"
-
-      - command: "show product.persona.power-user"
-        files_to_compare: []
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "power-user"
-          - "Power User Persona"
-
-      - command: "update product.persona.power-user --name 'Advanced Power User'"
-        files_to_compare:
-          - 03_product/persona.yaml
-        expect_exit_code: 0
-
-      - command: "delete product.persona.power-user --force"
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/persona.yaml
-        expect_exit_code: 0
-
-  - name: "Add product milestone"
-    steps:
-      - command: 'add product milestone beta-release --name ''Beta Release'' --description ''Beta release milestone'' --attributes ''{"status":"planned"}'''
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/milestone.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-          - "beta-release"
-
-      - command: "update product.milestone.beta-release --name 'Public Beta Release'"
-        files_to_compare:
-          - 03_product/milestone.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Updated"
-
-      - command: "delete product.milestone.beta-release --force"
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/milestone.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Deleted"
-
-  - name: "Add product userworkflow"
-    steps:
-      - command: 'add product userworkflow payment-checkout --name ''Payment Checkout Workflow'' --description ''User workflow for payment checkout'' --attributes ''{"complexity":"moderate"}'''
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/user_workflow.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-          - "payment-checkout"
-
-      - command: "update product.userworkflow.payment-checkout --name 'Simplified Payment Checkout'"
-        files_to_compare:
-          - 03_product/user_workflow.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Updated"
-
-      - command: "delete product.userworkflow.payment-checkout --force"
-        files_to_compare:
-          - manifest.yaml
-          - 03_product/user_workflow.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
   - name: "Add testing test case sketch with update"
     steps:
-      - command: 'add testing testcasesketch test-case --name ''Test Case'' --description ''Test case sketch for verification'' --attributes ''{"status":"draft"}'''
+      - command: 'add testing testcasesketch test-case --name ''Test Case'' --description ''Test case sketch for verification'' --attributes ''{"status": "draft"}'''
         files_to_compare:
           - manifest.yaml
-          - 13_testing/test_case_sketch.yaml
+          - 12_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -257,7 +124,7 @@ pipelines:
 
       - command: "update testing.testcasesketch.test-case --name 'Updated Test Case'"
         files_to_compare:
-          - 13_testing/test_case_sketch.yaml
+          - 12_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -265,7 +132,7 @@ pipelines:
       - command: "delete testing.testcasesketch.test-case --force"
         files_to_compare:
           - manifest.yaml
-          - 13_testing/test_case_sketch.yaml
+          - 12_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
