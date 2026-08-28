@@ -183,19 +183,16 @@ describe("Permission Parity Across All Four Code Paths", () => {
     });
 
     describe("Danger mode (--with-danger) consistency", () => {
-      it("should attempt to use --allow-all-tools when withDanger is true", () => {
-        // Copilot danger mode attempts to use --allow-all-tools via the applyReadSafePermissions
-        // and danger-mode paths in CopilotClient.spawnCopilotProcess.
-        // The code at spawnCopilotProcess line 375-410 adds --allow-all-tools in danger mode.
-        // Direct testing is limited by the private nature of spawnCopilotProcess and its use of
-        // spawn(). Both CopilotClient (chat path) and VisualizationServer.addCopilotPermissionFlags
-        // (visualize path) follow the same pattern: check help text, then add --allow-all-tools
-        // if the flag is supported, or attempt it anyway as a fallback (line 406).
+      it("danger mode is verified via code inspection and shared utility usage", () => {
+        // Both CopilotClient (chat path) and VisualizationServer (visualize path)
+        // now use the shared applyCopilotPermissions utility from default-permissions.ts
+        // which implements danger mode by attempting to add --allow-all-tools.
+        // Direct testing is not practical because spawnCopilotProcess (in CopilotClient)
+        // and addCopilotPermissionFlags (in VisualizationServer) are private methods
+        // that use spawn/spawnSync internally and don't expose their argument lists.
+        // However, the shared utility ensures both paths use identical logic.
         const client = new CopilotClient();
         expect(client).toBeDefined();
-        // The danger-mode flag application is verified through:
-        // 1. Code inspection of spawnCopilotProcess() method
-        // 2. Integration with VisualizationServer which uses the same approach
       });
     });
   });
@@ -273,9 +270,9 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
     it("Copilot chat path: withDanger=true attempts --allow-all-tools", () => {
       const client = new CopilotClient();
-      // CopilotClient.spawnCopilotProcess checks for danger mode (line 374-410) and adds
-      // --allow-all-tools flag. This is verified through code inspection since the method
-      // is private and uses spawn() internally.
+      // CopilotClient.spawnCopilotProcess uses the shared applyCopilotPermissions utility
+      // which checks for danger mode and adds --allow-all-tools flag. This is verified
+      // through code inspection since the method is private and uses spawn() internally.
       expect(client).toBeDefined();
     });
 
@@ -283,10 +280,10 @@ describe("Permission Parity Across All Four Code Paths", () => {
       const server = new VisualizationServer(testModel, { withDanger: true });
       // Verify danger mode is enabled on the instance
       expect((server as any).withDanger).toBe(true);
-      // The VisualizationServer.addCopilotPermissionFlags (line 2062-2110) checks withDanger
-      // and adds --allow-all-tools for danger mode (line 2075), or --allowedTools with
-      // formatForCopilot() for default mode (line 2103). The withDanger=true flag on the
-      // instance ensures the permission logic will execute correctly when launching Copilot.
+      // The VisualizationServer.addCopilotPermissionFlags calls the shared applyCopilotPermissions
+      // utility which checks withDanger and adds --allow-all-tools for danger mode, or --allowedTools
+      // with formatForCopilot() for default mode. The withDanger=true flag on the instance ensures
+      // the permission logic will execute correctly when launching Copilot.
     });
 
     it("Default mode (withDanger=false) is symmetric across all paths", () => {

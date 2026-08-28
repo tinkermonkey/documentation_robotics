@@ -17,6 +17,9 @@
  * 4. Reading the `.dr/` folder
  */
 
+import { spawnSync } from "child_process";
+import ansis from "ansis";
+
 /**
  * Represents a single tool permission with optional scoping
  */
@@ -89,46 +92,6 @@ export function formatForClaudeCode(): string {
 }
 
 /**
- * Check if a specific tool is in the read-safe allowlist
- *
- * @param toolName Name of the tool to check
- * @returns true if tool is in the allowlist, false otherwise
- */
-export function isToolAllowed(toolName: string): boolean {
-  return DEFAULT_READ_SAFE_PERMISSIONS.some((p) => p.name === toolName);
-}
-
-/**
- * Get all permissions for a specific tool
- *
- * @param toolName Name of the tool
- * @returns Array of ToolPermission objects for that tool
- */
-export function getToolPermissions(toolName: string): ToolPermission[] {
-  return DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.name === toolName);
-}
-
-/**
- * Validate that all permissions in the allowlist are read-safe
- *
- * Ensures no write/edit/delete operations are permitted.
- * This should be called during initialization to validate the configuration.
- *
- * @throws Error if any permission allows write operations
- */
-export function validateReadSafeConstraints(): void {
-  const unsafePermissions = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.allowsWrite);
-
-  if (unsafePermissions.length > 0) {
-    const unsafeNames = unsafePermissions.map((p) => p.name).join(", ");
-    throw new Error(
-      `Invalid permission configuration: read-safe mode must not include write permissions. ` +
-        `Found write-enabled tools: ${unsafeNames}`
-    );
-  }
-}
-
-/**
  * Convert read-safe permissions to GitHub Copilot CLI format
  *
  * GitHub Copilot CLI may support a --allowedTools flag (or equivalent) for granular permission control.
@@ -142,4 +105,88 @@ export function validateReadSafeConstraints(): void {
  */
 export function formatForCopilot(): string {
   return formatForClaudeCode();
+}
+
+/**
+ * Apply Copilot permissions to command arguments with graceful degradation
+ *
+ * Shared utility for both CopilotClient and VisualizationServer to probe
+ * Copilot CLI capability and apply appropriate permission flags.
+ * Handles both default mode (read-safe --allowedTools) and danger mode (--allow-all-tools).
+ *
+ * @param cmd The command array to modify (mutated in place)
+ * @param variant Display name for error messages (e.g., "gh copilot" or "copilot")
+ * @param copilotCommand The copilot CLI name ("copilot" or "gh")
+ * @param withDanger Whether to use danger mode (--allow-all-tools)
+ * @param onTelemetry Optional callback for telemetry logging
+ */
+export function applyCopilotPermissions(
+  cmd: string[],
+  variant: string,
+  copilotCommand: string,
+  withDanger: boolean,
+  onTelemetry?: (attr: string, value: any) => void
+): void {
+
+  if (withDanger) {
+    try {
+      const helpResult = spawnSync(
+        copilotCommand === "copilot" ? "copilot" : "gh",
+        copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
+        { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
+      );
+      if (
+        helpResult.stdout?.includes("--allow-all-tools") ||
+        helpResult.stdout?.includes("allow-all-tools")
+      ) {
+        cmd.push("--allow-all-tools");
+        onTelemetry?.("process.allowAllToolsSupported", true);
+      } else {
+        onTelemetry?.("process.allowAllToolsSupported", false);
+        console.warn(
+          ansis.yellow(`Note: --allow-all-tools flag not supported by your ${variant} version`)
+        );
+      }
+    } catch {
+      cmd.push("--allow-all-tools");
+      onTelemetry?.("process.allowAllToolsCheckFailed", true);
+    }
+  } else {
+    try {
+      const helpResult = spawnSync(
+        copilotCommand === "copilot" ? "copilot" : "gh",
+        copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
+        { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
+      );
+
+      const helpText = helpResult.stdout || "";
+      const supportsAllowedTools =
+        helpText.includes("--allowedTools") ||
+        helpText.includes("allowedTools") ||
+        helpText.includes("--allowed-tools") ||
+        helpText.includes("allowed-tools");
+
+      if (supportsAllowedTools) {
+        const allowedToolsValue = formatForCopilot();
+        cmd.push("--allowedTools", allowedToolsValue);
+        onTelemetry?.("process.readSafePermissionsApplied", true);
+        onTelemetry?.("process.allowedTools", allowedToolsValue);
+      } else {
+        onTelemetry?.("process.readSafePermissionsApplied", false);
+        console.warn(
+          ansis.yellow(
+            `Note: Your ${variant} version doesn't support granular permissions. ` +
+              `Consider upgrading @github/copilot for permission controls.`
+          )
+        );
+      }
+    } catch {
+      onTelemetry?.("process.readSafePermissionCheckFailed", true);
+      console.warn(
+        ansis.yellow(
+          `Note: Could not verify ${variant} permission support. Launching with default permissions.`
+        )
+      );
+    }
+  }
 }

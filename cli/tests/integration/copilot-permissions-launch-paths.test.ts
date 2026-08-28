@@ -28,19 +28,12 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
     });
 
     describe("Default mode permission handling", () => {
-      it("should attempt to apply --allowedTools in process args when withDanger is false", () => {
-        const options: ChatOptions = {
-          withDanger: false,
-          workingDirectory: workdir.path,
-        };
-
-        // Access the private method via type casting for testing
-        // We can't directly test spawnCopilotProcess since it's private,
-        // but we verify the permission formatting is correct
+      it("should format permissions for --allowedTools flag correctly", () => {
         const allowedTools = formatForCopilot();
 
         expect(allowedTools).toBeDefined();
         expect(typeof allowedTools).toBe("string");
+        expect(allowedTools.length).toBeGreaterThan(0);
       });
 
       it("should include read-safe permissions in allowlist", () => {
@@ -64,9 +57,12 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
     });
 
     describe("Danger mode handling (--with-danger)", () => {
-      it("should prefer --allow-all-tools when withDanger is true", async () => {
+      it("danger mode behavior is verified via code inspection in CopilotClient.spawnCopilotProcess", async () => {
+        // The danger mode logic in CopilotClient (lines 374-410 in spawnCopilotProcess)
+        // probes Copilot's help text and attempts to add --allow-all-tools.
+        // This is verified via code inspection rather than direct testing because
+        // spawnCopilotProcess is private and uses spawn() which doesn't expose arguments.
         const available = await client.isAvailable();
-        // Just verify it doesn't crash - actual behavior depends on copilot availability
         expect(typeof available).toBe("boolean");
       });
     });
@@ -84,9 +80,8 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
 
   describe("VisualizationServer (dr visualize with Copilot)", () => {
     describe("Default mode permission handling", () => {
-      it("should include read-safe permissions for gh copilot variant", () => {
-        // The server would call addCopilotPermissionFlags internally
-        // We verify the formatting is correct for both variants
+      it("should use same read-safe permission format for both gh copilot and standalone copilot", () => {
+        // Both variants use the same formatForCopilot() via the shared applyCopilotPermissions utility
         const allowedTools = formatForCopilot();
 
         expect(allowedTools).toContain("Bash(dr *");
@@ -94,24 +89,16 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         expect(allowedTools).toContain("Read(documentation-robotics)");
         expect(allowedTools).toContain("Read(.dr)");
       });
-
-      it("should include read-safe permissions for standalone copilot variant", () => {
-        const allowedTools = formatForCopilot();
-
-        // Same permissions for both variants
-        expect(allowedTools).toContain("Bash(dr *");
-        expect(allowedTools).not.toContain("Edit");
-      });
     });
 
     describe("Danger mode handling", () => {
-      it("should attempt to use --allow-all-tools when withDanger is true", () => {
-        // The danger mode should try to add --allow-all-tools
-        // This is handled by addCopilotPermissionFlags in the server
+      it("danger mode behavior is verified via code inspection in VisualizationServer.addCopilotPermissionFlags", () => {
+        // The danger mode logic in VisualizationServer (now via shared applyCopilotPermissions)
+        // probes Copilot's help text and attempts to add --allow-all-tools.
+        // This is verified via code inspection rather than direct testing because
+        // addCopilotPermissionFlags is private and doesn't expose arguments.
         const server = new VisualizationServer(testModel, { withDanger: true });
-
-        // Just verify it doesn't crash during construction
-        expect(server).toBeDefined();
+        expect((server as any).withDanger).toBe(true);
       });
     });
   });

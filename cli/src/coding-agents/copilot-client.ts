@@ -17,7 +17,7 @@ import { spawnSync, spawn, ChildProcess } from "child_process";
 import ansis from "ansis";
 import { getChatLogger } from "../utils/chat-logger.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { formatForCopilot } from "./default-permissions.js";
+import { applyCopilotPermissions } from "./default-permissions.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -372,46 +372,29 @@ export class CopilotClient extends BaseChatClient {
 
       // Handle permissions based on withDanger flag
       const withDanger = options?.withDanger === true;
-      if (withDanger) {
-        // Danger mode: try to use --allow-all-tools flag (required for non-interactive)
-        try {
-          // Check if flag is supported by testing with --help
-          const helpResult = spawnSync(
-            this.copilotCommand === "copilot" ? "copilot" : "gh",
-            this.copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
-            { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
-          );
-          if (
-            helpResult.stdout?.includes("--allow-all-tools") ||
-            helpResult.stdout?.includes("allow-all-tools")
-          ) {
-            args.push("--allow-all-tools");
-            if (isTelemetryEnabled && span) {
-              (span as any).setAttribute("process.allowAllToolsSupported", true);
-            }
-          } else {
-            if (isTelemetryEnabled && span) {
-              (span as any).setAttribute("process.allowAllToolsSupported", false);
-              emitLog(SeverityNumber.WARN, "GitHub Copilot --allow-all-tools flag not available", {
-                "copilot.variant": this.copilotCommand,
-                withDanger: true,
-              });
-            }
-            console.warn(
-              ansis.yellow("Warning: --allow-all-tools flag not supported by your copilot version")
-            );
-          }
-        } catch (error) {
-          // If check fails, try adding the flag anyway
-          args.push("--allow-all-tools");
-          if (isTelemetryEnabled && span) {
-            (span as any).setAttribute("process.allowAllToolsCheckFailed", true);
+      const variant = this.copilotCommand === "copilot" ? "copilot" : "gh copilot";
+
+      applyCopilotPermissions(args, variant, this.copilotCommand || "copilot", withDanger, (attr, value) => {
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute(attr, value);
+          if (attr === "process.allowAllToolsSupported" && value === false && withDanger) {
+            emitLog(SeverityNumber.WARN, "GitHub Copilot --allow-all-tools flag not available", {
+              "copilot.variant": this.copilotCommand,
+              withDanger: true,
+            });
+          } else if (attr === "process.readSafePermissionsApplied" && value === false) {
+            emitLog(SeverityNumber.WARN, "Copilot --allowedTools flag not supported, using default permissions", {
+              "copilot.variant": this.copilotCommand,
+              "copilot.note": "Installed Copilot CLI version may be outdated. Consider upgrading for permission controls.",
+            });
+          } else if (attr === "process.readSafePermissionCheckFailed") {
+            emitLog(SeverityNumber.WARN, "Failed to check Copilot permission support", {
+              "error.message": "",
+              "copilot.variant": this.copilotCommand,
+            });
           }
         }
-      } else {
-        // Default mode: apply read-safe permissions if supported
-        this.applyReadSafePermissions(args, span);
-      }
+      });
 
       const command = "copilot";
 
@@ -469,66 +452,6 @@ export class CopilotClient extends BaseChatClient {
     }
   }
 
-  /**
-   * Apply read-safe permissions to Copilot process arguments
-   * Gracefully handles CLI versions that don't support granular permission flags.
-   * @param args The argument array to modify
-   * @param span Optional telemetry span
-   */
-  private applyReadSafePermissions(args: string[], span: any): void {
-    try {
-      // Synchronously check if permissions are supported (cache prevents multiple checks)
-      const helpResult = spawnSync(
-        this.copilotCommand === "copilot" ? "copilot" : "gh",
-        this.copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
-        { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
-      );
-
-      const helpText = helpResult.stdout || "";
-      const supportsAllowedTools =
-        helpText.includes("--allowedTools") ||
-        helpText.includes("allowedTools") ||
-        helpText.includes("--allowed-tools") ||
-        helpText.includes("allowed-tools");
-
-      if (supportsAllowedTools) {
-        args.push("--allowedTools", formatForCopilot());
-        if (isTelemetryEnabled && span) {
-          (span as any).setAttribute("process.readSafePermissionsApplied", true);
-          (span as any).setAttribute("process.allowedTools", formatForCopilot());
-        }
-      } else {
-        // Graceful degradation: fall back to no-permission default with warning
-        if (isTelemetryEnabled && span) {
-          (span as any).setAttribute("process.readSafePermissionsApplied", false);
-          emitLog(SeverityNumber.WARN, "Copilot --allowedTools flag not supported, using default permissions", {
-            "copilot.variant": this.copilotCommand,
-            "copilot.note": "Installed Copilot CLI version may be outdated. Consider upgrading for permission controls.",
-          });
-        }
-        console.warn(
-          ansis.yellow(
-            "Note: Your Copilot CLI version doesn't support granular permissions. " +
-              "Consider upgrading @github/copilot for permission controls."
-          )
-        );
-      }
-    } catch (error) {
-      // On check failure, gracefully fall back
-      if (isTelemetryEnabled && span) {
-        (span as any).setAttribute("process.readSafePermissionCheckFailed", true);
-        emitLog(SeverityNumber.WARN, "Failed to check Copilot permission support", {
-          "error.message": getErrorMessage(error),
-          "copilot.variant": this.copilotCommand,
-        });
-      }
-      console.warn(
-        ansis.yellow(
-          "Note: Could not verify Copilot permission support. Launching with default permissions."
-        )
-      );
-    }
-  }
 
   /**
    * Get the name of this client

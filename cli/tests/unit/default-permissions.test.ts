@@ -9,9 +9,6 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import {
   DEFAULT_READ_SAFE_PERMISSIONS,
   formatForClaudeCode,
-  isToolAllowed,
-  getToolPermissions,
-  validateReadSafeConstraints,
 } from "../../src/coding-agents/default-permissions.js";
 
 describe("Default Read-Safe Permissions", () => {
@@ -147,79 +144,6 @@ describe("Default Read-Safe Permissions", () => {
     });
   });
 
-  describe("isToolAllowed()", () => {
-    it("should return true for Bash tool", () => {
-      expect(isToolAllowed("Bash")).toBe(true);
-    });
-
-    it("should return true for Read tool", () => {
-      expect(isToolAllowed("Read")).toBe(true);
-    });
-
-    it("should return false for Edit tool", () => {
-      expect(isToolAllowed("Edit")).toBe(false);
-    });
-
-    it("should return false for Write tool", () => {
-      expect(isToolAllowed("Write")).toBe(false);
-    });
-
-    it("should return false for arbitrary tool", () => {
-      expect(isToolAllowed("CustomTool")).toBe(false);
-    });
-
-    it("should be case-sensitive", () => {
-      expect(isToolAllowed("bash")).toBe(false);
-      expect(isToolAllowed("read")).toBe(false);
-    });
-  });
-
-  describe("getToolPermissions()", () => {
-    it("should return array for Bash tool", () => {
-      const perms = getToolPermissions("Bash");
-      expect(Array.isArray(perms)).toBe(true);
-      expect(perms.length).toBeGreaterThan(0);
-      perms.forEach((p) => {
-        expect(p.name).toBe("Bash");
-      });
-    });
-
-    it("should return array for Read tool", () => {
-      const perms = getToolPermissions("Read");
-      expect(Array.isArray(perms)).toBe(true);
-      expect(perms.length).toBeGreaterThan(0);
-      perms.forEach((p) => {
-        expect(p.name).toBe("Read");
-      });
-    });
-
-    it("should return empty array for disallowed tool", () => {
-      const perms = getToolPermissions("Edit");
-      expect(Array.isArray(perms)).toBe(true);
-      expect(perms).toHaveLength(0);
-    });
-
-    it("should preserve scope information for Read permissions", () => {
-      const readPerms = getToolPermissions("Read");
-      const withScope = readPerms.filter((p) => p.scope);
-      expect(withScope.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("validateReadSafeConstraints()", () => {
-    it("should not throw error for default configuration", () => {
-      expect(() => validateReadSafeConstraints()).not.toThrow();
-    });
-
-    it("should verify current permissions are read-safe", () => {
-      // If this test fails, it means someone added a write permission to the default list
-      validateReadSafeConstraints();
-
-      // Double-check by asserting no write permissions exist
-      const writePerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.allowsWrite);
-      expect(writePerms).toHaveLength(0);
-    });
-  });
 
   describe("Acceptance Criteria Verification", () => {
     it("should cover running the dr CLI", () => {

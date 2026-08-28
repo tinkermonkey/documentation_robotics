@@ -26,7 +26,7 @@ import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
-import { formatForClaudeCode, formatForCopilot } from "../coding-agents/default-permissions.js";
+import { formatForClaudeCode, applyCopilotPermissions } from "../coding-agents/default-permissions.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -2060,61 +2060,8 @@ export class VisualizationServer {
    * @param variant The Copilot variant for error messages (e.g., "gh copilot" or "copilot")
    */
   private addCopilotPermissionFlags(cmd: string[], variant: string): void {
-    if (this.withDanger) {
-      // Danger mode: try to use --allow-all-tools flag
-      try {
-        const helpResult = spawnSync(
-          cmd[0],
-          cmd[0] === "gh" ? ["copilot", "--help"] : ["--help"],
-          { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
-        );
-        if (
-          helpResult.stdout?.includes("--allow-all-tools") ||
-          helpResult.stdout?.includes("allow-all-tools")
-        ) {
-          cmd.push("--allow-all-tools");
-        } else {
-          console.warn(
-            `Note: --allow-all-tools flag not supported by your ${variant} version. ` +
-              `Launching without full permission grant.`
-          );
-        }
-      } catch (error) {
-        // If check fails, try adding the flag anyway
-        cmd.push("--allow-all-tools");
-      }
-    } else {
-      // Default mode: apply read-safe permissions if supported
-      try {
-        const helpResult = spawnSync(
-          cmd[0],
-          cmd[0] === "gh" ? ["copilot", "--help"] : ["--help"],
-          { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
-        );
-
-        const helpText = helpResult.stdout || "";
-        const supportsAllowedTools =
-          helpText.includes("--allowedTools") ||
-          helpText.includes("allowedTools") ||
-          helpText.includes("--allowed-tools") ||
-          helpText.includes("allowed-tools");
-
-        if (supportsAllowedTools) {
-          cmd.push("--allowedTools", formatForCopilot());
-        } else {
-          // Graceful degradation: use default permissions without flag
-          console.warn(
-            `Note: Your ${variant} version doesn't support granular permissions. ` +
-              `Consider upgrading @github/copilot for permission controls.`
-          );
-        }
-      } catch (error) {
-        // On check failure, gracefully fall back to no-permission default
-        console.warn(
-          `Note: Could not verify ${variant} permission support. Launching with default permissions.`
-        );
-      }
-    }
+    const copilotCommand = cmd[0] === "gh" ? "gh" : "copilot";
+    applyCopilotPermissions(cmd, variant, copilotCommand, this.withDanger);
   }
 
   /**
