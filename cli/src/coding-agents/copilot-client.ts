@@ -17,6 +17,7 @@ import { spawnSync, spawn, ChildProcess } from "child_process";
 import ansis from "ansis";
 import { getChatLogger } from "../utils/chat-logger.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { applyCopilotPermissions } from "./default-permissions.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -355,8 +356,8 @@ export class CopilotClient extends BaseChatClient {
 
       const isFirst = this.isFirstMessage;
 
-      // For first message: copilot --prompt "message" --agent "dr-architect" --allow-all-tools
-      // For subsequent messages: copilot --continue --prompt "message" --allow-all-tools
+      // For first message: copilot --prompt "message" --agent "dr-architect" [--allowedTools ...]
+      // For subsequent messages: copilot --continue --prompt "message" [--allowedTools ...]
       if (isFirst) {
         args.push("--prompt", message);
         this.isFirstMessage = false;
@@ -369,44 +370,31 @@ export class CopilotClient extends BaseChatClient {
         args.push("--agent", options.agent);
       }
 
-      // Add allow-all-tools flag if withDanger is enabled (required for non-interactive)
-      // Note: This flag may not be available in all copilot versions
-      if (options?.withDanger) {
-        try {
-          // Check if flag is supported by testing with --help
-          const helpResult = spawnSync(
-            this.copilotCommand === "copilot" ? "copilot" : "gh",
-            this.copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
-            { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
-          );
-          if (
-            helpResult.stdout?.includes("--allow-all-tools") ||
-            helpResult.stdout?.includes("allow-all-tools")
-          ) {
-            args.push("--allow-all-tools");
-            if (isTelemetryEnabled && span) {
-              (span as any).setAttribute("process.allowAllToolsSupported", true);
-            }
-          } else {
-            if (isTelemetryEnabled && span) {
-              (span as any).setAttribute("process.allowAllToolsSupported", false);
-              emitLog(SeverityNumber.WARN, "GitHub Copilot --allow-all-tools flag not available", {
-                "copilot.variant": this.copilotCommand,
-                withDanger: true,
-              });
-            }
-            console.warn(
-              ansis.yellow("Warning: --allow-all-tools flag not supported by your copilot version")
-            );
-          }
-        } catch (error) {
-          // If check fails, try adding the flag anyway
-          args.push("--allow-all-tools");
-          if (isTelemetryEnabled && span) {
-            (span as any).setAttribute("process.allowAllToolsCheckFailed", true);
+      // Handle permissions based on withDanger flag
+      const withDanger = options?.withDanger === true;
+      const variant = this.copilotCommand === "copilot" ? "copilot" : "gh copilot";
+
+      applyCopilotPermissions(args, variant, this.copilotCommand || "copilot", withDanger, (attr, value) => {
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute(attr, value);
+          if (attr === "process.allowAllToolsSupported" && value === false && withDanger) {
+            emitLog(SeverityNumber.WARN, "GitHub Copilot --allow-all-tools flag not available", {
+              "copilot.variant": this.copilotCommand,
+              withDanger: true,
+            });
+          } else if (attr === "process.readSafePermissionsApplied" && value === false) {
+            emitLog(SeverityNumber.WARN, "Copilot --allowedTools flag not supported, using default permissions", {
+              "copilot.variant": this.copilotCommand,
+              "copilot.note": "Installed Copilot CLI version may be outdated. Consider upgrading for permission controls.",
+            });
+          } else if (attr === "process.readSafePermissionCheckFailed") {
+            emitLog(SeverityNumber.WARN, "Failed to check Copilot permission support", {
+              "error.message": "",
+              "copilot.variant": this.copilotCommand,
+            });
           }
         }
-      }
+      });
 
       const command = "copilot";
 
@@ -418,7 +406,7 @@ export class CopilotClient extends BaseChatClient {
         (span as any).setAttribute("process.hasContinue", args.includes("--continue"));
         (span as any).setAttribute("process.hasAgent", !!options?.agent);
         (span as any).setAttribute("process.agent", options?.agent);
-        (span as any).setAttribute("process.withDanger", options?.withDanger === true);
+        (span as any).setAttribute("process.withDanger", withDanger);
         (span as any).setAttribute("process.workingDirectory", cwd);
         (span as any).setAttribute("process.messageLength", message.length);
         (span as any).setAttribute("process.variant", this.copilotCommand);
@@ -430,7 +418,7 @@ export class CopilotClient extends BaseChatClient {
         void logger.logCommand(command, args, {
           client: "GitHub Copilot",
           workingDirectory: cwd,
-          withDanger: options?.withDanger || false,
+          withDanger: withDanger,
           copilotVariant: this.copilotCommand,
           messageLength: message.length,
           hasAgent: !!options?.agent,
@@ -463,6 +451,7 @@ export class CopilotClient extends BaseChatClient {
       endSpan(span);
     }
   }
+
 
   /**
    * Get the name of this client

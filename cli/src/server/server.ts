@@ -26,6 +26,7 @@ import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
+import { formatForClaudeCode, applyCopilotPermissions } from "../coding-agents/default-permissions.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -2035,6 +2036,35 @@ export class VisualizationServer {
   }
 
   /**
+   * Build command arguments for Claude Code launch
+   */
+  private buildClaudeChatArgs(): string[] {
+    const cmd = ["claude", "--agent", "dr-architect", "--print"];
+
+    // Apply permissions: either full access or read-safe allowlist
+    if (this.withDanger) {
+      cmd.push("--dangerously-skip-permissions");
+    } else {
+      cmd.push("--allowedTools", formatForClaudeCode());
+    }
+
+    cmd.push("--verbose", "--output-format", "stream-json");
+    return cmd;
+  }
+
+  /**
+   * Add permission flags to Copilot command based on withDanger setting
+   * Applies read-safe permissions when withDanger is false, with graceful degradation
+   * if the installed Copilot CLI doesn't support granular permission flags.
+   * @param cmd The command array to modify (will be mutated)
+   * @param variant The Copilot variant for error messages (e.g., "gh copilot" or "copilot")
+   */
+  private addCopilotPermissionFlags(cmd: string[], variant: string): void {
+    const copilotCommand = cmd[0] === "gh" ? "gh" : "copilot";
+    applyCopilotPermissions(cmd, variant, copilotCommand, this.withDanger);
+  }
+
+  /**
    * Launch Claude Code CLI with dr-architect agent and stream responses
    */
   private async launchClaudeCodeChat(
@@ -2044,15 +2074,7 @@ export class VisualizationServer {
     requestId: string | number | undefined
   ): Promise<void> {
     try {
-      // Build command arguments
-      const cmd = ["claude", "--agent", "dr-architect", "--print"];
-
-      // Add dangerously-skip-permissions flag if withDanger is enabled
-      if (this.withDanger) {
-        cmd.push("--dangerously-skip-permissions");
-      }
-
-      cmd.push("--verbose", "--output-format", "stream-json");
+      const cmd = this.buildClaudeChatArgs();
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary
       if (this._testClaudeCmdOverride) {
@@ -2340,22 +2362,12 @@ export class VisualizationServer {
 
         if (ghResult.status === 0) {
           cmd = ["gh", "copilot", "explain"];
-
-          // Add allow-all-tools flag if withDanger is enabled
-          if (this.withDanger) {
-            cmd.push("--allow-all-tools");
-          }
-
+          this.addCopilotPermissionFlags(cmd, "gh copilot");
           cmd.push(message);
         } else {
           // Try standalone copilot
           cmd = ["copilot", "explain"];
-
-          // Add allow-all-tools flag if withDanger is enabled
-          if (this.withDanger) {
-            cmd.push("--allow-all-tools");
-          }
-
+          this.addCopilotPermissionFlags(cmd, "copilot");
           cmd.push(message);
         }
       }

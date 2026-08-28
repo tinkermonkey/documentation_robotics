@@ -617,9 +617,15 @@ Examples:
   $ dr visualize --with-danger
   $ dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
 
-The --with-danger flag enables dangerous mode for chat functionality:
-  - Claude Code: --dangerously-skip-permissions
-  - GitHub Copilot: --allow-all-tools
+Default mode (read-safe permissions) enables:
+  - Running 'dr' CLI commands to query the architecture model
+  - Reading the codebase
+  - Reading the documentation-robotics/ model folder
+  - Reading the .dr/ configuration folder
+
+Dangerous mode (--with-danger) enables unrestricted access:
+  - Claude Code: --dangerously-skip-permissions (full tool access)
+  - GitHub Copilot: --allow-all-tools (full tool access)
 
 The --viewer-path option allows loading a local build of the web UI:
   - Point to a directory containing index.html and supporting files
@@ -684,9 +690,15 @@ Examples:
   $ dr chat claude-code with-danger   # Use Claude Code with dangerous mode
   $ dr chat github-copilot with-danger # Use GitHub Copilot with dangerous mode
 
-Dangerous mode enables:
-  - Claude Code: --dangerously-skip-permissions
-  - GitHub Copilot: --allow-all-tools
+Default mode (read-safe permissions) enables:
+  - Running 'dr' CLI commands to query the architecture model
+  - Reading the codebase
+  - Reading the documentation-robotics/ model folder
+  - Reading the .dr/ configuration folder
+
+Dangerous mode (--with-danger) enables unrestricted access:
+  - Claude Code: --dangerously-skip-permissions (full tool access)
+  - GitHub Copilot: --allow-all-tools (full tool access)
 
 This launches an interactive chat interface where you can ask AI questions
 about your architecture model. Supports Claude Code CLI and GitHub Copilot CLI.
