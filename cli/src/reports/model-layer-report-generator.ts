@@ -18,6 +18,7 @@ import { formatMarkdownTable } from '../utils/markdown-table.js';
 import { sanitizeMermaidId, escapeMermaidLabel } from '../utils/mermaid-utils.js';
 import { createAnchor } from '../utils/markdown-anchor.js';
 import { escapeMarkdown, getLayerDescription, valueToMarkdown } from '../export/markdown-utils.js';
+import type { CanonicalLayerName } from '../core/layers.js';
 import { getLayerOrder, CANONICAL_LAYER_NAMES } from '../core/layers.js';
 import { getValidRelationships } from '../generated/relationship-index.js';
 import { getLayerReportFileName } from './model-report-utils.js';
@@ -413,7 +414,7 @@ export class ModelLayerReportGenerator {
     if (layerNumber === -1) {
       return layerName;
     }
-    const filename = `./${getLayerReportFileName(layerName as any)}`;
+    const filename = `./${getLayerReportFileName(layerName as CanonicalLayerName)}`;
     return `[${formatLayerName(layerName)}](${filename})`;
   }
 
