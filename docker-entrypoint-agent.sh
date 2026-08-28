@@ -88,6 +88,16 @@ if [ -d "$CLI_DIR/src" ]; then
   if [ -f "$CLI_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing CLI dependencies..."
     cd "$CLI_DIR" && npm install 2>&1 | tail -1
+
+    # Verify critical dependency: @modelcontextprotocol/sdk
+    # npm install may skip packages it thinks are already installed but whose
+    # dist files are incomplete (e.g., from a prior --ignore-scripts install).
+    # If the SDK can't be resolved, force a clean reinstall.
+    if ! node -e "import('@modelcontextprotocol/sdk/types.js').catch(() => process.exit(1))" 2>/dev/null; then
+      echo "[agent-entrypoint] MCP SDK incomplete — forcing clean reinstall..."
+      rm -rf "$CLI_DIR/node_modules/@modelcontextprotocol"
+      cd "$CLI_DIR" && npm install 2>&1 | tail -1
+    fi
   fi
 
   # Build the CLI (syncs spec schemas, generates registry, compiles TypeScript, bundles)
