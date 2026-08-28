@@ -353,14 +353,17 @@ export function applyCopilotPermissions(
       }
     } catch {
       onTelemetry?.("process.readSafePermissionCheckFailed", true);
-      // Graceful degradation: unable to verify support, so launch without restrictions
-      // rather than failing the launch. Warn user that this is less secure.
-      onTelemetry?.("process.readSafePermissionsApplied", false);
+      // Fail-closed approach: unable to verify support, so apply read-safe restrictions defensively
+      // to maintain the read-safe guarantee even when the CLI probe fails.
+      const allowedToolsValue = formatForCopilot();
+      cmd.push("--allowedTools", allowedToolsValue);
+      onTelemetry?.("process.readSafePermissionsApplied", true);
+      onTelemetry?.("process.allowedTools", allowedToolsValue);
       console.warn(
         ansis.yellow(
           `WARNING: Could not verify read-safe permission support for ${variant}. ` +
-            `Launching without granular permission restrictions. ` +
-            `For better security, please ensure your ${variant} CLI is up-to-date.`
+            `Applying read-safe restrictions defensively. ` +
+            `If this is not supported by your ${variant} version, please upgrade @github/copilot or copilot CLI.`
         )
       );
     }

@@ -562,7 +562,7 @@ describe("Default Read-Safe Permissions", () => {
         expect(warningText.includes("doesn't advertise --allowedTools")).toBe(true);
       });
 
-      it("should gracefully degrade when check fails (Branch 3 - fail-open)", () => {
+      it("should apply --allowedTools defensively when check fails (Branch 3 - fail-closed)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
         let warningText = "";
@@ -578,15 +578,15 @@ describe("Default Read-Safe Permissions", () => {
           telemetry[attr] = val;
         }, mockSpawnSync as any);
 
-        // Should NOT add --allowedTools when check fails (graceful degradation)
-        expect(cmd).not.toContain("--allowedTools");
+        // Should add --allowedTools defensively when check fails (fail-closed for read-safe guarantee)
+        expect(cmd).toContain("--allowedTools");
         // Should record the check failure
         expect(telemetry["process.readSafePermissionCheckFailed"]).toBe(true);
-        // Should record that permissions were not applied due to verification failure
-        expect(telemetry["process.readSafePermissionsApplied"]).toBe(false);
-        // Should have warned user about degraded mode
+        // Should record that permissions were applied as a defensive fallback
+        expect(telemetry["process.readSafePermissionsApplied"]).toBe(true);
+        // Should have warned user about defensive application
         expect(warningText.includes("Could not verify")).toBe(true);
-        expect(warningText.includes("without granular permission restrictions")).toBe(true);
+        expect(warningText.includes("defensively")).toBe(true);
       });
 
       it("should not apply --allow-all-tools even when handling errors", () => {
