@@ -148,8 +148,14 @@ export function applyCopilotPermissions(
         );
       }
     } catch {
-      cmd.push("--allow-all-tools");
       onTelemetry?.("process.allowAllToolsCheckFailed", true);
+      console.warn(
+        ansis.yellow(
+          `WARNING: Could not verify --allow-all-tools support for ${variant}. ` +
+            `Launching WITHOUT permission escalation. If you need full tool access, ` +
+            `please ensure your ${variant} CLI is up-to-date.`
+        )
+      );
     }
   } else {
     try {
@@ -184,7 +190,9 @@ export function applyCopilotPermissions(
       onTelemetry?.("process.readSafePermissionCheckFailed", true);
       console.warn(
         ansis.yellow(
-          `Note: Could not verify ${variant} permission support. Launching with default permissions.`
+          `WARNING: Could not verify read-safe permission support for ${variant}. ` +
+            `Launching WITHOUT permission restrictions — the agent will have unrestricted tool access. ` +
+            `Please ensure your ${variant} CLI is up-to-date for security controls.`
         )
       );
     }
