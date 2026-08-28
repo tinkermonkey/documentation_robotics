@@ -54,11 +54,12 @@ describe("CLI Commands Integration Tests", () => {
       );
 
       // Verify layer directories were created
-      for (let i = 1; i <= 12; i++) {
+      for (let i = 1; i <= 13; i++) {
         const layerNum = String(i).padStart(2, "0");
         const layers = [
           "motivation",
           "business",
+          "product",
           "security",
           "application",
           "technology",

@@ -210,6 +210,7 @@ paths:
             enum:
               - motivation
               - business
+              - product
               - security
               - application
               - technology

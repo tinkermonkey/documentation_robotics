@@ -16,7 +16,7 @@ declare const CLI_VERSION: string;
  * This should match the version in ../../../spec/VERSION
  * Updated during build process
  */
-const BUNDLED_SPEC_VERSION = "0.8.4";
+const BUNDLED_SPEC_VERSION = "0.10.0";
 
 // Dev-mode fallback (e.g. `tsx src/cli.ts`) that reads package.json directly, so it can't drift.
 function resolveDevVersion(): string {

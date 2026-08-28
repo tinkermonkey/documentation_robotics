@@ -60,7 +60,8 @@ describe("Layer Extraction", () => {
     const layerFiles = [
       "01-motivation.layer.json",
       "02-business.layer.json",
-      "03-security.layer.json",
+      "03-product.layer.json",
+      "04-security.layer.json",
     ];
 
     for (const file of layerFiles) {

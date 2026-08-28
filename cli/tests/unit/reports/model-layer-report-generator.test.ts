@@ -627,7 +627,7 @@ describe('ModelLayerReportGenerator', () => {
 
       expect(output).toContain('**Cross-Layer References**');
       expect(output).toContain('**Upstream layers**');
-      expect(output).toContain('[Application](./04-application-layer-report.md)');
+      expect(output).toContain('[Application](./05-application-layer-report.md)');
     });
 
     it('should render downstream layers as links when present', () => {
@@ -640,7 +640,7 @@ describe('ModelLayerReportGenerator', () => {
 
       expect(output).toContain('**Cross-Layer References**');
       expect(output).toContain('**Downstream layers**');
-      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+      expect(output).toContain('[Data Store](./09-data-store-layer-report.md)');
     });
 
     it('should render both upstream and downstream layers when present', () => {
@@ -653,12 +653,12 @@ describe('ModelLayerReportGenerator', () => {
       const output = generator.generate(data);
 
       expect(output).toContain('**Upstream layers**');
-      expect(output).toContain('[Application](./04-application-layer-report.md)');
-      expect(output).toContain('[Technology](./05-technology-layer-report.md)');
+      expect(output).toContain('[Application](./05-application-layer-report.md)');
+      expect(output).toContain('[Technology](./06-technology-layer-report.md)');
 
       expect(output).toContain('**Downstream layers**');
-      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
-      expect(output).toContain('[Data Model](./07-data-model-layer-report.md)');
+      expect(output).toContain('[Data Store](./09-data-store-layer-report.md)');
+      expect(output).toContain('[Data Model](./08-data-model-layer-report.md)');
     });
 
     it('should not render Cross-Layer References section when no upstream/downstream layers', () => {
@@ -680,8 +680,8 @@ describe('ModelLayerReportGenerator', () => {
       const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
       const output = generator.generate(data);
 
-      expect(output).toContain('[Data Model](./07-data-model-layer-report.md)');
-      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+      expect(output).toContain('[Data Model](./08-data-model-layer-report.md)');
+      expect(output).toContain('[Data Store](./09-data-store-layer-report.md)');
     });
 
     it('should handle single upstream layer', () => {
@@ -695,7 +695,7 @@ describe('ModelLayerReportGenerator', () => {
       // Should not have trailing comma
       const crossLayerSection = output.split('**Cross-Layer References**')[1];
       const upstreamLine = crossLayerSection.split('\n')[2];
-      expect(upstreamLine).toContain('[Application](./04-application-layer-report.md)');
+      expect(upstreamLine).toContain('[Application](./05-application-layer-report.md)');
       expect(upstreamLine).not.toMatch(/,\s*$/);
     });
 
