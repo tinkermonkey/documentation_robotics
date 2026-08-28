@@ -125,9 +125,12 @@ describe("Default Read-Safe Permissions", () => {
       });
     });
 
-    it("should include Bash tool with dr scope", () => {
+    it("should include Bash tool with read-safe dr scope", () => {
       const result = formatForClaudeCode();
-      expect(result).toContain("Bash(dr *");
+      expect(result).toContain("Bash(dr query|dr show|dr list");
+      // Ensure wildcard scope is not used
+      expect(result).not.toContain("Bash(dr *)");
+      expect(result).not.toContain("Bash(*)");
     });
 
     it("should include Read tool with scopes", () => {

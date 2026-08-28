@@ -43,12 +43,15 @@ export interface ToolPermission {
  * This is the core configuration that defines which tools are available
  * when launched without the --with-danger flag. Both Claude Code and
  * GitHub Copilot integrations consume this identically.
+ *
+ * IMPORTANT: This array is deeply immutable via Object.freeze() and validated at module load time.
+ * Mutating or adding entries after module initialization will not re-validate constraints.
  */
-export const DEFAULT_READ_SAFE_PERMISSIONS: ToolPermission[] = [
+const PERMISSIONS_DEFINITION: ToolPermission[] = [
   {
     name: "Bash",
-    description: "Execute the dr CLI tool for model queries and operations",
-    scope: "dr *",
+    description: "Execute the dr CLI tool for read-safe model queries",
+    scope: "dr query|dr show|dr list|dr search|dr export|dr validate|dr info|dr stats|dr report|dr audit|dr chat|dr version|dr conformance",
     allowsWrite: false,
   },
   {
@@ -70,6 +73,10 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: ToolPermission[] = [
     allowsWrite: false,
   },
 ];
+
+export const DEFAULT_READ_SAFE_PERMISSIONS: readonly ToolPermission[] = Object.freeze(
+  PERMISSIONS_DEFINITION.map((p) => Object.freeze({ ...p }))
+);
 
 /**
  * Convert read-safe permissions to Claude Code CLI format
@@ -157,37 +164,61 @@ export function validateReadSafeConstraints(): void {
     );
   }
 
-  // Constraint 4: No Edit or Write tools (dangerous tools must not be included)
-  const dangerousTools = DEFAULT_READ_SAFE_PERMISSIONS.filter(
-    (p) => p.name === "Edit" || p.name === "Write"
+  // Constraint 4: Only Bash and Read tools allowed (allowlist validation, not denylist)
+  const allowedToolNames = new Set(["Bash", "Read"]);
+  const disallowedTools = DEFAULT_READ_SAFE_PERMISSIONS.filter(
+    (p) => !allowedToolNames.has(p.name)
   );
-  if (dangerousTools.length > 0) {
+  if (disallowedTools.length > 0) {
     throw new Error(
-      `Read-safe permissions must not include Edit or Write tools. Found: ${dangerousTools.map((p) => p.name).join(", ")}`
+      `Read-safe permissions must only include Bash and Read tools. Found disallowed tool(s): ${disallowedTools.map((p) => p.name).join(", ")}`
     );
   }
 
-  // Constraint 5: Bash must be for dr CLI only and must have a scope restriction
+  // Constraint 5: Bash must be for dr CLI only with properly restricted scope (no wildcards or bare patterns)
   const bashPerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.name === "Bash");
   if (bashPerms.length > 0) {
     const invalidBash = bashPerms.filter((p) => {
-      const hasValidDescription = p.description.toLowerCase().includes("dr cli");
+      const hasValidDescription = p.description.toLowerCase().includes("dr") && p.description.toLowerCase().includes("cli");
       const hasValidScope = typeof p.scope === "string" && p.scope.length > 0;
-      return !hasValidDescription || !hasValidScope;
+
+      // Validate scope content: reject bare wildcards and unsafe patterns
+      let hasValidScopeContent = true;
+      if (hasValidScope) {
+        const scope = p.scope;
+        // Reject dangerous scope patterns: bare "*", ".", or "dr *"
+        if (scope === "*" || scope === "." || scope === "dr *" || scope.startsWith("dr *")) {
+          hasValidScopeContent = false;
+        }
+        // Ensure scope starts with "dr " for Bash tool
+        if (!scope.startsWith("dr ")) {
+          hasValidScopeContent = false;
+        }
+      }
+
+      return !hasValidDescription || !hasValidScope || !hasValidScopeContent;
     });
     if (invalidBash.length > 0) {
       const errors = invalidBash.map((p) => {
         const issues = [];
-        if (!p.description.toLowerCase().includes("dr cli")) {
-          issues.push("invalid description (must include 'dr cli')");
+        if (!p.description.toLowerCase().includes("dr") || !p.description.toLowerCase().includes("cli")) {
+          issues.push("invalid description (must include 'dr' and 'cli')");
         }
         if (typeof p.scope !== "string" || p.scope.length === 0) {
           issues.push("missing or empty scope");
+        } else {
+          const scope = p.scope;
+          if (scope === "*" || scope === "." || scope === "dr *" || scope.startsWith("dr *")) {
+            issues.push("scope uses dangerous wildcard pattern (must specify read-safe commands)");
+          }
+          if (!scope.startsWith("dr ")) {
+            issues.push("scope must start with 'dr ' for Bash tool");
+          }
         }
         return `${p.description} (${issues.join(", ")})`;
       });
       throw new Error(
-        `Bash permission must be for dr CLI only and must have a scope restriction. Found invalid Bash permission(s): ${errors.join("; ")}`
+        `Bash permission must be for dr CLI only with properly restricted scope. Found invalid Bash permission(s): ${errors.join("; ")}`
       );
     }
   }
