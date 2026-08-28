@@ -8,7 +8,7 @@
 import type { Model } from '../core/model.js';
 import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
-import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, getLayerOrder, isValidLayerName } from '../core/layers.js';
+import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { getLayerReportFileName } from './model-report-utils.js';
 import * as fs from 'fs/promises';
