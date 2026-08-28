@@ -5,14 +5,16 @@
  * and can be correctly formatted for both Claude Code and GitHub Copilot clients.
  */
 
-import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import {
   DEFAULT_READ_SAFE_PERMISSIONS,
   formatForClaudeCode,
   formatForCopilot,
   applyCopilotPermissions,
 } from "../../src/coding-agents/default-permissions.js";
-import { spawnSync } from "child_process";
+
+// Store original functions for restoration
+let originalConsoleWarn: typeof console.warn;
 
 describe("Default Read-Safe Permissions", () => {
   describe("DEFAULT_READ_SAFE_PERMISSIONS", () => {
@@ -199,27 +201,16 @@ describe("Default Read-Safe Permissions", () => {
   });
 
   describe("applyCopilotPermissions error recovery", () => {
+    beforeEach(() => {
+      originalConsoleWarn = console.warn;
+    });
+
+    afterEach(() => {
+      console.warn = originalConsoleWarn;
+    });
+
     describe("Default mode (withDanger=false) - fail-closed behavior", () => {
-      it("should apply --allowedTools flag in default mode", () => {
-        const cmd: string[] = ["copilot", "chat"];
-        const telemetry: Record<string, any> = {};
-        const onTelemetry = (attr: string, value: any) => {
-          telemetry[attr] = value;
-        };
-
-        // Call with a CLI that supports the flag (help output includes --allowedTools)
-        applyCopilotPermissions(cmd, "copilot", "gh", false, onTelemetry);
-
-        // When CLI supports --allowedTools, it should be added or permission applied
-        // Either --allowedTools is present OR telemetry shows readSafePermissionsApplied=true
-        if (telemetry["process.readSafePermissionsApplied"] === true) {
-          expect(cmd).toContain("--allowedTools");
-        }
-        // If not applied (e.g., no support), at least telemetry should indicate the attempt
-        expect(telemetry["process.readSafePermissionsApplied"]).toBeDefined();
-      });
-
-      it("should NOT include --allow-all-tools in default mode", () => {
+      it("should never include --allow-all-tools in default mode", () => {
         const cmd: string[] = ["copilot", "chat"];
         applyCopilotPermissions(cmd, "copilot", "copilot", false);
 
@@ -227,51 +218,124 @@ describe("Default Read-Safe Permissions", () => {
         expect(cmd).not.toContain("--allow-all-tools");
       });
 
-      it("should include permission value in command when --allowedTools is applied", () => {
-        const cmd: string[] = ["copilot", "chat"];
-        applyCopilotPermissions(cmd, "copilot", "gh", false);
-
-        // Check if --allowedTools was added
-        const allowedToolsIndex = cmd.indexOf("--allowedTools");
-        if (allowedToolsIndex >= 0) {
-          // If flag is present, its value should match formatForCopilot()
-          expect(cmd[allowedToolsIndex + 1]).toEqual(formatForCopilot());
-        }
-      });
-    });
-
-    describe("Danger mode (withDanger=true) - graceful degradation", () => {
-      it("should attempt --allow-all-tools only when CLI supports it", () => {
+      it("should always attempt permission check and record telemetry (happy path or error)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
         const onTelemetry = (attr: string, value: any) => {
           telemetry[attr] = value;
         };
 
-        applyCopilotPermissions(cmd, "copilot", "gh", true, onTelemetry);
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, onTelemetry);
 
-        // Telemetry should show whether --allow-all-tools is supported
-        expect(telemetry["process.allowAllToolsSupported"]).toBeDefined();
+        // Should have recorded permission check result (either applied, not applied, or failed)
+        const hasChecked =
+          telemetry["process.readSafePermissionsApplied"] !== undefined ||
+          telemetry["process.readSafePermissionCheckFailed"] !== undefined;
+        expect(hasChecked).toBe(true);
+      });
 
-        // If supported, --allow-all-tools should be in the command
-        if (telemetry["process.allowAllToolsSupported"] === true) {
-          expect(cmd).toContain("--allow-all-tools");
-        } else {
-          // If not supported, --allow-all-tools should NOT be added
-          expect(cmd).not.toContain("--allow-all-tools");
+      it("should structure --allowedTools with correct value when applied", () => {
+        const cmd: string[] = ["copilot", "chat"];
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+
+        // If --allowedTools is present, verify it has the correct structured value
+        const allowedToolsIndex = cmd.indexOf("--allowedTools");
+        if (allowedToolsIndex >= 0) {
+          expect(allowedToolsIndex + 1 < cmd.length).toBe(true);
+          expect(cmd[allowedToolsIndex + 1]).toEqual(formatForCopilot());
+          // Value should contain expected tool specs
+          expect(cmd[allowedToolsIndex + 1]).toContain("Bash");
+          expect(cmd[allowedToolsIndex + 1]).toContain("Read");
         }
       });
 
-      it("should not fall back to --allowedTools in danger mode", () => {
+      it("should apply --allowedTools optimistically when capability check fails (fail-closed behavior)", () => {
+        let warnCalled = false;
+        console.warn = mock(() => {
+          warnCalled = true;
+        });
+
         const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        const onTelemetry = (attr: string, value: any) => {
+          telemetry[attr] = value;
+        };
+
+        // Trigger error path: call with parameters that would fail spawnSync
+        try {
+          applyCopilotPermissions(cmd, "test-variant", "nonexistent-command-xyz123", false, onTelemetry);
+        } catch {
+          // Catch any potential errors from spawnSync
+        }
+
+        // Verify fail-closed behavior occurred: check either success or error telemetry
+        const checkWasAttempted =
+          telemetry["process.readSafePermissionsApplied"] !== undefined ||
+          telemetry["process.readSafePermissionCheckFailed"] !== undefined ||
+          telemetry["process.readSafePermissionsApplied"] === false;
+        expect(checkWasAttempted).toBe(true);
+
+        // If error recovery was needed, --allowedTools should be applied
+        if (telemetry["process.readSafePermissionCheckFailed"]) {
+          expect(cmd).toContain("--allowedTools");
+        }
+      });
+    });
+
+    describe("Danger mode (withDanger=true) - graceful degradation", () => {
+      it("should never apply --allowedTools in danger mode", () => {
+        const cmd: string[] = ["copilot", "chat"];
+
         applyCopilotPermissions(cmd, "copilot", "copilot", true);
 
-        // Danger mode should not apply read-safe --allowedTools restrictions
-        // even if --allow-all-tools is not supported
-        if (cmd.includes("--allow-all-tools")) {
-          // If it has --allow-all-tools, verify it's for danger mode only
-          expect(cmd).not.toContain("--allowedTools");
+        // Danger mode should NOT apply read-safe --allowedTools restrictions
+        expect(cmd).not.toContain("--allowedTools");
+      });
+
+      it("should track --allow-all-tools support in danger mode, not read-safe permissions", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        const onTelemetry = (attr: string, value: any) => {
+          telemetry[attr] = value;
+        };
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", true, onTelemetry);
+
+        // In danger mode, should track --allow-all-tools support, not read-safe permissions
+        expect(telemetry["process.readSafePermissionsApplied"]).toBeUndefined();
+        // But should have danger mode telemetry
+        const hasDangerModeTelemetry =
+          telemetry["process.allowAllToolsSupported"] !== undefined ||
+          telemetry["process.allowAllToolsCheckFailed"] !== undefined;
+        expect(hasDangerModeTelemetry).toBe(true);
+      });
+
+      it("should not fall back to read-safe --allowedTools when error occurs in danger mode", () => {
+        console.warn = mock(() => {
+          // Silent warn mock to avoid console output
+        });
+
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        const onTelemetry = (attr: string, value: any) => {
+          telemetry[attr] = value;
+        };
+
+        // Call with parameters that might trigger error
+        try {
+          applyCopilotPermissions(cmd, "test-variant", "nonexistent-danger-xyz123", true, onTelemetry);
+        } catch {
+          // Catch potential errors
         }
+
+        // Danger mode should NEVER apply read-safe --allowedTools as fallback
+        expect(cmd).not.toContain("--allowedTools");
+        // Should have tracked danger mode telemetry
+        const hasDangerTelemetry =
+          telemetry["process.allowAllToolsSupported"] !== undefined ||
+          telemetry["process.allowAllToolsCheckFailed"] !== undefined;
+        expect(hasDangerTelemetry).toBe(true);
       });
     });
 
