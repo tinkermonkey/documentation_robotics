@@ -281,25 +281,30 @@ export function applyCopilotPermissions(
         onTelemetry?.("process.readSafePermissionsApplied", true);
         onTelemetry?.("process.allowedTools", allowedToolsValue);
       } else {
-        onTelemetry?.("process.readSafePermissionsApplied", false);
+        // Flag not advertised in help, but still try to apply it optimistically
+        // (fail-safe: try to restrict access even if we're not 100% sure the flag exists)
+        const allowedToolsValue = formatForCopilot();
+        cmd.push("--allowedTools", allowedToolsValue);
+        onTelemetry?.("process.readSafePermissionsApplied", true);
+        onTelemetry?.("process.allowedTools", allowedToolsValue);
         console.warn(
           ansis.yellow(
-            `Note: Your ${variant} version doesn't support granular permissions. ` +
-              `Consider upgrading @github/copilot for permission controls.`
+            `Note: Your ${variant} version doesn't advertise --allowedTools in help, ` +
+              `but attempting to apply it. If not supported, ` +
+              `please upgrade @github/copilot for granular permission controls.`
           )
         );
       }
     } catch {
       onTelemetry?.("process.readSafePermissionCheckFailed", true);
-      // Fail-closed: Apply permissions optimistically. If the CLI doesn't support
-      // --allowedTools, the command will fail, preventing unrestricted access.
-      const allowedToolsValue = formatForCopilot();
-      cmd.push("--allowedTools", allowedToolsValue);
+      // Graceful degradation: unable to verify support, so launch without restrictions
+      // rather than failing the launch. Warn user that this is less secure.
+      onTelemetry?.("process.readSafePermissionsApplied", false);
       console.warn(
         ansis.yellow(
           `WARNING: Could not verify read-safe permission support for ${variant}. ` +
-            `Applying read-safe restrictions optimistically. If ${variant} doesn't support ` +
-            `the flag, the launch will fail — please upgrade your ${variant} CLI for compatibility.`
+            `Launching without granular permission restrictions. ` +
+            `For better security, please ensure your ${variant} CLI is up-to-date.`
         )
       );
     }

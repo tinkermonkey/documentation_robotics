@@ -291,7 +291,7 @@ describe("Default Read-Safe Permissions", () => {
         expect(telemetry["process.readSafePermissionsApplied"]).toBe(true);
       });
 
-      it("should warn when CLI doesn't support --allowedTools (Branch 2)", () => {
+      it("should apply --allowedTools optimistically when not advertised (Branch 2 - fail-safe)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
         let warningText = "";
@@ -309,15 +309,15 @@ describe("Default Read-Safe Permissions", () => {
           telemetry[attr] = val;
         }, mockSpawnSync as any);
 
-        // Should not add --allowedTools when not supported
-        expect(cmd).not.toContain("--allowedTools");
-        // Should record that feature is not supported
-        expect(telemetry["process.readSafePermissionsApplied"]).toBe(false);
-        // Should have warned user
-        expect(warningText.includes("doesn't support granular permissions")).toBe(true);
+        // Should add --allowedTools optimistically even when not advertised
+        expect(cmd).toContain("--allowedTools");
+        // Should record that permissions were applied (fail-safe approach)
+        expect(telemetry["process.readSafePermissionsApplied"]).toBe(true);
+        // Should have warned user about non-advertised flag
+        expect(warningText.includes("doesn't advertise --allowedTools")).toBe(true);
       });
 
-      it("should apply --allowedTools optimistically when check fails (Branch 3 - fail-closed)", () => {
+      it("should gracefully degrade when check fails (Branch 3 - fail-open)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
         let warningText = "";
@@ -333,12 +333,15 @@ describe("Default Read-Safe Permissions", () => {
           telemetry[attr] = val;
         }, mockSpawnSync as any);
 
-        // Must add --allowedTools optimistically when check fails (fail-closed)
-        expect(cmd).toContain("--allowedTools");
+        // Should NOT add --allowedTools when check fails (graceful degradation)
+        expect(cmd).not.toContain("--allowedTools");
         // Should record the check failure
         expect(telemetry["process.readSafePermissionCheckFailed"]).toBe(true);
-        // Should have warned user
+        // Should record that permissions were not applied due to verification failure
+        expect(telemetry["process.readSafePermissionsApplied"]).toBe(false);
+        // Should have warned user about degraded mode
         expect(warningText.includes("Could not verify")).toBe(true);
+        expect(warningText.includes("without granular permission restrictions")).toBe(true);
       });
 
       it("should not apply --allow-all-tools even when handling errors", () => {
