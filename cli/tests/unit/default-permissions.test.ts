@@ -169,7 +169,7 @@ describe("Default Read-Safe Permissions", () => {
           name: "NotebookEdit",
           description: "Edit notebooks",
           scope: ".",
-          allowsWrite: true,
+          allowsWrite: false,
         },
         {
           name: "Read",
