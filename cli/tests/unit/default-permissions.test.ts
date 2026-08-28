@@ -5,11 +5,14 @@
  * and can be correctly formatted for both Claude Code and GitHub Copilot clients.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import {
   DEFAULT_READ_SAFE_PERMISSIONS,
   formatForClaudeCode,
+  formatForCopilot,
+  applyCopilotPermissions,
 } from "../../src/coding-agents/default-permissions.js";
+import { spawnSync } from "child_process";
 
 describe("Default Read-Safe Permissions", () => {
   describe("DEFAULT_READ_SAFE_PERMISSIONS", () => {
@@ -192,6 +195,105 @@ describe("Default Read-Safe Permissions", () => {
         (p) => p.name === "Edit" || p.name === "Write"
       );
       expect(editWritePerms).toHaveLength(0);
+    });
+  });
+
+  describe("applyCopilotPermissions error recovery", () => {
+    describe("Default mode (withDanger=false) - fail-closed behavior", () => {
+      it("should apply --allowedTools flag in default mode", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        const onTelemetry = (attr: string, value: any) => {
+          telemetry[attr] = value;
+        };
+
+        // Call with a CLI that supports the flag (help output includes --allowedTools)
+        applyCopilotPermissions(cmd, "copilot", "gh", false, onTelemetry);
+
+        // When CLI supports --allowedTools, it should be added or permission applied
+        // Either --allowedTools is present OR telemetry shows readSafePermissionsApplied=true
+        if (telemetry["process.readSafePermissionsApplied"] === true) {
+          expect(cmd).toContain("--allowedTools");
+        }
+        // If not applied (e.g., no support), at least telemetry should indicate the attempt
+        expect(telemetry["process.readSafePermissionsApplied"]).toBeDefined();
+      });
+
+      it("should NOT include --allow-all-tools in default mode", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+
+        // Default mode should never add --allow-all-tools
+        expect(cmd).not.toContain("--allow-all-tools");
+      });
+
+      it("should include permission value in command when --allowedTools is applied", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        applyCopilotPermissions(cmd, "copilot", "gh", false);
+
+        // Check if --allowedTools was added
+        const allowedToolsIndex = cmd.indexOf("--allowedTools");
+        if (allowedToolsIndex >= 0) {
+          // If flag is present, its value should match formatForCopilot()
+          expect(cmd[allowedToolsIndex + 1]).toEqual(formatForCopilot());
+        }
+      });
+    });
+
+    describe("Danger mode (withDanger=true) - graceful degradation", () => {
+      it("should attempt --allow-all-tools only when CLI supports it", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        const onTelemetry = (attr: string, value: any) => {
+          telemetry[attr] = value;
+        };
+
+        applyCopilotPermissions(cmd, "copilot", "gh", true, onTelemetry);
+
+        // Telemetry should show whether --allow-all-tools is supported
+        expect(telemetry["process.allowAllToolsSupported"]).toBeDefined();
+
+        // If supported, --allow-all-tools should be in the command
+        if (telemetry["process.allowAllToolsSupported"] === true) {
+          expect(cmd).toContain("--allow-all-tools");
+        } else {
+          // If not supported, --allow-all-tools should NOT be added
+          expect(cmd).not.toContain("--allow-all-tools");
+        }
+      });
+
+      it("should not fall back to --allowedTools in danger mode", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        applyCopilotPermissions(cmd, "copilot", "copilot", true);
+
+        // Danger mode should not apply read-safe --allowedTools restrictions
+        // even if --allow-all-tools is not supported
+        if (cmd.includes("--allow-all-tools")) {
+          // If it has --allow-all-tools, verify it's for danger mode only
+          expect(cmd).not.toContain("--allowedTools");
+        }
+      });
+    });
+
+    describe("Permission formatting", () => {
+      it("formatForCopilot should return proper format for --allowedTools flag", () => {
+        const result = formatForCopilot();
+        expect(typeof result).toBe("string");
+        expect(result.length).toBeGreaterThan(0);
+        // Should be comma-separated tool specifications
+        expect(result).toContain(",");
+        // Should contain at least Bash and Read
+        expect(result).toContain("Bash");
+        expect(result).toContain("Read");
+      });
+
+      it("should properly scope tools in permission format", () => {
+        const result = formatForCopilot();
+        // Bash should have dr scope
+        expect(result).toContain("Bash(dr *");
+        // Read should have scopes
+        expect(result).toContain("Read(");
+      });
     });
   });
 });

@@ -188,11 +188,15 @@ export function applyCopilotPermissions(
       }
     } catch {
       onTelemetry?.("process.readSafePermissionCheckFailed", true);
+      // Fail-closed: Apply permissions optimistically. If the CLI doesn't support
+      // --allowedTools, the command will fail, preventing unrestricted access.
+      const allowedToolsValue = formatForCopilot();
+      cmd.push("--allowedTools", allowedToolsValue);
       console.warn(
         ansis.yellow(
           `WARNING: Could not verify read-safe permission support for ${variant}. ` +
-            `Launching WITHOUT permission restrictions — the agent will have unrestricted tool access. ` +
-            `Please ensure your ${variant} CLI is up-to-date for security controls.`
+            `Applying read-safe restrictions optimistically. If ${variant} doesn't support ` +
+            `the flag, the launch will fail — please upgrade your ${variant} CLI for compatibility.`
         )
       );
     }
