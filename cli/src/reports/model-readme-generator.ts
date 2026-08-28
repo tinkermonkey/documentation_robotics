@@ -12,7 +12,6 @@ import type { ModelReadmeData } from './model-report-data.js';
 import { formatLayerName } from '../utils/layer-name-formatter.js';
 import { formatMarkdownTable } from '../utils/markdown-table.js';
 import { escapeMarkdown } from '../export/markdown-utils.js';
-import { getLayerReportFileName } from './model-report-utils.js';
 
 export class ModelReadmeGenerator {
   /**
@@ -155,8 +154,7 @@ export class ModelReadmeGenerator {
       let report: string;
       if (layer.elementCount > 0) {
         // Create link to layer report
-        const reportFileName = getLayerReportFileName(layer.layerName);
-        report = `[${reportFileName}](./${reportFileName})`;
+        report = `[${layer.reportFileName}](./${layer.reportFileName})`;
       } else {
         // No link for empty layers
         report = '—';
