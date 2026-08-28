@@ -11,6 +11,7 @@ import {
   formatForClaudeCode,
   formatForCopilot,
   applyCopilotPermissions,
+  validatePermissions,
 } from "../../src/coding-agents/default-permissions.js";
 
 // Store original functions for restoration
@@ -160,6 +161,239 @@ describe("Default Read-Safe Permissions", () => {
     });
   });
 
+
+  describe("validatePermissions() - Negative Path Tests", () => {
+    it("should reject non-Bash/Read tools like NotebookEdit", () => {
+      const invalidPerms = [
+        {
+          name: "NotebookEdit",
+          description: "Edit notebooks",
+          scope: ".",
+          allowsWrite: true,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/only include Bash and Read tools/);
+    });
+
+    it("should reject Bash permissions with scope 'dr *' wildcard", () => {
+      const invalidPerms = [
+        {
+          name: "Bash",
+          description: "Execute the dr CLI tool",
+          scope: "dr *",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/dangerous wildcard pattern/);
+    });
+
+    it("should reject Bash permissions with scope '*' bare wildcard", () => {
+      const invalidPerms = [
+        {
+          name: "Bash",
+          description: "Execute the dr CLI tool",
+          scope: "*",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/dangerous wildcard pattern/);
+    });
+
+    it("should reject Bash permissions with scope '.' bare dot", () => {
+      const invalidPerms = [
+        {
+          name: "Bash",
+          description: "Execute the dr CLI tool",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/dangerous wildcard pattern/);
+    });
+
+    it("should reject permissions with allowsWrite=true", () => {
+      const invalidPerms = [
+        {
+          name: "Bash",
+          description: "Execute the dr CLI tool for read-safe model queries",
+          scope: "dr query|dr show",
+          allowsWrite: true,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/must not allow write operations/);
+    });
+
+    it("should reject Bash permissions without 'dr' in description", () => {
+      const invalidPerms = [
+        {
+          name: "Bash",
+          description: "Execute generic shell commands",
+          scope: "dr query|dr show",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/Bash permission must be for dr CLI only/);
+    });
+
+    it("should reject Bash permissions with scope not starting with 'dr '", () => {
+      const invalidPerms = [
+        {
+          name: "Bash",
+          description: "Execute the dr CLI tool for read-safe model queries",
+          scope: "other query|other show",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read files from the codebase",
+          scope: ".",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the documentation-robotics model folder",
+          scope: "documentation-robotics",
+          allowsWrite: false,
+        },
+        {
+          name: "Read",
+          description: "Read from the dr configuration folder",
+          scope: ".dr",
+          allowsWrite: false,
+        },
+      ];
+
+      expect(() => {
+        validatePermissions(invalidPerms);
+      }).toThrow(/must start with 'dr '/);
+    });
+  });
 
   describe("Acceptance Criteria Verification", () => {
     it("should cover running the dr CLI", () => {

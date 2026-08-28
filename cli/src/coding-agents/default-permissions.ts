@@ -83,7 +83,7 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: readonly ToolPermission[] = Object.f
  *
  * Claude Code uses the --allowedTools flag with scoped tool permissions.
  * This function formats the permission list as expected by Claude Code's --allowedTools parameter,
- * including scope constraints for each tool (e.g., "Bash(dr *),Read(.),Read(documentation-robotics)").
+ * including scope constraints for each tool (e.g., "Bash(dr query|dr show|dr list|...),Read(.),Read(documentation-robotics)").
  *
  * @returns String formatted for Claude Code --allowedTools flag
  */
@@ -106,7 +106,7 @@ export function formatForClaudeCode(): string {
  * that support granular scoped permissions. If the installed Copilot version doesn't support this flag,
  * the caller should gracefully degrade (e.g., launch without the flag, with a warning).
  *
- * Format: "Bash(dr *),Read(.),Read(documentation-robotics),Read(.dr)"
+ * Format: "Bash(dr query|dr show|dr list|...),Read(.),Read(documentation-robotics),Read(.dr)"
  *
  * @returns String formatted for Copilot --allowedTools flag (if supported)
  */
@@ -115,27 +115,25 @@ export function formatForCopilot(): string {
 }
 
 /**
- * Validate read-safe permission constraints
+ * Validate a permission array against read-safe constraints
  *
- * Called during module initialization to verify the permission allowlist maintains
- * its safety invariants: all permissions are read-only, required tools are present,
- * and no dangerous tools are included.
+ * Internal function that validates any permission array. Used by tests to verify
+ * that invalid configurations are properly rejected.
  *
- * Throws an error if constraints are violated, preventing runtime with an invalid configuration.
- *
+ * @param permissions The permission array to validate
  * @throws {Error} If any constraint is violated
  */
-export function validateReadSafeConstraints(): void {
+export function validatePermissions(permissions: readonly ToolPermission[]): void {
   // Constraint 1: Non-empty allowlist
-  if (!Array.isArray(DEFAULT_READ_SAFE_PERMISSIONS) || DEFAULT_READ_SAFE_PERMISSIONS.length === 0) {
+  if (!Array.isArray(permissions) || permissions.length === 0) {
     throw new Error(
-      "DEFAULT_READ_SAFE_PERMISSIONS must be a non-empty array"
+      "Permissions must be a non-empty array"
     );
   }
 
   // Constraint 2: All permissions must have required fields with correct types
-  for (let i = 0; i < DEFAULT_READ_SAFE_PERMISSIONS.length; i++) {
-    const perm = DEFAULT_READ_SAFE_PERMISSIONS[i];
+  for (let i = 0; i < permissions.length; i++) {
+    const perm = permissions[i];
 
     if (typeof perm.name !== "string" || perm.name.length === 0) {
       throw new Error(
@@ -157,7 +155,7 @@ export function validateReadSafeConstraints(): void {
   }
 
   // Constraint 3: No permission should allow write operations (read-safe invariant)
-  const writePerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.allowsWrite);
+  const writePerms = permissions.filter((p) => p.allowsWrite);
   if (writePerms.length > 0) {
     throw new Error(
       `Read-safe permissions must not allow write operations. Found ${writePerms.length} permission(s) with allowsWrite=true`
@@ -166,7 +164,7 @@ export function validateReadSafeConstraints(): void {
 
   // Constraint 4: Only Bash and Read tools allowed (allowlist validation, not denylist)
   const allowedToolNames = new Set(["Bash", "Read"]);
-  const disallowedTools = DEFAULT_READ_SAFE_PERMISSIONS.filter(
+  const disallowedTools = permissions.filter(
     (p) => !allowedToolNames.has(p.name)
   );
   if (disallowedTools.length > 0) {
@@ -176,7 +174,7 @@ export function validateReadSafeConstraints(): void {
   }
 
   // Constraint 5: Bash must be for dr CLI only with properly restricted scope (no wildcards or bare patterns)
-  const bashPerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.name === "Bash");
+  const bashPerms = permissions.filter((p) => p.name === "Bash");
   if (bashPerms.length > 0) {
     const invalidBash = bashPerms.filter((p) => {
       const hasValidDescription = p.description.toLowerCase().includes("dr") && p.description.toLowerCase().includes("cli");
@@ -224,7 +222,7 @@ export function validateReadSafeConstraints(): void {
   }
 
   // Constraint 6: Must have Read permission for codebase
-  const codebaseRead = DEFAULT_READ_SAFE_PERMISSIONS.find(
+  const codebaseRead = permissions.find(
     (p) => p.name === "Read" && p.description.toLowerCase().includes("codebase")
   );
   if (!codebaseRead) {
@@ -232,7 +230,7 @@ export function validateReadSafeConstraints(): void {
   }
 
   // Constraint 7: Must have Read permission for documentation-robotics folder
-  const docRoboticsRead = DEFAULT_READ_SAFE_PERMISSIONS.find(
+  const docRoboticsRead = permissions.find(
     (p) => p.name === "Read" && p.description.includes("documentation-robotics")
   );
   if (!docRoboticsRead) {
@@ -240,7 +238,7 @@ export function validateReadSafeConstraints(): void {
   }
 
   // Constraint 8: Must have Read permission for .dr folder
-  const drFolderRead = DEFAULT_READ_SAFE_PERMISSIONS.find(
+  const drFolderRead = permissions.find(
     (p) => p.name === "Read" && (p.scope === ".dr" || p.description.includes(".dr"))
   );
   if (!drFolderRead) {
@@ -248,6 +246,21 @@ export function validateReadSafeConstraints(): void {
   }
 
   // All constraints passed
+}
+
+/**
+ * Validate read-safe permission constraints
+ *
+ * Called during module initialization to verify the permission allowlist maintains
+ * its safety invariants: all permissions are read-only, required tools are present,
+ * and no dangerous tools are included.
+ *
+ * Throws an error if constraints are violated, preventing runtime with an invalid configuration.
+ *
+ * @throws {Error} If any constraint is violated
+ */
+export function validateReadSafeConstraints(): void {
+  validatePermissions(DEFAULT_READ_SAFE_PERMISSIONS);
 }
 
 /**
