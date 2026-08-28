@@ -76,13 +76,16 @@ if [ -d "$CLI_DIR/src" ]; then
   rm -rf "$CLI_DIR/dist" "$CLI_DIR/tsconfig.tsbuildinfo"
 
   # Install root dependencies (needed for build:spec via tsx)
-  if [ -f "$PROJECT_DIR/package.json" ] && [ ! -d "$PROJECT_DIR/node_modules" ]; then
+  if [ -f "$PROJECT_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing root dependencies..."
     cd "$PROJECT_DIR" && npm install --ignore-scripts 2>&1 | tail -1
   fi
 
   # Install CLI dependencies
-  if [ -f "$CLI_DIR/package.json" ] && [ ! -d "$CLI_DIR/node_modules" ]; then
+  # Always run npm install (not conditional on node_modules existence) because
+  # the bind-mounted node_modules may be incomplete — e.g., missing
+  # @modelcontextprotocol/sdk which is needed by 27 files in cli/src/mcp/.
+  if [ -f "$CLI_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing CLI dependencies..."
     cd "$CLI_DIR" && npm install 2>&1 | tail -1
   fi
