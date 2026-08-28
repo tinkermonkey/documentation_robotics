@@ -219,18 +219,21 @@ export function validateReadSafeConstraints(): void {
  * @param copilotCommand The copilot CLI name ("copilot" or "gh")
  * @param withDanger Whether to use danger mode (--allow-all-tools)
  * @param onTelemetry Optional callback for telemetry logging
+ * @param testSpawnSync Optional injected spawnSync for testing (allows mocking CLI probe)
  */
 export function applyCopilotPermissions(
   cmd: string[],
   variant: string,
   copilotCommand: string,
   withDanger: boolean,
-  onTelemetry?: (attr: string, value: any) => void
+  onTelemetry?: (attr: string, value: any) => void,
+  testSpawnSync?: typeof spawnSync
 ): void {
+  const spawnSyncFn = testSpawnSync || spawnSync;
 
   if (withDanger) {
     try {
-      const helpResult = spawnSync(
+      const helpResult = spawnSyncFn(
         copilotCommand === "copilot" ? "copilot" : "gh",
         copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
         { stdio: "pipe", encoding: "utf-8", timeout: 1000 }
@@ -259,7 +262,7 @@ export function applyCopilotPermissions(
     }
   } else {
     try {
-      const helpResult = spawnSync(
+      const helpResult = spawnSyncFn(
         copilotCommand === "copilot" ? "copilot" : "gh",
         copilotCommand === "copilot" ? ["--help"] : ["copilot", "--help"],
         { stdio: "pipe", encoding: "utf-8", timeout: 1000 }

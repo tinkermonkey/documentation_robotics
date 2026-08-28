@@ -6,7 +6,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import * as childProcess from "child_process";
 import {
   DEFAULT_READ_SAFE_PERMISSIONS,
   formatForClaudeCode,
@@ -214,7 +213,13 @@ describe("Default Read-Safe Permissions", () => {
       it("should mutate cmd array in place (not return a value)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const cmdRef = cmd;
-        const result = applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
+        const result = applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
 
         // Should mutate in place and return undefined
         expect(result).toBeUndefined();
@@ -223,7 +228,13 @@ describe("Default Read-Safe Permissions", () => {
 
       it("should never include --allow-all-tools in default mode", () => {
         const cmd: string[] = ["copilot", "chat"];
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
 
         // Default mode must not add --allow-all-tools flag
         expect(cmd).not.toContain("--allow-all-tools");
@@ -232,124 +243,254 @@ describe("Default Read-Safe Permissions", () => {
       it("should accept telemetry callback as optional parameter", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetryEvents: Array<[string, any]> = [];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
         // Should not throw when callback is provided
         expect(() => {
           applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
             telemetryEvents.push([attr, val]);
-          });
+          }, mockSpawnSync as any);
         }).not.toThrow();
       });
 
       it("should handle missing telemetry callback gracefully", () => {
         const cmd: string[] = ["copilot", "chat"];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
         // Should not throw when callback is undefined
         expect(() => {
-          applyCopilotPermissions(cmd, "copilot", "copilot", false);
+          applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
         }).not.toThrow();
       });
     });
 
     describe("Default mode branch (withDanger=false)", () => {
-      it("should attempt permission check when in default mode", () => {
+      it("should add --allowedTools flag when CLI supports it (Branch 1)", () => {
         const cmd: string[] = ["copilot", "chat"];
-        let checkAttempted = false;
+        const telemetry: Record<string, any> = {};
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
-        // Override console.warn to detect that the function ran
-        console.warn = () => {
-          checkAttempted = true;
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
+          telemetry[attr] = val;
+        }, mockSpawnSync as any);
+
+        // Must add --allowedTools flag when supported
+        expect(cmd).toContain("--allowedTools");
+        expect(telemetry["process.readSafePermissionsApplied"]).toBe(true);
+      });
+
+      it("should warn when CLI doesn't support --allowedTools (Branch 2)", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        let warningText = "";
+        console.warn = (msg: any) => {
+          warningText = msg.toString();
         };
 
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        const mockSpawnSync = () => ({
+          stdout: "copilot help text without permission flags",
+          stderr: "",
+          status: 0,
+        });
 
-        // Whether it adds flags or warns, the check was executed
-        const flagsAdded = cmd.includes("--allowedTools");
-        expect(flagsAdded || checkAttempted).toBe(true);
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
+          telemetry[attr] = val;
+        }, mockSpawnSync as any);
+
+        // Should not add --allowedTools when not supported
+        expect(cmd).not.toContain("--allowedTools");
+        // Should record that feature is not supported
+        expect(telemetry["process.readSafePermissionsApplied"]).toBe(false);
+        // Should have warned user
+        expect(warningText.includes("doesn't support granular permissions")).toBe(true);
       });
 
-      it("should add --allowedTools flag if CLI supports it (or optimistically on error)", () => {
+      it("should apply --allowedTools optimistically when check fails (Branch 3 - fail-closed)", () => {
         const cmd: string[] = ["copilot", "chat"];
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        const telemetry: Record<string, any> = {};
+        let warningText = "";
+        console.warn = (msg: any) => {
+          warningText = msg.toString();
+        };
 
-        // Default mode should either add --allowedTools or warn
-        const hasAllowedTools = cmd.includes("--allowedTools");
-        expect(typeof hasAllowedTools).toBe("boolean");
+        const mockSpawnSync = () => {
+          throw new Error("CLI not available");
+        };
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
+          telemetry[attr] = val;
+        }, mockSpawnSync as any);
+
+        // Must add --allowedTools optimistically when check fails (fail-closed)
+        expect(cmd).toContain("--allowedTools");
+        // Should record the check failure
+        expect(telemetry["process.readSafePermissionCheckFailed"]).toBe(true);
+        // Should have warned user
+        expect(warningText.includes("Could not verify")).toBe(true);
       });
 
-      it("should not apply --allow-all-tools even when trying to handle errors", () => {
+      it("should not apply --allow-all-tools even when handling errors", () => {
         const cmd: string[] = ["copilot", "chat"];
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        console.warn = () => {};
+
+        const mockSpawnSync = () => {
+          throw new Error("CLI not available");
+        };
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
 
         // Guarantee: danger mode flag must never be in default mode
         expect(cmd).not.toContain("--allow-all-tools");
       });
 
-      it("should use proper telemetry attributes for default mode", () => {
+      it("should use proper telemetry attributes for default mode (success path)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
-        console.warn = () => {};
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
         applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
           telemetry[attr] = val;
-        });
+        }, mockSpawnSync as any);
 
-        // Should have attempted permission check and recorded outcome
-        const hasDefaultModeTelemtry =
+        // Should record success outcome
+        const hasDefaultModeTelemetry =
           telemetry["process.readSafePermissionsApplied"] !== undefined ||
           telemetry["process.readSafePermissionCheckFailed"] !== undefined;
-        expect(hasDefaultModeTelemtry).toBe(true);
+        expect(hasDefaultModeTelemetry).toBe(true);
       });
     });
 
     describe("Danger mode branch (withDanger=true)", () => {
-      it("should attempt permission check when in danger mode", () => {
+      it("should add --allow-all-tools when CLI supports it (Branch 4)", () => {
         const cmd: string[] = ["copilot", "chat"];
-        let checkAttempted = false;
+        const telemetry: Record<string, any> = {};
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allow-all-tools Allow unrestricted tool access",
+          stderr: "",
+          status: 0,
+        });
 
-        console.warn = () => {
-          checkAttempted = true;
+        applyCopilotPermissions(cmd, "copilot", "copilot", true, (attr, val) => {
+          telemetry[attr] = val;
+        }, mockSpawnSync as any);
+
+        // Must add --allow-all-tools when supported
+        expect(cmd).toContain("--allow-all-tools");
+        expect(telemetry["process.allowAllToolsSupported"]).toBe(true);
+      });
+
+      it("should warn when CLI doesn't support --allow-all-tools (Branch 5)", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        let warningText = "";
+        console.warn = (msg: any) => {
+          warningText = msg.toString();
         };
 
-        applyCopilotPermissions(cmd, "copilot", "copilot", true);
+        const mockSpawnSync = () => ({
+          stdout: "copilot help text without danger flags",
+          stderr: "",
+          status: 0,
+        });
 
-        // Whether it adds flags or warns, the check was executed
-        const flagsAdded = cmd.includes("--allow-all-tools");
-        expect(flagsAdded || checkAttempted).toBe(true);
+        applyCopilotPermissions(cmd, "copilot", "copilot", true, (attr, val) => {
+          telemetry[attr] = val;
+        }, mockSpawnSync as any);
+
+        // Should not add --allow-all-tools when not supported
+        expect(cmd).not.toContain("--allow-all-tools");
+        // Should record that feature is not supported
+        expect(telemetry["process.allowAllToolsSupported"]).toBe(false);
+        // Should have warned user
+        expect(warningText.includes("not supported")).toBe(true);
+      });
+
+      it("should gracefully degrade when check fails in danger mode (Branch 6 - no fallback)", () => {
+        const cmd: string[] = ["copilot", "chat"];
+        const telemetry: Record<string, any> = {};
+        let warningText = "";
+        console.warn = (msg: any) => {
+          warningText = msg.toString();
+        };
+
+        const mockSpawnSync = () => {
+          throw new Error("CLI not available");
+        };
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", true, (attr, val) => {
+          telemetry[attr] = val;
+        }, mockSpawnSync as any);
+
+        // In danger mode, should NOT apply fallback (graceful degradation, not fail-closed)
+        expect(cmd).not.toContain("--allow-all-tools");
+        // Should record the check failure
+        expect(telemetry["process.allowAllToolsCheckFailed"]).toBe(true);
+        // Should have warned user
+        expect(warningText.includes("Could not verify")).toBe(true);
       });
 
       it("should not apply read-safe --allowedTools in danger mode", () => {
         const cmd: string[] = ["copilot", "chat"];
-        applyCopilotPermissions(cmd, "copilot", "copilot", true);
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allow-all-tools Allow unrestricted tool access",
+          stderr: "",
+          status: 0,
+        });
+
+        applyCopilotPermissions(cmd, "copilot", "copilot", true, undefined, mockSpawnSync as any);
 
         // Danger mode must NOT use read-safe restricted flags
         expect(cmd).not.toContain("--allowedTools");
       });
 
-      it("should use proper telemetry attributes for danger mode", () => {
+      it("should use proper telemetry attributes for danger mode (success path)", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
-        console.warn = () => {};
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allow-all-tools Allow unrestricted tool access",
+          stderr: "",
+          status: 0,
+        });
 
         applyCopilotPermissions(cmd, "copilot", "copilot", true, (attr, val) => {
           telemetry[attr] = val;
-        });
+        }, mockSpawnSync as any);
 
         // Should track danger mode support, not read-safe permissions
-        const hasDangerModeTelemtry =
+        const hasDangerModeTelemetry =
           telemetry["process.allowAllToolsSupported"] !== undefined ||
           telemetry["process.allowAllToolsCheckFailed"] !== undefined;
-        expect(hasDangerModeTelemtry).toBe(true);
+        expect(hasDangerModeTelemetry).toBe(true);
       });
 
       it("should not record read-safe permission telemetry in danger mode", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
-        console.warn = () => {};
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allow-all-tools Allow unrestricted tool access",
+          stderr: "",
+          status: 0,
+        });
 
         applyCopilotPermissions(cmd, "copilot", "copilot", true, (attr, val) => {
           telemetry[attr] = val;
-        });
+        }, mockSpawnSync as any);
 
         // Danger mode should never record read-safe permission success
         expect(telemetry["process.readSafePermissionsApplied"]).toBeUndefined();
@@ -360,10 +501,16 @@ describe("Default Read-Safe Permissions", () => {
       it("should append flags to end of existing command array", () => {
         const cmd: string[] = ["copilot", "chat", "--existing-flag"];
         const initialLength = cmd.length;
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
-        // Array should have been modified
-        expect(cmd.length >= initialLength).toBe(true);
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
+
+        // Array should have been modified (flags added)
+        expect(cmd.length > initialLength).toBe(true);
         // Original elements should still be in place
         expect(cmd[0]).toBe("copilot");
         expect(cmd[1]).toBe("chat");
@@ -372,15 +519,27 @@ describe("Default Read-Safe Permissions", () => {
 
       it("should handle empty cmd array", () => {
         const cmd: string[] = [];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
         expect(() => {
-          applyCopilotPermissions(cmd, "copilot", "copilot", false);
+          applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
         }).not.toThrow();
       });
 
       it("should handle single-element cmd array", () => {
         const cmd: string[] = ["copilot"];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
         expect(() => {
-          applyCopilotPermissions(cmd, "copilot", "copilot", false);
+          applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
         }).not.toThrow();
       });
     });
@@ -388,15 +547,27 @@ describe("Default Read-Safe Permissions", () => {
     describe("CLI variant handling", () => {
       it("should accept 'copilot' as copilotCommand parameter", () => {
         const cmd: string[] = ["copilot", "chat"];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
         expect(() => {
-          applyCopilotPermissions(cmd, "copilot", "copilot", false);
+          applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
         }).not.toThrow();
       });
 
       it("should accept 'gh' as copilotCommand parameter", () => {
         const cmd: string[] = ["gh", "copilot", "chat"];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
         expect(() => {
-          applyCopilotPermissions(cmd, "gh copilot", "gh", false);
+          applyCopilotPermissions(cmd, "gh copilot", "gh", false, undefined, mockSpawnSync as any);
         }).not.toThrow();
       });
 
@@ -408,10 +579,17 @@ describe("Default Read-Safe Permissions", () => {
           warningCalled = true;
         };
 
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
+
         try {
-          applyCopilotPermissions(cmd, "custom-variant-name", "copilot", false);
-          // Function should complete without throwing
-          expect(typeof warningCalled).toBe("boolean");
+          applyCopilotPermissions(cmd, "custom-variant-name", "copilot", false, undefined, mockSpawnSync as any);
+          // Function should complete without throwing - should add flags
+          const flagsAdded = cmd.includes("--allowedTools");
+          expect(flagsAdded).toBe(true);
         } finally {
           console.warn = originalWarn;
         }
@@ -423,8 +601,12 @@ describe("Default Read-Safe Permissions", () => {
         const cmd: string[] = ["copilot", "chat"];
         console.warn = () => {};
 
+        const mockSpawnSync = () => {
+          throw new Error("CLI not available");
+        };
+
         expect(() => {
-          applyCopilotPermissions(cmd, "copilot", "copilot", false);
+          applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
         }).not.toThrow();
       });
 
@@ -435,10 +617,14 @@ describe("Default Read-Safe Permissions", () => {
           warningCalled = true;
         };
 
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        const mockSpawnSync = () => {
+          throw new Error("CLI not available");
+        };
 
-        // Warning might be called depending on CLI availability
-        expect(typeof warningCalled).toBe("boolean");
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
+
+        // Warning should be called when fallback is triggered
+        expect(warningCalled).toBe(true);
       });
     });
 
@@ -455,14 +641,18 @@ describe("Default Read-Safe Permissions", () => {
       it("should use formatForCopilot() output when applying read-safe permissions", () => {
         const cmd: string[] = ["copilot", "chat"];
         const expectedFormat = formatForCopilot();
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
-        applyCopilotPermissions(cmd, "copilot", "copilot", false);
+        applyCopilotPermissions(cmd, "copilot", "copilot", false, undefined, mockSpawnSync as any);
 
-        // If --allowedTools was added, it should use the proper format
+        // When --allowedTools is added, it must use the proper format
         const allowedToolsIndex = cmd.indexOf("--allowedTools");
-        if (allowedToolsIndex >= 0) {
-          expect(cmd[allowedToolsIndex + 1]).toBe(expectedFormat);
-        }
+        expect(allowedToolsIndex).toBeGreaterThanOrEqual(0);
+        expect(cmd[allowedToolsIndex + 1]).toBe(expectedFormat);
       });
 
       it("formatForCopilot should be consistent across calls", () => {
@@ -477,10 +667,15 @@ describe("Default Read-Safe Permissions", () => {
       it("should provide telemetry callback with string attribute names", () => {
         const cmd: string[] = ["copilot", "chat"];
         const attributes: string[] = [];
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
         applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
           attributes.push(attr);
-        });
+        }, mockSpawnSync as any);
 
         // All attributes should be strings
         attributes.forEach((attr) => {
@@ -492,10 +687,15 @@ describe("Default Read-Safe Permissions", () => {
       it("should record telemetry values of appropriate types", () => {
         const cmd: string[] = ["copilot", "chat"];
         const telemetry: Record<string, any> = {};
+        const mockSpawnSync = () => ({
+          stdout: "copilot --allowedTools List allowed tools",
+          stderr: "",
+          status: 0,
+        });
 
         applyCopilotPermissions(cmd, "copilot", "copilot", false, (attr, val) => {
           telemetry[attr] = val;
-        });
+        }, mockSpawnSync as any);
 
         // Values should be reasonable types (boolean, string, etc.)
         Object.values(telemetry).forEach((val) => {
