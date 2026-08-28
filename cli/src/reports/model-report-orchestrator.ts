@@ -10,6 +10,7 @@ import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
 import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, getLayerOrder, isValidLayerName } from '../core/layers.js';
 import { getErrorMessage } from '../utils/errors.js';
+import { getLayerReportFileName } from './model-report-utils.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -127,9 +128,7 @@ export class ModelReportOrchestrator {
    * Get the full file path for a layer report.
    */
   private getReportFilePath(layerName: CanonicalLayerName): string {
-    const layerNumber = getLayerOrder(layerName);
-    const paddedNumber = String(layerNumber).padStart(2, '0');
-    const filename = `${paddedNumber}-${layerName}-layer-report.md`;
+    const filename = getLayerReportFileName(layerName);
     return path.join(this.getReportDir(), filename);
   }
 

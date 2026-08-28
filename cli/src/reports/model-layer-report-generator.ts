@@ -20,6 +20,7 @@ import { createAnchor } from '../utils/markdown-anchor.js';
 import { escapeMarkdown, getLayerDescription, valueToMarkdown } from '../export/markdown-utils.js';
 import { getLayerOrder, CANONICAL_LAYER_NAMES } from '../core/layers.js';
 import { getValidRelationships } from '../generated/relationship-index.js';
+import { getLayerReportFileName } from './model-report-utils.js';
 
 export class ModelLayerReportGenerator {
   constructor(private modelVersion: string, private generatedAt: string) {}
@@ -412,7 +413,7 @@ export class ModelLayerReportGenerator {
     if (layerNumber === -1) {
       return layerName;
     }
-    const filename = `./${String(layerNumber).padStart(2, '0')}-${layerName}-layer-report.md`;
+    const filename = `./${getLayerReportFileName(layerName as any)}`;
     return `[${formatLayerName(layerName)}](${filename})`;
   }
 

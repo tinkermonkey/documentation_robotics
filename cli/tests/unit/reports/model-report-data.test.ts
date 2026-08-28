@@ -7,48 +7,61 @@ import { Manifest } from '@/core/manifest';
 import { GraphModel } from '@/core/graph-model';
 import type { Relationship } from '@/core/relationships';
 
-describe('ModelReportDataCollector', () => {
-  const createMockModel = (
-    elements: Map<string, Element> = new Map(),
-    relationships: Relationship[] = []
-  ): Model => {
-    const manifest = new Manifest({
-      name: 'test-model',
-      version: '1.0.0',
-      description: 'Test model',
-      created: new Date().toISOString(),
-      modified: new Date().toISOString(),
-    });
-    const model = new Model('/test/path', manifest);
-
-    // Add elements to the graph
-    for (const [, element] of elements) {
-      const node = {
-        id: element.path || element.id,
-        uuid: element.id,
-        layer: element.layer || element.layer_id,
-        type: element.type,
-        name: element.name,
-        description: element.description,
-        spec_node_id: element.spec_node_id,
-        layer_id: element.layer_id,
-        attributes: element.attributes,
-        source_reference: element.source_reference,
-        metadata: element.metadata,
-        properties: {
-          '__references__': element.references || [],
-          '__relationships__': element.relationships || [],
-        },
-      };
-      model.graph.addNode(node);
-    }
-
-    // Bypass normal model loading path for unit testing - we're directly setting relationships
-    // to test the collector in isolation without requiring full model initialization
-    model.relationships = new Relationships(relationships);
-
-    return model;
+interface MockModelOptions {
+  manifestOverrides?: {
+    name?: string;
+    version?: string;
+    description?: string;
+    specVersion?: string;
   };
+}
+
+const createMockModel = (
+  elements: Map<string, Element> = new Map(),
+  relationships: Relationship[] = [],
+  options: MockModelOptions = {}
+): Model => {
+  const { manifestOverrides = {} } = options;
+  const manifest = new Manifest({
+    name: manifestOverrides.name ?? 'test-model',
+    version: manifestOverrides.version ?? '1.0.0',
+    description: manifestOverrides.description ?? 'Test model',
+    specVersion: manifestOverrides.specVersion,
+    created: new Date().toISOString(),
+    modified: new Date().toISOString(),
+  });
+  const model = new Model('/test/path', manifest);
+
+  // Add elements to the graph
+  for (const [, element] of elements) {
+    const node = {
+      id: element.path || element.id,
+      uuid: element.id,
+      layer: element.layer || element.layer_id,
+      type: element.type,
+      name: element.name,
+      description: element.description,
+      spec_node_id: element.spec_node_id,
+      layer_id: element.layer_id,
+      attributes: element.attributes,
+      source_reference: element.source_reference,
+      metadata: element.metadata,
+      properties: {
+        '__references__': element.references || [],
+        '__relationships__': element.relationships || [],
+      },
+    };
+    model.graph.addNode(node);
+  }
+
+  // Bypass normal model loading path for unit testing - we're directly setting relationships
+  // to test the collector in isolation without requiring full model initialization
+  model.relationships = new Relationships(relationships);
+
+  return model;
+};
+
+describe('ModelReportDataCollector', () => {
 
   it('should handle empty layer', () => {
     const model = createMockModel(new Map());
@@ -518,49 +531,14 @@ describe('ModelReportDataCollector', () => {
 });
 
 describe('ModelReportDataCollector.collectModelData', () => {
-  const createMockModel = (
-    elements: Map<string, Element> = new Map(),
-    relationships: Relationship[] = []
-  ): Model => {
-    const manifest = new Manifest({
-      name: 'test-project',
-      version: '1.0.0',
-      description: 'Test project description',
-      specVersion: '0.9.0',
-      created: new Date().toISOString(),
-      modified: new Date().toISOString(),
-    });
-    const model = new Model('/test/path', manifest);
-
-    // Add elements to the graph
-    for (const [, element] of elements) {
-      const node = {
-        id: element.path || element.id,
-        uuid: element.id,
-        layer: element.layer || element.layer_id,
-        type: element.type,
-        name: element.name,
-        description: element.description,
-        spec_node_id: element.spec_node_id,
-        layer_id: element.layer_id,
-        attributes: element.attributes,
-        source_reference: element.source_reference,
-        metadata: element.metadata,
-        properties: {
-          '__references__': element.references || [],
-          '__relationships__': element.relationships || [],
-        },
-      };
-      model.graph.addNode(node);
-    }
-
-    model.relationships = new Relationships(relationships);
-
-    return model;
-  };
-
   it('should collect data for an empty model', () => {
-    const model = createMockModel();
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);
@@ -578,7 +556,13 @@ describe('ModelReportDataCollector.collectModelData', () => {
   });
 
   it('should include all 13 layers in the summary', () => {
-    const model = createMockModel();
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);
@@ -595,7 +579,13 @@ describe('ModelReportDataCollector.collectModelData', () => {
   });
 
   it('should generate correct report filenames', () => {
-    const model = createMockModel();
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);
@@ -642,7 +632,13 @@ describe('ModelReportDataCollector.collectModelData', () => {
       layer_id: 'motivation',
     }));
 
-    const model = createMockModel(elements);
+    const model = createMockModel(elements, [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);
@@ -697,7 +693,13 @@ describe('ModelReportDataCollector.collectModelData', () => {
       },
     ];
 
-    const model = createMockModel(elements, relationships);
+    const model = createMockModel(elements, relationships, {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);
@@ -706,7 +708,13 @@ describe('ModelReportDataCollector.collectModelData', () => {
   });
 
   it('should include all required fields in the returned data', () => {
-    const model = createMockModel();
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);
@@ -778,7 +786,13 @@ describe('ModelReportDataCollector.collectModelData', () => {
       layer_id: 'api',
     }));
 
-    const model = createMockModel(elements);
+    const model = createMockModel(elements, [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
     const collector = new ModelReportDataCollector();
 
     const data = collector.collectModelData(model);

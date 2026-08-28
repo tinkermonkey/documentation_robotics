@@ -3,6 +3,7 @@ import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
 import { getLayerOrder, CANONICAL_LAYER_NAMES, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 import { getCliVersion } from '../utils/spec-version.js';
+import { getLayerReportFileName } from './model-report-utils.js';
 
 /**
  * Statistics about relationships in a layer
@@ -197,8 +198,7 @@ export class ModelReportDataCollector {
       totalElements += elementCount;
 
       const layerNumber = getLayerOrder(layerName);
-      const paddedNumber = String(layerNumber).padStart(2, '0');
-      const reportFileName = `${paddedNumber}-${layerName}-layer-report.md`;
+      const reportFileName = getLayerReportFileName(layerName);
 
       layers.push({
         layerName,
