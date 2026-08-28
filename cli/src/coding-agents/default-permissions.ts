@@ -108,6 +108,106 @@ export function formatForCopilot(): string {
 }
 
 /**
+ * Validate read-safe permission constraints
+ *
+ * Called during module initialization to verify the permission allowlist maintains
+ * its safety invariants: all permissions are read-only, required tools are present,
+ * and no dangerous tools are included.
+ *
+ * Throws an error if constraints are violated, preventing runtime with an invalid configuration.
+ *
+ * @throws {Error} If any constraint is violated
+ */
+export function validateReadSafeConstraints(): void {
+  // Constraint 1: Non-empty allowlist
+  if (!Array.isArray(DEFAULT_READ_SAFE_PERMISSIONS) || DEFAULT_READ_SAFE_PERMISSIONS.length === 0) {
+    throw new Error(
+      "DEFAULT_READ_SAFE_PERMISSIONS must be a non-empty array"
+    );
+  }
+
+  // Constraint 2: All permissions must have required fields with correct types
+  for (let i = 0; i < DEFAULT_READ_SAFE_PERMISSIONS.length; i++) {
+    const perm = DEFAULT_READ_SAFE_PERMISSIONS[i];
+
+    if (typeof perm.name !== "string" || perm.name.length === 0) {
+      throw new Error(
+        `Permission[${i}].name must be a non-empty string, got: ${typeof perm.name}`
+      );
+    }
+
+    if (typeof perm.description !== "string" || perm.description.length === 0) {
+      throw new Error(
+        `Permission[${i}].description must be a non-empty string, got: ${typeof perm.description}`
+      );
+    }
+
+    if (typeof perm.allowsWrite !== "boolean") {
+      throw new Error(
+        `Permission[${i}].allowsWrite must be a boolean, got: ${typeof perm.allowsWrite}`
+      );
+    }
+  }
+
+  // Constraint 3: No permission should allow write operations (read-safe invariant)
+  const writePerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.allowsWrite);
+  if (writePerms.length > 0) {
+    throw new Error(
+      `Read-safe permissions must not allow write operations. Found ${writePerms.length} permission(s) with allowsWrite=true`
+    );
+  }
+
+  // Constraint 4: No Edit or Write tools (dangerous tools must not be included)
+  const dangerousTools = DEFAULT_READ_SAFE_PERMISSIONS.filter(
+    (p) => p.name === "Edit" || p.name === "Write"
+  );
+  if (dangerousTools.length > 0) {
+    throw new Error(
+      `Read-safe permissions must not include Edit or Write tools. Found: ${dangerousTools.map((p) => p.name).join(", ")}`
+    );
+  }
+
+  // Constraint 5: Bash must be for dr CLI only
+  const bashPerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.name === "Bash");
+  if (bashPerms.length > 0) {
+    const invalidBash = bashPerms.filter(
+      (p) => !p.description.toLowerCase().includes("dr cli")
+    );
+    if (invalidBash.length > 0) {
+      throw new Error(
+        `Bash permission must be for dr CLI only. Found invalid Bash permission(s): ${invalidBash.map((p) => p.description).join("; ")}`
+      );
+    }
+  }
+
+  // Constraint 6: Must have Read permission for codebase
+  const codebaseRead = DEFAULT_READ_SAFE_PERMISSIONS.find(
+    (p) => p.name === "Read" && p.description.toLowerCase().includes("codebase")
+  );
+  if (!codebaseRead) {
+    throw new Error("Read-safe permissions must include Read permission for codebase");
+  }
+
+  // Constraint 7: Must have Read permission for documentation-robotics folder
+  const docRoboticsRead = DEFAULT_READ_SAFE_PERMISSIONS.find(
+    (p) => p.name === "Read" && p.description.includes("documentation-robotics")
+  );
+  if (!docRoboticsRead) {
+    throw new Error("Read-safe permissions must include Read permission for documentation-robotics folder");
+  }
+
+  // Constraint 8: Must have Read permission for .dr folder
+  const drFolderRead = DEFAULT_READ_SAFE_PERMISSIONS.find(
+    (p) => p.name === "Read" && (p.scope === ".dr" || p.description.includes(".dr"))
+  );
+  if (!drFolderRead) {
+    throw new Error("Read-safe permissions must include Read permission for .dr folder");
+  }
+
+  // All constraints passed
+}
+
+/**
  * Apply Copilot permissions to command arguments with graceful degradation
  *
  * Shared utility for both CopilotClient and VisualizationServer to probe
@@ -202,3 +302,6 @@ export function applyCopilotPermissions(
     }
   }
 }
+
+// Validate read-safe constraints during module initialization
+validateReadSafeConstraints();
