@@ -58,7 +58,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         const allowedTools = args[allowedToolsIndex + 1];
 
         // Verify it contains all read-safe tool permissions
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
         expect(allowedTools).toContain("Read(");
         expect(allowedTools).toContain("Read(documentation-robotics)");
         expect(allowedTools).toContain("Read(.dr)");
@@ -199,7 +199,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         const allowedTools = args[args.indexOf("--allowedTools") + 1];
 
         // Should allow running dr CLI
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
       });
 
       it("should include Read tool for codebase access", () => {
@@ -240,7 +240,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
       it("should include all four read-safe capabilities", () => {
         const allowedTools = formatForClaudeCode();
 
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
         expect(allowedTools).toContain("Read(.");
         expect(allowedTools).toContain("Read(documentation-robotics)");
         expect(allowedTools).toContain("Read(.dr)");
@@ -266,7 +266,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
       it("should not include dangerous Bash commands", () => {
         const allowedTools = formatForClaudeCode();
         // Bash is scoped to "dr *" only
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
       });
     });
 

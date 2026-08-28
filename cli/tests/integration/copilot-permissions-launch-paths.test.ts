@@ -40,7 +40,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         const allowedTools = formatForCopilot();
 
         // Verify the format matches the expected allowlist
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
         expect(allowedTools).toContain("Read(");
         expect(allowedTools).toContain("Read(documentation-robotics)");
         expect(allowedTools).toContain("Read(.dr)");
@@ -72,7 +72,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         const allowedTools = formatForCopilot();
 
         // Should use read-safe format because withDanger defaults to false
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
         expect(allowedTools).not.toContain("Edit");
       });
     });
@@ -84,7 +84,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         // Both variants use the same formatForCopilot() via the shared applyCopilotPermissions utility
         const allowedTools = formatForCopilot();
 
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
         expect(allowedTools).toContain("Read(.");
         expect(allowedTools).toContain("Read(documentation-robotics)");
         expect(allowedTools).toContain("Read(.dr)");
@@ -109,7 +109,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         const allowedTools = formatForCopilot();
 
         // Should allow running dr CLI
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
       });
 
       it("should include Read tool for codebase access", () => {
@@ -138,7 +138,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
       it("should include all four read-safe capabilities", () => {
         const allowedTools = formatForCopilot();
 
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
         expect(allowedTools).toContain("Read(.");
         expect(allowedTools).toContain("Read(documentation-robotics)");
         expect(allowedTools).toContain("Read(.dr)");
@@ -164,7 +164,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
       it("should not include dangerous Bash commands", () => {
         const allowedTools = formatForCopilot();
         // Bash is scoped to "dr *" only
-        expect(allowedTools).toContain("Bash(dr *");
+        expect(allowedTools).toContain("Bash(dr query|dr show|dr list");
       });
     });
 

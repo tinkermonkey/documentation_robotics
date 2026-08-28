@@ -85,7 +85,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         const claudeFormat = formatForClaudeCode();
 
         // Verify all four capabilities
-        expect(claudeFormat).toContain("Bash(dr *");
+        expect(claudeFormat).toContain("Bash(dr query|dr show|dr list");
         expect(claudeFormat).toContain("Read(.");
         expect(claudeFormat).toContain("Read(documentation-robotics)");
         expect(claudeFormat).toContain("Read(.dr)");
@@ -167,7 +167,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         const copilotFormat = formatForCopilot();
 
         // Verify all four capabilities
-        expect(copilotFormat).toContain("Bash(dr *");
+        expect(copilotFormat).toContain("Bash(dr query|dr show|dr list");
         expect(copilotFormat).toContain("Read(.");
         expect(copilotFormat).toContain("Read(documentation-robotics)");
         expect(copilotFormat).toContain("Read(.dr)");
@@ -214,8 +214,8 @@ describe("Permission Parity Across All Four Code Paths", () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
-        expect(claudeFormat).toContain("Bash(dr *");
-        expect(copilotFormat).toContain("Bash(dr *");
+        expect(claudeFormat).toContain("Bash(dr query|dr show|dr list");
+        expect(copilotFormat).toContain("Bash(dr query|dr show|dr list");
       });
 
       it("should enable codebase reading for both clients", () => {
@@ -315,7 +315,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
       // Both should include the four capabilities
       [
-        "Bash(dr *",
+        "Bash(dr query|dr show|dr list",
         "Read(.",
         "Read(documentation-robotics)",
         "Read(.dr)",
