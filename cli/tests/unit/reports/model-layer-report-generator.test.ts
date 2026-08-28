@@ -718,6 +718,43 @@ describe('ModelLayerReportGenerator', () => {
     });
   });
 
+  describe('Back-link to README', () => {
+    it('should include back-link to README in header', () => {
+      const data = createMockReportData('api', []);
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      const output = generator.generate(data);
+
+      expect(output).toContain('[← Back to README](../README.md)');
+    });
+
+    it('should place back-link immediately after layer description', () => {
+      const data = createMockReportData('api', []);
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      const output = generator.generate(data);
+
+      // Back-link should come after the layer title and description, before Report Index
+      const titleIndex = output.indexOf('# API');
+      const backLinkIndex = output.indexOf('[← Back to README](../README.md)');
+      const reportIndexIndex = output.indexOf('## Report Index');
+
+      expect(backLinkIndex).toBeGreaterThan(titleIndex);
+      expect(reportIndexIndex).toBeGreaterThan(backLinkIndex);
+    });
+
+    it('should include back-link across all layer types', () => {
+      const layers = ['motivation', 'business', 'product', 'security', 'application', 'technology', 'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'];
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      for (const layerName of layers) {
+        const data = createMockReportData(layerName as any, []);
+        const output = generator.generate(data);
+        expect(output).toContain('[← Back to README](../README.md)');
+      }
+    });
+  });
+
   describe('Footer', () => {
     it('should include version and timestamp', () => {
       const data = createMockReportData('api', []);

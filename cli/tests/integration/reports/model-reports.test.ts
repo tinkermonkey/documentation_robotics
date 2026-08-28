@@ -225,6 +225,38 @@ describe('ModelReportOrchestrator Integration', () => {
     expect(content).toContain('Model Version:');
   });
 
+  it('should include back-link to README in all layer reports', async () => {
+    const workdir_temp = getWorkdir();
+    const model = await Model.load(workdir_temp.path);
+
+    if (!model) {
+      throw new Error('Failed to load model');
+    }
+
+    const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
+    await orchestrator.regenerateAll();
+
+    const reportsDir = path.join(workdir_temp.path, 'documentation-robotics', 'reports');
+
+    // Verify back-link exists in all 13 layer reports
+    for (const layerName of CANONICAL_LAYER_NAMES) {
+      const layerNumber = getLayerOrder(layerName);
+      const filename = `${String(layerNumber).padStart(2, '0')}-${layerName}-layer-report.md`;
+      const filePath = path.join(reportsDir, filename);
+
+      const content = await fs.readFile(filePath, 'utf-8');
+
+      // Should contain back-link to README
+      expect(content).toContain('[← Back to README](../README.md)');
+
+      // Back-link should appear near the top (within first 10% of file)
+      const linkIndex = content.indexOf('[← Back to README](../README.md)');
+      const fileLength = content.length;
+      const relativePosition = linkIndex / fileLength;
+      expect(relativePosition).toBeLessThan(0.1);
+    }
+  });
+
   it('should add element to model → verify affected layers regenerate', async () => {
     const workdir_temp = getWorkdir();
     const model = await Model.load(workdir_temp.path);
