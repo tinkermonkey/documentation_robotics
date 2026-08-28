@@ -167,15 +167,27 @@ export function validateReadSafeConstraints(): void {
     );
   }
 
-  // Constraint 5: Bash must be for dr CLI only
+  // Constraint 5: Bash must be for dr CLI only and must have a scope restriction
   const bashPerms = DEFAULT_READ_SAFE_PERMISSIONS.filter((p) => p.name === "Bash");
   if (bashPerms.length > 0) {
-    const invalidBash = bashPerms.filter(
-      (p) => !p.description.toLowerCase().includes("dr cli")
-    );
+    const invalidBash = bashPerms.filter((p) => {
+      const hasValidDescription = p.description.toLowerCase().includes("dr cli");
+      const hasValidScope = typeof p.scope === "string" && p.scope.length > 0;
+      return !hasValidDescription || !hasValidScope;
+    });
     if (invalidBash.length > 0) {
+      const errors = invalidBash.map((p) => {
+        const issues = [];
+        if (!p.description.toLowerCase().includes("dr cli")) {
+          issues.push("invalid description (must include 'dr cli')");
+        }
+        if (typeof p.scope !== "string" || p.scope.length === 0) {
+          issues.push("missing or empty scope");
+        }
+        return `${p.description} (${issues.join(", ")})`;
+      });
       throw new Error(
-        `Bash permission must be for dr CLI only. Found invalid Bash permission(s): ${invalidBash.map((p) => p.description).join("; ")}`
+        `Bash permission must be for dr CLI only and must have a scope restriction. Found invalid Bash permission(s): ${errors.join("; ")}`
       );
     }
   }

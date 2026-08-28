@@ -82,6 +82,14 @@ describe("Default Read-Safe Permissions", () => {
       expect(bashPerm?.description.toLowerCase()).toContain("dr cli");
     });
 
+    it("should have Bash permission with a scope restriction", () => {
+      // Verify Bash permission has a scope to restrict it to dr CLI only
+      const bashPerm = DEFAULT_READ_SAFE_PERMISSIONS.find((p) => p.name === "Bash");
+      expect(bashPerm?.scope).toBeDefined();
+      expect(typeof bashPerm?.scope).toBe("string");
+      expect((bashPerm?.scope ?? "").length).toBeGreaterThan(0);
+    });
+
     it("each permission should have name and description", () => {
       DEFAULT_READ_SAFE_PERMISSIONS.forEach((perm) => {
         expect(perm.name).toBeDefined();
