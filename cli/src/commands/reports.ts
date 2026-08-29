@@ -68,6 +68,7 @@ export async function regenerateLayerReports(projectRoot: string): Promise<void>
 
   console.log(ansis.green("✓ All 13 layer reports and README regenerated"));
   console.log(ansis.dim("  Reports written to: documentation-robotics/reports/"));
+  console.log(ansis.dim("  README written to: documentation-robotics/README.md"));
 }
 
 /**

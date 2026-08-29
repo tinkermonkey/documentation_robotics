@@ -173,6 +173,7 @@ export class ModelReportOrchestrator {
    * Generate and write the model README.
    * Separates concerns to distinguish programming bugs from I/O errors.
    * Lets generation and write errors propagate so callers can handle them with proper telemetry.
+   * README is written to documentation-robotics/README.md (outside reports/ folder).
    */
   private async generateReadme(): Promise<void> {
     let data;
@@ -192,7 +193,7 @@ export class ModelReportOrchestrator {
 
     // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
     // Let write errors propagate so callers can handle them with proper telemetry
-    const filePath = path.join(this.getReportDir(), 'README.md');
+    const filePath = path.join(this.rootPath, 'documentation-robotics', 'README.md');
     await fs.writeFile(filePath, markdown, 'utf-8');
   }
 }

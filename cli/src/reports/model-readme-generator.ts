@@ -153,8 +153,8 @@ export class ModelReadmeGenerator {
 
       let report: string;
       if (layer.elementCount > 0) {
-        // Create link to layer report
-        report = `[${layer.reportFileName}](./${layer.reportFileName})`;
+        // Create link to layer report (in reports/ subdirectory)
+        report = `[${layer.reportFileName}](./reports/${layer.reportFileName})`;
       } else {
         // No link for empty layers
         report = '—';
