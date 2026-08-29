@@ -166,9 +166,9 @@ describe('ModelReadmeGenerator', () => {
       const output = generator.generate(data);
 
       // Check for links to layer reports for populated layers
-      expect(output).toContain('[01-motivation-layer-report.md](./01-motivation-layer-report.md)');
-      expect(output).toContain('[02-business-layer-report.md](./02-business-layer-report.md)');
-      expect(output).toContain('[07-api-layer-report.md](./07-api-layer-report.md)');
+      expect(output).toContain('[01-motivation-layer-report.md](./reports/01-motivation-layer-report.md)');
+      expect(output).toContain('[02-business-layer-report.md](./reports/02-business-layer-report.md)');
+      expect(output).toContain('[07-api-layer-report.md](./reports/07-api-layer-report.md)');
     });
 
     it('should not create links for unpopulated layers in layer reports table', () => {

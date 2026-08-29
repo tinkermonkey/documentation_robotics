@@ -49,7 +49,7 @@ describe('init command', () => {
     await regenerateLayerReports(tempDir);
 
     // Check that README.md was generated in the reports directory
-    const readmePath = path.join(tempDir, 'documentation-robotics', 'reports', 'README.md');
+    const readmePath = path.join(tempDir, 'documentation-robotics', 'README.md');
 
     const exists = await fs.access(readmePath)
       .then(() => true)
@@ -86,7 +86,7 @@ describe('init command', () => {
     await regenerateLayerReports(tempDir);
 
     // Verify README exists
-    const readmePath = path.join(tempDir, 'documentation-robotics', 'reports', 'README.md');
+    const readmePath = path.join(tempDir, 'documentation-robotics', 'README.md');
     const exists = await fs.access(readmePath)
       .then(() => true)
       .catch(() => false);
@@ -146,7 +146,7 @@ describe('init command', () => {
     }
 
     // Verify README also exists
-    const readmePath = path.join(reportsDir, 'README.md');
+    const readmePath = path.join(tempDir, 'documentation-robotics', 'README.md');
     const readmeExists = await fs.access(readmePath)
       .then(() => true)
       .catch(() => false);
@@ -179,7 +179,7 @@ describe('init command', () => {
     await regenerateLayerReports(tempDir);
 
     // Verify README content
-    const readmePath = path.join(tempDir, 'documentation-robotics', 'reports', 'README.md');
+    const readmePath = path.join(tempDir, 'documentation-robotics', 'README.md');
     const content = await fs.readFile(readmePath, 'utf-8');
 
     // For empty model, all layers should have 0 elements and em-dash (—) in report column

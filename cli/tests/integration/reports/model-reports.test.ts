@@ -746,7 +746,7 @@ describe('Mutation → Report Generation Integration', () => {
     const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
     await orchestrator.regenerateAll();
 
-    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'reports', 'README.md');
+    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'README.md');
 
     // Verify README exists
     const readmeExists = await fs.access(readmePath)
@@ -777,7 +777,7 @@ describe('Mutation → Report Generation Integration', () => {
     const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
     await orchestrator.regenerateAll();
 
-    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'reports', 'README.md');
+    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'README.md');
     const content = await fs.readFile(readmePath, 'utf-8');
 
     // For an empty model, should show 0 elements and 0 relationships
@@ -811,7 +811,7 @@ describe('Mutation → Report Generation Integration', () => {
     const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
     await orchestrator.regenerateAll();
 
-    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'reports', 'README.md');
+    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'README.md');
     const content = await fs.readFile(readmePath, 'utf-8');
 
     // Should include project name from manifest
