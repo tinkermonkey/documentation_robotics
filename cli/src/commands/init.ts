@@ -128,8 +128,20 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     // Generate README and layer reports
     logDebug("Generating reports and README...");
-    await regenerateLayerReports(rootPath);
-    logVerbose("Reports and README generated");
+    try {
+      await regenerateLayerReports(rootPath);
+      logVerbose("Reports and README generated");
+    } catch (reportError) {
+      const reportMessage = getErrorMessage(reportError);
+      console.warn(
+        ansis.yellow(
+          `⚠ Warning: Failed to generate reports and README: ${reportMessage}\n` +
+          `  Model initialized successfully. To regenerate reports later, run:\n` +
+          `  dr reports regenerate`
+        )
+      );
+      logDebug(`Report generation failed (non-fatal): ${reportMessage}`);
+    }
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("model.path", rootPath);

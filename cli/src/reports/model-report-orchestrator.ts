@@ -33,11 +33,15 @@ export class ModelReportOrchestrator {
    * On first invocation or when reports don't exist, regenerates all 13 reports.
    * Invalid layer names in the affected set are skipped with a warning.
    * Also regenerates the README since it contains model-wide stats that may have changed.
+   * README is generated first so it exists even if a layer report throws.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {
     if (!(await this.isInitialized())) {
       return this.regenerateAll();
     }
+
+    // Generate README first so it exists even if a layer report throws
+    await this.generateReadme();
 
     for (const layerName of affectedLayers) {
       // Type predicate narrows layerName to CanonicalLayerName automatically
@@ -47,27 +51,25 @@ export class ModelReportOrchestrator {
       }
       await this.generateLayerReport(layerName);
     }
-
-    // Regenerate README since model-wide stats may have changed
-    await this.generateReadme();
   }
 
   /**
    * Regenerate all 13 layer reports and the README.
    * Lets mkdir errors propagate so callers can handle them with proper telemetry.
+   * README is generated first so it exists even if a layer report throws.
    */
   async regenerateAll(): Promise<void> {
     // Ensure report directory exists
     const reportDir = this.getReportDir();
     await fs.mkdir(reportDir, { recursive: true });
 
+    // Generate README first so it exists even if a layer report throws
+    await this.generateReadme();
+
     // Generate all 13 layer reports
     for (const layerName of CANONICAL_LAYER_NAMES) {
       await this.generateLayerReport(layerName);
     }
-
-    // Generate README
-    await this.generateReadme();
   }
 
   /**
