@@ -47,9 +47,11 @@ describe('ModelReadmeGenerator', () => {
   };
 
   describe('generate()', () => {
+    const generatedAt = '2026-08-29T12:00:00Z';
+
     it('should return non-empty string for populated model', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -59,7 +61,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should contain all required sections for populated model', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -73,7 +75,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should contain model statistics metrics', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -91,7 +93,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should include project name and description in summary', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -101,7 +103,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should list populated layers in summary', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -113,7 +115,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should not list unpopulated layers in summary', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -125,7 +127,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should include all 13 layers in layer reports table', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -147,7 +149,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should include element counts in layer reports table', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -161,7 +163,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should create links for populated layers in layer reports table', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -173,7 +175,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should not create links for unpopulated layers in layer reports table', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -195,7 +197,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should include introduction content about documentation robotics', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -207,7 +209,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should include descriptions of all 13 layers in introduction', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -228,16 +230,18 @@ describe('ModelReadmeGenerator', () => {
 
     it('should include footer with generation time and model version', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
-      expect(output).toContain('Generated: 2026-04-04T10:00:00Z');
+      expect(output).toContain(`Generated: ${generatedAt}`);
       expect(output).toContain('Model Version: 1.0.0');
     });
   });
 
   describe('Empty model', () => {
+    const generatedAt = '2026-08-29T12:00:00Z';
+
     it('should handle model with zero elements', () => {
       const emptyLayers: ModelReadmeLayerSummary[] = [
         createMockLayerSummary('motivation', 1, 0),
@@ -262,7 +266,7 @@ describe('ModelReadmeGenerator', () => {
         layers: emptyLayers,
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toBeTruthy();
@@ -292,7 +296,7 @@ describe('ModelReadmeGenerator', () => {
         layers: emptyLayers,
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toContain('Populated Layers');
@@ -306,7 +310,7 @@ describe('ModelReadmeGenerator', () => {
         projectDescription: undefined,
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toBeTruthy();
@@ -317,12 +321,14 @@ describe('ModelReadmeGenerator', () => {
   });
 
   describe('Edge cases', () => {
+    const generatedAt = '2026-08-29T12:00:00Z';
+
     it('should handle project name with special characters', () => {
       const data = createMockModelData({
         projectName: 'Customer-Portal [v2.0]',
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toContain('Customer-Portal');
@@ -333,7 +339,7 @@ describe('ModelReadmeGenerator', () => {
         specVersion: undefined,
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toBeTruthy();
@@ -343,7 +349,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should order layers by layer number in table', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -359,7 +365,7 @@ describe('ModelReadmeGenerator', () => {
 
     it('should generate valid markdown table format', () => {
       const data = createMockModelData();
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
 
       const output = generator.generate(data);
 
@@ -373,7 +379,7 @@ describe('ModelReadmeGenerator', () => {
         projectDescription: 'A system with *asterisks* and [brackets]',
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toContain('A system with');
@@ -403,7 +409,7 @@ describe('ModelReadmeGenerator', () => {
         layers: singleLayerData,
       });
 
-      const generator = new ModelReadmeGenerator();
+      const generator = new ModelReadmeGenerator(generatedAt);
       const output = generator.generate(data);
 
       expect(output).toContain('Populated Layers');

@@ -14,6 +14,8 @@ import { formatMarkdownTable } from '../utils/markdown-table.js';
 import { escapeMarkdown } from '../export/markdown-utils.js';
 
 export class ModelReadmeGenerator {
+  constructor(private generatedAt: string) {}
+
   /**
    * Generate complete model README markdown
    */
@@ -174,7 +176,7 @@ export class ModelReadmeGenerator {
     const lines: string[] = [];
     lines.push('---\n');
     lines.push('\n');
-    lines.push(`Generated: ${data.lastUpdated} | Model Version: ${data.modelVersion}\n`);
+    lines.push(`Generated: ${this.generatedAt} | Model Version: ${data.modelVersion}\n`);
     return lines.join('');
   }
 }

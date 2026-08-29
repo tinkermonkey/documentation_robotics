@@ -25,7 +25,7 @@ export class ModelReportOrchestrator {
     const modelVersion = model.manifest.version || 'unknown';
     const generatedAt = new Date().toISOString();
     this.generator = new ModelLayerReportGenerator(modelVersion, generatedAt);
-    this.readmeGenerator = new ModelReadmeGenerator();
+    this.readmeGenerator = new ModelReadmeGenerator(generatedAt);
   }
 
   /**
