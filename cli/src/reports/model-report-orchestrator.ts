@@ -161,7 +161,8 @@ export class ModelReportOrchestrator {
       markdown = this.generator.generate(data);
     } catch (error) {
       throw new Error(
-        `Failed to generate report content for layer: ${layerName} (programming error or corrupted model) - ${getErrorMessage(error)}`
+        `Failed to generate report content for layer: ${layerName} (programming error or corrupted model) - ${getErrorMessage(error)}`,
+        { cause: error }
       );
     }
 
@@ -189,7 +190,8 @@ export class ModelReportOrchestrator {
       markdown = this.readmeGenerator.generate(data);
     } catch (error) {
       throw new Error(
-        `Failed to generate README content (programming error or corrupted model) - ${getErrorMessage(error)}`
+        `Failed to generate README content (programming error or corrupted model) - ${getErrorMessage(error)}`,
+        { cause: error }
       );
     }
 
