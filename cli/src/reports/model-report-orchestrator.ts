@@ -8,6 +8,7 @@
 import type { Model } from '../core/model.js';
 import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
+import { ModelReadmeGenerator } from './model-readme-generator.js';
 import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { getLayerReportFileName } from './model-report-utils.js';
@@ -17,12 +18,14 @@ import * as path from 'path';
 export class ModelReportOrchestrator {
   private collector: ModelReportDataCollector;
   private generator: ModelLayerReportGenerator;
+  private readmeGenerator: ModelReadmeGenerator;
 
   constructor(private model: Model, private rootPath: string) {
     this.collector = new ModelReportDataCollector();
     const modelVersion = model.manifest.version || 'unknown';
     const generatedAt = new Date().toISOString();
     this.generator = new ModelLayerReportGenerator(modelVersion, generatedAt);
+    this.readmeGenerator = new ModelReadmeGenerator();
   }
 
   /**
@@ -46,7 +49,7 @@ export class ModelReportOrchestrator {
   }
 
   /**
-   * Regenerate all 13 layer reports.
+   * Regenerate all 13 layer reports and the README.
    * Lets mkdir errors propagate so callers can handle them with proper telemetry.
    */
   async regenerateAll(): Promise<void> {
@@ -58,6 +61,9 @@ export class ModelReportOrchestrator {
     for (const layerName of CANONICAL_LAYER_NAMES) {
       await this.generateLayerReport(layerName);
     }
+
+    // Generate README
+    await this.generateReadme();
   }
 
   /**
@@ -156,6 +162,33 @@ export class ModelReportOrchestrator {
     // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
     // Let write errors propagate so callers can handle them with proper telemetry
     const filePath = this.getReportFilePath(layerName);
+    await fs.writeFile(filePath, markdown, 'utf-8');
+  }
+
+  /**
+   * Generate and write the model README.
+   * Separates concerns to distinguish programming bugs from I/O errors.
+   * Lets generation and write errors propagate so callers can handle them with proper telemetry.
+   */
+  private async generateReadme(): Promise<void> {
+    let data;
+    let markdown;
+
+    try {
+      // Collect model-wide data (may throw if programming bug or model is corrupted)
+      data = this.collector.collectModelData(this.model);
+
+      // Generate markdown README (may throw if programming bug)
+      markdown = this.readmeGenerator.generate(data);
+    } catch (error) {
+      throw new Error(
+        `Failed to generate README content (programming error or corrupted model) - ${getErrorMessage(error)}`
+      );
+    }
+
+    // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
+    // Let write errors propagate so callers can handle them with proper telemetry
+    const filePath = path.join(this.getReportDir(), 'README.md');
     await fs.writeFile(filePath, markdown, 'utf-8');
   }
 }

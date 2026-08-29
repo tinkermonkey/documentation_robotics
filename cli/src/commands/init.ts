@@ -11,6 +11,7 @@ import { installSpecReference } from "../utils/spec-installer.js";
 import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { regenerateLayerReports } from "./reports.js";
 
 export interface InitOptions {
   name?: string;
@@ -124,6 +125,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
     logDebug("Installing spec reference (.dr/ folder)...");
     await installSpecReference(rootPath, false);
     logVerbose("Spec reference installed");
+
+    // Generate README and layer reports
+    logDebug("Generating reports and README...");
+    await regenerateLayerReports(rootPath);
+    logVerbose("Reports and README generated");
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("model.path", rootPath);

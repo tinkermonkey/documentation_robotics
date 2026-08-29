@@ -734,4 +734,93 @@ describe('Mutation → Report Generation Integration', () => {
       expect(exists).toBe(true);
     }
   });
+
+  it('should generate README.md on regenerateAll()', async () => {
+    const workdir_temp = getWorkdir();
+    const model = await Model.load(workdir_temp.path);
+
+    if (!model) {
+      throw new Error('Failed to load model');
+    }
+
+    const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
+    await orchestrator.regenerateAll();
+
+    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'reports', 'README.md');
+
+    // Verify README exists
+    const readmeExists = await fs.access(readmePath)
+      .then(() => true)
+      .catch(() => false);
+
+    expect(readmeExists).toBe(true);
+
+    // Verify README has content
+    const content = await fs.readFile(readmePath, 'utf-8');
+    expect(content.length).toBeGreaterThan(0);
+
+    // Verify README has expected sections
+    expect(content).toContain('## Model Statistics');
+    expect(content).toContain('## Project Summary');
+    expect(content).toContain('## About Documentation Robotics');
+    expect(content).toContain('## Layer Reports');
+  });
+
+  it('should generate valid README with empty model', async () => {
+    const workdir_temp = getWorkdir();
+    const model = await Model.load(workdir_temp.path);
+
+    if (!model) {
+      throw new Error('Failed to load model');
+    }
+
+    const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
+    await orchestrator.regenerateAll();
+
+    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'reports', 'README.md');
+    const content = await fs.readFile(readmePath, 'utf-8');
+
+    // For an empty model, should show 0 elements and 0 relationships
+    expect(content).toContain('Total Elements');
+    expect(content).toContain('Total Relationships');
+
+    // All 13 layers should be in the layer reports table
+    expect(content).toContain('Motivation');
+    expect(content).toContain('Business');
+    expect(content).toContain('Product');
+    expect(content).toContain('Security');
+    expect(content).toContain('Application');
+    expect(content).toContain('Technology');
+    expect(content).toContain('API');
+    expect(content).toContain('Data Model');
+    expect(content).toContain('Data Store');
+    expect(content).toContain('UX');
+    expect(content).toContain('Navigation');
+    expect(content).toContain('APM');
+    expect(content).toContain('Testing');
+  });
+
+  it('should include project metadata in README', async () => {
+    const workdir_temp = getWorkdir();
+    const model = await Model.load(workdir_temp.path);
+
+    if (!model) {
+      throw new Error('Failed to load model');
+    }
+
+    const orchestrator = new ModelReportOrchestrator(model, workdir_temp.path);
+    await orchestrator.regenerateAll();
+
+    const readmePath = path.join(workdir_temp.path, 'documentation-robotics', 'reports', 'README.md');
+    const content = await fs.readFile(readmePath, 'utf-8');
+
+    // Should include project name from manifest
+    expect(content).toContain(model.manifest.name);
+
+    // Should include model version
+    expect(content).toContain('Model Version');
+
+    // Should include CLI version
+    expect(content).toContain('CLI Version');
+  });
 });
