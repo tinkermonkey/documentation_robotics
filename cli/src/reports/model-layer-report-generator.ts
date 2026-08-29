@@ -63,9 +63,9 @@ export class ModelLayerReportGenerator {
     const lines: string[] = [];
     lines.push(`# ${formatLayerName(data.layerName)}\n`);
     lines.push('\n');
-    lines.push(`${getLayerDescription(data.layerName)}\n`);
-    lines.push('\n');
     lines.push('[← Back to README](../README.md)\n');
+    lines.push('\n');
+    lines.push(`${getLayerDescription(data.layerName)}\n`);
     lines.push('\n');
     return lines.join('');
   }

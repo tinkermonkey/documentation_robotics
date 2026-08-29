@@ -77,6 +77,11 @@ export class ClaudeCodeAgent implements CodingAgent {
       stdio: ["pipe", "pipe", "pipe"],
     });
 
+    // Handle stdin errors (e.g., EPIPE when process exits unexpectedly)
+    proc.stdin?.on("error", () => {
+      // Ignore EPIPE errors when process exits before stdin write completes
+    });
+
     // Send initial message via stdin
     proc.stdin.write(message);
     proc.stdin.end();

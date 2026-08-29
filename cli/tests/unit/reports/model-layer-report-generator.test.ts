@@ -728,13 +728,13 @@ describe('ModelLayerReportGenerator', () => {
       expect(output).toContain('[← Back to README](../README.md)');
     });
 
-    it('should place back-link immediately after layer description', () => {
+    it('should place back-link immediately after title, before description', () => {
       const data = createMockReportData('api', []);
       const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
 
       const output = generator.generate(data);
 
-      // Back-link should come after the layer title and description, before Report Index
+      // Back-link should come after the layer title and before description, ensuring it appears in first 10% of file
       const titleIndex = output.indexOf('# API');
       const backLinkIndex = output.indexOf('[← Back to README](../README.md)');
       const reportIndexIndex = output.indexOf('## Report Index');
