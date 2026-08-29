@@ -80,7 +80,7 @@ if [ -d "$CLI_DIR/src" ]; then
   # at /home/orchestrator/.npm, making this fast and network-resilient.
   if [ -f "$PROJECT_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing root dependencies..."
-    cd "$PROJECT_DIR" && npm install --ignore-scripts --prefer-offline 2>&1 | tail -1
+    cd "$PROJECT_DIR" && npm install --ignore-scripts --prefer-offline 2>&1 | tail -10
   fi
 
   # Install CLI dependencies
@@ -90,7 +90,7 @@ if [ -d "$CLI_DIR/src" ]; then
   # --prefer-offline resolves from the image's pre-populated npm cache first.
   if [ -f "$CLI_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing CLI dependencies..."
-    cd "$CLI_DIR" && npm install --prefer-offline 2>&1 | tail -1
+    cd "$CLI_DIR" && npm install --prefer-offline 2>&1 | tail -10
 
     # Verify critical dependency: @modelcontextprotocol/sdk
     # npm install may skip packages it thinks are already installed but whose
@@ -99,7 +99,7 @@ if [ -d "$CLI_DIR/src" ]; then
     if ! node -e "import('@modelcontextprotocol/sdk/types.js').catch(() => process.exit(1))" 2>/dev/null; then
       echo "[agent-entrypoint] MCP SDK incomplete — forcing clean reinstall..."
       rm -rf "$CLI_DIR/node_modules/@modelcontextprotocol"
-      cd "$CLI_DIR" && npm install 2>&1 | tail -1
+      cd "$CLI_DIR" && npm install 2>&1 | tail -10
     fi
   fi
 
