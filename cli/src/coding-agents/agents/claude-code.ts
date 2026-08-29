@@ -78,8 +78,13 @@ export class ClaudeCodeAgent implements CodingAgent {
     });
 
     // Handle stdin errors (e.g., EPIPE when process exits unexpectedly)
-    proc.stdin?.on("error", () => {
-      // Ignore EPIPE errors when process exits before stdin write completes
+    proc.stdin?.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "EPIPE") {
+        console.error(
+          `Unexpected stdin error (${error.code}): ${error.message}`
+        );
+      }
+      // Silently ignore EPIPE - this is expected when process exits before stdin write completes
     });
 
     // Send initial message via stdin

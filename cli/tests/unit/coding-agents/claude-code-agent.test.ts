@@ -5,7 +5,7 @@
  * process spawning, and JSON output parsing.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { ClaudeCodeAgent } from "../../../src/coding-agents/agents/claude-code.js";
 
 describe("ClaudeCodeAgent", () => {
@@ -399,6 +399,124 @@ Another plain line`;
       expect(allEvents[1].toolName).toBe("Bash");
       expect(allEvents[2].type).toBe("tool_result");
       expect(allEvents[3].type).toBe("text");
+    });
+  });
+
+  describe("spawn() - stdin Error Handling", () => {
+    it("should register stdin error handler", () => {
+      try {
+        const proc = agent.spawn({
+          cwd: "/test",
+          message: "test",
+        });
+
+        expect(proc.process.stdin).toBeDefined();
+        // Verify error handler exists (will be called via the 'error' event)
+        expect(proc.process.stdin?._events?.error).toBeDefined();
+
+        proc.process.kill();
+      } catch (error) {
+        // Expected if claude not available
+        expect(error).toBeDefined();
+      }
+    });
+
+    it("should silently ignore EPIPE errors", () => {
+      const errorLog = mock(() => {});
+      const originalConsoleError = console.error;
+      console.error = errorLog as unknown as typeof console.error;
+
+      try {
+        const proc = agent.spawn({
+          cwd: "/test",
+          message: "test",
+        });
+
+        const epipeError: NodeJS.ErrnoException = new Error(
+          "write EPIPE"
+        ) as NodeJS.ErrnoException;
+        epipeError.code = "EPIPE";
+
+        // Simulate EPIPE error on stdin
+        if (proc.process.stdin) {
+          proc.process.stdin.emit("error", epipeError);
+        }
+
+        // EPIPE should not be logged
+        expect(errorLog).not.toHaveBeenCalled();
+
+        proc.process.kill();
+      } finally {
+        console.error = originalConsoleError;
+      }
+    });
+
+    it("should log unexpected stdin errors", () => {
+      const errorLog = mock(() => {});
+      const originalConsoleError = console.error;
+      console.error = errorLog as unknown as typeof console.error;
+
+      try {
+        const proc = agent.spawn({
+          cwd: "/test",
+          message: "test",
+        });
+
+        const unexpectedError: NodeJS.ErrnoException = new Error(
+          "write EIO"
+        ) as NodeJS.ErrnoException;
+        unexpectedError.code = "EIO";
+
+        // Simulate unexpected error on stdin
+        if (proc.process.stdin) {
+          proc.process.stdin.emit("error", unexpectedError);
+        }
+
+        // Unexpected error should be logged
+        expect(errorLog).toHaveBeenCalledWith(
+          expect.stringContaining("Unexpected stdin error")
+        );
+        expect(errorLog).toHaveBeenCalledWith(
+          expect.stringContaining("EIO")
+        );
+
+        proc.process.kill();
+      } finally {
+        console.error = originalConsoleError;
+      }
+    });
+
+    it("should handle ECONNRESET errors", () => {
+      const errorLog = mock(() => {});
+      const originalConsoleError = console.error;
+      console.error = errorLog as unknown as typeof console.error;
+
+      try {
+        const proc = agent.spawn({
+          cwd: "/test",
+          message: "test",
+        });
+
+        const connResetError: NodeJS.ErrnoException = new Error(
+          "write ECONNRESET"
+        ) as NodeJS.ErrnoException;
+        connResetError.code = "ECONNRESET";
+
+        if (proc.process.stdin) {
+          proc.process.stdin.emit("error", connResetError);
+        }
+
+        expect(errorLog).toHaveBeenCalledWith(
+          expect.stringContaining("Unexpected stdin error")
+        );
+        expect(errorLog).toHaveBeenCalledWith(
+          expect.stringContaining("ECONNRESET")
+        );
+
+        proc.process.kill();
+      } finally {
+        console.error = originalConsoleError;
+      }
     });
   });
 });
