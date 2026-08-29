@@ -46,7 +46,7 @@ export async function reportsRegenerateCommand(): Promise<void> {
 }
 
 /**
- * Delete existing reports directory and regenerate all 13 layer reports.
+ * Delete existing reports directory and regenerate all 13 layer reports and the README.
  * Exported for use in the upgrade command.
  */
 export async function regenerateLayerReports(projectRoot: string): Promise<void> {
@@ -63,10 +63,10 @@ export async function regenerateLayerReports(projectRoot: string): Promise<void>
   const model = await Model.load(projectRoot);
 
   const orchestrator = new ModelReportOrchestrator(model, projectRoot);
-  console.log(ansis.dim("Generating 13 layer reports..."));
+  console.log(ansis.dim("Generating 13 layer reports and README..."));
   await orchestrator.regenerateAll();
 
-  console.log(ansis.green("✓ All 13 layer reports regenerated"));
+  console.log(ansis.green("✓ All 13 layer reports and README regenerated"));
   console.log(ansis.dim("  Reports written to: documentation-robotics/reports/"));
 }
 

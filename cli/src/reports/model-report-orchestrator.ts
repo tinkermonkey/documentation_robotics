@@ -32,6 +32,7 @@ export class ModelReportOrchestrator {
    * Regenerate reports for a specific set of affected layers.
    * On first invocation or when reports don't exist, regenerates all 13 reports.
    * Invalid layer names in the affected set are skipped with a warning.
+   * Also regenerates the README since it contains model-wide stats that may have changed.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {
     if (!(await this.isInitialized())) {
@@ -46,6 +47,9 @@ export class ModelReportOrchestrator {
       }
       await this.generateLayerReport(layerName);
     }
+
+    // Regenerate README since model-wide stats may have changed
+    await this.generateReadme();
   }
 
   /**
