@@ -800,4 +800,36 @@ describe('ModelReportDataCollector.collectModelData', () => {
     expect(data.populatedLayerCount).toBe(2);
     expect(data.layers.filter(l => l.elementCount > 0).length).toBe(2);
   });
+
+  it('should use persisted cliVersion from manifest instead of current running version', () => {
+    const persistedCliVersion = '0.1.10';
+    const manifest = new Manifest({
+      name: 'test-project',
+      version: '1.0.0',
+      cliVersion: persistedCliVersion,
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+    const model = new Model('/test/path', manifest);
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.cliVersion).toBe(persistedCliVersion);
+  });
+
+  it('should fall back to current CLI version when no persisted version', () => {
+    const manifest = new Manifest({
+      name: 'test-project',
+      version: '1.0.0',
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+    const model = new Model('/test/path', manifest);
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.cliVersion).toBeDefined();
+  });
 });

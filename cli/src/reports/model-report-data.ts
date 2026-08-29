@@ -218,7 +218,7 @@ export class ModelReportDataCollector {
       projectName: model.manifest.name,
       projectDescription: model.manifest.description,
       modelVersion: model.manifest.version,
-      cliVersion: getCliVersion(),
+      cliVersion: model.manifest.cliVersion || getCliVersion(),
       specVersion: model.manifest.specVersion,
       lastUpdated: model.manifest.modified,
       totalElements,
