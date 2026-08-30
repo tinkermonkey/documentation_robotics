@@ -627,7 +627,7 @@ describe('ModelLayerReportGenerator', () => {
 
       expect(output).toContain('**Cross-Layer References**');
       expect(output).toContain('**Upstream layers**');
-      expect(output).toContain('[Application](./04-application-layer-report.md)');
+      expect(output).toContain('[Application](./05-application-layer-report.md)');
     });
 
     it('should render downstream layers as links when present', () => {
@@ -640,7 +640,7 @@ describe('ModelLayerReportGenerator', () => {
 
       expect(output).toContain('**Cross-Layer References**');
       expect(output).toContain('**Downstream layers**');
-      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+      expect(output).toContain('[Data Store](./09-data-store-layer-report.md)');
     });
 
     it('should render both upstream and downstream layers when present', () => {
@@ -653,12 +653,12 @@ describe('ModelLayerReportGenerator', () => {
       const output = generator.generate(data);
 
       expect(output).toContain('**Upstream layers**');
-      expect(output).toContain('[Application](./04-application-layer-report.md)');
-      expect(output).toContain('[Technology](./05-technology-layer-report.md)');
+      expect(output).toContain('[Application](./05-application-layer-report.md)');
+      expect(output).toContain('[Technology](./06-technology-layer-report.md)');
 
       expect(output).toContain('**Downstream layers**');
-      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
-      expect(output).toContain('[Data Model](./07-data-model-layer-report.md)');
+      expect(output).toContain('[Data Store](./09-data-store-layer-report.md)');
+      expect(output).toContain('[Data Model](./08-data-model-layer-report.md)');
     });
 
     it('should not render Cross-Layer References section when no upstream/downstream layers', () => {
@@ -680,8 +680,8 @@ describe('ModelLayerReportGenerator', () => {
       const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
       const output = generator.generate(data);
 
-      expect(output).toContain('[Data Model](./07-data-model-layer-report.md)');
-      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+      expect(output).toContain('[Data Model](./08-data-model-layer-report.md)');
+      expect(output).toContain('[Data Store](./09-data-store-layer-report.md)');
     });
 
     it('should handle single upstream layer', () => {
@@ -695,7 +695,7 @@ describe('ModelLayerReportGenerator', () => {
       // Should not have trailing comma
       const crossLayerSection = output.split('**Cross-Layer References**')[1];
       const upstreamLine = crossLayerSection.split('\n')[2];
-      expect(upstreamLine).toContain('[Application](./04-application-layer-report.md)');
+      expect(upstreamLine).toContain('[Application](./05-application-layer-report.md)');
       expect(upstreamLine).not.toMatch(/,\s*$/);
     });
 
@@ -715,6 +715,43 @@ describe('ModelLayerReportGenerator', () => {
       expect(output).toContain('invalid-layer-name');
       // Should NOT contain a markdown link syntax with the invalid name
       expect(output).not.toContain('[invalid-layer-name](');
+    });
+  });
+
+  describe('Back-link to README', () => {
+    it('should include back-link to README in header', () => {
+      const data = createMockReportData('api', []);
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      const output = generator.generate(data);
+
+      expect(output).toContain('[← Back to README](../README.md)');
+    });
+
+    it('should place back-link immediately after title, before description', () => {
+      const data = createMockReportData('api', []);
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      const output = generator.generate(data);
+
+      // Back-link should come after the layer title and before description, ensuring it appears in first 10% of file
+      const titleIndex = output.indexOf('# API');
+      const backLinkIndex = output.indexOf('[← Back to README](../README.md)');
+      const reportIndexIndex = output.indexOf('## Report Index');
+
+      expect(backLinkIndex).toBeGreaterThan(titleIndex);
+      expect(reportIndexIndex).toBeGreaterThan(backLinkIndex);
+    });
+
+    it('should include back-link across all layer types', () => {
+      const layers = ['motivation', 'business', 'product', 'security', 'application', 'technology', 'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'];
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      for (const layerName of layers) {
+        const data = createMockReportData(layerName as any, []);
+        const output = generator.generate(data);
+        expect(output).toContain('[← Back to README](../README.md)');
+      }
     });
   });
 

@@ -105,7 +105,7 @@ pipelines:
       - command: 'add api operation missing-name-operation --description ''Missing required name'' --attributes ''{"operationId":"missing-name-operation","summary":"Missing Name Operation","tags":"test"}'''
         files_to_compare:
           - manifest.yaml
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "missing-name-operation"
@@ -113,7 +113,7 @@ pipelines:
       - command: "delete api.operation.missing-name-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
 
   - name: "Reference to non-existent element"
@@ -122,7 +122,7 @@ pipelines:
       - command: "add data-store collection ref-test-table --name 'test_collection' --description 'Collection for reference test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.ref-test-table nonexistent-element --predicate composes"
@@ -134,7 +134,7 @@ pipelines:
       - command: "delete data-store.collection.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collection.yaml
+          - 09_data-store/collection.yaml
         expect_exit_code: 0
 
   - name: "Invalid layer name"

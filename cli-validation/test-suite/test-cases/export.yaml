@@ -35,7 +35,7 @@ pipelines:
       - command: 'add api operation export-test-operation --name ''Export Test Operation'' --description ''Temporary operation for export test'' --attributes ''{"operationId": "export-test-operation", "summary": "Export Test Operation", "tags": "test"}'''
         files_to_compare:
           - manifest.yaml
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
 
       - command: "export openapi --output export-api.json"
@@ -48,7 +48,7 @@ pipelines:
       - command: "delete api.operation.export-test-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 06_api/operation.yaml
+          - 07_api/operation.yaml
         expect_exit_code: 0
 
   - name: "Export to JSON Schema"
@@ -56,7 +56,7 @@ pipelines:
       - command: 'add data-model objectschema schema-test-object --name ''Test Object'' --description ''Object for JSON schema export'' --attributes ''{"type": "object"}'''
         files_to_compare:
           - manifest.yaml
-          - 07_data-model/object_schema.yaml
+          - 08_data-model/object_schema.yaml
         expect_exit_code: 0
 
       - command: "export jsonschema --output export-schema.json"
@@ -69,7 +69,7 @@ pipelines:
       - command: "delete data-model.objectschema.schema-test-object --force"
         files_to_compare:
           - manifest.yaml
-          - 07_data-model/object_schema.yaml
+          - 08_data-model/object_schema.yaml
         expect_exit_code: 0
 
   - name: "Export to ArchiMate XML"

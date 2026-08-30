@@ -8,31 +8,40 @@
 import type { Model } from '../core/model.js';
 import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
-import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, getLayerOrder, isValidLayerName } from '../core/layers.js';
+import { ModelReadmeGenerator } from './model-readme-generator.js';
+import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 import { getErrorMessage } from '../utils/errors.js';
+import { getLayerReportFileName } from './model-report-utils.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
 export class ModelReportOrchestrator {
   private collector: ModelReportDataCollector;
   private generator: ModelLayerReportGenerator;
+  private readmeGenerator: ModelReadmeGenerator;
 
   constructor(private model: Model, private rootPath: string) {
     this.collector = new ModelReportDataCollector();
     const modelVersion = model.manifest.version || 'unknown';
     const generatedAt = new Date().toISOString();
     this.generator = new ModelLayerReportGenerator(modelVersion, generatedAt);
+    this.readmeGenerator = new ModelReadmeGenerator(generatedAt);
   }
 
   /**
    * Regenerate reports for a specific set of affected layers.
    * On first invocation or when reports don't exist, regenerates all 13 reports.
    * Invalid layer names in the affected set are skipped with a warning.
+   * Also regenerates the README since it contains model-wide stats that may have changed.
+   * README is generated first so it exists even if a layer report throws.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {
     if (!(await this.isInitialized())) {
       return this.regenerateAll();
     }
+
+    // Generate README first so it exists even if a layer report throws
+    await this.generateReadme();
 
     for (const layerName of affectedLayers) {
       // Type predicate narrows layerName to CanonicalLayerName automatically
@@ -45,13 +54,17 @@ export class ModelReportOrchestrator {
   }
 
   /**
-   * Regenerate all 13 layer reports.
+   * Regenerate all 13 layer reports and the README.
    * Lets mkdir errors propagate so callers can handle them with proper telemetry.
+   * README is generated first so it exists even if a layer report throws.
    */
   async regenerateAll(): Promise<void> {
     // Ensure report directory exists
     const reportDir = this.getReportDir();
     await fs.mkdir(reportDir, { recursive: true });
+
+    // Generate README first so it exists even if a layer report throws
+    await this.generateReadme();
 
     // Generate all 13 layer reports
     for (const layerName of CANONICAL_LAYER_NAMES) {
@@ -127,9 +140,7 @@ export class ModelReportOrchestrator {
    * Get the full file path for a layer report.
    */
   private getReportFilePath(layerName: CanonicalLayerName): string {
-    const layerNumber = getLayerOrder(layerName);
-    const paddedNumber = String(layerNumber).padStart(2, '0');
-    const filename = `${paddedNumber}-${layerName}-layer-report.md`;
+    const filename = getLayerReportFileName(layerName);
     return path.join(this.getReportDir(), filename);
   }
 
@@ -150,13 +161,43 @@ export class ModelReportOrchestrator {
       markdown = this.generator.generate(data);
     } catch (error) {
       throw new Error(
-        `Failed to generate report content for layer: ${layerName} (programming error or corrupted model) - ${getErrorMessage(error)}`
+        `Failed to generate report content for layer: ${layerName} (programming error or corrupted model) - ${getErrorMessage(error)}`,
+        { cause: error }
       );
     }
 
     // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
     // Let write errors propagate so callers can handle them with proper telemetry
     const filePath = this.getReportFilePath(layerName);
+    await fs.writeFile(filePath, markdown, 'utf-8');
+  }
+
+  /**
+   * Generate and write the model README.
+   * Separates concerns to distinguish programming bugs from I/O errors.
+   * Lets generation and write errors propagate so callers can handle them with proper telemetry.
+   * README is written to documentation-robotics/README.md (outside reports/ folder).
+   */
+  private async generateReadme(): Promise<void> {
+    let data;
+    let markdown;
+
+    try {
+      // Collect model-wide data (may throw if programming bug or model is corrupted)
+      data = this.collector.collectModelData(this.model);
+
+      // Generate markdown README (may throw if programming bug)
+      markdown = this.readmeGenerator.generate(data);
+    } catch (error) {
+      throw new Error(
+        `Failed to generate README content (programming error or corrupted model) - ${getErrorMessage(error)}`,
+        { cause: error }
+      );
+    }
+
+    // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
+    // Let write errors propagate so callers can handle them with proper telemetry
+    const filePath = path.join(this.rootPath, 'documentation-robotics', 'README.md');
     await fs.writeFile(filePath, markdown, 'utf-8');
   }
 }

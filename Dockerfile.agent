@@ -79,14 +79,23 @@ WORKDIR /workspace/documentation_robotics
 # The source code (including pyproject.toml) comes from the runtime mount.
 
 # Pre-install Node.js dependencies for the TypeScript CLI
-# NOTE: These node_modules are overridden by the runtime bind mount, but
-# pre-installing populates the npm cache (/root/.npm) which speeds up
-# the entrypoint's `npm install` when the container starts.
+# The node_modules installed here are overridden by the runtime bind mount.
+# The key purpose is to populate the npm cache under /home/orchestrator/.npm
+# so that the entrypoint's `npm install` (running as orchestrator) can resolve
+# packages from cache instead of downloading from the registry. This makes
+# startup fast and works even without network access.
+#
+# We intentionally run WITHOUT --ignore-scripts for the CLI so that packages
+# like @modelcontextprotocol/sdk that need post-install build steps are fully
+# built in the cache. The root install uses --ignore-scripts since it has no
+# packages requiring build scripts.
 COPY package.json package-lock.json ./
 COPY cli/package.json cli/package-lock.json ./cli/
-RUN --mount=type=cache,target=/root/.npm \
-    cd /workspace/documentation_robotics && npm install --ignore-scripts && \
-    cd /workspace/documentation_robotics/cli && npm install --ignore-scripts
+RUN cd /workspace/documentation_robotics && \
+    npm install --ignore-scripts --cache /home/orchestrator/.npm && \
+    cd /workspace/documentation_robotics/cli && \
+    npm install --cache /home/orchestrator/.npm && \
+    chown -R orchestrator:orchestrator /home/orchestrator/.npm
 
 # Pre-install Python dependencies
 # These match the dependencies from cli/pyproject.toml

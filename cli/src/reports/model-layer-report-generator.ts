@@ -18,8 +18,10 @@ import { formatMarkdownTable } from '../utils/markdown-table.js';
 import { sanitizeMermaidId, escapeMermaidLabel } from '../utils/mermaid-utils.js';
 import { createAnchor } from '../utils/markdown-anchor.js';
 import { escapeMarkdown, getLayerDescription, valueToMarkdown } from '../export/markdown-utils.js';
+import type { CanonicalLayerName } from '../core/layers.js';
 import { getLayerOrder, CANONICAL_LAYER_NAMES } from '../core/layers.js';
 import { getValidRelationships } from '../generated/relationship-index.js';
+import { getLayerReportFileName } from './model-report-utils.js';
 
 export class ModelLayerReportGenerator {
   constructor(private modelVersion: string, private generatedAt: string) {}
@@ -60,6 +62,8 @@ export class ModelLayerReportGenerator {
   private generateHeader(data: ModelLayerReportData): string {
     const lines: string[] = [];
     lines.push(`# ${formatLayerName(data.layerName)}\n`);
+    lines.push('\n');
+    lines.push('[← Back to README](../README.md)\n');
     lines.push('\n');
     lines.push(`${getLayerDescription(data.layerName)}\n`);
     lines.push('\n');
@@ -412,7 +416,7 @@ export class ModelLayerReportGenerator {
     if (layerNumber === -1) {
       return layerName;
     }
-    const filename = `./${String(layerNumber).padStart(2, '0')}-${layerName}-layer-report.md`;
+    const filename = `./${getLayerReportFileName(layerName as CanonicalLayerName)}`;
     return `[${formatLayerName(layerName)}](${filename})`;
   }
 

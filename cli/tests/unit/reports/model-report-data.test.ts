@@ -7,48 +7,61 @@ import { Manifest } from '@/core/manifest';
 import { GraphModel } from '@/core/graph-model';
 import type { Relationship } from '@/core/relationships';
 
-describe('ModelReportDataCollector', () => {
-  const createMockModel = (
-    elements: Map<string, Element> = new Map(),
-    relationships: Relationship[] = []
-  ): Model => {
-    const manifest = new Manifest({
-      name: 'test-model',
-      version: '1.0.0',
-      description: 'Test model',
-      created: new Date().toISOString(),
-      modified: new Date().toISOString(),
-    });
-    const model = new Model('/test/path', manifest);
-
-    // Add elements to the graph
-    for (const [, element] of elements) {
-      const node = {
-        id: element.path || element.id,
-        uuid: element.id,
-        layer: element.layer || element.layer_id,
-        type: element.type,
-        name: element.name,
-        description: element.description,
-        spec_node_id: element.spec_node_id,
-        layer_id: element.layer_id,
-        attributes: element.attributes,
-        source_reference: element.source_reference,
-        metadata: element.metadata,
-        properties: {
-          '__references__': element.references || [],
-          '__relationships__': element.relationships || [],
-        },
-      };
-      model.graph.addNode(node);
-    }
-
-    // Bypass normal model loading path for unit testing - we're directly setting relationships
-    // to test the collector in isolation without requiring full model initialization
-    model.relationships = new Relationships(relationships);
-
-    return model;
+interface MockModelOptions {
+  manifestOverrides?: {
+    name?: string;
+    version?: string;
+    description?: string;
+    specVersion?: string;
   };
+}
+
+const createMockModel = (
+  elements: Map<string, Element> = new Map(),
+  relationships: Relationship[] = [],
+  options: MockModelOptions = {}
+): Model => {
+  const { manifestOverrides = {} } = options;
+  const manifest = new Manifest({
+    name: manifestOverrides.name ?? 'test-model',
+    version: manifestOverrides.version ?? '1.0.0',
+    description: manifestOverrides.description ?? 'Test model',
+    specVersion: manifestOverrides.specVersion,
+    created: new Date().toISOString(),
+    modified: new Date().toISOString(),
+  });
+  const model = new Model('/test/path', manifest);
+
+  // Add elements to the graph
+  for (const [, element] of elements) {
+    const node = {
+      id: element.path || element.id,
+      uuid: element.id,
+      layer: element.layer || element.layer_id,
+      type: element.type,
+      name: element.name,
+      description: element.description,
+      spec_node_id: element.spec_node_id,
+      layer_id: element.layer_id,
+      attributes: element.attributes,
+      source_reference: element.source_reference,
+      metadata: element.metadata,
+      properties: {
+        '__references__': element.references || [],
+        '__relationships__': element.relationships || [],
+      },
+    };
+    model.graph.addNode(node);
+  }
+
+  // Bypass normal model loading path for unit testing - we're directly setting relationships
+  // to test the collector in isolation without requiring full model initialization
+  model.relationships = new Relationships(relationships);
+
+  return model;
+};
+
+describe('ModelReportDataCollector', () => {
 
   it('should handle empty layer', () => {
     const model = createMockModel(new Map());
@@ -57,7 +70,7 @@ describe('ModelReportDataCollector', () => {
     const data = collector.collectLayerData(model, 'api');
 
     expect(data.layerName).toBe('api');
-    expect(data.layerNumber).toBe(6);
+    expect(data.layerNumber).toBe(7);
     expect(data.elements).toEqual([]);
     expect(data.intraRelationships).toEqual([]);
     expect(data.interRelationships).toEqual([]);
@@ -78,7 +91,7 @@ describe('ModelReportDataCollector', () => {
     expect(motivationData.layerNumber).toBe(1);
 
     const dataModelData = collector.collectLayerData(model, 'data-model');
-    expect(dataModelData.layerNumber).toBe(7);
+    expect(dataModelData.layerNumber).toBe(8);
 
     const testingData = collector.collectLayerData(model, 'testing');
     expect(testingData.layerNumber).toBe(13);
@@ -514,5 +527,309 @@ describe('ModelReportDataCollector', () => {
 
     expect(data.intraRelationships.length).toBe(1);
     expect(data.interRelationships.length).toBe(0);
+  });
+});
+
+describe('ModelReportDataCollector.collectModelData', () => {
+  it('should collect data for an empty model', () => {
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.projectName).toBe('test-project');
+    expect(data.projectDescription).toBe('Test project description');
+    expect(data.modelVersion).toBe('1.0.0');
+    expect(data.specVersion).toBe('0.9.0');
+    expect(data.totalElements).toBe(0);
+    expect(data.totalRelationships).toBe(0);
+    expect(data.populatedLayerCount).toBe(0);
+    expect(data.layers.length).toBe(13);
+    expect(data.cliVersion).toBeDefined();
+    expect(data.lastUpdated).toBeDefined();
+  });
+
+  it('should include all 13 layers in the summary', () => {
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.layers.length).toBe(13);
+    expect(data.layers[0].layerName).toBe('motivation');
+    expect(data.layers[0].layerNumber).toBe(1);
+    expect(data.layers[6].layerName).toBe('api');
+    expect(data.layers[6].layerNumber).toBe(7);
+    expect(data.layers[7].layerName).toBe('data-model');
+    expect(data.layers[7].layerNumber).toBe(8);
+    expect(data.layers[12].layerName).toBe('testing');
+    expect(data.layers[12].layerNumber).toBe(13);
+  });
+
+  it('should generate correct report filenames', () => {
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.layers[0].reportFileName).toBe('01-motivation-layer-report.md');
+    expect(data.layers[6].reportFileName).toBe('07-api-layer-report.md');
+    expect(data.layers[7].reportFileName).toBe('08-data-model-layer-report.md');
+    expect(data.layers[12].reportFileName).toBe('13-testing-layer-report.md');
+  });
+
+  it('should aggregate element counts correctly across multiple layers', () => {
+    const elements = new Map<string, Element>();
+    // Add elements to different layers
+    elements.set('api.endpoint.e1', new Element({
+      id: 'uuid-e1',
+      path: 'api.endpoint.e1',
+      spec_node_id: 'api.endpoint',
+      type: 'endpoint',
+      name: 'E1',
+      layer_id: 'api',
+    }));
+    elements.set('api.endpoint.e2', new Element({
+      id: 'uuid-e2',
+      path: 'api.endpoint.e2',
+      spec_node_id: 'api.endpoint',
+      type: 'endpoint',
+      name: 'E2',
+      layer_id: 'api',
+    }));
+    elements.set('data-model.entity.customer', new Element({
+      id: 'uuid-customer',
+      path: 'data-model.entity.customer',
+      spec_node_id: 'data-model.entity',
+      type: 'entity',
+      name: 'Customer',
+      layer_id: 'data-model',
+    }));
+    elements.set('motivation.goal.revenue', new Element({
+      id: 'uuid-goal',
+      path: 'motivation.goal.revenue',
+      spec_node_id: 'motivation.goal',
+      type: 'goal',
+      name: 'Revenue',
+      layer_id: 'motivation',
+    }));
+
+    const model = createMockModel(elements, [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.totalElements).toBe(4);
+    expect(data.populatedLayerCount).toBe(3);
+    expect(data.layers[0].elementCount).toBe(1); // motivation
+    expect(data.layers[6].elementCount).toBe(2); // api
+    expect(data.layers[7].elementCount).toBe(1); // data-model
+  });
+
+  it('should count total relationships correctly', () => {
+    const elements = new Map<string, Element>();
+    elements.set('api.endpoint.e1', new Element({
+      id: 'uuid-e1',
+      path: 'api.endpoint.e1',
+      spec_node_id: 'api.endpoint',
+      type: 'endpoint',
+      name: 'E1',
+      layer_id: 'api',
+    }));
+    elements.set('api.endpoint.e2', new Element({
+      id: 'uuid-e2',
+      path: 'api.endpoint.e2',
+      spec_node_id: 'api.endpoint',
+      type: 'endpoint',
+      name: 'E2',
+      layer_id: 'api',
+    }));
+
+    const relationships: Relationship[] = [
+      {
+        source: 'api.endpoint.e1',
+        predicate: 'depends-on',
+        target: 'api.endpoint.e2',
+        layer: 'api',
+        targetLayer: 'api',
+      },
+      {
+        source: 'api.endpoint.e1',
+        predicate: 'references',
+        target: 'data-model.entity.customer',
+        layer: 'api',
+        targetLayer: 'data-model',
+      },
+      {
+        source: 'api.endpoint.e2',
+        predicate: 'calls',
+        target: 'application.service.order',
+        layer: 'api',
+        targetLayer: 'application',
+      },
+    ];
+
+    const model = createMockModel(elements, relationships, {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.totalRelationships).toBe(3);
+  });
+
+  it('should include all required fields in the returned data', () => {
+    const model = createMockModel(new Map(), [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.projectName).toBeDefined();
+    expect(data.modelVersion).toBeDefined();
+    expect(data.cliVersion).toBeDefined();
+    expect(data.specVersion).toBeDefined();
+    expect(data.lastUpdated).toBeDefined();
+    expect(data.totalElements).toBeDefined();
+    expect(data.totalRelationships).toBeDefined();
+    expect(data.populatedLayerCount).toBeDefined();
+    expect(data.layers).toBeDefined();
+  });
+
+  it('should preserve manifest metadata (name, description, version, specVersion)', () => {
+    const manifest = new Manifest({
+      name: 'my-architecture',
+      version: '2.5.0',
+      description: 'My system architecture',
+      specVersion: '0.8.0',
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+    const model = new Model('/test/path', manifest);
+
+    const collector = new ModelReportDataCollector();
+    const data = collector.collectModelData(model);
+
+    expect(data.projectName).toBe('my-architecture');
+    expect(data.modelVersion).toBe('2.5.0');
+    expect(data.projectDescription).toBe('My system architecture');
+    expect(data.specVersion).toBe('0.8.0');
+  });
+
+  it('should use model manifest modified timestamp as lastUpdated', () => {
+    const testTimestamp = '2026-08-20T10:30:45.123Z';
+    const manifest = new Manifest({
+      name: 'test-project',
+      version: '1.0.0',
+      created: '2026-08-15T10:00:00Z',
+      modified: testTimestamp,
+    });
+    const model = new Model('/test/path', manifest);
+
+    const collector = new ModelReportDataCollector();
+    const data = collector.collectModelData(model);
+
+    expect(data.lastUpdated).toBe(testTimestamp);
+  });
+
+  it('should count only populated layers correctly', () => {
+    const elements = new Map<string, Element>();
+    // Add elements to only 2 layers
+    elements.set('motivation.goal.g1', new Element({
+      id: 'uuid-g1',
+      path: 'motivation.goal.g1',
+      spec_node_id: 'motivation.goal',
+      type: 'goal',
+      name: 'Goal 1',
+      layer_id: 'motivation',
+    }));
+    elements.set('api.endpoint.e1', new Element({
+      id: 'uuid-e1',
+      path: 'api.endpoint.e1',
+      spec_node_id: 'api.endpoint',
+      type: 'endpoint',
+      name: 'E1',
+      layer_id: 'api',
+    }));
+
+    const model = createMockModel(elements, [], {
+      manifestOverrides: {
+        name: 'test-project',
+        description: 'Test project description',
+        specVersion: '0.9.0',
+      },
+    });
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.populatedLayerCount).toBe(2);
+    expect(data.layers.filter(l => l.elementCount > 0).length).toBe(2);
+  });
+
+  it('should use persisted cliVersion from manifest instead of current running version', () => {
+    const persistedCliVersion = '0.1.10';
+    const manifest = new Manifest({
+      name: 'test-project',
+      version: '1.0.0',
+      cliVersion: persistedCliVersion,
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+    const model = new Model('/test/path', manifest);
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.cliVersion).toBe(persistedCliVersion);
+  });
+
+  it('should fall back to current CLI version when no persisted version', () => {
+    const manifest = new Manifest({
+      name: 'test-project',
+      version: '1.0.0',
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+    const model = new Model('/test/path', manifest);
+    const collector = new ModelReportDataCollector();
+
+    const data = collector.collectModelData(model);
+
+    expect(data.cliVersion).toBeDefined();
   });
 });

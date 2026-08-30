@@ -1,7 +1,9 @@
 import type { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
-import { getLayerOrder, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
+import { getLayerOrder, CANONICAL_LAYER_NAMES, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
+import { getCliVersion } from '../utils/spec-version.js';
+import { getLayerReportFileName } from './model-report-utils.js';
 
 /**
  * Statistics about relationships in a layer
@@ -27,6 +29,32 @@ export interface ModelLayerReportData {
   upstreamLayers: CanonicalLayerName[];       // canonical layer names referencing INTO this layer
   downstreamLayers: CanonicalLayerName[];     // canonical layer names this layer references OUT TO
   statistics: ModelLayerStatistics;
+}
+
+/**
+ * Per-layer summary for the model README
+ */
+export interface ModelReadmeLayerSummary {
+  layerName: CanonicalLayerName;
+  layerNumber: number;
+  elementCount: number;
+  reportFileName: string;
+}
+
+/**
+ * Aggregated model-wide data for the model README
+ */
+export interface ModelReadmeData {
+  projectName: string;
+  projectDescription?: string;
+  modelVersion: string;
+  cliVersion: string;
+  specVersion?: string;
+  lastUpdated: string;
+  totalElements: number;
+  totalRelationships: number;
+  populatedLayerCount: number;
+  layers: ModelReadmeLayerSummary[];
 }
 
 /**
@@ -150,6 +178,53 @@ export class ModelReportDataCollector {
       upstreamLayers,
       downstreamLayers,
       statistics,
+    };
+  }
+
+  /**
+   * Collect aggregated model-wide data for the model README
+   *
+   * @param model - The live Model instance
+   * @returns Aggregated model-wide data including project metadata, per-layer summaries, and statistics
+   */
+  collectModelData(model: Model): ModelReadmeData {
+    // Collect per-layer element counts
+    const layers: ModelReadmeLayerSummary[] = [];
+    let totalElements = 0;
+
+    for (const layerName of CANONICAL_LAYER_NAMES) {
+      const graphNodes = model.graph.getNodesByLayer(layerName);
+      const elementCount = graphNodes.length;
+      totalElements += elementCount;
+
+      const layerNumber = getLayerOrder(layerName);
+      const reportFileName = getLayerReportFileName(layerName);
+
+      layers.push({
+        layerName,
+        layerNumber,
+        elementCount,
+        reportFileName,
+      });
+    }
+
+    // Count total relationships
+    const totalRelationships = model.relationships.getAll().length;
+
+    // Count populated layers (layers with at least one element)
+    const populatedLayerCount = layers.filter(l => l.elementCount > 0).length;
+
+    return {
+      projectName: model.manifest.name,
+      projectDescription: model.manifest.description,
+      modelVersion: model.manifest.version,
+      cliVersion: model.manifest.cliVersion || getCliVersion(),
+      specVersion: model.manifest.specVersion,
+      lastUpdated: model.manifest.modified,
+      totalElements,
+      totalRelationships,
+      populatedLayerCount,
+      layers,
     };
   }
 }

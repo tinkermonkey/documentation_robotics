@@ -785,6 +785,7 @@ export class Model {
         name: manifestYaml.project?.name || "Unnamed Model",
         description: manifestYaml.project?.description || "",
         version: manifestYaml.project?.version || manifestYaml.version || "0.1.0",
+        cliVersion: manifestYaml.cli_version,
         specVersion: manifestYaml.spec_version || "0.6.0",
         created: manifestYaml.created || new Date().toISOString(),
         modified: manifestYaml.updated || new Date().toISOString(),

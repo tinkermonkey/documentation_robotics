@@ -20,6 +20,7 @@ export class Manifest {
   author?: string;
   created: string;
   modified: string;
+  cliVersion?: string;
   specVersion?: string;
   changeset_history?: ChangesetHistoryEntry[];
 
@@ -30,6 +31,7 @@ export class Manifest {
     this.author = data.author;
     this.created = data.created ?? new Date().toISOString();
     this.modified = data.modified ?? new Date().toISOString();
+    this.cliVersion = data.cliVersion;
     this.specVersion = data.specVersion;
 
     // Migrate changeset history from legacy format (if present)
@@ -103,6 +105,10 @@ export class Manifest {
 
     if (this.author) {
       result.author = this.author;
+    }
+
+    if (this.cliVersion) {
+      result.cliVersion = this.cliVersion;
     }
 
     if (this.specVersion) {

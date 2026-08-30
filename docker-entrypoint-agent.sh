@@ -76,15 +76,31 @@ if [ -d "$CLI_DIR/src" ]; then
   rm -rf "$CLI_DIR/dist" "$CLI_DIR/tsconfig.tsbuildinfo"
 
   # Install root dependencies (needed for build:spec via tsx)
-  if [ -f "$PROJECT_DIR/package.json" ] && [ ! -d "$PROJECT_DIR/node_modules" ]; then
+  # --prefer-offline uses the npm cache pre-populated during image build
+  # at /home/orchestrator/.npm, making this fast and network-resilient.
+  if [ -f "$PROJECT_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing root dependencies..."
-    cd "$PROJECT_DIR" && npm install --ignore-scripts 2>&1 | tail -1
+    cd "$PROJECT_DIR" && npm install --ignore-scripts --prefer-offline 2>&1 | tail -10
   fi
 
   # Install CLI dependencies
-  if [ -f "$CLI_DIR/package.json" ] && [ ! -d "$CLI_DIR/node_modules" ]; then
+  # Always run npm install (not conditional on node_modules existence) because
+  # the bind-mounted node_modules may be incomplete — e.g., missing
+  # @modelcontextprotocol/sdk which is needed by 27 files in cli/src/mcp/.
+  # --prefer-offline resolves from the image's pre-populated npm cache first.
+  if [ -f "$CLI_DIR/package.json" ]; then
     echo "[agent-entrypoint] Installing CLI dependencies..."
-    cd "$CLI_DIR" && npm install 2>&1 | tail -1
+    cd "$CLI_DIR" && npm install --prefer-offline 2>&1 | tail -10
+
+    # Verify critical dependency: @modelcontextprotocol/sdk
+    # npm install may skip packages it thinks are already installed but whose
+    # dist files are incomplete (e.g., from a prior --ignore-scripts install).
+    # If the SDK can't be resolved, force a clean reinstall.
+    if ! node -e "import('@modelcontextprotocol/sdk/types.js').catch(() => process.exit(1))" 2>/dev/null; then
+      echo "[agent-entrypoint] MCP SDK incomplete — forcing clean reinstall..."
+      rm -rf "$CLI_DIR/node_modules/@modelcontextprotocol"
+      cd "$CLI_DIR" && npm install 2>&1 | tail -10
+    fi
   fi
 
   # Build the CLI (syncs spec schemas, generates registry, compiles TypeScript, bundles)

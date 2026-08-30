@@ -114,6 +114,7 @@ export interface ManifestData {
   author?: string;
   created?: string;
   modified?: string;
+  cliVersion?: string;
   specVersion?: string;
   /** Changeset history for the model */
   changeset_history?: ChangesetHistoryEntry[];
