@@ -171,7 +171,7 @@ describe("ANSI color suppression on non-TTY", () => {
 
       // Run changeset create command
       const result = await runDr(
-        ["changeset", "create", "--name", "Test Changeset", "--description", "Test"],
+        ["changeset", "create", "Test Changeset", "--description", "Test"],
         { cwd: tempDir.path }
       );
 
@@ -217,7 +217,7 @@ describe("ANSI color suppression on non-TTY", () => {
           "--name",
           "Test Requirement",
           "--attributes",
-          '{"stakeholder":"customer"}',
+          '{"requirementType":"functional","priority":"high"}',
         ],
         { cwd: tempDir.path }
       );
