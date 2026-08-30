@@ -55,7 +55,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
 // Commands that require console interceptor for telemetry logging
 const CONSOLE_LOGGING_COMMANDS = new Set(['chat', 'validate', 'import', 'export']);
 
-// Suppress ANSI color output on non-TTY stdout (FR4.1, FR4.2)
+// Suppress ANSI color output on non-TTY stdout
 if (!process.stdout.isTTY) {
   process.env.FORCE_COLOR = "0";
 }

@@ -1,11 +1,7 @@
-/**
- * Integration tests for ANSI color suppression on non-TTY stdout
- * Verifies that color codes are automatically suppressed when stdout is not a TTY
- * (e.g., when output is piped or redirected)
- */
+// Integration tests for ANSI color suppression on non-TTY stdout
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createTempWorkdir, runDr } from "../helpers/cli-runner.js";
+import { createTempWorkdir, runDr, stripAnsi } from "../helpers/cli-runner.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -18,13 +14,8 @@ describe("ANSI color suppression on non-TTY", () => {
     await tempDir.cleanup();
   });
 
-  /**
-   * Check if a string contains ANSI escape codes
-   * ANSI codes follow the pattern: [<numbers>m
-   */
   function containsAnsiCodes(text: string): boolean {
-    // eslint-disable-next-line no-control-regex
-    return /\[[0-9;]*m/.test(text);
+    return text !== stripAnsi(text);
   }
 
   describe("Read commands (non-mutating)", () => {
@@ -44,9 +35,19 @@ describe("ANSI color suppression on non-TTY", () => {
     it("should not emit ANSI codes in piped list command output", async () => {
       // Initialize a model and add some elements
       await runDr(["init", "--name", "List Test Model"], { cwd: tempDir.path });
-      await runDr(["add", "motivation", "goal", "motivation-goal-list-1", "--name", "Goal 1"], {
-        cwd: tempDir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "motivation",
+          "goal",
+          "motivation-goal-list-1",
+          "--name",
+          "Goal 1",
+          "--attributes",
+          '{"priority":"high"}',
+        ],
+        { cwd: tempDir.path }
+      );
 
       // Run list command
       const result = await runDr(["list", "motivation"], { cwd: tempDir.path });
@@ -60,7 +61,16 @@ describe("ANSI color suppression on non-TTY", () => {
       // Initialize a model and add an element
       await runDr(["init", "--name", "Show Test Model"], { cwd: tempDir.path });
       await runDr(
-        ["add", "motivation", "goal", "motivation-goal-test-1", "--name", "Customer Satisfaction"],
+        [
+          "add",
+          "motivation",
+          "goal",
+          "motivation-goal-test-1",
+          "--name",
+          "Customer Satisfaction",
+          "--attributes",
+          '{"priority":"high"}',
+        ],
         { cwd: tempDir.path }
       );
 
@@ -82,7 +92,16 @@ describe("ANSI color suppression on non-TTY", () => {
 
       // Run add command with valid element type
       const result = await runDr(
-        ["add", "motivation", "goal", "motivation-goal-add-1", "--name", "Add Test Goal"],
+        [
+          "add",
+          "motivation",
+          "goal",
+          "motivation-goal-add-1",
+          "--name",
+          "Add Test Goal",
+          "--attributes",
+          '{"priority":"high"}',
+        ],
         { cwd: tempDir.path }
       );
 
@@ -96,9 +115,19 @@ describe("ANSI color suppression on non-TTY", () => {
     it("should not emit ANSI codes in piped update command output", async () => {
       // Initialize a model and add an element
       await runDr(["init", "--name", "Update Test Model"], { cwd: tempDir.path });
-      await runDr(["add", "motivation", "goal", "motivation-goal-update-1", "--name", "Original"], {
-        cwd: tempDir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "motivation",
+          "goal",
+          "motivation-goal-update-1",
+          "--name",
+          "Original",
+          "--attributes",
+          '{"priority":"high"}',
+        ],
+        { cwd: tempDir.path }
+      );
 
       // Run update command
       const result = await runDr(
@@ -113,9 +142,19 @@ describe("ANSI color suppression on non-TTY", () => {
     it("should not emit ANSI codes in piped delete command output", async () => {
       // Initialize a model and add an element
       await runDr(["init", "--name", "Delete Test Model"], { cwd: tempDir.path });
-      await runDr(["add", "motivation", "goal", "motivation-goal-delete-1", "--name", "To Delete"], {
-        cwd: tempDir.path,
-      });
+      await runDr(
+        [
+          "add",
+          "motivation",
+          "goal",
+          "motivation-goal-delete-1",
+          "--name",
+          "To Delete",
+          "--attributes",
+          '{"priority":"high"}',
+        ],
+        { cwd: tempDir.path }
+      );
 
       // Run delete command (use --force to skip confirmation prompt)
       const result = await runDr(["delete", "motivation.goal.motivation-goal-delete-1", "--force"], {
@@ -170,7 +209,16 @@ describe("ANSI color suppression on non-TTY", () => {
       // Initialize a model and add an element
       await runDr(["init", "--name", "Content Test Model"], { cwd: tempDir.path });
       await runDr(
-        ["add", "motivation", "requirement", "motivation-requirement-content-1", "--name", "Test Requirement"],
+        [
+          "add",
+          "motivation",
+          "requirement",
+          "motivation-requirement-content-1",
+          "--name",
+          "Test Requirement",
+          "--attributes",
+          '{"stakeholder":"customer"}',
+        ],
         { cwd: tempDir.path }
       );
 
