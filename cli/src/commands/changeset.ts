@@ -28,6 +28,7 @@ function generateImportedChangesetId(): string {
 export async function changesetCreateCommand(
   name: string,
   options: {
+    model?: string;
     description?: string;
   }
 ): Promise<void> {
@@ -41,7 +42,7 @@ export async function changesetCreateCommand(
   try {
     // Load with lazyLoad: false to ensure consistent snapshot hashing
     // (base snapshot must include all layers for accurate drift detection)
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     // Check if changeset already exists
@@ -113,11 +114,11 @@ export async function changesetCreateCommand(
 /**
  * List all changesets
  */
-export async function changesetListCommand(): Promise<void> {
+export async function changesetListCommand(options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("changeset.list") : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const changesets = await manager.list();
 
@@ -201,7 +202,7 @@ export async function changesetListCommand(): Promise<void> {
  */
 export async function changesetApplyCommand(
   name: string,
-  options?: { validate?: boolean; force?: boolean }
+  options?: { model?: string; validate?: boolean; force?: boolean }
 ): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.apply", {
@@ -212,7 +213,7 @@ export async function changesetApplyCommand(
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options?.model || process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
@@ -329,7 +330,7 @@ export async function changesetApplyCommand(
 /**
  * Revert a changeset from the model
  */
-export async function changesetRevertCommand(name: string): Promise<void> {
+export async function changesetRevertCommand(name: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.revert", {
         "changeset.name": name,
@@ -337,7 +338,7 @@ export async function changesetRevertCommand(name: string): Promise<void> {
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
@@ -399,7 +400,7 @@ export async function changesetRevertCommand(name: string): Promise<void> {
 /**
  * Activate a changeset for automatic tracking
  */
-export async function changesetActivateCommand(name: string): Promise<void> {
+export async function changesetActivateCommand(name: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.activate", {
         "changeset.name": name,
@@ -407,7 +408,7 @@ export async function changesetActivateCommand(name: string): Promise<void> {
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     await manager.setActive(name);
 
@@ -436,11 +437,11 @@ export async function changesetActivateCommand(name: string): Promise<void> {
 /**
  * Deactivate the current changeset
  */
-export async function changesetDeactivateCommand(): Promise<void> {
+export async function changesetDeactivateCommand(options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("changeset.deactivate") : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const active = await manager.getActiveId();
 
@@ -487,6 +488,7 @@ export async function changesetDeactivateCommand(): Promise<void> {
 export async function changesetDeleteCommand(
   name: string,
   options: {
+    model?: string;
     force?: boolean;
   }
 ): Promise<void> {
@@ -498,7 +500,7 @@ export async function changesetDeleteCommand(
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
@@ -581,11 +583,11 @@ export async function changesetDeleteCommand(
 /**
  * Show the currently active changeset
  */
-export async function changesetStatusCommand(): Promise<void> {
+export async function changesetStatusCommand(options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("changeset.status") : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const active = await manager.getActiveId();
 
@@ -651,7 +653,7 @@ export async function changesetStatusCommand(): Promise<void> {
 /**
  * List all staged changes in the active changeset
  */
-export async function changesetStagedCommand(options: { layer?: string }): Promise<void> {
+export async function changesetStagedCommand(options: { model?: string; layer?: string }): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.staged", {
         "staged.layer": options.layer,
@@ -659,7 +661,7 @@ export async function changesetStagedCommand(options: { layer?: string }): Promi
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangeset = await manager.getActiveId();
 
@@ -736,13 +738,13 @@ export async function changesetStagedCommand(options: { layer?: string }): Promi
 /**
  * Remove specific element from staging area
  */
-export async function changesetExplicitStageCommand(elementId: string): Promise<void> {
+export async function changesetExplicitStageCommand(elementId: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.stage-explicit", { "stage.elementId": elementId })
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -808,7 +810,7 @@ export async function changesetExplicitStageCommand(elementId: string): Promise<
   }
 }
 
-export async function changesetUnstageCommand(elementId: string): Promise<void> {
+export async function changesetUnstageCommand(elementId: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.unstage", {
         "unstage.elementId": elementId,
@@ -816,7 +818,7 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -885,7 +887,7 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
 /**
  * Discard all or single staged changes
  */
-export async function changesetDiscardCommand(elementId?: string): Promise<void> {
+export async function changesetDiscardCommand(elementId?: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.discard", {
         "discard.elementId": elementId,
@@ -894,7 +896,7 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1013,7 +1015,7 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 /**
  * Preview the merged model state with staged changes applied
  */
-export async function changesetPreviewCommand(options: { layer?: string }): Promise<void> {
+export async function changesetPreviewCommand(options: { model?: string; layer?: string }): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.preview", {
         "preview.layer": options.layer,
@@ -1021,7 +1023,7 @@ export async function changesetPreviewCommand(options: { layer?: string }): Prom
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1136,7 +1138,7 @@ export async function changesetPreviewCommand(options: { layer?: string }): Prom
 /**
  * Show delta between base model and staged changes
  */
-export async function changesetDiffCommand(options: { layer?: string }): Promise<void> {
+export async function changesetDiffCommand(options: { model?: string; layer?: string }): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.diff", {
         "diff.layer": options.layer,
@@ -1144,7 +1146,7 @@ export async function changesetDiffCommand(options: { layer?: string }): Promise
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1253,6 +1255,7 @@ export async function changesetDiffCommand(options: { layer?: string }): Promise
  * @throws Error if validation fails, drift detected without --force, or commit fails
  */
 export async function changesetCommitCommand(options?: {
+  model?: string;
   validate?: boolean;
   force?: boolean;
 }): Promise<void> {
@@ -1260,7 +1263,7 @@ export async function changesetCommitCommand(options?: {
     "changeset.commit",
     async (span) => {
       try {
-        const model = await Model.load(process.cwd(), { lazyLoad: false });
+        const model = await Model.load(options?.model || process.cwd(), { lazyLoad: false });
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
 
@@ -1401,6 +1404,7 @@ export async function changesetCommitCommand(options?: {
 export async function changesetExportCommand(
   changesetId: string,
   options: {
+    model?: string;
     output?: string;
     format?: "yaml" | "json" | "patch";
   }
@@ -1414,7 +1418,7 @@ export async function changesetExportCommand(
     : null;
 
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const exporter = new ChangesetExporter(model.rootPath);
 
     // Default output filename based on changeset id and format
@@ -1459,7 +1463,7 @@ export async function changesetExportCommand(
  */
 export async function changesetImportCommand(
   file: string,
-  options: { force?: boolean } = {}
+  options: { model?: string; force?: boolean } = {}
 ): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.import", {
@@ -1470,7 +1474,7 @@ export async function changesetImportCommand(
 
   try {
     // Load full model for compatibility validation
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
     const exporter = new ChangesetExporter(model.rootPath);
 
     // Ensure file path is absolute
@@ -1588,6 +1592,7 @@ export function changesetCommands(program: Command): void {
   changesetGroup
     .command("create <name>")
     .description("Create a new changeset")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("--description <desc>", "Changeset description")
     .addHelpText(
       "after",
@@ -1603,19 +1608,21 @@ Examples:
   changesetGroup
     .command("list")
     .description("List all changesets")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset list`
     )
-    .action(async () => {
-      await changesetListCommand();
+    .action(async (options) => {
+      await changesetListCommand(options);
     });
 
   changesetGroup
     .command("apply <name>")
     .description("Apply a changeset to the model")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("--no-validate", "Skip validation before applying")
     .option("--force", "Force apply even if base model has drifted")
     .addHelpText(
@@ -1633,53 +1640,57 @@ Examples:
   changesetGroup
     .command("revert <name>")
     .description("Revert a changeset from the model")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset revert "v1.1 migration"`
     )
-    .action(async (name) => {
-      await changesetRevertCommand(name);
+    .action(async (name, options) => {
+      await changesetRevertCommand(name, options);
     });
 
   changesetGroup
     .command("activate <name>")
     .description("Activate a changeset for automatic change tracking")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset activate "v1.1 migration"`
     )
-    .action(async (name) => {
-      await changesetActivateCommand(name);
+    .action(async (name, options) => {
+      await changesetActivateCommand(name, options);
     });
 
   changesetGroup
     .command("deactivate")
     .description("Deactivate the currently active changeset")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset deactivate`
     )
-    .action(async () => {
-      await changesetDeactivateCommand();
+    .action(async (options) => {
+      await changesetDeactivateCommand(options);
     });
 
   changesetGroup
     .command("status")
     .description("Show the currently active changeset")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset status`
     )
-    .action(async () => {
-      await changesetStatusCommand();
+    .action(async (options) => {
+      await changesetStatusCommand(options);
     });
 
   changesetGroup
@@ -1710,6 +1721,7 @@ To inspect a changeset, use one of:
   changesetGroup
     .command("delete <name>")
     .description("Delete a changeset permanently")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-f, --force", "Skip confirmation prompt")
     .addHelpText(
       "after",
@@ -1726,6 +1738,7 @@ Examples:
   changesetGroup
     .command("staged")
     .description("List all staged changes in the active changeset")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-l, --layer <layer>", "Filter by layer name")
     .addHelpText(
       "after",
@@ -1741,6 +1754,7 @@ Examples:
   changesetGroup
     .command("stage <element-id>")
     .description("Stage a specific element into the active changeset")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
@@ -1748,26 +1762,28 @@ Examples:
   $ dr changeset stage api.operation.get-users
   $ dr changeset stage ux.uicomponent.login-form`
     )
-    .action(async (elementId) => {
-      await changesetExplicitStageCommand(elementId);
+    .action(async (elementId, options) => {
+      await changesetExplicitStageCommand(elementId, options);
     });
 
   changesetGroup
     .command("unstage <element-id>")
     .description("Remove specific element from staging area")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset unstage api-endpoint-create-customer`
     )
-    .action(async (elementId) => {
-      await changesetUnstageCommand(elementId);
+    .action(async (elementId, options) => {
+      await changesetUnstageCommand(elementId, options);
     });
 
   changesetGroup
     .command("discard [element-id]")
     .description("Discard all or single staged changes")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
@@ -1775,13 +1791,14 @@ Examples:
   $ dr changeset discard
   $ dr changeset discard api-endpoint-create-customer`
     )
-    .action(async (elementId) => {
-      await changesetDiscardCommand(elementId);
+    .action(async (elementId, options) => {
+      await changesetDiscardCommand(elementId, options);
     });
 
   changesetGroup
     .command("preview")
     .description("Preview the merged model state with staged changes applied")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-l, --layer <layer>", "Preview specific layer only")
     .addHelpText(
       "after",
@@ -1797,6 +1814,7 @@ Examples:
   changesetGroup
     .command("diff")
     .description("Show delta between base model and staged changes")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-l, --layer <layer>", "Show diff for specific layer only")
     .addHelpText(
       "after",
@@ -1812,6 +1830,7 @@ Examples:
   changesetGroup
     .command("commit")
     .description("Apply staged changes to the base model")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("--validate", "Run validation before commit (default: true)", true)
     .option("--force", "Commit despite drift warnings", false)
     .addHelpText(
@@ -1829,6 +1848,7 @@ Examples:
   changesetGroup
     .command("export <changeset-id>")
     .description("Export changeset to portable file")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-o, --output <file>", "Output file path")
     .option("-f, --format <format>", "Export format (yaml|json|patch)", "yaml")
     .addHelpText(
@@ -1847,6 +1867,7 @@ Examples:
   changesetGroup
     .command("import <file>")
     .description("Import changeset from file")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-f, --force", "Import despite base model drift", false)
     .addHelpText(
       "after",

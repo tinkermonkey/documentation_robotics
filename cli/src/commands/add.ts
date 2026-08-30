@@ -27,6 +27,7 @@ import {
 
 
 export interface AddOptions {
+  model?: string;
   name?: string;
   description?: string;
   attributes?: string;
@@ -112,7 +113,7 @@ export async function addCommand(
     // Load model (with error handling for missing models)
     let model: Model;
     try {
-      model = await Model.load(undefined, { layers: [layer] });
+      model = await Model.load(options.model || process.cwd(), { layers: [layer] });
     } catch (error) {
       const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {

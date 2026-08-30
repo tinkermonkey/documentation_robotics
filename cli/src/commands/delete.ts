@@ -17,6 +17,7 @@ declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface DeleteOptions {
+  model?: string;
   force?: boolean;
   verbose?: boolean;
   debug?: boolean;
@@ -38,7 +39,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     // Load model (with error handling for missing models)
     let model: Model;
     try {
-      model = await Model.load();
+      model = await Model.load(options.model || process.cwd());
     } catch (error) {
       const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {

@@ -20,6 +20,7 @@ declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface UpdateOptions {
+  model?: string;
   name?: string;
   description?: string;
   type?: string;
@@ -79,7 +80,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     validateUpdateSourceReferenceOptions(options);
 
     // Load model
-    const model = await Model.load();
+    const model = await Model.load(options.model || process.cwd());
 
     // Find element
     const layerName = await findElementLayer(model, id);

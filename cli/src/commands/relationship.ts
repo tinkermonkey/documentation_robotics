@@ -422,6 +422,7 @@ export function relationshipCommands(program: Command): void {
   program
     .command("add <source> <target>")
     .description("Add a relationship between elements (intra-layer or cross-layer)")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .requiredOption(
       "--predicate <predicate>",
       "Relationship predicate (e.g., depends-on, realizes, exposes)"
@@ -439,7 +440,7 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
 
         // Find source element for constraints info
         const sourceLayerName = await findElementLayer(model, source);
@@ -527,6 +528,7 @@ Examples:
   program
     .command("delete <source> <target>")
     .description("Delete a relationship")
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option(
       "--predicate <predicate>",
       "Specific predicate to delete (optional, delete all if not specified)"
@@ -542,7 +544,7 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
 
         // Find source element and relationships to delete (for confirmation)
         const sourceLayerName = await findElementLayer(model, source);

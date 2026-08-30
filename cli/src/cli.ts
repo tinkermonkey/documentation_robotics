@@ -143,6 +143,7 @@ Examples:
 program
   .command("add <layer> <type> <name>")
   .description("Add an element to a layer")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--name <name>", "Element display name (defaults to the name argument)")
   .option("--description <desc>", "Element description")
   .option("--attributes <json>", "Element type-specific attributes as JSON object")
@@ -167,6 +168,7 @@ Note: Element IDs are generated automatically in format {layer}.{type}.{kebab-na
 program
   .command("update <id>")
   .description("Update an element")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--name <name>", "New element name")
   .option("--description <desc>", "New description")
   .option("--type <new-type>", "Change element type (must be valid for the element's layer; incompatible attributes must be cleaned up manually)")
@@ -195,6 +197,7 @@ Examples:
 program
   .command("delete <id>")
   .description("Delete an element")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--force", "Skip dependency checks (confirmation is also skipped in non-TTY environments)")
   .option("--cascade", "Remove dependent elements automatically")
   .option("--dry-run", "Show what would be removed without actually removing")
