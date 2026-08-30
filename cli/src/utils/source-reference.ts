@@ -34,6 +34,14 @@ export function validateSourceReferenceOptions(options: SourceReferenceOptions):
     return;
   }
 
+  // Require source-symbol to have source-file (both or neither is not acceptable here)
+  if (options.sourceSymbol && !options.sourceFile) {
+    throw new CLIError("--source-symbol requires --source-file", 1, [
+      "Provide the source file that contains the symbol",
+      'Example: --source-file "src/auth.ts" --source-symbol "validateToken"',
+    ]);
+  }
+
   // Require provenance first so we can use it to determine file requirements
   if (!options.sourceProvenance) {
     throw new CLIError("--source-provenance is required when specifying source reference", 1, [

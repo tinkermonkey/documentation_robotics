@@ -79,7 +79,7 @@ describe("Source Reference CLI Integration Tests", () => {
       expect(result.stdout).toContain("Added element");
     });
 
-    it("should fail when source-file is missing but other source options provided", async () => {
+    it("should fail when source-symbol provided without source-file", async () => {
       const result = await runDr(
         "add",
         "security",
@@ -92,7 +92,27 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("--source-file is required");
+      expect(result.stderr).toContain("--source-symbol requires --source-file");
+    });
+
+    it("should fail when source-symbol provided with source-provenance inferred but no source-file", async () => {
+      const result = await runDr(
+        "add",
+        "security",
+        "securitypolicy",
+        "inferred-policy",
+        "--name",
+        "Inferred Policy",
+        "--attributes",
+        JSON.stringify({ priority: 1, target: "endpoint" }),
+        "--source-symbol",
+        "validatePolicy",
+        "--source-provenance",
+        "inferred"
+      );
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("--source-symbol requires --source-file");
     });
 
     it("should fail when source-provenance is missing but source-file provided", async () => {
@@ -333,6 +353,20 @@ describe("Source Reference CLI Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(0);
+    });
+
+    it("should fail when source-symbol provided without source-file during update", async () => {
+      const result = await runDr(
+        "update",
+        "security.securitypolicy.auth-policy",
+        "--source-symbol",
+        "UpdatedFunction",
+        "--source-provenance",
+        "extracted"
+      );
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("--source-symbol requires --source-file");
     });
   });
 
