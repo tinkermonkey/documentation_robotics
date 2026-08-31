@@ -4,10 +4,10 @@
 
 | Metric              | Value                    |
 | ------------------- | ------------------------ |
-| Total Elements      | 5                        |
+| Total Elements      | 14                       |
 | Total Relationships | 1                        |
-| Populated Layers    | 1                        |
-| Last Updated        | 2026-08-31T12:22:30.491Z |
+| Populated Layers    | 6                        |
+| Last Updated        | 2026-04-12T20:48:24.639Z |
 | CLI Version         | 0.1.13                   |
 | Spec Version        | 0.10.0                   |
 
@@ -15,7 +15,12 @@
 
 **Populated Layers**:
 
+- Motivation
 - Business
+- Application
+- API
+- Data Model
+- Data Store
 
 ## About Documentation Robotics
 
@@ -41,22 +46,22 @@ Each layer is independently managed but interconnected, allowing elements in hig
 
 ## Layer Reports
 
-| Layer       | Elements | Report                                                               |
-| ----------- | -------- | -------------------------------------------------------------------- |
-| Motivation  | 0        | —                                                                    |
-| Business    | 5        | [02-business-layer-report.md](./reports/02-business-layer-report.md) |
-| Product     | 0        | —                                                                    |
-| Security    | 0        | —                                                                    |
-| Application | 0        | —                                                                    |
-| Technology  | 0        | —                                                                    |
-| API         | 0        | —                                                                    |
-| Data Model  | 0        | —                                                                    |
-| Data Store  | 0        | —                                                                    |
-| UX          | 0        | —                                                                    |
-| Navigation  | 0        | —                                                                    |
-| APM         | 0        | —                                                                    |
-| Testing     | 0        | —                                                                    |
+| Layer       | Elements | Report                                                                     |
+| ----------- | -------- | -------------------------------------------------------------------------- |
+| Motivation  | 1        | [01-motivation-layer-report.md](./reports/01-motivation-layer-report.md)   |
+| Business    | 3        | [02-business-layer-report.md](./reports/02-business-layer-report.md)       |
+| Product     | 0        | —                                                                          |
+| Security    | 0        | —                                                                          |
+| Application | 1        | [05-application-layer-report.md](./reports/05-application-layer-report.md) |
+| Technology  | 0        | —                                                                          |
+| API         | 4        | [07-api-layer-report.md](./reports/07-api-layer-report.md)                 |
+| Data Model  | 1        | [08-data-model-layer-report.md](./reports/08-data-model-layer-report.md)   |
+| Data Store  | 4        | [09-data-store-layer-report.md](./reports/09-data-store-layer-report.md)   |
+| UX          | 0        | —                                                                          |
+| Navigation  | 0        | —                                                                          |
+| APM         | 0        | —                                                                          |
+| Testing     | 0        | —                                                                          |
 
 ---
 
-Generated: 2026-08-31T12:22:30.493Z | Model Version: 0.1.0
+Generated: 2026-04-12T20:48:24.639Z | Model Version: 0.1.0

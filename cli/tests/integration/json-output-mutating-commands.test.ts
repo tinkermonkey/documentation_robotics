@@ -160,6 +160,8 @@ describe("JSON Output on Mutating Commands", () => {
         "application",
         "component",
         "temp-component",
+        "--attributes",
+        '{"type":"generic"}',
         "--json",
       ]);
 
@@ -305,6 +307,8 @@ describe("JSON Output on Mutating Commands", () => {
         "test-artifact",
         "--name",
         "Test Artifact",
+        "--attributes",
+        '{"artifactType":"file"}',
         "--verbose",
         "--json",
       ]);
