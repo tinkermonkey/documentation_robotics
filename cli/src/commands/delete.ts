@@ -279,15 +279,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
         );
         if (staleBase > 0) await model.saveRelationships();
 
-        const details: Record<string, string> = {
-          layer: layerName,
-          "total elements deleted": String(elementsToRemove.length),
-        };
-        if (options.cascade && dependents.length > 0) {
-          details["dependent elements deleted"] = String(dependents.length);
-        }
-        handleInfo("");
-        handleSuccess(`Deleted element ${ansis.bold(id)}`, options.verbose ? details : undefined);
+        // Report deletion with cascade confirmation
+        showDeletionSuccess();
       }
     } else {
       // Fallback success message if before state is not available
@@ -297,15 +290,25 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       );
       if (staleFallback > 0) await model.saveRelationships();
 
+      // Report deletion with cascade confirmation
+      showDeletionSuccess();
+    }
+
+    function showDeletionSuccess(): void {
+      handleInfo("");
       const details: Record<string, string> = {
-        layer: layerName,
-        "total elements deleted": String(elementsToRemove.length),
+        Layer: layerName,
+        "Total elements deleted": String(elementsToRemove.length),
       };
       if (options.cascade && dependents.length > 0) {
-        details["dependent elements deleted"] = String(dependents.length);
+        details["Dependent elements deleted"] = String(dependents.length);
       }
-      handleInfo("");
       handleSuccess(`Deleted element ${ansis.bold(id)}`, options.verbose ? details : undefined);
+
+      // Show cascade confirmation when cascade is active
+      if (options.cascade && dependents.length > 0) {
+        handleInfo(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
+      }
     }
   } catch (error) {
     if (isTelemetryEnabled && span) {

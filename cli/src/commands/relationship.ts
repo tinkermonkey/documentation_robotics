@@ -233,8 +233,8 @@ export async function addRelationshipHandler(
 
   // Guard against duplicate relationships before staging or writing
   if (model.relationships.find(source, target, predicate).length > 0) {
-    handleInfo(
-      ansis.yellow(`Warning: Relationship ${source} --[${predicate}]--> ${target} already exists. Skipping.`)
+    handleWarning(
+      `Relationship ${source} --[${predicate}]--> ${target} already exists. Skipping.`
     );
     return false;
   }
