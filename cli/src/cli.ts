@@ -564,11 +564,11 @@ Examples:
 
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");
-relationshipCommands(relationshipGroup);
+relationshipCommands(relationshipGroup, program);
 
 // Element subcommands
 const elementGroup = program.command("element").description("Element operations");
-elementCommands(elementGroup);
+elementCommands(elementGroup, program);
 
 // Schema introspection subcommands
 schemaCommands(program);

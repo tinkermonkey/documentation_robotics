@@ -11,7 +11,7 @@ import { showCommand } from "./show.js";
 import { deleteCommand } from "./delete.js";
 import { updateCommand } from "./update.js";
 
-export function elementCommands(program: Command): void {
+export function elementCommands(program: Command, rootProgram?: Command): void {
   // element add <layer> <type> <name> [options]
   program
     .command("add <layer> <type> <name>")
@@ -39,7 +39,8 @@ export function elementCommands(program: Command): void {
     .option("--verbose", "Show detailed output")
     .option("--debug", "Enable debug output")
     .action(async (layer, options) => {
-      await listCommand(layer, options);
+      const mergedOptions = { ...options, json: options.json ?? (rootProgram?.opts().json) };
+      await listCommand(layer, mergedOptions);
     });
 
   // element show <id> [options]

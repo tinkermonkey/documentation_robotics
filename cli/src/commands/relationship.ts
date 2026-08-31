@@ -455,7 +455,7 @@ export async function deleteRelationshipHandler(
   return { deletedCount: resolvedToDelete.length };
 }
 
-export function relationshipCommands(program: Command): void {
+export function relationshipCommands(program: Command, rootProgram?: Command): void {
   program
     .command("add <source> <target>")
     .description(
@@ -740,7 +740,8 @@ Examples:
           relationships.push(...incoming);
         }
 
-        if (options.json) {
+        const shouldOutputJson = options.json ?? (rootProgram?.opts().json);
+        if (shouldOutputJson) {
           console.log(JSON.stringify(relationships, null, 2));
           return;
         }
