@@ -716,6 +716,10 @@ Examples:
     .command("list <id>")
     .description("List relationships for an element")
     .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
+    .option(
       "--direction <dir>",
       "Filter by direction (incoming/outgoing/all)",
       "all"
@@ -732,7 +736,7 @@ Examples:
     .action(async (id, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
         const layerName = await findElementLayer(model, id);
 
         if (!layerName) {
@@ -804,6 +808,10 @@ Examples:
   program
     .command("show <source> <target>")
     .description("Show relationship details")
+    .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
     .addHelpText(
       "after",
       `
@@ -811,10 +819,10 @@ Examples:
   $ dr relationship show api-endpoint-create-customer business-service-customer-mgmt
   $ dr relationship show application-component-api motivation-goal-sales-efficiency`
     )
-    .action(async (source, target) => {
+    .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
         const sourceLayerName = await findElementLayer(model, source);
 
         if (!sourceLayerName) {
