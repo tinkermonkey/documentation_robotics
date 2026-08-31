@@ -297,7 +297,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     function showDeletionSuccess(): void {
       handleInfo("");
       const details: Record<string, string> = {
-        Layer: layerName,
+        Layer: layerName!,
         "Total elements deleted": String(elementsToRemove.length),
       };
       if (options.cascade && dependents.length > 0) {

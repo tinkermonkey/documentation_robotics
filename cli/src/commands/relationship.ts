@@ -8,7 +8,7 @@ import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { isValidLayerName } from "../core/layers.js";
-import { CLIError, ErrorCategory, handleError, handleSuccess, handleInfo, getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, handleError, handleSuccess, handleInfo, handleWarning, getErrorMessage } from "../utils/errors.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
