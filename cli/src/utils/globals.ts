@@ -5,6 +5,7 @@
 export interface GlobalOptions {
   verbose?: boolean;
   debug?: boolean;
+  json?: boolean;
 }
 
 // Global state for CLI options
@@ -36,6 +37,13 @@ export function isVerbose(): boolean {
  */
 export function isDebug(): boolean {
   return globalOptions.debug === true;
+}
+
+/**
+ * Check if JSON mode is enabled
+ */
+export function isJson(): boolean {
+  return globalOptions.json === true;
 }
 
 /**

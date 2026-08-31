@@ -268,8 +268,12 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
         handleSuccess(
           `Staged deletion of element ${ansis.bold(id)} to ${ansis.bold(activeChangeset.name)}`,
           {
+            elementId: id,
+            layer: layerName!,
             status: "staged",
             changeset: activeChangeset.name,
+            totalElementsDeleted: elementsToRemove.length,
+            dependentElementsDeleted: options.cascade ? dependents.length : 0,
           }
         );
       } else {
@@ -296,14 +300,15 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
     function showDeletionSuccess(): void {
       handleInfo("");
-      const details: Record<string, string> = {
-        Layer: layerName!,
-        "Total elements deleted": String(elementsToRemove.length),
+      const details: Record<string, unknown> = {
+        elementId: id,
+        layer: layerName!,
+        totalElementsDeleted: elementsToRemove.length,
       };
       if (options.cascade && dependents.length > 0) {
-        details["Dependent elements deleted"] = String(dependents.length);
+        details.dependentElementsDeleted = dependents.length;
       }
-      handleSuccess(`Deleted element ${ansis.bold(id)}`, options.verbose ? details : undefined);
+      handleSuccess(`Deleted element ${ansis.bold(id)}`, details);
 
       // Show cascade confirmation when cascade is active
       if (options.cascade && dependents.length > 0) {

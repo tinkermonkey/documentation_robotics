@@ -11,6 +11,7 @@
  */
 
 import ansis from "ansis";
+import { isJson } from "./globals.js";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -228,20 +229,30 @@ export function handleWarning(message: string, suggestions?: string[]): void {
   console.warn(lines.join("\n"));
 }
 
-export function handleSuccess(message: string, details?: Record<string, string>): void {
-  console.log(ansis.green(`✓ ${message}`));
-  if (details) {
-    for (const [key, value] of Object.entries(details)) {
-      console.log(ansis.dim(`  ${key}: ${value}`));
+export function handleSuccess(message: string, details?: Record<string, unknown>): void {
+  if (isJson()) {
+    const output: Record<string, unknown> = {
+      status: "ok",
+      ...details,
+    };
+    console.log(JSON.stringify(output));
+  } else {
+    console.log(ansis.green(`✓ ${message}`));
+    if (details) {
+      for (const [key, value] of Object.entries(details)) {
+        console.log(ansis.dim(`  ${key}: ${value}`));
+      }
     }
   }
 }
 
 export function handleInfo(message: string, details?: Record<string, string>): void {
-  console.log(message);
-  if (details) {
-    for (const [key, value] of Object.entries(details)) {
-      console.log(ansis.dim(`  ${key}: ${value}`));
+  if (!isJson()) {
+    console.log(message);
+    if (details) {
+      for (const [key, value] of Object.entries(details)) {
+        console.log(ansis.dim(`  ${key}: ${value}`));
+      }
     }
   }
 }

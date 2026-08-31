@@ -573,16 +573,25 @@ Examples:
 
         // Show cardinality and strength in output
         let message = `Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
+        const details: Record<string, unknown> = {
+          source,
+          target,
+          predicate: options.predicate,
+          layer: sourceLayerName,
+        };
         if (constraints) {
           message += ansis.dim(
             ` (${constraints.cardinality}, ${constraints.strength} strength)`
           );
+          details.cardinality = constraints.cardinality;
+          details.strength = constraints.strength;
         }
         if (activeChangesetId) {
           message += ansis.dim(` [staged]`);
+          details.status = "staged";
         }
 
-        handleSuccess(message);
+        handleSuccess(message, details);
       } catch (error) {
         handleError(error);
       }
@@ -670,8 +679,21 @@ Examples:
         );
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";
+        const deleteDetails: Record<string, unknown> = {
+          source,
+          target,
+          layer: sourceLayerName,
+          deletedCount: result.deletedCount,
+        };
+        if (options.predicate) {
+          deleteDetails.predicate = options.predicate;
+        }
+        if (activeChangesetId) {
+          deleteDetails.changesetStatus = "staged";
+        }
         handleSuccess(
-          `Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
+          `Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`,
+          deleteDetails
         );
       } catch (error) {
         handleError(error);

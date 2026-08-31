@@ -12,7 +12,7 @@ import { Command } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
 import { findElementLayer } from "../utils/element-utils.js";
 
 /**
@@ -89,12 +89,17 @@ export async function changesetCreateCommand(
       (span as any).setStatus({ code: 0 });
     }
 
-    console.log(ansis.green(`✓ Created and activated changeset: ${ansis.bold(name)}`));
+    handleSuccess(`Created and activated changeset: ${ansis.bold(name)}`, {
+      changesetId: changeset.id,
+      name,
+      description: changeset.description,
+      path: `documentation-robotics/changesets/${changeset.id}/`,
+    });
     if (changeset.description) {
-      console.log(ansis.dim(`  ${changeset.description}`));
+      handleInfo(ansis.dim(`  ${changeset.description}`));
     }
-    console.log(ansis.dim(`  Path: documentation-robotics/changesets/${changeset.id}/`));
-    console.log();
+    handleInfo(ansis.dim(`  Path: documentation-robotics/changesets/${changeset.id}/`));
+    handleInfo("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -269,10 +274,7 @@ export async function changesetApplyCommand(
       force: options?.force
     });
 
-    console.log();
-
-    // Always show applied message, even if 0 changes
-    console.log(ansis.green(`✓ Applied ${result.committed} change(s) from changeset`));
+    handleInfo("");
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("apply.committed", result.committed);
@@ -280,10 +282,18 @@ export async function changesetApplyCommand(
       (span as any).setAttribute("apply.validationPassed", result.validation.passed);
     }
 
+    // Always show applied message, even if 0 changes
+    handleSuccess(`Applied ${result.committed} change(s) from changeset`, {
+      changesetName: name,
+      committed: result.committed,
+      failed: result.failed,
+      validationPassed: result.validation.passed,
+    });
+
     if (result.failed > 0) {
-      console.log(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
+      handleInfo(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
       for (const error of result.validation.errors) {
-        console.log(ansis.dim(`  - ${error}`));
+        handleInfo(ansis.dim(`  - ${error}`));
       }
     }
 
@@ -303,14 +313,14 @@ export async function changesetApplyCommand(
     await model.saveManifest();
 
     if (result.failed === 0) {
-      console.log(ansis.dim(`Changeset marked as committed`));
+      handleInfo(ansis.dim(`Changeset marked as committed`));
     }
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
     }
 
-    console.log();
+    handleInfo("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -370,17 +380,21 @@ export async function changesetRevertCommand(name: string, options: { model?: st
     }
     await manager.revert(changesetId);
 
-    console.log();
+    handleInfo("");
 
     // Show reverted message
-    console.log(ansis.green(`✓ Reverted changeset: ${name}`));
-    console.log(ansis.dim(`Changeset marked as discarded`));
+    handleSuccess(`Reverted changeset: ${name}`, {
+      changesetName: name,
+      changesetId,
+      status: "discarded",
+    });
+    handleInfo(ansis.dim(`Changeset marked as discarded`));
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
     }
 
-    console.log();
+    handleInfo("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -412,8 +426,10 @@ export async function changesetActivateCommand(name: string, options: { model?: 
     const manager = new StagingAreaManager(model.rootPath, model);
     await manager.setActive(name);
 
-    console.log(ansis.green(`✓ Activated changeset: ${ansis.bold(name)}`));
-    console.log(ansis.dim("  All model changes will now be tracked in this changeset"));
+    handleSuccess(`Activated changeset: ${ansis.bold(name)}`, {
+      changesetName: name,
+    });
+    handleInfo(ansis.dim("  All model changes will now be tracked in this changeset"));
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -446,7 +462,7 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
     const active = await manager.getActiveId();
 
     if (!active) {
-      console.log(ansis.yellow("No active changeset"));
+      handleInfo(ansis.yellow("No active changeset"));
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("changeset.wasActive", false);
         (span as any).setStatus({ code: 0 });
@@ -461,7 +477,9 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
     }
 
     await manager.clearActive();
-    console.log(ansis.green(`✓ Deactivated changeset: ${ansis.bold(active)}`));
+    handleSuccess(`Deactivated changeset: ${ansis.bold(active)}`, {
+      changesetId: active,
+    });
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -537,7 +555,7 @@ export async function changesetDeleteCommand(
         });
 
         if (!confirm || typeof confirm !== "boolean") {
-          console.log(ansis.yellow("Deletion cancelled"));
+          handleInfo(ansis.yellow("Deletion cancelled"));
           if (isTelemetryEnabled && span) {
             (span as any).setAttribute("delete.cancelled", true);
             (span as any).setStatus({ code: 0 });
@@ -559,7 +577,10 @@ export async function changesetDeleteCommand(
 
     await manager.delete(name);
 
-    console.log(ansis.green(`✓ Deleted changeset: ${ansis.bold(name)}`));
+    handleSuccess(`Deleted changeset: ${ansis.bold(name)}`, {
+      changesetName: name,
+      changesetId: changeset.id,
+    });
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });

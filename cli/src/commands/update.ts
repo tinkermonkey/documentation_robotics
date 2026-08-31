@@ -187,7 +187,11 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               after,
             });
 
-            handleSuccess(`Updated staged element ${ansis.bold(id)}`);
+            handleSuccess(`Updated staged element ${ansis.bold(id)}`, {
+              elementId: id,
+              layer: addChange.layerName,
+              status: "staged",
+            });
             return;
           }
         }
@@ -319,14 +323,14 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       layer.updateElement(elem);
     });
 
-    const details: Record<string, string> = { Layer: layerName };
-    if (options.type) details.Type = options.type;
-    if (options.name) details.Name = options.name;
-    if (options.description) details.Description = options.description;
-    if (options.sourceFile) details.Source = options.sourceFile;
-    if (options.clearSourceReference) details.Source = "cleared";
+    const details: Record<string, unknown> = { elementId: id, layer: layerName };
+    if (options.type) details.type = options.type;
+    if (options.name) details.name = options.name;
+    if (options.description) details.description = options.description;
+    if (options.sourceFile) details.source = options.sourceFile;
+    if (options.clearSourceReference) details.source = "cleared";
 
-    handleSuccess(`Updated element ${ansis.bold(id)}`, options.verbose ? details : undefined);
+    handleSuccess(`Updated element ${ansis.bold(id)}`, details);
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

@@ -216,15 +216,18 @@ export async function addCommand(
         handleSuccess(
           `Staged element ${ansis.bold(elementPath)} to ${ansis.bold(activeChangeset.name)}`,
           {
-            status: "staged",
-            changeset: activeChangeset.name,
+            elementId: elementPath,
+            layer,
             type: resolvedType,
             name: options.name || name,
+            changeset: activeChangeset.name,
           }
         );
       } else {
         // Base model path
         handleSuccess(`Added element ${ansis.bold(elementPath)} to ${ansis.bold(layer)} layer`, {
+          elementId: elementPath,
+          layer,
           type: resolvedType,
           name: options.name || name,
           description: options.description || "(none)",

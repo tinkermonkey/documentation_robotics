@@ -111,14 +111,16 @@ program
   .description("Documentation Robotics CLI - Architecture Model Management")
   .option("-v, --verbose", "Enable verbose output")
   .option("--debug", "Enable debug mode")
+  .option("--json", "Output as JSON (supported on mutating and query commands)")
   .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
   .showSuggestionAfterError() // "Did you mean X?" on unknown commands/options
   .hook("preAction", async (thisCommand) => {
-    // Set up global state (verbose/debug flags)
+    // Set up global state (verbose/debug/json flags)
     const options = thisCommand.opts();
     setGlobalOptions({
       verbose: options.verbose as boolean | undefined,
       debug: options.debug as boolean | undefined,
+      json: options.json as boolean | undefined,
     });
   });
 
