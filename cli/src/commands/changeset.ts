@@ -737,14 +737,11 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
     }
 
     if (changes.length === 0) {
-      if (!isJson()) {
-        console.log(ansis.yellow("No staged changes"));
-      }
       handleSuccess("No staged changes", {
         changesetName: activeChangeset,
         changeCount: 0,
         changes: [],
-      });
+      }, { verbose: true });
       if (isTelemetryEnabled && span) {
         (span as any).setStatus({ code: 0 });
       }
