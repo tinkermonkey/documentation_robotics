@@ -65,6 +65,10 @@ describe("JSON Output on Mutating Commands", () => {
         "motivation",
         "goal",
         "customer-satisfaction",
+        "--name",
+        "Customer Satisfaction",
+        "--attributes",
+        '{"priority":"high"}',
         "--json",
       ]);
 
@@ -78,7 +82,7 @@ describe("JSON Output on Mutating Commands", () => {
       expect(json.elementId).toContain("motivation.goal.");
       expect(json.layer).toBe("motivation");
       expect(json.type).toBe("goal");
-      expect(json.name).toBe("customer-satisfaction");
+      expect(json.name).toBe("Customer Satisfaction");
       // Should not contain ANSI codes
       expect(output).not.toContain("\x1b");
     });
@@ -96,13 +100,17 @@ describe("JSON Output on Mutating Commands", () => {
         "api",
         "operation",
         "create-order",
+        "--name",
+        "Create Order",
+        "--attributes",
+        '{"operationId":"createOrder","summary":"Create a new order","tags":"orders"}',
         "--json",
       ]);
 
       expect(result.exitCode).toBe(0);
 
       const json = JSON.parse(result.stdout.trim());
-      expect(json.status).toBeUndefined(); // Not set for staged, only "ok"
+      expect(json.status).toBe("ok");
       expect(json.changeset).toBe("test-changeset");
       expect(json.elementId).toContain("api.operation.");
     });
@@ -111,17 +119,21 @@ describe("JSON Output on Mutating Commands", () => {
   describe("dr update --json", () => {
     it("should output valid JSON with elementId, layer fields", async () => {
       // First add an element
-      await runCLICommand(workdir.path, [
+      const addResult = await runCLICommand(workdir.path, [
         "add",
         "business",
-        "service",
+        "process",
         "order-mgmt",
       ]);
+
+      expect(addResult.exitCode).toBe(0);
+      const addedJson = JSON.parse(addResult.stdout.trim());
+      const elementId = addedJson.elementId;
 
       // Then update it
       const result = await runCLICommand(workdir.path, [
         "update",
-        "business.service.order-mgmt",
+        elementId,
         "--name",
         "Order Management v2",
         "--json",
@@ -131,7 +143,7 @@ describe("JSON Output on Mutating Commands", () => {
 
       const json = JSON.parse(result.stdout.trim());
       expect(json.status).toBe("ok");
-      expect(json.elementId).toBe("business.service.order-mgmt");
+      expect(json.elementId).toBe(elementId);
       expect(json.layer).toBe("business");
       expect(json.name).toBe("Order Management v2");
       // Should not contain ANSI codes
@@ -142,17 +154,21 @@ describe("JSON Output on Mutating Commands", () => {
   describe("dr delete --json", () => {
     it("should output valid JSON with elementId, layer, totalElementsDeleted", async () => {
       // First add an element
-      await runCLICommand(workdir.path, [
+      const addResult = await runCLICommand(workdir.path, [
         "add",
         "application",
-        "service",
-        "temp-service",
+        "component",
+        "temp-component",
       ]);
+
+      expect(addResult.exitCode).toBe(0);
+      const addedJson = JSON.parse(addResult.stdout.trim());
+      const elementId = addedJson.elementId;
 
       // Then delete it
       const result = await runCLICommand(workdir.path, [
         "delete",
-        "application.service.temp-service",
+        elementId,
         "--force",
         "--json",
       ]);
@@ -161,7 +177,7 @@ describe("JSON Output on Mutating Commands", () => {
 
       const json = JSON.parse(result.stdout.trim());
       expect(json.status).toBe("ok");
-      expect(json.elementId).toBe("application.service.temp-service");
+      expect(json.elementId).toBe(elementId);
       expect(json.layer).toBe("application");
       expect(json.totalElementsDeleted).toBe(1);
       // Should not contain ANSI codes
@@ -172,24 +188,39 @@ describe("JSON Output on Mutating Commands", () => {
   describe("dr relationship add --json", () => {
     it("should output valid JSON with source, target, predicate, layer fields", async () => {
       // Add two elements first
-      await runCLICommand(workdir.path, [
+      const add1Result = await runCLICommand(workdir.path, [
         "add",
         "motivation",
         "goal",
         "goal-a",
+        "--name",
+        "Goal A",
+        "--attributes",
+        '{"priority":"high"}',
+        "--json",
       ]);
-      await runCLICommand(workdir.path, [
+      expect(add1Result.exitCode).toBe(0);
+      const goal1Id = JSON.parse(add1Result.stdout.trim()).elementId;
+
+      const add2Result = await runCLICommand(workdir.path, [
         "add",
         "motivation",
         "goal",
         "goal-b",
+        "--name",
+        "Goal B",
+        "--attributes",
+        '{"priority":"high"}',
+        "--json",
       ]);
+      expect(add2Result.exitCode).toBe(0);
+      const goal2Id = JSON.parse(add2Result.stdout.trim()).elementId;
 
       const result = await runCLICommand(workdir.path, [
         "relationship",
         "add",
-        "motivation.goal.goal-a",
-        "motivation.goal.goal-b",
+        goal1Id,
+        goal2Id,
         "--predicate",
         "aggregates",
         "--json",
@@ -199,8 +230,8 @@ describe("JSON Output on Mutating Commands", () => {
 
       const json = JSON.parse(result.stdout.trim());
       expect(json.status).toBe("ok");
-      expect(json.source).toBe("motivation.goal.goal-a");
-      expect(json.target).toBe("motivation.goal.goal-b");
+      expect(json.source).toBe(goal1Id);
+      expect(json.target).toBe(goal2Id);
       expect(json.predicate).toBe("aggregates");
       expect(json.layer).toBe("motivation");
       // Cardinality and strength may or may not be present depending on schema
@@ -212,23 +243,31 @@ describe("JSON Output on Mutating Commands", () => {
   describe("dr relationship delete --json", () => {
     it("should output valid JSON with source, target, deletedCount fields", async () => {
       // Add two elements and a relationship
-      await runCLICommand(workdir.path, [
+      const add1Result = await runCLICommand(workdir.path, [
         "add",
         "business",
         "process",
         "proc-a",
+        "--json",
       ]);
-      await runCLICommand(workdir.path, [
+      expect(add1Result.exitCode).toBe(0);
+      const proc1Id = JSON.parse(add1Result.stdout.trim()).elementId;
+
+      const add2Result = await runCLICommand(workdir.path, [
         "add",
         "business",
         "process",
         "proc-b",
+        "--json",
       ]);
+      expect(add2Result.exitCode).toBe(0);
+      const proc2Id = JSON.parse(add2Result.stdout.trim()).elementId;
+
       await runCLICommand(workdir.path, [
         "relationship",
         "add",
-        "business.process.proc-a",
-        "business.process.proc-b",
+        proc1Id,
+        proc2Id,
         "--predicate",
         "aggregates",
       ]);
@@ -236,8 +275,8 @@ describe("JSON Output on Mutating Commands", () => {
       const result = await runCLICommand(workdir.path, [
         "relationship",
         "delete",
-        "business.process.proc-a",
-        "business.process.proc-b",
+        proc1Id,
+        proc2Id,
         "--force",
         "--json",
       ]);
@@ -246,8 +285,8 @@ describe("JSON Output on Mutating Commands", () => {
 
       const json = JSON.parse(result.stdout.trim());
       expect(json.status).toBe("ok");
-      expect(json.source).toBe("business.process.proc-a");
-      expect(json.target).toBe("business.process.proc-b");
+      expect(json.source).toBe(proc1Id);
+      expect(json.target).toBe(proc2Id);
       expect(json.deletedCount).toBe(1);
       expect(json.layer).toBe("business");
       // Should not contain ANSI codes
@@ -260,8 +299,10 @@ describe("JSON Output on Mutating Commands", () => {
       const result = await runCLICommand(workdir.path, [
         "add",
         "technology",
-        "platform",
-        "test-platform",
+        "artifact",
+        "test-artifact",
+        "--name",
+        "Test Artifact",
         "--verbose",
         "--json",
       ]);
@@ -297,7 +338,7 @@ describe("JSON Output on Mutating Commands", () => {
 
       const json = JSON.parse(result.stdout.trim());
       expect(json.status).toBe("ok");
-      expect(json.name).toBe("test-changes");
+      expect(json.changesetName).toBe("test-changes");
       expect(json.changesetId).toBeDefined();
       expect(result.stdout).not.toContain("\x1b");
     });
@@ -347,6 +388,90 @@ describe("JSON Output on Mutating Commands", () => {
       const json = JSON.parse(result.stdout.trim());
       expect(json.status).toBe("ok");
       expect(json.changesetName).toBe("activate-test");
+      expect(result.stdout).not.toContain("\x1b");
+    });
+
+    it("dr changeset apply --json should output valid JSON", async () => {
+      // Create a changeset with some changes
+      await runCLICommand(workdir.path, [
+        "changeset",
+        "create",
+        "apply-test",
+      ]);
+
+      // Add an element (will be staged)
+      await runCLICommand(workdir.path, [
+        "add",
+        "motivation",
+        "goal",
+        "test-goal",
+        "--name",
+        "Test Goal",
+        "--attributes",
+        '{"priority":"high"}',
+      ]);
+
+      const result = await runCLICommand(workdir.path, [
+        "changeset",
+        "apply",
+        "apply-test",
+        "--json",
+      ]);
+
+      expect(result.exitCode).toBe(0);
+
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("ok");
+      expect(json.changesetName).toBe("apply-test");
+      expect(json.committed).toBeGreaterThanOrEqual(0);
+      expect(result.stdout).not.toContain("\x1b");
+    });
+
+    it("dr changeset deactivate --json should output valid JSON", async () => {
+      // Create and keep a changeset active
+      await runCLICommand(workdir.path, [
+        "changeset",
+        "create",
+        "deactivate-test",
+      ]);
+
+      const result = await runCLICommand(workdir.path, [
+        "changeset",
+        "deactivate",
+        "--json",
+      ]);
+
+      expect(result.exitCode).toBe(0);
+
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("ok");
+      expect(json.changesetId).toBeDefined();
+      expect(result.stdout).not.toContain("\x1b");
+    });
+
+    it("dr changeset delete --json should output valid JSON", async () => {
+      // Create and deactivate a changeset
+      await runCLICommand(workdir.path, [
+        "changeset",
+        "create",
+        "delete-test",
+      ]);
+      await runCLICommand(workdir.path, ["changeset", "deactivate"]);
+
+      const result = await runCLICommand(workdir.path, [
+        "changeset",
+        "delete",
+        "delete-test",
+        "--force",
+        "--json",
+      ]);
+
+      expect(result.exitCode).toBe(0);
+
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("ok");
+      expect(json.changesetName).toBe("delete-test");
+      expect(json.changesetId).toBeDefined();
       expect(result.stdout).not.toContain("\x1b");
     });
   });

@@ -190,8 +190,8 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             handleSuccess(`Updated staged element ${ansis.bold(id)}`, {
               elementId: id,
               layer: addChange.layerName,
-              status: "staged",
-            });
+              changesetStatus: "staged",
+            }, { verbose: options.verbose });
             return;
           }
         }
@@ -330,7 +330,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     if (options.sourceFile) details.source = options.sourceFile;
     if (options.clearSourceReference) details.source = "cleared";
 
-    handleSuccess(`Updated element ${ansis.bold(id)}`, details);
+    handleSuccess(`Updated element ${ansis.bold(id)}`, details, { verbose: options.verbose });
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

@@ -13,6 +13,7 @@ import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
+import { isJson } from "../utils/globals.js";
 import { findElementLayer } from "../utils/element-utils.js";
 
 /**
@@ -91,15 +92,10 @@ export async function changesetCreateCommand(
 
     handleSuccess(`Created and activated changeset: ${ansis.bold(name)}`, {
       changesetId: changeset.id,
-      name,
+      changesetName: name,
       description: changeset.description,
       path: `documentation-robotics/changesets/${changeset.id}/`,
     });
-    if (changeset.description) {
-      handleInfo(ansis.dim(`  ${changeset.description}`));
-    }
-    handleInfo(ansis.dim(`  Path: documentation-robotics/changesets/${changeset.id}/`));
-    handleInfo("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -236,17 +232,19 @@ export async function changesetApplyCommand(
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
     }
 
-    console.log(ansis.bold(`\nApplying changeset: ${ansis.cyan(name)}\n`));
-    console.log(ansis.dim(`Changes: ${changeset.changes.length}`));
+    if (!isJson()) {
+      console.log(ansis.bold(`\nApplying changeset: ${ansis.cyan(name)}\n`));
+      console.log(ansis.dim(`Changes: ${changeset.changes.length}`));
 
-    // Show model health snapshot (base model, before this changeset is applied).
-    // This intentionally reflects the pre-apply state so agents see what was already
-    // present, not what the changeset is about to add.
-    const preApplyStats = ValidationFormatter.calculateStats(model);
-    if (preApplyStats.orphanedElements.length > 0) {
-      console.log(ansis.dim(
-        `Model health before apply: ${preApplyStats.orphanedElements.length} orphaned element(s) — run 'dr validate --orphans' for details`
-      ));
+      // Show model health snapshot (base model, before this changeset is applied).
+      // This intentionally reflects the pre-apply state so agents see what was already
+      // present, not what the changeset is about to add.
+      const preApplyStats = ValidationFormatter.calculateStats(model);
+      if (preApplyStats.orphanedElements.length > 0) {
+        console.log(ansis.dim(
+          `Model health before apply: ${preApplyStats.orphanedElements.length} orphaned element(s) — run 'dr validate --orphans' for details`
+        ));
+      }
     }
 
     const changesetId = changeset.id || name;
@@ -285,6 +283,7 @@ export async function changesetApplyCommand(
     // Always show applied message, even if 0 changes
     handleSuccess(`Applied ${result.committed} change(s) from changeset`, {
       changesetName: name,
+      changesetId: changeset.id,
       committed: result.committed,
       failed: result.failed,
       validationPassed: result.validation.passed,
@@ -366,8 +365,10 @@ export async function changesetRevertCommand(name: string, options: { model?: st
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
     }
 
-    console.log(ansis.bold(`\nReverting changeset: ${ansis.cyan(name)}\n`));
-    console.log(ansis.dim(`Changes to discard: ${changeset.changes.length}`));
+    if (!isJson()) {
+      console.log(ansis.bold(`\nReverting changeset: ${ansis.cyan(name)}\n`));
+      console.log(ansis.dim(`Changes to discard: ${changeset.changes.length}`));
+    }
 
     const changesetId = changeset.id || name;
     if (!changesetId) {
@@ -386,9 +387,8 @@ export async function changesetRevertCommand(name: string, options: { model?: st
     handleSuccess(`Reverted changeset: ${name}`, {
       changesetName: name,
       changesetId,
-      status: "discarded",
+      changesetStatus: "discarded",
     });
-    handleInfo(ansis.dim(`Changeset marked as discarded`));
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -424,12 +424,21 @@ export async function changesetActivateCommand(name: string, options: { model?: 
   try {
     const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
+    const changeset = await manager.load(name);
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${name}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: "Changeset not found" });
+      }
+      endSpan(span);
+      process.exit(1);
+    }
     await manager.setActive(name);
 
     handleSuccess(`Activated changeset: ${ansis.bold(name)}`, {
       changesetName: name,
+      changesetId: changeset.id,
     });
-    handleInfo(ansis.dim("  All model changes will now be tracked in this changeset"));
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -476,9 +485,11 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
       (span as any).setAttribute("changeset.wasActive", true);
     }
 
+    const changeset = await manager.load(active);
     await manager.clearActive();
     handleSuccess(`Deactivated changeset: ${ansis.bold(active)}`, {
       changesetId: active,
+      changesetName: changeset?.name || active,
     });
 
     if (isTelemetryEnabled && span) {

@@ -270,11 +270,12 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           {
             elementId: id,
             layer: layerName!,
-            status: "staged",
+            changesetStatus: "staged",
             changeset: activeChangeset.name,
             totalElementsDeleted: elementsToRemove.length,
             dependentElementsDeleted: options.cascade ? dependents.length : 0,
-          }
+          },
+          { verbose: options.verbose }
         );
       } else {
         // Base model path: purge any stale relationships MutationHandler may have missed
@@ -299,7 +300,6 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     }
 
     function showDeletionSuccess(): void {
-      handleInfo("");
       const details: Record<string, unknown> = {
         elementId: id,
         layer: layerName!,
@@ -308,7 +308,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       if (options.cascade && dependents.length > 0) {
         details.dependentElementsDeleted = dependents.length;
       }
-      handleSuccess(`Deleted element ${ansis.bold(id)}`, details);
+      handleSuccess(`Deleted element ${ansis.bold(id)}`, details, { verbose: options.verbose });
 
       // Show cascade confirmation when cascade is active
       if (options.cascade && dependents.length > 0) {

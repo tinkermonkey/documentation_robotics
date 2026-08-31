@@ -221,7 +221,8 @@ export async function addCommand(
             type: resolvedType,
             name: options.name || name,
             changeset: activeChangeset.name,
-          }
+          },
+          { verbose: options.verbose }
         );
       } else {
         // Base model path
@@ -231,7 +232,7 @@ export async function addCommand(
           type: resolvedType,
           name: options.name || name,
           description: options.description || "(none)",
-        });
+        }, { verbose: options.verbose });
       }
     }
   } catch (error) {

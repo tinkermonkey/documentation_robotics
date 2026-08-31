@@ -15,7 +15,7 @@ Business processes, functions, roles, and services.
 
 | Metric                    | Count |
 | ------------------------- | ----- |
-| Elements                  | 3     |
+| Elements                  | 5     |
 | Intra-Layer Relationships | 0     |
 | Inter-Layer Relationships | 0     |
 | Inbound Relationships     | 0     |
@@ -28,7 +28,9 @@ flowchart LR
   subgraph business
     business_actor_end_user["End User"]
     business_businessprocess_create_task_process["Create Task Process"]
-    business_businessservice_task_management["Task Management Service"]
+    business_businessprocess_proc_a["proc-a"]
+    business_businessservice_order_mgmt["Order Management"]
+    business_businessservice_order_mgmt_test["Test"]
   end
 ```
 
@@ -71,14 +73,24 @@ End user of the task management system
 
 Business process for creating tasks
 
-### Task Management Service {#task-management-service}
+### proc-a {#proc-a}
 
-**ID**: `business.businessservice.task-management`
+**ID**: `business.businessprocess.proc-a`
 
-**Type**: `service`
+**Type**: `businessprocess`
 
-Business capability for task management
+### Order Management {#order-management}
+
+**ID**: `business.businessservice.order-mgmt`
+
+**Type**: `businessservice`
+
+### Test {#test}
+
+**ID**: `business.businessservice.order-mgmt-test`
+
+**Type**: `businessservice`
 
 ---
 
-Generated: 2026-08-29T13:58:29.438Z | Model Version: 0.1.0
+Generated: 2026-08-31T12:22:30.493Z | Model Version: 0.1.0

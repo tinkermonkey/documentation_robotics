@@ -1,0 +1,22 @@
+business.businessservice.order-mgmt:
+  id: d348900f-37bb-48d6-af78-c3dc1d3e49ea
+  path: business.businessservice.order-mgmt
+  spec_node_id: business.businessservice
+  type: businessservice
+  layer_id: business
+  name: Order Management
+  metadata:
+    created_at: 2026-08-31T12:20:35.306Z
+    updated_at: 2026-08-31T12:20:35.306Z
+    version: 1
+business.businessservice.order-mgmt-test:
+  id: 91de1e03-353f-4630-ab0c-8bf8aed858d3
+  path: business.businessservice.order-mgmt-test
+  spec_node_id: business.businessservice
+  type: businessservice
+  layer_id: business
+  name: Test
+  metadata:
+    created_at: 2026-08-31T12:20:46.215Z
+    updated_at: 2026-08-31T12:20:46.215Z
+    version: 1

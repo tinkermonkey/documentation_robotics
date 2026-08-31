@@ -229,7 +229,7 @@ export function handleWarning(message: string, suggestions?: string[]): void {
   console.warn(lines.join("\n"));
 }
 
-export function handleSuccess(message: string, details?: Record<string, unknown>): void {
+export function handleSuccess(message: string, details?: Record<string, unknown>, options?: { verbose?: boolean }): void {
   if (isJson()) {
     const output: Record<string, unknown> = {
       status: "ok",
@@ -238,12 +238,25 @@ export function handleSuccess(message: string, details?: Record<string, unknown>
     console.log(JSON.stringify(output));
   } else {
     console.log(ansis.green(`✓ ${message}`));
-    if (details) {
+    // Only show details in non-JSON mode if verbose flag is set or details include changesetStatus/status
+    if (details && (options?.verbose || details.changesetStatus)) {
+      // Convert camelCase keys to PascalCase for display
       for (const [key, value] of Object.entries(details)) {
-        console.log(ansis.dim(`  ${key}: ${value}`));
+        const displayKey = keyToDisplayName(key);
+        console.log(ansis.dim(`  ${displayKey}: ${value}`));
       }
     }
   }
+}
+
+function keyToDisplayName(key: string): string {
+  // Convert camelCase and snake_case to PascalCase/Title Case
+  return key
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to words
+    .replace(/_/g, ' ') // snake_case to words
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 export function handleInfo(message: string, details?: Record<string, string>): void {

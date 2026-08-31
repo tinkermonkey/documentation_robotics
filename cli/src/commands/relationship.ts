@@ -588,10 +588,10 @@ Examples:
         }
         if (activeChangesetId) {
           message += ansis.dim(` [staged]`);
-          details.status = "staged";
+          details.changesetStatus = "staged";
         }
 
-        handleSuccess(message, details);
+        handleSuccess(message, details, { verbose: options.verbose });
       } catch (error) {
         handleError(error);
       }
@@ -693,7 +693,8 @@ Examples:
         }
         handleSuccess(
           `Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`,
-          deleteDetails
+          deleteDetails,
+          { verbose: options.verbose }
         );
       } catch (error) {
         handleError(error);
