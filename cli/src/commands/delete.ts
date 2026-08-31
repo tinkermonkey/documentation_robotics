@@ -9,7 +9,7 @@ import { MutationHandler } from "../core/mutation-handler.js";
 import { ReferenceRegistry } from "../core/reference-registry.js";
 import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, handleError, handleSuccess, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
+import { CLIError, handleError, handleSuccess, handleInfo, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
@@ -82,18 +82,17 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     const dependents = tracker.traceDependencies(id, TraceDirection.DOWN, null);
 
     // Display element information
-    console.log("");
-    console.log(ansis.bold(`Removing element: ${ansis.yellow(id)}`));
-    console.log(ansis.dim(`  Layer: ${layerName}`));
-    console.log(ansis.dim(`  Type: ${element.type || "unknown"}`));
-    if (element.name) {
-      console.log(ansis.dim(`  Name: ${element.name}`));
-    }
+    handleInfo("");
+    handleInfo(ansis.bold(`Removing element: ${ansis.yellow(id)}`), {
+      Layer: layerName,
+      Type: element.type || "unknown",
+      ...(element.name ? { Name: element.name } : {}),
+    });
 
     // Display dependencies if any exist
     if (dependents.length > 0) {
-      console.log("");
-      console.log(
+      handleInfo("");
+      handleInfo(
         ansis.yellow(`⚠ Warning: This element has ${dependents.length} dependent element(s):`)
       );
 
@@ -103,15 +102,15 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       for (const dep of directDependents.slice(0, 5)) {
         const depElement = model.getElementById(dep);
         const depLayer = depElement?.layer || "unknown";
-        console.log(ansis.dim(`  - ${dep} (${depLayer})`));
+        handleInfo(ansis.dim(`  - ${dep} (${depLayer})`));
       }
 
       if (directDependents.length > 5) {
-        console.log(ansis.dim(`  ... and ${directDependents.length - 5} more direct dependents`));
+        handleInfo(ansis.dim(`  ... and ${directDependents.length - 5} more direct dependents`));
       }
 
       if (dependents.length > directDependents.length) {
-        console.log(
+        handleInfo(
           ansis.dim(
             `  (${dependents.length - directDependents.length} transitive dependents not shown)`
           )
@@ -120,10 +119,10 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
       // Check if cascade or force is enabled
       if (!options.cascade && !options.force) {
-        console.log("");
-        console.log(ansis.red("✗ Cannot remove element with dependencies."));
-        console.log(ansis.dim("Use --cascade to remove all dependent elements"));
-        console.log(ansis.dim("or --force to skip dependency checks"));
+        handleInfo("");
+        handleInfo(ansis.red("✗ Cannot remove element with dependencies."));
+        handleInfo(ansis.dim("Use --cascade to remove all dependent elements"));
+        handleInfo(ansis.dim("or --force to skip dependency checks"));
         const suggestions = [
           `Use --dry-run with --cascade to preview what would be deleted`,
           'Review dependencies before deletion using "dr show <element>"',
@@ -143,19 +142,19 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
     // Display dry-run summary
     if (options.dryRun) {
-      console.log("");
-      console.log(ansis.yellow(`Dry run - not removing`));
-      console.log(ansis.dim(`Would remove ${elementsToRemove.length} element(s)`));
+      handleInfo("");
+      handleInfo(ansis.yellow(`Dry run - not removing`));
+      handleInfo(ansis.dim(`Would remove ${elementsToRemove.length} element(s)`));
 
       if (options.cascade && dependents.length > 0) {
-        console.log("");
-        console.log(ansis.dim("Elements that would be removed:"));
-        console.log(ansis.dim(`  - ${id} (target)`));
+        handleInfo("");
+        handleInfo(ansis.dim("Elements that would be removed:"));
+        handleInfo(ansis.dim(`  - ${id} (target)`));
         for (const dep of dependents.slice(0, 10)) {
-          console.log(ansis.dim(`  - ${dep} (dependent)`));
+          handleInfo(ansis.dim(`  - ${dep} (dependent)`));
         }
         if (dependents.length > 10) {
-          console.log(ansis.dim(`  ... and ${dependents.length - 10} more`));
+          handleInfo(ansis.dim(`  ... and ${dependents.length - 10} more`));
         }
       }
 
@@ -166,7 +165,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     if (!options.force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (!isInteractive) {
-        console.log(ansis.dim("Non-interactive environment detected - proceeding without confirmation"));
+        handleInfo(ansis.dim("Non-interactive environment detected - proceeding without confirmation"));
       } else {
         const message =
           options.cascade && dependents.length > 0
@@ -179,7 +178,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
         });
 
         if (!confirmed) {
-          console.log(ansis.dim("Cancelled"));
+          handleInfo(ansis.dim("Cancelled"));
           return;
         }
       }
@@ -205,7 +204,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
             deletedCount++;
 
             if (options.verbose) {
-              console.log(ansis.dim(`  Deleted dependent: ${depId}`));
+              handleInfo(ansis.dim(`  Deleted dependent: ${depId}`));
             }
           } catch (depError) {
             // Track partial progress for error recovery
@@ -280,17 +279,15 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
         );
         if (staleBase > 0) await model.saveRelationships();
 
-        console.log("");
-        console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
-
+        const details: Record<string, string> = {
+          layer: layerName,
+          "total elements deleted": String(elementsToRemove.length),
+        };
         if (options.cascade && dependents.length > 0) {
-          console.log(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
+          details["dependent elements deleted"] = String(dependents.length);
         }
-
-        if (options.verbose) {
-          console.log(ansis.dim(`  Layer: ${layerName}`));
-          console.log(ansis.dim(`  Total elements deleted: ${elementsToRemove.length}`));
-        }
+        handleInfo("");
+        handleSuccess(`Deleted element ${ansis.bold(id)}`, options.verbose ? details : undefined);
       }
     } else {
       // Fallback success message if before state is not available
@@ -300,17 +297,15 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       );
       if (staleFallback > 0) await model.saveRelationships();
 
-      console.log("");
-      console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
-
+      const details: Record<string, string> = {
+        layer: layerName,
+        "total elements deleted": String(elementsToRemove.length),
+      };
       if (options.cascade && dependents.length > 0) {
-        console.log(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
+        details["dependent elements deleted"] = String(dependents.length);
       }
-
-      if (options.verbose) {
-        console.log(ansis.dim(`  Layer: ${layerName}`));
-        console.log(ansis.dim(`  Total elements deleted: ${elementsToRemove.length}`));
-      }
+      handleInfo("");
+      handleSuccess(`Deleted element ${ansis.bold(id)}`, options.verbose ? details : undefined);
     }
   } catch (error) {
     if (isTelemetryEnabled && span) {

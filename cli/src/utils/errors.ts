@@ -237,6 +237,15 @@ export function handleSuccess(message: string, details?: Record<string, string>)
   }
 }
 
+export function handleInfo(message: string, details?: Record<string, string>): void {
+  console.log(message);
+  if (details) {
+    for (const [key, value] of Object.entries(details)) {
+      console.log(ansis.dim(`  ${key}: ${value}`));
+    }
+  }
+}
+
 /**
  * Utility to extract common valid options for better error suggestions
  */

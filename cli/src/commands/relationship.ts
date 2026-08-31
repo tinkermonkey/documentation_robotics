@@ -8,7 +8,7 @@ import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { isValidLayerName } from "../core/layers.js";
-import { CLIError, ErrorCategory, handleError, getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, handleError, handleSuccess, handleInfo, getErrorMessage } from "../utils/errors.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
@@ -233,7 +233,7 @@ export async function addRelationshipHandler(
 
   // Guard against duplicate relationships before staging or writing
   if (model.relationships.find(source, target, predicate).length > 0) {
-    console.warn(
+    handleInfo(
       ansis.yellow(`Warning: Relationship ${source} --[${predicate}]--> ${target} already exists. Skipping.`)
     );
     return false;
@@ -509,7 +509,7 @@ Examples:
         if (!added) return; // duplicate — warning already printed
 
         // Show cardinality and strength in output
-        let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
+        let message = `Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
         if (constraints) {
           message += ansis.dim(
             ` (${constraints.cardinality}, ${constraints.strength} strength)`
@@ -519,7 +519,7 @@ Examples:
           message += ansis.dim(` [staged]`);
         }
 
-        console.log(ansis.green(message));
+        handleSuccess(message);
       } catch (error) {
         handleError(error);
       }
@@ -572,7 +572,7 @@ Examples:
           });
 
           if (!confirmed) {
-            console.log(ansis.dim("Cancelled"));
+            handleInfo(ansis.dim("Cancelled"));
             return;
           }
         }
@@ -594,10 +594,8 @@ Examples:
         );
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";
-        console.log(
-          ansis.green(
-            `✓ Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
-          )
+        handleSuccess(
+          `Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
         );
       } catch (error) {
         handleError(error);
@@ -645,17 +643,17 @@ Examples:
         }
 
         if (relationships.length === 0) {
-          console.log(ansis.yellow(`No ${options.direction} relationships for ${id}`));
+          handleInfo(ansis.yellow(`No ${options.direction} relationships for ${id}`));
           return;
         }
 
-        console.log("");
-        console.log(
+        handleInfo("");
+        handleInfo(
           ansis.bold(
             `${options.direction === "all" ? "" : options.direction + " "}relationships for ${ansis.cyan(id)}:`
           )
         );
-        console.log(ansis.dim("─".repeat(80)));
+        handleInfo(ansis.dim("─".repeat(80)));
 
         for (const rel of relationships) {
           const isOutgoing = rel.source === id;
@@ -665,7 +663,7 @@ Examples:
             ? ansis.dim(` [${rel.layer} → ${rel.targetLayer}]`)
             : "";
 
-          console.log(
+          handleInfo(
             `  ${direction} ${ansis.magenta(rel.predicate)}: ${ansis.yellow(otherElement)}${crossLayer}`
           );
 
@@ -673,13 +671,13 @@ Examples:
             const propStr = Object.entries(rel.properties)
               .map(([k, v]) => `${k}=${v}`)
               .join(", ");
-            console.log(`    ${ansis.dim(propStr)}`);
+            handleInfo(`    ${ansis.dim(propStr)}`);
           }
         }
 
-        console.log(ansis.dim("─".repeat(80)));
-        console.log(ansis.dim(`Total: ${relationships.length} relationship(s)`));
-        console.log("");
+        handleInfo(ansis.dim("─".repeat(80)));
+        handleInfo(ansis.dim(`Total: ${relationships.length} relationship(s)`));
+        handleInfo("");
       } catch (error) {
         handleError(error);
       }
@@ -712,40 +710,40 @@ Examples:
           throw new CLIError(`No relationships from ${source} to ${target}`, ErrorCategory.USER);
         }
 
-        console.log("");
-        console.log(
+        handleInfo("");
+        handleInfo(
           ansis.bold(
             `Relationship${relationships.length > 1 ? "s" : ""} from ${ansis.cyan(source)} to ${ansis.yellow(target)}:`
           )
         );
-        console.log(ansis.dim("─".repeat(60)));
+        handleInfo(ansis.dim("─".repeat(60)));
 
         for (let i = 0; i < relationships.length; i++) {
           const rel = relationships[i];
 
           if (i > 0) {
-            console.log("");
+            handleInfo("");
           }
 
-          console.log(`Predicate: ${ansis.magenta(rel.predicate)}`);
-          console.log(`Layer:     ${ansis.cyan(rel.layer)}`);
+          handleInfo(`Predicate: ${ansis.magenta(rel.predicate)}`);
+          handleInfo(`Layer:     ${ansis.cyan(rel.layer)}`);
           if (rel.targetLayer && rel.targetLayer !== rel.layer) {
-            console.log(`Target Layer: ${ansis.cyan(rel.targetLayer)}`);
+            handleInfo(`Target Layer: ${ansis.cyan(rel.targetLayer)}`);
           }
 
           if (rel.properties && Object.keys(rel.properties).length > 0) {
-            console.log("Properties:");
+            handleInfo("Properties:");
             for (const [key, value] of Object.entries(rel.properties)) {
               const displayValue =
                 typeof value === "string" ? value : JSON.stringify(value, null, 2);
-              console.log(`  ${ansis.cyan(key)}: ${displayValue}`);
+              handleInfo(`  ${ansis.cyan(key)}: ${displayValue}`);
             }
           } else {
-            console.log("Properties: none");
+            handleInfo("Properties: none");
           }
         }
 
-        console.log("");
+        handleInfo("");
       } catch (error) {
         handleError(error);
       }
