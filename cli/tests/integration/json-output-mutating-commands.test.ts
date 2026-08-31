@@ -267,14 +267,15 @@ describe("JSON Output on Mutating Commands", () => {
       expect(add2Result.exitCode).toBe(0);
       const proc2Id = JSON.parse(add2Result.stdout.trim()).elementId;
 
-      await runCLICommand(workdir.path, [
+      const relAddResult = await runCLICommand(workdir.path, [
         "relationship",
         "add",
         proc1Id,
         proc2Id,
         "--predicate",
-        "aggregates",
+        "flows-to",
       ]);
+      expect(relAddResult.exitCode).toBe(0);
 
       const result = await runCLICommand(workdir.path, [
         "relationship",
@@ -326,7 +327,7 @@ describe("JSON Output on Mutating Commands", () => {
       expect(json.elementId).toBeDefined();
 
       // No separate info messages should appear
-      const lines = result.stdout.split("\n");
+      const lines = result.stdout.trim().split("\n");
       expect(lines.length).toBe(1);
     });
   });
