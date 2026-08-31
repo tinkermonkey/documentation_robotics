@@ -244,7 +244,9 @@ Examples:
   $ dr list api --json
   $ dr list --json`
   )
-  .action(listCommand);
+  .action((layer, options) => {
+    return listCommand(layer, { ...options, json: options.json ?? program.opts().json });
+  });
 
 program
   .command("search <query>")
@@ -265,7 +267,9 @@ Examples:
   $ dr search create-* --type endpoint
   $ dr search "" --source-file src/api/customer.ts`
   )
-  .action(searchCommand);
+  .action((query, options) => {
+    return searchCommand(query, { ...options, json: options.json ?? program.opts().json });
+  });
 
 program
   .command("validate")
@@ -793,7 +797,7 @@ Examples:
   .action(async (options) => {
     await conformanceCommand({
       layers: options.layers,
-      json: options.json,
+      json: options.json ?? program.opts().json,
       verbose: options.verbose ?? program.opts().verbose,
     });
   });
