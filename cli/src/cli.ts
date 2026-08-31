@@ -154,6 +154,7 @@ program
   .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
   .option("--source-repo-remote <url>", "Git remote URL for repository context")
   .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
   .addHelpText(
     "after",
     `
@@ -165,7 +166,8 @@ Examples:
 
 Note: Element IDs are generated automatically in format {layer}.{type}.{kebab-name}`
   )
-  .action(addCommand);
+  .action((layer, type, name, options) =>
+    addCommand(layer, type, name, { ...options, verbose: options.verbose ?? program.opts().verbose }));
 
 program
   .command("update <id>")
@@ -181,6 +183,7 @@ program
   .option("--source-repo-remote <url>", "Git remote URL for repository context")
   .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
   .option("--clear-source-reference", "Remove source reference from element")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
   .addHelpText(
     "after",
     `
@@ -194,7 +197,8 @@ Examples:
   $ dr update application-applicationfunction-process-orders --type applicationservice
   $ dr update security-policy-auth --source-file "src/auth/policy.ts" --source-provenance "extracted"`
   )
-  .action(updateCommand);
+  .action((id, options) =>
+    updateCommand(id, { ...options, verbose: options.verbose ?? program.opts().verbose }));
 
 program
   .command("delete <id>")
@@ -203,6 +207,7 @@ program
   .option("--force", "Skip dependency checks (confirmation is also skipped in non-TTY environments)")
   .option("--cascade", "Remove dependent elements automatically")
   .option("--dry-run", "Show what would be removed without actually removing")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
   .addHelpText(
     "after",
     `
@@ -213,7 +218,8 @@ Examples:
   $ dr delete api-endpoint-old-endpoint --dry-run
   $ dr delete api-endpoint-old-endpoint --cascade --dry-run`
   )
-  .action(deleteCommand);
+  .action((id, options) =>
+    deleteCommand(id, { ...options, verbose: options.verbose ?? program.opts().verbose }));
 
 program
   .command("show <id>")
