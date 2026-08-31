@@ -124,6 +124,7 @@ describe("JSON Output on Mutating Commands", () => {
         "business",
         "process",
         "order-mgmt",
+        "--json",
       ]);
 
       expect(addResult.exitCode).toBe(0);
@@ -159,6 +160,7 @@ describe("JSON Output on Mutating Commands", () => {
         "application",
         "component",
         "temp-component",
+        "--json",
       ]);
 
       expect(addResult.exitCode).toBe(0);

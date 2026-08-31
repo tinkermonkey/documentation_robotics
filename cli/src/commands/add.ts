@@ -220,6 +220,7 @@ export async function addCommand(
             layer,
             type: resolvedType,
             name: options.name || name,
+            changesetStatus: "staged",
             changeset: activeChangeset.name,
           },
           { verbose: options.verbose }

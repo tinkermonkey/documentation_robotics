@@ -95,7 +95,7 @@ export async function changesetCreateCommand(
       changesetName: name,
       description: changeset.description,
       path: `documentation-robotics/changesets/${changeset.id}/`,
-    });
+    }, { verbose: true });
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

@@ -1,5 +1,5 @@
-business.actor.end-user:
-  id: 89741e45-a23c-4d2c-bb27-d7928a187b0b
+end-user:
+  id: end-user
   path: business.actor.end-user
   spec_node_id: business.actor
   type: actor
