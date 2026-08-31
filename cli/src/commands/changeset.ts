@@ -90,12 +90,15 @@ export async function changesetCreateCommand(
       (span as any).setStatus({ code: 0 });
     }
 
-    handleSuccess(`Created and activated changeset: ${ansis.bold(name)}`, {
+    const createDetails: Record<string, unknown> = {
       changesetId: changeset.id,
       changesetName: name,
-      description: changeset.description,
       path: `documentation-robotics/changesets/${changeset.id}/`,
-    }, { verbose: true });
+    };
+    if (changeset.description) {
+      createDetails.description = changeset.description;
+    }
+    handleSuccess(`Created and activated changeset: ${ansis.bold(name)}`, createDetails, { verbose: true });
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -280,21 +283,26 @@ export async function changesetApplyCommand(
       (span as any).setAttribute("apply.validationPassed", result.validation.passed);
     }
 
-    // Always show applied message, even if 0 changes
-    handleSuccess(`Applied ${result.committed} change(s) from changeset`, {
+    const applyDetails: Record<string, unknown> = {
       changesetName: name,
       changesetId: changeset.id,
       committed: result.committed,
       failed: result.failed,
       validationPassed: result.validation.passed,
-    });
+    };
 
     if (result.failed > 0) {
-      handleInfo(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
-      for (const error of result.validation.errors) {
-        handleInfo(ansis.dim(`  - ${error}`));
+      applyDetails.errors = result.validation.errors;
+      if (!isJson()) {
+        handleInfo(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
+        for (const error of result.validation.errors) {
+          handleInfo(ansis.dim(`  - ${error}`));
+        }
       }
     }
+
+    // Always show applied message, even if 0 changes
+    handleSuccess(`Applied ${result.committed} change(s) from changeset`, applyDetails);
 
     // Add changeset to manifest history
     if (!model.manifest.changeset_history) {
@@ -729,7 +737,14 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
     }
 
     if (changes.length === 0) {
-      console.log(ansis.yellow("No staged changes"));
+      if (!isJson()) {
+        console.log(ansis.yellow("No staged changes"));
+      }
+      handleSuccess("No staged changes", {
+        changesetName: activeChangeset,
+        changeCount: 0,
+        changes: [],
+      });
       if (isTelemetryEnabled && span) {
         (span as any).setStatus({ code: 0 });
       }
@@ -737,16 +752,27 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
       return;
     }
 
-    console.log(ansis.bold(`\nStaged Changes (${changes.length}):\n`));
+    if (!isJson()) {
+      console.log(ansis.bold(`\nStaged Changes (${changes.length}):\n`));
+      const tableData = changes.map((c: any) => ({
+        "Element ID": c.elementId,
+        Layer: c.layerName,
+        Type: c.type,
+        Timestamp: new Date(c.timestamp || Date.now()).toISOString(),
+      }));
+      console.table(tableData);
+    }
 
-    const tableData = changes.map((c: any) => ({
-      "Element ID": c.elementId,
-      Layer: c.layerName,
-      Type: c.type,
-      Timestamp: new Date(c.timestamp || Date.now()).toISOString(),
-    }));
-
-    console.table(tableData);
+    handleSuccess(`Listed ${changes.length} staged change(s)`, {
+      changesetName: activeChangeset,
+      changeCount: changes.length,
+      changes: changes.map((c: any) => ({
+        elementId: c.elementId,
+        layer: c.layerName,
+        type: c.type,
+        timestamp: new Date(c.timestamp || Date.now()).toISOString(),
+      })),
+    });
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -827,8 +853,16 @@ export async function changesetExplicitStageCommand(elementId: string, options: 
       (span as any).setStatus({ code: 0 });
     }
 
-    console.log(ansis.green(`✓ Staged element: ${ansis.bold(elementId)}`));
-    console.log(ansis.dim(`  Layer: ${layerName} | Changeset: ${activeChangesetId}`));
+    if (!isJson()) {
+      console.log(ansis.green(`✓ Staged element: ${ansis.bold(elementId)}`));
+      console.log(ansis.dim(`  Layer: ${layerName} | Changeset: ${activeChangesetId}`));
+    }
+
+    handleSuccess(`Staged element: ${elementId}`, {
+      elementId,
+      layer: layerName,
+      changesetId: activeChangesetId,
+    });
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -880,7 +914,14 @@ export async function changesetUnstageCommand(elementId: string, options: { mode
     const updated = await manager.load(activeChangesetId);
 
     if (updated && updated.changes.length === initialCount) {
-      console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+      if (!isJson()) {
+        console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+      }
+      handleSuccess(`Element not found in staged changes`, {
+        elementId,
+        found: false,
+        remainingChanges: updated?.getChangeCount() || 0,
+      });
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("unstage.found", false);
         (span as any).setStatus({ code: 0 });
@@ -894,8 +935,15 @@ export async function changesetUnstageCommand(elementId: string, options: { mode
       (span as any).setAttribute("unstage.remainingChanges", updated?.getChangeCount() || 0);
     }
 
-    console.log(ansis.green(`✓ Unstaged element: ${ansis.bold(elementId)}`));
-    console.log(ansis.dim(`  Remaining staged changes: ${updated?.getChangeCount() || 0}`));
+    if (!isJson()) {
+      console.log(ansis.green(`✓ Unstaged element: ${ansis.bold(elementId)}`));
+      console.log(ansis.dim(`  Remaining staged changes: ${updated?.getChangeCount() || 0}`));
+    }
+
+    handleSuccess(`Unstaged element: ${elementId}`, {
+      elementId,
+      remainingChanges: updated?.getChangeCount() || 0,
+    });
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -967,7 +1015,13 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
       const updated = await manager.load(activeChangesetId);
 
       if (updated && updated.changes.length === initialCount) {
-        console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+        if (!isJson()) {
+          console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+        }
+        handleSuccess(`Element not found in staged changes`, {
+          elementId,
+          found: false,
+        });
         if (isTelemetryEnabled && span) {
           (span as any).setAttribute("discard.found", false);
           (span as any).setStatus({ code: 0 });
@@ -980,7 +1034,14 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
         (span as any).setAttribute("discard.found", true);
       }
 
-      console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
+      if (!isJson()) {
+        console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
+      }
+
+      handleSuccess(`Discarded changes for element: ${elementId}`, {
+        elementId,
+        discardedAll: false,
+      });
     } else {
       // Discard all changes with confirmation
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
@@ -995,7 +1056,12 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
         });
 
         if (!confirmed || typeof confirmed !== "boolean") {
-          console.log(ansis.dim("Cancelled"));
+          if (!isJson()) {
+            console.log(ansis.dim("Cancelled"));
+          }
+          handleSuccess("Discard cancelled", {
+            cancelled: true,
+          });
           if (isTelemetryEnabled && span) {
             (span as any).setAttribute("discard.cancelled", true);
             (span as any).setStatus({ code: 0 });
@@ -1019,15 +1085,24 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
       // Use the manager's discard method for all changes
       await manager.discard(activeChangesetId);
 
-      console.log(ansis.green(`✓ Discarded all staged changes`));
-      console.log(ansis.dim(`  Changeset status: discarded`));
+      if (!isJson()) {
+        console.log(ansis.green(`✓ Discarded all staged changes`));
+        console.log(ansis.dim(`  Changeset status: discarded`));
+      }
+
+      handleSuccess(`Discarded all staged changes`, {
+        discardedAll: true,
+        changesetStatus: "discarded",
+      });
     }
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
     }
 
-    console.log();
+    if (!isJson()) {
+      console.log();
+    }
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
@@ -1327,16 +1402,25 @@ export async function changesetCommitCommand(options?: {
         }
 
         if (changeCount === 0) {
-          console.log(ansis.yellow("No staged changes to commit"));
+          if (!isJson()) {
+            console.log(ansis.yellow("No staged changes to commit"));
+          }
+          handleSuccess("No staged changes to commit", {
+            changesetName: changeset.name,
+            changesetId: activeChangesetId,
+            stagedChanges: 0,
+          });
           if (isTelemetryEnabled) {
             (span as any).setStatus({ code: 0 });
           }
           return;
         }
 
-        console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(changeset.name)}`));
-        console.log(ansis.dim(`Staged changes: ${changeCount}`));
-        console.log();
+        if (!isJson()) {
+          console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(changeset.name)}`));
+          console.log(ansis.dim(`Staged changes: ${changeCount}`));
+          console.log();
+        }
 
         // Execute atomic commit with validation and rollback
         try {
@@ -1348,19 +1432,20 @@ export async function changesetCommitCommand(options?: {
           // Deactivate the changeset after successful commit
           await stagingManager.clearActive();
 
-          // Show results
-          console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
+          if (!isJson()) {
+            console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
 
-          if ((result.skipped ?? 0) > 0) {
-            const skipped = result.skipped!;
-            const details = result.skippedDetails ?? [];
-            console.log(ansis.yellow(`⚠ Skipped ${skipped} duplicate element(s):`));
-            const shown = details.slice(0, 10);
-            for (const detail of shown) {
-              console.log(ansis.dim(`    ${detail}`));
-            }
-            if (details.length > 10) {
-              console.log(ansis.dim(`    ... and ${details.length - 10} more`));
+            if ((result.skipped ?? 0) > 0) {
+              const skipped = result.skipped!;
+              const details = result.skippedDetails ?? [];
+              console.log(ansis.yellow(`⚠ Skipped ${skipped} duplicate element(s):`));
+              const shown = details.slice(0, 10);
+              for (const detail of shown) {
+                console.log(ansis.dim(`    ${detail}`));
+              }
+              if (details.length > 10) {
+                console.log(ansis.dim(`    ... and ${details.length - 10} more`));
+              }
             }
           }
 
@@ -1375,18 +1460,40 @@ export async function changesetCommitCommand(options?: {
           const accountedFor = result.committed + (result.skipped ?? 0) + result.failed;
           if (accountedFor < changeCount) {
             const unaccounted = changeCount - accountedFor;
-            console.log(
-              ansis.yellow(
-                `⚠ Warning: ${unaccounted} staged change(s) were not applied, skipped, or reported as failed.` +
-                ` This is unexpected — check the changeset log for details.`
-              )
-            );
+            if (!isJson()) {
+              console.log(
+                ansis.yellow(
+                  `⚠ Warning: ${unaccounted} staged change(s) were not applied, skipped, or reported as failed.` +
+                  ` This is unexpected — check the changeset log for details.`
+                )
+              );
+            }
+          }
+
+          const commitDetails: Record<string, unknown> = {
+            changesetName: changeset.name,
+            changesetId: activeChangesetId,
+            committed: result.committed,
+            stagedChanges: changeCount,
+            validationPassed: result.validation.passed,
+          };
+
+          if ((result.skipped ?? 0) > 0) {
+            commitDetails.skipped = result.skipped;
+            commitDetails.skippedDetails = (result.skippedDetails ?? []).slice(0, 10);
+          }
+
+          if (result.failed > 0) {
+            commitDetails.failed = result.failed;
           }
 
           if (result.driftWarning) {
-            console.log(
-              ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)
-            );
+            commitDetails.driftDetected = true;
+            if (!isJson()) {
+              console.log(
+                ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)
+              );
+            }
             if (isTelemetryEnabled) {
               (span as any).setAttribute("commit.driftDetected", true);
             }
@@ -1396,7 +1503,11 @@ export async function changesetCommitCommand(options?: {
             (span as any).setStatus({ code: 0 });
           }
 
-          console.log();
+          handleSuccess(`Committed ${result.committed} change(s)`, commitDetails);
+
+          if (!isJson()) {
+            console.log();
+          }
         } catch (error) {
           // Commit failed - error was thrown from StagingAreaManager
           // Model has been automatically rolled back
@@ -1468,8 +1579,16 @@ export async function changesetExportCommand(
 
     await exporter.exportToFile(changesetId, absolutePath, format);
 
-    console.log(ansis.green(`✓ Exported changeset to ${ansis.cyan(outputPath)}`));
-    console.log(ansis.dim(`  Format: ${format}`));
+    if (!isJson()) {
+      console.log(ansis.green(`✓ Exported changeset to ${ansis.cyan(outputPath)}`));
+      console.log(ansis.dim(`  Format: ${format}`));
+    }
+
+    handleSuccess(`Exported changeset to ${outputPath}`, {
+      changesetId,
+      outputPath,
+      format,
+    });
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -1581,24 +1700,41 @@ export async function changesetImportCommand(
     const storage = new StagedChangesetStorage(model.rootPath);
     await storage.save(imported);
 
-    console.log(ansis.green(`✓ Imported changeset: ${ansis.cyan(imported.name)}`));
-    console.log(ansis.dim(`  ID: ${newId}`));
-    console.log(
-      ansis.dim(
-        `  Changes: +${imported.stats?.additions || 0} ~${imported.stats?.modifications || 0} -${imported.stats?.deletions || 0}`
-      )
-    );
+    const importDetails: Record<string, unknown> = {
+      changesetName: imported.name,
+      changesetId: newId,
+      additions: imported.stats?.additions || 0,
+      modifications: imported.stats?.modifications || 0,
+      deletions: imported.stats?.deletions || 0,
+    };
 
     if (!compatibility.baseSnapshotMatch) {
-      console.log(ansis.yellow(`  ⚠ Base model drift detected - review before committing`));
+      importDetails.driftDetected = true;
+      if (!isJson()) {
+        console.log(ansis.yellow(`  ⚠ Base model drift detected - review before committing`));
+      }
     }
+
+    if (!isJson()) {
+      console.log(ansis.green(`✓ Imported changeset: ${ansis.cyan(imported.name)}`));
+      console.log(ansis.dim(`  ID: ${newId}`));
+      console.log(
+        ansis.dim(
+          `  Changes: +${imported.stats?.additions || 0} ~${imported.stats?.modifications || 0} -${imported.stats?.deletions || 0}`
+        )
+      );
+      if (!compatibility.baseSnapshotMatch) {
+        console.log(ansis.yellow(`  ⚠ Base model drift detected - review before committing`));
+      }
+      console.log();
+    }
+
+    handleSuccess(`Imported changeset: ${imported.name}`, importDetails);
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("changeset.id", newId);
       (span as any).setStatus({ code: 0 });
     }
-
-    console.log();
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
