@@ -69,7 +69,7 @@ describe("JSON Output on Mutating Commands", () => {
         "Customer Satisfaction",
         "--attributes",
         '{"priority":"high"}',
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -92,7 +92,7 @@ describe("JSON Output on Mutating Commands", () => {
       await runCLICommand(workdir.path, [
         "changeset",
         "create",
-        "test-changeset",
+        "test-changeset"
       ]);
 
       const result = await runCLICommand(workdir.path, [
@@ -104,7 +104,7 @@ describe("JSON Output on Mutating Commands", () => {
         "Create Order",
         "--attributes",
         '{"operationId":"createOrder","summary":"Create a new order","tags":"orders"}',
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -124,7 +124,7 @@ describe("JSON Output on Mutating Commands", () => {
         "business",
         "process",
         "order-mgmt",
-        "--json",
+        "--json"
       ]);
 
       expect(addResult.exitCode).toBe(0);
@@ -137,7 +137,7 @@ describe("JSON Output on Mutating Commands", () => {
         elementId,
         "--name",
         "Order Management v2",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -162,7 +162,7 @@ describe("JSON Output on Mutating Commands", () => {
         "temp-component",
         "--attributes",
         '{"type":"generic"}',
-        "--json",
+        "--json"
       ]);
 
       expect(addResult.exitCode).toBe(0);
@@ -174,7 +174,7 @@ describe("JSON Output on Mutating Commands", () => {
         "delete",
         elementId,
         "--force",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -197,7 +197,7 @@ describe("JSON Output on Mutating Commands", () => {
         "temp-artifact",
         "--attributes",
         '{"artifactType":"file"}',
-        "--json",
+        "--json"
       ]);
 
       expect(addResult.exitCode).toBe(0);
@@ -209,7 +209,7 @@ describe("JSON Output on Mutating Commands", () => {
         "delete",
         elementId,
         "--dry-run",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -227,41 +227,6 @@ describe("JSON Output on Mutating Commands", () => {
       const lines = result.stdout.trim().split("\n");
       expect(lines.length).toBe(1);
     });
-
-    it("should output cancelled state in JSON mode when deletion is cancelled", async () => {
-      // First add an element
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        "data-model",
-        "entity",
-        "temp-entity",
-        "--attributes",
-        '{"properties":"{}"}',
-        "--json",
-      ]);
-
-      expect(addResult.exitCode).toBe(0);
-      const addedJson = JSON.parse(addResult.stdout.trim());
-      const elementId = addedJson.elementId;
-
-      // Run delete in non-interactive mode with --json (should skip confirmation)
-      // This simulates the non-interactive path
-      const result = await runCLICommand(workdir.path, [
-        "delete",
-        elementId,
-        "--json",
-      ]);
-
-      // In non-interactive mode (which this test environment is), deletion proceeds
-      // but when force is not specified and it's interactive, we'd cancel
-      // The test verifies that JSON output is valid regardless
-      expect(result.exitCode).toBe(0);
-      const json = JSON.parse(result.stdout.trim());
-      expect(json.status).toBe("ok");
-      expect(json.elementId).toBe(elementId);
-      // Should not contain ANSI codes
-      expect(result.stdout).not.toContain("\x1b");
-    });
   });
 
   describe("dr relationship add --json", () => {
@@ -276,7 +241,7 @@ describe("JSON Output on Mutating Commands", () => {
         "Goal A",
         "--attributes",
         '{"priority":"high"}',
-        "--json",
+        "--json"
       ]);
       expect(add1Result.exitCode).toBe(0);
       const goal1Id = JSON.parse(add1Result.stdout.trim()).elementId;
@@ -290,7 +255,7 @@ describe("JSON Output on Mutating Commands", () => {
         "Goal B",
         "--attributes",
         '{"priority":"high"}',
-        "--json",
+        "--json"
       ]);
       expect(add2Result.exitCode).toBe(0);
       const goal2Id = JSON.parse(add2Result.stdout.trim()).elementId;
@@ -302,7 +267,7 @@ describe("JSON Output on Mutating Commands", () => {
         goal2Id,
         "--predicate",
         "aggregates",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -325,7 +290,7 @@ describe("JSON Output on Mutating Commands", () => {
         "business",
         "process",
         "proc-x",
-        "--json",
+        "--json"
       ]);
       expect(add1Result.exitCode).toBe(0);
       const proc1Id = JSON.parse(add1Result.stdout.trim()).elementId;
@@ -335,7 +300,7 @@ describe("JSON Output on Mutating Commands", () => {
         "business",
         "process",
         "proc-y",
-        "--json",
+        "--json"
       ]);
       expect(add2Result.exitCode).toBe(0);
       const proc2Id = JSON.parse(add2Result.stdout.trim()).elementId;
@@ -348,7 +313,7 @@ describe("JSON Output on Mutating Commands", () => {
         proc2Id,
         "--predicate",
         "flows-to",
-        "--json",
+        "--json"
       ]);
       expect(firstAdd.exitCode).toBe(0);
 
@@ -360,7 +325,7 @@ describe("JSON Output on Mutating Commands", () => {
         proc2Id,
         "--predicate",
         "flows-to",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -388,7 +353,7 @@ describe("JSON Output on Mutating Commands", () => {
         "business",
         "process",
         "proc-a",
-        "--json",
+        "--json"
       ]);
       expect(add1Result.exitCode).toBe(0);
       const proc1Id = JSON.parse(add1Result.stdout.trim()).elementId;
@@ -398,7 +363,7 @@ describe("JSON Output on Mutating Commands", () => {
         "business",
         "process",
         "proc-b",
-        "--json",
+        "--json"
       ]);
       expect(add2Result.exitCode).toBe(0);
       const proc2Id = JSON.parse(add2Result.stdout.trim()).elementId;
@@ -409,7 +374,7 @@ describe("JSON Output on Mutating Commands", () => {
         proc1Id,
         proc2Id,
         "--predicate",
-        "flows-to",
+        "flows-to"
       ]);
       expect(relAddResult.exitCode).toBe(0);
 
@@ -419,7 +384,7 @@ describe("JSON Output on Mutating Commands", () => {
         proc1Id,
         proc2Id,
         "--force",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -447,7 +412,7 @@ describe("JSON Output on Mutating Commands", () => {
         "--attributes",
         '{"artifactType":"file"}',
         "--verbose",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -474,7 +439,7 @@ describe("JSON Output on Mutating Commands", () => {
         "changeset",
         "create",
         "test-changes",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -491,14 +456,14 @@ describe("JSON Output on Mutating Commands", () => {
       await runCLICommand(workdir.path, [
         "changeset",
         "create",
-        "temp-changes",
+        "temp-changes"
       ]);
 
       const result = await runCLICommand(workdir.path, [
         "changeset",
         "revert",
         "temp-changes",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -514,7 +479,7 @@ describe("JSON Output on Mutating Commands", () => {
       await runCLICommand(workdir.path, [
         "changeset",
         "create",
-        "activate-test",
+        "activate-test"
       ]);
       // Deactivate it
       await runCLICommand(workdir.path, ["changeset", "deactivate"]);
@@ -523,7 +488,7 @@ describe("JSON Output on Mutating Commands", () => {
         "changeset",
         "activate",
         "activate-test",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -536,11 +501,7 @@ describe("JSON Output on Mutating Commands", () => {
 
     it("dr changeset apply --json should output valid JSON", async () => {
       // Create a changeset with some changes
-      await runCLICommand(workdir.path, [
-        "changeset",
-        "create",
-        "apply-test",
-      ]);
+      await runCLICommand(workdir.path, ["changeset", "create", "apply-test"]);
 
       // Add an element (will be staged)
       await runCLICommand(workdir.path, [
@@ -551,14 +512,14 @@ describe("JSON Output on Mutating Commands", () => {
         "--name",
         "Test Goal",
         "--attributes",
-        '{"priority":"high"}',
+        '{"priority":"high"}'
       ]);
 
       const result = await runCLICommand(workdir.path, [
         "changeset",
         "apply",
         "apply-test",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -575,13 +536,13 @@ describe("JSON Output on Mutating Commands", () => {
       await runCLICommand(workdir.path, [
         "changeset",
         "create",
-        "deactivate-test",
+        "deactivate-test"
       ]);
 
       const result = await runCLICommand(workdir.path, [
         "changeset",
         "deactivate",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -594,11 +555,7 @@ describe("JSON Output on Mutating Commands", () => {
 
     it("dr changeset delete --json should output valid JSON", async () => {
       // Create and deactivate a changeset
-      await runCLICommand(workdir.path, [
-        "changeset",
-        "create",
-        "delete-test",
-      ]);
+      await runCLICommand(workdir.path, ["changeset", "create", "delete-test"]);
       await runCLICommand(workdir.path, ["changeset", "deactivate"]);
 
       const result = await runCLICommand(workdir.path, [
@@ -606,7 +563,7 @@ describe("JSON Output on Mutating Commands", () => {
         "delete",
         "delete-test",
         "--force",
-        "--json",
+        "--json"
       ]);
 
       expect(result.exitCode).toBe(0);

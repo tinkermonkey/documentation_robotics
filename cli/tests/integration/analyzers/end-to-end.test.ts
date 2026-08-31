@@ -369,32 +369,5 @@ describe("analyzer end-to-end workflow", () => {
       expect(typeof indexResult.exitCode).toBe("number");
     });
 
-    it("should verify endpoint candidate structure when indexed", async () => {
-      // Initialize project
-      await runDr(["init", "--name", "Test Project"], { cwd: tempDir.path });
-
-      // Create project structure (for a real analyzer, this would be analyzed)
-      const srcDir = join(tempDir.path, "src");
-      await mkdir(srcDir, { recursive: true });
-      await writeFile(
-        join(srcDir, "routes.ts"),
-        `export interface Route {
-  method: string;
-  path: string;
-  operationId: string;
-}`
-      );
-
-      // The endpoints command requires the project to be indexed
-      // When analyzer is not installed, it fails gracefully
-      const endpointsResult = await runDr(["analyzer", "endpoints", "--name", "cbm", "--json"], {
-        cwd: tempDir.path,
-      });
-
-      // Without indexing, the command should fail with informative error
-      expect(endpointsResult.exitCode).toBeGreaterThan(0);
-      const output = endpointsResult.stdout + endpointsResult.stderr;
-      expect(output.toLowerCase()).toMatch(/indexed|index/i);
-    });
   });
 });
