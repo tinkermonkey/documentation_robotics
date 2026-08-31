@@ -569,7 +569,21 @@ Examples:
           }
         );
 
-        if (!added) return; // duplicate — warning already printed
+        if (!added) {
+          // duplicate — emit JSON response indicating relationship already exists
+          handleSuccess(
+            `Relationship ${source} --[${options.predicate}]--> ${target} already exists`,
+            {
+              source,
+              target,
+              predicate: options.predicate,
+              layer: sourceLayerName,
+              duplicate: true,
+            },
+            { verbose: options.verbose }
+          );
+          return;
+        }
 
         // Show cardinality and strength in output
         let message = `Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
