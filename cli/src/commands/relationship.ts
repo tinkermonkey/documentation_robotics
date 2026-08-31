@@ -14,7 +14,6 @@ import {
   handleError,
   handleSuccess,
   handleInfo,
-  handleWarning,
   getErrorMessage
 } from "../utils/errors.js";
 import {
@@ -259,9 +258,7 @@ export async function addRelationshipHandler(
 
   // Guard against duplicate relationships before staging or writing
   if (model.relationships.find(source, target, predicate).length > 0) {
-    handleWarning(
-      `Relationship ${source} --[${predicate}]--> ${target} already exists. Skipping.`
-    );
+    // Return false to signal duplicate; caller will emit appropriate output
     return false;
   }
 

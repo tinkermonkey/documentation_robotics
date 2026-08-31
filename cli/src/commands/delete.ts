@@ -164,8 +164,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           elementId: id,
           layer: layerName!,
           dryRun: true,
-          elementsToRemove: elementsToRemove.length,
-          dependentElementsToRemove: options.cascade ? dependents.length : 0,
+          elementsToRemoveCount: elementsToRemove.length,
+          dependentElementsToRemoveCount: options.cascade ? dependents.length : 0,
         },
         { verbose: options.verbose }
       );
@@ -189,7 +189,6 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
         });
 
         if (!confirmed) {
-          handleInfo(ansis.dim("Cancelled"));
           handleSuccess(
             "Deletion cancelled",
             {
