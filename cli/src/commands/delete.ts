@@ -164,8 +164,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           elementId: id,
           layer: layerName!,
           dryRun: true,
-          deleted: elementsToRemove,
-          count: elementsToRemove.length,
+          elementsToRemoveCount: 1,
+          dependentElementsToRemoveCount: dependents.length,
         },
         { verbose: options.verbose }
       );
@@ -291,8 +291,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
             layer: layerName!,
             changesetStatus: "staged",
             changeset: activeChangeset.name,
-            deleted: elementsToRemove,
-            count: elementsToRemove.length,
+            totalElementsDeleted: elementsToRemove.length,
           },
           { verbose: options.verbose }
         );
@@ -322,8 +321,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       const details: Record<string, unknown> = {
         elementId: id,
         layer: layerName!,
-        deleted: elementsToRemove,
-        count: elementsToRemove.length,
+        totalElementsDeleted: elementsToRemove.length,
       };
       handleSuccess(`Deleted element ${ansis.bold(id)}`, details, { verbose: options.verbose });
 

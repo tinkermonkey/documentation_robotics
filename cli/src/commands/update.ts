@@ -333,6 +333,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     const details: Record<string, unknown> = {
       elementId: id,
       layer: layerName,
+      name: element.name,
       changes,
     };
 

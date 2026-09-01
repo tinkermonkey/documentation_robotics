@@ -96,7 +96,7 @@ export async function changesetCreateCommand(
 
     const createDetails: Record<string, unknown> = {
       changesetId: changeset.id,
-      name: name,
+      changesetName: name,
       path: `documentation-robotics/changesets/${changeset.id}/`,
     };
     if (changeset.description) {
@@ -305,9 +305,9 @@ export async function changesetApplyCommand(
     }
 
     const applyDetails: Record<string, unknown> = {
-      name: name,
+      changesetName: name,
       changesetId: changeset.id,
-      appliedCount: result.committed,
+      committed: result.committed,
       failed: result.failed,
       validationPassed: result.validation.passed,
     };
@@ -431,7 +431,7 @@ export async function changesetRevertCommand(name: string, options: { model?: st
 
     // Show reverted message
     handleSuccess(`Reverted changeset: ${name}`, {
-      name: name,
+      changesetName: name,
       changesetId,
       changesetStatus: "discarded",
     });
@@ -490,7 +490,7 @@ export async function changesetActivateCommand(name: string, options: { model?: 
     await manager.setActive(name);
 
     handleSuccess(`Activated changeset: ${ansis.bold(name)}`, {
-      name: name,
+      changesetName: name,
       changesetId: changeset.id,
     });
 
@@ -665,7 +665,7 @@ export async function changesetDeleteCommand(
     await manager.delete(name);
 
     handleSuccess(`Deleted changeset: ${ansis.bold(name)}`, {
-      name: name,
+      changesetName: name,
       changesetId: changeset.id,
     });
 
