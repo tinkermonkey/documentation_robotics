@@ -433,6 +433,112 @@ describe("JSON Output on Mutating Commands", () => {
     });
   });
 
+  describe("Error handling with --json flag", () => {
+    it("should output valid JSON on validation error (missing required field)", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "motivation",
+        "goal",
+        "test-goal",
+        "--json"
+        // Missing --name, which is required
+      ]);
+
+      // Should fail with validation error
+      expect(result.exitCode).not.toBe(0);
+
+      // Stdout should contain valid JSON error response
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("error");
+      expect(json.message).toBeDefined();
+      expect(json.code).toBeDefined();
+      // Should not contain ANSI codes
+      expect(result.stdout).not.toContain("\x1b");
+    });
+
+    it("should output valid JSON on element not found error", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "update",
+        "motivation.goal.nonexistent-goal",
+        "--name",
+        "New Name",
+        "--json"
+      ]);
+
+      // Should fail with not found error
+      expect(result.exitCode).not.toBe(0);
+
+      // Should output valid JSON error
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("error");
+      expect(json.message).toContain("not found");
+      // Should not contain ANSI codes
+      expect(result.stdout).not.toContain("\x1b");
+    });
+
+    it("should output valid JSON on invalid layer error", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "add",
+        "invalid-layer",
+        "goal",
+        "test-goal",
+        "--name",
+        "Test Goal",
+        "--json"
+      ]);
+
+      // Should fail with invalid layer error
+      expect(result.exitCode).not.toBe(0);
+
+      // Should output valid JSON error
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("error");
+      // Should not contain ANSI codes
+      expect(result.stdout).not.toContain("\x1b");
+    });
+
+    it("should output valid JSON with suggestions on error", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "delete",
+        "motivation.goal.nonexistent-goal",
+        "--force",
+        "--json"
+      ]);
+
+      // Should fail with not found error
+      expect(result.exitCode).not.toBe(0);
+
+      // Should output valid JSON error with suggestions
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("error");
+      // Suggestions field may or may not be present
+      if (json.suggestions) {
+        expect(Array.isArray(json.suggestions)).toBe(true);
+      }
+    });
+
+    it("should output valid JSON when relationship references non-existent element", async () => {
+      const result = await runCLICommand(workdir.path, [
+        "relationship",
+        "add",
+        "motivation.goal.nonexistent-1",
+        "motivation.goal.nonexistent-2",
+        "--predicate",
+        "aggregates",
+        "--json"
+      ]);
+
+      // Should fail because source doesn't exist
+      expect(result.exitCode).not.toBe(0);
+
+      // Should output valid JSON error
+      const json = JSON.parse(result.stdout.trim());
+      expect(json.status).toBe("error");
+      // Should not contain ANSI codes
+      expect(result.stdout).not.toContain("\x1b");
+    });
+  });
+
   describe("Changeset commands JSON output", () => {
     it("dr changeset create --json should output valid JSON", async () => {
       const result = await runCLICommand(workdir.path, [

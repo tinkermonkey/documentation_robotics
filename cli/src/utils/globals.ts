@@ -63,3 +63,10 @@ export function logDebug(message: string): void {
     console.debug(`[DEBUG] ${message}`);
   }
 }
+
+/**
+ * Set JSON mode
+ */
+export function setJsonMode(json: boolean): void {
+  globalOptions.json = json;
+}
