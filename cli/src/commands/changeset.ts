@@ -357,7 +357,11 @@ export async function changesetApplyCommand(
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -436,7 +440,11 @@ export async function changesetRevertCommand(name: string, options: { model?: st
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -488,7 +496,11 @@ export async function changesetActivateCommand(name: string, options: { model?: 
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -540,7 +552,11 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -611,7 +627,9 @@ export async function changesetDeleteCommand(
         });
 
         if (!confirm || typeof confirm !== "boolean") {
-          handleInfo(ansis.yellow("Deletion cancelled"));
+          handleSuccess("Deletion cancelled", {
+            status: "cancelled",
+          });
           if (isTelemetryEnabled && span) {
             (span as any).setAttribute("delete.cancelled", true);
             (span as any).setStatus({ code: 0 });
@@ -653,7 +671,11 @@ export async function changesetDeleteCommand(
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -723,7 +745,11 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -831,7 +857,11 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -915,13 +945,18 @@ export async function changesetExplicitStageCommand(elementId: string, options: 
       elementId,
       layer: layerName,
       changesetId: activeChangesetId,
+      operation: "add",
     }, { verbose: true });
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: getErrorMessage(error) });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1012,7 +1047,11 @@ export async function changesetUnstageCommand(elementId: string, options: { mode
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1114,7 +1153,6 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
 
         if (!confirmed || typeof confirmed !== "boolean") {
           handleSuccess("Discard cancelled", {
-            cancelled: true,
             status: "cancelled",
           });
           if (isTelemetryEnabled && span) {
@@ -1160,7 +1198,11 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
         message: getErrorMessage(error),
       });
     }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
     endSpan(span);
     process.exit(1);
   } finally {
