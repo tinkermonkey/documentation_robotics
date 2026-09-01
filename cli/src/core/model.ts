@@ -952,6 +952,8 @@ export class Model {
     manifestData: ManifestData,
     options: ModelOptions = {}
   ): Promise<Model> {
+    const yaml = await import("yaml");
+
     // Create model directory structure
     await ensureDir(`${rootPath}/documentation-robotics/model`);
 
@@ -965,6 +967,17 @@ export class Model {
     const model = new Model(rootPath, manifest, options);
 
     await model.saveManifest();
+
+    // Initialize relationships.yaml with empty array
+    const relationshipsPath = `${rootPath}/documentation-robotics/model/relationships.yaml`;
+    const timestamp = new Date().toISOString();
+    const header = `# Intra-layer relationships
+# Format: source_id -> predicate -> target_id
+# Last updated: ${timestamp}
+
+`;
+    const yamlContent = header + yaml.stringify([]);
+    await writeFile(relationshipsPath, yamlContent);
 
     return model;
   }

@@ -1,0 +1,19 @@
+{
+  "mappings": [
+    {
+      "cbm_edge": "TEST_EDGE",
+      "dr_relationship": "consumes",
+      "confidence": "high"
+    },
+    {
+      "cbm_edge": "TEST_EDGE",
+      "dr_relationship": "provides",
+      "confidence": "medium"
+    },
+    {
+      "cbm_edge": "TEST_EDGE",
+      "dr_relationship": null,
+      "confidence": "low"
+    }
+  ]
+}
