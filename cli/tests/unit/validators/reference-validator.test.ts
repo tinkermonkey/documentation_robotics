@@ -392,10 +392,7 @@ describe("ReferenceValidator", () => {
         name: "Test Model",
         version: "1.0.0",
         models: {
-          "auth-service": {
-            name: "auth-service",
-            path: "/external/auth-service",
-          },
+          "auth-service": {},
         },
       });
       const model = new Model("/test", manifest);
@@ -452,10 +449,7 @@ describe("ReferenceValidator", () => {
         name: "Test Model",
         version: "1.0.0",
         models: {
-          "payment-service": {
-            name: "payment-service",
-            path: "/external/payment-service",
-          },
+          "payment-service": {},
         },
       });
       const model = new Model("/test", manifest);
@@ -484,10 +478,7 @@ describe("ReferenceValidator", () => {
         name: "Test Model",
         version: "1.0.0",
         models: {
-          "core": {
-            name: "core",
-            path: "/external/core",
-          },
+          "core": {},
         },
       });
       const model = new Model("/test", manifest);
@@ -517,10 +508,7 @@ describe("ReferenceValidator", () => {
         name: "Test Model",
         version: "1.0.0",
         models: {
-          "external": {
-            name: "external",
-            path: "/external",
-          },
+          "external": {},
         },
       });
       const model = new Model("/test", manifest);
@@ -584,10 +572,7 @@ describe("ReferenceValidator", () => {
         name: "Test Model",
         version: "1.0.0",
         models: {
-          "data-service": {
-            name: "data-service",
-            path: "/external/data-service",
-          },
+          "data-service": {},
         },
       });
       const model = new Model("/test", manifest);
@@ -641,10 +626,7 @@ describe("ReferenceValidator", () => {
         name: "Test Model",
         version: "1.0.0",
         models: {
-          "external": {
-            name: "external",
-            path: "/external",
-          },
+          "external": {},
         },
       });
       const model = new Model("/test", manifest);
