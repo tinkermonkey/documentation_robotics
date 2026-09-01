@@ -1,7 +1,7 @@
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { Validator } from "./validator.js";
-import { parseReferencePath } from "../utils/reference-path-parser.js";
+import { parseReferencePath, ReferencePathParseError } from "../utils/reference-path-parser.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { promises as fs, Dirent } from "fs";
 import path from "path";
@@ -15,7 +15,6 @@ interface ResolvedExternalModel {
 export class ComposedReferenceValidator {
   private modelPathOverrides: Record<string, string>;
   private resolvedModels: Map<string, ResolvedExternalModel> = new Map();
-  private unresolvedModels: Set<string> = new Set();
   private referencedModels: Set<string> = new Set();
 
   constructor(modelPathOverrides: Record<string, string> = {}) {
@@ -31,7 +30,6 @@ export class ComposedReferenceValidator {
     // Clear all state to ensure fresh validation on reuse
     this.referencedModels.clear();
     this.resolvedModels.clear();
-    this.unresolvedModels.clear();
     this.collectReferencedModels(model);
 
     for (const modelName of declaredModels) {
@@ -80,9 +78,13 @@ export class ComposedReferenceValidator {
               if (parsed.modelName) {
                 this.referencedModels.add(parsed.modelName);
               }
-            } catch {
-              // Parse errors are already handled by base validator
-              continue;
+            } catch (error) {
+              if (error instanceof ReferencePathParseError) {
+                // Parse errors are already handled by base validator
+                continue;
+              } else {
+                throw error;
+              }
             }
           }
         }
@@ -94,7 +96,6 @@ export class ComposedReferenceValidator {
     const modelPath = this.modelPathOverrides[modelName];
 
     if (!modelPath) {
-      this.unresolvedModels.add(modelName);
       return;
     }
 
@@ -104,7 +105,6 @@ export class ComposedReferenceValidator {
       const stats = await fs.stat(modelDir);
 
       if (!stats.isDirectory()) {
-        this.unresolvedModels.add(modelName);
         return;
       }
 
@@ -116,7 +116,6 @@ export class ComposedReferenceValidator {
         entries = await fs.readdir(modelDir, { withFileTypes: true });
       } catch (error) {
         this.addResolutionWarning(modelName, error, modelPath);
-        this.unresolvedModels.add(modelName);
         return;
       }
 
@@ -137,7 +136,6 @@ export class ComposedReferenceValidator {
     } catch (error) {
       // Failed to resolve model
       this.addResolutionWarning(modelName, error, modelPath);
-      this.unresolvedModels.add(modelName);
     }
   }
 
@@ -193,7 +191,7 @@ export class ComposedReferenceValidator {
         if (values.length > 0 && values[0] && typeof values[0] === "object" && ("path" in values[0] || "id" in values[0])) {
           items.push(...values);
         } else {
-          // Single element object with path/id field
+          // Object without path/id fields, push as-is for type safety
           items.push(parsed);
         }
       }
@@ -249,8 +247,12 @@ export class ComposedReferenceValidator {
               });
             }
           } catch (error) {
-            // Parse errors are already handled by base validator
-            continue;
+            if (error instanceof ReferencePathParseError) {
+              // Parse errors are already handled by base validator
+              continue;
+            } else {
+              throw error;
+            }
           }
         }
       }
