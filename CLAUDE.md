@@ -166,7 +166,7 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Critical Rule: Elements Never Use Qualified Paths for Their Own Identity**:
 - **Only references use qualified paths** — The `path` and `id` fields of elements are always unqualified
-- ✅ **Correct**: An auth-service element uses `auth-service.operation.authenticate` as its local `path`
+- ✅ **Correct**: An auth-service element uses `api.operation.authenticate` as its local `path`
 - ✅ **Correct**: Your model references it as `@auth-service/api.operation.authenticate`
 - ❌ **Incorrect**: An element's `path` is never `@auth-service/api.operation.authenticate`
 - This ensures each model owns and manages its own element identities without external dependencies
