@@ -233,7 +233,7 @@ export async function addCommand(
           type: resolvedType,
           name: options.name || name,
           description: options.description || "(none)",
-        }, { verbose: options.verbose });
+        }, { verbose: true });
       }
     }
   } catch (error) {

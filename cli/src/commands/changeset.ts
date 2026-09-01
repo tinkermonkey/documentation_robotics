@@ -12,7 +12,7 @@ import { Command } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
-import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
+import { getErrorMessage, handleSuccess, handleInfo, handleWarning } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
 import { findElementLayer } from "../utils/element-utils.js";
 
@@ -1019,13 +1019,7 @@ export async function changesetUnstageCommand(elementId: string, options: { mode
     const updated = await manager.load(activeChangesetId);
 
     if (updated && updated.changes.length === initialCount) {
-      handleSuccess(`Element not found in staged changes`, {
-        changesetId: activeChangesetId,
-        elementId,
-        found: false,
-        remainingChanges: updated?.getChangeCount() || 0,
-        status: "not_found",
-      });
+      handleWarning(`Element '${elementId}' not found in staged changes`);
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("unstage.found", false);
         (span as any).setStatus({ code: 0 });
@@ -1127,11 +1121,7 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
       const updated = await manager.load(activeChangesetId);
 
       if (updated && updated.changes.length === initialCount) {
-        handleSuccess(`Element not found in staged changes`, {
-          elementId,
-          found: false,
-          status: "not_found",
-        });
+        handleWarning(`Element '${elementId}' not found in staged changes`);
         if (isTelemetryEnabled && span) {
           (span as any).setAttribute("discard.found", false);
           (span as any).setStatus({ code: 0 });
