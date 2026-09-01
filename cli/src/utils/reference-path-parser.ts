@@ -19,13 +19,18 @@ export interface ParsedReferencePath {
   isQualified: boolean;
 }
 
-export interface ReferencePathParseError {
-  kind: "malformed-qualified-path";
-  message: string;
+export class ReferencePathParseError extends Error {
+  readonly kind = "malformed-qualified-path" as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ReferencePathParseError";
+    Object.setPrototypeOf(this, ReferencePathParseError.prototype);
+  }
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const QUALIFIED_PREFIX_PATTERN = /^@([a-z0-9_][a-z0-9_-]*)\//i;
+const QUALIFIED_PREFIX_PATTERN = /^@([a-z0-9][a-z0-9_-]*)\//i;
 const ELEMENT_PATH_PATTERN = /^[a-z_][a-z0-9_-]*(\.[a-z_][a-z0-9_-]*)+$/;
 
 /**
@@ -154,11 +159,12 @@ export function extractModelNameFromPath(path: string): string | undefined {
  * Extract the underlying segment from a qualified reference path.
  *
  * For unqualified paths, returns the path unchanged.
- * For qualified paths, strips the @{model-name}/ prefix.
+ * For qualified paths, strips the @{model-name}/ prefix and validates the segment format.
  * Throws if the qualified path is malformed.
  *
  * @param path The reference path string
  * @returns The underlying {layer}.{type}.{name} segment or UUID
+ * @throws ReferencePathParseError if the path or segment is malformed
  */
 export function extractSegmentFromPath(path: string): string {
   if (!path || typeof path !== "string") {
@@ -177,6 +183,14 @@ export function extractSegmentFromPath(path: string): string {
       );
     }
 
+    // Validate the segment format matches either UUID or element path pattern
+    if (!UUID_PATTERN.test(segment) && !ELEMENT_PATH_PATTERN.test(segment)) {
+      throw createParseError(
+        `Invalid element path in qualified reference: '${segment}'. ` +
+          "Use format '@{model-name}/{layer}.{type}.{name}' or '@{model-name}/UUID'"
+      );
+    }
+
     return segment;
   }
 
@@ -184,8 +198,5 @@ export function extractSegmentFromPath(path: string): string {
 }
 
 function createParseError(message: string): ReferencePathParseError {
-  return {
-    kind: "malformed-qualified-path",
-    message,
-  };
+  return new ReferencePathParseError(message);
 }
