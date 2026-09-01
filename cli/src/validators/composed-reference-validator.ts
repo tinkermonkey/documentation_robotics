@@ -1,12 +1,6 @@
-/**
- * Composed reference validation for cross-model reference resolution
- *
- * Validates qualified references against resolved external models with graduated
- * warning/error behavior when models can't be resolved.
- */
-
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
+import { Validator } from "./validator.js";
 import { parseReferencePath } from "../utils/reference-path-parser.js";
 import { promises as fs } from "fs";
 import path from "path";
@@ -16,15 +10,6 @@ interface ResolvedExternalModel {
   elementIds: Set<string>;
 }
 
-/**
- * Composed validator that extends reference validation to check qualified
- * references against resolved external models on disk.
- *
- * This validator:
- * 1. Runs the full standard validation pipeline (schema, naming, reference, semantic, relationship)
- * 2. Extends reference validation to check qualified references against resolved external models
- * 3. Applies graduated warning/error behavior for unresolved models
- */
 export class ComposedReferenceValidator {
   private modelPathOverrides: Record<string, string>;
   private resolvedModels: Map<string, ResolvedExternalModel> = new Map();
@@ -35,33 +20,19 @@ export class ComposedReferenceValidator {
     this.modelPathOverrides = modelPathOverrides;
   }
 
-  /**
-   * Validate model references in composed scope
-   * - First runs base validation (unqualified references + all other stages)
-   * - Then validates qualified references against resolved external models
-   * - Applies graduated warning/error behavior
-   */
   async validateModel(model: Model): Promise<ValidationResult> {
-    // Import the full Validator to run all validation stages
-    const { Validator } = await import("./validator.js");
     const fullValidator = new Validator();
-
-    // Stage 0: Run full validation (all 5 stages)
     const result = await fullValidator.validateModel(model);
 
-    // Collect external model names from manifest
     const declaredModels = new Set(Object.keys(model.manifest.models || {}));
 
-    // Stage 2: Collect qualified references and track which models are used
     this.referencedModels.clear();
     this.collectReferencedModels(model);
 
-    // Stage 3: Try to resolve each declared external model
     for (const modelName of declaredModels) {
       await this.resolveExternalModel(modelName);
     }
 
-    // Stage 4: Apply graduated warning/error behavior
     for (const modelName of declaredModels) {
       const isReferenced = this.referencedModels.has(modelName);
       const isResolved = this.resolvedModels.has(modelName);
@@ -94,9 +65,6 @@ export class ComposedReferenceValidator {
     return result;
   }
 
-  /**
-   * Collect all models referenced in qualified paths throughout the model
-   */
   private collectReferencedModels(model: Model): void {
     for (const [, layer] of model.layers) {
       for (const element of layer.listElements()) {
@@ -117,9 +85,6 @@ export class ComposedReferenceValidator {
     }
   }
 
-  /**
-   * Try to resolve an external model from disk
-   */
   private async resolveExternalModel(modelName: string): Promise<void> {
     const modelPath = this.modelPathOverrides[modelName];
 
@@ -169,9 +134,6 @@ export class ComposedReferenceValidator {
     }
   }
 
-  /**
-   * Collect element IDs from a layer directory by reading YAML files
-   */
   private async collectElementsFromLayer(layerPath: string, elementIds: Set<string>): Promise<void> {
     try {
       const entries = await fs.readdir(layerPath, { withFileTypes: true });
@@ -193,14 +155,8 @@ export class ComposedReferenceValidator {
     }
   }
 
-  /**
-   * Extract element paths from YAML content
-   * Looks for "path:" fields in the YAML
-   */
   private extractElementPathsFromYAML(content: string, elementIds: Set<string>): void {
-    // Simple YAML parsing: look for "path: value" patterns
-    // This handles both quoted and unquoted values
-    const pathPattern = /^\s*path:\s*["']?([^"'\n]+)["']?/gm;
+    const pathPattern = /^\s*-?\s*path:\s*["']?([^"'\n]+)["']?\s*$/gm;
     let match;
 
     while ((match = pathPattern.exec(content)) !== null) {
@@ -211,9 +167,6 @@ export class ComposedReferenceValidator {
     }
   }
 
-  /**
-   * Validate qualified references against a resolved external model
-   */
   private validateQualifiedReferencesAgainstModel(
     model: Model,
     modelName: string

@@ -361,9 +361,10 @@ function parseModelPaths(modelPathArray?: string[]): Record<string, string> {
 }
 
 export async function validateCommand(options: ValidateOptions): Promise<void> {
-  // Parse model-path options
-  const modelPaths = parseModelPaths(options.modelPath);
-  options.modelPaths = modelPaths;
+  // Parse model-path options only if provided
+  if (options.modelPath) {
+    options.modelPaths = parseModelPaths(options.modelPath);
+  }
 
   // Annotate the root cli.execute span with validate-specific attributes
   const activeSpan = getActiveSpan();
