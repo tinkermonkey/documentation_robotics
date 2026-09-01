@@ -16,29 +16,39 @@
  * to catch, so this must not filter those out too.
  */
 import { getAllLayerIds } from "../generated/layer-registry.js";
+import {
+  UUID_PATTERN,
+  QUALIFIED_PREFIX_PATTERN,
+  parseReferencePath,
+  ReferencePathParseError,
+} from "./reference-path-parser.js";
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const QUALIFIED_PREFIX_PATTERN = /^@[a-z0-9][a-z0-9_-]*\//i;
 const KNOWN_LAYERS = new Set(getAllLayerIds());
 
 export function looksLikeElementReference(value: string): boolean {
   if (UUID_PATTERN.test(value)) return true;
 
-  // Check for qualified reference format: @{model-name}/{layer}.{type}.{slug}
+  // Check for qualified reference: must match without whitespace
   if (QUALIFIED_PREFIX_PATTERN.test(value)) {
-    // Extract segment after @model-name/ and check if it looks like an element path
-    const slashIndex = value.indexOf("/");
-    if (slashIndex > 0 && slashIndex < value.length - 1) {
-      const segment = value.substring(slashIndex + 1);
-      const dotIndex = segment.indexOf(".");
+    try {
+      const parsed = parseReferencePath(value);
+      // Extract layer name from segment (first dot-separated component)
+      const dotIndex = parsed.segment.indexOf(".");
       if (dotIndex > 0) {
-        return KNOWN_LAYERS.has(segment.slice(0, dotIndex));
+        const layer = parsed.segment.slice(0, dotIndex);
+        return KNOWN_LAYERS.has(layer);
       }
+      return false;
+    } catch (error) {
+      // Malformed qualified reference
+      if (error instanceof ReferencePathParseError) {
+        return false;
+      }
+      throw error;
     }
-    return false;
   }
 
-  // Check for unqualified reference format: {layer}.{type}.{slug}
+  // Check for unqualified reference: {layer}.{type}.{slug}
   const dotIndex = value.indexOf(".");
   if (dotIndex <= 0) return false;
 

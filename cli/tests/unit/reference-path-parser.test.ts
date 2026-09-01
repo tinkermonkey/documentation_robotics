@@ -3,12 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import {
-  parseReferencePath,
-  isQualifiedReferencePath,
-  extractModelNameFromPath,
-  extractSegmentFromPath,
-} from "@/utils/reference-path-parser";
+import { parseReferencePath } from "@/utils/reference-path-parser";
 
 describe("Reference Path Parser", () => {
   describe("parseReferencePath", () => {
@@ -246,208 +241,32 @@ describe("Reference Path Parser", () => {
     });
   });
 
-  describe("isQualifiedReferencePath", () => {
-    it("should return true for qualified path", () => {
-      expect(isQualifiedReferencePath("@auth/api.operation.login")).toBe(true);
-    });
-
-    it("should return true for qualified path with hyphenated model", () => {
-      expect(isQualifiedReferencePath("@auth-service/api.endpoint.get")).toBe(
-        true
-      );
-    });
-
-    it("should return false for unqualified element path", () => {
-      expect(isQualifiedReferencePath("motivation.goal.increase-revenue")).toBe(
-        false
-      );
-    });
-
-    it("should return false for unqualified UUID", () => {
-      expect(
-        isQualifiedReferencePath("550e8400-e29b-41d4-a716-446655440000")
-      ).toBe(false);
-    });
-
-    it("should return false for empty string", () => {
-      expect(isQualifiedReferencePath("")).toBe(false);
-    });
-
-    it("should return false for null", () => {
-      expect(isQualifiedReferencePath(null as any)).toBe(false);
-    });
-
-    it("should return false for undefined", () => {
-      expect(isQualifiedReferencePath(undefined as any)).toBe(false);
-    });
-
-    it("should return false for non-string", () => {
-      expect(isQualifiedReferencePath({} as any)).toBe(false);
-    });
-
-    it("should handle whitespace in qualified paths", () => {
-      expect(isQualifiedReferencePath("  @auth/api.operation.login  ")).toBe(
-        true
-      );
-    });
-
-    it("should handle whitespace in unqualified paths", () => {
-      expect(
-        isQualifiedReferencePath("  motivation.goal.increase-revenue  ")
-      ).toBe(false);
-    });
-  });
-
-  describe("extractModelNameFromPath", () => {
-    it("should extract model name from qualified path", () => {
-      expect(extractModelNameFromPath("@auth/api.operation.login")).toBe(
-        "auth"
-      );
-    });
-
-    it("should extract hyphenated model name", () => {
-      expect(extractModelNameFromPath("@auth-service/api.endpoint.get")).toBe(
-        "auth-service"
-      );
-    });
-
-    it("should extract underscored model name", () => {
-      expect(extractModelNameFromPath("@payment_service/api.operation.process")).toBe(
-        "payment_service"
-      );
-    });
-
-    it("should return undefined for unqualified path", () => {
-      expect(
-        extractModelNameFromPath("motivation.goal.increase-revenue")
-      ).toBeUndefined();
-    });
-
-    it("should return undefined for UUID", () => {
-      expect(
-        extractModelNameFromPath("550e8400-e29b-41d4-a716-446655440000")
-      ).toBeUndefined();
-    });
-
-    it("should return undefined for empty string", () => {
-      expect(extractModelNameFromPath("")).toBeUndefined();
-    });
-
-    it("should return undefined for null", () => {
-      expect(extractModelNameFromPath(null as any)).toBeUndefined();
-    });
-
-    it("should return undefined for undefined", () => {
-      expect(extractModelNameFromPath(undefined as any)).toBeUndefined();
-    });
-
-    it("should return undefined for non-string", () => {
-      expect(extractModelNameFromPath({} as any)).toBeUndefined();
-    });
-
-    it("should handle whitespace in qualified paths", () => {
-      expect(extractModelNameFromPath("  @auth/api.operation.login  ")).toBe(
-        "auth"
-      );
-    });
-  });
-
-  describe("extractSegmentFromPath", () => {
-    it("should extract segment from qualified path", () => {
-      expect(extractSegmentFromPath("@auth/api.operation.login")).toBe(
-        "api.operation.login"
-      );
-    });
-
-    it("should extract segment from qualified path with hyphenated names", () => {
-      expect(extractSegmentFromPath("@auth-service/data-model.entity.user")).toBe(
-        "data-model.entity.user"
-      );
-    });
-
-    it("should return unqualified path unchanged", () => {
-      expect(extractSegmentFromPath("motivation.goal.increase-revenue")).toBe(
-        "motivation.goal.increase-revenue"
-      );
-    });
-
-    it("should return UUID unchanged", () => {
-      const uuid = "550e8400-e29b-41d4-a716-446655440000";
-      expect(extractSegmentFromPath(uuid)).toBe(uuid);
-    });
-
-    it("should throw for qualified UUID (not supported)", () => {
-      const uuid = "550e8400-e29b-41d4-a716-446655440000";
-      expect(() => extractSegmentFromPath(`@auth/${uuid}`)).toThrow();
-    });
-
-    it("should throw for empty string", () => {
-      expect(() => extractSegmentFromPath("")).toThrow();
-    });
-
-    it("should throw for qualified path with missing segment", () => {
-      expect(() => extractSegmentFromPath("@auth/")).toThrow();
-    });
-
-    it("should throw for null", () => {
-      expect(() => extractSegmentFromPath(null as any)).toThrow();
-    });
-
-    it("should throw for undefined", () => {
-      expect(() => extractSegmentFromPath(undefined as any)).toThrow();
-    });
-
-    it("should handle whitespace in qualified paths", () => {
-      expect(extractSegmentFromPath("  @auth/api.operation.login  ")).toBe(
-        "api.operation.login"
-      );
-    });
-
-    it("should handle whitespace in unqualified paths", () => {
-      expect(
-        extractSegmentFromPath("  motivation.goal.increase-revenue  ")
-      ).toBe("motivation.goal.increase-revenue");
-    });
-  });
-
   describe("integration scenarios", () => {
-    it("should parse and extract components from qualified path", () => {
+    it("should parse qualified path with all components available", () => {
       const path = "@auth-service/api.operation.authenticate";
       const parsed = parseReferencePath(path);
 
       expect(parsed.isQualified).toBe(true);
       expect(parsed.modelName).toBe("auth-service");
       expect(parsed.segment).toBe("api.operation.authenticate");
-
-      expect(isQualifiedReferencePath(path)).toBe(true);
-      expect(extractModelNameFromPath(path)).toBe("auth-service");
-      expect(extractSegmentFromPath(path)).toBe("api.operation.authenticate");
     });
 
-    it("should parse and extract components from unqualified path", () => {
+    it("should parse unqualified path with segment available", () => {
       const path = "motivation.goal.increase-revenue";
       const parsed = parseReferencePath(path);
 
       expect(parsed.isQualified).toBe(false);
       expect(parsed.modelName).toBeUndefined();
       expect(parsed.segment).toBe("motivation.goal.increase-revenue");
-
-      expect(isQualifiedReferencePath(path)).toBe(false);
-      expect(extractModelNameFromPath(path)).toBeUndefined();
-      expect(extractSegmentFromPath(path)).toBe("motivation.goal.increase-revenue");
     });
 
-    it("should parse and extract components from UUID", () => {
+    it("should parse UUID with segment available", () => {
       const uuid = "550e8400-e29b-41d4-a716-446655440000";
       const parsed = parseReferencePath(uuid);
 
       expect(parsed.isQualified).toBe(false);
       expect(parsed.modelName).toBeUndefined();
       expect(parsed.segment).toBe(uuid);
-
-      expect(isQualifiedReferencePath(uuid)).toBe(false);
-      expect(extractModelNameFromPath(uuid)).toBeUndefined();
-      expect(extractSegmentFromPath(uuid)).toBe(uuid);
     });
   });
 });

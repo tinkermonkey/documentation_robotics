@@ -29,8 +29,8 @@ export class ReferencePathParseError extends Error {
   }
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const QUALIFIED_PREFIX_PATTERN = /^@([a-z0-9][a-z0-9_-]*)\//i;
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const QUALIFIED_PREFIX_PATTERN = /^@([a-z0-9][a-z0-9_-]*)\//i;
 const ELEMENT_PATH_PATTERN = /^[a-z_][a-z0-9_-]*(\.[a-z_][a-z0-9_-]*)+$/;
 
 /**
@@ -124,85 +124,6 @@ export function parseReferencePath(path: string): ParsedReferencePath {
   );
 }
 
-/**
- * Test whether a reference path is a qualified reference without parsing it.
- *
- * @param path The reference path string to test
- * @returns true if the path starts with @{model-name}/ prefix, false otherwise
- */
-export function isQualifiedReferencePath(path: string): boolean {
-  if (!path || typeof path !== "string") {
-    return false;
-  }
-  return QUALIFIED_PREFIX_PATTERN.test(path.trim());
-}
-
-/**
- * Extract model name from a qualified reference path.
- *
- * Returns undefined if the path is not qualified or if parsing fails.
- *
- * @param path The reference path string
- * @returns The model name (without @ or /) or undefined if not qualified
- */
-export function extractModelNameFromPath(path: string): string | undefined {
-  if (!path || typeof path !== "string") {
-    return undefined;
-  }
-
-  const trimmedPath = path.trim();
-  const match = trimmedPath.match(QUALIFIED_PREFIX_PATTERN);
-  return match ? match[1] : undefined;
-}
-
-/**
- * Extract the underlying segment from a qualified reference path.
- *
- * For unqualified paths, returns the path unchanged.
- * For qualified paths, strips the @{model-name}/ prefix and validates the segment format.
- * Throws if the qualified path is malformed.
- *
- * @param path The reference path string
- * @returns The underlying {layer}.{type}.{name} segment or UUID
- * @throws ReferencePathParseError if the path or segment is malformed
- */
-export function extractSegmentFromPath(path: string): string {
-  if (!path || typeof path !== "string") {
-    throw createParseError("Cannot extract segment from empty path");
-  }
-
-  const trimmedPath = path.trim();
-  const qualifiedMatch = trimmedPath.match(QUALIFIED_PREFIX_PATTERN);
-
-  if (qualifiedMatch) {
-    const segment = trimmedPath.substring(qualifiedMatch[0].length);
-
-    if (!segment || segment.trim() === "") {
-      throw createParseError(
-        "Qualified reference missing segment after '@{model-name}/'"
-      );
-    }
-
-    // Qualified references cannot use UUIDs; only dot-separated element paths are allowed
-    if (UUID_PATTERN.test(segment)) {
-      throw createParseError(
-        "Qualified references cannot reference UUIDs; use '@{model-name}/{layer}.{type}.{name}' format"
-      );
-    }
-
-    // Validate the segment format is a valid element path
-    if (!ELEMENT_PATH_PATTERN.test(segment)) {
-      throw createParseError(
-        `Invalid element path in qualified reference: '${segment}'. ` +
-          "Use format '@{model-name}/{layer}.{type}.{name}'"
-      );
-    }
-
-    return segment;
-  }
-
-  return trimmedPath;
-}
 
 function createParseError(message: string): ReferencePathParseError {
   return new ReferencePathParseError(message);
