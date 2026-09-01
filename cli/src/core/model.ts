@@ -644,8 +644,13 @@ export class Model {
     }
 
     // Validate that parsed content is an array
+    // Treat null (from comment-only files) as an empty array
+    if (data === null) {
+      data = [];
+    }
+
     if (!Array.isArray(data)) {
-      const typeLabel = data === null ? "null" : typeof data;
+      const typeLabel = typeof data;
       console.warn(
         `Warning: relationships.yaml contains non-array content (received ${typeLabel}). Expected an array of relationships. Skipping relationship loading.`
       );
