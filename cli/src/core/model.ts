@@ -602,6 +602,10 @@ export class Model {
       yamlData.changeset_history = this.manifest.changeset_history;
     }
 
+    if (this.manifest.models && Object.keys(this.manifest.models).length > 0) {
+      yamlData.models = this.manifest.models;
+    }
+
     await ensureDir(`${this.rootPath}/documentation-robotics/model`);
     await writeFile(manifestPath, yaml.stringify(yamlData));
   }
@@ -790,6 +794,12 @@ export class Model {
         created: manifestYaml.created || new Date().toISOString(),
         modified: manifestYaml.updated || new Date().toISOString(),
       };
+
+      // Load external model declarations if present
+      if (manifestYaml.models) {
+        manifestData.models = manifestYaml.models;
+      }
+
       const manifest = new Manifest(manifestData);
       const model = new Model(projectRoot, manifest, options);
 

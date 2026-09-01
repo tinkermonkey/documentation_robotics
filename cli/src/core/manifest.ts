@@ -1,17 +1,20 @@
 import type {
   ManifestData,
   ChangesetHistoryEntry,
+  ExternalModelDeclaration,
 } from "../types/index.js";
 
 /**
  * Manifest representing model metadata and configuration
  *
  * The Manifest class manages all metadata about a Documentation Robotics model,
- * including project information, changeset history, and layer configuration.
+ * including project information, changeset history, layer configuration, and
+ * external model declarations.
  *
  * This class handles:
  * - Project metadata (name, version, description, author)
  * - Changeset application history
+ * - External model declarations for cross-model references
  */
 export class Manifest {
   name: string;
@@ -23,6 +26,7 @@ export class Manifest {
   cliVersion?: string;
   specVersion?: string;
   changeset_history?: ChangesetHistoryEntry[];
+  models?: Record<string, ExternalModelDeclaration>;
 
   constructor(data: ManifestData) {
     this.name = data.name;
@@ -33,6 +37,7 @@ export class Manifest {
     this.modified = data.modified ?? new Date().toISOString();
     this.cliVersion = data.cliVersion;
     this.specVersion = data.specVersion;
+    this.models = data.models;
 
     // Migrate changeset history from legacy format (if present)
     this.changeset_history = this.migrateChangesetHistory(data.changeset_history);
@@ -87,7 +92,7 @@ export class Manifest {
    * Serialize to JSON representation
    *
    * Converts the Manifest to a JSON-serializable object that includes project
-   * metadata and changeset history.
+   * metadata, changeset history, and external model declarations.
    *
    * @returns ManifestData object suitable for JSON serialization
    */
@@ -117,6 +122,10 @@ export class Manifest {
 
     if (this.changeset_history && this.changeset_history.length > 0) {
       result.changeset_history = this.changeset_history;
+    }
+
+    if (this.models && Object.keys(this.models).length > 0) {
+      result.models = this.models;
     }
 
     return result;

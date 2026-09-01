@@ -105,6 +105,17 @@ export interface ChangesetHistoryEntry {
 }
 
 /**
+ * External model declaration in manifest
+ * Declares a model that this model may reference via qualified paths (e.g., @model-name/...)
+ */
+export interface ExternalModelDeclaration {
+  /** Optional git repository URL for documentation */
+  url?: string;
+  /** Optional informational role (e.g., "shared") - not interpreted by CLI */
+  role?: string;
+}
+
+/**
  * Manifest metadata
  */
 export interface ManifestData {
@@ -118,6 +129,8 @@ export interface ManifestData {
   specVersion?: string;
   /** Changeset history for the model */
   changeset_history?: ChangesetHistoryEntry[];
+  /** External model declarations: model name to declaration metadata */
+  models?: Record<string, ExternalModelDeclaration>;
 }
 
 /**
