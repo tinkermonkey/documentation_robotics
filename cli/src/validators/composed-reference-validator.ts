@@ -2,6 +2,7 @@ import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { Validator } from "./validator.js";
 import { parseReferencePath } from "../utils/reference-path-parser.js";
+import { getErrorMessage } from "../utils/errors.js";
 import { promises as fs, Dirent } from "fs";
 import path from "path";
 import { parse as parseYAML } from "yaml";
@@ -135,6 +136,7 @@ export class ComposedReferenceValidator {
       });
     } catch (error) {
       // Failed to resolve model
+      this.addResolutionWarning(modelName, error, modelPath);
       this.unresolvedModels.add(modelName);
     }
   }
@@ -151,13 +153,13 @@ export class ComposedReferenceValidator {
             this.extractElementPathsFromYAML(content, elementIds);
           } catch (error) {
             const filePath = path.join(layerPath, entry.name);
-            console.warn(`Warning: Failed to read YAML file at ${filePath}: ${this.getErrorMessage(error)}`);
+            console.warn(`Warning: Failed to read YAML file at ${filePath}: ${getErrorMessage(error)}`);
             continue;
           }
         }
       }
     } catch (error) {
-      console.warn(`Warning: Failed to read layer directory at ${layerPath}: ${this.getErrorMessage(error)}`);
+      console.warn(`Warning: Failed to read layer directory at ${layerPath}: ${getErrorMessage(error)}`);
     }
   }
 
@@ -170,19 +172,43 @@ export class ComposedReferenceValidator {
         return;
       }
 
-      // Handle both array and object formats
-      const items = Array.isArray(parsed) ? parsed : [parsed];
+      // Collect items to process from various YAML formats
+      const items: unknown[] = [];
 
+      // Format 1: elements: [{ path: "..." }, ...]
+      if (parsed && typeof parsed === "object" && "elements" in parsed) {
+        const elements = parsed.elements;
+        if (Array.isArray(elements)) {
+          items.push(...elements);
+        }
+      }
+      // Format 2: Direct array [{ path: "..." }, ...]
+      else if (Array.isArray(parsed)) {
+        items.push(...parsed);
+      }
+      // Format 3: Object-of-objects { "key": { path: "..." }, ... }
+      else if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        // Check if this looks like an object-of-objects (values have path/id fields)
+        const values = Object.values(parsed);
+        if (values.length > 0 && values[0] && typeof values[0] === "object" && ("path" in values[0] || "id" in values[0])) {
+          items.push(...values);
+        } else {
+          // Single element object with path/id field
+          items.push(parsed);
+        }
+      }
+
+      // Extract paths from collected items
       for (const item of items) {
         if (item && typeof item === "object") {
-          const elementPath = item.path || item.id;
+          const elementPath = (item as Record<string, unknown>).path || (item as Record<string, unknown>).id;
           if (elementPath && typeof elementPath === "string") {
             elementIds.add(elementPath.trim());
           }
         }
       }
     } catch (error) {
-      console.warn(`Warning: Failed to parse YAML content: ${this.getErrorMessage(error)}`);
+      console.warn(`Warning: Failed to parse YAML content: ${getErrorMessage(error)}`);
     }
   }
 
@@ -233,15 +259,8 @@ export class ComposedReferenceValidator {
     return result;
   }
 
-  private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    return String(error);
-  }
-
   private addResolutionWarning(modelName: string, error: unknown, modelPath: string): void {
-    const errorMsg = this.getErrorMessage(error);
+    const errorMsg = getErrorMessage(error);
     const code = (error as NodeJS.ErrnoException)?.code;
 
     if (code === "EACCES") {

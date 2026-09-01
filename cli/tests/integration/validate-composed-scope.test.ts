@@ -469,4 +469,298 @@ describe("composed scope validation (integration)", () => {
     // Should not report error for auth-service auth operation (resolvable and referenced)
     expect(output).not.toContain("api.operation.authenticate");
   });
+
+  it("properly extracts element paths from elements: wrapper format", async () => {
+    // Initialize model with external model
+    const model = await Model.init(
+      workdir.path,
+      {
+        name: "Main Service",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        models: {
+          "external": { role: "shared" },
+        },
+      },
+      { lazyLoad: false }
+    );
+
+    // Create API layer with qualified reference
+    const apiLayer = new Layer("api");
+    apiLayer.addElement(
+      new Element({
+        id: "api.operation.delegate",
+        spec_node_id: "api.operation",
+        layer_id: "api",
+        type: "operation",
+        name: "Delegate Op",
+      })
+    );
+
+    const element = apiLayer.elements.get("api.operation.delegate");
+    if (element) {
+      element.references = [
+        { target: "@external/api.operation.external-op", type: "delegates-to" },
+      ];
+    }
+
+    model.addLayer(apiLayer);
+    await model.saveManifest();
+    await model.saveLayer("api");
+
+    // Create external model with elements: wrapper format
+    const externalPath = path.join(workdir.path, "..", "external");
+    const apiLayerDir = path.join(externalPath, "model", "07_api");
+    await fs.mkdir(apiLayerDir, { recursive: true });
+    await fs.writeFile(
+      path.join(apiLayerDir, "operations.yaml"),
+      `elements:
+  - path: "api.operation.external-op"
+    spec_node_id: "api.operation"
+    type: "operation"
+    name: "External Op"
+  - path: "api.operation.another"
+    spec_node_id: "api.operation"
+    type: "operation"
+    name: "Another Op"
+`
+    );
+
+    // Validate - should find the external operation
+    const output = await captureConsole(() =>
+      validateCommand({
+        model: workdir.path,
+        scope: "composed",
+        modelPath: [`external=${externalPath}`],
+        modelPaths: { "external": externalPath },
+      })
+    );
+
+    // Should NOT report broken reference since element exists
+    expect(output).not.toContain("Broken qualified reference");
+  });
+
+  it("properly extracts element paths from object-of-objects format", async () => {
+    // Initialize model with external model
+    const model = await Model.init(
+      workdir.path,
+      {
+        name: "Main Service",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        models: {
+          "external": { role: "shared" },
+        },
+      },
+      { lazyLoad: false }
+    );
+
+    // Create data-store layer with qualified reference
+    const dataStoreLayer = new Layer("data-store");
+    dataStoreLayer.addElement(
+      new Element({
+        id: "data-store.table.users",
+        spec_node_id: "data-store.table",
+        layer_id: "data-store",
+        type: "table",
+        name: "Users Table",
+      })
+    );
+
+    const element = dataStoreLayer.elements.get("data-store.table.users");
+    if (element) {
+      element.references = [
+        { target: "@external/data-store.column.user-id", type: "uses" },
+      ];
+    }
+
+    model.addLayer(dataStoreLayer);
+    await model.saveManifest();
+    await model.saveLayer("data-store");
+
+    // Create external model with object-of-objects format
+    const externalPath = path.join(workdir.path, "..", "external");
+    const dataStoreDir = path.join(externalPath, "model", "09_data-store");
+    await fs.mkdir(dataStoreDir, { recursive: true });
+    await fs.writeFile(
+      path.join(dataStoreDir, "columns.yaml"),
+      `"user-id":
+  path: "data-store.column.user-id"
+  spec_node_id: "data-store.column"
+  type: "column"
+  name: "User ID"
+"user-email":
+  path: "data-store.column.user-email"
+  spec_node_id: "data-store.column"
+  type: "column"
+  name: "User Email"
+`
+    );
+
+    // Validate - should find the external column
+    const output = await captureConsole(() =>
+      validateCommand({
+        model: workdir.path,
+        scope: "composed",
+        modelPath: [`external=${externalPath}`],
+        modelPaths: { "external": externalPath },
+      })
+    );
+
+    // Should NOT report broken reference since element exists
+    expect(output).not.toContain("Broken qualified reference");
+  });
+
+  it("clears state on validator reuse to prevent stale resolution data", async () => {
+    // Initialize model with external model
+    const model = await Model.init(
+      workdir.path,
+      {
+        name: "Main Service",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        models: {
+          "external": { role: "shared" },
+        },
+      },
+      { lazyLoad: false }
+    );
+
+    // Create API layer with qualified reference in first model
+    const apiLayer = new Layer("api");
+    apiLayer.addElement(
+      new Element({
+        id: "api.operation.op1",
+        spec_node_id: "api.operation",
+        layer_id: "api",
+        type: "operation",
+        name: "Operation 1",
+      })
+    );
+
+    const element = apiLayer.elements.get("api.operation.op1");
+    if (element) {
+      element.references = [
+        { target: "@external/api.operation.ext-op", type: "delegates-to" },
+      ];
+    }
+
+    model.addLayer(apiLayer);
+    await model.saveManifest();
+    await model.saveLayer("api");
+
+    // Create external model for validation
+    const externalPath = path.join(workdir.path, "..", "external");
+    const apiLayerDir = path.join(externalPath, "model", "07_api");
+    await fs.mkdir(apiLayerDir, { recursive: true });
+    await fs.writeFile(
+      path.join(apiLayerDir, "operations.yaml"),
+      `elements:
+  - path: "api.operation.ext-op"
+`
+    );
+
+    // Run validation multiple times with same validator instance
+    // and ensure state is cleared between calls
+    const output1 = await captureConsole(() =>
+      validateCommand({
+        model: workdir.path,
+        scope: "composed",
+        modelPath: [`external=${externalPath}`],
+        modelPaths: { "external": externalPath },
+      })
+    );
+
+    // First validation should succeed (no broken references)
+    expect(output1).not.toContain("Broken qualified reference");
+
+    // Modify the model to remove the external reference
+    const reloadModel = await Model.load(workdir.path, { lazyLoad: false });
+    const reloadedApiLayer = reloadModel.layers.get("api");
+    if (reloadedApiLayer) {
+      const reloadedElement = reloadedApiLayer.elements.get("api.operation.op1");
+      if (reloadedElement) {
+        reloadedElement.references = [];
+      }
+      await reloadModel.saveLayer("api");
+    }
+
+    // Run validation again with modified model
+    const output2 = await captureConsole(() =>
+      validateCommand({
+        model: workdir.path,
+        scope: "composed",
+        modelPath: [`external=${externalPath}`],
+        modelPaths: { "external": externalPath },
+      })
+    );
+
+    // Second validation should also succeed (no references now)
+    expect(output2).not.toContain("Broken qualified reference");
+  });
+
+  it("logs console.warn when filesystem errors occur during model resolution", async () => {
+    // Initialize model with external model reference
+    const model = await Model.init(
+      workdir.path,
+      {
+        name: "Main Service",
+        version: "1.0.0",
+        created: new Date().toISOString(),
+        models: {
+          "external": { role: "shared" },
+        },
+      },
+      { lazyLoad: false }
+    );
+
+    const layer = new Layer("api");
+    layer.addElement(
+      new Element({
+        id: "api.operation.op",
+        spec_node_id: "api.operation",
+        layer_id: "api",
+        type: "operation",
+        name: "Op",
+      })
+    );
+
+    const element = layer.elements.get("api.operation.op");
+    if (element) {
+      element.references = [
+        { target: "@external/api.operation.ext", type: "delegates-to" },
+      ];
+    }
+
+    model.addLayer(layer);
+    await model.saveManifest();
+    await model.saveLayer("api");
+
+    // Provide a path that exists but is not a directory (to trigger fs.stat error)
+    const invalidModelPath = path.join(workdir.path, "file.txt");
+    await fs.writeFile(invalidModelPath, "not a directory");
+
+    // Capture console output
+    const warnings: string[] = [];
+    const originalWarn = console.warn;
+    console.warn = (...args: any[]) => warnings.push(args.join(" "));
+
+    try {
+      // Validate with invalid model path
+      const output = await captureConsole(() =>
+        validateCommand({
+          model: workdir.path,
+          scope: "composed",
+          modelPath: [`external=${invalidModelPath}`],
+          modelPaths: { "external": invalidModelPath },
+        })
+      );
+
+      // Should log a warning about failing to resolve external model
+      expect(warnings.some((w) => w.includes("Warning"))).toBe(true);
+      expect(warnings.some((w) => w.includes("external"))).toBe(true);
+    } finally {
+      console.warn = originalWarn;
+    }
+  });
 });
