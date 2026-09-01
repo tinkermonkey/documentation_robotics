@@ -323,12 +323,18 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       layer.updateElement(elem);
     });
 
-    const details: Record<string, unknown> = { elementId: id, layer: layerName };
-    if (options.type) details.type = options.type;
-    if (options.name) details.name = options.name;
-    if (options.description) details.description = options.description;
-    if (options.sourceFile) details.source = options.sourceFile;
-    if (options.clearSourceReference) details.source = "cleared";
+    const changes: Record<string, unknown> = {};
+    if (options.type) changes.type = options.type;
+    if (options.name) changes.name = options.name;
+    if (options.description !== undefined) changes.description = options.description;
+    if (options.sourceFile) changes.source = options.sourceFile;
+    if (options.clearSourceReference) changes.source = "cleared";
+
+    const details: Record<string, unknown> = {
+      elementId: id,
+      layer: layerName,
+      changes,
+    };
 
     handleSuccess(`Updated element ${ansis.bold(id)}`, details, { verbose: options.verbose });
   } catch (error) {

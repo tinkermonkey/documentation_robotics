@@ -164,8 +164,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           elementId: id,
           layer: layerName!,
           dryRun: true,
-          elementsToRemoveCount: elementsToRemove.length,
-          dependentElementsToRemoveCount: options.cascade ? dependents.length : 0,
+          deleted: elementsToRemove,
+          count: elementsToRemove.length,
         },
         { verbose: options.verbose }
       );
@@ -192,9 +192,9 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           handleSuccess(
             "Deletion cancelled",
             {
+              status: "cancelled",
               elementId: id,
               layer: layerName!,
-              cancelled: true,
             },
             { verbose: options.verbose }
           );
@@ -291,8 +291,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
             layer: layerName!,
             changesetStatus: "staged",
             changeset: activeChangeset.name,
-            totalElementsDeleted: elementsToRemove.length,
-            dependentElementsDeleted: options.cascade ? dependents.length : 0,
+            deleted: elementsToRemove,
+            count: elementsToRemove.length,
           },
           { verbose: options.verbose }
         );
@@ -322,11 +322,9 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       const details: Record<string, unknown> = {
         elementId: id,
         layer: layerName!,
-        totalElementsDeleted: elementsToRemove.length,
+        deleted: elementsToRemove,
+        count: elementsToRemove.length,
       };
-      if (options.cascade && dependents.length > 0) {
-        details.dependentElementsDeleted = dependents.length;
-      }
       handleSuccess(`Deleted element ${ansis.bold(id)}`, details, { verbose: options.verbose });
 
       // Show cascade confirmation when cascade is active

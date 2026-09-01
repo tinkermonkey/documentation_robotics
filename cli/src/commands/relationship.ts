@@ -668,7 +668,11 @@ Examples:
           });
 
           if (!confirmed) {
-            handleInfo(ansis.dim("Cancelled"));
+            handleSuccess("Deletion cancelled", {
+              source,
+              target,
+              status: "cancelled",
+            });
             return;
           }
         }
