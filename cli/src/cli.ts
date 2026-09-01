@@ -10,6 +10,7 @@
 
 import { Command, CommanderError } from "commander";
 import { setGlobalOptions } from "./utils/globals.js";
+import { installAnsiSuppressor } from "./utils/ansi-suppressor.js";
 import { initCommand } from "./commands/init.js";
 import { addCommand } from "./commands/add.js";
 import { updateCommand } from "./commands/update.js";
@@ -58,7 +59,11 @@ const CONSOLE_LOGGING_COMMANDS = new Set(['chat', 'validate', 'import', 'export'
 // Suppress ANSI color output on non-TTY stdout
 if (!process.stdout.isTTY) {
   process.env.FORCE_COLOR = "0";
+  process.env.NO_COLOR = "1";
 }
+
+// Install the ANSI suppressor to strip color codes from console output when not on TTY
+installAnsiSuppressor();
 
 /**
  * Extract exit code from an error object.
