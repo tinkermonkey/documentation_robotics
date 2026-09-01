@@ -409,7 +409,16 @@ export async function changesetRevertCommand(name: string, options: { model?: st
 
     const changesetId = changeset.id || name;
     if (!changesetId) {
-      console.error(ansis.red("Error: Changeset ID could not be determined"));
+      const errMsg = "Changeset ID could not be determined";
+      if (isJson()) {
+        console.log(JSON.stringify({ status: "error", code: 1, message: errMsg }));
+      } else {
+        console.error(
+          ansis.red("Error: " + errMsg) +
+            "\n" +
+            ansis.dim("The changeset must have an ID to proceed with revert.")
+        );
+      }
       if (isTelemetryEnabled && span) {
         (span as any).setStatus({ code: 2, message: "Changeset ID missing" });
       }
