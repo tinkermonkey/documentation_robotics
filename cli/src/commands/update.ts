@@ -8,7 +8,7 @@ import { MutationHandler } from "../core/mutation-handler.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, handleError, findSimilar, formatValidOptions } from "../utils/errors.js";
+import { CLIError, handleError, handleSuccess, handleInfo, findSimilar, formatValidOptions } from "../utils/errors.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
 import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
@@ -20,6 +20,7 @@ declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface UpdateOptions {
+  model?: string;
   name?: string;
   description?: string;
   type?: string;
@@ -79,7 +80,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     validateUpdateSourceReferenceOptions(options);
 
     // Load model
-    const model = await Model.load();
+    const model = await Model.load(options.model || process.cwd());
 
     // Find element
     const layerName = await findElementLayer(model, id);
@@ -105,7 +106,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               options.type;
 
             if (!hasUpdates) {
-              console.log(ansis.yellow("No fields specified for update"));
+              handleInfo(ansis.yellow("No fields specified for update"));
               return;
             }
 
@@ -186,7 +187,11 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
               after,
             });
 
-            console.log(ansis.green(`✓ Updated staged element ${ansis.bold(id)}`));
+            handleSuccess(`Updated staged element ${ansis.bold(id)}`, {
+              elementId: id,
+              layer: addChange.layerName,
+              changesetStatus: "staged",
+            }, { verbose: options.verbose });
             return;
           }
         }
@@ -215,7 +220,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       options.clearSourceReference;
 
     if (!hasUpdates) {
-      console.log(ansis.yellow("No fields specified for update"));
+      handleInfo(ansis.yellow("No fields specified for update"));
       return;
     }
 
@@ -318,25 +323,21 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       layer.updateElement(elem);
     });
 
-    console.log(ansis.green(`✓ Updated element ${ansis.bold(id)}`));
-    if (options.verbose) {
-      console.log(ansis.dim(`  Layer: ${layerName}`));
-      if (options.type) {
-        console.log(ansis.dim(`  Type: ${options.type}`));
-      }
-      if (options.name) {
-        console.log(ansis.dim(`  Name: ${options.name}`));
-      }
-      if (options.description) {
-        console.log(ansis.dim(`  Description: ${options.description}`));
-      }
-      if (options.sourceFile) {
-        console.log(ansis.dim(`  Source: ${options.sourceFile}`));
-      }
-      if (options.clearSourceReference) {
-        console.log(ansis.dim(`  Source: cleared`));
-      }
-    }
+    const changes: Record<string, unknown> = {};
+    if (options.type) changes.type = options.type;
+    if (options.name) changes.name = options.name;
+    if (options.description !== undefined) changes.description = options.description;
+    if (options.sourceFile) changes.source = options.sourceFile;
+    if (options.clearSourceReference) changes.source = "cleared";
+
+    const details: Record<string, unknown> = {
+      elementId: id,
+      layer: layerName,
+      name: element.name,
+      changes,
+    };
+
+    handleSuccess(`Updated element ${ansis.bold(id)}`, details, { verbose: options.verbose });
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

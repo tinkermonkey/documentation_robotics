@@ -11,6 +11,7 @@
  */
 
 import ansis from "ansis";
+import { isJson } from "./globals.js";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -195,20 +196,65 @@ export class InvalidJSONError extends CLIError {
 
 export function handleError(error: unknown): never {
   if (error instanceof CLIError) {
-    console.error(error.format());
+    if (isJson()) {
+      const output: Record<string, unknown> = {
+        status: "error",
+        code: error.exitCode,
+        message: error.message,
+      };
+      if (error.suggestions && error.suggestions.length > 0) {
+        output.suggestions = error.suggestions;
+      }
+      if (error.context) {
+        if (error.context.operation) output.operation = error.context.operation;
+        if (error.context.relatedElements && error.context.relatedElements.length > 0) {
+          output.relatedElements = error.context.relatedElements;
+        }
+        if (error.context.partialProgress) {
+          output.partialProgress = error.context.partialProgress;
+        }
+      }
+      console.log(JSON.stringify(output));
+    } else {
+      console.error(error.format());
+    }
     // Don't call process.exit() - rethrow so CLI wrapper can handle telemetry shutdown
     throw error;
   } else if (error instanceof Error) {
-    console.error(ansis.red(`Error: ${error.message}`));
-    if (process.env.DEBUG) {
-      console.error(ansis.dim(error.stack));
+    if (isJson()) {
+      const output: Record<string, unknown> = {
+        status: "error",
+        code: ErrorCategory.USER,
+        message: error.message,
+      };
+      if (process.env.DEBUG && error.stack) {
+        output.stack = error.stack;
+      }
+      console.log(JSON.stringify(output));
+    } else {
+      console.error(ansis.red(`Error: ${error.message}`));
+      if (process.env.DEBUG) {
+        console.error(ansis.dim(error.stack));
+      }
     }
     // Rethrow to allow CLI wrapper to handle shutdown
     throw error;
   } else {
-    console.error(ansis.red("An unexpected error occurred"));
-    if (process.env.DEBUG) {
-      console.error(ansis.dim(String(error)));
+    if (isJson()) {
+      const output: Record<string, unknown> = {
+        status: "error",
+        code: ErrorCategory.USER,
+        message: "An unexpected error occurred",
+      };
+      if (process.env.DEBUG) {
+        output.details = String(error);
+      }
+      console.log(JSON.stringify(output));
+    } else {
+      console.error(ansis.red("An unexpected error occurred"));
+      if (process.env.DEBUG) {
+        console.error(ansis.dim(String(error)));
+      }
     }
     // Create proper error to throw
     throw new Error(String(error));
@@ -216,6 +262,10 @@ export function handleError(error: unknown): never {
 }
 
 export function handleWarning(message: string, suggestions?: string[]): void {
+  if (isJson()) {
+    // In JSON mode, warnings are suppressed to maintain clean machine output
+    return;
+  }
   const lines: string[] = [];
   lines.push(ansis.yellow(`Warning: ${message}`));
   if (suggestions && suggestions.length > 0) {
@@ -228,11 +278,43 @@ export function handleWarning(message: string, suggestions?: string[]): void {
   console.warn(lines.join("\n"));
 }
 
-export function handleSuccess(message: string, details?: Record<string, string>): void {
-  console.log(ansis.green(`✓ ${message}`));
-  if (details) {
-    for (const [key, value] of Object.entries(details)) {
-      console.log(ansis.dim(`  ${key}: ${value}`));
+export function handleSuccess(message: string, details?: Record<string, unknown>, options?: { verbose?: boolean }): void {
+  if (isJson()) {
+    const output: Record<string, unknown> = {
+      status: "ok",
+      ...details,
+    };
+    console.log(JSON.stringify(output));
+  } else {
+    console.log(ansis.green(`✓ ${message}`));
+    // Only show details in non-JSON mode if verbose flag is set or details include changesetStatus/status
+    if (details && (options?.verbose || details.changesetStatus)) {
+      // Convert camelCase keys to PascalCase for display
+      for (const [key, value] of Object.entries(details)) {
+        const displayKey = keyToDisplayName(key);
+        console.log(ansis.dim(`  ${displayKey}: ${value}`));
+      }
+    }
+  }
+}
+
+function keyToDisplayName(key: string): string {
+  // Convert camelCase and snake_case to PascalCase/Title Case
+  return key
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to words
+    .replace(/_/g, ' ') // snake_case to words
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export function handleInfo(message: string, details?: Record<string, string>): void {
+  if (!isJson()) {
+    console.log(message);
+    if (details) {
+      for (const [key, value] of Object.entries(details)) {
+        console.log(ansis.dim(`  ${key}: ${value}`));
+      }
     }
   }
 }

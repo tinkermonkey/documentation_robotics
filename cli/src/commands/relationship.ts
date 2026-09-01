@@ -8,11 +8,18 @@ import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { isValidLayerName } from "../core/layers.js";
-import { CLIError, ErrorCategory, handleError, getErrorMessage } from "../utils/errors.js";
+import {
+  CLIError,
+  ErrorCategory,
+  handleError,
+  handleSuccess,
+  handleInfo,
+  getErrorMessage
+} from "../utils/errors.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
-  getValidDestinationsForSourceAndPredicate,
+  getValidDestinationsForSourceAndPredicate
 } from "../generated/relationship-index.js";
 import { normalizeNodeType } from "../generated/node-types.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
@@ -78,8 +85,8 @@ export function validateRelationshipCombination(
   destSpecNodeId: string
 ): { valid: boolean; suggestions?: string[] } {
   const valid =
-    getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId)
-      .length > 0;
+    getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId).length >
+    0;
 
   if (valid) {
     return { valid: true };
@@ -135,7 +142,7 @@ export function getRelationshipConstraints(
   const rel = rels[0];
   return {
     cardinality: rel.cardinality,
-    strength: rel.strength,
+    strength: rel.strength
   };
 }
 
@@ -168,36 +175,54 @@ export async function addRelationshipHandler(
   if (!resolvedSourceLayerName) {
     resolvedSourceLayerName = await findElementLayer(model, source);
     if (!resolvedSourceLayerName) {
-      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Source element ${source} not found`,
+        ErrorCategory.USER
+      );
     }
   }
 
   if (!resolvedSourceElement) {
     const sourceLayer = await model.getLayer(resolvedSourceLayerName);
     if (!sourceLayer) {
-      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Source element ${source} not found`,
+        ErrorCategory.USER
+      );
     }
     resolvedSourceElement = sourceLayer.getElement(source);
     if (!resolvedSourceElement) {
-      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Source element ${source} not found`,
+        ErrorCategory.USER
+      );
     }
   }
 
   if (!resolvedTargetLayerName) {
     resolvedTargetLayerName = await findElementLayer(model, target);
     if (!resolvedTargetLayerName) {
-      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Target element ${target} not found`,
+        ErrorCategory.USER
+      );
     }
   }
 
   if (!resolvedTargetElement) {
     const targetLayer = await model.getLayer(resolvedTargetLayerName);
     if (!targetLayer) {
-      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Target element ${target} not found`,
+        ErrorCategory.USER
+      );
     }
     resolvedTargetElement = targetLayer.getElement(target);
     if (!resolvedTargetElement) {
-      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Target element ${target} not found`,
+        ErrorCategory.USER
+      );
     }
   }
 
@@ -233,9 +258,7 @@ export async function addRelationshipHandler(
 
   // Guard against duplicate relationships before staging or writing
   if (model.relationships.find(source, target, predicate).length > 0) {
-    console.warn(
-      ansis.yellow(`Warning: Relationship ${source} --[${predicate}]--> ${target} already exists. Skipping.`)
-    );
+    // Return false to signal duplicate; caller will emit appropriate output
     return false;
   }
 
@@ -248,9 +271,11 @@ export async function addRelationshipHandler(
     target,
     predicate,
     layer: resolvedSourceLayerName,
-    ...(resolvedTargetLayerName !== resolvedSourceLayerName ? { targetLayer: resolvedTargetLayerName } : {}),
+    ...(resolvedTargetLayerName !== resolvedSourceLayerName
+      ? { targetLayer: resolvedTargetLayerName }
+      : {}),
     category: "structural" as const,
-    ...(properties ? { properties } : {}),
+    ...(properties ? { properties } : {})
   };
 
   if (activeChangesetId) {
@@ -260,7 +285,7 @@ export async function addRelationshipHandler(
       type: "relationship-add",
       elementId: compositeKey,
       layerName: resolvedSourceLayerName,
-      after: relData,
+      after: relData
     });
   } else {
     // No active changeset — write directly to relationships.yaml
@@ -275,14 +300,18 @@ export async function addRelationshipHandler(
 
       // Compute affected layers for source layer
       if (isValidLayerName(resolvedSourceLayerName)) {
-        for (const layer of orchestrator.computeAffectedLayers(resolvedSourceLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(
+          resolvedSourceLayerName
+        )) {
           affectedLayers.add(layer);
         }
       }
 
       // Compute affected layers for target layer
       if (isValidLayerName(resolvedTargetLayerName)) {
-        for (const layer of orchestrator.computeAffectedLayers(resolvedTargetLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(
+          resolvedTargetLayerName
+        )) {
           affectedLayers.add(layer);
         }
       }
@@ -298,7 +327,7 @@ export async function addRelationshipHandler(
           "relationship.targetLayer": resolvedTargetLayerName,
           "relationship.source": source,
           "relationship.target": target,
-          "error.message": getErrorMessage(error),
+          "error.message": getErrorMessage(error)
         }
       );
     }
@@ -335,7 +364,10 @@ export async function deleteRelationshipHandler(
   if (!resolvedSourceLayerName) {
     resolvedSourceLayerName = await findElementLayer(model, source);
     if (!resolvedSourceLayerName) {
-      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+      throw new CLIError(
+        `Source element ${source} not found`,
+        ErrorCategory.USER
+      );
     }
   }
 
@@ -367,8 +399,8 @@ export async function deleteRelationshipHandler(
           predicate: rel.predicate,
           layer: rel.layer,
           ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-          ...(rel.properties ? { properties: rel.properties } : {}),
-        },
+          ...(rel.properties ? { properties: rel.properties } : {})
+        }
       });
     }
   } else {
@@ -393,7 +425,9 @@ export async function deleteRelationshipHandler(
 
         // Compute affected layers for target layer
         if (rel.targetLayer && isValidLayerName(rel.targetLayer)) {
-          for (const layer of orchestrator.computeAffectedLayers(rel.targetLayer)) {
+          for (const layer of orchestrator.computeAffectedLayers(
+            rel.targetLayer
+          )) {
             affectedLayers.add(layer);
           }
         }
@@ -409,7 +443,7 @@ export async function deleteRelationshipHandler(
           "relationship.source": source,
           "relationship.target": target,
           "relationship.deleteCount": resolvedToDelete.length,
-          "error.message": getErrorMessage(error),
+          "error.message": getErrorMessage(error)
         }
       );
     }
@@ -418,10 +452,16 @@ export async function deleteRelationshipHandler(
   return { deletedCount: resolvedToDelete.length };
 }
 
-export function relationshipCommands(program: Command): void {
+export function relationshipCommands(program: Command, rootProgram?: Command): void {
   program
     .command("add <source> <target>")
-    .description("Add a relationship between elements (intra-layer or cross-layer)")
+    .description(
+      "Add a relationship between elements (intra-layer or cross-layer)"
+    )
+    .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
     .requiredOption(
       "--predicate <predicate>",
       "Relationship predicate (e.g., depends-on, realizes, exposes)"
@@ -439,34 +479,52 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
 
         // Find source element for constraints info
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
-          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Source element ${source} not found`,
+            ErrorCategory.USER
+          );
         }
         const sourceLayer = await model.getLayer(sourceLayerName);
         if (!sourceLayer) {
-          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Source element ${source} not found`,
+            ErrorCategory.USER
+          );
         }
         const sourceElement = sourceLayer.getElement(source);
         if (!sourceElement) {
-          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Source element ${source} not found`,
+            ErrorCategory.USER
+          );
         }
 
         // Find target element for constraints info
         const targetLayerName = await findElementLayer(model, target);
         if (!targetLayerName) {
-          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Target element ${target} not found`,
+            ErrorCategory.USER
+          );
         }
         const targetLayer = await model.getLayer(targetLayerName);
         if (!targetLayer) {
-          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Target element ${target} not found`,
+            ErrorCategory.USER
+          );
         }
         const targetElement = targetLayer.getElement(target);
         if (!targetElement) {
-          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Target element ${target} not found`,
+            ErrorCategory.USER
+          );
         }
 
         // Get cardinality and strength info (before calling handler for CLI output)
@@ -484,7 +542,10 @@ Examples:
           try {
             properties = JSON.parse(options.properties);
           } catch (e) {
-            throw new CLIError("Invalid JSON in --properties", ErrorCategory.USER);
+            throw new CLIError(
+              "Invalid JSON in --properties",
+              ErrorCategory.USER
+            );
           }
         }
 
@@ -501,24 +562,47 @@ Examples:
           properties,
           {
             source: { element: sourceElement, layerName: sourceLayerName },
-            target: { element: targetElement, layerName: targetLayerName },
+            target: { element: targetElement, layerName: targetLayerName }
           }
         );
 
-        if (!added) return; // duplicate — warning already printed
+        if (!added) {
+          // duplicate — emit JSON response indicating relationship already exists
+          handleSuccess(
+            `Relationship ${source} --[${options.predicate}]--> ${target} already exists`,
+            {
+              source,
+              target,
+              predicate: options.predicate,
+              layer: sourceLayerName,
+              duplicate: true,
+            },
+            { verbose: options.verbose }
+          );
+          return;
+        }
 
         // Show cardinality and strength in output
-        let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
+        let message = `Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
+        const details: Record<string, unknown> = {
+          source,
+          target,
+          predicate: options.predicate,
+          layer: sourceLayerName,
+        };
         if (constraints) {
           message += ansis.dim(
             ` (${constraints.cardinality}, ${constraints.strength} strength)`
           );
+          details.cardinality = constraints.cardinality;
+          details.strength = constraints.strength;
         }
         if (activeChangesetId) {
           message += ansis.dim(` [staged]`);
+          details.changesetStatus = "staged";
         }
 
-        console.log(ansis.green(message));
+        handleSuccess(message, details, { verbose: options.verbose });
       } catch (error) {
         handleError(error);
       }
@@ -527,6 +611,10 @@ Examples:
   program
     .command("delete <source> <target>")
     .description("Delete a relationship")
+    .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
     .option(
       "--predicate <predicate>",
       "Specific predicate to delete (optional, delete all if not specified)"
@@ -542,19 +630,29 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
 
         // Find source element and relationships to delete (for confirmation)
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
-          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Source element ${source} not found`,
+            ErrorCategory.USER
+          );
         }
 
         // Find relationships to delete (to show confirmation count)
-        const toDelete = model.relationships.find(source, target, options.predicate);
+        const toDelete = model.relationships.find(
+          source,
+          target,
+          options.predicate
+        );
 
         if (toDelete.length === 0) {
-          throw new CLIError("No matching relationships found", ErrorCategory.USER);
+          throw new CLIError(
+            "No matching relationships found",
+            ErrorCategory.USER
+          );
         }
 
         // Confirm deletion unless --force or non-interactive environment
@@ -566,11 +664,15 @@ Examples:
           const { confirm } = await import("@clack/prompts");
           const confirmed = await confirm({
             message: `Delete ${toDelete.length} relationship(s)? This cannot be undone.`,
-            initialValue: false,
+            initialValue: false
           });
 
           if (!confirmed) {
-            console.log(ansis.dim("Cancelled"));
+            handleSuccess("Deletion cancelled", {
+              source,
+              target,
+              status: "cancelled",
+            });
             return;
           }
         }
@@ -587,15 +689,27 @@ Examples:
           options.predicate,
           {
             sourceLayerName,
-            toDelete,
+            toDelete
           }
         );
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";
-        console.log(
-          ansis.green(
-            `✓ Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
-          )
+        const deleteDetails: Record<string, unknown> = {
+          source,
+          target,
+          layer: sourceLayerName,
+          deletedCount: result.deletedCount,
+        };
+        if (options.predicate) {
+          deleteDetails.predicate = options.predicate;
+        }
+        if (activeChangesetId) {
+          deleteDetails.changesetStatus = "staged";
+        }
+        handleSuccess(
+          `Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`,
+          deleteDetails,
+          { verbose: options.verbose }
         );
       } catch (error) {
         handleError(error);
@@ -605,7 +719,15 @@ Examples:
   program
     .command("list <id>")
     .description("List relationships for an element")
-    .option("--direction <dir>", "Filter by direction (incoming/outgoing/all)", "all")
+    .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
+    .option(
+      "--direction <dir>",
+      "Filter by direction (incoming/outgoing/all)",
+      "all"
+    )
     .option("--json", "Output as JSON")
     .addHelpText(
       "after",
@@ -618,7 +740,7 @@ Examples:
     .action(async (id, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
         const layerName = await findElementLayer(model, id);
 
         if (!layerName) {
@@ -637,33 +759,37 @@ Examples:
           relationships.push(...incoming);
         }
 
-        if (options.json) {
+        const shouldOutputJson = options.json ?? (rootProgram?.opts().json);
+        if (shouldOutputJson) {
           console.log(JSON.stringify(relationships, null, 2));
           return;
         }
 
         if (relationships.length === 0) {
-          console.log(ansis.yellow(`No ${options.direction} relationships for ${id}`));
+          handleInfo(
+            ansis.yellow(`No ${options.direction} relationships for ${id}`)
+          );
           return;
         }
 
-        console.log("");
-        console.log(
+        handleInfo("");
+        handleInfo(
           ansis.bold(
             `${options.direction === "all" ? "" : options.direction + " "}relationships for ${ansis.cyan(id)}:`
           )
         );
-        console.log(ansis.dim("─".repeat(80)));
+        handleInfo(ansis.dim("─".repeat(80)));
 
         for (const rel of relationships) {
           const isOutgoing = rel.source === id;
           const direction = isOutgoing ? "→" : "←";
           const otherElement = isOutgoing ? rel.target : rel.source;
-          const crossLayer = rel.targetLayer && rel.targetLayer !== rel.layer
-            ? ansis.dim(` [${rel.layer} → ${rel.targetLayer}]`)
-            : "";
+          const crossLayer =
+            rel.targetLayer && rel.targetLayer !== rel.layer
+              ? ansis.dim(` [${rel.layer} → ${rel.targetLayer}]`)
+              : "";
 
-          console.log(
+          handleInfo(
             `  ${direction} ${ansis.magenta(rel.predicate)}: ${ansis.yellow(otherElement)}${crossLayer}`
           );
 
@@ -671,13 +797,13 @@ Examples:
             const propStr = Object.entries(rel.properties)
               .map(([k, v]) => `${k}=${v}`)
               .join(", ");
-            console.log(`    ${ansis.dim(propStr)}`);
+            handleInfo(`    ${ansis.dim(propStr)}`);
           }
         }
 
-        console.log(ansis.dim("─".repeat(80)));
-        console.log(ansis.dim(`Total: ${relationships.length} relationship(s)`));
-        console.log("");
+        handleInfo(ansis.dim("─".repeat(80)));
+        handleInfo(ansis.dim(`Total: ${relationships.length} relationship(s)`));
+        handleInfo("");
       } catch (error) {
         handleError(error);
       }
@@ -686,6 +812,10 @@ Examples:
   program
     .command("show <source> <target>")
     .description("Show relationship details")
+    .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
     .addHelpText(
       "after",
       `
@@ -693,57 +823,65 @@ Examples:
   $ dr relationship show api-endpoint-create-customer business-service-customer-mgmt
   $ dr relationship show application-component-api motivation-goal-sales-efficiency`
     )
-    .action(async (source, target) => {
+    .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load();
+        const model = await Model.load(options.model || process.cwd());
         const sourceLayerName = await findElementLayer(model, source);
 
         if (!sourceLayerName) {
-          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+          throw new CLIError(
+            `Source element ${source} not found`,
+            ErrorCategory.USER
+          );
         }
 
         // Find relationships from centralized store
         const relationships = model.relationships.find(source, target);
 
         if (relationships.length === 0) {
-          throw new CLIError(`No relationships from ${source} to ${target}`, ErrorCategory.USER);
+          throw new CLIError(
+            `No relationships from ${source} to ${target}`,
+            ErrorCategory.USER
+          );
         }
 
-        console.log("");
-        console.log(
+        handleInfo("");
+        handleInfo(
           ansis.bold(
             `Relationship${relationships.length > 1 ? "s" : ""} from ${ansis.cyan(source)} to ${ansis.yellow(target)}:`
           )
         );
-        console.log(ansis.dim("─".repeat(60)));
+        handleInfo(ansis.dim("─".repeat(60)));
 
         for (let i = 0; i < relationships.length; i++) {
           const rel = relationships[i];
 
           if (i > 0) {
-            console.log("");
+            handleInfo("");
           }
 
-          console.log(`Predicate: ${ansis.magenta(rel.predicate)}`);
-          console.log(`Layer:     ${ansis.cyan(rel.layer)}`);
+          handleInfo(`Predicate: ${ansis.magenta(rel.predicate)}`);
+          handleInfo(`Layer:     ${ansis.cyan(rel.layer)}`);
           if (rel.targetLayer && rel.targetLayer !== rel.layer) {
-            console.log(`Target Layer: ${ansis.cyan(rel.targetLayer)}`);
+            handleInfo(`Target Layer: ${ansis.cyan(rel.targetLayer)}`);
           }
 
           if (rel.properties && Object.keys(rel.properties).length > 0) {
-            console.log("Properties:");
+            handleInfo("Properties:");
             for (const [key, value] of Object.entries(rel.properties)) {
               const displayValue =
-                typeof value === "string" ? value : JSON.stringify(value, null, 2);
-              console.log(`  ${ansis.cyan(key)}: ${displayValue}`);
+                typeof value === "string"
+                  ? value
+                  : JSON.stringify(value, null, 2);
+              handleInfo(`  ${ansis.cyan(key)}: ${displayValue}`);
             }
           } else {
-            console.log("Properties: none");
+            handleInfo("Properties: none");
           }
         }
 
-        console.log("");
+        handleInfo("");
       } catch (error) {
         handleError(error);
       }

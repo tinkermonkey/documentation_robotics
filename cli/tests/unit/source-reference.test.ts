@@ -10,6 +10,8 @@ import type {
   RepositoryContext,
   ProvenanceType,
 } from "../../src/types/source-reference";
+import { validateSourceReferenceOptions, buildSourceReference } from "../../src/utils/source-reference.js";
+import { CLIError } from "../../src/utils/errors.js";
 
 describe("SourceReference Types", () => {
   describe("SourceLocation", () => {
@@ -259,5 +261,288 @@ describe("Element Source Reference Methods", () => {
       element.setSourceReference(undefined);
       expect(element.hasSourceReference()).toBe(false);
     });
+  });
+});
+
+describe("validateSourceReferenceOptions", () => {
+  describe("source-symbol validation", () => {
+    it("should throw error when source-symbol provided without source-file", () => {
+      const options = {
+        sourceSymbol: "validateAuth",
+        sourceProvenance: "extracted",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("--source-symbol requires --source-file");
+        }
+      }
+    });
+
+    it("should throw error when source-symbol provided with inferred provenance but no source-file", () => {
+      const options = {
+        sourceSymbol: "AuthService",
+        sourceProvenance: "inferred",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("--source-symbol requires --source-file");
+        }
+      }
+    });
+
+    it("should throw error when source-symbol provided with generated provenance but no source-file", () => {
+      const options = {
+        sourceSymbol: "GeneratedSchema",
+        sourceProvenance: "generated",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("--source-symbol requires --source-file");
+        }
+      }
+    });
+
+    it("should allow source-symbol with source-file", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceSymbol: "validateAuth",
+        sourceProvenance: "extracted",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+    });
+
+    it("should allow source-file without source-symbol", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+    });
+
+    it("should allow neither source-file nor source-symbol", () => {
+      const options = {
+        sourceProvenance: "inferred",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+    });
+  });
+
+  describe("source-repo validation", () => {
+    it("should throw error when source-repo-remote without source-repo-commit", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+        sourceRepoRemote: "https://github.com/example/repo.git",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("--source-repo-commit is required");
+        }
+      }
+    });
+
+    it("should throw error when source-repo-commit without source-repo-remote", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+        sourceRepoCommit: "1234567890123456789012345678901234567890",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("--source-repo-remote is required");
+        }
+      }
+    });
+
+    it("should allow both source-repo-remote and source-repo-commit", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+        sourceRepoRemote: "https://github.com/example/repo.git",
+        sourceRepoCommit: "1234567890123456789012345678901234567890",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+    });
+
+    it("should allow neither source-repo-remote nor source-repo-commit", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+    });
+  });
+
+  describe("provenance validation", () => {
+    it("should throw error when provenance is missing but source options provided", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("--source-provenance is required");
+        }
+      }
+    });
+
+    it("should throw error when provenance value is invalid", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "invalid-provenance",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("Invalid --source-provenance");
+        }
+      }
+    });
+
+    it("should allow all valid provenance types", () => {
+      const validProvenances = ["extracted", "manual", "inferred", "generated"];
+
+      validProvenances.forEach((provenance) => {
+        if (provenance === "inferred" || provenance === "generated") {
+          // These allow omitting source-file
+          const options = {
+            sourceProvenance: provenance,
+          };
+          expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+        } else {
+          // These require source-file
+          const options = {
+            sourceFile: "src/auth.ts",
+            sourceProvenance: provenance,
+          };
+          expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+        }
+      });
+    });
+  });
+
+  describe("commit SHA validation", () => {
+    it("should throw error for invalid commit SHA", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+        sourceRepoRemote: "https://github.com/example/repo.git",
+        sourceRepoCommit: "not-a-valid-sha",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).toThrow(CLIError);
+      try {
+        validateSourceReferenceOptions(options);
+      } catch (error) {
+        if (error instanceof CLIError) {
+          expect(error.message).toContain("Invalid --source-repo-commit");
+        }
+      }
+    });
+
+    it("should accept valid 40-character hex SHA", () => {
+      const options = {
+        sourceFile: "src/auth.ts",
+        sourceProvenance: "extracted",
+        sourceRepoRemote: "https://github.com/example/repo.git",
+        sourceRepoCommit: "1234567890abcdef1234567890abcdef12345678",
+      };
+
+      expect(() => validateSourceReferenceOptions(options)).not.toThrow();
+    });
+  });
+});
+
+describe("buildSourceReference", () => {
+  it("should build reference with file and symbol", () => {
+    const options = {
+      sourceFile: "src/auth.ts",
+      sourceSymbol: "validateAuth",
+      sourceProvenance: "extracted" as const,
+    };
+
+    const reference = buildSourceReference(options);
+    expect(reference).toBeDefined();
+    expect(reference?.provenance).toBe("extracted");
+    expect(reference?.locations).toHaveLength(1);
+    expect(reference?.locations[0].file).toBe("src/auth.ts");
+    expect(reference?.locations[0].symbol).toBe("validateAuth");
+  });
+
+  it("should build reference with file but no symbol", () => {
+    const options = {
+      sourceFile: "src/auth.ts",
+      sourceProvenance: "manual" as const,
+    };
+
+    const reference = buildSourceReference(options);
+    expect(reference).toBeDefined();
+    expect(reference?.provenance).toBe("manual");
+    expect(reference?.locations).toHaveLength(1);
+    expect(reference?.locations[0].file).toBe("src/auth.ts");
+    expect(reference?.locations[0].symbol).toBeUndefined();
+  });
+
+  it("should build reference with repository context", () => {
+    const options = {
+      sourceFile: "src/auth.ts",
+      sourceProvenance: "extracted" as const,
+      sourceRepoRemote: "https://github.com/example/repo.git",
+      sourceRepoCommit: "1234567890123456789012345678901234567890",
+    };
+
+    const reference = buildSourceReference(options);
+    expect(reference).toBeDefined();
+    expect(reference?.repository?.url).toBe("https://github.com/example/repo.git");
+    expect(reference?.repository?.commit).toBe("1234567890123456789012345678901234567890");
+  });
+
+  it("should build reference without locations when no source-file", () => {
+    const options = {
+      sourceProvenance: "inferred" as const,
+    };
+
+    const reference = buildSourceReference(options);
+    expect(reference).toBeDefined();
+    expect(reference?.provenance).toBe("inferred");
+    expect(reference?.locations).toBeUndefined();
+  });
+
+  it("should return undefined when no provenance", () => {
+    const options = {};
+
+    const reference = buildSourceReference(options);
+    expect(reference).toBeUndefined();
   });
 });

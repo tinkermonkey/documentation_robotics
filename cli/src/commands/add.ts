@@ -27,6 +27,7 @@ import {
 
 
 export interface AddOptions {
+  model?: string;
   name?: string;
   description?: string;
   attributes?: string;
@@ -112,7 +113,7 @@ export async function addCommand(
     // Load model (with error handling for missing models)
     let model: Model;
     try {
-      model = await Model.load(undefined, { layers: [layer] });
+      model = await Model.load(options.model || process.cwd(), { layers: [layer] });
     } catch (error) {
       const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
@@ -215,19 +216,24 @@ export async function addCommand(
         handleSuccess(
           `Staged element ${ansis.bold(elementPath)} to ${ansis.bold(activeChangeset.name)}`,
           {
-            status: "staged",
-            changeset: activeChangeset.name,
+            elementId: elementPath,
+            layer,
             type: resolvedType,
             name: options.name || name,
-          }
+            changesetStatus: "staged",
+            changeset: activeChangeset.name,
+          },
+          { verbose: options.verbose }
         );
       } else {
         // Base model path
         handleSuccess(`Added element ${ansis.bold(elementPath)} to ${ansis.bold(layer)} layer`, {
+          elementId: elementPath,
+          layer,
           type: resolvedType,
           name: options.name || name,
           description: options.description || "(none)",
-        });
+        }, { verbose: true });
       }
     }
   } catch (error) {

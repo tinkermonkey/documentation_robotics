@@ -54,6 +54,8 @@ Examples:
   $ dr analyzer discover --json             # Output discovery results as JSON`
     )
     .action(async (options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Resolve project root for consistent session state path
         const projectRoot = (await findProjectRoot()) || process.cwd();
@@ -66,7 +68,7 @@ Examples:
         if (!options.reselect) {
           const session = await readSession(projectRoot);
           if (session) {
-            if (options.json) {
+            if (jsonMode) {
               // JSON mode: return discovery results with existing session as selected
               const analyzerNames = await registry.getAnalyzerNames();
               const analyzerOptions: any[] = [];
@@ -113,7 +115,7 @@ Examples:
 
         // Run core discover logic
         const discoverResult = await performDiscover(registry, {
-          json: options.json,
+          json: jsonMode,
           reselect: options.reselect,
           isTTY: process.stdin.isTTY,
         });
@@ -121,7 +123,7 @@ Examples:
         const { discoveryResult, installed, analyzerOptions, selectedAnalyzer, shouldWriteSession } = discoverResult;
 
         // JSON output mode
-        if (options.json) {
+        if (jsonMode) {
           // Only write session if an analyzer was actually selected
           // (selectedAnalyzer is only set if analyzers are installed)
           if (selectedAnalyzer && shouldWriteSession) {
@@ -233,6 +235,8 @@ Examples:
   $ dr analyzer status --json       # Output as JSON`
     )
     .action(async (options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Resolve project root for consistent session state path
         const projectRoot = (await findProjectRoot()) || process.cwd();
@@ -278,7 +282,7 @@ Examples:
         }
 
         // JSON output
-        if (options.json) {
+        if (jsonMode) {
           console.log(JSON.stringify(status, null, 2));
           if (actualProjectRoot) {
             await writeStatus(status, actualProjectRoot, analyzerName);
@@ -459,6 +463,8 @@ Examples:
   $ dr analyzer endpoints --name cbm   # List endpoints from specific analyzer`
     )
     .action(async (options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Find project root
         const projectRoot = await findProjectRoot();
@@ -505,7 +511,7 @@ Examples:
         const endpoints = await backend.endpoints(projectRoot);
 
         // JSON output
-        if (options.json) {
+        if (jsonMode) {
           console.log(JSON.stringify(endpoints, null, 2));
           return;
         }
@@ -583,6 +589,8 @@ Examples:
   $ dr analyzer services --json       # Output as JSON`
     )
     .action(async (options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Find project root
         const projectRoot = await findProjectRoot();
@@ -634,7 +642,7 @@ Examples:
         }
 
         // JSON output
-        if (options.json) {
+        if (jsonMode) {
           console.log(JSON.stringify(services, null, 2));
           return;
         }
@@ -708,6 +716,8 @@ Examples:
   $ dr analyzer datastores --json # Output as JSON`
     )
     .action(async (options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Find project root
         const projectRoot = await findProjectRoot();
@@ -754,7 +764,7 @@ Examples:
         const datastores = await backend.datastores(projectRoot);
 
         // JSON output
-        if (options.json) {
+        if (jsonMode) {
           console.log(JSON.stringify(datastores, null, 2));
           return;
         }
@@ -815,6 +825,8 @@ Examples:
   $ dr analyzer callers com.example.Service.handleRequest --json`
     )
     .action(async (qualifiedName, options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Validate depth
         const depth = parseInt(options.depth, 10);
@@ -870,7 +882,7 @@ Examples:
         const callers = await backend.callers(projectRoot, qualifiedName, depth);
 
         // JSON output
-        if (options.json) {
+        if (jsonMode) {
           console.log(JSON.stringify(callers, null, 2));
           return;
         }
@@ -928,6 +940,8 @@ Examples:
   $ dr analyzer callees com.example.Service.handleRequest --json`
     )
     .action(async (qualifiedName, options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Validate depth
         const depth = parseInt(options.depth, 10);
@@ -983,7 +997,7 @@ Examples:
         const callees = await backend.callees(projectRoot, qualifiedName, depth);
 
         // JSON output
-        if (options.json) {
+        if (jsonMode) {
           console.log(JSON.stringify(callees, null, 2));
           return;
         }
@@ -1140,10 +1154,12 @@ Examples:
   $ dr analyzer verify --output report.md    # Save report as Markdown`
     )
     .action(async (options) => {
+      // Merge global --json flag if local one isn't set
+      const jsonMode = options.json ?? program.opts().json;
       try {
         // Determine output format from --json flag, --format flag, or --output file extension
         let format: "text" | "json" | "markdown" = "text";
-        if (options.json) {
+        if (jsonMode) {
           // Warn if both --json and --format are provided
           if (options.format) {
             console.warn(ansis.yellow(`⚠ Both --json and --format "${options.format}" were provided. Using --json format (--format is ignored).`));

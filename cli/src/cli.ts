@@ -10,6 +10,7 @@
 
 import { Command, CommanderError } from "commander";
 import { setGlobalOptions } from "./utils/globals.js";
+import { installAnsiSuppressor } from "./utils/ansi-suppressor.js";
 import { initCommand } from "./commands/init.js";
 import { addCommand } from "./commands/add.js";
 import { updateCommand } from "./commands/update.js";
@@ -54,6 +55,15 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
 
 // Commands that require console interceptor for telemetry logging
 const CONSOLE_LOGGING_COMMANDS = new Set(['chat', 'validate', 'import', 'export']);
+
+// Suppress ANSI color output on non-TTY stdout
+if (!process.stdout.isTTY) {
+  process.env.FORCE_COLOR = "0";
+  process.env.NO_COLOR = "1";
+}
+
+// Install the ANSI suppressor to strip color codes from console output when not on TTY
+installAnsiSuppressor();
 
 /**
  * Extract exit code from an error object.
@@ -106,14 +116,16 @@ program
   .description("Documentation Robotics CLI - Architecture Model Management")
   .option("-v, --verbose", "Enable verbose output")
   .option("--debug", "Enable debug mode")
+  .option("--json", "Output as JSON (supported on mutating and query commands)")
   .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
   .showSuggestionAfterError() // "Did you mean X?" on unknown commands/options
   .hook("preAction", async (thisCommand) => {
-    // Set up global state (verbose/debug flags)
+    // Set up global state (verbose/debug/json flags)
     const options = thisCommand.opts();
     setGlobalOptions({
       verbose: options.verbose as boolean | undefined,
       debug: options.debug as boolean | undefined,
+      json: options.json as boolean | undefined,
     });
   });
 
@@ -138,6 +150,7 @@ Examples:
 program
   .command("add <layer> <type> <name>")
   .description("Add an element to a layer")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--name <name>", "Element display name (defaults to the name argument)")
   .option("--description <desc>", "Element description")
   .option("--attributes <json>", "Element type-specific attributes as JSON object")
@@ -146,6 +159,7 @@ program
   .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
   .option("--source-repo-remote <url>", "Git remote URL for repository context")
   .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
   .addHelpText(
     "after",
     `
@@ -157,11 +171,13 @@ Examples:
 
 Note: Element IDs are generated automatically in format {layer}.{type}.{kebab-name}`
   )
-  .action(addCommand);
+  .action((layer, type, name, options) =>
+    addCommand(layer, type, name, { ...options, verbose: options.verbose ?? program.opts().verbose }));
 
 program
   .command("update <id>")
   .description("Update an element")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--name <name>", "New element name")
   .option("--description <desc>", "New description")
   .option("--type <new-type>", "Change element type (must be valid for the element's layer; incompatible attributes must be cleaned up manually)")
@@ -172,6 +188,7 @@ program
   .option("--source-repo-remote <url>", "Git remote URL for repository context")
   .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
   .option("--clear-source-reference", "Remove source reference from element")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
   .addHelpText(
     "after",
     `
@@ -185,14 +202,17 @@ Examples:
   $ dr update application-applicationfunction-process-orders --type applicationservice
   $ dr update security-policy-auth --source-file "src/auth/policy.ts" --source-provenance "extracted"`
   )
-  .action(updateCommand);
+  .action((id, options) =>
+    updateCommand(id, { ...options, verbose: options.verbose ?? program.opts().verbose }));
 
 program
   .command("delete <id>")
   .description("Delete an element")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .option("--force", "Skip dependency checks (confirmation is also skipped in non-TTY environments)")
   .option("--cascade", "Remove dependent elements automatically")
   .option("--dry-run", "Show what would be removed without actually removing")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
   .addHelpText(
     "after",
     `
@@ -203,7 +223,8 @@ Examples:
   $ dr delete api-endpoint-old-endpoint --dry-run
   $ dr delete api-endpoint-old-endpoint --cascade --dry-run`
   )
-  .action(deleteCommand);
+  .action((id, options) =>
+    deleteCommand(id, { ...options, verbose: options.verbose ?? program.opts().verbose }));
 
 program
   .command("show <id>")
@@ -234,7 +255,9 @@ Examples:
   $ dr list api --json
   $ dr list --json`
   )
-  .action(listCommand);
+  .action((layer, options) => {
+    return listCommand(layer, { ...options, json: options.json ?? program.opts().json });
+  });
 
 program
   .command("search <query>")
@@ -255,7 +278,9 @@ Examples:
   $ dr search create-* --type endpoint
   $ dr search "" --source-file src/api/customer.ts`
   )
-  .action(searchCommand);
+  .action((query, options) => {
+    return searchCommand(query, { ...options, json: options.json ?? program.opts().json });
+  });
 
 program
   .command("validate")
@@ -550,11 +575,11 @@ Examples:
 
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");
-relationshipCommands(relationshipGroup);
+relationshipCommands(relationshipGroup, program);
 
 // Element subcommands
 const elementGroup = program.command("element").description("Element operations");
-elementCommands(elementGroup);
+elementCommands(elementGroup, program);
 
 // Schema introspection subcommands
 schemaCommands(program);
@@ -783,7 +808,7 @@ Examples:
   .action(async (options) => {
     await conformanceCommand({
       layers: options.layers,
-      json: options.json,
+      json: options.json ?? program.opts().json,
       verbose: options.verbose ?? program.opts().verbose,
     });
   });
@@ -852,10 +877,14 @@ analyzerCommands(program);
             // Print error message for CLIError instances
             // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
             const { CLIError } = await import("./utils/errors.js");
+            const { isJson } = await import("./utils/globals.js");
             if (error instanceof CommanderError) {
               // Commander handled its own output; nothing to print
             } else if (error instanceof CLIError) {
-              console.error(error.format());
+              // In JSON mode, handleError already output structured JSON; skip text formatting
+              if (!isJson()) {
+                console.error(error.format());
+              }
             } else if (error instanceof Error) {
               console.error(error.message);
             } else {
@@ -888,10 +917,14 @@ analyzerCommands(program);
         // Extract exit code from CLIError if available
         // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
         const { CLIError } = await import("./utils/errors.js");
+        const { isJson } = await import("./utils/globals.js");
         if (error instanceof CommanderError) {
           // Commander handled its own output; nothing to print
         } else if (error instanceof CLIError) {
-          console.error(error.format());
+          // In JSON mode, handleError already output structured JSON; skip text formatting
+          if (!isJson()) {
+            console.error(error.format());
+          }
         } else {
           // Unexpected exceptions need to be printed
           if (error instanceof Error) {
