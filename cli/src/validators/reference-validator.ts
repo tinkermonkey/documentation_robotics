@@ -5,7 +5,7 @@
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { getLayerByNumber, LAYER_HIERARCHY, getAllLayerIds } from "../generated/layer-registry.js";
-import { parseReferencePath, type ReferencePathParseError } from "../utils/reference-path-parser.js";
+import { parseReferencePath, ReferencePathParseError } from "../utils/reference-path-parser.js";
 
 /**
  * Validator for cross-layer references
@@ -91,23 +91,16 @@ export class ReferenceValidator {
           parsedModel = parsed.modelName;
           targetSegment = parsed.segment;
         } catch (error) {
-          const parseError = error as ReferencePathParseError;
-          if (parseError.kind === "malformed-qualified-path") {
+          if (error instanceof ReferencePathParseError) {
             result.addError({
               layer: sourceLayerName,
               elementId,
-              message: `Malformed qualified reference path: ${parseError.message}`,
+              message: `Malformed qualified reference path: ${error.message}`,
               fixSuggestion: `Use format '@{model-name}/{layer}.{type}.{name}' for qualified references or '{layer}.{type}.{name}' for unqualified references`,
               category: "reference",
             });
           } else {
-            result.addError({
-              layer: sourceLayerName,
-              elementId,
-              message: `Invalid reference path: ${ref.target}`,
-              fixSuggestion: `Use format '@{model-name}/{layer}.{type}.{name}' for qualified references or '{layer}.{type}.{name}' for unqualified references`,
-              category: "reference",
-            });
+            throw error;
           }
           continue;
         }
