@@ -75,9 +75,12 @@ describe("qualified references validation (integration)", () => {
     );
 
     // Add qualified reference to external auth service API layer
-    motivationLayer.elements[0].references = [
-      { target: "@auth-service/api.operation.authenticate", type: "implements" },
-    ];
+    const element1 = motivationLayer.elements.get("motivation.goal.secure-authentication");
+    if (element1) {
+      element1.references = [
+        { target: "@auth-service/api.operation.authenticate", type: "implements" },
+      ];
+    }
 
     model.addLayer(motivationLayer);
 
@@ -119,9 +122,12 @@ describe("qualified references validation (integration)", () => {
     );
 
     // Add qualified reference to undeclared external model
-    motivationLayer.elements[0].references = [
-      { target: "@undeclared-service/api.operation.test", type: "implements" },
-    ];
+    const element2 = motivationLayer.elements.get("motivation.goal.secure-authentication");
+    if (element2) {
+      element2.references = [
+        { target: "@undeclared-service/api.operation.test", type: "implements" },
+      ];
+    }
 
     model.addLayer(motivationLayer);
 
@@ -167,9 +173,12 @@ describe("qualified references validation (integration)", () => {
     );
 
     // Add invalid reference: lower layer referencing higher layer
-    dataStoreLayer.elements[0].references = [
-      { target: "@core-service/api.operation.get-users", type: "uses" },
-    ];
+    const element3 = dataStoreLayer.elements.get("data-store.table.users");
+    if (element3) {
+      element3.references = [
+        { target: "@core-service/api.operation.get-users", type: "uses" },
+      ];
+    }
 
     model.addLayer(dataStoreLayer);
 
@@ -212,9 +221,12 @@ describe("qualified references validation (integration)", () => {
     );
 
     // Reference to data-model (hyphenated layer) in external model
-    applicationLayer.elements[0].references = [
-      { target: "@data-service/data-model.entity.order", type: "uses" },
-    ];
+    const element4 = applicationLayer.elements.get("application.service.order-processor");
+    if (element4) {
+      element4.references = [
+        { target: "@data-service/data-model.entity.order", type: "uses" },
+      ];
+    }
 
     model.addLayer(applicationLayer);
 
@@ -256,9 +268,12 @@ describe("qualified references validation (integration)", () => {
     );
 
     // Malformed path - missing required segments
-    motivationLayer.elements[0].references = [
-      { target: "@external/invalid", type: "implements" },
-    ];
+    const element5 = motivationLayer.elements.get("motivation.goal.test");
+    if (element5) {
+      element5.references = [
+        { target: "@external/invalid", type: "implements" },
+      ];
+    }
 
     model.addLayer(motivationLayer);
 
