@@ -183,11 +183,18 @@ export function extractSegmentFromPath(path: string): string {
       );
     }
 
-    // Validate the segment format matches either UUID or element path pattern
-    if (!UUID_PATTERN.test(segment) && !ELEMENT_PATH_PATTERN.test(segment)) {
+    // Qualified references cannot use UUIDs; only dot-separated element paths are allowed
+    if (UUID_PATTERN.test(segment)) {
+      throw createParseError(
+        "Qualified references cannot reference UUIDs; use '@{model-name}/{layer}.{type}.{name}' format"
+      );
+    }
+
+    // Validate the segment format is a valid element path
+    if (!ELEMENT_PATH_PATTERN.test(segment)) {
       throw createParseError(
         `Invalid element path in qualified reference: '${segment}'. ` +
-          "Use format '@{model-name}/{layer}.{type}.{name}' or '@{model-name}/UUID'"
+          "Use format '@{model-name}/{layer}.{type}.{name}'"
       );
     }
 

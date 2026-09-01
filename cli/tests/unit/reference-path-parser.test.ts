@@ -197,12 +197,9 @@ describe("Reference Path Parser", () => {
         expect(() => parseReferencePath("@-auth/api.operation.login")).toThrow();
       });
 
-      it("should parse qualified path with underscore model name", () => {
-        // Underscores are allowed in model names
-        const result = parseReferencePath("@_auth/api.operation.login");
-        expect(result.modelName).toBe("_auth");
-        expect(result.segment).toBe("api.operation.login");
-        expect(result.isQualified).toBe(true);
+      it("should throw for qualified path with underscore model name", () => {
+        // Model names cannot start with underscore; must start with [a-z0-9]
+        expect(() => parseReferencePath("@_auth/api.operation.login")).toThrow();
       });
     });
 
@@ -377,6 +374,11 @@ describe("Reference Path Parser", () => {
     it("should return UUID unchanged", () => {
       const uuid = "550e8400-e29b-41d4-a716-446655440000";
       expect(extractSegmentFromPath(uuid)).toBe(uuid);
+    });
+
+    it("should throw for qualified UUID (not supported)", () => {
+      const uuid = "550e8400-e29b-41d4-a716-446655440000";
+      expect(() => extractSegmentFromPath(`@auth/${uuid}`)).toThrow();
     });
 
     it("should throw for empty string", () => {
