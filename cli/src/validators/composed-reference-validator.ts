@@ -2,8 +2,9 @@ import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { Validator } from "./validator.js";
 import { parseReferencePath } from "../utils/reference-path-parser.js";
-import { promises as fs } from "fs";
+import { promises as fs, Dirent } from "fs";
 import path from "path";
+import { parse as parseYAML } from "yaml";
 
 interface ResolvedExternalModel {
   modelName: string;
@@ -26,7 +27,10 @@ export class ComposedReferenceValidator {
 
     const declaredModels = new Set(Object.keys(model.manifest.models || {}));
 
+    // Clear all state to ensure fresh validation on reuse
     this.referencedModels.clear();
+    this.resolvedModels.clear();
+    this.unresolvedModels.clear();
     this.collectReferencedModels(model);
 
     for (const modelName of declaredModels) {
@@ -106,10 +110,11 @@ export class ComposedReferenceValidator {
       const elementIds = new Set<string>();
 
       // Try to load all layer directories
-      let entries: any[] = [];
+      let entries: Dirent[] = [];
       try {
         entries = await fs.readdir(modelDir, { withFileTypes: true });
-      } catch {
+      } catch (error) {
+        this.addResolutionWarning(modelName, error, modelPath);
         this.unresolvedModels.add(modelName);
         return;
       }
@@ -144,26 +149,40 @@ export class ComposedReferenceValidator {
           try {
             const content = await fs.readFile(path.join(layerPath, entry.name), "utf-8");
             this.extractElementPathsFromYAML(content, elementIds);
-          } catch {
-            // Skip files we can't read
+          } catch (error) {
+            const filePath = path.join(layerPath, entry.name);
+            console.warn(`Warning: Failed to read YAML file at ${filePath}: ${this.getErrorMessage(error)}`);
             continue;
           }
         }
       }
-    } catch {
-      // Layer directory doesn't exist or can't be read
+    } catch (error) {
+      console.warn(`Warning: Failed to read layer directory at ${layerPath}: ${this.getErrorMessage(error)}`);
     }
   }
 
   private extractElementPathsFromYAML(content: string, elementIds: Set<string>): void {
-    const pathPattern = /^\s*-?\s*path:\s*["']?([^"'\n]+)["']?\s*$/gm;
-    let match;
+    try {
+      const parsed = parseYAML(content);
 
-    while ((match = pathPattern.exec(content)) !== null) {
-      const elementPath = match[1]?.trim();
-      if (elementPath) {
-        elementIds.add(elementPath);
+      if (!parsed) {
+        console.warn("Warning: YAML file parsed to empty content");
+        return;
       }
+
+      // Handle both array and object formats
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+
+      for (const item of items) {
+        if (item && typeof item === "object") {
+          const elementPath = item.path || item.id;
+          if (elementPath && typeof elementPath === "string") {
+            elementIds.add(elementPath.trim());
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Warning: Failed to parse YAML content: ${this.getErrorMessage(error)}`);
     }
   }
 
@@ -212,5 +231,33 @@ export class ComposedReferenceValidator {
     }
 
     return result;
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  }
+
+  private addResolutionWarning(modelName: string, error: unknown, modelPath: string): void {
+    const errorMsg = this.getErrorMessage(error);
+    const code = (error as NodeJS.ErrnoException)?.code;
+
+    if (code === "EACCES") {
+      console.warn(
+        `Warning: Permission denied accessing model '${modelName}' at ${modelPath} — ` +
+          `check file permissions. Qualified references to this model may falsely appear broken.`
+      );
+    } else if (code === "EIO") {
+      console.warn(
+        `Warning: I/O error reading model '${modelName}' at ${modelPath} — ` +
+          `filesystem error or device issue. Qualified references to this model may falsely appear broken.`
+      );
+    } else {
+      console.warn(
+        `Warning: Failed to resolve external model '${modelName}' at ${modelPath}: ${errorMsg}`
+      );
+    }
   }
 }
