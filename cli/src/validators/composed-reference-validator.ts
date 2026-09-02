@@ -6,6 +6,7 @@ import { getErrorMessage } from "../utils/errors.js";
 import { promises as fs, Dirent } from "fs";
 import path from "path";
 import { parse as parseYAML } from "yaml";
+import { FarmManifest } from "../core/farm-manifest.js";
 
 interface ResolvedExternalModel {
   modelName: string;
@@ -20,6 +21,31 @@ export class ComposedReferenceValidator {
 
   constructor(modelPathOverrides: Record<string, string> = {}) {
     this.modelPathOverrides = modelPathOverrides;
+  }
+
+  /**
+   * Create a ComposedReferenceValidator from a farm root
+   * Automatically builds model-path overrides from the farm's project entries
+   * @param farmRoot - Path to the farm root directory
+   * @returns ComposedReferenceValidator instance configured for the farm
+   */
+  static async fromFarm(farmRoot: string): Promise<ComposedReferenceValidator> {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = await FarmManifest.load(farmYamlPath);
+
+    const modelPathOverrides: Record<string, string> = {};
+
+    // Build model-path overrides for each project in the farm
+    for (const project of manifest.getAllProjects()) {
+      // For detached model layouts, point directly to the model folder.
+      // The validator will look for manifest.yaml within this folder.
+      // If the model is co-located (inside codebase), it will also find it
+      // via the documentation-robotics/model/ path search.
+      const modelFullPath = path.join(farmRoot, project.model_folder);
+      modelPathOverrides[project.name] = modelFullPath;
+    }
+
+    return new ComposedReferenceValidator(modelPathOverrides);
   }
 
   async validateModel(model: Model): Promise<ValidationResult> {
@@ -142,6 +168,13 @@ export class ComposedReferenceValidator {
       // Fall back to legacy layout: {modelPath}/model/
       if (!stats) {
         modelDir = path.join(modelPath, "model");
+        stats = await fs.stat(modelDir).catch(() => null);
+      }
+
+      // Fall back to detached layout: modelPath itself is the model directory
+      // (contains layer directories like 01_motivation, 07_api, etc.)
+      if (!stats) {
+        modelDir = modelPath;
         stats = await fs.stat(modelDir).catch(() => null);
       }
 

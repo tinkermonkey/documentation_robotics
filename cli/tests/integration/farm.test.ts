@@ -6,7 +6,9 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { FarmManifest } from "../../src/core/farm-manifest.js";
-import { fileExists, ensureDir } from "../../src/utils/file-io.js";
+import { fileExists, ensureDir, writeFile } from "../../src/utils/file-io.js";
+import { ComposedReferenceValidator } from "../../src/validators/composed-reference-validator.js";
+import { Model } from "../../src/core/model.js";
 
 describe("FarmManifest", () => {
   let testDir: string;
@@ -309,5 +311,243 @@ describe("Farm integration with model paths", () => {
 
     expect(project?.codebase_path).toBe(codebasePath);
     expect(project?.model_folder).toBe(modelFolder);
+  });
+});
+
+describe("Farm validation with cross-model references", () => {
+  let testDir: string;
+  let farmRoot: string;
+
+  beforeEach(async () => {
+    testDir = path.join("/tmp", `farm-validation-${Date.now()}`);
+    farmRoot = testDir;
+    await ensureDir(farmRoot);
+  });
+
+  afterEach(async () => {
+    if (await fileExists(testDir)) {
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should create ComposedReferenceValidator from farm", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm");
+
+    // Create codebase directories
+    const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceBCodebase = path.join(farmRoot, "service-b");
+    await ensureDir(serviceACodebase);
+    await ensureDir(serviceBCodebase);
+
+    // Add projects to farm
+    manifest.addProject("service-a", {
+      name: "service-a",
+      codebase_path: "service-a",
+      model_folder: "service-a-model",
+    });
+
+    manifest.addProject("service-b", {
+      name: "service-b",
+      codebase_path: "service-b",
+      model_folder: "service-b-model",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Create validator from farm
+    const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    // Verify validator was created
+    expect(validator).toBeDefined();
+  });
+
+  it("should resolve model paths from farm manifest", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm");
+
+    // Create codebase and model directories
+    const serviceACodebase = path.join(farmRoot, "services", "service-a");
+    const serviceAModel = path.join(farmRoot, "service-a-model");
+    await ensureDir(serviceACodebase);
+    await ensureDir(serviceAModel);
+
+    manifest.addProject("service-a", {
+      name: "service-a",
+      codebase_path: "services/service-a",
+      model_folder: "service-a-model",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Create validator from farm
+    const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    // Verify validator has model path overrides for service-a
+    expect(validator).toBeDefined();
+  });
+
+  it("should handle farm with multiple projects", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Multi-Service Farm");
+
+    // Create multiple services
+    const services = ["auth-service", "api-service", "web-service"];
+    for (const service of services) {
+      const codebase = path.join(farmRoot, service);
+      const modelFolder = path.join(farmRoot, `${service}-model`);
+      await ensureDir(codebase);
+      await ensureDir(modelFolder);
+
+      manifest.addProject(service, {
+        name: service,
+        codebase_path: service,
+        model_folder: `${service}-model`,
+      });
+    }
+
+    await manifest.save(farmYamlPath);
+
+    // Create validator from farm
+    const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    expect(validator).toBeDefined();
+  });
+
+  it("should validate farm models with cross-model references", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm");
+
+    // Create two service projects
+    const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
+    const serviceAModel = path.join(serviceADocRobotics, "model");
+    const serviceAMotivation = path.join(serviceAModel, "01_motivation");
+
+    const serviceBCodebase = path.join(farmRoot, "service-b");
+    const serviceBDocRobotics = path.join(serviceBCodebase, "documentation-robotics");
+    const serviceBModel = path.join(serviceBDocRobotics, "model");
+    const serviceBApi = path.join(serviceBModel, "07_api");
+
+    await ensureDir(serviceAMotivation);
+    await ensureDir(serviceBApi);
+
+    // Create a goal in service-a
+    const goalContent = `
+- path: motivation.goal.user-satisfaction
+  id: motivation.goal.user-satisfaction
+  name: User Satisfaction
+  description: Ensure users are satisfied with the product
+  type: goal
+`;
+    await writeFile(path.join(serviceAMotivation, "goals.yaml"), goalContent);
+
+    // Create an API endpoint in service-b that references service-a's goal
+    const endpointContent = `
+- path: api.endpoint.health-check
+  id: api.endpoint.health-check
+  name: Health Check
+  description: Basic health check endpoint
+  type: endpoint
+  references:
+    - target: "@service-a/motivation.goal.user-satisfaction"
+      relationship: supports
+`;
+    await writeFile(path.join(serviceBApi, "endpoints.yaml"), endpointContent);
+
+    // Register projects in farm manifest
+    manifest.addProject("service-a", {
+      name: "service-a",
+      codebase_path: "service-a",
+      model_folder: "service-a", // Will use documentation-robotics/model path
+    });
+
+    manifest.addProject("service-b", {
+      name: "service-b",
+      codebase_path: "service-b",
+      model_folder: "service-b",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Create validator from farm
+    const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    // Load service-b's model and validate cross-model references
+    const model = await Model.load(serviceBModel);
+    const result = await validator.validateModel(model);
+
+    // Validation should pass because the referenced element exists in service-a
+    expect(result.isValid()).toBe(true);
+  });
+
+  it("should detect broken cross-model references", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm");
+
+    // Create two service projects
+    const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
+    const serviceAModel = path.join(serviceADocRobotics, "model");
+    const serviceAMotivation = path.join(serviceAModel, "01_motivation");
+
+    const serviceBCodebase = path.join(farmRoot, "service-b");
+    const serviceBDocRobotics = path.join(serviceBCodebase, "documentation-robotics");
+    const serviceBModel = path.join(serviceBDocRobotics, "model");
+    const serviceBApi = path.join(serviceBModel, "07_api");
+
+    await ensureDir(serviceAMotivation);
+    await ensureDir(serviceBApi);
+
+    // Create a minimal element in service-a
+    const goalContent = `
+- path: motivation.goal.user-satisfaction
+  id: motivation.goal.user-satisfaction
+  name: User Satisfaction
+`;
+    await writeFile(path.join(serviceAMotivation, "goals.yaml"), goalContent);
+
+    // Create an API endpoint in service-b that references a NON-EXISTENT goal in service-a
+    const endpointContent = `
+- path: api.endpoint.health-check
+  id: api.endpoint.health-check
+  name: Health Check
+  references:
+    - target: "@service-a/motivation.goal.non-existent"
+      relationship: supports
+`;
+    await writeFile(path.join(serviceBApi, "endpoints.yaml"), endpointContent);
+
+    // Register projects in farm
+    manifest.addProject("service-a", {
+      name: "service-a",
+      codebase_path: "service-a",
+      model_folder: "service-a",
+    });
+
+    manifest.addProject("service-b", {
+      name: "service-b",
+      codebase_path: "service-b",
+      model_folder: "service-b",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Create validator from farm
+    const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    // Load service-b's model and validate
+    const model = await Model.load(serviceBModel);
+    const result = await validator.validateModel(model);
+
+    // Should have an error for the broken reference
+    expect(result.isValid()).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+
+    // Find the error related to the broken reference
+    const brokenRefError = result.errors.find((e) =>
+      e.message.includes("Broken qualified reference")
+    );
+    expect(brokenRefError).toBeDefined();
   });
 });

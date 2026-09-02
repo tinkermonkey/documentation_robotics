@@ -13,6 +13,9 @@ import * as prompts from "@clack/prompts";
 import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { Model } from "../core/model.js";
+import { ComposedReferenceValidator } from "../validators/composed-reference-validator.js";
+import { ValidationFormatter } from "../validators/validation-formatter.js";
 
 /**
  * Initialize a new farm
@@ -347,6 +350,179 @@ export async function farmStatusCommand(): Promise<void> {
 }
 
 /**
+ * Validate a farm project or all projects using composed scope
+ */
+export async function farmValidateCommand(options: {
+  project?: string;
+  verbose?: boolean;
+  quiet?: boolean;
+  output?: string;
+}): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan("farm.validate") : null;
+
+  try {
+    // Find farm root
+    const farmRoot = await findFarmRoot();
+    if (!farmRoot) {
+      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
+    }
+
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const farmManifest = await FarmManifest.load(farmYamlPath);
+
+    // Determine which projects to validate
+    let projectsToValidate = farmManifest.getAllProjects();
+    if (options.project) {
+      const project = farmManifest.getProject(options.project);
+      if (!project) {
+        throw new Error(`Project '${options.project}' not found in farm`);
+      }
+      projectsToValidate = [project];
+    }
+
+    if (projectsToValidate.length === 0) {
+      throw new Error("No projects found in farm");
+    }
+
+    // Create composed validator from farm
+    const composedValidator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "validating", projects: projectsToValidate.length }));
+    } else if (!options.quiet) {
+      if (options.project) {
+        handleInfo(`Validating project '${options.project}' with farm-aware references...`);
+      } else {
+        handleInfo(`Validating ${projectsToValidate.length} farm project(s) with farm-aware references...`);
+      }
+    }
+
+    const allResults = [];
+
+    // Validate each project
+    for (const project of projectsToValidate) {
+      const modelPath = path.join(farmRoot, project.model_folder);
+
+      // Check if model folder exists
+      if (!(await fileExists(modelPath))) {
+        const error = `Model folder not found for project '${project.name}' at ${modelPath}`;
+        if (isJson()) {
+          console.log(
+            JSON.stringify({
+              status: "error",
+              code: 1,
+              project: project.name,
+              message: error,
+            })
+          );
+        } else {
+          console.error(ansis.red(`Error: ${error}`));
+        }
+        if (span) endSpan(span);
+        process.exit(1);
+      }
+
+      // Load the model using DR_MODEL_PATH to support detached model layouts
+      // Save current DR_MODEL_PATH if it exists
+      const originalDRModelPath = process.env.DR_MODEL_PATH;
+
+      // For detached models, check if manifest.yaml exists directly in the model folder.
+      // If so, set DR_MODEL_PATH to point to the manifest.yaml file so Model.load()
+      // can find it correctly.
+      let drModelPath = modelPath;
+      const manifestPath = path.join(modelPath, "manifest.yaml");
+      if (await fileExists(manifestPath)) {
+        // Point directly to the manifest.yaml file
+        drModelPath = manifestPath;
+      }
+
+      process.env.DR_MODEL_PATH = drModelPath;
+
+      try {
+        const model = await Model.load();
+
+        // Validate using composed reference validator
+        const result = await composedValidator.validateModel(model);
+
+        allResults.push({ project: project.name, result });
+
+        if (!options.quiet) {
+          console.log(ansis.bold(`\nProject: ${project.name}`));
+
+          // Format and display validation output
+          const formatted = ValidationFormatter.format(result, model, {
+            verbose: options.verbose,
+            quiet: options.quiet,
+          });
+          console.log(formatted);
+        }
+
+        if (!result.isValid()) {
+          if (options.project) {
+            // Single project validation failed
+            throw new Error(`Validation failed for project '${project.name}'`);
+          }
+          // Multi-project validation: track but continue
+        }
+      } finally {
+        // Restore original DR_MODEL_PATH
+        if (originalDRModelPath !== undefined) {
+          process.env.DR_MODEL_PATH = originalDRModelPath;
+        } else {
+          delete process.env.DR_MODEL_PATH;
+        }
+      }
+    }
+
+    // Check if all validations passed
+    const allValid = allResults.every((r) => r.result.isValid());
+
+    if (isJson()) {
+      console.log(
+        JSON.stringify({
+          status: "ok",
+          projects: allResults.map((r) => ({
+            name: r.project,
+            valid: r.result.isValid(),
+            errors: r.result.errors.length,
+            warnings: r.result.warnings.length,
+          })),
+          all_valid: allValid,
+        })
+      );
+    }
+
+    if (!allValid) {
+      throw new Error("Farm validation failed");
+    }
+
+    if (!options.quiet) {
+      handleSuccess(
+        options.project
+          ? `Project '${options.project}' validated successfully`
+          : `All farm projects validated successfully`
+      );
+    }
+
+    if (span) endSpan(span);
+  } catch (error) {
+    if (isJson()) {
+      console.log(
+        JSON.stringify({
+          status: "error",
+          code: 1,
+          message: getErrorMessage(error),
+        })
+      );
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
+    if (span) endSpan(span);
+    process.exit(1);
+  }
+}
+
+/**
  * Register farm commands with the CLI
  */
 export function farmCommands(program: Command): void {
@@ -410,6 +586,26 @@ Examples:
     )
     .action(async () => {
       await farmStatusCommand();
+    });
+
+  farmGroup
+    .command("validate")
+    .description("Validate farm projects using composed scope (cross-model references)")
+    .option("--project <name>", "Validate only a specific project (default: all)")
+    .option("--verbose", "Show verbose validation output")
+    .option("--quiet", "Suppress success messages")
+    .option("--output <path>", "Export validation report to file (JSON/Markdown)")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr farm validate
+  $ dr farm validate --project my-service
+  $ dr farm validate --verbose
+  $ dr farm validate --output report.json`
+    )
+    .action(async (options) => {
+      await farmValidateCommand(options);
     });
 
   farmGroup.showSuggestionAfterError();
