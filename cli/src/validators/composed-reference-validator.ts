@@ -110,9 +110,9 @@ export class ComposedReferenceValidator {
     if (!modelPath) {
       // Case-insensitive lookup in modelPathOverrides
       const lowerModelName = modelName.toLowerCase();
-      for (const [key, path] of Object.entries(this.modelPathOverrides)) {
+      for (const [key, overridePath] of Object.entries(this.modelPathOverrides)) {
         if (key.toLowerCase() === lowerModelName) {
-          modelPath = path;
+          modelPath = overridePath;
           break;
         }
       }
