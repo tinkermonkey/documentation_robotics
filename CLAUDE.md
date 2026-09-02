@@ -147,12 +147,31 @@ See `cli/README.md` for complete setup and usage documentation.
 **Model Declarations**:
 
 - External models are declared in `documentation-robotics/model/manifest.yaml` under a `models:` section
-- Format: `models: {modelName: description}`
+- Each model declaration is an object with optional `url` and `role` fields:
+  - `url` (optional): Git repository URL for documentation (e.g., `https://github.com/org/auth-service.git`)
+  - `role` (optional): Informational role descriptor (e.g., `shared` for shared infrastructure)
+
+**Model Declaration Format**:
 
   ```yaml
   models:
-    auth-service: Authentication and authorization microservice
-    payment-service: Payment processing microservice
+    auth-service:
+      url: "https://github.com/org/auth-service.git"
+    payment-service:
+      url: "https://github.com/org/payment-service.git"
+    shared-infra:
+      url: "https://github.com/org/shared-infra.git"
+      role: "shared"
+  ```
+
+**Minimal Declarations**:
+
+If you want to declare a model without metadata, use an empty object:
+
+  ```yaml
+  models:
+    auth-service: {}
+    payment-service: {}
   ```
 
 - Declaring a model signals intent to reference elements from it; references will be validated during conformance checks
