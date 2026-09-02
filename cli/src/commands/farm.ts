@@ -279,7 +279,9 @@ export async function farmRemoveCommand(
 /**
  * Show farm status
  */
-export async function farmStatusCommand(): Promise<void> {
+export async function farmStatusCommand(options: {
+  format?: string;
+}): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.status") : null;
 
   try {
@@ -293,8 +295,48 @@ export async function farmStatusCommand(): Promise<void> {
     const manifest = await FarmManifest.load(farmYamlPath);
 
     const projects = manifest.getAllProjects();
+    const engine = new FarmSyncEngine(farmRoot);
 
-    if (isJson()) {
+    // Compute pending changes using lightweight commit comparison
+    const projectsWithStatus = await Promise.all(
+      projects.map(async (p) => {
+        try {
+          const syncStatePath = path.join(farmRoot, ".farm-sync", `${p.name}.yaml`);
+          const syncState = await (await import("../core/farm-sync-state.js")).FarmSyncState.loadOrCreate(
+            syncStatePath,
+            p.name
+          );
+
+          // Use lightweight commit comparison instead of full diff
+          const currentCommit = await engine.getCurrentCommit(p.codebase_path);
+          const lastSyncCommit = syncState.lastSyncCommit;
+          const hasPendingChanges = lastSyncCommit && lastSyncCommit !== currentCommit;
+
+          return {
+            name: p.name,
+            codebase_path: p.codebase_path,
+            model_folder: p.model_folder,
+            remote_url: p.remote_url,
+            lastSyncCommit: lastSyncCommit,
+            currentCommit: currentCommit,
+            hasPendingChanges: hasPendingChanges,
+          };
+        } catch {
+          // If sync state doesn't exist or error reading commits, treat as no sync yet
+          return {
+            name: p.name,
+            codebase_path: p.codebase_path,
+            model_folder: p.model_folder,
+            remote_url: p.remote_url,
+            lastSyncCommit: undefined,
+            currentCommit: undefined,
+            hasPendingChanges: false,
+          };
+        }
+      })
+    );
+
+    if (options.format === "json") {
       console.log(
         JSON.stringify({
           status: "ok",
@@ -304,12 +346,7 @@ export async function farmStatusCommand(): Promise<void> {
             created: manifest.created,
             modified: manifest.modified,
           },
-          projects: projects.map((p) => ({
-            name: p.name,
-            codebase_path: p.codebase_path,
-            model_folder: p.model_folder,
-            remote_url: p.remote_url,
-          })),
+          projects: projectsWithStatus,
           project_count: projects.length,
         })
       );
@@ -321,12 +358,19 @@ export async function farmStatusCommand(): Promise<void> {
       if (projects.length === 0) {
         console.log(ansis.dim("No projects registered yet."));
       } else {
-        projects.forEach((project) => {
+        projectsWithStatus.forEach((project) => {
           console.log(`  ${ansis.cyan(project.name)}`);
           console.log(`    Codebase: ${project.codebase_path}`);
           console.log(`    Model:    ${project.model_folder}`);
           if (project.remote_url) {
             console.log(`    Remote:   ${project.remote_url}`);
+          }
+          if (project.hasPendingChanges) {
+            console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
+          } else if (project.lastSyncCommit) {
+            console.log(`    Status:   ${ansis.green("✓ Up to date")}`);
+          } else {
+            console.log(`    Status:   ${ansis.dim("Not synced yet")}`);
           }
         });
       }
@@ -334,11 +378,11 @@ export async function farmStatusCommand(): Promise<void> {
 
     if (span) endSpan(span);
   } catch (error) {
-    if (isJson()) {
+    if (options.format === "json") {
       console.log(
         JSON.stringify({
           status: "error",
-          code: 1,
+          code: 2,
           message: getErrorMessage(error),
         })
       );
@@ -346,7 +390,7 @@ export async function farmStatusCommand(): Promise<void> {
       console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     }
     if (span) endSpan(span);
-    process.exit(1);
+    process.exit(2);
   }
 }
 
@@ -358,6 +402,7 @@ export async function farmValidateCommand(options: {
   verbose?: boolean;
   quiet?: boolean;
   output?: string;
+  format?: string;
 }): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.validate") : null;
 
@@ -388,7 +433,8 @@ export async function farmValidateCommand(options: {
     // Create composed validator from farm
     const composedValidator = await ComposedReferenceValidator.fromFarm(farmRoot);
 
-    if (isJson()) {
+    const useJson = options.format === "json" || isJson();
+    if (useJson) {
       console.log(JSON.stringify({ status: "validating", projects: projectsToValidate.length }));
     } else if (!options.quiet) {
       if (options.project) {
@@ -408,11 +454,11 @@ export async function farmValidateCommand(options: {
       // Check if model folder exists
       if (!(await fileExists(modelPath))) {
         const error = `Model folder not found for project '${project.name}' at ${modelPath}`;
-        if (isJson()) {
+        if (useJson) {
           console.log(
             JSON.stringify({
               status: "error",
-              code: 1,
+              code: 2,
               project: project.name,
               message: error,
             })
@@ -421,7 +467,7 @@ export async function farmValidateCommand(options: {
           console.error(ansis.red(`Error: ${error}`));
         }
         if (span) endSpan(span);
-        process.exit(1);
+        process.exit(2);
       }
 
       // Load the model using DR_MODEL_PATH to support detached model layouts
@@ -559,7 +605,7 @@ export async function farmValidateCommand(options: {
       }
     }
 
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "ok",
@@ -576,7 +622,8 @@ export async function farmValidateCommand(options: {
     }
 
     if (!allValid) {
-      throw new Error("Farm validation failed");
+      if (span) endSpan(span);
+      process.exit(1);
     }
 
     if (!options.quiet) {
@@ -589,11 +636,12 @@ export async function farmValidateCommand(options: {
 
     if (span) endSpan(span);
   } catch (error) {
-    if (isJson()) {
+    const useJson = options.format === "json" || isJson();
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "error",
-          code: 1,
+          code: 2,
           message: getErrorMessage(error),
         })
       );
@@ -601,7 +649,7 @@ export async function farmValidateCommand(options: {
       console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     }
     if (span) endSpan(span);
-    process.exit(1);
+    process.exit(2);
   }
 }
 
@@ -611,6 +659,7 @@ export async function farmValidateCommand(options: {
 export async function farmPullCommand(options: {
   project?: string;
   verbose?: boolean;
+  format?: string;
 }): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.pull") : null;
 
@@ -638,7 +687,8 @@ export async function farmPullCommand(options: {
       throw new Error("No projects found in farm");
     }
 
-    if (!isJson() && !options.verbose) {
+    const useJson = options.format === "json" || isJson();
+    if (!useJson && !options.verbose) {
       handleInfo(`Pulling ${projectsToPull.length} project(s)...`);
     }
 
@@ -658,7 +708,7 @@ export async function farmPullCommand(options: {
           commit,
         });
 
-        if (options.verbose && !isJson()) {
+        if (options.verbose && !useJson) {
           handleInfo(`  ✓ ${project.name}: ${commit.substring(0, 8)}`);
         }
       } catch (error) {
@@ -668,7 +718,7 @@ export async function farmPullCommand(options: {
           message: getErrorMessage(error),
         });
 
-        if (!isJson()) {
+        if (!useJson) {
           console.error(ansis.red(`  ✗ ${project.name}: ${getErrorMessage(error)}`));
         }
       }
@@ -676,10 +726,11 @@ export async function farmPullCommand(options: {
 
     const allSucceeded = results.every((r) => r.status === "success");
 
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: allSucceeded ? "ok" : "partial",
+          code: allSucceeded ? 0 : 1,
           projects: results,
           pulled: results.filter((r) => r.status === "success").length,
           failed: results.filter((r) => r.status === "error").length,
@@ -692,12 +743,16 @@ export async function farmPullCommand(options: {
     }
 
     if (span) endSpan(span);
+    if (!allSucceeded) {
+      process.exit(1);
+    }
   } catch (error) {
-    if (isJson()) {
+    const useJson = options.format === "json" || isJson();
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "error",
-          code: 1,
+          code: 2,
           message: getErrorMessage(error),
         })
       );
@@ -705,7 +760,7 @@ export async function farmPullCommand(options: {
       console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     }
     if (span) endSpan(span);
-    process.exit(1);
+    process.exit(2);
   }
 }
 
@@ -718,6 +773,9 @@ export async function farmSyncCommand(options: {
   dryRun?: boolean;
   force?: boolean;
   output?: string;
+  format?: string;
+  autoCommit?: boolean;
+  concurrency?: string;
 }): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.sync") : null;
 
@@ -745,14 +803,21 @@ export async function farmSyncCommand(options: {
       throw new Error("No projects found in farm");
     }
 
-    if (!isJson() && !options.verbose) {
-      handleInfo(`Syncing ${projectsToSync.length} project(s)...`);
+    // Parse concurrency level
+    const concurrency = options.concurrency ? Math.max(1, parseInt(options.concurrency, 10)) : 1;
+    if (isNaN(concurrency)) {
+      throw new Error("Concurrency must be a positive number");
     }
 
-    const allResults = [];
+    const useJson = options.format === "json" || isJson();
+    if (!useJson && !options.verbose) {
+      handleInfo(`Syncing ${projectsToSync.length} project(s) (concurrency: ${concurrency})...`);
+    }
 
-    // Sync each project
-    for (const project of projectsToSync) {
+    const allResults: Array<Record<string, any>> = [];
+
+    // Process projects with concurrency control
+    const processSyncProject = async (project: typeof projectsToSync[0]) => {
       try {
         const modelPath = path.join(farmRoot, project.model_folder);
 
@@ -780,7 +845,7 @@ export async function farmSyncCommand(options: {
             force: options.force,
           });
 
-          allResults.push({
+          const resultEntry: any = {
             project: project.name,
             status: result.success ? "success" : "failed",
             changeCount: result.changeCount,
@@ -789,9 +854,33 @@ export async function farmSyncCommand(options: {
             ambiguities: result.ambiguities.length,
             commitsBefore: result.commitsBefore,
             commitsAfter: result.commitsAfter,
-          });
+          };
 
-          if (options.verbose && !isJson()) {
+          // Auto-commit if requested and changes were staged
+          if (options.autoCommit && result.changesetId && result.changeCount > 0 && !options.dryRun) {
+            try {
+              const stagingManager = new (await import("../core/staging-area.js")).StagingAreaManager(
+                farmRoot,
+                model
+              );
+              const commitResult = await stagingManager.commit(model, result.changesetId);
+              resultEntry.autoCommitted = true;
+              resultEntry.committedChanges = commitResult.committed;
+              if (options.verbose && !useJson) {
+                handleInfo(`  Auto-committed: ${commitResult.committed} change(s)`);
+              }
+            } catch (commitError) {
+              resultEntry.autoCommitted = false;
+              resultEntry.commitError = getErrorMessage(commitError);
+              if (options.verbose && !useJson) {
+                handleInfo(`  Auto-commit failed: ${getErrorMessage(commitError)}`);
+              }
+            }
+          }
+
+          allResults.push(resultEntry);
+
+          if (options.verbose && !useJson) {
             handleInfo(`\nProject: ${project.name}`);
             handleInfo(`  Status: ${result.success ? "✓ Success" : "✗ Failed"}`);
             handleInfo(`  Commits: ${result.commitsBefore}...${result.commitsAfter}`);
@@ -824,21 +913,51 @@ export async function farmSyncCommand(options: {
           message: getErrorMessage(error),
         });
 
-        if (!isJson()) {
+        if (!useJson) {
           console.error(ansis.red(`✗ ${project.name}: ${getErrorMessage(error)}`));
+        }
+      }
+    };
+
+    // Process with concurrency control
+    if (concurrency === 1) {
+      // Sequential processing
+      for (const project of projectsToSync) {
+        await processSyncProject(project);
+      }
+    } else {
+      // Parallel processing with limited concurrency
+      const queue = [...projectsToSync];
+      const active: Promise<void>[] = [];
+
+      while (queue.length > 0 || active.length > 0) {
+        while (active.length < concurrency && queue.length > 0) {
+          const project = queue.shift()!;
+          const promise = processSyncProject(project);
+          active.push(
+            promise.then(() => {
+              active.splice(active.indexOf(promise), 1);
+            })
+          );
+        }
+
+        if (active.length > 0) {
+          await Promise.race(active);
         }
       }
     }
 
     const allSucceeded = allResults.every((r) => r.status === "success" || r.status === "partial");
 
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: allSucceeded ? "ok" : "error",
+          code: allSucceeded ? 0 : 1,
           projects: allResults,
           synced: allResults.filter((r) => r.status === "success").length,
           failed: allResults.filter((r) => r.status === "error").length,
+          autoCommitted: options.autoCommit,
         })
       );
     } else {
@@ -870,12 +989,16 @@ export async function farmSyncCommand(options: {
     }
 
     if (span) endSpan(span);
+    if (!allSucceeded) {
+      process.exit(1);
+    }
   } catch (error) {
-    if (isJson()) {
+    const useJson = options.format === "json" || isJson();
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "error",
-          code: 1,
+          code: 2,
           message: getErrorMessage(error),
         })
       );
@@ -883,7 +1006,7 @@ export async function farmSyncCommand(options: {
       console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     }
     if (span) endSpan(span);
-    process.exit(1);
+    process.exit(2);
   }
 }
 
@@ -943,14 +1066,16 @@ Examples:
   farmGroup
     .command("status")
     .description("Show farm status and registered projects")
+    .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
       `
 Examples:
-  $ dr farm status`
+  $ dr farm status
+  $ dr farm status --format json`
     )
-    .action(async () => {
-      await farmStatusCommand();
+    .action(async (options) => {
+      await farmStatusCommand(options);
     });
 
   farmGroup
@@ -960,6 +1085,7 @@ Examples:
     .option("--verbose", "Show verbose validation output")
     .option("--quiet", "Suppress success messages")
     .option("--output <path>", "Export validation report to file (JSON/Markdown)")
+    .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
       `
@@ -967,6 +1093,7 @@ Examples:
   $ dr farm validate
   $ dr farm validate --project my-service
   $ dr farm validate --verbose
+  $ dr farm validate --format json
   $ dr farm validate --output report.json`
     )
     .action(async (options) => {
@@ -978,13 +1105,15 @@ Examples:
     .description("Pull latest changes from remote for farm projects")
     .option("--project <name>", "Pull only a specific project (default: all)")
     .option("--verbose", "Show verbose output")
+    .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr farm pull
   $ dr farm pull --project my-service
-  $ dr farm pull --verbose`
+  $ dr farm pull --verbose
+  $ dr farm pull --format json`
     )
     .action(async (options) => {
       await farmPullCommand(options);
@@ -998,6 +1127,9 @@ Examples:
     .option("--dry-run", "Preview without creating changesets")
     .option("--force", "Proceed despite ambiguous file-to-element mappings")
     .option("--output <path>", "Export sync report to file (JSON)")
+    .option("--format <format>", "Output format: text, json", "text")
+    .option("--auto-commit", "Automatically commit changes (bypasses staged review)")
+    .option("--concurrency <n>", "Process multiple projects in parallel (default: 1)", "1")
     .addHelpText(
       "after",
       `
@@ -1005,7 +1137,12 @@ Examples:
   $ dr farm sync
   $ dr farm sync --project my-service
   $ dr farm sync --verbose --output sync-report.json
-  $ dr farm sync --dry-run`
+  $ dr farm sync --dry-run
+  $ dr farm sync --format json --auto-commit
+  $ dr farm sync --concurrency 4
+
+Automation (cron/CI):
+  $ dr farm sync --format json --auto-commit --concurrency 4 --output sync-report.json`
     )
     .action(async (options) => {
       await farmSyncCommand(options);
