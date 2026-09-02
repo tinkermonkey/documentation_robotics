@@ -16,6 +16,7 @@ import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { Model } from "../core/model.js";
 import { ComposedReferenceValidator } from "../validators/composed-reference-validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
+import { FarmSyncEngine } from "../core/farm-sync-engine.js";
 
 /**
  * Initialize a new farm
@@ -605,6 +606,292 @@ export async function farmValidateCommand(options: {
 }
 
 /**
+ * Pull latest changes from remote for farm projects
+ */
+export async function farmPullCommand(options: {
+  project?: string;
+  verbose?: boolean;
+}): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan("farm.pull") : null;
+
+  try {
+    // Find farm root
+    const farmRoot = await findFarmRoot();
+    if (!farmRoot) {
+      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
+    }
+
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = await FarmManifest.load(farmYamlPath);
+
+    // Determine which projects to pull
+    let projectsToPull = manifest.getAllProjects();
+    if (options.project) {
+      const project = manifest.getProject(options.project);
+      if (!project) {
+        throw new Error(`Project '${options.project}' not found in farm`);
+      }
+      projectsToPull = [project];
+    }
+
+    if (projectsToPull.length === 0) {
+      throw new Error("No projects found in farm");
+    }
+
+    if (!isJson() && !options.verbose) {
+      handleInfo(`Pulling ${projectsToPull.length} project(s)...`);
+    }
+
+    // Create sync engine (model not needed for pull)
+    const mockModel = {
+      layers: new Map(),
+      relationships: { find: () => [] },
+    } as any;
+    const engine = new FarmSyncEngine(farmRoot, mockModel);
+
+    const results = [];
+
+    // Pull each project
+    for (const project of projectsToPull) {
+      try {
+        const commit = await engine.pullCodebase(project.codebase_path);
+
+        results.push({
+          project: project.name,
+          status: "success",
+          commit,
+        });
+
+        if (options.verbose && !isJson()) {
+          handleInfo(`  ✓ ${project.name}: ${commit.substring(0, 8)}`);
+        }
+      } catch (error) {
+        results.push({
+          project: project.name,
+          status: "error",
+          message: getErrorMessage(error),
+        });
+
+        if (!isJson()) {
+          console.error(ansis.red(`  ✗ ${project.name}: ${getErrorMessage(error)}`));
+        }
+      }
+    }
+
+    const allSucceeded = results.every((r) => r.status === "success");
+
+    if (isJson()) {
+      console.log(
+        JSON.stringify({
+          status: allSucceeded ? "ok" : "partial",
+          projects: results,
+          pulled: results.filter((r) => r.status === "success").length,
+          failed: results.filter((r) => r.status === "error").length,
+        })
+      );
+    } else if (allSucceeded) {
+      handleSuccess(`Pulled ${projectsToPull.length} project(s) successfully`);
+    } else {
+      throw new Error(`Pull failed for some projects`);
+    }
+
+    if (span) endSpan(span);
+  } catch (error) {
+    if (isJson()) {
+      console.log(
+        JSON.stringify({
+          status: "error",
+          code: 1,
+          message: getErrorMessage(error),
+        })
+      );
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
+    if (span) endSpan(span);
+    process.exit(1);
+  }
+}
+
+/**
+ * Sync farm projects with their models
+ */
+export async function farmSyncCommand(options: {
+  project?: string;
+  verbose?: boolean;
+  dryRun?: boolean;
+  force?: boolean;
+  output?: string;
+}): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan("farm.sync") : null;
+
+  try {
+    // Find farm root
+    const farmRoot = await findFarmRoot();
+    if (!farmRoot) {
+      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
+    }
+
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = await FarmManifest.load(farmYamlPath);
+
+    // Determine which projects to sync
+    let projectsToSync = manifest.getAllProjects();
+    if (options.project) {
+      const project = manifest.getProject(options.project);
+      if (!project) {
+        throw new Error(`Project '${options.project}' not found in farm`);
+      }
+      projectsToSync = [project];
+    }
+
+    if (projectsToSync.length === 0) {
+      throw new Error("No projects found in farm");
+    }
+
+    if (!isJson() && !options.verbose) {
+      handleInfo(`Syncing ${projectsToSync.length} project(s)...`);
+    }
+
+    const allResults = [];
+
+    // Sync each project
+    for (const project of projectsToSync) {
+      try {
+        const modelPath = path.join(farmRoot, project.model_folder);
+
+        if (!(await fileExists(modelPath))) {
+          throw new Error(`Model folder not found for project '${project.name}' at ${modelPath}`);
+        }
+
+        // Load model using detached model layout
+        const originalDRModelPath = process.env.DR_MODEL_PATH;
+        let drModelPath = modelPath;
+        const manifestPath = path.join(modelPath, "manifest.yaml");
+        if (await fileExists(manifestPath)) {
+          drModelPath = manifestPath;
+        }
+
+        process.env.DR_MODEL_PATH = drModelPath;
+
+        try {
+          const model = await Model.load();
+          const engine = new FarmSyncEngine(farmRoot, model);
+
+          const result = await engine.syncProject(project, {
+            verbose: options.verbose,
+            dryRun: options.dryRun,
+            force: options.force,
+          });
+
+          allResults.push({
+            project: project.name,
+            status: result.success ? "success" : "failed",
+            changeCount: result.changeCount,
+            changesetId: result.changesetId,
+            filesChanged: result.filesChanged,
+            ambiguities: result.ambiguities.length,
+            commitsBefore: result.commitsBefore,
+            commitsAfter: result.commitsAfter,
+          });
+
+          if (options.verbose && !isJson()) {
+            handleInfo(`\nProject: ${project.name}`);
+            handleInfo(`  Status: ${result.success ? "✓ Success" : "✗ Failed"}`);
+            handleInfo(`  Commits: ${result.commitsBefore}...${result.commitsAfter}`);
+            handleInfo(
+              `  Files changed: +${result.filesChanged.added.length} ~${result.filesChanged.modified.length} -${result.filesChanged.deleted.length}`
+            );
+            handleInfo(`  Staged changes: ${result.changeCount}`);
+            if (result.changesetId) {
+              handleInfo(`  Changeset: ${result.changesetId}`);
+            }
+            if (result.ambiguities.length > 0) {
+              handleInfo(`  Ambiguities: ${result.ambiguities.length} (flagged for review)`);
+            }
+            for (const note of result.notes) {
+              console.log(`    ${note}`);
+            }
+          }
+        } finally {
+          // Restore original DR_MODEL_PATH
+          if (originalDRModelPath !== undefined) {
+            process.env.DR_MODEL_PATH = originalDRModelPath;
+          } else {
+            delete process.env.DR_MODEL_PATH;
+          }
+        }
+      } catch (error) {
+        allResults.push({
+          project: project.name,
+          status: "error",
+          message: getErrorMessage(error),
+        });
+
+        if (!isJson()) {
+          console.error(ansis.red(`✗ ${project.name}: ${getErrorMessage(error)}`));
+        }
+      }
+    }
+
+    const allSucceeded = allResults.every((r) => r.status === "success" || r.status === "partial");
+
+    if (isJson()) {
+      console.log(
+        JSON.stringify({
+          status: allSucceeded ? "ok" : "error",
+          projects: allResults,
+          synced: allResults.filter((r) => r.status === "success").length,
+          failed: allResults.filter((r) => r.status === "error").length,
+        })
+      );
+    } else {
+      const synced = allResults.filter((r) => r.status === "success").length;
+      if (allSucceeded) {
+        handleSuccess(`Synced ${synced}/${projectsToSync.length} project(s)`);
+      }
+    }
+
+    // Write output file if requested
+    if (options.output) {
+      const { writeFile } = await import("../utils/file-io.js");
+      const outputExt = path.extname(options.output).toLowerCase();
+
+      if (outputExt === ".json") {
+        await writeFile(
+          options.output,
+          JSON.stringify(
+            {
+              timestamp: new Date().toISOString(),
+              farm_root: farmRoot,
+              projects: allResults,
+            },
+            null,
+            2
+          )
+        );
+      }
+    }
+
+    if (span) endSpan(span);
+  } catch (error) {
+    if (isJson()) {
+      console.log(
+        JSON.stringify({
+          status: "error",
+          code: 1,
+          message: getErrorMessage(error),
+        })
+      );
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
+    if (span) endSpan(span);
+    process.exit(1);
+  }
+}
+
+/**
  * Register farm commands with the CLI
  */
 export function farmCommands(program: Command): void {
@@ -688,6 +975,44 @@ Examples:
     )
     .action(async (options) => {
       await farmValidateCommand(options);
+    });
+
+  farmGroup
+    .command("pull")
+    .description("Pull latest changes from remote for farm projects")
+    .option("--project <name>", "Pull only a specific project (default: all)")
+    .option("--verbose", "Show verbose output")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr farm pull
+  $ dr farm pull --project my-service
+  $ dr farm pull --verbose`
+    )
+    .action(async (options) => {
+      await farmPullCommand(options);
+    });
+
+  farmGroup
+    .command("sync")
+    .description("Sync farm projects with their models (generates staged changesets)")
+    .option("--project <name>", "Sync only a specific project (default: all)")
+    .option("--verbose", "Show verbose output")
+    .option("--dry-run", "Preview without creating changesets")
+    .option("--force", "Proceed despite ambiguous file-to-element mappings")
+    .option("--output <path>", "Export sync report to file (JSON)")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr farm sync
+  $ dr farm sync --project my-service
+  $ dr farm sync --verbose --output sync-report.json
+  $ dr farm sync --dry-run`
+    )
+    .action(async (options) => {
+      await farmSyncCommand(options);
     });
 
   farmGroup.showSuggestionAfterError();
