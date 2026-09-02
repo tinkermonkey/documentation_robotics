@@ -86,11 +86,11 @@ describe("composed scope validation (integration)", () => {
 
     // Create external auth-service model directory structure
     const authServicePath = path.join(workdir.path, "..", "auth-service");
-    const authModelDir = path.join(authServicePath, "model", "01_motivation");
+    const authModelDir = path.join(authServicePath, "documentation-robotics", "model", "01_motivation");
     await fs.mkdir(authModelDir, { recursive: true });
 
     // Create a simple API layer file in auth-service with the referenced operation
-    const apiLayerDir = path.join(authServicePath, "model", "07_api");
+    const apiLayerDir = path.join(authServicePath, "documentation-robotics", "model", "07_api");
     await fs.mkdir(apiLayerDir, { recursive: true });
     await fs.writeFile(
       path.join(apiLayerDir, "operations.yaml"),
@@ -265,7 +265,7 @@ describe("composed scope validation (integration)", () => {
 
     // Create external auth-service model directory structure
     const authServicePath = path.join(workdir.path, "..", "auth-service");
-    const apiLayerDir = path.join(authServicePath, "model", "07_api");
+    const apiLayerDir = path.join(authServicePath, "documentation-robotics", "model", "07_api");
     await fs.mkdir(apiLayerDir, { recursive: true });
 
     // Create API layer with different operations (not the one being referenced)
@@ -440,7 +440,7 @@ describe("composed scope validation (integration)", () => {
 
     // Create only auth-service directory (not payment-service)
     const authServicePath = path.join(workdir.path, "..", "auth-service");
-    const apiLayerDir = path.join(authServicePath, "model", "07_api");
+    const apiLayerDir = path.join(authServicePath, "documentation-robotics", "model", "07_api");
     await fs.mkdir(apiLayerDir, { recursive: true });
     await fs.writeFile(
       path.join(apiLayerDir, "operations.yaml"),
@@ -510,7 +510,7 @@ describe("composed scope validation (integration)", () => {
 
     // Create external model with elements: wrapper format
     const externalPath = path.join(workdir.path, "..", "external");
-    const apiLayerDir = path.join(externalPath, "model", "07_api");
+    const apiLayerDir = path.join(externalPath, "documentation-robotics", "model", "07_api");
     await fs.mkdir(apiLayerDir, { recursive: true });
     await fs.writeFile(
       path.join(apiLayerDir, "operations.yaml"),
@@ -580,7 +580,7 @@ describe("composed scope validation (integration)", () => {
 
     // Create external model with object-of-objects format
     const externalPath = path.join(workdir.path, "..", "external");
-    const dataStoreDir = path.join(externalPath, "model", "09_data-store");
+    const dataStoreDir = path.join(externalPath, "documentation-robotics", "model", "09_data-store");
     await fs.mkdir(dataStoreDir, { recursive: true });
     await fs.writeFile(
       path.join(dataStoreDir, "columns.yaml"),
@@ -651,7 +651,7 @@ describe("composed scope validation (integration)", () => {
 
     // Create external model for validation
     const externalPath = path.join(workdir.path, "..", "external");
-    const apiLayerDir = path.join(externalPath, "model", "07_api");
+    const apiLayerDir = path.join(externalPath, "documentation-robotics", "model", "07_api");
     await fs.mkdir(apiLayerDir, { recursive: true });
     await fs.writeFile(
       path.join(apiLayerDir, "operations.yaml"),
@@ -699,7 +699,7 @@ describe("composed scope validation (integration)", () => {
     expect(output2).not.toContain("Broken qualified reference");
   });
 
-  it("logs console.warn when filesystem errors occur during model resolution", async () => {
+  it("reports warnings when filesystem errors occur during model resolution", async () => {
     // Initialize model with external model reference
     const model = await Model.init(
       workdir.path,
@@ -740,27 +740,18 @@ describe("composed scope validation (integration)", () => {
     const invalidModelPath = path.join(workdir.path, "file.txt");
     await fs.writeFile(invalidModelPath, "not a directory");
 
-    // Capture console output
-    const warnings: string[] = [];
-    const originalWarn = console.warn;
-    console.warn = (...args: any[]) => warnings.push(args.join(" "));
+    // Validate with invalid model path
+    const output = await captureConsole(() =>
+      validateCommand({
+        model: workdir.path,
+        scope: "composed",
+        modelPath: [`external=${invalidModelPath}`],
+        modelPaths: { "external": invalidModelPath },
+      })
+    );
 
-    try {
-      // Validate with invalid model path
-      const output = await captureConsole(() =>
-        validateCommand({
-          model: workdir.path,
-          scope: "composed",
-          modelPath: [`external=${invalidModelPath}`],
-          modelPaths: { "external": invalidModelPath },
-        })
-      );
-
-      // Should log a warning about failing to resolve external model
-      expect(warnings.some((w) => w.includes("Warning"))).toBe(true);
-      expect(warnings.some((w) => w.includes("external"))).toBe(true);
-    } finally {
-      console.warn = originalWarn;
-    }
+    // Should report a warning about the path not being a directory
+    expect(output).toContain("not a directory");
+    expect(output).toContain("external");
   });
 });

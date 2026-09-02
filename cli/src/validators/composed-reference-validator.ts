@@ -16,6 +16,7 @@ export class ComposedReferenceValidator {
   private modelPathOverrides: Record<string, string>;
   private resolvedModels: Map<string, ResolvedExternalModel> = new Map();
   private referencedModels: Set<string> = new Set();
+  private resolutionDiagnostics: ValidationResult = new ValidationResult();
 
   constructor(modelPathOverrides: Record<string, string> = {}) {
     this.modelPathOverrides = modelPathOverrides;
@@ -30,11 +31,15 @@ export class ComposedReferenceValidator {
     // Clear all state to ensure fresh validation on reuse
     this.referencedModels.clear();
     this.resolvedModels.clear();
+    this.resolutionDiagnostics = new ValidationResult();
     this.collectReferencedModels(model);
 
     for (const modelName of declaredModels) {
       await this.resolveExternalModel(modelName);
     }
+
+    // Merge any diagnostics from resolution phase
+    result.merge(this.resolutionDiagnostics);
 
     for (const modelName of declaredModels) {
       const isReferenced = this.referencedModels.has(modelName);
@@ -47,7 +52,7 @@ export class ComposedReferenceValidator {
             layer: "manifest",
             message: `External model '${modelName}' is referenced in qualified paths but could not be resolved from the configured paths`,
             category: "reference",
-            fixSuggestion: `Ensure the model exists on disk, or use '--model-path ${modelName}=/path/to/model' to specify its location`,
+            fixSuggestion: `Ensure the model exists on disk, or use '--model-path ${modelName}=/path/to/project-root' to specify its location`,
           });
         } else {
           // Declared but unreferenced and unresolvable → warning only
@@ -55,7 +60,7 @@ export class ComposedReferenceValidator {
             layer: "manifest",
             message: `External model '${modelName}' is declared but not referenced in any qualified paths and could not be found on disk`,
             category: "reference",
-            fixSuggestion: `Remove the declaration if not needed, or use '--model-path ${modelName}=/path/to/model' to specify its location`,
+            fixSuggestion: `Remove the declaration if not needed, or use '--model-path ${modelName}=/path/to/project-root' to specify its location`,
           });
         }
       } else if (isReferenced) {
@@ -100,11 +105,33 @@ export class ComposedReferenceValidator {
     }
 
     try {
-      // Verify the model directory exists
-      const modelDir = path.join(modelPath, "model");
-      const stats = await fs.stat(modelDir);
+      // Try standard layout first: {modelPath}/documentation-robotics/model/
+      let modelDir = path.join(modelPath, "documentation-robotics", "model");
+      let stats = await fs.stat(modelDir).catch(() => null);
+
+      // Fall back to legacy layout: {modelPath}/model/
+      if (!stats) {
+        modelDir = path.join(modelPath, "model");
+        stats = await fs.stat(modelDir).catch(() => null);
+      }
+
+      if (!stats) {
+        this.addResolutionDiagnostic(
+          modelName,
+          new Error("Model directory not found"),
+          modelPath,
+          true
+        );
+        return;
+      }
 
       if (!stats.isDirectory()) {
+        this.resolutionDiagnostics.addWarning({
+          layer: "manifest",
+          message: `External model '${modelName}' path is not a directory: ${modelDir}`,
+          category: "reference",
+          fixSuggestion: `Ensure '--model-path ${modelName}=${modelPath}' points to a project root or model directory`,
+        });
         return;
       }
 
@@ -115,7 +142,7 @@ export class ComposedReferenceValidator {
       try {
         entries = await fs.readdir(modelDir, { withFileTypes: true });
       } catch (error) {
-        this.addResolutionWarning(modelName, error, modelPath);
+        this.addResolutionDiagnostic(modelName, error, modelPath);
         return;
       }
 
@@ -135,7 +162,7 @@ export class ComposedReferenceValidator {
       });
     } catch (error) {
       // Failed to resolve model
-      this.addResolutionWarning(modelName, error, modelPath);
+      this.addResolutionDiagnostic(modelName, error, modelPath);
     }
   }
 
@@ -148,25 +175,42 @@ export class ComposedReferenceValidator {
           // Read the YAML file and extract element paths/IDs
           try {
             const content = await fs.readFile(path.join(layerPath, entry.name), "utf-8");
-            this.extractElementPathsFromYAML(content, elementIds);
+            this.extractElementPathsFromYAML(content, elementIds, layerPath, entry.name);
           } catch (error) {
             const filePath = path.join(layerPath, entry.name);
-            console.warn(`Warning: Failed to read YAML file at ${filePath}: ${getErrorMessage(error)}`);
+            this.resolutionDiagnostics.addWarning({
+              layer: "manifest",
+              message: `Failed to read YAML file at ${filePath}: ${getErrorMessage(error)}`,
+              category: "reference",
+            });
             continue;
           }
         }
       }
     } catch (error) {
-      console.warn(`Warning: Failed to read layer directory at ${layerPath}: ${getErrorMessage(error)}`);
+      this.resolutionDiagnostics.addWarning({
+        layer: "manifest",
+        message: `Failed to read layer directory at ${layerPath}: ${getErrorMessage(error)}`,
+        category: "reference",
+      });
     }
   }
 
-  private extractElementPathsFromYAML(content: string, elementIds: Set<string>): void {
+  private extractElementPathsFromYAML(
+    content: string,
+    elementIds: Set<string>,
+    layerPath: string,
+    fileName: string
+  ): void {
     try {
       const parsed = parseYAML(content);
 
       if (!parsed) {
-        console.warn("Warning: YAML file parsed to empty content");
+        this.resolutionDiagnostics.addWarning({
+          layer: "manifest",
+          message: `YAML file at ${path.join(layerPath, fileName)} parsed to empty content`,
+          category: "reference",
+        });
         return;
       }
 
@@ -206,7 +250,11 @@ export class ComposedReferenceValidator {
         }
       }
     } catch (error) {
-      console.warn(`Warning: Failed to parse YAML content: ${getErrorMessage(error)}`);
+      this.resolutionDiagnostics.addWarning({
+        layer: "manifest",
+        message: `Failed to parse YAML file at ${path.join(layerPath, fileName)}: ${getErrorMessage(error)}`,
+        category: "reference",
+      });
     }
   }
 
@@ -261,24 +309,43 @@ export class ComposedReferenceValidator {
     return result;
   }
 
-  private addResolutionWarning(modelName: string, error: unknown, modelPath: string): void {
+  private addResolutionDiagnostic(
+    modelName: string,
+    error: unknown,
+    modelPath: string,
+    isPathError: boolean = false
+  ): void {
     const errorMsg = getErrorMessage(error);
     const code = (error as NodeJS.ErrnoException)?.code;
 
+    let message = "";
+    let fixSuggestion = "";
+
     if (code === "EACCES") {
-      console.warn(
-        `Warning: Permission denied accessing model '${modelName}' at ${modelPath} — ` +
-          `check file permissions. Qualified references to this model may falsely appear broken.`
-      );
+      message =
+        `Permission denied accessing external model '${modelName}' at ${modelPath}. ` +
+        `Check file permissions.`;
+      fixSuggestion = `Ensure the model path is readable, or use '--model-path ${modelName}=/path/to/alternative-location' to specify another location`;
     } else if (code === "EIO") {
-      console.warn(
-        `Warning: I/O error reading model '${modelName}' at ${modelPath} — ` +
-          `filesystem error or device issue. Qualified references to this model may falsely appear broken.`
-      );
+      message =
+        `I/O error reading external model '${modelName}' at ${modelPath}. ` +
+        `There may be a filesystem or device issue.`;
+      fixSuggestion = `Check the filesystem for errors, or provide an alternative model path via '--model-path ${modelName}=/path/to/alternative-location'`;
+    } else if (code === "ENOENT" || isPathError) {
+      message =
+        `Could not find external model '${modelName}' — expected at ${modelPath}/documentation-robotics/model or ${modelPath}/model`;
+      fixSuggestion = `Ensure the model exists at the specified path, or use '--model-path ${modelName}=/path/to/project-root' to specify its location`;
     } else {
-      console.warn(
-        `Warning: Failed to resolve external model '${modelName}' at ${modelPath}: ${errorMsg}`
-      );
+      message =
+        `Failed to resolve external model '${modelName}' at ${modelPath}: ${errorMsg}`;
+      fixSuggestion = `Check the path and filesystem permissions, or use '--model-path ${modelName}=/path/to/project-root' to specify a different location`;
     }
+
+    this.resolutionDiagnostics.addWarning({
+      layer: "manifest",
+      message,
+      category: "reference",
+      fixSuggestion,
+    });
   }
 }
