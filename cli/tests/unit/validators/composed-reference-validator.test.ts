@@ -6,6 +6,7 @@ import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { promises as fs } from "fs";
 import path from "path";
+import { tmpdir } from "os";
 
 describe("ComposedReferenceValidator", () => {
   function createTestModel(manifest?: Manifest): Model {
@@ -121,7 +122,7 @@ describe("ComposedReferenceValidator", () => {
   describe("case-insensitive modelPathOverrides lookup", () => {
     it("should find modelPathOverride with different casing than manifest", async () => {
       // Create a temporary directory structure for testing
-      const tmpDir = await fs.mkdtemp(path.join(process.cwd(), "test-"));
+      const tmpDir = await fs.mkdtemp(path.join(tmpdir(), "test-"));
 
       try {
         // Create external model directory structure
@@ -182,7 +183,7 @@ describe("ComposedReferenceValidator", () => {
     });
 
     it("should find modelPathOverride with uppercase key when manifest is lowercase", async () => {
-      const tmpDir = await fs.mkdtemp(path.join(process.cwd(), "test-"));
+      const tmpDir = await fs.mkdtemp(path.join(tmpdir(), "test-"));
 
       try {
         // Create external model directory structure
