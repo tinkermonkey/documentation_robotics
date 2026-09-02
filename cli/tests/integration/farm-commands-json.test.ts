@@ -15,6 +15,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
   let farmYamlPath: string;
   let originalCwd: string;
   let capturedOutput: string = "";
+  let originalExit: any;
 
   beforeEach(async () => {
     // Create a temporary farm directory
@@ -24,11 +25,20 @@ describe("Farm Commands - JSON Output Format Support", () => {
     originalCwd = process.cwd();
     process.chdir(farmDir);
 
+    // Mock process.exit to prevent test runner termination
+    originalExit = process.exit;
+    process.exit = ((code?: number) => {
+      // Do nothing - prevent actual exit
+    }) as any;
+
     // Capture console.log output
     capturedOutput = "";
   });
 
   afterEach(async () => {
+    // Restore process.exit
+    process.exit = originalExit;
+
     // Restore original working directory
     process.chdir(originalCwd);
 
@@ -50,11 +60,15 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     // Capture output
     const originalLog = console.log;
+    const originalError = console.error;
     let jsonOutput = "";
     console.log = (msg: string) => {
-      if (msg.startsWith("{")) {
+      if (typeof msg === "string" && msg.startsWith("{")) {
         jsonOutput = msg;
       }
+    };
+    console.error = () => {
+      // Suppress error output
     };
 
     try {
@@ -64,6 +78,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     }
 
     console.log = originalLog;
+    console.error = originalError;
 
     // Verify JSON output
     expect(jsonOutput).toBeDefined();
@@ -84,11 +99,15 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     // Capture output
     const originalLog = console.log;
+    const originalError = console.error;
     let jsonOutput = "";
     console.log = (msg: string) => {
-      if (msg.startsWith("{")) {
+      if (typeof msg === "string" && msg.startsWith("{")) {
         jsonOutput = msg;
       }
+    };
+    console.error = () => {
+      // Suppress error output
     };
 
     try {
@@ -98,6 +117,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     }
 
     console.log = originalLog;
+    console.error = originalError;
 
     // Verify JSON output
     expect(jsonOutput).toBeDefined();
@@ -112,11 +132,15 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     // Capture output
     const originalLog = console.log;
+    const originalError = console.error;
     let jsonOutput = "";
     console.log = (msg: string) => {
-      if (msg.startsWith("{")) {
+      if (typeof msg === "string" && msg.startsWith("{")) {
         jsonOutput = msg;
       }
+    };
+    console.error = () => {
+      // Suppress error output
     };
 
     try {
@@ -126,6 +150,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     }
 
     console.log = originalLog;
+    console.error = originalError;
 
     // Verify JSON output
     expect(jsonOutput).toBeDefined();
