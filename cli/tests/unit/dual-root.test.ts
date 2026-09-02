@@ -1,24 +1,27 @@
 /**
  * Dual-Root Foundation Tests
  *
- * Tests for Phase 1: Model with optional codebaseRoot for detached model layout.
- * Validates that both co-located (existing) and detached (new) modes work correctly.
+ * Validates that models work correctly with optional codebaseRoot for detached layouts,
+ * including both co-located (existing) and detached (new) modes.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { mkdir, rm, writeFile } from "fs/promises";
 import { join } from "path";
+import { tmpdir } from "os";
+import { randomUUID } from "crypto";
 import yaml from "yaml";
 
-const TEST_DIR = "/tmp/dr-dual-root-test";
+let TEST_DIR: string;
+
+beforeAll(async () => {
+  TEST_DIR = join(tmpdir(), `dr-dual-root-test-${randomUUID()}`);
+  await rm(TEST_DIR, { recursive: true, force: true });
+  await mkdir(TEST_DIR, { recursive: true });
+});
 
 describe("Dual-Root Foundation", () => {
-  beforeAll(async () => {
-    await rm(TEST_DIR, { recursive: true, force: true });
-    await mkdir(TEST_DIR, { recursive: true });
-  });
-
   afterAll(async () => {
     await rm(TEST_DIR, { recursive: true, force: true });
   });
