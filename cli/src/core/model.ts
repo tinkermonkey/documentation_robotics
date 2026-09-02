@@ -767,9 +767,29 @@ export class Model {
     projectRoot: string;
     manifestPath: string;
   }> {
-    const searchPath = startPath || process.cwd();
+    // Highest priority: explicit startPath parameter (used in concurrent contexts to avoid env var mutations)
+    if (startPath) {
+      const resolvedPath = path.resolve(startPath);
+      let manifestPath: string;
 
-    // Optional override via env var (highest priority)
+      if (resolvedPath.endsWith("manifest.yaml")) {
+        manifestPath = resolvedPath;
+      } else if (resolvedPath.endsWith("model")) {
+        manifestPath = path.join(resolvedPath, "manifest.yaml");
+      } else {
+        manifestPath = path.join(resolvedPath, "documentation-robotics", "model", "manifest.yaml");
+      }
+
+      try {
+        await fs.access(manifestPath);
+        const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+        return { projectRoot, manifestPath: path.normalize(manifestPath) };
+      } catch {
+        throw new Error(`Model not found at ${startPath}`);
+      }
+    }
+
+    // Secondary priority: optional override via env var
     if (process.env.DR_MODEL_PATH) {
       const envPath = path.resolve(process.env.DR_MODEL_PATH);
       let manifestPath: string;
@@ -791,7 +811,8 @@ export class Model {
       }
     }
 
-    // Use findProjectRoot to locate documentation_robotics/ folder
+    // Fallback: use findProjectRoot to locate documentation_robotics/ folder
+    const searchPath = process.cwd();
     const projectRoot = await findProjectRoot(searchPath);
 
     if (!projectRoot) {

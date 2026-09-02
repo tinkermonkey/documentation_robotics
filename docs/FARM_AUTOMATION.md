@@ -261,21 +261,23 @@ farm-automation:
     # Install CLI
     - npm install -g @architecture-robotics/cli
     
-    # Sync with auto-commit
-    - dr farm sync
-        --format json
-        --auto-commit
-        --concurrency 4
+    # Sync with auto-commit and capture exit code
+    - |
+      dr farm sync \
+        --format json \
+        --auto-commit \
+        --concurrency 4 \
         --output sync-report.json
-    - SYNC_STATUS=$?
+      SYNC_STATUS=$?
     
-    # Validate
-    - dr farm validate
-        --format json
+    # Validate and capture exit code
+    - |
+      dr farm validate \
+        --format json \
         --output validation-report.json
-    - VALIDATE_STATUS=$?
+      VALIDATE_STATUS=$?
     
-    # Check exit codes
+    # Check exit codes (both commands allow warnings: exit code 1)
     - |
       if [ $SYNC_STATUS -ne 0 ] && [ $SYNC_STATUS -ne 1 ]; then
         echo "Farm sync failed with exit code $SYNC_STATUS"
