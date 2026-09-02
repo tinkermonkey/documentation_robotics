@@ -172,8 +172,7 @@ describe("FarmSyncEngine", () => {
   });
 
   it("should get current commit", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+    const engine = new FarmSyncEngine(farmDir);
 
     const commit = await engine.getCurrentCommit("codebase");
 
@@ -181,9 +180,8 @@ describe("FarmSyncEngine", () => {
     expect(commit.length).toBe(40); // Full SHA
   });
 
-  it("should pull codebase", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+  it("should pull codebase without remote", async () => {
+    const engine = new FarmSyncEngine(farmDir);
 
     const initialCommit = await engine.getCurrentCommit("codebase");
 
@@ -193,15 +191,19 @@ describe("FarmSyncEngine", () => {
     execSync("git add new-file.txt", { cwd: codebaseDir, stdio: "pipe" });
     execSync("git commit -m 'Add new file'", { cwd: codebaseDir, stdio: "pipe" });
 
-    const newCommit = await engine.getCurrentCommit("codebase");
+    // Pull codebase - should succeed even without remote
+    const pulledCommit = await engine.pullCodebase("codebase");
 
-    expect(newCommit).not.toBe(initialCommit);
-    expect(newCommit.length).toBe(40);
+    // Verify pull returned the current commit
+    expect(pulledCommit).toBeDefined();
+    expect(pulledCommit.length).toBe(40);
+
+    const currentCommit = await engine.getCurrentCommit("codebase");
+    expect(pulledCommit).toBe(currentCommit);
   });
 
   it("should compute diff between commits", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+    const engine = new FarmSyncEngine(farmDir);
 
     const commit1 = await engine.getCurrentCommit("codebase");
 
@@ -221,8 +223,7 @@ describe("FarmSyncEngine", () => {
   });
 
   it("should detect modified files", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+    const engine = new FarmSyncEngine(farmDir);
 
     const commit1 = await engine.getCurrentCommit("codebase");
 
@@ -241,8 +242,7 @@ describe("FarmSyncEngine", () => {
   });
 
   it("should detect deleted files", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+    const engine = new FarmSyncEngine(farmDir);
 
     const commit1 = await engine.getCurrentCommit("codebase");
 
@@ -260,8 +260,7 @@ describe("FarmSyncEngine", () => {
   });
 
   it("should handle initial sync with no previous commit", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+    const engine = new FarmSyncEngine(farmDir);
 
     const project = farmManifest.getProject("test-project")!;
     const result = await engine.syncProject(project, { verbose: false });
@@ -280,8 +279,7 @@ describe("FarmSyncEngine", () => {
   });
 
   it("should detect no changes on subsequent sync", async () => {
-    const mockModel = { layers: new Map(), relationships: { find: () => [] } } as any;
-    const engine = new FarmSyncEngine(farmDir, mockModel);
+    const engine = new FarmSyncEngine(farmDir);
 
     const project = farmManifest.getProject("test-project")!;
 

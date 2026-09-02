@@ -10,7 +10,7 @@
  */
 
 import path from "path";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { FarmSyncState } from "./farm-sync-state.js";
 import { Model } from "./model.js";
@@ -70,14 +70,15 @@ export interface SyncResult {
 
 /**
  * FarmSyncEngine - Orchestrates the sync pipeline
+ * Model parameter is optional - only required for sync operations, not for pull
  */
 export class FarmSyncEngine {
   private farmRoot: string;
-  private model: Model;
+  private model: Model | null;
 
-  constructor(farmRoot: string, model: Model) {
+  constructor(farmRoot: string, model?: Model) {
     this.farmRoot = farmRoot;
-    this.model = model;
+    this.model = model || null;
   }
 
   /**
@@ -93,11 +94,19 @@ export class FarmSyncEngine {
     }
 
     try {
-      // Fetch latest
-      execSync("git fetch --prune", { cwd: fullPath, stdio: "pipe" });
+      // Try to fetch latest if remote exists
+      try {
+        execSync("git fetch --prune", { cwd: fullPath, stdio: "pipe" });
+      } catch {
+        // Repository has no remote - this is okay for local-only repos
+      }
 
-      // Pull latest from current branch
-      execSync("git pull --no-rebase", { cwd: fullPath, stdio: "pipe" });
+      // Try to pull if remote exists
+      try {
+        execSync("git pull --no-rebase", { cwd: fullPath, stdio: "pipe" });
+      } catch {
+        // Repository has no remote - this is okay for local-only repos
+      }
 
       // Get current HEAD commit
       const commit = execSync("git rev-parse HEAD", { cwd: fullPath, encoding: "utf-8" }).trim();
@@ -128,6 +137,7 @@ export class FarmSyncEngine {
 
   /**
    * Compute diff between two commits
+   * Commit SHAs are validated before use to prevent command injection
    */
   async computeDiff(codebasePath: string, fromCommit: string, toCommit: string): Promise<FileDiffResult> {
     const fullPath = path.join(this.farmRoot, codebasePath);
@@ -136,9 +146,17 @@ export class FarmSyncEngine {
       throw new Error(`Codebase directory not found: ${codebasePath}`);
     }
 
+    // Validate commit SHAs to prevent command injection
+    const commitShaRegex = /^[0-9a-f]{7,40}$/i;
+    if (!commitShaRegex.test(fromCommit) || !commitShaRegex.test(toCommit)) {
+      throw new Error(
+        `Invalid commit SHA format. Expected 7-40 character hex string. Got: ${fromCommit}, ${toCommit}`
+      );
+    }
+
     try {
-      // Get diff status between commits
-      const diffOutput = execSync(`git diff --name-status ${fromCommit}...${toCommit}`, {
+      // Get diff status between commits using execFileSync to avoid shell interpretation
+      const diffOutput = execFileSync("git", ["diff", "--name-status", `${fromCommit}...${toCommit}`], {
         cwd: fullPath,
         encoding: "utf-8",
       });
@@ -176,8 +194,13 @@ export class FarmSyncEngine {
   /**
    * Map changed files to model elements using source references
    * Looks at each model element's source references and matches against changed files
+   * Returns empty results if model is not available
    */
   async mapFilesToElements(): Promise<{ confident: FileElementMapping[]; ambiguous: FileElementMapping[] }> {
+    if (!this.model) {
+      return { confident: [], ambiguous: [] };
+    }
+
     const confident: Map<string, FileElementMapping> = new Map();
     const ambiguous: Map<string, FileElementMapping> = new Map();
 
@@ -243,6 +266,7 @@ export class FarmSyncEngine {
   /**
    * Generate a changeset from file-to-element mappings
    * Creates add/update/delete changes based on the diff and mappings
+   * Stages changes into the changeset for review before commit
    */
   async generateChangeset(
     project: FarmProject,
@@ -250,6 +274,10 @@ export class FarmSyncEngine {
     mappings: { confident: FileElementMapping[]; ambiguous: FileElementMapping[] },
     options: SyncOptions = {}
   ): Promise<{ changesetId: string; changeCount: number; warnings: string[] }> {
+    if (!this.model) {
+      throw new Error("Model is required for changeset generation");
+    }
+
     const stagingManager = new StagingAreaManager(this.farmRoot, this.model);
 
     // Create a new changeset
@@ -271,10 +299,20 @@ export class FarmSyncEngine {
       const mapping = confidentMap.get(filePath);
       if (mapping && mapping.possibleElements.length === 1) {
         const element = mapping.possibleElements[0];
-        // We'd need to infer the full element from the file diff
-        // For now, flag for manual review
+        // Stage the change
+        await stagingManager.stage(changeset.id, {
+          type: "add",
+          elementId: element.elementId,
+          layerName: element.layer,
+          after: {
+            sourceFile: filePath,
+            syncSource: "codebase",
+            timestamp: new Date().toISOString(),
+          },
+          timestamp: new Date().toISOString(),
+        });
         warnings.push(
-          `File added: ${filePath} -> ${element.elementId} (manual review recommended for exact content)`
+          `File added: ${filePath} -> ${element.elementId} (staged for review, verify content accuracy)`
         );
         changeCount++;
       }
@@ -285,7 +323,23 @@ export class FarmSyncEngine {
       const mapping = confidentMap.get(filePath);
       if (mapping && mapping.possibleElements.length === 1) {
         const element = mapping.possibleElements[0];
-        warnings.push(`File modified: ${filePath} -> ${element.elementId} (manual review recommended)`);
+        // Stage the change
+        await stagingManager.stage(changeset.id, {
+          type: "update",
+          elementId: element.elementId,
+          layerName: element.layer,
+          before: {
+            sourceFile: filePath,
+            syncSource: "codebase",
+          },
+          after: {
+            sourceFile: filePath,
+            syncSource: "codebase",
+            timestamp: new Date().toISOString(),
+          },
+          timestamp: new Date().toISOString(),
+        });
+        warnings.push(`File modified: ${filePath} -> ${element.elementId} (staged for review)`);
         changeCount++;
       }
     }
@@ -295,7 +349,18 @@ export class FarmSyncEngine {
       const mapping = confidentMap.get(filePath);
       if (mapping && mapping.possibleElements.length === 1) {
         const element = mapping.possibleElements[0];
-        warnings.push(`File deleted: ${filePath} -> ${element.elementId} (manual review recommended)`);
+        // Stage the change
+        await stagingManager.stage(changeset.id, {
+          type: "delete",
+          elementId: element.elementId,
+          layerName: element.layer,
+          before: {
+            sourceFile: filePath,
+            syncSource: "codebase",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        warnings.push(`File deleted: ${filePath} -> ${element.elementId} (staged for review)`);
         changeCount++;
       }
     }

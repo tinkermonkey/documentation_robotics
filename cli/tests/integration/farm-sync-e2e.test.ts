@@ -15,34 +15,30 @@ import { execSync } from "child_process";
 
 /**
  * Create a test model folder with manifest
+ * Returns the path to the manifest.yaml file
  */
-async function createTestModel(modelPath: string): Promise<void> {
+async function createTestModel(modelPath: string): Promise<string> {
   await ensureDir(modelPath);
 
-  // Create model directory structure
-  const modelDir = path.join(modelPath, "model");
-  await ensureDir(modelDir);
-
-  // Create basic manifest.yaml
-  const manifest = {
-    version: "1.0",
-    name: "Test Model",
-    created: new Date().toISOString(),
-    modified: new Date().toISOString(),
-  };
-
-  await writeFile(path.join(modelDir, "manifest.yaml"), `version: "1.0"
+  // Create basic manifest.yaml directly in modelPath
+  const manifestPath = path.join(modelPath, "manifest.yaml");
+  await writeFile(
+    manifestPath,
+    `version: "1.0"
 name: Test Model
 created: ${new Date().toISOString()}
 modified: ${new Date().toISOString()}
-`);
+`
+  );
 
   // Create a layers directory (required for model initialization)
-  const layersDir = path.join(modelDir, "01_motivation");
+  const layersDir = path.join(modelPath, "01_motivation");
   await ensureDir(layersDir);
 
   // Create empty elements.yaml
   await writeFile(path.join(layersDir, "elements.yaml"), "");
+
+  return manifestPath;
 }
 
 /**
@@ -84,7 +80,7 @@ describe("Farm Sync - End-to-End Flow", () => {
     // Create codebase with git repo
     initialCommit = await createTestGitRepo(codebaseDir);
 
-    // Create model
+    // Create model - returns path to manifest
     await createTestModel(modelDir);
 
     // Create farm manifest

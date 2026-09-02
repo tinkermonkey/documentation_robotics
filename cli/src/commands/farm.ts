@@ -642,12 +642,8 @@ export async function farmPullCommand(options: {
       handleInfo(`Pulling ${projectsToPull.length} project(s)...`);
     }
 
-    // Create sync engine (model not needed for pull)
-    const mockModel = {
-      layers: new Map(),
-      relationships: { find: () => [] },
-    } as any;
-    const engine = new FarmSyncEngine(farmRoot, mockModel);
+    // Create sync engine (model not needed for pull-only operations)
+    const engine = new FarmSyncEngine(farmRoot);
 
     const results = [];
 
