@@ -300,6 +300,8 @@ program
   .option("--structure", "Validate documentation structure")
   .option("--naming", "Validate naming conventions")
   .option("--references", "Validate cross-layer references")
+  .option("--scope <scope>", "Validation scope: 'local' (default) or 'composed' for cross-model validation")
+  .option("--model-path <mapping...>", "Override filesystem path for external model (format: model-name=/path/to/project-root, can be repeated)")
   .addHelpText(
     "after",
     `
@@ -314,7 +316,11 @@ Examples:
   $ dr validate --relationships
   $ dr validate --layers business api
   $ dr validate --orphans
-  $ dr validate --orphans --output orphans.json`
+  $ dr validate --orphans --output orphans.json
+  $ dr validate --scope composed --model-path auth-service=/path/to/auth-service-repo
+  $ dr validate --scope composed --model-path auth-service=/path/to/auth-service-repo --model-path payment-service=/path/to/payment-repo
+
+Note: When using --model-path, pass the project root (where documentation-robotics/model/ is located).`
   )
   .action(validateCommand);
 

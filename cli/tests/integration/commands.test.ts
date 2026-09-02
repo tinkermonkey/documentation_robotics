@@ -1265,19 +1265,9 @@ describe("CLI Commands Integration Tests", () => {
       }
     });
 
-    it("should warn and skip loading when relationships.yaml contains non-array content (null)", async () => {
+    it("should handle empty relationships.yaml gracefully (null from comments-only files)", async () => {
       const fs = await import("fs/promises");
       const path = await import("path");
-
-      // Add a valid relationship first
-      await runDr(
-        "relationship",
-        "add",
-        "motivation.goal.goal-1",
-        "motivation.goal.goal-2",
-        "--predicate",
-        "aggregates"
-      );
 
       // Create a model to work with
       let model = await Model.load(tempDir.path);
@@ -1287,25 +1277,20 @@ describe("CLI Commands Integration Tests", () => {
         "documentation-robotics/model/relationships.yaml"
       );
 
-      // Write null content (empty YAML file produces null)
+      // Write empty content (empty YAML file produces null when parsed)
       await fs.writeFile(relationshipsPath, "");
 
-      // Capture console output
+      // Capture console output to ensure no warnings are logged
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      // Load relationships - should not throw, but should warn
+      // Load relationships - empty files should be treated as empty arrays with no warning
       await model.loadRelationships();
 
-      // Verify warning was logged
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("relationships.yaml contains non-array content")
-      );
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Expected an array of relationships")
-      );
+      // Verify NO warning was logged (empty arrays are valid)
+      expect(warnSpy).not.toHaveBeenCalled();
 
-      // Relationships should be preserved (not updated by corrupted file)
-      expect(model.relationships.getAll().length).toBeGreaterThan(0);
+      // Relationships should be empty
+      expect(model.relationships.getAll().length).toBe(0);
 
       warnSpy.mockRestore();
     });

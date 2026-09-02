@@ -160,6 +160,246 @@ describe("Manifest", () => {
   });
 });
 
+describe("Manifest.models - External Model Declarations", () => {
+  it("should create manifest without models field", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    expect(manifest.models).toBeUndefined();
+  });
+
+  it("should create manifest with empty models object", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {},
+    });
+
+    expect(manifest.models).toEqual({});
+  });
+
+  it("should create manifest with model declared with empty object", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {
+        "shared-infra": {},
+      },
+    });
+
+    expect(manifest.models).toEqual({
+      "shared-infra": {},
+    });
+  });
+
+  it("should create manifest with model declared with url only", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {
+        "auth-service": {
+          url: "https://github.com/org/auth-service.git",
+        },
+      },
+    });
+
+    expect(manifest.models).toEqual({
+      "auth-service": {
+        url: "https://github.com/org/auth-service.git",
+      },
+    });
+  });
+
+  it("should create manifest with model declared with role only", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {
+        "shared-infra": {
+          role: "shared",
+        },
+      },
+    });
+
+    expect(manifest.models).toEqual({
+      "shared-infra": {
+        role: "shared",
+      },
+    });
+  });
+
+  it("should create manifest with model declared with both url and role", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {
+        "shared-infra": {
+          url: "https://github.com/org/shared-infra.git",
+          role: "shared",
+        },
+      },
+    });
+
+    expect(manifest.models).toEqual({
+      "shared-infra": {
+        url: "https://github.com/org/shared-infra.git",
+        role: "shared",
+      },
+    });
+  });
+
+  it("should create manifest with multiple models declared", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {
+        "auth-service": {
+          url: "https://github.com/org/auth-service.git",
+        },
+        "billing-service": {
+          url: "https://github.com/org/billing-service.git",
+        },
+        "shared-infra": {
+          url: "https://github.com/org/shared-infra.git",
+          role: "shared",
+        },
+      },
+    });
+
+    expect(manifest.models).toEqual({
+      "auth-service": {
+        url: "https://github.com/org/auth-service.git",
+      },
+      "billing-service": {
+        url: "https://github.com/org/billing-service.git",
+      },
+      "shared-infra": {
+        url: "https://github.com/org/shared-infra.git",
+        role: "shared",
+      },
+    });
+  });
+
+  it("should not serialize models when undefined", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const json = manifest.toJSON();
+
+    expect(json.models).toBeUndefined();
+  });
+
+  it("should not serialize models when empty object", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {},
+    });
+
+    const json = manifest.toJSON();
+
+    expect(json.models).toBeUndefined();
+  });
+
+  it("should serialize models when non-empty", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      models: {
+        "shared-infra": {
+          url: "https://github.com/org/shared-infra.git",
+          role: "shared",
+        },
+      },
+    });
+
+    const json = manifest.toJSON();
+
+    expect(json.models).toEqual({
+      "shared-infra": {
+        url: "https://github.com/org/shared-infra.git",
+        role: "shared",
+      },
+    });
+  });
+
+  it("should round-trip JSON serialization with models", () => {
+    const originalManifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      description: "A test model",
+      models: {
+        "auth-service": {
+          url: "https://github.com/org/auth-service.git",
+        },
+        "shared-infra": {
+          url: "https://github.com/org/shared-infra.git",
+          role: "shared",
+        },
+      },
+    });
+
+    const json = JSON.stringify(originalManifest.toJSON());
+    const deserializedManifest = Manifest.fromJSON(json);
+
+    expect(deserializedManifest.name).toBe(originalManifest.name);
+    expect(deserializedManifest.version).toBe(originalManifest.version);
+    expect(deserializedManifest.description).toBe(originalManifest.description);
+    expect(deserializedManifest.models).toEqual(originalManifest.models);
+  });
+
+  it("should deserialize models from JSON", () => {
+    const json = JSON.stringify({
+      name: "Test Model",
+      version: "1.0.0",
+      created: "2024-01-01T00:00:00Z",
+      modified: "2024-01-02T00:00:00Z",
+      models: {
+        "auth-service": {
+          url: "https://github.com/org/auth-service.git",
+        },
+        "shared-infra": {
+          role: "shared",
+        },
+      },
+    });
+
+    const manifest = Manifest.fromJSON(json);
+
+    expect(manifest.models).toEqual({
+      "auth-service": {
+        url: "https://github.com/org/auth-service.git",
+      },
+      "shared-infra": {
+        role: "shared",
+      },
+    });
+  });
+
+  it("should maintain backward compatibility with manifests without models field", () => {
+    const json = JSON.stringify({
+      name: "Test Model",
+      version: "1.0.0",
+      created: "2024-01-01T00:00:00Z",
+      modified: "2024-01-02T00:00:00Z",
+      description: "A test model",
+      author: "Test Author",
+    });
+
+    const manifest = Manifest.fromJSON(json);
+
+    expect(manifest.name).toBe("Test Model");
+    expect(manifest.version).toBe("1.0.0");
+    expect(manifest.description).toBe("A test model");
+    expect(manifest.author).toBe("Test Author");
+    expect(manifest.models).toBeUndefined();
+  });
+});
+
 describe("Manifest.migrateChangesetHistory", () => {
   it("should return empty array for undefined history", () => {
     const manifest = new Manifest({

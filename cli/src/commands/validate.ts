@@ -33,6 +33,10 @@ export interface ValidateOptions {
   structure?: boolean;
   naming?: boolean;
   references?: boolean;
+  // Composed scope options
+  scope?: string;
+  modelPath?: string[]; // Raw array from CLI; will be parsed into modelPaths
+  modelPaths?: Record<string, string>; // Parsed model-path overrides
 }
 
 /**
@@ -329,7 +333,39 @@ async function reportStagedChangesIncluded(
   }
 }
 
+/**
+ * Parse model-path option strings into a dictionary
+ * Format: "model-name=/path/to/model" (can be repeated)
+ */
+function parseModelPaths(modelPathArray?: string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  if (!modelPathArray || modelPathArray.length === 0) {
+    return result;
+  }
+
+  for (const item of modelPathArray) {
+    const [modelName, ...rest] = item.split("=");
+    const modelPath = rest.join("="); // Handle paths with = in them
+
+    if (!modelName || !modelPath) {
+      throw new Error(
+        `Invalid --model-path format: '${item}'. Expected format: 'model-name=/path/to/model'`
+      );
+    }
+
+    result[modelName.trim()] = modelPath.trim();
+  }
+
+  return result;
+}
+
 export async function validateCommand(options: ValidateOptions): Promise<void> {
+  // Parse model-path options only if provided
+  if (options.modelPath) {
+    options.modelPaths = parseModelPaths(options.modelPath);
+  }
+
   // Annotate the root cli.execute span with validate-specific attributes
   const activeSpan = getActiveSpan();
   if (activeSpan) {
@@ -339,6 +375,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     activeSpan.setAttribute("validate.orphans", options.orphans || false);
     activeSpan.setAttribute("validate.schemas", options.schemas || options.schema || false);
     activeSpan.setAttribute("validate.output", options.output || "console");
+    activeSpan.setAttribute("validate.scope", options.scope || "local");
   }
 
   try {
@@ -383,8 +420,8 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       return;
     }
 
-    // Validate
-    const validator = new Validator();
+    // Determine validation scope and create appropriate validator
+    const scope = options.scope || "local";
 
     // If an active changeset exists, project staged elements into the model so validators see them
     const activeChangesetId = model.getActiveChangesetId();
@@ -400,7 +437,20 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       );
     }
 
-    const result = await validator.validateModel(modelToValidate);
+    let result;
+
+    if (scope === "composed") {
+      // Use composed validator for cross-model reference validation
+      const { ComposedReferenceValidator } = await import("../validators/composed-reference-validator.js");
+      const composedValidator = new ComposedReferenceValidator(options.modelPaths || {});
+      result = await composedValidator.validateModel(modelToValidate);
+    } else if (scope === "local") {
+      // Use standard validator for local validation
+      const validator = new Validator();
+      result = await validator.validateModel(modelToValidate);
+    } else {
+      throw new Error(`Invalid validation scope: '${scope}'. Expected 'local' or 'composed'.`);
+    }
 
     // Detect orphaned elements and add them as warnings so they appear in
     // the warning count and are surfaced consistently across all output formats.

@@ -5,6 +5,7 @@
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { getLayerByNumber, LAYER_HIERARCHY, getAllLayerIds } from "../generated/layer-registry.js";
+import { parseReferencePath, ReferencePathParseError } from "../utils/reference-path-parser.js";
 
 /**
  * Validator for cross-layer references
@@ -79,28 +80,71 @@ export class ReferenceValidator {
     result: ValidationResult
   ): void {
     for (const ref of references) {
-      // Check target exists
-      if (!validIds.has(ref.target)) {
-        // Skip validation for references to unloaded layers when filter is active
-        if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
-          const targetLayerName = this.extractLayerFromId(ref.target);
-          if (!model.loadedLayerFilter.includes(targetLayerName)) {
-            // Target is in an unloaded layer; skip this reference
-            continue;
+      let parsedModel: string | undefined;
+      let targetSegment = ref.target;
+
+      // Check if this is a qualified reference (starts with @)
+      if (ref.target.startsWith("@")) {
+        // Try to parse the qualified reference
+        try {
+          const parsed = parseReferencePath(ref.target);
+          parsedModel = parsed.modelName;
+          targetSegment = parsed.segment;
+        } catch (error) {
+          if (error instanceof ReferencePathParseError) {
+            result.addError({
+              layer: sourceLayerName,
+              elementId,
+              message: `Malformed qualified reference path: ${error.message}`,
+              fixSuggestion: `Use format '@{model-name}/{layer}.{type}.{name}' for qualified references or '{layer}.{type}.{name}' for unqualified references`,
+              category: "reference",
+            });
+          } else {
+            throw error;
           }
+          continue;
         }
 
-        result.addError({
-          layer: sourceLayerName,
-          elementId,
-          message: `Broken reference: target '${ref.target}' does not exist`,
-          fixSuggestion: `Remove reference or create element '${ref.target}'`,
-        });
-        continue;
+        // For qualified references, check if the model is declared
+        // Normalize lookup to handle case-insensitive manifest keys
+        const modelFound = parsedModel && model.manifest.models && this.findManifestModel(model.manifest.models, parsedModel);
+        if (parsedModel && !modelFound) {
+          result.addError({
+            layer: sourceLayerName,
+            elementId,
+            message: `Unknown external model reference: model '${parsedModel}' is not declared in manifest`,
+            fixSuggestion: `Add model '${parsedModel}' to the 'models' section of manifest.yaml`,
+            category: "reference",
+          });
+          continue;
+        }
+      } else {
+        // For unqualified references, check if target exists locally
+        if (!validIds.has(ref.target)) {
+          // Skip validation for references to unloaded layers when filter is active
+          if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
+            const targetLayerName = this.extractLayerFromId(ref.target);
+            if (!model.loadedLayerFilter.includes(targetLayerName)) {
+              // Target is in an unloaded layer; skip this reference
+              continue;
+            }
+          }
+
+          result.addError({
+            layer: sourceLayerName,
+            elementId,
+            message: `Broken reference: target '${ref.target}' does not exist`,
+            fixSuggestion: `Remove reference or create element '${ref.target}'`,
+            category: "reference",
+          });
+          continue;
+        }
       }
 
       // Check directional constraint (higher → lower only)
-      const targetLayerName = this.extractLayerFromId(ref.target);
+      // For qualified references, extract layer from the parsed segment
+      // For unqualified references, extract layer from the target directly
+      const targetLayerName = this.extractLayerFromId(targetSegment);
       const sourceLevel = this.LAYER_HIERARCHY[sourceLayerName];
       const targetLevel = this.LAYER_HIERARCHY[targetLayerName];
 
@@ -111,6 +155,7 @@ export class ReferenceValidator {
           message: `Unknown source layer: ${sourceLayerName}`,
           fixSuggestion:
             `Use one of the valid layers: ${this.KNOWN_LAYERS.join(", ")}`,
+          category: "reference",
         });
         continue;
       }
@@ -121,6 +166,7 @@ export class ReferenceValidator {
           elementId,
           message: `Target element '${ref.target}' has unknown layer: ${targetLayerName}`,
           fixSuggestion: `Check that element ID '${ref.target}' uses a valid layer prefix (e.g., motivation-, business-, api-)`,
+          category: "reference",
         });
         continue;
       }
@@ -134,6 +180,7 @@ export class ReferenceValidator {
           message: `Invalid reference direction: ${sourceLayerName} (level ${sourceLevel}) cannot reference ${targetLayerName} (level ${targetLevel})`,
           fixSuggestion:
             "References must go from higher layers to lower layers (motivation → testing)",
+          category: "reference",
         });
       }
     }
@@ -158,5 +205,23 @@ export class ReferenceValidator {
 
     // Fallback: return first segment (shouldn't reach here with valid element IDs)
     return elementId.split(separator)[0] || "";
+  }
+
+  /**
+   * Find a model in the manifest using case-insensitive lookup
+   * Handles the case where parseReferencePath normalizes model names to lowercase,
+   * but the manifest may have different casing for the declared model keys.
+   */
+  private findManifestModel(
+    models: Record<string, unknown>,
+    modelName: string
+  ): boolean {
+    const lowerModelName = modelName.toLowerCase();
+    for (const key of Object.keys(models)) {
+      if (key.toLowerCase() === lowerModelName) {
+        return true;
+      }
+    }
+    return false;
   }
 }

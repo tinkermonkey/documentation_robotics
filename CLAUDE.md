@@ -140,6 +140,98 @@ See `cli/README.md` for complete setup and usage documentation.
 - Always validate references exist before creating
 - Use reference registry for lookups and validation
 
+### 6. Cross-Model References
+
+**Overview**: Documentation Robotics supports **federated architecture models**. Your primary model defines the canonical 13-layer architecture. External models (microservices, subdomain architectures, etc.) can be declared in your model's manifest and referenced via **qualified paths**.
+
+**Model Declarations**:
+
+- External models are declared in `documentation-robotics/model/manifest.yaml` under a `models:` section
+- Each model declaration is an object with optional `url` and `role` fields:
+  - `url` (optional): Git repository URL for documentation (e.g., `https://github.com/org/auth-service.git`)
+  - `role` (optional): Informational role descriptor (e.g., `shared` for shared infrastructure)
+
+**Model Declaration Format**:
+
+```yaml
+models:
+  auth-service:
+    url: "https://github.com/org/auth-service.git"
+  payment-service:
+    url: "https://github.com/org/payment-service.git"
+  shared-infra:
+    url: "https://github.com/org/shared-infra.git"
+    role: "shared"
+```
+
+**Minimal Declarations**:
+
+If you want to declare a model without metadata, use an empty object:
+
+```yaml
+models:
+  auth-service: {}
+  payment-service: {}
+```
+
+- Declaring a model signals intent to reference elements from it; references will be validated during conformance checks
+
+**Qualified Path Syntax**:
+
+- **Format**: `@{model-name}/{layer}.{type}.{name}`
+- **Example**: `@auth-service/api.operation.authenticate`
+- **Components**:
+  - `@` — Qualifier prefix (indicates cross-model reference)
+  - `{model-name}` — The external model name (matches declared model in manifest)
+  - `/` — Separator
+  - `{layer}.{type}.{name}` — Standard unqualified element path in the external model
+- **Unqualified references** remain unchanged: `motivation.goal.increase-revenue`
+
+**Critical Rule: Elements Never Use Qualified Paths for Their Own Identity**:
+
+- **Only references use qualified paths** — The `path` and `id` fields of elements are always unqualified
+- ✅ **Correct**: An auth-service element uses `api.operation.authenticate` as its local `path`
+- ✅ **Correct**: Your model references it as `@auth-service/api.operation.authenticate`
+- ❌ **Incorrect**: An element's `path` is never `@auth-service/api.operation.authenticate`
+- This ensures each model owns and manages its own element identities without external dependencies
+
+**Validation Modes**:
+
+- **Local validation (default)**: Validates references within your model only. External model declarations are checked, but references to external models are only validated if the external model can be resolved on disk
+- **Composed validation** (optional): Full validation including resolution of all declared external models via configured paths
+  - Use `--model-path {modelName}=/path/to/model` to specify external model locations
+  - Enables validation that external references point to existing elements
+  - Useful for multi-team federated architecture work
+
+**Validation Examples**:
+
+```typescript
+// Local validation (default) - validates your model's structure
+await validator.validateModel(model);
+
+// Composed validation - requires external model paths
+const composedValidator = new ComposedReferenceValidator({
+  "auth-service": "/path/to/auth-service",
+  "payment-service": "/path/to/payment-service"
+});
+await composedValidator.validateModel(model);
+```
+
+**Relationship Handling**:
+
+- **References field**: Can contain qualified paths (e.g., `@auth-service/api.operation.authenticate`)
+- **Relationships**: Intra-layer relationships within a model use unqualified paths only
+- Cross-model element references always use the reference field, never relationships
+- Example:
+
+  ```yaml
+  # Element in your model
+  - path: api.operation.create-user
+    references:
+      - target: @auth-service/api.operation.authenticate
+        relationship: 'consumes'
+  ```
+
 ## The 13-Layer Architecture Model
 
 Federated architecture model spanning 13 interconnected layers:
