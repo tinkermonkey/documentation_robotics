@@ -1,23 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { Model } from "@/core/model";
-import { mkdir, rm, writeFile } from "fs/promises";
+import { rm, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { randomUUID } from "crypto";
 
 describe("Model - Manifest Models Field Validation", () => {
-  let testDir: string;
-
-  beforeEach(async () => {
-    testDir = join(tmpdir(), `dr-manifest-validation-${randomUUID()}`);
-    await rm(testDir, { recursive: true, force: true });
-    await mkdir(testDir, { recursive: true });
-  });
-
-  afterEach(async () => {
-    await rm(testDir, { recursive: true, force: true });
-  });
-
   describe("validateModelsField", () => {
     it("should accept undefined models", () => {
       const result = Model.validateModelsField(undefined);
@@ -85,12 +73,24 @@ describe("Model - Manifest Models Field Validation", () => {
   });
 
   describe("Model.load - manifest validation integration", () => {
-    async function createTestProject(manifestContent: string): Promise<string> {
-      const projectRoot = testDir;
+    async function createTestProject(manifestContent: string): Promise<{ dir: string; cleanup: () => Promise<void> }> {
+      // Create unique directory for this specific test invocation
+      const projectRoot = join(tmpdir(), `dr-test-${randomUUID()}`);
       const modelDir = join(projectRoot, "documentation-robotics", "model");
       await mkdir(modelDir, { recursive: true });
       await writeFile(join(modelDir, "manifest.yaml"), manifestContent);
-      return projectRoot;
+
+      // Return both the directory and a cleanup function to avoid afterEach issues
+      return {
+        dir: projectRoot,
+        cleanup: async () => {
+          try {
+            await rm(projectRoot, { recursive: true, force: true });
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+      };
     }
 
     it("should load manifest with valid models object", async () => {
@@ -104,11 +104,15 @@ models:
   payment-service:
     role: shared
 `;
-      const projectRoot = await createTestProject(manifestYaml);
-      const model = await Model.load(projectRoot, { lazyLoad: true });
-      expect(model.manifest.models).toBeDefined();
-      expect(model.manifest.models?.["auth-service"]).toBeDefined();
-      expect(model.manifest.models?.["payment-service"]).toBeDefined();
+      const { dir: projectRoot, cleanup } = await createTestProject(manifestYaml);
+      try {
+        const model = await Model.load(projectRoot, { lazyLoad: true });
+        expect(model.manifest.models).toBeDefined();
+        expect(model.manifest.models?.["auth-service"]).toBeDefined();
+        expect(model.manifest.models?.["payment-service"]).toBeDefined();
+      } finally {
+        await cleanup();
+      }
     });
 
     it("should load manifest without models field", async () => {
@@ -117,9 +121,13 @@ project:
   name: Test Model
   version: 1.0.0
 `;
-      const projectRoot = await createTestProject(manifestYaml);
-      const model = await Model.load(projectRoot, { lazyLoad: true });
-      expect(model.manifest.models).toBeUndefined();
+      const { dir: projectRoot, cleanup } = await createTestProject(manifestYaml);
+      try {
+        const model = await Model.load(projectRoot, { lazyLoad: true });
+        expect(model.manifest.models).toBeUndefined();
+      } finally {
+        await cleanup();
+      }
     });
 
     it("should reject manifest with models as string", async () => {
@@ -129,7 +137,7 @@ project:
   version: 1.0.0
 models: auth-service
 `;
-      const projectRoot = await createTestProject(manifestYaml);
+      const { dir: projectRoot, cleanup } = await createTestProject(manifestYaml);
       try {
         await Model.load(projectRoot, { lazyLoad: true });
         expect.unreachable("Should have thrown an error");
@@ -137,6 +145,8 @@ models: auth-service
         expect((error as Error).message).toContain("Invalid manifest 'models' field");
         expect((error as Error).message).toContain("expected an object");
         expect((error as Error).message).toContain("YAML syntax is incorrect");
+      } finally {
+        await cleanup();
       }
     });
 
@@ -149,7 +159,7 @@ models:
   - auth-service
   - payment-service
 `;
-      const projectRoot = await createTestProject(manifestYaml);
+      const { dir: projectRoot, cleanup } = await createTestProject(manifestYaml);
       try {
         await Model.load(projectRoot, { lazyLoad: true });
         expect.unreachable("Should have thrown an error");
@@ -157,6 +167,8 @@ models:
         expect((error as Error).message).toContain("Invalid manifest 'models' field");
         expect((error as Error).message).toContain("expected an object");
         expect((error as Error).message).toContain("an array");
+      } finally {
+        await cleanup();
       }
     });
 
@@ -167,13 +179,15 @@ project:
   version: 1.0.0
 models: 123
 `;
-      const projectRoot = await createTestProject(manifestYaml);
+      const { dir: projectRoot, cleanup } = await createTestProject(manifestYaml);
       try {
         await Model.load(projectRoot, { lazyLoad: true });
         expect.unreachable("Should have thrown an error");
       } catch (error) {
         expect((error as Error).message).toContain("Invalid manifest 'models' field");
         expect((error as Error).message).toContain("expected an object");
+      } finally {
+        await cleanup();
       }
     });
 
@@ -184,7 +198,7 @@ project:
   version: 1.0.0
 models: auth-service
 `;
-      const projectRoot = await createTestProject(manifestYaml);
+      const { dir: projectRoot, cleanup } = await createTestProject(manifestYaml);
       try {
         await Model.load(projectRoot, { lazyLoad: true });
         expect.unreachable("Should have thrown an error");
@@ -192,6 +206,8 @@ models: auth-service
         const message = (error as Error).message;
         expect(message).toContain("e.g., {");
         expect(message).toContain("auth-service");
+      } finally {
+        await cleanup();
       }
     });
   });
