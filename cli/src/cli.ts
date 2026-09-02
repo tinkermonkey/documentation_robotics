@@ -32,6 +32,7 @@ import { chatCommand } from "./commands/chat.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { conformanceCommand } from "./commands/conformance.js";
 import { changesetCommands } from "./commands/changeset.js";
+import { farmCommands } from "./commands/farm.js";
 import { claudeCommands } from "./commands/claude.js";
 import { copilotCommands } from "./commands/copilot.js";
 import { analyzerCommands } from "./commands/analyzer.js";
@@ -821,6 +822,9 @@ Examples:
 
 // Changeset subcommands
 changesetCommands(program);
+
+// Farm subcommands
+farmCommands(program);
 
 // Claude Code integration subcommands
 claudeCommands(program);

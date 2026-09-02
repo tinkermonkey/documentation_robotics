@@ -714,6 +714,50 @@ export class Model {
   }
 
   /**
+   * Auto-resolve codebaseRoot from farm manifest if inside a farm
+   *
+   * @param modelRoot - The model's project root (documentation_robotics parent)
+   * @returns Resolved codebase root path, or null if not in farm or resolution fails
+   */
+  private static async resolveFarmCodebaseRoot(modelRoot: string): Promise<string | null> {
+    try {
+      const { findFarmRoot } = await import("../utils/project-paths.js");
+      const { FarmManifest } = await import("./farm-manifest.js");
+
+      // Find farm root (may return null if not in a farm)
+      const farmRoot = await findFarmRoot(modelRoot);
+      if (!farmRoot) {
+        return null;
+      }
+
+      // Load farm manifest
+      const farmYamlPath = path.join(farmRoot, "farm.yaml");
+      let manifest: any;
+      try {
+        manifest = await FarmManifest.load(farmYamlPath);
+      } catch {
+        return null; // If farm.yaml can't be loaded, just return null
+      }
+
+      // Find the model folder name relative to farm root
+      const modelName = path.basename(modelRoot);
+
+      // Look for a project where model_folder matches our model's basename
+      for (const project of manifest.getAllProjects()) {
+        if (path.basename(project.model_folder) === modelName) {
+          // Found matching project, resolve codebase path
+          const codebaseFullPath = path.resolve(farmRoot, project.codebase_path);
+          return codebaseFullPath;
+        }
+      }
+
+      return null; // No matching project found
+    } catch {
+      return null; // If anything fails, just return null (graceful fallback)
+    }
+  }
+
+  /**
    * Resolve model paths (private helper)
    *
    * @param startPath - Starting path for search
@@ -861,12 +905,15 @@ export class Model {
 
       const manifest = new Manifest(manifestData);
 
-      // Resolve codebaseRoot from manifest or options
+      // Resolve codebaseRoot from manifest, farm, or options
       let codebaseRoot = projectRoot;
       if (options.codebaseRoot) {
         codebaseRoot = options.codebaseRoot;
       } else if (manifest.codebase_path) {
         codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
+      } else {
+        // Try to auto-resolve from farm manifest if inside a farm
+        codebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot) || projectRoot;
       }
 
       const model = new Model(projectRoot, manifest, { ...options, codebaseRoot });

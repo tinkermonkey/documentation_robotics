@@ -13,6 +13,12 @@ export type {
   SourceReference,
 } from "./source-reference.js";
 
+// Export farm-related types
+export type {
+  FarmProject,
+  FarmManifestData,
+} from "../core/farm-manifest.js";
+
 /**
  * Reference across layers
  */
