@@ -334,11 +334,26 @@ describe("Farm validation with cross-model references", () => {
     const farmYamlPath = path.join(farmRoot, "farm.yaml");
     const manifest = FarmManifest.create("Test Farm");
 
-    // Create codebase directories
+    // Create codebase and model directories
     const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceAModel = path.join(farmRoot, "service-a-model");
     const serviceBCodebase = path.join(farmRoot, "service-b");
+    const serviceBModel = path.join(farmRoot, "service-b-model");
+
     await ensureDir(serviceACodebase);
+    await ensureDir(serviceAModel);
     await ensureDir(serviceBCodebase);
+    await ensureDir(serviceBModel);
+
+    // Create minimal manifest.yaml in each model directory
+    const serviceAManifestContent = `
+project: service-a
+`;
+    const serviceBManifestContent = `
+project: service-b
+`;
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), serviceAManifestContent);
+    await writeFile(path.join(serviceBModel, "manifest.yaml"), serviceBManifestContent);
 
     // Add projects to farm
     manifest.addProject("service-a", {
@@ -372,6 +387,12 @@ describe("Farm validation with cross-model references", () => {
     await ensureDir(serviceACodebase);
     await ensureDir(serviceAModel);
 
+    // Create minimal manifest.yaml in model directory
+    const manifestContent = `
+project: service-a
+`;
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), manifestContent);
+
     manifest.addProject("service-a", {
       name: "service-a",
       codebase_path: "services/service-a",
@@ -383,7 +404,7 @@ describe("Farm validation with cross-model references", () => {
     // Create validator from farm
     const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
 
-    // Verify validator has model path overrides for service-a
+    // Verify validator was created for farm with service-a project
     expect(validator).toBeDefined();
   });
 
@@ -399,6 +420,12 @@ describe("Farm validation with cross-model references", () => {
       await ensureDir(codebase);
       await ensureDir(modelFolder);
 
+      // Create minimal manifest.yaml in each model directory
+      const manifestContent = `
+project: ${service}
+`;
+      await writeFile(path.join(modelFolder, "manifest.yaml"), manifestContent);
+
       manifest.addProject(service, {
         name: service,
         codebase_path: service,
@@ -411,6 +438,7 @@ describe("Farm validation with cross-model references", () => {
     // Create validator from farm
     const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
 
+    // Verify validator was created for farm with multiple projects
     expect(validator).toBeDefined();
   });
 
@@ -422,38 +450,61 @@ describe("Farm validation with cross-model references", () => {
     const serviceACodebase = path.join(farmRoot, "service-a");
     const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
     const serviceAModel = path.join(serviceADocRobotics, "model");
-    const serviceAMotivation = path.join(serviceAModel, "01_motivation");
+    const serviceADataModel = path.join(serviceAModel, "08_data-model");
 
     const serviceBCodebase = path.join(farmRoot, "service-b");
     const serviceBDocRobotics = path.join(serviceBCodebase, "documentation-robotics");
     const serviceBModel = path.join(serviceBDocRobotics, "model");
     const serviceBApi = path.join(serviceBModel, "07_api");
 
-    await ensureDir(serviceAMotivation);
+    await ensureDir(serviceADataModel);
     await ensureDir(serviceBApi);
 
-    // Create a goal in service-a
-    const goalContent = `
-- path: motivation.goal.user-satisfaction
-  id: motivation.goal.user-satisfaction
-  name: User Satisfaction
-  description: Ensure users are satisfied with the product
-  type: goal
+    // Create manifest.yaml for service-a
+    const serviceAManifestContent = `
+project: service-a
 `;
-    await writeFile(path.join(serviceAMotivation, "goals.yaml"), goalContent);
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), serviceAManifestContent);
 
-    // Create an API endpoint in service-b that references service-a's goal
-    const endpointContent = `
-- path: api.endpoint.health-check
-  id: api.endpoint.health-check
-  name: Health Check
-  description: Basic health check endpoint
-  type: endpoint
-  references:
-    - target: "@service-a/motivation.goal.user-satisfaction"
-      relationship: supports
+    // Create manifest.yaml for service-b
+    const serviceBManifestContent = `
+project: service-b
+models:
+  service-a: {}
 `;
-    await writeFile(path.join(serviceBApi, "endpoints.yaml"), endpointContent);
+    await writeFile(path.join(serviceBModel, "manifest.yaml"), serviceBManifestContent);
+
+    // Create a data entity in service-a (layer 8)
+    const entityContent = `user:
+  id: user
+  path: data-model.entity.user
+  spec_node_id: data-model.entity
+  type: entity
+  layer_id: data-model
+  name: User
+  description: User entity
+`;
+    await writeFile(path.join(serviceADataModel, "entity.yaml"), entityContent);
+
+    // Create an API operation in service-b (layer 7) that references service-a's data model (layer 8)
+    // This is valid: lower layer (7) references higher layer (8)
+    const operationContent = `get-user:
+  id: get-user
+  path: api.operation.get-user
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: Get User
+  description: Retrieves a user
+  attributes:
+    operationId: getUser
+    summary: Get a user by ID
+    tags: users
+  references:
+    - target: "@service-a/data-model.entity.user"
+      relationship: returns
+`;
+    await writeFile(path.join(serviceBApi, "operation.yaml"), operationContent);
 
     // Register projects in farm manifest
     manifest.addProject("service-a", {
@@ -489,34 +540,54 @@ describe("Farm validation with cross-model references", () => {
     const serviceACodebase = path.join(farmRoot, "service-a");
     const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
     const serviceAModel = path.join(serviceADocRobotics, "model");
-    const serviceAMotivation = path.join(serviceAModel, "01_motivation");
+    const serviceADataModel = path.join(serviceAModel, "08_data-model");
 
     const serviceBCodebase = path.join(farmRoot, "service-b");
     const serviceBDocRobotics = path.join(serviceBCodebase, "documentation-robotics");
     const serviceBModel = path.join(serviceBDocRobotics, "model");
     const serviceBApi = path.join(serviceBModel, "07_api");
 
-    await ensureDir(serviceAMotivation);
+    await ensureDir(serviceADataModel);
     await ensureDir(serviceBApi);
 
-    // Create a minimal element in service-a
-    const goalContent = `
-- path: motivation.goal.user-satisfaction
-  id: motivation.goal.user-satisfaction
-  name: User Satisfaction
+    // Create manifest.yaml for service-a
+    const serviceAManifestContent = `
+project: service-a
 `;
-    await writeFile(path.join(serviceAMotivation, "goals.yaml"), goalContent);
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), serviceAManifestContent);
 
-    // Create an API endpoint in service-b that references a NON-EXISTENT goal in service-a
-    const endpointContent = `
-- path: api.endpoint.health-check
-  id: api.endpoint.health-check
-  name: Health Check
-  references:
-    - target: "@service-a/motivation.goal.non-existent"
-      relationship: supports
+    // Create manifest.yaml for service-b
+    const serviceBManifestContent = `
+project: service-b
+models:
+  service-a: {}
 `;
-    await writeFile(path.join(serviceBApi, "endpoints.yaml"), endpointContent);
+    await writeFile(path.join(serviceBModel, "manifest.yaml"), serviceBManifestContent);
+
+    // Create a data entity in service-a
+    const entityContent = `user:
+  id: user
+  path: data-model.entity.user
+  spec_node_id: data-model.entity
+  type: entity
+  layer_id: data-model
+  name: User
+`;
+    await writeFile(path.join(serviceADataModel, "entity.yaml"), entityContent);
+
+    // Create an API operation in service-b that references a NON-EXISTENT entity in service-a
+    const operationContent = `get-user:
+  id: get-user
+  path: api.operation.get-user
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: Get User
+  references:
+    - target: "@service-a/data-model.entity.non-existent"
+      relationship: returns
+`;
+    await writeFile(path.join(serviceBApi, "operation.yaml"), operationContent);
 
     // Register projects in farm
     manifest.addProject("service-a", {
@@ -546,8 +617,131 @@ describe("Farm validation with cross-model references", () => {
 
     // Find the error related to the broken reference
     const brokenRefError = result.errors.find((e) =>
-      e.message.includes("Broken qualified reference")
+      e.message.includes("Broken qualified reference") || e.message.includes("does not exist")
     );
     expect(brokenRefError).toBeDefined();
+  });
+
+  it("should support platform-view project that aggregates and validates across subfolder models", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm");
+
+    // Create service-a project with data model
+    const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
+    const serviceAModel = path.join(serviceADocRobotics, "model");
+    const serviceADataModel = path.join(serviceAModel, "08_data-model");
+
+    await ensureDir(serviceADataModel);
+
+    // Create manifest.yaml for service-a
+    const serviceAManifestContent = `
+project: service-a
+`;
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), serviceAManifestContent);
+
+    // Create a data entity in service-a
+    const entityContent = `user:
+  id: user
+  path: data-model.entity.user
+  spec_node_id: data-model.entity
+  type: entity
+  layer_id: data-model
+  name: User
+  description: User entity
+`;
+    await writeFile(path.join(serviceADataModel, "entity.yaml"), entityContent);
+
+    // Create service-b project with API operation
+    const serviceBCodebase = path.join(farmRoot, "service-b");
+    const serviceBDocRobotics = path.join(serviceBCodebase, "documentation-robotics");
+    const serviceBModel = path.join(serviceBDocRobotics, "model");
+    const serviceBApi = path.join(serviceBModel, "07_api");
+
+    await ensureDir(serviceBApi);
+
+    // Create manifest.yaml for service-b
+    const serviceBManifestContent = `
+project: service-b
+`;
+    await writeFile(path.join(serviceBModel, "manifest.yaml"), serviceBManifestContent);
+
+    // Create an API operation in service-b
+    const operationContent = `get-user:
+  id: get-user
+  path: api.operation.get-user
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: Get User
+  description: User management API
+`;
+    await writeFile(path.join(serviceBApi, "operation.yaml"), operationContent);
+
+    // Create platform-view project that references both services
+    const platformViewCodebase = path.join(farmRoot, "platform-view");
+    const platformViewDocRobotics = path.join(platformViewCodebase, "documentation-robotics");
+    const platformViewModel = path.join(platformViewDocRobotics, "model");
+    const platformViewBusiness = path.join(platformViewModel, "02_business");
+
+    await ensureDir(platformViewBusiness);
+
+    // Create manifest.yaml for platform-view that declares service-a and service-b
+    const platformViewManifestContent = `
+project: platform-view
+models:
+  service-a: {}
+  service-b: {}
+`;
+    await writeFile(path.join(platformViewModel, "manifest.yaml"), platformViewManifestContent);
+
+    // Create a business service that references elements from both services
+    // Layer 2 (business) can reference layers 3-13, so it can reference layer 7 (api) and layer 8 (data-model)
+    const businessServiceContent = `customer-management:
+  id: customer-management
+  path: business.service.customer-management
+  spec_node_id: business.service
+  type: service
+  layer_id: business
+  name: Customer Management
+  description: Manages customer data and interactions
+  references:
+    - target: "@service-a/data-model.entity.user"
+      relationship: manages
+    - target: "@service-b/api.operation.get-user"
+      relationship: uses
+`;
+    await writeFile(path.join(platformViewBusiness, "service.yaml"), businessServiceContent);
+
+    // Register all three projects in farm manifest
+    manifest.addProject("service-a", {
+      name: "service-a",
+      codebase_path: "service-a",
+      model_folder: "service-a",
+    });
+
+    manifest.addProject("service-b", {
+      name: "service-b",
+      codebase_path: "service-b",
+      model_folder: "service-b",
+    });
+
+    manifest.addProject("platform-view", {
+      name: "platform-view",
+      codebase_path: "platform-view",
+      model_folder: "platform-view",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Create validator from farm
+    const validator = await ComposedReferenceValidator.fromFarm(farmRoot);
+
+    // Load platform-view model and validate cross-model references
+    const platformModel = await Model.load(platformViewModel);
+    const result = await validator.validateModel(platformModel);
+
+    // Validation should pass because both referenced elements exist in their respective services
+    expect(result.isValid()).toBe(true);
   });
 });

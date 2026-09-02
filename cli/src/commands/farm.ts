@@ -398,6 +398,7 @@ export async function farmValidateCommand(options: {
     }
 
     const allResults = [];
+    const reportData = [];
 
     // Validate each project
     for (const project of projectsToValidate) {
@@ -446,14 +447,33 @@ export async function farmValidateCommand(options: {
 
         allResults.push({ project: project.name, result });
 
+        // Format and display validation output
+        const formatted = ValidationFormatter.format(result, model, {
+          verbose: options.verbose,
+          quiet: options.quiet,
+        });
+
+        // Collect report data for output file
+        reportData.push({
+          project: project.name,
+          valid: result.isValid(),
+          errors: result.errors.map((e) => ({
+            message: e.message,
+            layer: e.layer,
+            elementId: e.elementId,
+            location: e.location,
+          })),
+          warnings: result.warnings.map((w) => ({
+            message: w.message,
+            layer: w.layer,
+            elementId: w.elementId,
+            location: w.location,
+          })),
+          formatted,
+        });
+
         if (!options.quiet) {
           console.log(ansis.bold(`\nProject: ${project.name}`));
-
-          // Format and display validation output
-          const formatted = ValidationFormatter.format(result, model, {
-            verbose: options.verbose,
-            quiet: options.quiet,
-          });
           console.log(formatted);
         }
 
@@ -477,6 +497,67 @@ export async function farmValidateCommand(options: {
     // Check if all validations passed
     const allValid = allResults.every((r) => r.result.isValid());
 
+    // Write output file if requested
+    if (options.output) {
+      const outputExt = path.extname(options.output).toLowerCase();
+
+      if (outputExt === ".json") {
+        // Write JSON report
+        const jsonReport = {
+          timestamp: new Date().toISOString(),
+          farm_root: farmRoot,
+          all_valid: allValid,
+          projects: reportData.map((r) => ({
+            project: r.project,
+            valid: r.valid,
+            errors: r.errors,
+            warnings: r.warnings,
+          })),
+        };
+        await (await import("fs/promises")).writeFile(
+          options.output,
+          JSON.stringify(jsonReport, null, 2),
+          "utf-8"
+        );
+      } else if (outputExt === ".md") {
+        // Write Markdown report
+        let mdContent = `# Farm Validation Report\n\n`;
+        mdContent += `**Date**: ${new Date().toISOString()}\n`;
+        mdContent += `**Farm Root**: ${farmRoot}\n`;
+        mdContent += `**Overall Status**: ${allValid ? "✅ Valid" : "❌ Invalid"}\n\n`;
+
+        mdContent += `## Projects\n\n`;
+        for (const r of reportData) {
+          mdContent += `### ${r.project}\n\n`;
+          mdContent += `**Status**: ${r.valid ? "✅ Valid" : "❌ Invalid"}\n\n`;
+
+          if (r.errors.length > 0) {
+            mdContent += `#### Errors (${r.errors.length})\n\n`;
+            for (const err of r.errors) {
+              mdContent += `- ${err.message}\n`;
+            }
+            mdContent += "\n";
+          }
+
+          if (r.warnings.length > 0) {
+            mdContent += `#### Warnings (${r.warnings.length})\n\n`;
+            for (const warn of r.warnings) {
+              mdContent += `- ${warn.message}\n`;
+            }
+            mdContent += "\n";
+          }
+        }
+
+        await (await import("fs/promises")).writeFile(options.output, mdContent, "utf-8");
+      } else {
+        throw new Error(`Unsupported output format: ${outputExt}. Use .json or .md`);
+      }
+
+      if (!options.quiet) {
+        handleInfo(`Report written to ${options.output}`);
+      }
+    }
+
     if (isJson()) {
       console.log(
         JSON.stringify({
@@ -488,6 +569,7 @@ export async function farmValidateCommand(options: {
             warnings: r.result.warnings.length,
           })),
           all_valid: allValid,
+          output: options.output ? path.resolve(options.output) : undefined,
         })
       );
     }
