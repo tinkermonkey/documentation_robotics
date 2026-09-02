@@ -294,7 +294,7 @@ export class VerifyEngine {
         symbol: firstLocation.symbol || "",
       });
 
-      const filePath = path.join(projectRoot, firstLocation.file);
+      const filePath = path.join(model.codebaseRoot, firstLocation.file);
       fileChecks.push(
         access(filePath)
           .then(() => true)

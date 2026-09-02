@@ -21,6 +21,7 @@ import { join, dirname } from "path";
 const MAX_SEARCH_DEPTH = 5;
 const PROJECT_FOLDER_NAME = "documentation-robotics";
 const SPEC_FOLDER_NAME = ".dr";
+const FARM_FILE_NAME = "farm.yaml";
 
 /**
  * Find the project root by searching for the documentation-robotics/ folder
@@ -107,4 +108,42 @@ export async function getSpecReferencePath(startPath?: string): Promise<string |
  */
 export async function isInDRProject(startPath?: string): Promise<boolean> {
   return (await findProjectRoot(startPath)) !== null;
+}
+
+/**
+ * Find the farm root by searching for the farm.yaml file
+ *
+ * Searches upward from the current working directory up to MAX_SEARCH_DEPTH levels.
+ * Returns the directory containing the farm.yaml file.
+ *
+ * @param startPath - Optional starting path (defaults to process.cwd())
+ * @returns Path to farm root, or null if not found
+ *
+ * @example
+ * // From /home/user/architecture-farm/service-a-model/documentation-robotics/model
+ * // Returns: /home/user/architecture-farm (if farm.yaml exists there)
+ * const farmRoot = await findFarmRoot();
+ */
+export async function findFarmRoot(startPath?: string): Promise<string | null> {
+  let currentPath = startPath || process.cwd();
+
+  for (let depth = 0; depth < MAX_SEARCH_DEPTH; depth++) {
+    const farmFilePath = join(currentPath, FARM_FILE_NAME);
+
+    if (await fileExists(farmFilePath)) {
+      return currentPath;
+    }
+
+    // Move up one directory
+    const parentPath = dirname(currentPath);
+
+    // Check if we've reached the root
+    if (parentPath === currentPath) {
+      break;
+    }
+
+    currentPath = parentPath;
+  }
+
+  return null;
 }

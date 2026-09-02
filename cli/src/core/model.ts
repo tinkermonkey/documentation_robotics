@@ -120,6 +120,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
  */
 export class Model {
   rootPath: string;
+  codebaseRoot: string;
   manifest: Manifest;
   graph: GraphModel;
   layers: Map<string, Layer>;
@@ -135,6 +136,7 @@ export class Model {
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
+    this.codebaseRoot = options.codebaseRoot ?? rootPath;
     this.manifest = manifest;
     this.graph = new GraphModel();
     this.layers = new Map();
@@ -598,6 +600,10 @@ export class Model {
       };
     }
 
+    if (this.manifest.codebase_path) {
+      yamlData.codebase_path = this.manifest.codebase_path;
+    }
+
     if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
       yamlData.changeset_history = this.manifest.changeset_history;
     }
@@ -848,8 +854,22 @@ export class Model {
         manifestData.models = manifestYaml.models;
       }
 
+      // Load codebase_path if present
+      if (manifestYaml.codebase_path) {
+        manifestData.codebase_path = manifestYaml.codebase_path;
+      }
+
       const manifest = new Manifest(manifestData);
-      const model = new Model(projectRoot, manifest, options);
+
+      // Resolve codebaseRoot from manifest or options
+      let codebaseRoot = projectRoot;
+      if (options.codebaseRoot) {
+        codebaseRoot = options.codebaseRoot;
+      } else if (manifest.codebase_path) {
+        codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
+      }
+
+      const model = new Model(projectRoot, manifest, { ...options, codebaseRoot });
 
       // Load all available layers if lazyLoad is false
       if (!options.lazyLoad) {
@@ -1007,7 +1027,16 @@ export class Model {
     }
 
     const manifest = new Manifest(manifestData);
-    const model = new Model(rootPath, manifest, options);
+
+    // Resolve codebaseRoot from manifest or options
+    let codebaseRoot = rootPath;
+    if (options.codebaseRoot) {
+      codebaseRoot = options.codebaseRoot;
+    } else if (manifest.codebase_path) {
+      codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
+    }
+
+    const model = new Model(rootPath, manifest, { ...options, codebaseRoot });
 
     await model.saveManifest();
 

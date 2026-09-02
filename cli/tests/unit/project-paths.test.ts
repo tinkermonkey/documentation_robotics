@@ -9,6 +9,7 @@ import { tmpdir } from "os";
 import { randomUUID } from "crypto";
 import {
   findProjectRoot,
+  findFarmRoot,
   getDocumentationRobotsPath,
   getModelPath,
   getSpecReferencePath,
@@ -181,6 +182,68 @@ describe("Project Paths Utilities", () => {
 
       const inProject = await isInDRProject(startPath);
       expect(inProject).toBe(true);
+    });
+  });
+
+  describe("findFarmRoot", () => {
+    it("should find farm.yaml in current directory", async () => {
+      await writeFile(join(testDir, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      const result = await findFarmRoot(testDir);
+      expect(result).toBe(testDir);
+    });
+
+    it("should find farm.yaml in parent directory", async () => {
+      const subdir = join(testDir, "subdir");
+      await mkdir(subdir, { recursive: true });
+      await writeFile(join(testDir, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      const result = await findFarmRoot(subdir);
+      expect(result).toBe(testDir);
+    });
+
+    it("should find farm.yaml multiple levels up", async () => {
+      const deepPath = join(testDir, "a", "b", "c");
+      await mkdir(deepPath, { recursive: true });
+      await writeFile(join(testDir, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      const result = await findFarmRoot(deepPath);
+      expect(result).toBe(testDir);
+    });
+
+    it("should return null when farm.yaml is not found", async () => {
+      const subdir = join(testDir, "no-farm");
+      await mkdir(subdir, { recursive: true });
+
+      const result = await findFarmRoot(subdir);
+      expect(result).toBeNull();
+    });
+
+    it("should respect MAX_SEARCH_DEPTH limit", async () => {
+      // Create a directory structure that exceeds MAX_SEARCH_DEPTH (5)
+      let deepPath = testDir;
+      for (let i = 0; i < 10; i++) {
+        deepPath = join(deepPath, `level${i}`);
+      }
+      await mkdir(deepPath, { recursive: true });
+
+      // farm.yaml is at the root, but we're searching from beyond MAX_SEARCH_DEPTH
+      await writeFile(join(testDir, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      const result = await findFarmRoot(deepPath);
+      // Should return null because farm.yaml is beyond MAX_SEARCH_DEPTH
+      expect(result).toBeNull();
+    });
+
+    it("should find farm.yaml in a detached model farm layout", async () => {
+      const farmRoot = testDir;
+      const serviceModelDir = join(farmRoot, "service-a-model", "documentation-robotics", "model");
+      await mkdir(serviceModelDir, { recursive: true });
+      await writeFile(join(farmRoot, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      // Starting from the model directory, should find farm.yaml at the farm root
+      const result = await findFarmRoot(serviceModelDir);
+      expect(result).toBe(farmRoot);
     });
   });
 });
