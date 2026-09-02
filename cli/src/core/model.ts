@@ -766,6 +766,45 @@ export class Model {
   }
 
   /**
+   * Validate that the manifest's models field is a plain object.
+   *
+   * @param models - The raw value from manifest YAML
+   * @returns Validation result with valid flag and error message if invalid
+   */
+  static validateModelsField(models: unknown): { valid: boolean; error?: string } {
+    // Check if models is null or undefined (this shouldn't happen since we check before calling)
+    if (models === null || models === undefined) {
+      return { valid: true };
+    }
+
+    // Check if models is a plain object (not an array, string, or other primitive)
+    if (typeof models !== "object" || Array.isArray(models)) {
+      return {
+        valid: false,
+        error:
+          `Invalid manifest 'models' field: expected an object with model names as keys ` +
+          `(e.g., { "auth-service": { } }), but got ${Array.isArray(models) ? "an array" : `a ${typeof models}`}. ` +
+          `This often happens when YAML syntax is incorrect, like writing 'models: auth-service' ` +
+          `instead of 'models: { auth-service: {} }' or 'models:\\n  auth-service: {}'.`,
+      };
+    }
+
+    // Validate that it's a plain object (not a class instance)
+    if (Object.getPrototypeOf(models) !== Object.prototype) {
+      return {
+        valid: false,
+        error:
+          `Invalid manifest 'models' field: expected a plain object, but got an instance of ${
+            (models as any).constructor?.name || "unknown"
+          }. ` +
+          `Please ensure 'models' is a simple YAML object mapping model names to declarations.`,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  /**
    * Load a model from disk
    *
    * Expected structure:
@@ -802,6 +841,10 @@ export class Model {
 
       // Load external model declarations if present
       if (manifestYaml.models) {
+        const modelsValidation = Model.validateModelsField(manifestYaml.models);
+        if (!modelsValidation.valid) {
+          throw new Error(modelsValidation.error);
+        }
         manifestData.models = manifestYaml.models;
       }
 
