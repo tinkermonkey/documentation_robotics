@@ -153,26 +153,26 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Model Declaration Format**:
 
-  ```yaml
-  models:
-    auth-service:
-      url: "https://github.com/org/auth-service.git"
-    payment-service:
-      url: "https://github.com/org/payment-service.git"
-    shared-infra:
-      url: "https://github.com/org/shared-infra.git"
-      role: "shared"
-  ```
+```yaml
+models:
+  auth-service:
+    url: "https://github.com/org/auth-service.git"
+  payment-service:
+    url: "https://github.com/org/payment-service.git"
+  shared-infra:
+    url: "https://github.com/org/shared-infra.git"
+    role: "shared"
+```
 
 **Minimal Declarations**:
 
 If you want to declare a model without metadata, use an empty object:
 
-  ```yaml
-  models:
-    auth-service: {}
-    payment-service: {}
-  ```
+```yaml
+models:
+  auth-service: {}
+  payment-service: {}
+```
 
 - Declaring a model signals intent to reference elements from it; references will be validated during conformance checks
 
