@@ -647,5 +647,67 @@ describe("ReferenceValidator", () => {
 
       expect(result.isValid()).toBe(true);
     });
+
+    it("should handle case-insensitive manifest model lookup", () => {
+      const validator = new ReferenceValidator();
+      // Manifest declares model with uppercase
+      const manifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+        models: {
+          "Auth-Service": {}, // Declared with uppercase
+        },
+      });
+      const model = new Model("/test", manifest);
+
+      // Reference uses lowercase (normalized by parser)
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-secure",
+          type: "Goal",
+          name: "Ensure Security",
+          references: [{ target: "@auth-service/api.operation.authenticate", type: "implements" }],
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+
+      const result = validator.validateModel(model);
+
+      // Should pass validation - case-insensitive lookup should find the model
+      expect(result.isValid()).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it("should handle mixed-case reference with uppercase model name", () => {
+      const validator = new ReferenceValidator();
+      // Manifest declares model with lowercase
+      const manifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+        models: {
+          "auth-service": {}, // Declared with lowercase
+        },
+      });
+      const model = new Model("/test", manifest);
+
+      // Reference uses uppercase (will be normalized by parser)
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-secure",
+          type: "Goal",
+          name: "Ensure Security",
+          references: [{ target: "@Auth-Service/api.operation.authenticate", type: "implements" }],
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+
+      const result = validator.validateModel(model);
+
+      // Should pass validation - parser normalizes to lowercase
+      expect(result.isValid()).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
   });
 });

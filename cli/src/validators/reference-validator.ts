@@ -106,7 +106,9 @@ export class ReferenceValidator {
         }
 
         // For qualified references, check if the model is declared
-        if (parsedModel && (!model.manifest.models || !model.manifest.models[parsedModel])) {
+        // Normalize lookup to handle case-insensitive manifest keys
+        const modelFound = parsedModel && model.manifest.models && this.findManifestModel(model.manifest.models, parsedModel);
+        if (parsedModel && !modelFound) {
           result.addError({
             layer: sourceLayerName,
             elementId,
@@ -203,5 +205,23 @@ export class ReferenceValidator {
 
     // Fallback: return first segment (shouldn't reach here with valid element IDs)
     return elementId.split(separator)[0] || "";
+  }
+
+  /**
+   * Find a model in the manifest using case-insensitive lookup
+   * Handles the case where parseReferencePath normalizes model names to lowercase,
+   * but the manifest may have different casing for the declared model keys.
+   */
+  private findManifestModel(
+    models: Record<string, unknown>,
+    modelName: string
+  ): boolean {
+    const lowerModelName = modelName.toLowerCase();
+    for (const key of Object.keys(models)) {
+      if (key.toLowerCase() === lowerModelName) {
+        return true;
+      }
+    }
+    return false;
   }
 }

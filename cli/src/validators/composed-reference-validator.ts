@@ -26,7 +26,11 @@ export class ComposedReferenceValidator {
     const fullValidator = new Validator();
     const result = await fullValidator.validateModel(model);
 
-    const declaredModels = new Set(Object.keys(model.manifest.models || {}));
+    const declaredModels = new Map<string, string>();
+    // Map from lowercase model name to declared model name (preserving original casing)
+    for (const modelName of Object.keys(model.manifest.models || {})) {
+      declaredModels.set(modelName.toLowerCase(), modelName);
+    }
 
     // Clear all state to ensure fresh validation on reuse
     this.referencedModels.clear();
@@ -34,39 +38,41 @@ export class ComposedReferenceValidator {
     this.resolutionDiagnostics = new ValidationResult();
     this.collectReferencedModels(model);
 
-    for (const modelName of declaredModels) {
-      await this.resolveExternalModel(modelName);
+    for (const declaredName of declaredModels.values()) {
+      await this.resolveExternalModel(declaredName);
     }
 
     // Merge any diagnostics from resolution phase
     result.merge(this.resolutionDiagnostics);
 
-    for (const modelName of declaredModels) {
-      const isReferenced = this.referencedModels.has(modelName);
-      const isResolved = this.resolvedModels.has(modelName);
+    for (const [lowerModelName, declaredName] of declaredModels) {
+      // Check if model is referenced using case-insensitive comparison
+      const isReferenced = this.referencedModels.has(lowerModelName);
+      // Check if model is resolved using the declared name
+      const isResolved = this.resolvedModels.has(declaredName);
 
       if (!isResolved) {
         if (isReferenced) {
           // Declared, referenced, but unresolvable → error with guidance
           result.addError({
             layer: "manifest",
-            message: `External model '${modelName}' is referenced in qualified paths but could not be resolved from the configured paths`,
+            message: `External model '${declaredName}' is referenced in qualified paths but could not be resolved from the configured paths`,
             category: "reference",
-            fixSuggestion: `Ensure the model exists on disk, or use '--model-path ${modelName}=/path/to/project-root' to specify its location`,
+            fixSuggestion: `Ensure the model exists on disk, or use '--model-path ${declaredName}=/path/to/project-root' to specify its location`,
           });
         } else {
           // Declared but unreferenced and unresolvable → warning only
           result.addWarning({
             layer: "manifest",
-            message: `External model '${modelName}' is declared but not referenced in any qualified paths and could not be found on disk`,
+            message: `External model '${declaredName}' is declared but not referenced in any qualified paths and could not be found on disk`,
             category: "reference",
-            fixSuggestion: `Remove the declaration if not needed, or use '--model-path ${modelName}=/path/to/project-root' to specify its location`,
+            fixSuggestion: `Remove the declaration if not needed, or use '--model-path ${declaredName}=/path/to/project-root' to specify its location`,
           });
         }
       } else if (isReferenced) {
         // Declared, referenced, and resolvable → validate qualified references
-        const validationResult = this.validateQualifiedReferencesAgainstModel(model, modelName);
-        result.merge(validationResult, `[Composed/${modelName}]`);
+        const validationResult = this.validateQualifiedReferencesAgainstModel(model, declaredName);
+        result.merge(validationResult, `[Composed/${declaredName}]`);
       }
     }
 
@@ -81,7 +87,8 @@ export class ComposedReferenceValidator {
             try {
               const parsed = parseReferencePath(ref.target);
               if (parsed.modelName) {
-                this.referencedModels.add(parsed.modelName);
+                // Store lowercase for case-insensitive comparison with declared models
+                this.referencedModels.add(parsed.modelName.toLowerCase());
               }
             } catch (error) {
               if (error instanceof ReferencePathParseError) {
@@ -98,7 +105,18 @@ export class ComposedReferenceValidator {
   }
 
   private async resolveExternalModel(modelName: string): Promise<void> {
-    const modelPath = this.modelPathOverrides[modelName];
+    // Try exact match first, then case-insensitive match
+    let modelPath = this.modelPathOverrides[modelName];
+    if (!modelPath) {
+      // Case-insensitive lookup in modelPathOverrides
+      const lowerModelName = modelName.toLowerCase();
+      for (const [key, path] of Object.entries(this.modelPathOverrides)) {
+        if (key.toLowerCase() === lowerModelName) {
+          modelPath = path;
+          break;
+        }
+      }
+    }
 
     if (!modelPath) {
       return;
@@ -292,7 +310,8 @@ export class ComposedReferenceValidator {
 
           try {
             const parsed = parseReferencePath(ref.target);
-            if (parsed.modelName !== modelName) {
+            // Compare model names case-insensitively
+            if (parsed.modelName?.toLowerCase() !== modelName.toLowerCase()) {
               continue;
             }
 
