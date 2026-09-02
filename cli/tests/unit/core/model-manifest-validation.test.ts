@@ -2,17 +2,20 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Model } from "@/core/model";
 import { mkdir, rm, writeFile } from "fs/promises";
 import { join } from "path";
-
-const TEST_DIR = "/tmp/dr-manifest-validation-test";
+import { tmpdir } from "os";
+import { randomUUID } from "crypto";
 
 describe("Model - Manifest Models Field Validation", () => {
+  let testDir: string;
+
   beforeEach(async () => {
-    await rm(TEST_DIR, { recursive: true, force: true });
-    await mkdir(TEST_DIR, { recursive: true });
+    testDir = join(tmpdir(), `dr-manifest-validation-${randomUUID()}`);
+    await rm(testDir, { recursive: true, force: true });
+    await mkdir(testDir, { recursive: true });
   });
 
   afterEach(async () => {
-    await rm(TEST_DIR, { recursive: true, force: true });
+    await rm(testDir, { recursive: true, force: true });
   });
 
   describe("validateModelsField", () => {
@@ -83,7 +86,7 @@ describe("Model - Manifest Models Field Validation", () => {
 
   describe("Model.load - manifest validation integration", () => {
     async function createTestProject(manifestContent: string): Promise<string> {
-      const projectRoot = TEST_DIR;
+      const projectRoot = testDir;
       const modelDir = join(projectRoot, "documentation-robotics", "model");
       await mkdir(modelDir, { recursive: true });
       await writeFile(join(modelDir, "manifest.yaml"), manifestContent);
