@@ -105,6 +105,18 @@ export class ComposedReferenceValidator {
     }
 
     try {
+      // Verify modelPath itself is a directory
+      const rootStats = await fs.stat(modelPath).catch(() => null);
+      if (rootStats && !rootStats.isDirectory()) {
+        this.resolutionDiagnostics.addWarning({
+          layer: "manifest",
+          message: `External model '${modelName}' path is not a directory: ${modelPath}`,
+          category: "reference",
+          fixSuggestion: `Ensure '--model-path ${modelName}=${modelPath}' points to a project root containing documentation-robotics/model/`,
+        });
+        return;
+      }
+
       // Try standard layout first: {modelPath}/documentation-robotics/model/
       let modelDir = path.join(modelPath, "documentation-robotics", "model");
       let stats = await fs.stat(modelDir).catch(() => null);
