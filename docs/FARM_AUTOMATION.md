@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 5 adds automation support to the `dr farm` command group, enabling unattended operation from cron jobs and CI pipelines. Key features include:
+Automation support for the `dr farm` command group enables unattended operation from cron jobs and CI pipelines. Key features include:
 
 - **Structured JSON output** (`--format json`) for all farm subcommands
 - **Automatic changeset commitment** (`--auto-commit`) for fully-automated pipelines
@@ -267,18 +267,23 @@ farm-automation:
         --auto-commit
         --concurrency 4
         --output sync-report.json
+    - SYNC_STATUS=$?
     
     # Validate
     - dr farm validate
         --format json
         --output validation-report.json
+    - VALIDATE_STATUS=$?
     
     # Check exit codes
     - |
-      SYNC_STATUS=$?
       if [ $SYNC_STATUS -ne 0 ] && [ $SYNC_STATUS -ne 1 ]; then
         echo "Farm sync failed with exit code $SYNC_STATUS"
         exit $SYNC_STATUS
+      fi
+      if [ $VALIDATE_STATUS -ne 0 ] && [ $VALIDATE_STATUS -ne 1 ]; then
+        echo "Farm validation failed with exit code $VALIDATE_STATUS"
+        exit $VALIDATE_STATUS
       fi
   
   artifacts:

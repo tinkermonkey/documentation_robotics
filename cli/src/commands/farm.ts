@@ -18,12 +18,28 @@ import { ComposedReferenceValidator } from "../validators/composed-reference-val
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { FarmSyncEngine } from "../core/farm-sync-engine.js";
 
+interface FarmSyncResultEntry {
+  project: string;
+  status: "success" | "error" | "partial";
+  changeCount?: number;
+  changesetId?: string;
+  filesChanged?: { added: string[]; modified: string[]; deleted: string[] };
+  ambiguities?: number;
+  commitsBefore?: string;
+  commitsAfter?: string;
+  autoCommitted?: boolean;
+  committedChanges?: number;
+  commitError?: string;
+  message?: string;
+}
+
 /**
  * Initialize a new farm
  */
 export async function farmInitCommand(options: {
   name?: string;
   description?: string;
+  format?: string;
 }): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.init") : null;
 
@@ -32,9 +48,10 @@ export async function farmInitCommand(options: {
     const farmYamlPath = path.join(farmPath, "farm.yaml");
 
     // Check if farm.yaml already exists
+    const useJson = options.format === "json" || isJson();
     if (await fileExists(farmYamlPath)) {
       const message = "Farm already initialized in this directory";
-      if (isJson()) {
+      if (useJson) {
         console.log(JSON.stringify({ status: "error", code: 1, message }));
       } else {
         console.error(ansis.red(`Error: ${message}`));
@@ -67,7 +84,7 @@ export async function farmInitCommand(options: {
     const manifest = FarmManifest.create(farmName);
     await manifest.save(farmYamlPath);
 
-    if (isJson()) {
+    if (useJson) {
       console.log(JSON.stringify({ status: "ok", farmPath, farmName }));
     } else {
       handleSuccess(
@@ -77,7 +94,8 @@ export async function farmInitCommand(options: {
 
     if (span) endSpan(span);
   } catch (error) {
-    if (isJson()) {
+    const useJsonError = options.format === "json" || isJson();
+    if (useJsonError) {
       console.log(
         JSON.stringify({
           status: "error",
@@ -101,9 +119,11 @@ export async function farmAddCommand(
   options: {
     remote?: string;
     codebase?: string;
+    format?: string;
   }
 ): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.add", { "project.name": name }) : null;
+  const useJson = options.format === "json" || isJson();
 
   try {
     // Find farm root
@@ -130,13 +150,13 @@ export async function farmAddCommand(
         throw new Error(`Codebase directory '${codebasePath}' already exists`);
       }
 
-      if (!isJson()) {
+      if (!useJson) {
         handleInfo(`Cloning ${options.remote} to ${codebasePath}...`);
       }
 
       try {
         execSync(`git clone ${options.remote} "${codebaseFullPath}"`, {
-          stdio: isJson() ? "pipe" : "inherit",
+          stdio: useJson ? "pipe" : "inherit",
         });
       } catch (error) {
         throw new Error(`Failed to clone repository: ${getErrorMessage(error)}`);
@@ -149,7 +169,7 @@ export async function farmAddCommand(
 
     if (!(await fileExists(modelFullPath))) {
       await ensureDir(modelFullPath);
-      if (!isJson()) {
+      if (!useJson) {
         handleInfo(`Created model folder: ${modelFolder}`);
       }
     }
@@ -164,7 +184,7 @@ export async function farmAddCommand(
 
     await manifest.save(farmYamlPath);
 
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "ok",
@@ -181,7 +201,7 @@ export async function farmAddCommand(
 
     if (span) endSpan(span);
   } catch (error) {
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "error",
@@ -204,9 +224,11 @@ export async function farmRemoveCommand(
   name: string,
   options: {
     deleteModel?: boolean;
+    format?: string;
   }
 ): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.remove", { "project.name": name }) : null;
+  const useJson = options.format === "json" || isJson();
 
   try {
     // Find farm root
@@ -231,9 +253,9 @@ export async function farmRemoveCommand(
         try {
           // Use rm -rf for simplicity; in production, might use fs.rmdir with recursive: true
           execSync(`rm -rf "${modelFullPath}"`, {
-            stdio: isJson() ? "pipe" : "inherit",
+            stdio: useJson ? "pipe" : "inherit",
           });
-          if (!isJson()) {
+          if (!useJson) {
             handleInfo(`Deleted model folder: ${project.model_folder}`);
           }
         } catch (error) {
@@ -246,7 +268,7 @@ export async function farmRemoveCommand(
     manifest.removeProject(name);
     await manifest.save(farmYamlPath);
 
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "ok",
@@ -260,7 +282,7 @@ export async function farmRemoveCommand(
 
     if (span) endSpan(span);
   } catch (error) {
-    if (isJson()) {
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "error",
@@ -310,7 +332,7 @@ export async function farmStatusCommand(options: {
           // Use lightweight commit comparison instead of full diff
           const currentCommit = await engine.getCurrentCommit(p.codebase_path);
           const lastSyncCommit = syncState.lastSyncCommit;
-          const hasPendingChanges = lastSyncCommit && lastSyncCommit !== currentCommit;
+          const hasPendingChanges = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
 
           return {
             name: p.name,
@@ -739,7 +761,7 @@ export async function farmPullCommand(options: {
     } else if (allSucceeded) {
       handleSuccess(`Pulled ${projectsToPull.length} project(s) successfully`);
     } else {
-      throw new Error(`Pull failed for some projects`);
+      console.error(ansis.red(`Pull failed for some projects`));
     }
 
     if (span) endSpan(span);
@@ -814,7 +836,7 @@ export async function farmSyncCommand(options: {
       handleInfo(`Syncing ${projectsToSync.length} project(s) (concurrency: ${concurrency})...`);
     }
 
-    const allResults: Array<Record<string, any>> = [];
+    const allResults: FarmSyncResultEntry[] = [];
 
     // Process projects with concurrency control
     const processSyncProject = async (project: typeof projectsToSync[0]) => {
@@ -826,17 +848,14 @@ export async function farmSyncCommand(options: {
         }
 
         // Load model using detached model layout
-        const originalDRModelPath = process.env.DR_MODEL_PATH;
         let drModelPath = modelPath;
         const manifestPath = path.join(modelPath, "manifest.yaml");
         if (await fileExists(manifestPath)) {
           drModelPath = manifestPath;
         }
 
-        process.env.DR_MODEL_PATH = drModelPath;
-
         try {
-          const model = await Model.load();
+          const model = await Model.load(drModelPath);
           const engine = new FarmSyncEngine(farmRoot, model);
 
           const result = await engine.syncProject(project, {
@@ -845,9 +864,9 @@ export async function farmSyncCommand(options: {
             force: options.force,
           });
 
-          const resultEntry: any = {
+          const resultEntry: FarmSyncResultEntry = {
             project: project.name,
-            status: result.success ? "success" : "failed",
+            status: result.success ? "success" : "error",
             changeCount: result.changeCount,
             changesetId: result.changesetId,
             filesChanged: result.filesChanged,
@@ -898,12 +917,15 @@ export async function farmSyncCommand(options: {
               console.log(`    ${note}`);
             }
           }
-        } finally {
-          // Restore original DR_MODEL_PATH
-          if (originalDRModelPath !== undefined) {
-            process.env.DR_MODEL_PATH = originalDRModelPath;
-          } else {
-            delete process.env.DR_MODEL_PATH;
+        } catch (error) {
+          allResults.push({
+            project: project.name,
+            status: "error",
+            message: getErrorMessage(error),
+          });
+
+          if (!useJson) {
+            console.error(ansis.red(`✗ ${project.name}: ${getErrorMessage(error)}`));
           }
         }
       } catch (error) {
@@ -1020,12 +1042,14 @@ export function farmCommands(program: Command): void {
     .command("init")
     .description("Initialize a new farm")
     .option("--name <name>", "Farm name")
+    .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr farm init
-  $ dr farm init --name "My Architecture Farm"`
+  $ dr farm init --name "My Architecture Farm"
+  $ dr farm init --format json`
     )
     .action(async (options) => {
       await farmInitCommand(options);
@@ -1036,13 +1060,15 @@ Examples:
     .description("Add a project to the farm")
     .option("--remote <url>", "Git remote URL to clone")
     .option("--codebase <path>", "Path to codebase folder (defaults to project name)")
+    .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr farm add my-service
   $ dr farm add my-service --remote https://github.com/org/my-service.git
-  $ dr farm add my-service --codebase ./services/my-service`
+  $ dr farm add my-service --codebase ./services/my-service
+  $ dr farm add my-service --format json`
     )
     .action(async (name, options) => {
       await farmAddCommand(name, options);
@@ -1052,12 +1078,14 @@ Examples:
     .command("remove <name>")
     .description("Remove a project from the farm")
     .option("--delete-model", "Also delete the model folder")
+    .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr farm remove my-service
-  $ dr farm remove my-service --delete-model`
+  $ dr farm remove my-service --delete-model
+  $ dr farm remove my-service --format json`
     )
     .action(async (name, options) => {
       await farmRemoveCommand(name, options);
