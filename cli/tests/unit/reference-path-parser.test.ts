@@ -111,9 +111,9 @@ describe("Reference Path Parser", () => {
         expect(result.isQualified).toBe(true);
       });
 
-      it("should preserve case-insensitive model name matching", () => {
+      it("should normalize model name to lowercase", () => {
         const result = parseReferencePath("@Auth-Service/api.operation.login");
-        expect(result.modelName).toBe("Auth-Service");
+        expect(result.modelName).toBe("auth-service");
       });
     });
 

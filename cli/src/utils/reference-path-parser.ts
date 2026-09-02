@@ -68,7 +68,7 @@ export function parseReferencePath(path: string): ParsedReferencePath {
   const qualifiedMatch = trimmedPath.match(QUALIFIED_PREFIX_PATTERN);
 
   if (qualifiedMatch) {
-    const modelName = qualifiedMatch[1];
+    const modelName = qualifiedMatch[1].toLowerCase();
     const segment = trimmedPath.substring(qualifiedMatch[0].length);
 
     // Validate segment format
