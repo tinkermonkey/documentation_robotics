@@ -245,5 +245,83 @@ describe("Project Paths Utilities", () => {
       const result = await findFarmRoot(serviceModelDir);
       expect(result).toBe(farmRoot);
     });
+
+    it("should use DR_FARM_PATH environment variable when set", async () => {
+      const farmRoot = testDir;
+      const subfolder = join(testDir, "subfolder");
+      await mkdir(subfolder, { recursive: true });
+      await writeFile(join(farmRoot, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      // Store original env var
+      const originalDRFarmPath = process.env.DR_FARM_PATH;
+
+      try {
+        // Set DR_FARM_PATH to point to the farm root
+        process.env.DR_FARM_PATH = farmRoot;
+
+        // findFarmRoot should return the DR_FARM_PATH value
+        const result = await findFarmRoot(subfolder);
+        expect(result).toBe(farmRoot);
+      } finally {
+        // Restore original env var
+        if (originalDRFarmPath !== undefined) {
+          process.env.DR_FARM_PATH = originalDRFarmPath;
+        } else {
+          delete process.env.DR_FARM_PATH;
+        }
+      }
+    });
+
+    it("should return null if DR_FARM_PATH is set but farm.yaml does not exist", async () => {
+      const invalidFarmPath = join(testDir, "nonexistent");
+      await mkdir(invalidFarmPath, { recursive: true });
+
+      // Store original env var
+      const originalDRFarmPath = process.env.DR_FARM_PATH;
+
+      try {
+        // Set DR_FARM_PATH to an invalid path
+        process.env.DR_FARM_PATH = invalidFarmPath;
+
+        // findFarmRoot should return null
+        const result = await findFarmRoot(testDir);
+        expect(result).toBeNull();
+      } finally {
+        // Restore original env var
+        if (originalDRFarmPath !== undefined) {
+          process.env.DR_FARM_PATH = originalDRFarmPath;
+        } else {
+          delete process.env.DR_FARM_PATH;
+        }
+      }
+    });
+
+    it("should prefer DR_FARM_PATH over directory walk", async () => {
+      const explicitFarmRoot = join(testDir, "explicit-farm");
+      const defaultFarmRoot = testDir;
+
+      await mkdir(explicitFarmRoot, { recursive: true });
+      await writeFile(join(explicitFarmRoot, "farm.yaml"), "schema: dr-farm-v1\n");
+      await writeFile(join(defaultFarmRoot, "farm.yaml"), "schema: dr-farm-v1\n");
+
+      // Store original env var
+      const originalDRFarmPath = process.env.DR_FARM_PATH;
+
+      try {
+        // Set DR_FARM_PATH to explicit farm
+        process.env.DR_FARM_PATH = explicitFarmRoot;
+
+        // findFarmRoot should return the explicit farm path, not the default one
+        const result = await findFarmRoot(defaultFarmRoot);
+        expect(result).toBe(explicitFarmRoot);
+      } finally {
+        // Restore original env var
+        if (originalDRFarmPath !== undefined) {
+          process.env.DR_FARM_PATH = originalDRFarmPath;
+        } else {
+          delete process.env.DR_FARM_PATH;
+        }
+      }
+    });
   });
 });

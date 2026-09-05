@@ -11,6 +11,7 @@ import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
+import { getCodebasePath } from "../utils/globals.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -927,9 +928,17 @@ export class Model {
       const manifest = new Manifest(manifestData);
 
       // Resolve codebaseRoot from manifest, farm, or options
+      // Resolution order:
+      // 1. Explicit codebaseRoot in options (from programmatic calls)
+      // 2. Global --codebase-path CLI flag
+      // 3. manifest.codebase_path
+      // 4. Farm-based auto-resolution
+      // 5. projectRoot (default)
       let codebaseRoot = projectRoot;
       if (options.codebaseRoot) {
         codebaseRoot = options.codebaseRoot;
+      } else if (getCodebasePath()) {
+        codebaseRoot = path.resolve(getCodebasePath()!);
       } else if (manifest.codebase_path) {
         codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
       } else {
@@ -1097,9 +1106,16 @@ export class Model {
     const manifest = new Manifest(manifestData);
 
     // Resolve codebaseRoot from manifest or options
+    // Resolution order:
+    // 1. Explicit codebaseRoot in options
+    // 2. Global --codebase-path CLI flag
+    // 3. manifest.codebase_path
+    // 4. rootPath (default)
     let codebaseRoot = rootPath;
     if (options.codebaseRoot) {
       codebaseRoot = options.codebaseRoot;
+    } else if (getCodebasePath()) {
+      codebaseRoot = path.resolve(getCodebasePath()!);
     } else if (manifest.codebase_path) {
       codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
     }
