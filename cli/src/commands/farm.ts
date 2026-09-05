@@ -7,7 +7,7 @@ import { Command } from "commander";
 import path from "path";
 import { FarmManifest } from "../core/farm-manifest.js";
 import { findFarmRoot } from "../utils/project-paths.js";
-import { fileExists, ensureDir } from "../utils/file-io.js";
+import { fileExists } from "../utils/file-io.js";
 import { execSync } from "child_process";
 import * as prompts from "@clack/prompts";
 import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
@@ -163,14 +163,51 @@ export async function farmAddCommand(
       }
     }
 
-    // Create model folder
+    // Create and scaffold model folder
     const modelFolder = `${name}-model`;
     const modelFullPath = path.join(farmRoot, modelFolder);
 
     if (!(await fileExists(modelFullPath))) {
-      await ensureDir(modelFullPath);
+      // Initialize model with manifest and layer structure
+      await Model.init(
+        modelFullPath,
+        {
+          name: name,
+          version: "0.1.0",
+          description: undefined,
+          author: undefined,
+          specVersion: (await import("../utils/spec-version.js")).getCliBundledSpecVersion(),
+          created: new Date().toISOString(),
+        },
+        { lazyLoad: false }
+      );
+
+      // Initialize git repository for the model
+      try {
+        execSync("git init", { cwd: modelFullPath, stdio: useJson ? "pipe" : "inherit" });
+        execSync("git config user.email 'dr-farm@localhost'", {
+          cwd: modelFullPath,
+          stdio: "pipe",
+        });
+        execSync("git config user.name 'DR Farm'", {
+          cwd: modelFullPath,
+          stdio: "pipe",
+        });
+
+        // Add all initial files and commit
+        execSync("git add .", { cwd: modelFullPath, stdio: "pipe" });
+        execSync("git commit -m 'Initialize model scaffold'", {
+          cwd: modelFullPath,
+          stdio: useJson ? "pipe" : "inherit",
+        });
+      } catch (gitError) {
+        throw new Error(
+          `Failed to initialize model git repository: ${getErrorMessage(gitError)}`
+        );
+      }
+
       if (!useJson) {
-        handleInfo(`Created model folder: ${modelFolder}`);
+        handleInfo(`Created and initialized model folder: ${modelFolder}`);
       }
     }
 
@@ -885,6 +922,22 @@ export async function farmSyncCommand(options: {
               const commitResult = await stagingManager.commit(model, result.changesetId);
               resultEntry.autoCommitted = true;
               resultEntry.committedChanges = commitResult.committed;
+
+              // Also commit changes to the farm's model git repository
+              try {
+                const modelPath = path.join(farmRoot, project.model_folder);
+                execSync("git add .", { cwd: modelPath, stdio: "pipe" });
+                execSync(
+                  `git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`,
+                  { cwd: modelPath, stdio: "pipe" }
+                );
+              } catch (gitCommitError) {
+                // If there's nothing to commit (no changes), that's fine
+                if (!getErrorMessage(gitCommitError).includes("nothing to commit")) {
+                  throw gitCommitError;
+                }
+              }
+
               if (options.verbose && !useJson) {
                 handleInfo(`  Auto-committed: ${commitResult.committed} change(s)`);
               }

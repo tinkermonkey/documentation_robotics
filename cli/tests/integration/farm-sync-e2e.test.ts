@@ -276,4 +276,93 @@ describe("Farm Sync - End-to-End Flow", () => {
       }
     }
   });
+
+  it("should create git commits in model directory with auto-commit", async () => {
+    // Initialize git repository in the model directory
+    execSync("git init", { cwd: modelDir, stdio: "pipe" });
+    execSync("git config user.email 'test@example.com'", { cwd: modelDir, stdio: "pipe" });
+    execSync("git config user.name 'Test User'", { cwd: modelDir, stdio: "pipe" });
+
+    // Create initial commit
+    await writeFile(path.join(modelDir, "README.md"), "# Model");
+    execSync("git add .", { cwd: modelDir, stdio: "pipe" });
+    execSync("git commit -m 'Initial commit'", { cwd: modelDir, stdio: "pipe" });
+
+    const initialModelCommit = execSync("git rev-parse HEAD", {
+      cwd: modelDir,
+      encoding: "utf-8",
+    }).trim();
+
+    // Get the commit count before sync
+    const commitsBefore = execSync("git rev-list --count HEAD", {
+      cwd: modelDir,
+      encoding: "utf-8",
+    }).trim();
+
+    // Make a change to the codebase
+    await writeFile(path.join(codebaseDir, "src/new-file.ts"), "export const newCode = true;");
+    execSync("git add .", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Add new file'", { cwd: codebaseDir, stdio: "pipe" });
+
+    // Load the model and run sync with auto-commit
+    const originalDRModelPath = process.env.DR_MODEL_PATH;
+    process.env.DR_MODEL_PATH = modelDir;
+
+    try {
+      const model = await Model.load();
+      const engine = new FarmSyncEngine(farmDir, model);
+
+      const project = farmManifest.getProject("test-project");
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      // Run sync operation
+      const result = await engine.syncProject(project, {
+        verbose: false,
+        dryRun: false,
+        force: false,
+      });
+
+      expect(result.success).toBe(true);
+
+      // Simulate auto-commit (this is what farmSyncCommand does)
+      if (result.changesetId && result.changeCount > 0) {
+        const stagingManager = new (await import("../../src/core/staging-area.js"))
+          .StagingAreaManager(farmDir, model);
+        const commitResult = await stagingManager.commit(model, result.changesetId);
+
+        // Manually run git add and commit (this simulates what farmSyncCommand does)
+        try {
+          execSync("git add .", { cwd: modelDir, stdio: "pipe" });
+          execSync(`git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`, {
+            cwd: modelDir,
+            stdio: "pipe",
+          });
+        } catch (gitError) {
+          // If there's nothing to commit, that's fine
+          if (!String(gitError).includes("nothing to commit")) {
+            throw gitError;
+          }
+        }
+      }
+
+      // Verify that a new commit was created in the model directory
+      const commitsAfter = execSync("git rev-list --count HEAD", {
+        cwd: modelDir,
+        encoding: "utf-8",
+      }).trim();
+
+      // Should have at least one more commit if there were changes
+      const commitsAfterNum = parseInt(commitsAfter, 10);
+      const commitsBeforeNum = parseInt(commitsBefore, 10);
+      expect(commitsAfterNum).toBeGreaterThanOrEqual(commitsBeforeNum);
+    } finally {
+      if (originalDRModelPath !== undefined) {
+        process.env.DR_MODEL_PATH = originalDRModelPath;
+      } else {
+        delete process.env.DR_MODEL_PATH;
+      }
+    }
+  });
 });

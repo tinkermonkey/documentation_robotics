@@ -745,3 +745,90 @@ models:
     expect(result.isValid()).toBe(true);
   });
 });
+
+describe("Farm model initialization and git setup", () => {
+  let testDir: string;
+  let farmRoot: string;
+
+  beforeEach(async () => {
+    testDir = path.join("/tmp", `farm-model-init-${Date.now()}`);
+    farmRoot = testDir;
+    await ensureDir(farmRoot);
+  });
+
+  afterEach(async () => {
+    if (await fileExists(testDir)) {
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should initialize model with proper scaffold when adding project", async () => {
+    const { farmAddCommand } = await import("../../src/commands/farm.js");
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+
+    // Initialize farm first
+    const farmManifest = FarmManifest.create("Test Farm");
+    await farmManifest.save(farmYamlPath);
+
+    // Mock process.cwd to return farm root
+    const originalCwd = process.cwd;
+    process.cwd = () => farmRoot;
+
+    try {
+      // Run farm add command
+      await farmAddCommand("test-service", {
+        format: "text",
+      });
+
+      // Verify model directory structure was created
+      const modelPath = path.join(farmRoot, "test-service-model");
+      expect(await fileExists(modelPath)).toBe(true);
+
+      // Verify manifest.yaml was created inside documentation-robotics/model/
+      const manifestPath = path.join(
+        modelPath,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
+      expect(await fileExists(manifestPath)).toBe(true);
+
+      // Verify layer directories were created
+      const layerPaths = [
+        "01_motivation",
+        "02_business",
+        "03_product",
+        "04_security",
+        "05_application",
+        "06_technology",
+        "07_api",
+        "08_data-model",
+        "09_data-store",
+        "10_ux",
+        "11_navigation",
+        "12_apm",
+        "13_testing",
+      ];
+
+      for (const layer of layerPaths) {
+        const layerPath = path.join(modelPath, "documentation-robotics", "model", layer);
+        expect(await fileExists(layerPath)).toBe(true);
+      }
+
+      // Verify relationships.yaml was created
+      const relationshipsPath = path.join(
+        modelPath,
+        "documentation-robotics",
+        "model",
+        "relationships.yaml"
+      );
+      expect(await fileExists(relationshipsPath)).toBe(true);
+
+      // Verify git repository was initialized
+      const gitPath = path.join(modelPath, ".git");
+      expect(await fileExists(gitPath)).toBe(true);
+    } finally {
+      process.cwd = originalCwd;
+    }
+  });
+});
