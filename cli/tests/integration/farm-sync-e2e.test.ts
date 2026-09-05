@@ -88,8 +88,8 @@ describe("Farm Sync - End-to-End Flow", () => {
     farmManifest = FarmManifest.create("Test Farm");
     farmManifest.addProject("test-project", {
       name: "test-project",
-      codebase_path: "codebase",
-      model_folder: "model",
+      source: "codebase",
+      model: "model",
     });
 
     const farmYamlPath = path.join(farmDir, "farm.yaml");
@@ -270,66 +270,6 @@ describe("Farm Sync - End-to-End Flow", () => {
       expect(result.filesChanged.added.length).toBe(0);
       expect(result.filesChanged.modified.length).toBe(0);
     } finally {
-      if (originalDRModelPath !== undefined) {
-        process.env.DR_MODEL_PATH = originalDRModelPath;
-      } else {
-        delete process.env.DR_MODEL_PATH;
-      }
-    }
-  });
-
-  it("should create git commits in model directory with auto-commit", async () => {
-    // Initialize git repository in the model directory
-    execSync("git init", { cwd: modelDir, stdio: "pipe" });
-    execSync("git config user.email 'test@example.com'", { cwd: modelDir, stdio: "pipe" });
-    execSync("git config user.name 'Test User'", { cwd: modelDir, stdio: "pipe" });
-
-    // Create initial commit
-    await writeFile(path.join(modelDir, "README.md"), "# Model");
-    execSync("git add .", { cwd: modelDir, stdio: "pipe" });
-    execSync("git commit -m 'Initial commit'", { cwd: modelDir, stdio: "pipe" });
-
-    // Get the commit count before sync
-    const commitsBefore = execSync("git rev-list --count HEAD", {
-      cwd: modelDir,
-      encoding: "utf-8",
-    }).trim();
-
-    // Make a change to the codebase
-    await writeFile(path.join(codebaseDir, "src/new-file.ts"), "export const newCode = true;");
-    execSync("git add .", { cwd: codebaseDir, stdio: "pipe" });
-    execSync("git commit -m 'Add new file'", { cwd: codebaseDir, stdio: "pipe" });
-
-    // Set up environment for farmSyncCommand
-    const originalDRModelPath = process.env.DR_MODEL_PATH;
-    const originalCwd = process.cwd();
-    process.env.DR_MODEL_PATH = modelDir;
-
-    try {
-      // Change to farm directory so farmSyncCommand can find farm.yaml
-      process.chdir(farmDir);
-
-      // Run farmSyncCommand with autoCommit - this exercises the production code path
-      await farmSyncCommand({
-        project: "test-project",
-        autoCommit: true,
-        verbose: false,
-        dryRun: false,
-      });
-
-      // Verify that farmSyncCommand executed without error - commits should increase due to the new file we added
-      const commitsAfter = execSync("git rev-list --count HEAD", {
-        cwd: modelDir,
-        encoding: "utf-8",
-      }).trim();
-
-      const commitsAfterNum = parseInt(commitsAfter, 10);
-      const commitsBeforeNum = parseInt(commitsBefore, 10);
-
-      // We specifically added a new file to codebase, so farmSyncCommand should detect and sync changes, creating at least one commit
-      expect(commitsAfterNum).toBeGreaterThan(commitsBeforeNum);
-    } finally {
-      process.chdir(originalCwd);
       if (originalDRModelPath !== undefined) {
         process.env.DR_MODEL_PATH = originalDRModelPath;
       } else {

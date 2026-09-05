@@ -59,7 +59,7 @@ describe("VerifyEngine with Dual-Root", () => {
   name: "Verify Detached Test"
   version: "0.1.0"
 spec_version: "0.6.0"
-codebase_path: "../service-code"`
+source: "../service-code"`
       );
 
       // Write API layer with element that references the source file
@@ -127,7 +127,7 @@ get-user:
   name: "File Only in Model Test"
   version: "0.1.0"
 spec_version: "0.6.0"
-codebase_path: "../separate-codebase"`
+source: "../separate-codebase"`
       );
 
       // Write API layer with element referencing a file that only exists in modelRoot
@@ -178,7 +178,7 @@ handle-request:
       const sourceFile = join(modelRoot, "src", "service.ts");
       await writeFile(sourceFile, "export class Service { }");
 
-      // Create model structure with manifest (no codebase_path)
+      // Create model structure with manifest (no source)
       const modelDir = join(modelRoot, "documentation-robotics", "model");
       await mkdir(modelDir, { recursive: true });
       await mkdir(join(modelDir, "07_api"), { recursive: true });

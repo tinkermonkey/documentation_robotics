@@ -214,9 +214,9 @@ export async function farmAddCommand(
     // Add project to manifest
     manifest.addProject(name, {
       name,
-      codebase_path: codebasePath,
-      model_folder: modelFolder,
-      remote_url: options.remote,
+      source: codebasePath,
+      model: modelFolder,
+      remote: options.remote,
     });
 
     await manifest.save(farmYamlPath);
@@ -226,8 +226,8 @@ export async function farmAddCommand(
         JSON.stringify({
           status: "ok",
           project: name,
-          codebase_path: codebasePath,
-          model_folder: modelFolder,
+          source: codebasePath,
+          model: modelFolder,
         })
       );
     } else {
@@ -285,7 +285,7 @@ export async function farmRemoveCommand(
 
     // Remove model folder if requested
     if (options.deleteModel) {
-      const modelFullPath = path.join(farmRoot, project.model_folder);
+      const modelFullPath = path.join(farmRoot, project.model);
       if (await fileExists(modelFullPath)) {
         try {
           // Use rm -rf for simplicity; in production, might use fs.rmdir with recursive: true
@@ -293,7 +293,7 @@ export async function farmRemoveCommand(
             stdio: useJson ? "pipe" : "inherit",
           });
           if (!useJson) {
-            handleInfo(`Deleted model folder: ${project.model_folder}`);
+            handleInfo(`Deleted model folder: ${project.model}`);
           }
         } catch (error) {
           throw new Error(`Failed to delete model folder: ${getErrorMessage(error)}`);
@@ -367,15 +367,15 @@ export async function farmStatusCommand(options: {
           );
 
           // Use lightweight commit comparison instead of full diff
-          const currentCommit = await engine.getCurrentCommit(p.codebase_path);
+          const currentCommit = await engine.getCurrentCommit(p.source);
           const lastSyncCommit = syncState.lastSyncCommit;
           const hasPendingChanges = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
 
           return {
             name: p.name,
-            codebase_path: p.codebase_path,
-            model_folder: p.model_folder,
-            remote_url: p.remote_url,
+            source: p.source,
+            model: p.model,
+            remote: p.remote,
             lastSyncCommit: lastSyncCommit,
             currentCommit: currentCommit,
             hasPendingChanges: hasPendingChanges,
@@ -384,9 +384,9 @@ export async function farmStatusCommand(options: {
           // If sync state doesn't exist or error reading commits, treat as no sync yet
           return {
             name: p.name,
-            codebase_path: p.codebase_path,
-            model_folder: p.model_folder,
-            remote_url: p.remote_url,
+            source: p.source,
+            model: p.model,
+            remote: p.remote,
             lastSyncCommit: undefined,
             currentCommit: undefined,
             hasPendingChanges: false,
@@ -419,10 +419,10 @@ export async function farmStatusCommand(options: {
       } else {
         projectsWithStatus.forEach((project) => {
           console.log(`  ${ansis.cyan(project.name)}`);
-          console.log(`    Codebase: ${project.codebase_path}`);
-          console.log(`    Model:    ${project.model_folder}`);
-          if (project.remote_url) {
-            console.log(`    Remote:   ${project.remote_url}`);
+          console.log(`    Codebase: ${project.source}`);
+          console.log(`    Model:    ${project.model}`);
+          if (project.remote) {
+            console.log(`    Remote:   ${project.remote}`);
           }
           if (project.hasPendingChanges) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
@@ -508,7 +508,7 @@ export async function farmValidateCommand(options: {
 
     // Validate each project
     for (const project of projectsToValidate) {
-      const modelPath = path.join(farmRoot, project.model_folder);
+      const modelPath = path.join(farmRoot, project.model);
 
       // Check if model folder exists
       if (!(await fileExists(modelPath))) {
@@ -759,7 +759,7 @@ export async function farmPullCommand(options: {
     // Pull each project
     for (const project of projectsToPull) {
       try {
-        const commit = await engine.pullCodebase(project.codebase_path);
+        const commit = await engine.pullCodebase(project.source);
 
         results.push({
           project: project.name,
@@ -878,7 +878,7 @@ export async function farmSyncCommand(options: {
     // Process projects with concurrency control
     const processSyncProject = async (project: typeof projectsToSync[0]) => {
       try {
-        const modelPath = path.join(farmRoot, project.model_folder);
+        const modelPath = path.join(farmRoot, project.model);
 
         if (!(await fileExists(modelPath))) {
           throw new Error(`Model folder not found for project '${project.name}' at ${modelPath}`);
@@ -925,7 +925,7 @@ export async function farmSyncCommand(options: {
 
               // Also commit changes to the farm's model git repository
               try {
-                const modelPath = path.join(farmRoot, project.model_folder);
+                const modelPath = path.join(farmRoot, project.model);
                 execSync("git add .", { cwd: modelPath, stdio: "pipe" });
                 execSync(
                   `git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`,

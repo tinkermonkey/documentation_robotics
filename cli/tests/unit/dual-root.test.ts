@@ -57,8 +57,8 @@ describe("Dual-Root Foundation", () => {
     });
   });
 
-  describe("Detached Mode with Manifest codebase_path", () => {
-    it("should resolve codebaseRoot from manifest.codebase_path", async () => {
+  describe("Detached Mode with Manifest source", () => {
+    it("should resolve codebaseRoot from manifest.source", async () => {
       const farmRoot = join(TEST_DIR, "detached-farm");
       const modelRoot = join(farmRoot, "service-a-model");
       const codebaseRoot = join(farmRoot, "service-a");
@@ -67,14 +67,14 @@ describe("Dual-Root Foundation", () => {
       await mkdir(modelRoot, { recursive: true });
       await mkdir(codebaseRoot, { recursive: true });
 
-      // Initialize model with relative codebase_path
+      // Initialize model with relative source
       const model = await Model.init(
         modelRoot,
         {
           name: "Detached Service Model",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../service-a",
+          source: "../service-a",
         }
       );
 
@@ -83,7 +83,7 @@ describe("Dual-Root Foundation", () => {
       expect(model.codebaseRoot).toBe(codebaseRoot);
     });
 
-    it("should persist and reload detached model with codebase_path", async () => {
+    it("should persist and reload detached model with source", async () => {
       const farmRoot = join(TEST_DIR, "detached-reload-farm");
       const modelRoot = join(farmRoot, "service-b-model");
       const codebaseRoot = join(farmRoot, "service-b");
@@ -99,13 +99,13 @@ describe("Dual-Root Foundation", () => {
           name: "Detached Reload Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../service-b",
+          source: "../service-b",
         }
       );
 
       // Verify initialization
       expect(initialModel.codebaseRoot).toBe(codebaseRoot);
-      expect(initialModel.manifest.codebase_path).toBe("../service-b");
+      expect(initialModel.manifest.source).toBe("../service-b");
 
       // Save and reload
       await initialModel.saveManifest();
@@ -114,11 +114,11 @@ describe("Dual-Root Foundation", () => {
       // Verify reload preserves codebaseRoot
       expect(reloadedModel.rootPath).toBe(modelRoot);
       expect(reloadedModel.codebaseRoot).toBe(codebaseRoot);
-      expect(reloadedModel.manifest.codebase_path).toBe("../service-b");
+      expect(reloadedModel.manifest.source).toBe("../service-b");
       expect(reloadedModel.manifest.name).toBe("Detached Reload Test");
     });
 
-    it("should include codebase_path in manifest serialization", async () => {
+    it("should include source in manifest serialization", async () => {
       const farmRoot = join(TEST_DIR, "detached-serialize");
       const modelRoot = join(farmRoot, "service-c-model");
       const codebaseRoot = join(farmRoot, "service-c");
@@ -132,15 +132,15 @@ describe("Dual-Root Foundation", () => {
           name: "Serialize Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../service-c",
+          source: "../service-c",
         }
       );
 
       const manifestJson = model.manifest.toJSON();
-      expect(manifestJson.codebase_path).toBe("../service-c");
+      expect(manifestJson.source).toBe("../service-c");
     });
 
-    it("should support nested relative paths in codebase_path", async () => {
+    it("should support nested relative paths in source", async () => {
       const farmRoot = join(TEST_DIR, "detached-nested");
       const modelRoot = join(farmRoot, "models", "service-d-model");
       const codebaseRoot = join(farmRoot, "codebases", "service-d");
@@ -154,7 +154,7 @@ describe("Dual-Root Foundation", () => {
           name: "Nested Path Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../../codebases/service-d",
+          source: "../../codebases/service-d",
         }
       );
 
@@ -184,7 +184,7 @@ describe("Dual-Root Foundation", () => {
       expect(model.codebaseRoot).toBe(explicitCodebaseRoot);
     });
 
-    it("should prioritize options.codebaseRoot over manifest.codebase_path", async () => {
+    it("should prioritize options.codebaseRoot over manifest.source", async () => {
       const modelRoot = join(TEST_DIR, "priority-test-model");
       const manifestCodebase = join(TEST_DIR, "manifest-codebase");
       const optionsCodebase = join(TEST_DIR, "options-codebase");
@@ -199,7 +199,7 @@ describe("Dual-Root Foundation", () => {
           name: "Priority Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../manifest-codebase",
+          source: "../manifest-codebase",
         },
         { codebaseRoot: optionsCodebase }
       );
@@ -209,7 +209,7 @@ describe("Dual-Root Foundation", () => {
   });
 
   describe("Manifest YAML Serialization", () => {
-    it("should write codebase_path to manifest YAML", async () => {
+    it("should write source to manifest YAML", async () => {
       const farmRoot = join(TEST_DIR, "yaml-write");
       const modelRoot = join(farmRoot, "model");
       const codebaseRoot = join(farmRoot, "code");
@@ -223,7 +223,7 @@ describe("Dual-Root Foundation", () => {
           name: "YAML Write Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../code",
+          source: "../code",
         }
       );
 
@@ -234,10 +234,10 @@ describe("Dual-Root Foundation", () => {
       const manifestContent = await Bun.file(manifestPath).text();
       const manifestYaml = yaml.parse(manifestContent);
 
-      expect(manifestYaml.codebase_path).toBe("../code");
+      expect(manifestYaml.source).toBe("../code");
     });
 
-    it("should not write codebase_path to manifest if not set", async () => {
+    it("should not write source to manifest if not set", async () => {
       const modelRoot = join(TEST_DIR, "yaml-no-write");
 
       await mkdir(modelRoot, { recursive: true });
@@ -257,11 +257,11 @@ describe("Dual-Root Foundation", () => {
       const manifestContent = await Bun.file(manifestPath).text();
       const manifestYaml = yaml.parse(manifestContent);
 
-      expect(manifestYaml.codebase_path).toBeUndefined();
+      expect(manifestYaml.source).toBeUndefined();
     });
   });
 
-  describe("Load with Manifest codebase_path", () => {
+  describe("Load with Manifest source", () => {
     it("should load model and resolve codebaseRoot from manifest", async () => {
       const farmRoot = join(TEST_DIR, "load-manifest");
       const modelRoot = join(farmRoot, "app-model");
@@ -277,7 +277,7 @@ describe("Dual-Root Foundation", () => {
           name: "Load Manifest Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../app",
+          source: "../app",
         }
       );
       await model.saveManifest();
@@ -286,7 +286,7 @@ describe("Dual-Root Foundation", () => {
       const loadedModel = await Model.load(modelRoot);
 
       expect(loadedModel.codebaseRoot).toBe(codebaseRoot);
-      expect(loadedModel.manifest.codebase_path).toBe("../app");
+      expect(loadedModel.manifest.source).toBe("../app");
     });
 
     it("should load model from sibling directory with detached layout", async () => {
@@ -303,7 +303,7 @@ describe("Dual-Root Foundation", () => {
           name: "Sibling Layout Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          codebase_path: "../project-source",
+          source: "../project-source",
         }
       );
       await model.saveManifest();

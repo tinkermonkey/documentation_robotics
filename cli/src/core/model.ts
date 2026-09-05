@@ -742,11 +742,11 @@ export class Model {
       // Find the model folder name relative to farm root
       const modelName = path.basename(modelRoot);
 
-      // Look for a project where model_folder matches our model's basename
+      // Look for a project where model matches our model's basename
       for (const project of manifest.getAllProjects()) {
-        if (path.basename(project.model_folder) === modelName) {
+        if (path.basename(project.model) === modelName) {
           // Found matching project, resolve codebase path
-          const codebaseFullPath = path.resolve(farmRoot, project.codebase_path);
+          const codebaseFullPath = path.resolve(farmRoot, project.source);
           return codebaseFullPath;
         }
       }

@@ -55,15 +55,15 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
-      remote_url: "https://github.com/org/service-a.git",
+      source: "services/service-a",
+      model: "service-a-model",
+      remote: "https://github.com/org/service-a.git",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "services/service-b",
-      model_folder: "service-b-model",
+      source: "services/service-b",
+      model: "service-b-model",
     });
 
     expect(manifest.projects.size).toBe(2);
@@ -76,8 +76,8 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     expect(manifest.projects.size).toBe(1);
@@ -101,14 +101,14 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "services/service-b",
-      model_folder: "service-b-model",
+      source: "services/service-b",
+      model: "service-b-model",
     });
 
     const projects = manifest.getAllProjects();
@@ -126,16 +126,16 @@ describe("FarmManifest", () => {
 
     manifest.addProject("api-service", {
       name: "api-service",
-      codebase_path: "services/api",
-      model_folder: "api-service-model",
-      remote_url: "https://github.com/org/api-service.git",
+      source: "services/api",
+      model: "api-service-model",
+      remote: "https://github.com/org/api-service.git",
     });
 
     manifest.addProject("web-service", {
       name: "web-service",
-      codebase_path: "services/web",
-      model_folder: "web-service-model",
-      remote_url: "https://github.com/org/web-service.git",
+      source: "services/web",
+      model: "web-service-model",
+      remote: "https://github.com/org/web-service.git",
     });
 
     await manifest.save(farmYamlPath);
@@ -150,9 +150,9 @@ describe("FarmManifest", () => {
 
     const apiService = loaded.getProject("api-service");
     expect(apiService).toBeDefined();
-    expect(apiService?.codebase_path).toBe("services/api");
-    expect(apiService?.model_folder).toBe("api-service-model");
-    expect(apiService?.remote_url).toBe("https://github.com/org/api-service.git");
+    expect(apiService?.source).toBe("services/api");
+    expect(apiService?.model).toBe("api-service-model");
+    expect(apiService?.remote).toBe("https://github.com/org/api-service.git");
   });
 
   it("should update modified timestamp when adding projects", async () => {
@@ -164,8 +164,8 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     expect(manifest.modified).not.toBe(originalModified);
@@ -176,8 +176,8 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     const afterAdd = manifest.modified;
@@ -193,16 +193,16 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
-      remote_url: "https://github.com/org/service-a.git",
+      source: "services/service-a",
+      model: "service-a-model",
+      remote: "https://github.com/org/service-a.git",
     });
 
     const json = manifest.toJSON();
 
     expect(json.name).toBe("Test Farm");
     expect(json.projects.hasOwnProperty("service-a")).toBe(true);
-    expect(json.projects["service-a"].codebase_path).toBe("services/service-a");
+    expect(json.projects["service-a"].source).toBe("services/service-a");
   });
 
   it("should handle farm with optional fields", async () => {
@@ -215,10 +215,10 @@ describe("FarmManifest", () => {
     expect(loaded.sync).toBeUndefined();
   });
 
-  it("should throw error on missing name", async () => {
+  it("should throw error on missing schema", async () => {
     const invalidYamlPath = path.join(testDir, "invalid.yaml");
     const invalidContent = `
-id: test-id
+name: Test Farm
 projects: {}
 `;
 
@@ -228,7 +228,7 @@ projects: {}
       await FarmManifest.load(invalidYamlPath);
       expect.fail("Should have thrown an error");
     } catch (error: any) {
-      expect(error.message).toContain("must have a 'name' field");
+      expect(error.message).toContain("must have a 'schema' field");
     }
   });
 });
@@ -261,8 +261,8 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     // Add second project
@@ -273,8 +273,8 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "services/service-b",
-      model_folder: "service-b-model",
+      source: "services/service-b",
+      model: "service-b-model",
     });
 
     await manifest.save(farmYamlPath);
@@ -301,8 +301,8 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("auth-service", {
       name: "auth-service",
-      codebase_path: codebasePath,
-      model_folder: modelFolder,
+      source: codebasePath,
+      model: modelFolder,
     });
 
     await manifest.save(farmYamlPath);
@@ -310,8 +310,8 @@ describe("Farm integration with model paths", () => {
     const loaded = await FarmManifest.load(farmYamlPath);
     const project = loaded.getProject("auth-service");
 
-    expect(project?.codebase_path).toBe(codebasePath);
-    expect(project?.model_folder).toBe(modelFolder);
+    expect(project?.source).toBe(codebasePath);
+    expect(project?.model).toBe(modelFolder);
   });
 });
 
@@ -359,14 +359,14 @@ project: service-b
     // Add projects to farm
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a-model",
+      source: "service-a",
+      model: "service-a-model",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b-model",
+      source: "service-b",
+      model: "service-b-model",
     });
 
     await manifest.save(farmYamlPath);
@@ -396,8 +396,8 @@ project: service-a
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     await manifest.save(farmYamlPath);
@@ -429,8 +429,8 @@ project: ${service}
 
       manifest.addProject(service, {
         name: service,
-        codebase_path: service,
-        model_folder: `${service}-model`,
+        source: service,
+        model: `${service}-model`,
       });
     }
 
@@ -510,14 +510,14 @@ models:
     // Register projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a", // Will use documentation-robotics/model path
+      source: "service-a",
+      model: "service-a", // Will use documentation-robotics/model path
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b",
+      source: "service-b",
+      model: "service-b",
     });
 
     await manifest.save(farmYamlPath);
@@ -593,14 +593,14 @@ models:
     // Register projects in farm
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a",
+      source: "service-a",
+      model: "service-a",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b",
+      source: "service-b",
+      model: "service-b",
     });
 
     await manifest.save(farmYamlPath);
@@ -717,20 +717,20 @@ models:
     // Register all three projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a",
+      source: "service-a",
+      model: "service-a",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b",
+      source: "service-b",
+      model: "service-b",
     });
 
     manifest.addProject("platform-view", {
       name: "platform-view",
-      codebase_path: "platform-view",
-      model_folder: "platform-view",
+      source: "platform-view",
+      model: "platform-view",
     });
 
     await manifest.save(farmYamlPath);
