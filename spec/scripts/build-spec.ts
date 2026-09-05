@@ -22,6 +22,7 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 import Ajv from "ajv";
 import { default as ajvFormats } from "ajv-formats";
+import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -587,7 +588,11 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
 
 async function writeJsonFile(filepath: string, data: unknown): Promise<void> {
   const json = JSON.stringify(data, null, 2);
-  fs.writeFileSync(filepath, json + "\n", "utf-8");
+  const formatted = await prettier.format(json, {
+    filepath,
+    parser: "json",
+  });
+  fs.writeFileSync(filepath, formatted, "utf-8");
 }
 
 function ensureDistDir(): void {
