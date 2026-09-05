@@ -86,9 +86,9 @@ describe("Farm Commands - JSON Output Format Support", () => {
     expect(output.status).toBeDefined();
     expect(output.farm).toBeDefined();
 
-    // Verify hasPendingChanges is always a boolean, not undefined
+    // Verify has_pending_changes is always a boolean, not undefined
     if (output.projects && output.projects.length > 0) {
-      expect(typeof output.projects[0].hasPendingChanges).toBe("boolean");
+      expect(typeof output.projects[0].has_pending_changes).toBe("boolean");
     }
   });
 
