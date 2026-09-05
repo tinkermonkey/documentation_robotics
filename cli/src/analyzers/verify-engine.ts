@@ -8,6 +8,7 @@
 import * as path from "path";
 import { access } from "fs/promises";
 import { Model } from "../core/model.js";
+import { getErrorMessage } from "../utils/errors.js";
 import type {
   VerifyReport,
   VerifyOptions,
@@ -92,18 +93,20 @@ export class VerifyEngine {
     try {
       model = await Model.load(projectRoot);
     } catch (error) {
-      const err = error as NodeJS.ErrnoException;
-      // Provide helpful error message if model directory is missing or corrupted
-      if (err.code === "ENOENT" || err.code === "ENOTDIR") {
+      const message = getErrorMessage(error);
+      // Check for model-not-found errors (matches all 4 error messages from Model.resolveModelPaths)
+      if (
+        message.includes("No DR project") ||
+        message.includes("Model not found") ||
+        message.includes("No model found") ||
+        message.includes("Could not find documentation_robotics")
+      ) {
         throw new Error(
-          `Failed to load DR model at ${projectRoot}: Model directory not found or inaccessible. ` +
-          `Please run 'dr init' to initialize the documentation robotics model.`
+          `Failed to load DR model at ${projectRoot}: Model not found. Please run 'dr init' to initialize the documentation robotics model.`
         );
       }
-      throw new Error(
-        `Failed to load DR model at ${projectRoot}: ${err.message}. ` +
-        `Please check that the model directory exists and is accessible.`
-      );
+      // Re-throw original error unchanged to preserve stack trace and error type (e.g., YAML parse errors)
+      throw error;
     }
 
     const activeChangesetId = model.getActiveChangesetId();
