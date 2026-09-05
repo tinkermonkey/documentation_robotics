@@ -138,8 +138,12 @@ export async function findFarmRoot(startPath?: string): Promise<string | null> {
     if (await fileExists(farmFilePath)) {
       return envPath;
     }
-    // If DR_FARM_PATH is set but invalid, return null rather than falling back to search
-    return null;
+    // If DR_FARM_PATH is set but invalid, throw a clear error rather than silently returning null
+    throw new Error(
+      `Invalid DR_FARM_PATH: ${process.env.DR_FARM_PATH}\n` +
+      `Expected farm.yaml at: ${farmFilePath}\n` +
+      `Ensure DR_FARM_PATH points to a directory containing a farm.yaml file.`
+    );
   }
 
   let currentPath = startPath || process.cwd();

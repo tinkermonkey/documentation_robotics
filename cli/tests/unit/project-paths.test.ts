@@ -272,7 +272,7 @@ describe("Project Paths Utilities", () => {
       }
     });
 
-    it("should return null if DR_FARM_PATH is set but farm.yaml does not exist", async () => {
+    it("should throw error if DR_FARM_PATH is set but farm.yaml does not exist", async () => {
       const invalidFarmPath = join(testDir, "nonexistent");
       await mkdir(invalidFarmPath, { recursive: true });
 
@@ -283,9 +283,14 @@ describe("Project Paths Utilities", () => {
         // Set DR_FARM_PATH to an invalid path
         process.env.DR_FARM_PATH = invalidFarmPath;
 
-        // findFarmRoot should return null
-        const result = await findFarmRoot(testDir);
-        expect(result).toBeNull();
+        // findFarmRoot should throw an error
+        try {
+          await findFarmRoot(testDir);
+          expect.unreachable("Expected error to be thrown");
+        } catch (err) {
+          expect(err instanceof Error).toBe(true);
+          expect((err as Error).message).toContain("Invalid DR_FARM_PATH");
+        }
       } finally {
         // Restore original env var
         if (originalDRFarmPath !== undefined) {

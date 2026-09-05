@@ -787,8 +787,24 @@ export class Model {
       try {
         await fs.access(manifestPath);
         const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+
+        // Validate that projectRoot contains documentation-robotics structure
+        const docRobotsPath = path.join(projectRoot, "documentation-robotics", "model");
+        try {
+          await fs.access(docRobotsPath);
+        } catch {
+          throw new Error(
+            `Invalid model path: ${startPath}\n` +
+            `Computed project root ${projectRoot} does not contain documentation-robotics/model structure.\n` +
+            `Ensure the path is within a valid DR project or points to a model directory.`
+          );
+        }
+
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("Invalid model path")) {
+          throw err;
+        }
         throw new Error(`Model not found at ${startPath}`);
       }
     }
@@ -809,8 +825,24 @@ export class Model {
       try {
         await fs.access(manifestPath);
         const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+
+        // Validate that projectRoot contains documentation-robotics structure
+        const docRobotsPath = path.join(projectRoot, "documentation-robotics", "model");
+        try {
+          await fs.access(docRobotsPath);
+        } catch {
+          throw new Error(
+            `Invalid DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}\n` +
+            `Computed project root ${projectRoot} does not contain documentation-robotics/model structure.\n` +
+            `Ensure DR_MODEL_PATH points to a valid DR project or model directory.`
+          );
+        }
+
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("Invalid")) {
+          throw err;
+        }
         throw new Error(`Model not found at DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}`);
       }
     }
