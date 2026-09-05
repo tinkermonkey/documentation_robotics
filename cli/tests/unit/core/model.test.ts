@@ -120,6 +120,32 @@ describe("Model", () => {
   });
 });
 
+describe("Model.load — Detached Manifest Path Validation", () => {
+  it("should throw error when loading model with detached manifest path", async () => {
+    const { mkdir, writeFile } = await import("fs/promises");
+    const path = await import("path");
+
+    // Create a detached manifest path (simulating /farm/svc-model/manifest.yaml)
+    // where dirname³ yields a root that lacks documentation-robotics/model structure
+    const detachedDir = `${tmpdir()}/dr-detached-${randomUUID()}`;
+    const nestedPath = path.join(detachedDir, "level1", "level2", "level3");
+    await mkdir(nestedPath, { recursive: true });
+
+    const manifestPath = path.join(nestedPath, "manifest.yaml");
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+    await writeFile(manifestPath, "name: Test Model\nversion: 1.0.0\n");
+
+    // Attempting to load model from detached manifest should throw error
+    // because projectRoot (dirname³) won't contain documentation-robotics/model structure
+    await expect(Model.load(manifestPath)).rejects.toThrow(
+      /Invalid model path|does not contain documentation-robotics\/model/
+    );
+  });
+});
+
 describe("Model.loadRelationships — Graph Sync Logging", () => {
   let testDir: string;
 

@@ -840,7 +840,7 @@ export class Model {
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
-        if (err instanceof Error && err.message.includes("Invalid")) {
+        if (err instanceof Error && err.message.includes("Invalid DR_MODEL_PATH")) {
           throw err;
         }
         throw new Error(`Model not found at DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}`);

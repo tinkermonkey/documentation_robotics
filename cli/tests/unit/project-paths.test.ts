@@ -284,13 +284,7 @@ describe("Project Paths Utilities", () => {
         process.env.DR_FARM_PATH = invalidFarmPath;
 
         // findFarmRoot should throw an error
-        try {
-          await findFarmRoot(testDir);
-          expect.unreachable("Expected error to be thrown");
-        } catch (err) {
-          expect(err instanceof Error).toBe(true);
-          expect((err as Error).message).toContain("Invalid DR_FARM_PATH");
-        }
+        await expect(findFarmRoot(testDir)).rejects.toThrow(/Invalid DR_FARM_PATH/);
       } finally {
         // Restore original env var
         if (originalDRFarmPath !== undefined) {
