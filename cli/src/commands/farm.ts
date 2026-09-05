@@ -5,10 +5,11 @@
 import ansis from "ansis";
 import { Command } from "commander";
 import path from "path";
+import { rm } from "fs/promises";
 import { FarmManifest } from "../core/farm-manifest.js";
 import { findFarmRoot } from "../utils/project-paths.js";
 import { fileExists } from "../utils/file-io.js";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import * as prompts from "@clack/prompts";
 import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
@@ -159,7 +160,7 @@ export async function farmAddCommand(
       }
 
       try {
-        execSync(`git clone ${options.remote} "${codebaseFullPath}"`, {
+        execFileSync("git", ["clone", options.remote, codebaseFullPath], {
           stdio: useJson ? "pipe" : "inherit",
         });
       } catch (error) {
@@ -289,13 +290,19 @@ export async function farmRemoveCommand(
 
     // Remove model folder if requested
     if (options.deleteModel) {
-      const modelFullPath = path.join(farmRoot, project.model);
+      const modelFullPath = path.resolve(path.join(farmRoot, project.model));
+      const farmRootResolved = path.resolve(farmRoot);
+
+      // Validate that the resolved path is within the farm root to prevent path traversal
+      if (!modelFullPath.startsWith(farmRootResolved + path.sep) && modelFullPath !== farmRootResolved) {
+        throw new Error(
+          `Invalid model path: would escape farm root. Path: ${project.model}`
+        );
+      }
+
       if (await fileExists(modelFullPath)) {
         try {
-          // Use rm -rf for simplicity; in production, might use fs.rmdir with recursive: true
-          execSync(`rm -rf "${modelFullPath}"`, {
-            stdio: useJson ? "pipe" : "inherit",
-          });
+          await rm(modelFullPath, { recursive: true, force: false });
           if (!useJson) {
             handleInfo(`Deleted model folder: ${project.model}`);
           }
