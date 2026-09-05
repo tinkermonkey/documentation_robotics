@@ -20,6 +20,13 @@ export function setGlobalOptions(options: GlobalOptions): void {
 }
 
 /**
+ * Reset global CLI options to empty state
+ */
+export function resetGlobalOptions(): void {
+  globalOptions = {};
+}
+
+/**
  * Get current global options
  */
 export function getGlobalOptions(): GlobalOptions {

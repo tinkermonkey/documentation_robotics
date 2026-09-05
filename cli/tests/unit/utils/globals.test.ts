@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect, beforeEach } from "bun:test";
-import { setGlobalOptions, getGlobalOptions, getCodebasePath } from "../../../src/utils/globals.js";
+import { setGlobalOptions, getGlobalOptions, getCodebasePath, resetGlobalOptions } from "../../../src/utils/globals.js";
 
 describe("Global Options Utilities", () => {
   beforeEach(() => {
     // Reset global options before each test
-    setGlobalOptions({});
+    resetGlobalOptions();
   });
 
   describe("getCodebasePath", () => {

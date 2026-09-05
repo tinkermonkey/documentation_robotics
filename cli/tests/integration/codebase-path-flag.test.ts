@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { Model } from "../../src/core/model.js";
-import { setGlobalOptions, getCodebasePath } from "../../src/utils/globals.js";
+import { setGlobalOptions, getCodebasePath, resetGlobalOptions } from "../../src/utils/globals.js";
 
 describe("--codebase-path CLI Flag", () => {
   let TEST_DIR: string;
@@ -19,7 +19,7 @@ describe("--codebase-path CLI Flag", () => {
     cleanup = workdir.cleanup;
 
     // Reset global options before each test
-    setGlobalOptions({});
+    resetGlobalOptions();
   });
 
   afterEach(async () => {
@@ -62,7 +62,7 @@ describe("--codebase-path CLI Flag", () => {
 
     it("should use manifest codebase_path when no global codebasePath is set", async () => {
       // Reset global options
-      setGlobalOptions({});
+      resetGlobalOptions();
 
       // Load model - should use manifest.codebase_path if it exists, or fall back to defaults
       const model = await Model.load(TEST_DIR);
