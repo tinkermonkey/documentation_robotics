@@ -961,17 +961,45 @@ models:
       };
 
       try {
+        // Create temp output file path
+        const outputFile = path.join(farmRoot, "validation-output.json");
+
         await farmValidateCommand({
           project: "platform-view",
           format: "json",
+          output: outputFile,
           quiet: false,
         });
 
-        // Look for the initial status message which should be JSON
-        const jsonOutput = outputs.find((o) => o.includes("platform_view"));
-        expect(jsonOutput).toBeDefined();
-        const parsed = JSON.parse(jsonOutput!);
-        expect(parsed.platform_view).toBe(true);
+        // Read the output file and verify platform_view_info is present
+        const jsonContent = await fs.readFile(outputFile, "utf-8");
+        const report = JSON.parse(jsonContent);
+
+        // Verify the structure
+        expect(report).toBeDefined();
+        expect(report.projects).toBeDefined();
+        expect(report.projects.length).toBeGreaterThan(0);
+
+        // Find the platform-view project in the report
+        const platformViewProject = report.projects.find(
+          (p: any) => p.project === "platform-view"
+        );
+        expect(platformViewProject).toBeDefined();
+
+        // Verify platform_view_info is present with declared_models and missing_models
+        expect(platformViewProject.platform_view_info).toBeDefined();
+        expect(platformViewProject.platform_view_info.declared_models).toBeDefined();
+        expect(Array.isArray(platformViewProject.platform_view_info.declared_models)).toBe(true);
+        expect(platformViewProject.platform_view_info.missing_models).toBeDefined();
+        expect(Array.isArray(platformViewProject.platform_view_info.missing_models)).toBe(true);
+
+        // Verify the declared models match what we configured
+        expect(platformViewProject.platform_view_info.declared_models).toContain(
+          "service-a"
+        );
+
+        // Clean up output file
+        await fs.rm(outputFile);
       } finally {
         console.log = originalLog;
       }
