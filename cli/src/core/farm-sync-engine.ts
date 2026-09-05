@@ -437,8 +437,8 @@ export class FarmSyncEngine {
         timestamp: new Date().toISOString(),
         commit: currentCommit,
         status: "success",
-        filesChanged: 0,
-        elementsAffected: 0,
+        files_changed: 0,
+        elements_affected: 0,
         notes: "Initial sync, no changes to sync",
       });
       await syncState.save(syncStatePath);
@@ -469,8 +469,8 @@ export class FarmSyncEngine {
         timestamp: new Date().toISOString(),
         commit: currentCommit,
         status: "success",
-        filesChanged: 0,
-        elementsAffected: 0,
+        files_changed: 0,
+        elements_affected: 0,
         notes: "No changes to sync",
       });
       await syncState.save(syncStatePath);
@@ -529,9 +529,9 @@ export class FarmSyncEngine {
       timestamp: new Date().toISOString(),
       commit: currentCommit,
       status: mappings.ambiguous.length > 0 && !options.force ? "partial" : "success",
-      changesetId,
-      filesChanged: diff.added.length + diff.modified.length + diff.deleted.length,
-      elementsAffected: mappings.confident.length + mappings.ambiguous.length,
+      changeset: changesetId,
+      files_changed: diff.added.length + diff.modified.length + diff.deleted.length,
+      elements_affected: mappings.confident.length + mappings.ambiguous.length,
       notes: notes.join("\n"),
     });
     await syncState.save(syncStatePath);

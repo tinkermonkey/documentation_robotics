@@ -167,7 +167,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
       const syncState = await FarmSyncState.load(syncStateFile);
       expect(syncState.syncHistory.length).toBe(2);
-      expect(syncState.getLastSync()?.filesChanged).toBeGreaterThan(0);
+      expect(syncState.getLastSync()?.files_changed).toBeGreaterThan(0);
     } finally {
       if (originalDRModelPath !== undefined) {
         process.env.DR_MODEL_PATH = originalDRModelPath;

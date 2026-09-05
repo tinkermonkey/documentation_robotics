@@ -22,15 +22,15 @@ import { FarmSyncEngine } from "../core/farm-sync-engine.js";
 interface FarmSyncResultEntry {
   project: string;
   status: "success" | "error" | "partial";
-  changeCount?: number;
-  changesetId?: string;
-  filesChanged?: { added: string[]; modified: string[]; deleted: string[] };
+  change_count?: number;
+  changeset_id?: string;
+  files_changed?: { added: string[]; modified: string[]; deleted: string[] };
   ambiguities?: number;
-  commitsBefore?: string;
-  commitsAfter?: string;
-  autoCommitted?: boolean;
-  committedChanges?: number;
-  commitError?: string;
+  commits_before?: string;
+  commits_after?: string;
+  auto_committed?: boolean;
+  committed_changes?: number;
+  commit_error?: string;
   message?: string;
 }
 
@@ -87,6 +87,30 @@ export async function farmInitCommand(options: {
       platform_view: options.platformView || false,
     });
     await manifest.save(farmYamlPath);
+
+    // Initialize farm-level git repository
+    try {
+      execSync("git init", { cwd: farmPath, stdio: useJson ? "pipe" : "inherit" });
+      execSync("git config user.email 'dr-farm@localhost'", {
+        cwd: farmPath,
+        stdio: "pipe",
+      });
+      execSync("git config user.name 'DR Farm'", {
+        cwd: farmPath,
+        stdio: "pipe",
+      });
+
+      // Add farm.yaml and commit
+      execSync("git add farm.yaml", { cwd: farmPath, stdio: "pipe" });
+      execSync("git commit -m 'Initialize farm manifest'", {
+        cwd: farmPath,
+        stdio: useJson ? "pipe" : "inherit",
+      });
+    } catch (gitError) {
+      throw new Error(
+        `Failed to initialize farm git repository: ${getErrorMessage(gitError)}`
+      );
+    }
 
     if (useJson) {
       console.log(JSON.stringify({ status: "ok", farmPath, farmName, platform_view: options.platformView || false }));
@@ -187,30 +211,6 @@ export async function farmAddCommand(
         { lazyLoad: false }
       );
 
-      // Initialize git repository for the model
-      try {
-        execSync("git init", { cwd: modelFullPath, stdio: useJson ? "pipe" : "inherit" });
-        execSync("git config user.email 'dr-farm@localhost'", {
-          cwd: modelFullPath,
-          stdio: "pipe",
-        });
-        execSync("git config user.name 'DR Farm'", {
-          cwd: modelFullPath,
-          stdio: "pipe",
-        });
-
-        // Add all initial files and commit
-        execSync("git add .", { cwd: modelFullPath, stdio: "pipe" });
-        execSync("git commit -m 'Initialize model scaffold'", {
-          cwd: modelFullPath,
-          stdio: useJson ? "pipe" : "inherit",
-        });
-      } catch (gitError) {
-        throw new Error(
-          `Failed to initialize model git repository: ${getErrorMessage(gitError)}`
-        );
-      }
-
       if (!useJson) {
         handleInfo(`Created and initialized model folder: ${modelFolder}`);
       }
@@ -225,6 +225,27 @@ export async function farmAddCommand(
     });
 
     await manifest.save(farmYamlPath);
+
+    // Commit farm.yaml changes to farm-level git repository if git is available
+    try {
+      execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
+      // Git repo exists, proceed with commit
+      try {
+        execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
+        execSync(`git commit -m "Add project: ${name}"`, {
+          cwd: farmRoot,
+          stdio: useJson ? "pipe" : "inherit",
+        });
+      } catch (commitError) {
+        const errorMsg = getErrorMessage(commitError);
+        // If nothing to commit, that's fine
+        if (!errorMsg.includes("nothing to commit")) {
+          throw new Error(`Failed to commit farm changes: ${errorMsg}`);
+        }
+      }
+    } catch (gitCheckError) {
+      // Git repo not initialized yet - that's fine, skip commit
+    }
 
     if (useJson) {
       console.log(
@@ -316,6 +337,27 @@ export async function farmRemoveCommand(
     manifest.removeProject(name);
     await manifest.save(farmYamlPath);
 
+    // Commit farm.yaml changes to farm-level git repository if git is available
+    try {
+      execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
+      // Git repo exists, proceed with commit
+      try {
+        execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
+        execSync(`git commit -m "Remove project: ${name}"`, {
+          cwd: farmRoot,
+          stdio: useJson ? "pipe" : "inherit",
+        });
+      } catch (commitError) {
+        const errorMsg = getErrorMessage(commitError);
+        // If nothing to commit, that's fine
+        if (!errorMsg.includes("nothing to commit")) {
+          throw new Error(`Failed to commit farm changes: ${errorMsg}`);
+        }
+      }
+    } catch (gitCheckError) {
+      // Git repo not initialized yet - that's fine, skip commit
+    }
+
     if (useJson) {
       console.log(
         JSON.stringify({
@@ -387,9 +429,9 @@ export async function farmStatusCommand(options: {
             source: p.source,
             model: p.model,
             remote: p.remote,
-            lastSyncCommit: lastSyncCommit,
-            currentCommit: currentCommit,
-            hasPendingChanges: hasPendingChanges,
+            last_sync_commit: lastSyncCommit,
+            current_commit: currentCommit,
+            has_pending_changes: hasPendingChanges,
           };
         } catch {
           // If sync state doesn't exist or error reading commits, treat as no sync yet
@@ -984,12 +1026,12 @@ export async function farmSyncCommand(options: {
           const resultEntry: FarmSyncResultEntry = {
             project: project.name,
             status: result.success ? "success" : "error",
-            changeCount: result.changeCount,
-            changesetId: result.changesetId,
-            filesChanged: result.filesChanged,
+            change_count: result.changeCount,
+            changeset_id: result.changesetId,
+            files_changed: result.filesChanged,
             ambiguities: result.ambiguities.length,
-            commitsBefore: result.commitsBefore,
-            commitsAfter: result.commitsAfter,
+            commits_before: result.commitsBefore,
+            commits_after: result.commitsAfter,
           };
 
           // Auto-commit if requested and changes were staged
@@ -1001,30 +1043,35 @@ export async function farmSyncCommand(options: {
                 model
               );
               const commitResult = await stagingManager.commit(model, result.changesetId);
-              resultEntry.autoCommitted = true;
-              resultEntry.committedChanges = commitResult.committed;
+              resultEntry.auto_committed = true;
+              resultEntry.committed_changes = commitResult.committed;
 
-              // Also commit changes to the farm's model git repository
+              // Commit changes to the farm-level git repository if git is available
               try {
-                const modelPath = path.join(farmRoot, project.model);
-                execSync("git add .", { cwd: modelPath, stdio: "pipe" });
-                execSync(
-                  `git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`,
-                  { cwd: modelPath, stdio: "pipe" }
-                );
-              } catch (gitCommitError) {
-                // If there's nothing to commit (no changes), that's fine
-                if (!getErrorMessage(gitCommitError).includes("nothing to commit")) {
-                  throw gitCommitError;
+                execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
+                // Git repo exists, proceed with commit
+                try {
+                  execSync("git add .", { cwd: farmRoot, stdio: "pipe" });
+                  execSync(
+                    `git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`,
+                    { cwd: farmRoot, stdio: "pipe" }
+                  );
+                } catch (gitCommitError) {
+                  // If there's nothing to commit (no changes), that's fine
+                  if (!getErrorMessage(gitCommitError).includes("nothing to commit")) {
+                    throw gitCommitError;
+                  }
                 }
+              } catch (gitCheckError) {
+                // Git repo not initialized yet - that's fine, skip commit
               }
 
               if (options.verbose && !useJson) {
                 handleInfo(`  Auto-committed: ${commitResult.committed} change(s)`);
               }
             } catch (commitError) {
-              resultEntry.autoCommitted = false;
-              resultEntry.commitError = getErrorMessage(commitError);
+              resultEntry.auto_committed = false;
+              resultEntry.commit_error = getErrorMessage(commitError);
               resultEntry.status = "error";
               if (options.verbose && !useJson) {
                 handleInfo(`  Auto-commit failed: ${getErrorMessage(commitError)}`);

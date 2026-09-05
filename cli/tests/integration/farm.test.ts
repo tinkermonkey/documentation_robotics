@@ -825,16 +825,9 @@ describe("Farm model initialization and git setup", () => {
       );
       expect(await fileExists(relationshipsPath)).toBe(true);
 
-      // Verify git repository was initialized
-      const gitPath = path.join(modelPath, ".git");
-      expect(await fileExists(gitPath)).toBe(true);
-
-      // Verify initial commit was created
-      const commitCount = execSync("git rev-list --count HEAD", {
-        cwd: path.join(modelPath),
-        encoding: "utf-8",
-      }).trim();
-      expect(parseInt(commitCount, 10)).toBeGreaterThan(0);
+      // Note: Git repository is now at farm level, not per-model
+      // So we don't check for individual model git repos anymore
+      // The farm-level repo tracks changes across all models
     } finally {
       process.cwd = originalCwd;
     }

@@ -80,8 +80,8 @@ describe("FarmSyncState", () => {
     state.recordSync({
       timestamp: now,
       commit: "abc123",
-      filesChanged: 5,
-      elementsAffected: 2,
+      files_changed: 5,
+      elements_affected: 2,
     });
 
     expect(state.syncHistory.length).toBe(1);
@@ -90,7 +90,7 @@ describe("FarmSyncState", () => {
 
     const record = state.getLastSync();
     expect(record).toBeDefined();
-    expect(record?.filesChanged).toBe(5);
+    expect(record?.files_changed).toBe(5);
   });
 
   it("should record ambiguous mappings", async () => {

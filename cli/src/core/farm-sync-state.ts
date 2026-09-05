@@ -13,9 +13,9 @@ import { readFile, writeFile, fileExists } from "../utils/file-io.js";
 export interface SyncRecord {
   timestamp: string; // ISO 8601 timestamp
   commit: string; // Commit SHA where sync occurred
-  changesetId?: string; // ID of generated changeset
-  filesChanged?: number; // Number of files that changed
-  elementsAffected?: number; // Number of model elements affected
+  changeset?: string; // ID of generated changeset
+  files_changed?: number; // Number of files that changed
+  elements_affected?: number; // Number of model elements affected
   status: "success" | "partial" | "failed"; // Status of the sync
   notes?: string; // Optional notes about the sync
 }
@@ -24,14 +24,14 @@ export interface SyncRecord {
  * Farm sync state for a single project
  */
 export interface FarmSyncStateData {
-  projectName: string;
-  lastSyncCommit?: string; // Last successful sync commit SHA
-  lastSyncTimestamp?: string; // ISO 8601 timestamp
-  syncHistory: SyncRecord[]; // Complete history of syncs
+  project_name: string;
+  last_sync_commit?: string; // Last successful sync commit SHA
+  last_sync_timestamp?: string; // ISO 8601 timestamp
+  sync_history: SyncRecord[]; // Complete history of syncs
   ambiguities?: Array<{
-    filePath: string;
-    possibleElements: Array<{
-      elementId: string;
+    file_path: string;
+    possible_elements: Array<{
+      element_id: string;
       layer: string;
       confidence: number; // 0-100 confidence score
     }>;
@@ -57,11 +57,18 @@ export class FarmSyncState {
   filePath?: string;
 
   constructor(data: FarmSyncStateData) {
-    this.projectName = data.projectName;
-    this.lastSyncCommit = data.lastSyncCommit;
-    this.lastSyncTimestamp = data.lastSyncTimestamp;
-    this.syncHistory = data.syncHistory || [];
-    this.ambiguities = data.ambiguities || [];
+    this.projectName = data.project_name;
+    this.lastSyncCommit = data.last_sync_commit;
+    this.lastSyncTimestamp = data.last_sync_timestamp;
+    this.syncHistory = data.sync_history || [];
+    this.ambiguities = data.ambiguities?.map(a => ({
+      filePath: a.file_path,
+      possibleElements: a.possible_elements.map(e => ({
+        elementId: e.element_id,
+        layer: e.layer,
+        confidence: e.confidence,
+      })),
+    })) || [];
   }
 
   /**
@@ -75,10 +82,27 @@ export class FarmSyncState {
     }
 
     const content = await readFile(filePath);
-    const data = yaml.parse(content) as FarmSyncStateData;
+    const rawData = yaml.parse(content) as any;
 
-    if (!data.projectName) {
-      throw new Error("Farm sync state must have a 'projectName' field");
+    // Handle both old (camelCase) and new (snake_case) formats for backward compatibility
+    const data: FarmSyncStateData = {
+      project_name: rawData.project_name || rawData.projectName,
+      last_sync_commit: rawData.last_sync_commit || rawData.lastSyncCommit,
+      last_sync_timestamp: rawData.last_sync_timestamp || rawData.lastSyncTimestamp,
+      sync_history: (rawData.sync_history || rawData.syncHistory || []).map((record: any) => ({
+        timestamp: record.timestamp,
+        commit: record.commit,
+        changeset: record.changeset || record.changesetId,
+        files_changed: record.files_changed || record.filesChanged,
+        elements_affected: record.elements_affected || record.elementsAffected,
+        status: record.status,
+        notes: record.notes,
+      })),
+      ambiguities: rawData.ambiguities,
+    };
+
+    if (!data.project_name) {
+      throw new Error("Farm sync state must have a 'project_name' field");
     }
 
     const state = new FarmSyncState(data);
@@ -100,10 +124,10 @@ export class FarmSyncState {
     } = {}
   ): FarmSyncState {
     return new FarmSyncState({
-      projectName,
-      lastSyncCommit: options.lastSyncCommit,
-      lastSyncTimestamp: options.lastSyncTimestamp,
-      syncHistory: [],
+      project_name: projectName,
+      last_sync_commit: options.lastSyncCommit,
+      last_sync_timestamp: options.lastSyncTimestamp,
+      sync_history: [],
       ambiguities: [],
     });
   }
@@ -154,9 +178,9 @@ export class FarmSyncState {
       timestamp: record.timestamp,
       commit: record.commit,
       status,
-      changesetId: record.changesetId,
-      filesChanged: record.filesChanged,
-      elementsAffected: record.elementsAffected,
+      changeset: record.changeset,
+      files_changed: record.files_changed,
+      elements_affected: record.elements_affected,
       notes: record.notes,
     });
 
@@ -201,11 +225,28 @@ export class FarmSyncState {
    */
   toJSON(): FarmSyncStateData {
     return {
-      projectName: this.projectName,
-      lastSyncCommit: this.lastSyncCommit,
-      lastSyncTimestamp: this.lastSyncTimestamp,
-      syncHistory: this.syncHistory,
-      ...(this.ambiguities.length > 0 && { ambiguities: this.ambiguities }),
+      project_name: this.projectName,
+      last_sync_commit: this.lastSyncCommit,
+      last_sync_timestamp: this.lastSyncTimestamp,
+      sync_history: this.syncHistory.map(record => ({
+        timestamp: record.timestamp,
+        commit: record.commit,
+        changeset: record.changeset,
+        files_changed: record.files_changed,
+        elements_affected: record.elements_affected,
+        status: record.status,
+        notes: record.notes,
+      })),
+      ...(this.ambiguities.length > 0 && {
+        ambiguities: this.ambiguities.map(a => ({
+          file_path: a.filePath,
+          possible_elements: a.possibleElements.map(e => ({
+            element_id: e.elementId,
+            layer: e.layer,
+            confidence: e.confidence,
+          })),
+        }))
+      }),
     };
   }
 }
