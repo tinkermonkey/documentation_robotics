@@ -6,6 +6,7 @@ export interface GlobalOptions {
   verbose?: boolean;
   debug?: boolean;
   json?: boolean;
+  codebasePath?: string;
 }
 
 // Global state for CLI options
@@ -16,6 +17,13 @@ let globalOptions: GlobalOptions = {};
  */
 export function setGlobalOptions(options: GlobalOptions): void {
   globalOptions = { ...globalOptions, ...options };
+}
+
+/**
+ * Reset global CLI options to empty state
+ */
+export function resetGlobalOptions(): void {
+  globalOptions = {};
 }
 
 /**
@@ -69,4 +77,11 @@ export function logDebug(message: string): void {
  */
 export function setJsonMode(json: boolean): void {
   globalOptions.json = json;
+}
+
+/**
+ * Get codebase path from global options
+ */
+export function getCodebasePath(): string | undefined {
+  return globalOptions.codebasePath;
 }

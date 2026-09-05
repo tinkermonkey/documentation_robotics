@@ -18,6 +18,7 @@ repos:
         exclude: ^spec/test-fixtures/invalid/
       - id: check-added-large-files
         args: [--maxkb=1000]
+        exclude: ^docs/logo/
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: mixed-line-ending

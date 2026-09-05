@@ -52,6 +52,9 @@ export const SMOKE_TESTS: string[] = [
   // Cross-Layer References
   "tests/integration/source-reference.test.ts",
 
+  // Farm Commands (JSON output for automation)
+  "tests/integration/farm-commands-json.test.ts",
+
   // MCP Server
   "tests/integration/mcp-server-smoke.test.ts",
 ];

@@ -29,7 +29,7 @@ describe("audit command", () => {
     };
 
     try {
-      await auditCommand({});
+      await auditCommand({ projectRoot: workdir.path });
 
       // Verify output contains expected sections
       const output = logs.join("\n");
@@ -51,6 +51,7 @@ describe("audit command", () => {
     await auditCommand({
       output: outputPath,
       format: "json",
+      projectRoot: workdir.path,
     });
 
     // Verify file exists
@@ -88,6 +89,7 @@ describe("audit command", () => {
     await auditCommand({
       output: outputPath,
       format: "markdown",
+      projectRoot: workdir.path,
     });
 
     // Verify file exists
@@ -118,6 +120,7 @@ describe("audit command", () => {
     // Test JSON auto-detection
     await auditCommand({
       output: jsonPath,
+      projectRoot: workdir.path,
     });
 
     expect(await fileExists(jsonPath)).toBe(true);
@@ -127,6 +130,7 @@ describe("audit command", () => {
     // Test Markdown auto-detection
     await auditCommand({
       output: mdPath,
+      projectRoot: workdir.path,
     });
 
     expect(await fileExists(mdPath)).toBe(true);
@@ -145,6 +149,7 @@ describe("audit command", () => {
       layer: "motivation",
       output: outputPath,
       format: "json",
+      projectRoot: workdir.path,
     });
 
     // Verify file exists
@@ -172,6 +177,7 @@ describe("audit command", () => {
     try {
       await auditCommand({
         verbose: true,
+        projectRoot: workdir.path,
       });
 
       const output = logs.join("\n");
@@ -194,6 +200,7 @@ describe("audit command", () => {
       auditCommand({
         layer: "invalid-layer",
         output: outputPath,
+        projectRoot: workdir.path,
       })
     ).rejects.toThrow("Audit failed: Layer not found: 'invalid-layer'");
 
@@ -207,6 +214,7 @@ describe("audit command", () => {
     await auditCommand({
       output: outputPath,
       format: "json",
+      projectRoot: workdir.path,
     });
 
     const content = await readFile(outputPath);
@@ -274,6 +282,7 @@ describe("audit command", () => {
     await auditCommand({
       output: outputPath,
       format: "json",
+      projectRoot: workdir.path,
     });
 
     // Verify file exists (directory was created)
@@ -287,7 +296,7 @@ describe("audit command", () => {
     it("should run node audit with --type nodes", async () => {
       const outputPath = path.join(workdir.path, "nodes-audit.json");
 
-      await auditCommand({ type: "nodes", output: outputPath, format: "json" });
+      await auditCommand({ type: "nodes", output: outputPath, format: "json", projectRoot: workdir.path });
 
       expect(await fileExists(outputPath)).toBe(true);
       const report = JSON.parse(await readFile(outputPath));
@@ -306,7 +315,7 @@ describe("audit command", () => {
       const orig = console.log;
       console.log = (...args: any[]) => logs.push(args.join(" "));
       try {
-        await auditCommand({ type: "nodes" });
+        await auditCommand({ type: "nodes", projectRoot: workdir.path });
         const output = logs.join("\n");
         // Should contain node-audit sections, not relationship-audit sections
         expect(output).not.toContain("Relationship Audit Report");
@@ -320,7 +329,7 @@ describe("audit command", () => {
       const orig = console.log;
       console.log = (...args: any[]) => logs.push(args.join(" "));
       try {
-        await auditCommand({ type: "all" });
+        await auditCommand({ type: "all", projectRoot: workdir.path });
         const output = logs.join("\n");
         // Both relationship and node audit output should be present
         expect(output).toContain("Relationship Audit Report");
@@ -332,7 +341,7 @@ describe("audit command", () => {
     it("should run combined audit with --type all (JSON)", async () => {
       const outputPath = path.join(workdir.path, "all-audit.json");
 
-      await auditCommand({ type: "all", output: outputPath, format: "json" });
+      await auditCommand({ type: "all", output: outputPath, format: "json", projectRoot: workdir.path });
 
       expect(await fileExists(outputPath)).toBe(true);
       const merged = JSON.parse(await readFile(outputPath));
@@ -349,7 +358,7 @@ describe("audit command", () => {
     it("should filter by layer with --type nodes --layer motivation", async () => {
       const outputPath = path.join(workdir.path, "motivation-nodes.json");
 
-      await auditCommand({ type: "nodes", layer: "motivation", output: outputPath, format: "json" });
+      await auditCommand({ type: "nodes", layer: "motivation", output: outputPath, format: "json", projectRoot: workdir.path });
 
       const report = JSON.parse(await readFile(outputPath));
       expect(report.layerSummaries).toHaveLength(1);
@@ -368,7 +377,7 @@ describe("audit command", () => {
       const outputPath = path.join(workdir.path, "default-audit.json");
 
       // No --type specified
-      await auditCommand({ output: outputPath, format: "json" });
+      await auditCommand({ output: outputPath, format: "json", projectRoot: workdir.path });
 
       const report = JSON.parse(await readFile(outputPath));
       // Relationships audit has these fields; nodes audit does not

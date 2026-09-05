@@ -11,6 +11,8 @@ import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
+import { getCodebasePath } from "../utils/globals.js";
+import { getErrorMessage } from "../utils/errors.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -120,6 +122,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
  */
 export class Model {
   rootPath: string;
+  codebaseRoot: string;
   manifest: Manifest;
   graph: GraphModel;
   layers: Map<string, Layer>;
@@ -135,6 +138,7 @@ export class Model {
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
+    this.codebaseRoot = options.codebaseRoot ?? rootPath;
     this.manifest = manifest;
     this.graph = new GraphModel();
     this.layers = new Map();
@@ -598,6 +602,10 @@ export class Model {
       };
     }
 
+    if (this.manifest.codebase_path) {
+      yamlData.codebase_path = this.manifest.codebase_path;
+    }
+
     if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
       yamlData.changeset_history = this.manifest.changeset_history;
     }
@@ -708,6 +716,52 @@ export class Model {
   }
 
   /**
+   * Auto-resolve codebaseRoot from farm manifest if inside a farm
+   *
+   * @param modelRoot - The model's project root (documentation_robotics parent)
+   * @returns Resolved codebase root path, or null if not in farm or resolution fails
+   */
+  private static async resolveFarmCodebaseRoot(modelRoot: string): Promise<string | null> {
+    const { findFarmRoot } = await import("../utils/project-paths.js");
+    const { FarmManifest } = await import("./farm-manifest.js");
+
+    // Find farm root (may return null if not in a farm)
+    const farmRoot = await findFarmRoot(modelRoot);
+    if (!farmRoot) {
+      return null;
+    }
+
+    // Load farm manifest
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    let manifest: any;
+    try {
+      manifest = await FarmManifest.load(farmYamlPath);
+    } catch (error) {
+      // Re-throw meaningful errors (YAML parse, permission errors, etc.)
+      // Only return null if the farm setup is genuinely not present
+      const errorMsg = getErrorMessage(error);
+      if (errorMsg.includes("ENOENT") || errorMsg.includes("not found")) {
+        return null; // Farm not found - expected case, not an error
+      }
+      throw new Error(`Failed to load farm manifest at ${farmYamlPath}: ${errorMsg}`);
+    }
+
+    // Find the model folder name relative to farm root
+    const modelName = path.basename(modelRoot);
+
+    // Look for a project where model matches our model's basename
+    for (const project of manifest.getAllProjects()) {
+      if (path.basename(project.model) === modelName) {
+        // Found matching project, resolve codebase path
+        const codebaseFullPath = path.resolve(farmRoot, project.source);
+        return codebaseFullPath;
+      }
+    }
+
+    return null; // No matching project found in farm - not an error
+  }
+
+  /**
    * Resolve model paths (private helper)
    *
    * @param startPath - Starting path for search
@@ -717,9 +771,29 @@ export class Model {
     projectRoot: string;
     manifestPath: string;
   }> {
-    const searchPath = startPath || process.cwd();
+    // Highest priority: explicit startPath parameter (used in concurrent contexts to avoid env var mutations)
+    if (startPath) {
+      const resolvedPath = path.resolve(startPath);
+      let manifestPath: string;
 
-    // Optional override via env var (highest priority)
+      if (resolvedPath.endsWith("manifest.yaml")) {
+        manifestPath = resolvedPath;
+      } else if (resolvedPath.endsWith("model")) {
+        manifestPath = path.join(resolvedPath, "manifest.yaml");
+      } else {
+        manifestPath = path.join(resolvedPath, "documentation-robotics", "model", "manifest.yaml");
+      }
+
+      try {
+        await fs.access(manifestPath);
+        const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+        return { projectRoot, manifestPath: path.normalize(manifestPath) };
+      } catch {
+        throw new Error(`Model not found at ${startPath}`);
+      }
+    }
+
+    // Secondary priority: optional override via env var
     if (process.env.DR_MODEL_PATH) {
       const envPath = path.resolve(process.env.DR_MODEL_PATH);
       let manifestPath: string;
@@ -741,7 +815,8 @@ export class Model {
       }
     }
 
-    // Use findProjectRoot to locate documentation_robotics/ folder
+    // Fallback: use findProjectRoot to locate documentation_robotics/ folder
+    const searchPath = process.cwd();
     const projectRoot = await findProjectRoot(searchPath);
 
     if (!projectRoot) {
@@ -848,8 +923,38 @@ export class Model {
         manifestData.models = manifestYaml.models;
       }
 
+      // Load codebase_path if present
+      if (manifestYaml.codebase_path) {
+        manifestData.codebase_path = manifestYaml.codebase_path;
+      }
+
       const manifest = new Manifest(manifestData);
-      const model = new Model(projectRoot, manifest, options);
+
+      // Resolve codebaseRoot with priority: options > CLI flag > manifest > farm > default
+      let codebaseRoot = projectRoot;
+      if (options.codebaseRoot) {
+        codebaseRoot = options.codebaseRoot;
+      } else {
+        const globalCodebasePath = getCodebasePath();
+        if (globalCodebasePath) {
+          codebaseRoot = path.resolve(globalCodebasePath);
+        } else if (manifest.codebase_path) {
+          codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
+        } else {
+          // Try to auto-resolve from farm manifest if inside a farm
+          try {
+            const farmCodebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot);
+            if (farmCodebaseRoot) {
+              codebaseRoot = farmCodebaseRoot;
+            }
+          } catch (error) {
+            // Log farm resolution errors but don't fail - fall back to projectRoot
+            console.warn(`Warning: Failed to resolve farm codebase root: ${getErrorMessage(error)}`);
+          }
+        }
+      }
+
+      const model = new Model(projectRoot, manifest, { ...options, codebaseRoot });
 
       // Load all available layers if lazyLoad is false
       if (!options.lazyLoad) {
@@ -1007,7 +1112,21 @@ export class Model {
     }
 
     const manifest = new Manifest(manifestData);
-    const model = new Model(rootPath, manifest, options);
+
+    // Resolve codebaseRoot with priority: options > CLI flag > manifest > default
+    let codebaseRoot = rootPath;
+    if (options.codebaseRoot) {
+      codebaseRoot = options.codebaseRoot;
+    } else {
+      const globalCodebasePath = getCodebasePath();
+      if (globalCodebasePath) {
+        codebaseRoot = path.resolve(globalCodebasePath);
+      } else if (manifest.codebase_path) {
+        codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
+      }
+    }
+
+    const model = new Model(rootPath, manifest, { ...options, codebaseRoot });
 
     await model.saveManifest();
 

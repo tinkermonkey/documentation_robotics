@@ -16,11 +16,12 @@
  */
 
 import { fileExists } from "./file-io.js";
-import { join, dirname } from "path";
+import { join, dirname, resolve } from "path";
 
 const MAX_SEARCH_DEPTH = 5;
 const PROJECT_FOLDER_NAME = "documentation-robotics";
 const SPEC_FOLDER_NAME = ".dr";
+const FARM_FILE_NAME = "farm.yaml";
 
 /**
  * Find the project root by searching for the documentation-robotics/ folder
@@ -107,4 +108,59 @@ export async function getSpecReferencePath(startPath?: string): Promise<string |
  */
 export async function isInDRProject(startPath?: string): Promise<boolean> {
   return (await findProjectRoot(startPath)) !== null;
+}
+
+/**
+ * Find the farm root by searching for the farm.yaml file
+ *
+ * Resolution order:
+ * 1. DR_FARM_PATH environment variable (if set, must point to a directory with farm.yaml)
+ * 2. Directory walk upward from startPath (default: process.cwd()) up to MAX_SEARCH_DEPTH levels
+ *
+ * @param startPath - Optional starting path (defaults to process.cwd())
+ * @returns Path to farm root, or null if not found
+ *
+ * @example
+ * // From /home/user/architecture-farm/service-a-model/documentation-robotics/model
+ * // Returns: /home/user/architecture-farm (if farm.yaml exists there)
+ * const farmRoot = await findFarmRoot();
+ *
+ * @example
+ * // With DR_FARM_PATH environment variable set
+ * // Returns: /path/specified/in/env (if farm.yaml exists there)
+ * const farmRoot = await findFarmRoot();
+ */
+export async function findFarmRoot(startPath?: string): Promise<string | null> {
+  // Check DR_FARM_PATH environment variable first
+  if (process.env.DR_FARM_PATH) {
+    const envPath = resolve(process.env.DR_FARM_PATH);
+    const farmFilePath = join(envPath, FARM_FILE_NAME);
+    if (await fileExists(farmFilePath)) {
+      return envPath;
+    }
+    // If DR_FARM_PATH is set but invalid, return null rather than falling back to search
+    return null;
+  }
+
+  let currentPath = startPath || process.cwd();
+
+  for (let depth = 0; depth < MAX_SEARCH_DEPTH; depth++) {
+    const farmFilePath = join(currentPath, FARM_FILE_NAME);
+
+    if (await fileExists(farmFilePath)) {
+      return currentPath;
+    }
+
+    // Move up one directory
+    const parentPath = dirname(currentPath);
+
+    // Check if we've reached the root
+    if (parentPath === currentPath) {
+      break;
+    }
+
+    currentPath = parentPath;
+  }
+
+  return null;
 }
