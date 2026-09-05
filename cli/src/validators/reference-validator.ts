@@ -1,0 +1,227 @@
+/**
+ * Reference validation for cross-layer integrity
+ */
+
+import { ValidationResult } from "./types.js";
+import type { Model } from "../core/model.js";
+import { getLayerByNumber, LAYER_HIERARCHY, getAllLayerIds } from "../generated/layer-registry.js";
+import { parseReferencePath, ReferencePathParseError } from "../utils/reference-path-parser.js";
+
+/**
+ * Validator for cross-layer references
+ */
+export class ReferenceValidator {
+  // Known layer names from generated registry (including hyphenated ones)
+  private readonly KNOWN_LAYERS = getAllLayerIds();
+
+  // Build layer hierarchy map at instantiation from generated registry
+  private readonly LAYER_HIERARCHY: Record<string, number> = this.buildLayerHierarchy();
+
+  private buildLayerHierarchy(): Record<string, number> {
+    const hierarchy: Record<string, number> = {};
+    for (const layerNumber of LAYER_HIERARCHY) {
+      const layer = getLayerByNumber(layerNumber);
+      if (layer) {
+        hierarchy[layer.id] = layer.number;
+      }
+    }
+    return hierarchy;
+  }
+
+  /**
+   * Validate all references in a model
+   */
+  validateModel(model: Model): ValidationResult {
+    const result = new ValidationResult();
+    const allElementIds = this.collectAllElementIds(model);
+
+    for (const [layerName, layer] of model.layers) {
+      for (const element of layer.listElements()) {
+        this.validateReferences(
+          element.path || element.id,
+          element.references || [],
+          layerName,
+          allElementIds,
+          model,
+          result
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Collect all element IDs across the model
+   */
+  private collectAllElementIds(model: Model): Set<string> {
+    const ids = new Set<string>();
+
+    for (const layer of model.layers.values()) {
+      for (const element of layer.listElements()) {
+        ids.add(element.path || element.id);
+        // Also add raw UUID so references stored by UUID still resolve
+        ids.add(element.id);
+      }
+    }
+
+    return ids;
+  }
+
+  /**
+   * Validate references for an element
+   */
+  private validateReferences(
+    elementId: string,
+    references: Array<{ target: string; type?: string }>,
+    sourceLayerName: string,
+    validIds: Set<string>,
+    model: Model,
+    result: ValidationResult
+  ): void {
+    for (const ref of references) {
+      let parsedModel: string | undefined;
+      let targetSegment = ref.target;
+
+      // Check if this is a qualified reference (starts with @)
+      if (ref.target.startsWith("@")) {
+        // Try to parse the qualified reference
+        try {
+          const parsed = parseReferencePath(ref.target);
+          parsedModel = parsed.modelName;
+          targetSegment = parsed.segment;
+        } catch (error) {
+          if (error instanceof ReferencePathParseError) {
+            result.addError({
+              layer: sourceLayerName,
+              elementId,
+              message: `Malformed qualified reference path: ${error.message}`,
+              fixSuggestion: `Use format '@{model-name}/{layer}.{type}.{name}' for qualified references or '{layer}.{type}.{name}' for unqualified references`,
+              category: "reference",
+            });
+          } else {
+            throw error;
+          }
+          continue;
+        }
+
+        // For qualified references, check if the model is declared
+        // Normalize lookup to handle case-insensitive manifest keys
+        const modelFound = parsedModel && model.manifest.models && this.findManifestModel(model.manifest.models, parsedModel);
+        if (parsedModel && !modelFound) {
+          result.addError({
+            layer: sourceLayerName,
+            elementId,
+            message: `Unknown external model reference: model '${parsedModel}' is not declared in manifest`,
+            fixSuggestion: `Add model '${parsedModel}' to the 'models' section of manifest.yaml`,
+            category: "reference",
+          });
+          continue;
+        }
+      } else {
+        // For unqualified references, check if target exists locally
+        if (!validIds.has(ref.target)) {
+          // Skip validation for references to unloaded layers when filter is active
+          if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
+            const targetLayerName = this.extractLayerFromId(ref.target);
+            if (!model.loadedLayerFilter.includes(targetLayerName)) {
+              // Target is in an unloaded layer; skip this reference
+              continue;
+            }
+          }
+
+          result.addError({
+            layer: sourceLayerName,
+            elementId,
+            message: `Broken reference: target '${ref.target}' does not exist`,
+            fixSuggestion: `Remove reference or create element '${ref.target}'`,
+            category: "reference",
+          });
+          continue;
+        }
+      }
+
+      // Check directional constraint (higher → lower only)
+      // For qualified references, extract layer from the parsed segment
+      // For unqualified references, extract layer from the target directly
+      const targetLayerName = this.extractLayerFromId(targetSegment);
+      const sourceLevel = this.LAYER_HIERARCHY[sourceLayerName];
+      const targetLevel = this.LAYER_HIERARCHY[targetLayerName];
+
+      if (sourceLevel === undefined) {
+        result.addError({
+          layer: sourceLayerName,
+          elementId,
+          message: `Unknown source layer: ${sourceLayerName}`,
+          fixSuggestion:
+            `Use one of the valid layers: ${this.KNOWN_LAYERS.join(", ")}`,
+          category: "reference",
+        });
+        continue;
+      }
+
+      if (targetLevel === undefined) {
+        result.addError({
+          layer: sourceLayerName,
+          elementId,
+          message: `Target element '${ref.target}' has unknown layer: ${targetLayerName}`,
+          fixSuggestion: `Check that element ID '${ref.target}' uses a valid layer prefix (e.g., motivation-, business-, api-)`,
+          category: "reference",
+        });
+        continue;
+      }
+
+      // References must go from higher layers (lower numbers) to lower layers (higher numbers)
+      // or within the same layer
+      if (sourceLevel > targetLevel) {
+        result.addError({
+          layer: sourceLayerName,
+          elementId,
+          message: `Invalid reference direction: ${sourceLayerName} (level ${sourceLevel}) cannot reference ${targetLayerName} (level ${targetLevel})`,
+          fixSuggestion:
+            "References must go from higher layers to lower layers (motivation → testing)",
+          category: "reference",
+        });
+      }
+    }
+  }
+
+  /**
+   * Extract layer name from element ID, handling both dot-separated and hyphenated layer names
+   */
+  private extractLayerFromId(elementId: string): string {
+    // Determine if using dot-separated format (e.g., motivation.goal.name) or hyphenated (e.g., motivation-goal-name)
+    const isDotSeparated = elementId.includes(".");
+    const separator = isDotSeparated ? "." : "-";
+
+    // Try to match known layers in order of specificity (longest first)
+    const sortedLayers = [...this.KNOWN_LAYERS].sort((a, b) => b.length - a.length);
+
+    for (const layer of sortedLayers) {
+      if (elementId.startsWith(layer + separator)) {
+        return layer;
+      }
+    }
+
+    // Fallback: return first segment (shouldn't reach here with valid element IDs)
+    return elementId.split(separator)[0] || "";
+  }
+
+  /**
+   * Find a model in the manifest using case-insensitive lookup
+   * Handles the case where parseReferencePath normalizes model names to lowercase,
+   * but the manifest may have different casing for the declared model keys.
+   */
+  private findManifestModel(
+    models: Record<string, unknown>,
+    modelName: string
+  ): boolean {
+    const lowerModelName = modelName.toLowerCase();
+    for (const key of Object.keys(models)) {
+      if (key.toLowerCase() === lowerModelName) {
+        return true;
+      }
+    }
+    return false;
+  }
+}

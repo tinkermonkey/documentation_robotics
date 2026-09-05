@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Persona",
+  "description": "A user archetype representing a class of users with shared goals, behaviors, and pain points",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.persona"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "persona"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the persona"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["primary", "secondary", "served", "negative"],
+          "description": "Persona classification by importance"
+        },
+        "proficiency": {
+          "type": "string",
+          "enum": ["novice", "intermediate", "advanced", "expert"],
+          "description": "Technical proficiency level"
+        }
+      },
+      "required": ["category", "proficiency"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogRecord",
+  "description": "Structured log record in the OTel data model, capturing an event with dual timestamps (timeUnixNano for event occurrence, observedTimeUnixNano for ingestion), a 1\u201324 severity scale, and an unstructured body. Supports trace context correlation to link logs to distributed traces.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.logrecord"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "logrecord"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "timeUnixNano": {
+          "type": "string"
+        },
+        "observedTimeUnixNano": {
+          "type": "string"
+        },
+        "severityNumber": {
+          "type": "string"
+        },
+        "severityText": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "integer"
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "timeUnixNano",
+        "observedTimeUnixNano",
+        "severityNumber",
+        "body",
+        "flags",
+        "droppedAttributesCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

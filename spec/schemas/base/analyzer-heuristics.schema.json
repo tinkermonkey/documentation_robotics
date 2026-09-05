@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-heuristics.schema.json",
+  "title": "AnalyzerHeuristics",
+  "description": "Schema for analyzer extraction heuristics and post-processing rules. Defines rules for inferring implicit relationships, filtering noise, and deduplicating mappings.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "heuristics": {
+      "type": "array",
+      "description": "Array of extraction heuristics and rules",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "description": "Unique identifier for this heuristic within the analyzer"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what this heuristic does"
+          },
+          "applies_to": {
+            "type": "array",
+            "description": "Optional list of node types this heuristic applies to (format: layer.type)",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$"
+            }
+          },
+          "rule": {
+            "type": "string",
+            "description": "Textual description of the rule or algorithm to apply"
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Optional conditions that activate this heuristic",
+            "additionalProperties": true
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Optional parameters for configuring heuristic behavior",
+            "additionalProperties": true
+          },
+          "confidence_adjustment": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Optional confidence score adjustment to apply when this heuristic matches (-1.0 to 1.0)"
+          }
+        }
+      }
+    },
+    "inference_rules": {
+      "type": "array",
+      "description": "Rules for inferring implicit relationships based on explicit ones",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "pattern"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "description": "Unique identifier for this inference rule"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this inference rule derives"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "Pattern of relationships that trigger inference (e.g., 'A uses B, B uses C => A depends-on C')"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+            "description": "Confidence level for inferred relationships"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this inference rule is active",
+            "default": true
+          }
+        }
+      }
+    },
+    "filtering_rules": {
+      "type": "array",
+      "description": "Rules for filtering out noise or low-quality mappings",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "description": "Unique identifier for this filtering rule"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this rule filters"
+          },
+          "filter_type": {
+            "type": "string",
+            "enum": ["confidence", "pattern", "blacklist", "custom"],
+            "description": "Type of filtering to apply"
+          },
+          "threshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Optional threshold for confidence-based filtering"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "Optional pattern to match for filtering"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this filter is active",
+            "default": true
+          }
+        }
+      }
+    },
+    "deduplication_rules": {
+      "type": "array",
+      "description": "Rules for handling duplicate or conflicting mappings",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "description": "Unique identifier for this deduplication rule"
+          },
+          "description": {
+            "type": "string",
+            "description": "How duplicates are detected and resolved"
+          },
+          "match_strategy": {
+            "type": "string",
+            "enum": ["exact", "semantic", "fuzzy"],
+            "description": "Strategy for detecting duplicates"
+          },
+          "resolution_strategy": {
+            "type": "string",
+            "enum": [
+              "keep_first",
+              "keep_last",
+              "keep_highest_confidence",
+              "merge"
+            ],
+            "description": "How to resolve conflicts between duplicate mappings"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this deduplication rule is active",
+            "default": true
+          }
+        }
+      }
+    },
+    "confidence_rubric": {
+      "type": "object",
+      "description": "Defines how numeric confidence scores map to qualitative confidence levels (high/medium/low)",
+      "additionalProperties": false,
+      "required": ["high", "medium", "low"],
+      "properties": {
+        "high": {
+          "type": "object",
+          "description": "Threshold for high confidence mapping",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Minimum score for high confidence"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Maximum score for high confidence"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of high confidence threshold"
+            }
+          }
+        },
+        "medium": {
+          "type": "object",
+          "description": "Threshold for medium confidence mapping",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Minimum score for medium confidence"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Maximum score for medium confidence"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of medium confidence threshold"
+            }
+          }
+        },
+        "low": {
+          "type": "object",
+          "description": "Threshold for low confidence mapping",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Minimum score for low confidence"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Maximum score for low confidence"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of low confidence threshold"
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata about these heuristics",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Version of the heuristics configuration"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when these heuristics were created"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the last update"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+!spec/dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.ruff_cache/
+**/.env
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Type checking
+.mypy_cache/
+.pytype/
+.pyre/
+
+# Documentation
+docs/_build/
+documentation/claude_thoughts/
+
+# Claude AI Assistant temporary files
+.claude_prompt*.txt
+
+# Logs
+*.log
+.dr/logs/
+
+# DR CLI metadata (generated)
+# Includes: model data, changesets, logs, analyzer runtime state
+# (.dr/analyzers/session.json, .dr/analyzers/{name}/index-meta.json, .dr/analyzers/{name}/status.json)
+.dr/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Node.js / Bun
+node_modules/
+dist/
+!spec/dist/
+**/src/generated/
+
+# Audit artifacts
+audit-reports/
+
+# Test suite artifacts (cli-validation)
+cli-validation/test-suite/node_modules/
+cli-validation/test-suite/dist/
+cli-validation/test-suite/results/*.xml
+cli-validation/test-project/ts-cli/
+cli-validation/test-project/python-cli/
+
+# CLI runtime test artifacts (generated during test execution)
+cli/documentation-robotics/
+
+# MCP server configuration
+.mcp.json

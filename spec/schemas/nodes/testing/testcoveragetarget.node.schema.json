@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestCoverageTarget",
+  "description": "The primary unit of test scope governance in a TestCoverageModel, identifying an artifact or functionality that requires test coverage per IEEE 829-2008 Section 5.2.3 (Features to be tested). A target may represent an API endpoint, UI component, business workflow, or integration point — each anchoring a set of CoverageRequirements and TestCaseSketches.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.testcoveragetarget"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "testcoveragetarget"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "targetType": {
+          "type": "string",
+          "enum": [
+            "api-endpoint",
+            "business-workflow",
+            "ui-component",
+            "data-migration",
+            "integration-flow",
+            "scheduled-job"
+          ],
+          "description": "The kind of artifact or functionality requiring test coverage"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Relative importance of achieving coverage for this target"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference for the artifact requiring test coverage"
+        }
+      },
+      "required": ["targetType"],
+      "additionalProperties": false
+    }
+  }
+}

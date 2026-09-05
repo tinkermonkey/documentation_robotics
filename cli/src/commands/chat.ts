@@ -1,0 +1,282 @@
+/**
+ * Chat Command - Interactive chat with AI about the architecture model
+ * Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
+ */
+
+import ansis from "ansis";
+import { text, intro, outro, select } from "@clack/prompts";
+import { Model } from "../core/model.js";
+import { BaseChatClient } from "../coding-agents/base-chat-client.js";
+import { detectAvailableClients } from "../coding-agents/chat-utils.js";
+import { initializeChatLogger, getChatLogger } from "../utils/chat-logger.js";
+import { CLIError, getErrorMessage } from "../utils/errors.js";
+import {
+  isTelemetryEnabled,
+  startSpan,
+  endSpan,
+  emitLog,
+  SeverityNumber,
+} from "../telemetry/index.js";
+
+
+/**
+ * Map CLI-friendly client names to internal client names
+ * @param cliName The CLI-friendly name (e.g., "github-copilot", "claude-code")
+ * @returns The internal client name (e.g., "GitHub Copilot", "Claude Code")
+ */
+function mapCliNameToClientName(cliName: string): string {
+  const mapping: Record<string, string> = {
+    "github-copilot": "GitHub Copilot",
+    copilot: "GitHub Copilot",
+    "claude-code": "Claude Code",
+    claude: "Claude Code",
+  };
+  return mapping[cliName.toLowerCase()] || cliName;
+}
+
+/**
+ * Chat command implementation
+ * Launches an interactive conversation with an AI chat client
+ * Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
+ *
+ * @param explicitClient Optional client name explicitly specified by user
+ * @param withDanger Optional flag to enable dangerous mode (skip permissions)
+ */
+export async function chatCommand(explicitClient?: string, withDanger?: boolean): Promise<void> {
+  const span = isTelemetryEnabled
+    ? startSpan("chat.session", {
+        "chat.hasExplicitClient": !!explicitClient,
+        "chat.explicitClient": explicitClient,
+        "chat.dangerMode": withDanger === true,
+      })
+    : null;
+
+  try {
+    // Load the model to verify it exists
+    const model = await Model.load(process.cwd());
+    if (!model) {
+      throw new CLIError("Could not load architecture model", 1);
+    }
+
+    // Initialize chat logger
+    const logger = initializeChatLogger(model.rootPath);
+    await logger.ensureLogDirectory();
+    await logger.logEvent("chat_session_started", {
+      workingDirectory: model.rootPath,
+      withDanger,
+    });
+
+    // Detect available clients
+    const availableClients = await detectAvailableClients();
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute("chat.availableClients", availableClients.length);
+      (span as any).setAttribute(
+        "chat.clientNames",
+        availableClients.map((c) => c.getClientName()).join(",")
+      );
+    }
+
+    if (availableClients.length === 0) {
+      const errorMsg = "No AI chat CLI available.";
+      if (isTelemetryEnabled && span) {
+        emitLog(SeverityNumber.ERROR, "No AI chat clients available");
+      }
+      await logger.logError(errorMsg);
+      console.error(ansis.red(`Error: ${errorMsg}`));
+      console.error(ansis.dim("Install one of the following:"));
+      console.error(ansis.dim("  - Claude Code: https://claude.ai"));
+      console.error(ansis.dim("  - GitHub Copilot: gh extension install github/gh-copilot"));
+      process.exit(1);
+    }
+
+    // Select the client to use
+    let selectedClient: BaseChatClient;
+
+    // If user explicitly specified a client
+    if (explicitClient) {
+      const requestedClientName = mapCliNameToClientName(explicitClient);
+      const requestedClient = availableClients.find(
+        (c) => c.getClientName() === requestedClientName
+      );
+
+      if (!requestedClient) {
+        const errorMsg = `Requested client "${requestedClientName}" is not available.`;
+        await logger.logError(errorMsg);
+        console.error(ansis.red(`Error: ${errorMsg}`));
+        console.error(ansis.dim("Available clients:"));
+        availableClients.forEach((c) => {
+          console.error(ansis.dim(`  - ${c.getClientName()}`));
+        });
+        process.exit(1);
+      }
+
+      selectedClient = requestedClient;
+    } else {
+      // Auto-select based on availability
+      if (availableClients.length === 1) {
+        selectedClient = availableClients[0];
+      } else {
+        // Multiple clients available - ask user to choose
+        const choice = await select({
+          message: "Select AI chat client:",
+          options: availableClients.map((c) => ({
+            value: c.getClientName(),
+            label: c.getClientName(),
+          })),
+        });
+
+        if (typeof choice !== "string") {
+          console.log("");
+          await logger.logEvent("chat_session_cancelled");
+          outro(ansis.yellow("Chat cancelled"));
+          return;
+        }
+
+        selectedClient = availableClients.find((c) => c.getClientName() === choice)!;
+      }
+    }
+
+    // Log client selection
+    await logger.logEvent("client_selected", {
+      client: selectedClient.getClientName(),
+      sessionId: logger.getSessionId(),
+    });
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute("chat.selectedClient", selectedClient.getClientName());
+      (span as any).setAttribute("chat.sessionId", logger.getSessionId());
+    }
+
+    // Show intro
+    intro(ansis.bold(ansis.cyan("Documentation Robotics Chat")));
+    console.log(ansis.dim(`Powered by ${selectedClient.getClientName()}`));
+    console.log(ansis.dim(`Session ID: ${logger.getSessionId()}`));
+    console.log(ansis.dim(`Logs: ${logger.getSessionLogPath()}`));
+    if (withDanger) {
+      console.log(ansis.yellow("⚠️  Danger mode enabled - permissions will be skipped\n"));
+    } else {
+      console.log("");
+    }
+
+    // Use dr-architect agent for all clients
+    const agentName = "dr-architect";
+
+    // Start conversation loop
+    let messageCount = 0;
+    while (true) {
+      // Get user input
+      let userInput: string;
+      try {
+        userInput = (await text({
+          message: ansis.cyan("You:"),
+          placeholder: 'Ask about the architecture (or "exit" to quit)',
+        })) as string;
+      } catch (e) {
+        // Handle Ctrl+C or other input errors gracefully
+        console.log("");
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute("chat.messageCount", messageCount);
+          (span as any).setAttribute("chat.exitReason", "interrupted");
+        }
+        await logger.logEvent("chat_session_interrupted");
+        outro(ansis.green("Goodbye!"));
+        break;
+      }
+
+      // Check for exit
+      if (
+        userInput.toLowerCase() === "exit" ||
+        userInput.toLowerCase() === "quit" ||
+        userInput.toLowerCase() === "q" ||
+        userInput.toLowerCase() === "/exit" ||
+        userInput.toLowerCase() === "/quit" ||
+        userInput.toLowerCase() === "/q"
+      ) {
+        console.log("");
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute("chat.messageCount", messageCount);
+          (span as any).setAttribute("chat.exitReason", "user_exit");
+        }
+        await logger.logEvent("chat_session_ended", {
+          messageCount,
+        });
+        outro(ansis.green("Goodbye!"));
+        break;
+      }
+
+      if (!userInput.trim()) {
+        continue;
+      }
+
+      messageCount++;
+
+      try {
+        // Stream the response
+        process.stdout.write(ansis.cyan(`${selectedClient.getClientName()}: `));
+        await selectedClient.sendMessage(userInput, {
+          workingDirectory: model.rootPath,
+          agent: agentName,
+          withDanger,
+          sessionId: logger.getSessionId(),
+        });
+        console.log("\n");
+
+        // Flush telemetry after message completes to ensure spans are exported
+        // during long chat sessions (not just at shutdown)
+        if (isTelemetryEnabled) {
+          try {
+            const { flushTelemetry } = await import("../telemetry/index.js");
+            await flushTelemetry(); // Blocking flush
+          } catch (flushError) {
+            // Log flush failures for debugging, but don't break chat
+            if (process.env.DR_TELEMETRY_DEBUG) {
+              process.stderr.write(
+                `[TELEMETRY] Flush failed: ${flushError instanceof Error ? flushError.message : String(flushError)}\n`
+              );
+            }
+          }
+        }
+      } catch (error) {
+        const message = getErrorMessage(error);
+        if (isTelemetryEnabled && span) {
+          emitLog(SeverityNumber.ERROR, "Message send failed", {
+            "error.message": message,
+            "chat.messageCount": messageCount,
+          });
+        }
+        console.error(ansis.red(`Error: ${message}`));
+        await logger.logError(message, {
+          messageCount,
+        });
+      }
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
+  } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({
+        code: 2,
+        message: getErrorMessage(error),
+      });
+    }
+    const message = getErrorMessage(error);
+    console.error(ansis.red(`Error: ${message}`));
+
+    // Log fatal error if logger is available
+    const logger = getChatLogger();
+    if (logger) {
+      await logger.logError(message, {
+        fatal: true,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+
+    process.exit(1);
+  } finally {
+    endSpan(span);
+  }
+}

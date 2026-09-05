@@ -1,0 +1,30 @@
+{
+  "id": "testing",
+  "number": 13,
+  "name": "Testing Layer",
+  "description": "Layer 13: Testing Layer",
+  "inspired_by": {
+    "standard": "IEEE 829-2008",
+    "version": "2008",
+    "url": "https://en.wikipedia.org/wiki/IEEE_829"
+  },
+  "node_types": [
+    "testing.contextvariation",
+    "testing.coverageexclusion",
+    "testing.coveragegap",
+    "testing.coveragerequirement",
+    "testing.coveragesummary",
+    "testing.environmentfactor",
+    "testing.inputpartitionselection",
+    "testing.inputselection",
+    "testing.inputspacepartition",
+    "testing.outcomecategory",
+    "testing.partitiondependency",
+    "testing.partitionvalue",
+    "testing.targetcoveragesummary",
+    "testing.targetinputfield",
+    "testing.testcasesketch",
+    "testing.testcoveragemodel",
+    "testing.testcoveragetarget"
+  ]
+}

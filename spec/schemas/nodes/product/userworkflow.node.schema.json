@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UserWorkflow",
+  "description": "A sequence of user-facing steps through the product to accomplish a goal",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.userworkflow"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "userworkflow"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the user workflow"
+        },
+        "complexity": {
+          "type": "string",
+          "enum": ["simple", "moderate", "complex"],
+          "description": "Workflow complexity assessment"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": ["complexity"],
+      "additionalProperties": false
+    }
+  }
+}

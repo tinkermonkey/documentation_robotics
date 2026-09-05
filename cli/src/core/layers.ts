@@ -1,0 +1,47 @@
+/**
+ * Canonical layer names and ordering for the 13-layer architecture model.
+ * This is the source of truth for layer naming and ordering.
+ */
+
+export const CANONICAL_LAYER_NAMES = [
+  'motivation',
+  'business',
+  'product',
+  'security',
+  'application',
+  'technology',
+  'api',
+  'data-model',
+  'data-store',
+  'ux',
+  'navigation',
+  'apm',
+  'testing'
+] as const;
+
+export type CanonicalLayerName = (typeof CANONICAL_LAYER_NAMES)[number];
+
+/**
+ * Get the numeric order of a layer (1-13)
+ */
+export function getLayerOrder(layerName: string): number {
+  const index = CANONICAL_LAYER_NAMES.indexOf(layerName as CanonicalLayerName);
+  return index >= 0 ? index + 1 : -1;
+}
+
+/**
+ * Get layer name by numeric order (1-13)
+ */
+export function getLayerByOrder(order: number): string | undefined {
+  if (order < 1 || order > CANONICAL_LAYER_NAMES.length) {
+    return undefined;
+  }
+  return CANONICAL_LAYER_NAMES[order - 1];
+}
+
+/**
+ * Check if a layer name is valid (type predicate for compile-time narrowing)
+ */
+export function isValidLayerName(name: string): name is CanonicalLayerName {
+  return CANONICAL_LAYER_NAMES.includes(name as CanonicalLayerName);
+}

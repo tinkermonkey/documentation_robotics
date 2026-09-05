@@ -1,0 +1,280 @@
+<article class="guide">
+<carousel class="deck container-fluid">
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Documentation Robotics Spec Explorer</h3>
+    <p class="lead">Interactive guide to exploring the 12-layer architecture specification</p>
+    <br/>
+    <div>
+      <p>This guide helps you explore the spec structure with optimized queries for clean visualizations.</p>
+      <div class="ulist">
+        <ul>
+          <li><p><strong>354 SpecNode types</strong> - Element type definitions</p></li>
+          <li><p><strong>252 SpecRelationship types</strong> - Allowed relationships</p></li>
+          <li><p><strong>47 Predicates</strong> - Semantic relationship catalog</p></li>
+          <li><p><strong>12 Layers</strong> - Architecture layers</p></li>
+        </ul>
+      </div>
+      <p><em>Tip: Click any query below to run it instantly!</em></p>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Quick Verification</h3>
+    <p>Verify the data loaded correctly</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Count SpecNodes:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;</code></pre>
+
+      <div class="paragraph"><p><strong>Count Layers:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (n:Layer) RETURN COUNT(n) AS layers;</code></pre>
+
+      <div class="paragraph"><p><strong>Count Predicates:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (n:Predicate) RETURN COUNT(n) AS predicates;</code></pre>
+
+      <div class="paragraph"><p><em>Expected: 354 spec nodes, 12 layers, 47 predicates</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>The 12 Layers</h3>
+    <p>Explore all layers with their metadata</p>
+    <br/>
+    <div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (l:Layer)
+OPTIONAL MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l)
+RETURN l.number AS layer,
+       l.name AS name,
+       COUNT(sn) AS nodeTypes,
+       l.standard AS standard
+ORDER BY l.number;</code></pre>
+      <div class="paragraph"><p><em>Tip: Use the right sidebar filters to show/hide node types!</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Clean Graph Visualization</h3>
+    <p>The key to clean graphs: limit what you query!</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Show only API layer nodes and their layer:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (api:SpecNode_api)-[:BELONGS_TO_LAYER]->(l:Layer)
+RETURN api, l;</code></pre>
+
+      <div class="paragraph"><p><strong>Simple cross-layer view:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (source:SpecNode_api)
+MATCH (source)-[:BELONGS_TO_LAYER]->(l1:Layer)
+WITH source, l1 LIMIT 5
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(source)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+MATCH (target)-[:BELONGS_TO_LAYER]->(l2:Layer)
+RETURN source, target, l1, l2;</code></pre>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Focus on One Predicate</h3>
+    <p>Viewing one relationship type at a time creates clearer graphs</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>"composes" relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sr:SpecRelationship {predicate: 'composes'})
+MATCH (sr)-[:HAS_SOURCE]->(source:SpecNode)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN source, target
+LIMIT 15;</code></pre>
+
+      <div class="paragraph"><p><em>Try other predicates: influence, realizes, depends-on, references, serves</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Explore by Layer</h3>
+    <p>Focus on one layer at a time</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>API Layer types:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer {id: 'api'})
+RETURN sn.type AS elementType,
+       sn.title AS title,
+       sn.description AS description
+ORDER BY sn.type;</code></pre>
+
+      <div class="paragraph"><p><em>Try other layers: motivation, business, security, data-model, data-store</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Cross-Layer Patterns</h3>
+    <p>See which layers reference other layers</p>
+    <br/>
+    <div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(source:SpecNode)-[:BELONGS_TO_LAYER]->(l1:Layer)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(l2:Layer)
+WHERE l1.id <> l2.id
+RETURN l1.number AS fromLayer,
+       l1.name AS fromName,
+       l2.number AS toLayer,
+       l2.name AS toName,
+       COUNT(sr) AS relationshipCount
+ORDER BY relationshipCount DESC;</code></pre>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Understanding Predicates</h3>
+    <p>Explore semantic relationship types</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Most used predicates:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sr:SpecRelationship)-[:USES_PREDICATE]->(p:Predicate)
+RETURN p.predicate AS predicate,
+       p.category AS category,
+       p.description AS description,
+       COUNT(sr) AS usageCount
+ORDER BY usageCount DESC
+LIMIT 10;</code></pre>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Required Attributes</h3>
+    <p>Find validation constraints</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Types with most required fields:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sn:SpecNode)
+WHERE sn.required_attribute_count > 0
+RETURN sn.spec_node_id AS nodeType,
+       sn.required_attribute_count AS requiredFields,
+       sn.total_attribute_count AS totalFields
+ORDER BY requiredFields DESC
+LIMIT 15;</code></pre>
+
+      <div class="paragraph"><p><strong>Attributes for api.endpoint:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sn:SpecNode {spec_node_id: 'api.endpoint'})-[r:HAS_ATTRIBUTE]->(attr:AttributeSpec)
+RETURN attr.name, attr.type, attr.required, attr.description
+ORDER BY r.order;</code></pre>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Explore Around a Node</h3>
+    <p>Focus on what connects to a specific element type</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>What can an API endpoint connect to?</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (endpoint:SpecNode {spec_node_id: 'api.endpoint'})
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(endpoint)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN endpoint, target
+LIMIT 20;</code></pre>
+
+      <div class="paragraph"><p><em>Try: motivation.goal, business.service, data-store.table</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Find Hub Types</h3>
+    <p>Which types are most connected?</p>
+    <br/>
+    <div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sn:SpecNode)
+OPTIONAL MATCH (sn)<-[:HAS_SOURCE]-(outgoing:SpecRelationship)
+OPTIONAL MATCH (sn)<-[:HAS_TARGET]-(incoming:SpecRelationship)
+WITH sn,
+     COUNT(DISTINCT outgoing) AS canReferTo,
+     COUNT(DISTINCT incoming) AS canBeReferencedBy
+RETURN sn.spec_node_id AS nodeType,
+       canReferTo,
+       canBeReferencedBy,
+       canReferTo + canBeReferencedBy AS total
+ORDER BY total DESC
+LIMIT 10;</code></pre>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Visualization Tips</h3>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>For cleaner graph views:</strong></p></div>
+      <div class="ulist">
+        <ul>
+          <li><p>Use node label filters (right sidebar) - click to show/hide types</p></li>
+          <li><p>Drag nodes manually to arrange them</p></li>
+          <li><p>Use LIMIT generously - start with 10-15 nodes</p></li>
+          <li><p>Focus on one predicate at a time</p></li>
+          <li><p>Use zoom-to-fit button (bottom right)</p></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Use Cases</h3>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>1. Impact Analysis:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sn:SpecNode {spec_node_id: 'api.endpoint'})
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE|HAS_TARGET]->(sn)
+RETURN sr.id AS affectedRelationship,
+       sr.predicate AS relationship;</code></pre>
+
+      <div class="paragraph"><p><strong>2. Find string validations:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">MATCH (sn:SpecNode)-[:HAS_ATTRIBUTE]->(attr:AttributeSpec)
+WHERE attr.required = true AND attr.type = 'string'
+RETURN sn.spec_node_id, attr.name, attr.description
+ORDER BY sn.spec_node_id;</code></pre>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Next Steps</h3>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Regenerate export:</strong></p></div>
+      <div class="paragraph"><p><code>npm run export:spec-neo4j</code></p></div>
+
+      <div class="paragraph"><p><strong>Documentation:</strong></p></div>
+      <div class="ulist">
+        <ul>
+          <li><p>README: <code>spec/neo4j/README.md</code></p></li>
+          <li><p>Visualization tips: <code>spec/neo4j/visualization-tips.md</code></p></li>
+          <li><p>Standalone guide: http://localhost:8000/guide.html</p></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</slide>
+
+</carousel>
+</article>

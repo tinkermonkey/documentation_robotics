@@ -1,0 +1,60 @@
+projections:
+  # Business Service -> Application Service
+  - name: "Business to Application"
+    from: business.service
+    to: application.service
+    conditions:
+      - field: properties.core
+        operator: equals
+        value: true
+    rules:
+      - create_type: service
+        name_template: "{source.name} Service"
+        properties:
+          description:
+            source: description
+            transform:
+              type: uppercase
+          realizes:
+            source: id
+        create_bidirectional: true
+
+  # Application Service -> API Operations
+  - name: "Application to API"
+    from: application.service
+    to: api.operation
+    rules:
+      - create_type: operation
+        name_template: "{source.name}"
+        properties:
+          applicationServiceRef:
+            source: id
+          method:
+            default: "POST"
+          description:
+            source: description
+            transform:
+              type: template
+              value: "API operation for {value}"
+
+  # Business Process -> Testing Scenarios
+  - name: "Business to Testing"
+    from: business.process
+    to: testing.scenario
+    conditions:
+      - field: properties.automated
+        operator: equals
+        value: true
+    rules:
+      - create_type: scenario
+        name_template: "Test: {source.name}"
+        properties:
+          processRef:
+            source: id
+          name:
+            source: name
+            transform:
+              type: kebab
+          description:
+            source: description
+        create_bidirectional: false

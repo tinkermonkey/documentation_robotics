@@ -1,0 +1,43 @@
+{
+  "name": "cbm",
+  "display_name": "codebase-memory-mcp",
+  "description": "Tree-sitter-based code knowledge graph server by DeusData",
+  "homepage": "https://github.com/DeusData/codebase-memory-mcp",
+  "mcp_server_name": "codebase-memory-mcp",
+  "binary_names": ["codebase-memory-mcp"],
+  "supported_tool_contract": {
+    "required_tools": [
+      "search_graph",
+      "index_repository",
+      "list_projects",
+      "trace_path"
+    ],
+    "optional_tools": [
+      "query_graph",
+      "detect_changes",
+      "index_status",
+      "get_graph_schema",
+      "search_code"
+    ]
+  },
+  "supported_languages": [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "go",
+    "rust",
+    "c#",
+    "php",
+    "tsx",
+    "c++",
+    "lua",
+    "scala"
+  ],
+  "known_minimum_version": null,
+  "project_identification": {
+    "strategy": "absolute_path",
+    "description": "DR CLI passes the project root as an absolute path via findProjectRoot(). The analyzer uses this path to establish a stable project identity for consistent indexing and caching across sessions."
+  },
+  "notes": "Uses absolute path indexing for project identification. Ensures consistent graph generation and caching across multiple analysis runs within the same project."
+}

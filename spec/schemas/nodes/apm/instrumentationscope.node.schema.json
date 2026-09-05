@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstrumentationScope",
+  "description": "Named instrumented library or component that identifies the source of telemetry across all three OTel signal types (traces, metrics, logs), enabling attribution and filtering of signals by their origin.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.instrumentationscope"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "instrumentationscope"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "schemaUrl": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "integer"
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+          "additionalProperties": true
+        }
+      },
+      "required": ["droppedAttributesCount"],
+      "additionalProperties": false
+    }
+  }
+}

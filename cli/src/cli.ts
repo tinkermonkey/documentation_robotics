@@ -1,0 +1,960 @@
+#!/usr/bin/env node
+
+/**
+ * Documentation Robotics CLI - Bun Implementation
+ * Entry point for the command-line interface
+ *
+ * Instrumented with OpenTelemetry to create root spans for command execution.
+ * Telemetry is controlled by the TELEMETRY_ENABLED build-time constant.
+ */
+
+import { Command, CommanderError } from "commander";
+import { setGlobalOptions } from "./utils/globals.js";
+import { installAnsiSuppressor } from "./utils/ansi-suppressor.js";
+import { initCommand } from "./commands/init.js";
+import { addCommand } from "./commands/add.js";
+import { updateCommand } from "./commands/update.js";
+import { deleteCommand } from "./commands/delete.js";
+import { showCommand } from "./commands/show.js";
+import { listCommand } from "./commands/list.js";
+import { searchCommand } from "./commands/search.js";
+import { validateCommand } from "./commands/validate.js";
+import { infoCommand } from "./commands/info.js";
+import { relationshipCommands } from "./commands/relationship.js";
+import { elementCommands } from "./commands/element.js";
+import { schemaCommands } from "./commands/schema.js";
+import { catalogCommands } from "./commands/catalog.js";
+import { docsCommands } from "./commands/docs.js";
+import { traceCommand } from "./commands/trace.js";
+import { exportCommand } from "./commands/export.js";
+import { importCommand } from "./commands/import.js";
+import { chatCommand } from "./commands/chat.js";
+import { upgradeCommand } from "./commands/upgrade.js";
+import { conformanceCommand } from "./commands/conformance.js";
+import { changesetCommands } from "./commands/changeset.js";
+import { farmCommands } from "./commands/farm.js";
+import { claudeCommands } from "./commands/claude.js";
+import { copilotCommands } from "./commands/copilot.js";
+import { analyzerCommands } from "./commands/analyzer.js";
+import { versionCommand } from "./commands/version.js";
+import { statsCommand } from "./commands/stats.js";
+import { reportCommand } from "./commands/report.js";
+import { reportsCommands } from "./commands/reports.js";
+import { auditCommand } from "./commands/audit.js";
+import { auditDiffCommand } from "./commands/audit-diff.js";
+import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
+import { repairAttributeCollisionCommand } from "./commands/repair.js";
+import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
+import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
+import { getErrorMessage } from "./utils/errors.js";
+import { getCliVersion } from "./utils/spec-version.js";
+
+// Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
+// Provide runtime fallback when not running through esbuild
+declare const TELEMETRY_ENABLED: boolean;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
+
+// Commands that require console interceptor for telemetry logging
+const CONSOLE_LOGGING_COMMANDS = new Set(['chat', 'validate', 'import', 'export']);
+
+// Suppress ANSI color output on non-TTY stdout
+if (!process.stdout.isTTY) {
+  process.env.FORCE_COLOR = "0";
+  process.env.NO_COLOR = "1";
+}
+
+// Install the ANSI suppressor to strip color codes from console output when not on TTY
+installAnsiSuppressor();
+
+/**
+ * Extract exit code from an error object.
+ * Handles CLIError instances and duck-typed objects with exitCode property.
+ */
+async function extractExitCode(error: unknown): Promise<number> {
+  const { CLIError } = await import("./utils/errors.js");
+
+  if (error instanceof CLIError) {
+    return error.exitCode;
+  }
+
+  // Commander's own errors (--help, unknown commands, etc.) carry exitCode as
+  // expected control flow — handle them directly without duck-typing.
+  if (error instanceof CommanderError) {
+    return error.exitCode;
+  }
+
+  // Fallback for duck-typing (handles bundling/module issues)
+  if (error && typeof error === "object" && "exitCode" in error) {
+    const errorObj = error as any;
+    if (typeof errorObj.exitCode === "number") {
+      // Validate this looks like a CLIError before accepting
+      if (errorObj.name === "CLIError" || errorObj.message) {
+        if (process.argv.includes("--debug")) {
+          console.warn(
+            "[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue"
+          );
+        }
+        return errorObj.exitCode;
+      }
+    }
+  }
+
+  return 1;
+}
+
+const cliVersion = getCliVersion();
+
+const program = new Command();
+
+// Handle --version and -V flags by redirecting to version command
+// This ensures they go through the telemetry wrapper
+if (process.argv.includes("--version") || process.argv.includes("-V")) {
+  process.argv = ["node", "dr", "version"];
+}
+
+program
+  .name("dr")
+  .description("Documentation Robotics CLI - Architecture Model Management")
+  .option("-v, --verbose", "Enable verbose output")
+  .option("--debug", "Enable debug mode")
+  .option("--json", "Output as JSON (supported on mutating and query commands)")
+  .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
+  .showSuggestionAfterError() // "Did you mean X?" on unknown commands/options
+  .hook("preAction", async (thisCommand) => {
+    // Set up global state (verbose/debug/json flags)
+    const options = thisCommand.opts();
+    setGlobalOptions({
+      verbose: options.verbose as boolean | undefined,
+      debug: options.debug as boolean | undefined,
+      json: options.json as boolean | undefined,
+    });
+  });
+
+// Model commands
+program
+  .command("init [name]")
+  .description("Initialize a new architecture model")
+  .option("--name <name>", "Model name (overrides positional argument)")
+  .option("--author <author>", "Model author")
+  .option("--description <desc>", "Model description")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr init
+  $ dr init claudetoreum
+  $ dr init "Enterprise Architecture" --author "Team A"
+  $ dr init --name "My Project" --description "13-layer federated model"`
+  )
+  .action((name, options) => initCommand({ ...options, name: options.name || name }));
+
+program
+  .command("add <layer> <type> <name>")
+  .description("Add an element to a layer")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .option("--name <name>", "Element display name (defaults to the name argument)")
+  .option("--description <desc>", "Element description")
+  .option("--attributes <json>", "Element type-specific attributes as JSON object")
+  .option("--source-file <path>", "Source file path (relative from repository root)")
+  .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
+  .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
+  .option("--source-repo-remote <url>", "Git remote URL for repository context")
+  .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr add business service "Customer Management"
+  $ dr add api operation "Create Customer" --attributes '{"operationId":"createCustomer","summary":"Create a customer","tags":"customers"}'
+  $ dr add application component "Customer API" --description "REST API for customer operations"
+  $ dr add security policy "Auth Validator" --source-file "src/auth/validator.ts" --source-symbol "validateToken" --source-provenance "extracted"
+
+Note: Element IDs are generated automatically in format {layer}.{type}.{kebab-name}`
+  )
+  .action((layer, type, name, options) =>
+    addCommand(layer, type, name, { ...options, verbose: options.verbose ?? program.opts().verbose }));
+
+program
+  .command("update <id>")
+  .description("Update an element")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .option("--name <name>", "New element name")
+  .option("--description <desc>", "New description")
+  .option("--type <new-type>", "Change element type (must be valid for the element's layer; incompatible attributes must be cleaned up manually)")
+  .option("--attributes <json>", "Updated type-specific attributes (JSON)")
+  .option("--source-file <path>", "Source file path (relative from repository root)")
+  .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
+  .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
+  .option("--source-repo-remote <url>", "Git remote URL for repository context")
+  .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
+  .option("--clear-source-reference", "Remove source reference from element")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
+  .addHelpText(
+    "after",
+    `
+Note: Changes are written immediately to model files.
+To track changes for review, activate a changeset first:
+  $ dr changeset activate my-changeset
+
+Examples:
+  $ dr update api-endpoint-create-customer --name "Create Customer (v2)"
+  $ dr update business-service-order --description "Updated description"
+  $ dr update application-applicationfunction-process-orders --type applicationservice
+  $ dr update security-policy-auth --source-file "src/auth/policy.ts" --source-provenance "extracted"`
+  )
+  .action((id, options) =>
+    updateCommand(id, { ...options, verbose: options.verbose ?? program.opts().verbose }));
+
+program
+  .command("delete <id>")
+  .description("Delete an element")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .option("--force", "Skip dependency checks (confirmation is also skipped in non-TTY environments)")
+  .option("--cascade", "Remove dependent elements automatically")
+  .option("--dry-run", "Show what would be removed without actually removing")
+  .option("--verbose", "Show detailed output (can also use global -v flag)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr delete api-endpoint-old-endpoint
+  $ dr delete api-endpoint-old-endpoint --force
+  $ dr delete api-endpoint-old-endpoint --cascade
+  $ dr delete api-endpoint-old-endpoint --dry-run
+  $ dr delete api-endpoint-old-endpoint --cascade --dry-run`
+  )
+  .action((id, options) =>
+    deleteCommand(id, { ...options, verbose: options.verbose ?? program.opts().verbose }));
+
+program
+  .command("show <id>")
+  .description("Display element details")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr show api-endpoint-create-customer
+  $ dr show business-service-order-mgmt`
+  )
+  .action((id, options) => showCommand(id, options));
+
+program
+  .command("list [layer]")
+  .description("List elements in a layer (or all layers if omitted)")
+  .option("--type <type>", "Filter by element type")
+  .option("--json", "Output as JSON")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr list
+  $ dr list api
+  $ dr list business --type businessservice
+  $ dr list api --json
+  $ dr list --json`
+  )
+  .action((layer, options) => {
+    return listCommand(layer, { ...options, json: options.json ?? program.opts().json });
+  });
+
+program
+  .command("search <query>")
+  .description("Search for elements by name or ID")
+  .option("--layer <layer>", "Limit search to specific layer")
+  .option("--type <type>", "Filter by element type")
+  .option(
+    "--source-file <path>",
+    "Find elements referencing a source file (takes precedence over pattern matching)"
+  )
+  .option("--json", "Output as JSON")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr search customer
+  $ dr search "order processing" --layer business
+  $ dr search create-* --type endpoint
+  $ dr search "" --source-file src/api/customer.ts`
+  )
+  .action((query, options) => {
+    return searchCommand(query, { ...options, json: options.json ?? program.opts().json });
+  });
+
+program
+  .command("validate")
+  .description("Validate the architecture model")
+  .option("--layers <layers...>", "Specific layers to validate")
+  .option("--strict", "Treat warnings as errors")
+  .option("--verbose", "Show detailed validation output with relationship breakdown")
+  .option("--quiet", "Show minimal output")
+  .option("--output <path>", "Export validation report to file (JSON or Markdown)")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .option("--orphans", "Show only orphaned elements grouped by layer with relationship suggestions")
+  .option("--all", "Run all validations (default behavior)")
+  .option("--markdown", "Validate markdown structure")
+  .option("--schemas", "Validate JSON schemas")
+  .option("--schema", "Validate JSON schemas (alias for --schemas)")
+  .option("--relationships", "Validate relationships")
+  .option("--structure", "Validate documentation structure")
+  .option("--naming", "Validate naming conventions")
+  .option("--references", "Validate cross-layer references")
+  .option("--scope <scope>", "Validation scope: 'local' (default) or 'composed' for cross-model validation")
+  .option("--model-path <mapping...>", "Override filesystem path for external model (format: model-name=/path/to/project-root, can be repeated)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr validate
+  $ dr validate --all --strict
+  $ dr validate --verbose
+  $ dr validate --quiet
+  $ dr validate --output report.json
+  $ dr validate --output report.md
+  $ dr validate --schemas
+  $ dr validate --relationships
+  $ dr validate --layers business api
+  $ dr validate --orphans
+  $ dr validate --orphans --output orphans.json
+  $ dr validate --scope composed --model-path auth-service=/path/to/auth-service-repo
+  $ dr validate --scope composed --model-path auth-service=/path/to/auth-service-repo --model-path payment-service=/path/to/payment-repo
+
+Note: When using --model-path, pass the project root (where documentation-robotics/model/ is located).`
+  )
+  .action(validateCommand);
+
+program
+  .command("export <format>")
+  .description("Export the architecture model to various formats")
+  .option("--output <path>", "Output file path (default: print to stdout)")
+  .option("--layers <layers...>", "Specific layers to export")
+  .option("--model <path>", "Path to model root directory or manifest.yaml file")
+  .option("--include-sources", "Include source file paths in PlantUML diagrams as notes")
+  .addHelpText(
+    "after",
+    `
+Supported formats:
+  archimate    Export to ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Export to OpenAPI 3.0 specification (layer 7)
+  jsonschema   Export to JSON Schema (layer 8)
+  plantuml     Export to PlantUML diagram
+  graphml      Export to GraphML (graph visualization)
+  markdown     Export to Markdown documentation
+
+Examples:
+  $ dr export archimate --output model.xml
+  $ dr export openapi --layers api
+  $ dr export plantuml --include-sources --output diagram.puml
+  $ dr export markdown --output docs/architecture.md`
+  )
+  .action(async (format, options) => {
+    await exportCommand({
+      format,
+      output: options.output,
+      layers: options.layers,
+      model: options.model,
+      includeSources: options.includeSources,
+    });
+  });
+
+program
+  .command("import <format>")
+  .description("Import architecture model from various formats")
+  .option("--input <path>", "Input file path (required)", undefined)
+  .option("--model <path>", "Path to model root directory or manifest.yaml file")
+  .option(
+    "--merge-strategy <strategy>",
+    "How to handle existing elements: add, update, skip (default: add)"
+  )
+  .addHelpText(
+    "after",
+    `
+Supported formats:
+  archimate    Import from ArchiMate XML (layers 1, 2, 5, 6)
+  openapi      Import from OpenAPI 3.0 specification (layer 7)
+
+Examples:
+  $ dr import archimate --input model.xml
+  $ dr import openapi --input api.json --merge-strategy add
+  $ dr import archimate --input model.xml --model ./myproject`
+  )
+  .action(async (format, options) => {
+    if (!options.input) {
+      console.error("Error: --input path is required");
+      process.exit(1);
+    }
+    await importCommand({
+      format,
+      input: options.input,
+      model: options.model,
+      mergeStrategy: options.mergeStrategy as "add" | "update" | "skip" | undefined,
+    });
+  });
+
+program
+  .command("info")
+  .description("Show model information")
+  .option("--layer <layer>", "Show specific layer details")
+  .option("--verbose", "Show detailed breakdown by element type")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr info
+  $ dr info --layer business
+  $ dr info --layer api --verbose`
+  )
+  .action(infoCommand);
+
+program
+  .command("stats")
+  .description("Display model statistics and health metrics")
+  .option("--model <path>", "Path to the model directory")
+  .option("--format <format>", "Output format: text (default), json, markdown, compact")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--compact", "Show compact one-line summary")
+  .option("--verbose", "Show detailed information")
+  .addHelpText(
+    "after",
+    `
+Output formats:
+  text       Full formatted statistics (default)
+  json       JSON output for automation
+  markdown   Markdown report format
+  compact    Single-line summary
+
+Examples:
+  $ dr stats                           # Show full statistics
+  $ dr stats --compact                 # Show one-line summary
+  $ dr stats --format json             # Output as JSON
+  $ dr stats --output stats.md         # Save as markdown file
+  $ dr stats --output stats.json       # Save as JSON file
+  $ dr stats --verbose                 # Show detailed information`
+  )
+  .action((options) => statsCommand(options));
+
+program
+  .command("report")
+  .description("Generate comprehensive architecture reports")
+  .option("--model <path>", "Path to the model directory")
+  .option("--type <type>", "Report type: comprehensive (default), statistics, relationships, data-model, quality")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--verbose", "Show detailed information")
+  .option("--include-data-model", "Include data model analysis (default: true)")
+  .option("--include-quality", "Include quality metrics (default: true)")
+  .addHelpText(
+    "after",
+    `
+Report types:
+  comprehensive  Full report with statistics, relationships, and data model (default)
+  statistics     Statistics and quality metrics
+  relationships  Relationship analysis and classification
+  data-model     Layer 8 data model analysis
+  quality        Quality metrics and recommendations
+
+Output formats:
+  text       Full formatted report (default)
+  json       JSON output for automation
+  markdown   Markdown report format
+
+Examples:
+  $ dr report                                      # Show comprehensive report
+  $ dr report --type relationships                 # Show relationship analysis
+  $ dr report --format json                        # Output as JSON
+  $ dr report --output report.md                   # Save as markdown file
+  $ dr report --type data-model --output dm.md     # Data model report as markdown
+  $ dr report --verbose                            # Show detailed information`
+  )
+  .action((options) => reportCommand(options));
+
+// Reports subcommands (managed layer report files)
+const reportsGroup = program.command("reports").description("Manage architecture layer reports");
+reportsCommands(reportsGroup);
+
+// Audit command - Relationship analysis
+program
+  .command("audit [layer]")
+  .description("Analyze relationship coverage, gaps, duplicates, and balance")
+  .option("--type <type>", "Audit type: relationships (default), nodes, all")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--verbose", "Show detailed analysis")
+  .option("--save-snapshot", "Save audit report as snapshot for differential analysis")
+  .addHelpText(
+    "after",
+    `
+Audit types:
+  relationships  Relationship coverage, gaps, duplicates, balance (default)
+  nodes          Node type usage distribution across model layers
+  all            Both relationship and node audits
+
+Output formats:
+  text       Full formatted audit report (default)
+  json       JSON output for automation
+  markdown   Markdown audit report format
+
+Examples:
+  $ dr audit                           # Full relationship audit of all layers
+  $ dr audit security                  # Audit security layer only
+  $ dr audit --type nodes              # Node type distribution audit
+  $ dr audit --type all                # Combined relationship + node audit
+  $ dr audit --format json             # Output as JSON
+  $ dr audit --output audit.md         # Save as markdown file
+  $ dr audit --verbose                 # Show detailed analysis
+  $ dr audit --save-snapshot           # Save snapshot for later comparison
+  $ dr audit api --output api-audit.json  # API layer audit as JSON`
+  )
+  .action((layer, options) =>
+    auditCommand({ ...options, layer, verbose: options.verbose ?? program.opts().verbose }));
+
+// Audit diff command - Compare snapshots
+program
+  .command("audit:diff")
+  .description("Compare before/after audit snapshots")
+  .option("--before <id>", "Before snapshot ID or timestamp")
+  .option("--after <id>", "After snapshot ID or timestamp")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path")
+  .option("--verbose", "Show detailed comparison")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr audit:diff                                  # Compare latest two snapshots
+  $ dr audit:diff --before 20260220-100000 --after 20260220-150000
+  $ dr audit:diff --format markdown --output diff.md
+  $ dr audit:diff --verbose                        # Show detailed changes`
+  )
+  .action((options) => auditDiffCommand(options));
+
+// Audit snapshots command - Manage snapshots
+program
+  .command("audit:snapshots <action>")
+  .description("Manage audit snapshots (list, delete, clear)")
+  .option("--id <id>", "Snapshot ID (for delete action)")
+  .addHelpText(
+    "after",
+    `
+Actions:
+  list     List all available snapshots
+  delete   Delete a specific snapshot (requires --id)
+  clear    Delete all snapshots
+
+Examples:
+  $ dr audit:snapshots list
+  $ dr audit:snapshots delete --id 20260220-100000
+  $ dr audit:snapshots clear`
+  )
+  .action((action, options) => auditSnapshotsCommand({ ...options, action }));
+
+// Repair command - Detect and recover data lost to fixed data-integrity bugs
+program
+  .command("repair:attribute-collision")
+  .description(
+    'Find and best-effort-recover model data lost to a fixed bug where saveLayer() stripped "source"/"x-source-reference" attributes from every element, even when a node type\'s schema declared one as a real (sometimes required) attribute'
+  )
+  .option("--apply", "Restore recoverable values found in changeset history (default: report only)")
+  .option("--format <format>", "Output format: text (default), json")
+  .option("--output <path>", "Write the report to a file instead of stdout")
+  .addHelpText(
+    "after",
+    `
+This repairs damage from a fixed bug in Model.saveLayer(): a hardcoded, type-blind "internal
+fields" blocklist unconditionally stripped any attribute literally named "source" or
+"x-source-reference" from every element's attributes before writing YAML, regardless of whether
+the element's own schema declared it as a real domain attribute. 41 of 191 node schemas across 8
+layers do (3 mark it required, meaning affected elements fail validation today).
+
+Recovery is best-effort: values can only be restored if they still exist in changeset history
+(committing a changeset does not delete it). Elements with no recoverable value are always
+reported, never fabricated — you'll need to re-supply those manually with
+"dr update <id> --attributes '{...}'".
+
+Examples:
+  $ dr repair:attribute-collision                    # Report only — no changes made
+  $ dr repair:attribute-collision --apply             # Restore every recoverable value
+  $ dr repair:attribute-collision --format json --output report.json`
+  )
+  .action((options) => repairAttributeCollisionCommand(options));
+
+// Relationship subcommands
+const relationshipGroup = program.command("relationship").description("Relationship operations");
+relationshipCommands(relationshipGroup, program);
+
+// Element subcommands
+const elementGroup = program.command("element").description("Element operations");
+elementCommands(elementGroup, program);
+
+// Schema introspection subcommands
+schemaCommands(program);
+
+// Catalog subcommands (modern relationship catalog)
+catalogCommands(program);
+
+// Documentation subcommands (schema-driven generation)
+docsCommands(program);
+
+// Dependency analysis commands
+program
+  .command("trace <elementId>")
+  .description("Trace dependencies for an element")
+  .option(
+    "--direction <dir>",
+    "Trace direction: up (dependencies), down (dependents), both (default)"
+  )
+  .option("--depth <num>", "Maximum traversal depth")
+  .option("--metrics", "Show graph and element metrics")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr trace api-endpoint-create-customer
+  $ dr trace business-service-order --direction down --metrics
+  $ dr trace application-component-api --depth 3`
+  )
+  .action(async (elementId, options) => {
+    await traceCommand(elementId, {
+      direction: options.direction as "up" | "down" | "both" | undefined,
+      depth: options.depth ? parseInt(options.depth) : undefined,
+      showMetrics: options.metrics,
+      model: options.model,
+    });
+  });
+
+program
+  .command("visualize")
+  .description("Launch visualization server with WebSocket support")
+  .option("--port <num>", "Server port (default: 8080)")
+  .option("--no-browser", "Do not auto-open browser")
+  .option("--no-auth", "Disable authentication (enabled by default)")
+  .option("--token <token>", "Custom auth token (auto-generated by default)")
+  .option("--with-danger", "Enable dangerous mode for chat (skip permissions)")
+  .option(
+    "--viewer-path <path>",
+    "Path to custom viewer build (e.g., ./dist/embedded/dr-viewer-bundle)"
+  )
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr visualize
+  $ dr visualize --port 3000
+  $ dr visualize --no-browser
+  $ dr visualize --no-auth
+  $ dr visualize --token my-secret-token
+  $ dr visualize --with-danger
+  $ dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
+
+Default mode (read-safe permissions) enables:
+  - Running 'dr' CLI commands to query the architecture model
+  - Reading the codebase
+  - Reading the documentation-robotics/ model folder
+  - Reading the .dr/ configuration folder
+
+Dangerous mode (--with-danger) enables unrestricted access:
+  - Claude Code: --dangerously-skip-permissions (full tool access)
+  - GitHub Copilot: --allow-all-tools (full tool access)
+
+The --viewer-path option allows loading a local build of the web UI:
+  - Point to a directory containing index.html and supporting files
+  - Useful for developing custom viewers or using bundled distributions`
+  )
+  .action(async (options) => {
+    const { visualizeCommand } = await import("./commands/visualize.js");
+    await visualizeCommand({
+      port: options.port,
+      noBrowser: options.browser === false, // Commander sets 'browser' to false when --no-browser is used
+      noAuth: options.auth === false, // Commander sets 'auth' to false when --no-auth is used
+      token: options.token,
+      withDanger: options.withDanger,
+      viewerPath: options.viewerPath,
+    });
+  });
+
+program
+  .command("mcp")
+  .description("Start MCP server for AI assistant integration (stdio transport)")
+  .option(
+    "--regenerate-key",
+    "Generate a new MCP API key, overwrite it at the configured storage path, and print it (does not start the server)"
+  )
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr mcp
+  $ dr mcp --regenerate-key
+
+On first launch, generates an API key and asks where to store it (interactive
+sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
+printed to stderr on every launch and must be supplied via DR_MCP_API_KEY:
+
+  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }
+
+Use --regenerate-key to rotate the key (e.g. after a suspected leak) without
+manually deleting the stored key file or config.`
+  )
+  .action(async (options) => {
+    const { mcpCommand } = await import("./commands/mcp.js");
+    await mcpCommand({ regenerateKey: options.regenerateKey });
+  });
+
+// AI Integration command
+program
+  .command("chat [client] [withDanger]")
+  .description("Interactive chat with AI about the architecture model")
+  .addHelpText(
+    "after",
+    `
+Arguments:
+  client      Optional AI client to use: "claude-code" or "github-copilot"
+  withDanger  Enable dangerous mode: "with-danger"
+
+Examples:
+  $ dr chat                           # Auto-detect or use saved preference
+  $ dr chat claude-code               # Use Claude Code, save as preference
+  $ dr chat github-copilot            # Use GitHub Copilot, save as preference
+  $ dr chat with-danger               # Auto-detect with dangerous mode
+  $ dr chat claude-code with-danger   # Use Claude Code with dangerous mode
+  $ dr chat github-copilot with-danger # Use GitHub Copilot with dangerous mode
+
+Default mode (read-safe permissions) enables:
+  - Running 'dr' CLI commands to query the architecture model
+  - Reading the codebase
+  - Reading the documentation-robotics/ model folder
+  - Reading the .dr/ configuration folder
+
+Dangerous mode (--with-danger) enables unrestricted access:
+  - Claude Code: --dangerously-skip-permissions (full tool access)
+  - GitHub Copilot: --allow-all-tools (full tool access)
+
+This launches an interactive chat interface where you can ask AI questions
+about your architecture model. Supports Claude Code CLI and GitHub Copilot CLI.
+
+Install instructions:
+  - Claude Code: https://claude.ai
+  - GitHub Copilot: gh extension install github/gh-copilot`
+  )
+  .action(async (client?: string, withDangerArg?: string) => {
+    // Parse arguments - handle both "with-danger" as first or second arg
+    let selectedClient: string | undefined;
+    let withDanger = false;
+
+    if (client === "with-danger") {
+      // Format: dr chat with-danger
+      withDanger = true;
+      selectedClient = undefined;
+    } else if (withDangerArg === "with-danger") {
+      // Format: dr chat <client> with-danger
+      withDanger = true;
+      selectedClient = client;
+    } else {
+      // Format: dr chat <client>
+      selectedClient = client;
+    }
+
+    await chatCommand(selectedClient, withDanger);
+  });
+
+// Advanced commands
+program
+  .command("version")
+  .description("Show CLI and embedded spec version information")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr version`
+  )
+  .action(async () => {
+    await versionCommand();
+  });
+
+program
+  .command("upgrade")
+  .description("Upgrade spec reference and migrate model to latest versions")
+  .option("-y, --yes", "Automatically upgrade without prompting")
+  .option("--dry-run", "Show what would be upgraded without making changes")
+  .option("--force", "Force all upgrades regardless of current versions; skips migration validation")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr upgrade              # Scan, show plan, and prompt for upgrades
+  $ dr upgrade --dry-run    # Preview available upgrades
+  $ dr upgrade --yes        # Upgrade without prompting
+  $ dr upgrade --force      # Force all upgrades, ignoring version checks`
+  )
+  .action(async (options) => {
+    await upgradeCommand({
+      yes: options.yes,
+      dryRun: options.dryRun,
+      force: options.force,
+    });
+  });
+
+program
+  .command("conformance")
+  .description("Check model conformance to layer specifications")
+  .option("--layers <layers...>", "Specific layers to check")
+  .option("--json", "Output as JSON")
+  .option("--verbose", "Verbose output")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr conformance
+  $ dr conformance --layers business api application
+  $ dr conformance --json
+  $ dr conformance --verbose`
+  )
+  .action(async (options) => {
+    await conformanceCommand({
+      layers: options.layers,
+      json: options.json ?? program.opts().json,
+      verbose: options.verbose ?? program.opts().verbose,
+    });
+  });
+
+// Changeset subcommands
+changesetCommands(program);
+
+// Farm subcommands
+farmCommands(program);
+
+// Claude Code integration subcommands
+claudeCommands(program);
+
+// GitHub Copilot integration subcommands
+copilotCommands(program);
+
+// Analyzer integration subcommands
+analyzerCommands(program);
+
+// Execute CLI with proper telemetry span wrapping
+// This creates a root span that all child spans will be linked to
+(async () => {
+  let exitCode = 0;
+  try {
+    if (isTelemetryEnabled) {
+      // Initialize telemetry before execution
+      await initTelemetry();
+
+      // Only install console interceptor for commands that need it
+      const commandName = process.argv[2] || "unknown";
+      if (CONSOLE_LOGGING_COMMANDS.has(commandName)) {
+        await installConsoleInterceptor();
+      }
+
+      const args = process.argv.slice(3).join(" ");
+
+      // Wrap entire CLI execution in active span for proper context propagation
+      await startActiveSpan(
+        "cli.execute",
+        async (span) => {
+          // Attributes already set via options parameter - no duplicate setAttributes needed
+          try {
+            // Execute command - all child spans will now link to this root span
+            await program.parseAsync(process.argv);
+
+            // Set success status
+            span.setStatus({ code: 0 }); // SpanStatusCode.OK
+          } catch (error) {
+            // Record exception and set error status
+            // CommanderError with exitCode 0 is help text / unknown subcommand shown — not a real error
+            if (error instanceof CommanderError) {
+              if (error.exitCode === 0) {
+                span.setStatus({ code: 0 }); // SpanStatusCode.OK
+              } else {
+                span.recordException(error as Error);
+                span.setStatus({
+                  code: 2, // SpanStatusCode.ERROR
+                  message: error.message,
+                });
+              }
+            } else {
+              span.recordException(error as Error);
+              span.setStatus({
+                code: 2, // SpanStatusCode.ERROR
+                message: getErrorMessage(error),
+              });
+            }
+
+            // Print error message for CLIError instances
+            // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
+            const { CLIError } = await import("./utils/errors.js");
+            const { isJson } = await import("./utils/globals.js");
+            if (error instanceof CommanderError) {
+              // Commander handled its own output; nothing to print
+            } else if (error instanceof CLIError) {
+              // In JSON mode, handleError already output structured JSON; skip text formatting
+              if (!isJson()) {
+                console.error(error.format());
+              }
+            } else if (error instanceof Error) {
+              console.error(error.message);
+            } else {
+              console.error(String(error));
+            }
+
+            // Extract exit code from CLIError if available
+            exitCode = await extractExitCode(error);
+            // Don't throw - let telemetry shutdown complete
+          }
+        },
+        {
+          "cli.command": commandName,
+          "cli.args": args,
+          "cli.cwd": process.cwd(),
+          "cli.version": cliVersion,
+        }
+      );
+
+      // Shutdown telemetry after execution completes
+      await shutdownTelemetry();
+
+      // Exit with exit code (keepAlive disabled in exporters prevents hanging)
+      process.exit(exitCode);
+    } else {
+      // No telemetry - just parse normally with error handling
+      try {
+        await program.parseAsync(process.argv);
+      } catch (error) {
+        // Extract exit code from CLIError if available
+        // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
+        const { CLIError } = await import("./utils/errors.js");
+        const { isJson } = await import("./utils/globals.js");
+        if (error instanceof CommanderError) {
+          // Commander handled its own output; nothing to print
+        } else if (error instanceof CLIError) {
+          // In JSON mode, handleError already output structured JSON; skip text formatting
+          if (!isJson()) {
+            console.error(error.format());
+          }
+        } else {
+          // Unexpected exceptions need to be printed
+          if (error instanceof Error) {
+            console.error(error.message);
+          } else {
+            console.error(String(error));
+          }
+        }
+        const exitCodeFromError = await extractExitCode(error);
+        process.exit(exitCodeFromError);
+      }
+    }
+  } catch (error) {
+    // Error during telemetry init or shutdown
+    if (!isTelemetryEnabled) {
+      // No telemetry - exit immediately with error
+      process.exit(1);
+    }
+    // Telemetry enabled - try to shutdown before exit
+    await shutdownTelemetry();
+    process.exit(1);
+  }
+})();

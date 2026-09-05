@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Capability aggregates Capability",
+  "description": "Defines relationship: product.capability aggregates product.capability",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "product.capability.aggregates.product.capability"
+    },
+    "source_spec_node_id": {
+      "const": "product.capability"
+    },
+    "source_layer": {
+      "const": "product"
+    },
+    "destination_spec_node_id": {
+      "const": "product.capability"
+    },
+    "destination_layer": {
+      "const": "product"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

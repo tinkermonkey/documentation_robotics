@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "predicate-enum.schema.json",
+  "title": "PredicateEnum",
+  "description": "Enumeration of all valid predicate names from spec/schemas/base/predicates.json. This schema is dynamically generated from the predicates catalog at build time.",
+  "type": "string",
+  "enum": []
+}

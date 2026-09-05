@@ -1,0 +1,469 @@
+{
+  "specVersion": "0.10.0",
+  "layer": {
+    "id": "product",
+    "number": 3,
+    "name": "Product Layer",
+    "description": "Layer 3: Product Layer",
+    "inspired_by": {
+      "standard": "ArchiMate 3.2 Strategy Extension + Product Management Practice",
+      "version": "3.2",
+      "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+    },
+    "node_types": [
+      "product.capability",
+      "product.feature",
+      "product.milestone",
+      "product.persona",
+      "product.userworkflow"
+    ]
+  },
+  "nodeSchemas": {
+    "capability": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Capability",
+      "description": "An ability the product possesses, independent of how it's implemented",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "product.capability"
+        },
+        "layer_id": {
+          "const": "product"
+        },
+        "type": {
+          "const": "capability"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Detailed description of the capability"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "proposed",
+                "planned",
+                "developing",
+                "delivered",
+                "deprecated"
+              ],
+              "description": "Lifecycle status of the capability"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:product.capability"
+    },
+    "feature": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Feature",
+      "description": "A user-visible unit of product functionality that delivers one or more capabilities",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "product.feature"
+        },
+        "layer_id": {
+          "const": "product"
+        },
+        "type": {
+          "const": "feature"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Detailed description of the feature"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low", "informational"],
+              "description": "Priority level"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "proposed",
+                "planned",
+                "developing",
+                "delivered",
+                "deprecated"
+              ],
+              "description": "Lifecycle status of the feature"
+            },
+            "size": {
+              "type": "string",
+              "enum": ["xs", "s", "m", "l", "xl"],
+              "description": "Relative sizing estimate"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["priority", "status"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:product.feature"
+    },
+    "milestone": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Milestone",
+      "description": "A time-bound delivery target grouping features or capabilities",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "product.milestone"
+        },
+        "layer_id": {
+          "const": "product"
+        },
+        "type": {
+          "const": "milestone"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Detailed description of the milestone"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "proposed",
+                "planned",
+                "active",
+                "completed",
+                "cancelled"
+              ],
+              "description": "Milestone status"
+            }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:product.milestone"
+    },
+    "persona": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Persona",
+      "description": "A user archetype representing a class of users with shared goals, behaviors, and pain points",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "product.persona"
+        },
+        "layer_id": {
+          "const": "product"
+        },
+        "type": {
+          "const": "persona"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Detailed description of the persona"
+            },
+            "category": {
+              "type": "string",
+              "enum": ["primary", "secondary", "served", "negative"],
+              "description": "Persona classification by importance"
+            },
+            "proficiency": {
+              "type": "string",
+              "enum": ["novice", "intermediate", "advanced", "expert"],
+              "description": "Technical proficiency level"
+            }
+          },
+          "required": ["category", "proficiency"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:product.persona"
+    },
+    "userworkflow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserWorkflow",
+      "description": "A sequence of user-facing steps through the product to accomplish a goal",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "product.userworkflow"
+        },
+        "layer_id": {
+          "const": "product"
+        },
+        "type": {
+          "const": "userworkflow"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "description": "Detailed description of the user workflow"
+            },
+            "complexity": {
+              "type": "string",
+              "enum": ["simple", "moderate", "complex"],
+              "description": "Workflow complexity assessment"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["complexity"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:product.userworkflow"
+    }
+  },
+  "relationshipSchemas": {
+    "product.capability.aggregates.product.capability": {
+      "id": "product.capability.aggregates.product.capability",
+      "source_spec_node_id": "product.capability",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.capability",
+      "destination_layer": "product",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.capability.fulfills.motivation.requirement": {
+      "id": "product.capability.fulfills.motivation.requirement",
+      "source_spec_node_id": "product.capability",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "fulfills",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.capability.realizes.business.businessfunction": {
+      "id": "product.capability.realizes.business.businessfunction",
+      "source_spec_node_id": "product.capability",
+      "source_layer": "product",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.capability.scheduled-for.product.milestone": {
+      "id": "product.capability.scheduled-for.product.milestone",
+      "source_spec_node_id": "product.capability",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.milestone",
+      "destination_layer": "product",
+      "predicate": "scheduled-for",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.capability.supports.motivation.goal": {
+      "id": "product.capability.supports.motivation.goal",
+      "source_spec_node_id": "product.capability",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.delivers-value.motivation.value": {
+      "id": "product.feature.delivers-value.motivation.value",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.depends-on.product.feature": {
+      "id": "product.feature.depends-on.product.feature",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.realizes.business.businessservice": {
+      "id": "product.feature.realizes.business.businessservice",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.realizes.product.capability": {
+      "id": "product.feature.realizes.product.capability",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.capability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.satisfies.motivation.requirement": {
+      "id": "product.feature.satisfies.motivation.requirement",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.scheduled-for.product.milestone": {
+      "id": "product.feature.scheduled-for.product.milestone",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.milestone",
+      "destination_layer": "product",
+      "predicate": "scheduled-for",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.feature.serves.product.persona": {
+      "id": "product.feature.serves.product.persona",
+      "source_spec_node_id": "product.feature",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.persona",
+      "destination_layer": "product",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.milestone.precedes.product.milestone": {
+      "id": "product.milestone.precedes.product.milestone",
+      "source_spec_node_id": "product.milestone",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.milestone",
+      "destination_layer": "product",
+      "predicate": "precedes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.persona.realizes.motivation.stakeholder": {
+      "id": "product.persona.realizes.motivation.stakeholder",
+      "source_spec_node_id": "product.persona",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.persona.serves.business.businessrole": {
+      "id": "product.persona.serves.business.businessrole",
+      "source_spec_node_id": "product.persona",
+      "source_layer": "product",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.userworkflow.aggregates.business.businessprocess": {
+      "id": "product.userworkflow.aggregates.business.businessprocess",
+      "source_spec_node_id": "product.userworkflow",
+      "source_layer": "product",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.userworkflow.composes.product.feature": {
+      "id": "product.userworkflow.composes.product.feature",
+      "source_spec_node_id": "product.userworkflow",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.userworkflow.delivers.motivation.outcome": {
+      "id": "product.userworkflow.delivers.motivation.outcome",
+      "source_spec_node_id": "product.userworkflow",
+      "source_layer": "product",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "delivers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "product.userworkflow.serves.product.persona": {
+      "id": "product.userworkflow.serves.product.persona",
+      "source_spec_node_id": "product.userworkflow",
+      "source_layer": "product",
+      "destination_spec_node_id": "product.persona",
+      "destination_layer": "product",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

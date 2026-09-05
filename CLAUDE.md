@@ -1,0 +1,578 @@
+# CLAUDE.md - AI Assistant Guide
+
+## Project Overview
+
+**Documentation Robotics** is a toolkit for managing federated architecture data models across 13 interconnected layers.
+
+**Components:**
+
+1. **CLI Tool (`cli/`)** - TypeScript implementation for managing architecture models
+2. **Metadata Model Specification** - Formal documentation defining the 13-layer model
+
+**Current Versions:** CLI v0.1.13, Spec v0.9.0
+
+## Repository Structure
+
+```
+documentation_robotics/
+├── spec/                        # SPECIFICATION (source of truth)
+│   ├── VERSION                  # Spec version number
+│   ├── layers/                  # 13 SpecLayer instance files (.layer.json)
+│   ├── scripts/                 # Spec build tooling
+│   │   └── build-spec.ts        #   Compiles spec source → spec/dist/ (run: npm run build:spec)
+│   ├── dist/                    # COMPILED SPEC (committed, auto-generated)
+│   │   ├── manifest.json        #   Index of all layers
+│   │   ├── base.json            #   All base schemas + predicates consolidated
+│   │   └── {layer}.json         #   One per layer (13 files): nodeSchemas + relationshipSchemas
+│   └── schemas/                 # All JSON Schema definitions (hand-maintained)
+│       ├── base/                #   Core schemas: spec-node, spec-layer, spec-node-relationship,
+│       │                        #   attribute-spec, source-references, predicates.json
+│       ├── nodes/               #   Per-type node schemas (.node.schema.json)
+│       │   ├── motivation/      #     Organized by layer
+│       │   └── ...
+│       ├── relationships/       #   Per-type relationship schemas
+│       │   ├── motivation/      #     (.relationship.schema.json)
+│       │   └── ...
+│       └── relationship-catalog.json  # Semantic relationship type catalog
+│
+├── package.json                 # Root scripts: npm run build:spec
+│
+└── cli/                         # TYPESCRIPT CLI
+    ├── src/
+    │   ├── commands/           # 30 command implementations
+    │   ├── core/               # Domain models & registries
+    │   ├── validators/         # Validation pipeline (uses spec node schemas)
+    │   ├── export/             # Export handlers
+    │   └── schemas/bundled/    # Compiled spec dist files (synced from spec/dist/)
+    │       ├── manifest.json   #   Index of all layers
+    │       ├── base.json       #   All base schemas + predicates
+    │       └── {layer}.json    #   15 total flat JSON files (no subdirectories)
+    └── tests/                  # Unit & integration tests (~114 test files)
+```
+
+## Quick Start
+
+```bash
+cd cli && npm install && npm run build
+npm run test              # Run all tests
+
+# Pre-commit checks
+pre-commit run --all-files
+```
+
+See `cli/README.md` for complete setup and usage documentation.
+
+## Critical Rules
+
+### 1. Spec vs. CLI Separation
+
+- **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/package.json`)
+- **Schema synchronization workflow**:
+  1. Edit hand-maintained spec source files in `spec/schemas/` and `spec/layers/`
+  2. Run `npm run build:spec` at repo root → compiles to `spec/dist/` (15 JSON files)
+  3. Commit `spec/dist/` alongside your spec edits
+  4. Run `npm run build` in `cli/` → syncs `spec/dist/` → `cli/src/schemas/bundled/`
+- **Sources of truth (hand-maintained)**:
+  - Spec node schemas: `spec/schemas/nodes/{layer}/*.node.schema.json` (extend `spec-node.schema.json` via `allOf`)
+  - Spec relationship schemas: `spec/schemas/relationships/{layer}/*.relationship.schema.json` (extend `spec-node-relationship.schema.json` via `allOf`)
+  - Layer instances: `spec/layers/*.layer.json`
+- **Compiled distribution (`spec/dist/`)**: Committed to repo as the spec's distribution artifact. CLI developers can run `npm run build` without running `npm run build:spec`. Update `spec/dist/` any time spec sources change.
+
+### 2. When to Ask First
+
+- **ASK before proceeding:**
+  - Modifying layer specifications or schemas
+  - Breaking changes to CLI commands or public APIs
+  - Version bumps (use `/dr-release-prep` command for releases)
+  - Changes affecting backwards compatibility
+- **PROCEED without asking:**
+  - Bug fixes in CLI implementation
+  - Internal refactoring (no API changes)
+  - Adding tests or improving documentation
+  - Code quality improvements (typing, linting)
+
+### 3. Version Compatibility
+
+- CLI version can be ahead of spec version
+- CLI must remain compatible with current spec version
+- Breaking spec changes require spec version bump
+- Check `spec/CHANGELOG.md` and `cli/CHANGELOG.md` for version history
+
+### 4. Element Naming Convention
+
+- **Format**: `{layer}.{elementType}.{kebab-case-name}`
+- **Example**: `api.endpoint.create-customer`
+- **Element ID Type Segment**: Lowercase format (e.g., `endpoint`, `service`, `goal`) - this is what appears in the element ID
+- **Conceptual Type Name**: Documentation uses PascalCase (e.g., `Endpoint`, `BusinessService`, `Goal`) for formal reference
+- Must be unique across entire model
+- Use element utilities for consistency
+- **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation
+- See Section 4.1 for canonical layer name requirements in element IDs
+
+### 4.1 Canonical Layer Naming Format
+
+**Internal Layer Names** - The CLI uses canonical **hyphenated, lowercase layer names** for all internal references:
+
+| Layer | Canonical Name | Layer Instance              | Notes                                               |
+| ----- | -------------- | --------------------------- | --------------------------------------------------- |
+| 1     | `motivation`   | `01-motivation.layer.json`  | Single word, no hyphen                              |
+| 2     | `business`     | `02-business.layer.json`    | Single word, no hyphen                              |
+| 3     | `product`      | `03-product.layer.json`     | Single word, no hyphen                              |
+| 4     | `security`     | `04-security.layer.json`    | Single word, no hyphen                              |
+| 5     | `application`  | `05-application.layer.json` | Single word, no hyphen                              |
+| 6     | `technology`   | `06-technology.layer.json`  | Single word, no hyphen                              |
+| 7     | `api`          | `07-api.layer.json`         | Single word, no hyphen                              |
+| 8     | `data-model`   | `08-data-model.layer.json`  | **Hyphenated** - use `data-model`, not `data_model` |
+| 9     | `data-store`   | `09-data-store.layer.json`  | **Hyphenated** - use `data-store`, not `datastore`  |
+| 10    | `ux`           | `10-ux.layer.json`          | Single word, no hyphen                              |
+| 11    | `navigation`   | `11-navigation.layer.json`  | Single word, no hyphen                              |
+| 12    | `apm`          | `12-apm.layer.json`         | **Short form internally** - schema uses full name   |
+| 13    | `testing`      | `13-testing.layer.json`     | Single word, no hyphen                              |
+
+**Key Rules**:
+
+- Always use the canonical name in code (e.g., `--layer data-store` not `--layer datastore`)
+- Accept only canonical names in validators (no underscore variants)
+
+### 5. Cross-Layer References
+
+- **Direction**: Higher layers → lower layers only
+- Always validate references exist before creating
+- Use reference registry for lookups and validation
+
+### 6. Cross-Model References
+
+**Overview**: Documentation Robotics supports **federated architecture models**. Your primary model defines the canonical 13-layer architecture. External models (microservices, subdomain architectures, etc.) can be declared in your model's manifest and referenced via **qualified paths**.
+
+**Model Declarations**:
+
+- External models are declared in `documentation-robotics/model/manifest.yaml` under a `models:` section
+- Each model declaration is an object with optional `url` and `role` fields:
+  - `url` (optional): Git repository URL for documentation (e.g., `https://github.com/org/auth-service.git`)
+  - `role` (optional): Informational role descriptor (e.g., `shared` for shared infrastructure)
+
+**Model Declaration Format**:
+
+```yaml
+models:
+  auth-service:
+    url: "https://github.com/org/auth-service.git"
+  payment-service:
+    url: "https://github.com/org/payment-service.git"
+  shared-infra:
+    url: "https://github.com/org/shared-infra.git"
+    role: "shared"
+```
+
+**Minimal Declarations**:
+
+If you want to declare a model without metadata, use an empty object:
+
+```yaml
+models:
+  auth-service: {}
+  payment-service: {}
+```
+
+- Declaring a model signals intent to reference elements from it; references will be validated during conformance checks
+
+**Qualified Path Syntax**:
+
+- **Format**: `@{model-name}/{layer}.{type}.{name}`
+- **Example**: `@auth-service/api.operation.authenticate`
+- **Components**:
+  - `@` — Qualifier prefix (indicates cross-model reference)
+  - `{model-name}` — The external model name (matches declared model in manifest)
+  - `/` — Separator
+  - `{layer}.{type}.{name}` — Standard unqualified element path in the external model
+- **Unqualified references** remain unchanged: `motivation.goal.increase-revenue`
+
+**Critical Rule: Elements Never Use Qualified Paths for Their Own Identity**:
+
+- **Only references use qualified paths** — The `path` and `id` fields of elements are always unqualified
+- ✅ **Correct**: An auth-service element uses `api.operation.authenticate` as its local `path`
+- ✅ **Correct**: Your model references it as `@auth-service/api.operation.authenticate`
+- ❌ **Incorrect**: An element's `path` is never `@auth-service/api.operation.authenticate`
+- This ensures each model owns and manages its own element identities without external dependencies
+
+**Validation Modes**:
+
+- **Local validation (default)**: Validates references within your model only. External model declarations are checked, but references to external models are only validated if the external model can be resolved on disk
+- **Composed validation** (optional): Full validation including resolution of all declared external models via configured paths
+  - Use `--model-path {modelName}=/path/to/model` to specify external model locations
+  - Enables validation that external references point to existing elements
+  - Useful for multi-team federated architecture work
+
+**Validation Examples**:
+
+```typescript
+// Local validation (default) - validates your model's structure
+await validator.validateModel(model);
+
+// Composed validation - requires external model paths
+const composedValidator = new ComposedReferenceValidator({
+  "auth-service": "/path/to/auth-service",
+  "payment-service": "/path/to/payment-service"
+});
+await composedValidator.validateModel(model);
+```
+
+**Relationship Handling**:
+
+- **References field**: Can contain qualified paths (e.g., `@auth-service/api.operation.authenticate`)
+- **Relationships**: Intra-layer relationships within a model use unqualified paths only
+- Cross-model element references always use the reference field, never relationships
+- Example:
+
+  ```yaml
+  # Element in your model
+  - path: api.operation.create-user
+    references:
+      - target: @auth-service/api.operation.authenticate
+        relationship: 'consumes'
+  ```
+
+## The 13-Layer Architecture Model
+
+Federated architecture model spanning 13 interconnected layers:
+
+1. **Motivation** - Goals, requirements, stakeholders (ArchiMate)
+2. **Business** - Business processes and services (ArchiMate)
+3. **Product** - Personas, capabilities, features, workflows, milestones
+4. **Security** - Authentication, authorization, threats
+5. **Application** - Application services and components (ArchiMate)
+6. **Technology** - Infrastructure and platforms (ArchiMate)
+7. **API** - REST APIs and operations (OpenAPI)
+8. **Data Model** - Entities and relationships (JSON Schema)
+9. **Data Store** - Database schemas
+10. **UX** - User interface components
+11. **Navigation** - Application routing
+12. **APM** - Observability and monitoring (OpenTelemetry)
+13. **Testing** - Test strategies, test cases, test data
+
+**Key Principle:** Elements in higher layers reference elements in lower layers, creating a dependency graph.
+
+## Architecture Overview
+
+### Core Domain (`core/`)
+
+- **Model** - Complete architecture model across all layers
+- **Layer** - Container for elements within a layer
+- **Element** - Individual architecture items
+- **Reference Registry** - Tracks cross-layer references
+- **Relationship Registry** - Tracks intra-layer relationships
+
+### Validation Pipeline (`validators/`)
+
+1. **Schema Validation** - JSON schema compliance
+2. **Naming Validation** - Naming convention enforcement
+3. **Reference Validation** - Cross-layer reference integrity
+4. **Semantic Validation** - Business rule validation
+
+### Export System (`export/`)
+
+- **ArchiMate** - Layers 1, 2, 5, 6
+- **OpenAPI** - Layer 7 (API)
+- **JSON Schema** - Layer 8 (Data Model)
+- **PlantUML** - Visual diagrams
+- **Markdown** - Documentation
+
+### Data Storage
+
+- **Filesystem-based** (no database)
+- **Base model** in `documentation-robotics/model/` directory
+  - Manifest: `documentation-robotics/model/manifest.yaml`
+  - Layers: `documentation-robotics/model/{layer-number}_{layer-name}/`
+- **Changesets** in `documentation-robotics/changesets/` directory
+  - Each changeset: `{changeset-id}/metadata.yaml` and `changes.yaml`
+- **Spec-version model migrations** (e.g. layer renumbering) are handled by `dr upgrade`, driven by `cli/src/core/migration-registry.ts` — see `MigrationRegistry` for the version-to-version migration path and `cli/src/commands/upgrade.ts` for the CLI flow
+
+## Common Pitfalls
+
+### 1. Schema Synchronization
+
+**CRITICAL**: After editing any hand-maintained spec file, run the full two-step sync:
+
+```bash
+npm run build:spec      # Recompile spec/schemas/ → spec/dist/ (at repo root)
+cd cli && npm run build # Sync spec/dist/ → cli/src/schemas/bundled/
+```
+
+This applies to any change in:
+
+- `spec/schemas/base/` — base schemas
+- `spec/schemas/nodes/{layer}/` — node type schemas
+- `spec/schemas/relationships/{layer}/` — relationship schemas
+- `spec/layers/` — layer instances
+
+Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — they are auto-generated.
+
+### 2. Cross-Layer References
+
+- **Never** violate the "higher → lower" rule
+- Always validate references exist before creating
+- Use the reference registry, don't manually check
+
+### 3. Element IDs
+
+- **Must** follow `{layer}.{elementType}.{kebab-case}` convention
+- Element type segment uses **lowercase**: `goal`, `service`, `endpoint`, `component`, etc. (not PascalCase in the ID itself)
+- Element names are **kebab-case**: `customer-satisfaction`, `order-management`
+- Must be unique across entire model
+- Use element utilities, don't manually construct IDs
+- Example: `motivation.goal.customer-satisfaction` (✅ Correct)
+- Example: `api.endpoint.create-order` (✅ Correct)
+- Example: `api-endpoint-create-order` (❌ Incorrect - wrong format)
+- Example: `motivation.Goal.customer-satisfaction` (❌ Incorrect - type segment should be lowercase)
+
+### 4. Export Format Compatibility
+
+**Standard-Specific Exporters:**
+
+- **ArchiMate** (layers 1, 2, 5, 6): Exports Motivation, Business, Application, and Technology layers in standard ArchiMate 3.2 XML format
+- **OpenAPI** (layer 7): Exports API layer in OpenAPI 3.0 specification format
+- **JSON Schema** (layer 8): Exports Data Model layer in JSON Schema Draft 7 format
+- **Product Layer** (layer 3): Does NOT participate in ArchiMate, OpenAPI, or JSON Schema export since none of these standards cover product-management concepts (personas, capabilities, features, milestones, workflows)
+
+**Generic Exporters:**
+
+- **Markdown** (all 13 layers): Exports comprehensive markdown documentation including Product layer
+- **PlantUML** (all 13 layers): Generates PlantUML diagrams for all layers including Product
+- **Mermaid** (all 13 layers): Generates Mermaid diagrams with all layer visualizations
+- **GraphML** (all 13 layers): Exports graph format compatible with visualization tools
+
+**Layer Color Scheme:**
+Product layer uses color `E6FFD9` (light green) for consistent visualization across all generic exporters.
+
+**Export Validation:**
+All exporters validate layer support before exporting. Attempting to export unsupported layers to standard-specific formats will raise an error.
+
+### 5. Version Bumps
+
+- **Never** manually edit version numbers
+- Use `/dr-release-prep` command for proper release preparation
+- Maintains consistency across changelogs and versions
+
+## Development Quick Reference
+
+### Adding a Command
+
+1. Create in `cli/src/commands/`
+2. Register in `cli/src/cli.ts`
+3. Add tests in `cli/tests/integration/`
+4. Run `npm run test`
+
+### Modifying a Layer
+
+1. **ASK FIRST** - Layer changes affect spec
+2. Update `spec/layers/{NN}-{layer}.layer.json`
+3. Update node schemas in `spec/schemas/nodes/{layer}/*.node.schema.json` if adding/changing types
+4. Update relationship schemas in `spec/schemas/relationships/{layer}/` if needed
+5. Run `npm run build:spec` at repo root to recompile `spec/dist/`
+6. Run `cd cli && npm run build` to sync to `cli/src/schemas/bundled/`
+7. Commit both `spec/dist/` and the edited spec source files
+8. Update validators and tests as needed
+
+### Key Files
+
+- `cli/src/cli.ts` - CLI entry point, command routing
+- `cli/src/core/model.ts` - Central model management
+- `cli/src/core/reference-registry.ts` - Reference tracking
+- `cli/src/core/relationship-registry.ts` - Relationship tracking
+- `cli/src/validators/semantic.ts` - Business rule validation
+- `cli/src/core/virtual-projection.ts` - Virtual projection engine
+- `cli/src/core/staged-changeset-storage.ts` - Changeset persistence
+- `cli/src/core/drift-detector.ts` - Drift detection logic
+- `spec/schemas/base/spec-node.schema.json` - Base schema for all node types
+- `cli/scripts/generate-spec-instances.ts` - Generates spec layer/node/predicate instances
+- `scripts/generate-layer-docs.ts` - Generates markdown docs from spec instances
+
+### Schema and Validation
+
+Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
+
+For command reference, see `integrations/claude_code/`.
+
+### Relationship Audit
+
+Audit intra-layer relationships across all 13 layers for coverage, semantic duplicates, gaps, and balance.
+
+**Key Features:**
+
+- Deterministic coverage measurement (isolation %, density, predicate utilization)
+- Semantic duplicate detection using predicate categories
+- Gap analysis with layer-specific templates (ArchiMate, OpenAPI, NIST SP 800-53, etc.)
+- Balance assessment with node type classification (structural, behavioral, enumeration, reference)
+- Optional AI-assisted evaluation for low-coverage elements
+- Before/after differential analysis
+
+**Usage:**
+
+```bash
+# Run full audit (text output to console)
+npm run audit:relationships
+
+# Audit specific layer only
+npm run audit:relationships -- --layer api
+
+# JSON output for CI/CD integration
+npm run audit:relationships -- --format json --output audit.json
+
+# Quality gate mode (exit 1 if quality issues found)
+npm run audit:relationships -- --threshold
+
+# Markdown report generation
+npm run audit:relationships -- --format markdown --output report.md
+
+# Verbose output with detailed analysis
+npm run audit:relationships -- --verbose
+
+# Combine flags
+npm run audit:relationships -- --layer security --format json --output security-audit.json --threshold
+```
+
+**Output:**
+
+The audit command outputs directly to console (text format) or to the specified file (JSON/Markdown formats). Output includes:
+
+- Coverage metrics (isolation %, density, predicate utilization)
+- Duplicate relationship candidates
+- Gap analysis (missing relationships)
+- Balance assessment (relationship density per node type)
+- Connectivity analysis (graph structure, components, chains)
+
+**Output Formats:**
+
+- **text** - Human-readable colored output (default)
+- **json** - Machine-parseable for automation
+- **markdown** - Documentation-ready reports
+
+**Quality Thresholds:**
+
+- Isolation: ≤ 20% isolated node types
+- Density: ≥ 1.5 relationships per node type
+- High-Priority Gaps: ≤ 10 gaps
+- Duplicates: ≤ 5 duplicate candidates
+
+**Exit Codes:**
+
+- `0` - Success (no issues or below thresholds)
+- `1` - Quality issues detected (with `--threshold` flag)
+- `2` - Script execution error
+
+**Files:**
+
+- Entry Point: `cli/scripts/relationship-audit.ts`
+- Analysis: `cli/src/audit/analysis/`
+- Reports: `cli/src/audit/reports/`
+- Pipeline: `cli/src/audit/pipeline/`
+- Graph: `cli/src/audit/graph/`
+- AI: `cli/src/audit/ai/`
+
+### Changeset Implementation
+
+Key files: `cli/src/commands/changeset.ts`, `cli/src/core/staged-changeset-storage.ts`, `cli/src/core/staging-area.ts`
+
+See `docs/STAGING_GUIDE.md` for architecture details. For command reference, see `integrations/claude_code/commands/dr-changeset.md`.
+
+### Testing
+
+**Local-First Testing Model:** The full test suite runs locally. CI runs only a curated smoke suite to verify the CLI builds and core functionality works.
+
+**Test Commands:**
+
+```bash
+npm run test                       # Unit + integration regression suite (run before pushing)
+npm run test:unit                  # Unit tests only
+npm run test:integration           # Integration tests only
+npm run test:smoke                 # CI smoke suite (~22 tests, matches what CI runs)
+npm run test:fs-compatibility      # CLI golden-data compatibility tests (all priorities)
+npm run test:fs-compatibility:high # High-priority compatibility tests only (faster)
+npm run test:perf                  # Performance benchmarks
+```
+
+- `npm test` is authoritative for daily development — run before pushing
+- `npm run test:smoke` runs the same tests as CI, useful for quick local validation
+- Smoke test manifest: `cli/tests/ci-smoke.manifest.ts`
+
+### Orchestrator Repair Cycle Test Commands
+
+When running automated repair cycles, use these exact commands. Do not substitute alternatives.
+
+| Test type           | Working directory | Command                                 |
+| ------------------- | ----------------- | --------------------------------------- |
+| `pre-commit`        | `cli/`            | `npx lint-staged` (or pre-commit hooks) |
+| `unit`              | `cli/`            | `npm run test:unit`                     |
+| `integration`       | `cli/`            | `npm run test:integration`              |
+| `cli-compatibility` | project root      | `npm run test:fs-compatibility`         |
+| `ci`                | `cli/`            | `npm run test:smoke`                    |
+
+**Do not run `npm run test` (the full regression suite) or `npm run test:all` during repair cycles.** Those commands overlap with the separate `unit` and `integration` test types and waste time re-running tests that have already passed.
+
+The `cli-compatibility` cycle runs `cli-validation/test-suite/` — a golden-data test suite that executes real CLI commands against known test projects and validates the filesystem output. This is the true regression check: did we break existing CLI behavior?
+
+### Golden Copy Test Initialization
+
+Tests use a shared golden copy pattern for fast, isolated test directories:
+
+```typescript
+import { createTestWorkdir } from "../helpers/golden-copy.js";
+
+const workdir = await createTestWorkdir(); // Cloned from golden copy
+// ... use workdir.path, call workdir.cleanup in afterEach
+```
+
+- **Baseline source**: `cli-validation/test-project/baseline/` — edit this to add test data
+- **Golden copy helper**: `cli/tests/helpers/golden-copy.ts`
+- **Auto-initialized**: Via `cli/tests/setup.ts` (preloaded by Bun)
+
+### Specification Validation Strategy
+
+**Validation Layers** (Pre-commit + CI):
+
+1. **Pre-commit Hooks** (Local Developer Workflow)
+   - **Markdown Linting**: Pre-commit lints all layer documentation and schema-related markdown files
+   - **TypeScript Type Checking**: Pre-commit validates CLI TypeScript code for type safety
+   - **File Integrity**: Pre-commit checks for trailing whitespace, CRLF line endings, and other basic file hygiene
+   - **Purpose**: Catch structural issues early before committing broken specs
+   - **Note**: JSON Schema syntax validation is performed in CI (see below) rather than pre-commit for reliability
+
+2. **CI Pipeline Validation** (`.github/workflows/cli-tests.yml` - `spec-validation` job)
+   - **Schema Syntax Validation**: All 354 node schemas + 252 relationship schemas validated for valid JSON
+   - **Markdown Validation**: Layer specifications markdown linting
+   - **Cross-validation**: CLI schema bundling checked against spec schema source
+   - **Purpose**: Ensure specs remain valid throughout development, prevent broken commits from reaching main
+
+**Key Points**:
+
+- **Pre-commit prevents broken local commits** — catches file format/syntax errors
+- **CI validates spec correctness** — runs comprehensive schema validation on all PRs/merges
+- **Removed hooks**: `validate-markdown-specs`, `validate-relationship-catalog`, and `check-jsonschema` were pre-commit hooks that had reliability issues; their validation is now performed by the CI pipeline's `spec-validation` job for more comprehensive and maintainable validation
+- **Why moved to CI**:
+  - Custom validation logic is fragile when maintained in pre-commit hooks
+  - Schema validation needs to check 606 files; better suited for CI where it runs on all PRs
+  - Single source of truth (CI) is easier to debug and maintain
+  - Developers get better feedback with CI logs than pre-commit errors
+- **If you modify specs**: Changes are validated automatically when you push to PR; no need for manual validation
+- **If validation fails**: Check the CI logs in the `spec-validation` job for detailed error messages
+
+## Standards
+
+- **ArchiMate 3.2** - Layers 1, 2, 5, 6
+- **OpenAPI 3.0** - Layer 7
+- **JSON Schema Draft 7** - Layer 8
+- **OpenTelemetry** - Layer 12
+
+## Design Philosophy
+
+1. **Separation of Concerns** - Clear boundaries between commands, core logic, validators
+2. **Standards Compliance** - Leverage industry standards (ArchiMate, OpenAPI, JSON Schema)
+3. **Testability** - Comprehensive test coverage
+4. **User Experience** - Clear errors, helpful output
+
+## Documentation References
+
+- Main README: `/README.md`
+- Specification: `/spec/` (especially `spec/layers/` and `spec/CHANGELOG.md`)
+- CLI README: `/cli/README.md`
+- Release preparation: Use `/dr-release-prep` command

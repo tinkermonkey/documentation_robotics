@@ -1,0 +1,83 @@
+name: "Export Operations"
+description: "Test export functionality for supported formats (ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML)"
+priority: medium
+
+pipelines:
+  - name: "Export to PlantUML diagram"
+    steps:
+      - command: "export plantuml --output export-test.puml"
+        files_to_compare:
+          - export-test.puml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to Markdown documentation"
+    steps:
+      - command: "export markdown --output export-test.md"
+        files_to_compare:
+          - export-test.md
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to GraphML format"
+    steps:
+      - command: "export graphml --output export-test.graphml"
+        files_to_compare:
+          - export-test.graphml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to OpenAPI specification"
+    steps:
+      - command: 'add api operation export-test-operation --name ''Export Test Operation'' --description ''Temporary operation for export test'' --attributes ''{"operationId": "export-test-operation", "summary": "Export Test Operation", "tags": "test"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 07_api/operation.yaml
+        expect_exit_code: 0
+
+      - command: "export openapi --output export-api.json"
+        files_to_compare:
+          - export-api.json
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+      - command: "delete api.operation.export-test-operation --force"
+        files_to_compare:
+          - manifest.yaml
+          - 07_api/operation.yaml
+        expect_exit_code: 0
+
+  - name: "Export to JSON Schema"
+    steps:
+      - command: 'add data-model objectschema schema-test-object --name ''Test Object'' --description ''Object for JSON schema export'' --attributes ''{"type": "object"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-model/object_schema.yaml
+        expect_exit_code: 0
+
+      - command: "export jsonschema --output export-schema.json"
+        files_to_compare:
+          - export-schema.json
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+      - command: "delete data-model.objectschema.schema-test-object --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-model/object_schema.yaml
+        expect_exit_code: 0
+
+  - name: "Export to ArchiMate XML"
+    steps:
+      - command: "export archimate --output export-model.xml"
+        files_to_compare:
+          - export-model.xml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+        timeout: 60000

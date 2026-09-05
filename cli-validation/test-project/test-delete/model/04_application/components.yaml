@@ -1,0 +1,15 @@
+Todo Handler:
+  name: Todo Handler
+  description: Application component handling todo CRUD operations
+  deployedTo: fastapi
+  id: todo-handler
+Database Connection:
+  name: Database Connection
+  description: SQLite database connection management component
+  deployedTo: sqlite
+  id: database-connection
+React Application:
+  name: React Application
+  description: Frontend React application for todo management UI
+  deployedTo: react
+  id: react-app

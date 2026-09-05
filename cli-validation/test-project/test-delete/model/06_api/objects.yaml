@@ -1,0 +1,10 @@
+todo-in-schema:
+  id: todo-in-schema
+  name: TodoIn Schema
+  type: object
+  documentation: Request schema for creating/updating todos
+todo-schema:
+  id: todo-schema
+  name: Todo Schema
+  type: object
+  documentation: Response schema for todo items with ID

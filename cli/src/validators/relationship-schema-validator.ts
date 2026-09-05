@@ -1,0 +1,573 @@
+/**
+ * Relationship Schema Validation with Cardinality Enforcement
+ *
+ * Validates relationships against their spec relationship schemas, including:
+ * - Schema compliance (source/destination node types)
+ * - Cardinality constraints (one-to-one, one-to-many, many-to-one, many-to-many)
+ * - Predicate validity
+ * - Relationship attributes against schema
+ */
+
+import { ValidationResult } from "./types.js";
+import type { Model } from "../core/model.js";
+import type { Relationship } from "../core/relationships.js";
+import { fileURLToPath } from "url";
+import path from "path";
+import { readFile } from "../utils/file-io.js";
+import { existsSync } from "fs";
+import { startActiveSpan } from "../telemetry/index.js";
+
+interface ManifestDistFile {
+  layers: Array<{ id: string }>;
+}
+
+interface LayerDistFile {
+  relationshipSchemas: Record<string, {
+    id: string;
+    source_spec_node_id: string;
+    source_layer: string;
+    destination_spec_node_id: string;
+    destination_layer: string;
+    predicate: string;
+    cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
+    strength: string;
+    required?: boolean;
+    attributes?: Record<string, unknown>;
+  }>;
+}
+
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
+
+export interface RelationshipSchema {
+  id: string;
+  source_spec_node_id: string;
+  source_layer: string;
+  destination_spec_node_id: string;
+  destination_layer: string;
+  predicate: string;
+  cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
+  strength: string;
+  required?: boolean;
+  attributes?: Record<string, unknown>;
+}
+
+/**
+ * Validator for relationship schema compliance and cardinality constraints
+ *
+ * Validates that relationships:
+ * 1. Conform to their spec relationship schemas
+ * 2. Respect cardinality constraints (e.g., one-to-one means max 1 relationship of that type)
+ * 3. Reference valid predicates
+ * 4. Have valid source/destination element types
+ */
+export class RelationshipValidator {
+  private schemasDir: string;
+  private relationshipSchemas: Map<string, RelationshipSchema> = new Map();
+
+  constructor() {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    this.schemasDir = path.join(__dirname, "..", "schemas", "bundled");
+  }
+
+  /**
+   * Initialize and load relationship schemas
+   */
+  async initialize(): Promise<void> {
+    await this.loadRelationshipSchemas();
+  }
+
+  /**
+   * Load relationship schemas from compiled bundled spec (manifest.json + per-layer JSON files)
+   */
+  private async loadRelationshipSchemas(): Promise<void> {
+    const manifestPath = path.join(this.schemasDir, "manifest.json");
+
+    if (!existsSync(manifestPath)) {
+      throw new Error(`Bundled manifest not found at ${manifestPath}`);
+    }
+
+    const manifestContent = await readFile(manifestPath);
+    const manifest = JSON.parse(manifestContent) as ManifestDistFile;
+
+    for (const { id: layerId } of manifest.layers) {
+      const layerPath = path.join(this.schemasDir, `${layerId}.json`);
+      if (!existsSync(layerPath)) {
+        continue;
+      }
+
+      try {
+        const layerContent = await readFile(layerPath);
+        const layerData = JSON.parse(layerContent) as LayerDistFile;
+
+        for (const [relId, relSchema] of Object.entries(layerData.relationshipSchemas || {})) {
+          this.relationshipSchemas.set(relId, {
+            id: relSchema.id || relId,
+            source_spec_node_id: relSchema.source_spec_node_id || "",
+            source_layer: relSchema.source_layer || "",
+            destination_spec_node_id: relSchema.destination_spec_node_id || "",
+            destination_layer: relSchema.destination_layer || "",
+            predicate: relSchema.predicate || "",
+            cardinality: relSchema.cardinality || "many-to-many",
+            strength: relSchema.strength || "medium",
+            required: relSchema.required || false,
+            attributes: relSchema.attributes,
+          });
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Validate relationships in a model with cardinality enforcement
+   */
+  async validateModel(model: Model): Promise<ValidationResult> {
+    return startActiveSpan(
+      "relationship-schema.validate-model",
+      async (span) => {
+        // Ensure schemas are loaded
+        if (this.relationshipSchemas.size === 0) {
+          try {
+            await this.initialize();
+          } catch (error: any) {
+            const result = new ValidationResult();
+            result.addError({
+              layer: "system",
+              message: `${error.message} Relationship validation is not available.`,
+            });
+            return result;
+          }
+        }
+
+        // Verify schemas were loaded. This covers two cases:
+        // 1. initialize() succeeded but the manifest has no layers with relationship schemas
+        // 2. Edge case where manifest exists but is empty
+        // In both cases, relationship validation cannot proceed.
+        if (this.relationshipSchemas.size === 0) {
+          const result = new ValidationResult();
+          result.addError({
+            layer: "system",
+            message: `No relationship schemas loaded from ${path.join(this.schemasDir, "manifest.json")}. Relationship validation is not available.`,
+          });
+          return result;
+        }
+
+        const result = new ValidationResult();
+        const allRelationships = model.relationships.getAll();
+
+        if (allRelationships.length === 0) {
+          return result;
+        }
+
+        // Group relationships for cardinality validation
+        const relationshipsBySource = this.groupRelationshipsBySourceTarget(
+          allRelationships,
+          "source"
+        );
+        const relationshipsByTarget = this.groupRelationshipsBySourceTarget(
+          allRelationships,
+          "target"
+        );
+
+        // Validate each relationship
+        for (const relationship of allRelationships) {
+          const relErrors = await this.validateRelationship(
+            relationship,
+            model,
+            relationshipsBySource,
+            relationshipsByTarget
+          );
+
+          if (relErrors.length > 0) {
+            for (const error of relErrors) {
+              result.addError(error);
+            }
+          }
+        }
+
+        if (isTelemetryEnabled) {
+          span.setAttribute("relationship.error_count", result.errors.length);
+          span.setAttribute("relationship.warning_count", result.warnings.length);
+          span.setAttribute("relationship.validated_count", allRelationships.length);
+        }
+
+        return result;
+      },
+      { "relationship.layer_count": model.layers.size }
+    );
+  }
+
+  /**
+   * Validate a single relationship
+   */
+  private async validateRelationship(
+    relationship: Relationship,
+    model: Model,
+    relationshipsBySource: Map<string, Relationship[]>,
+    relationshipsByTarget: Map<string, Relationship[]>
+  ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
+    const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
+
+    // Variables to cache found elements and avoid redundant lookups
+    let sourceElement: any = null;
+    let targetElement: any = null;
+    let bothInFilterAndFound = false;
+
+    // Check if relationship crosses layer boundary when --layers filter is active
+    if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
+      const sourceLayer = this.extractLayerFromElementId(relationship.source);
+      const targetLayer = this.extractLayerFromElementId(relationship.target);
+
+      // If we can parse layers and both endpoints are within the filter, proceed with full validation.
+      // If one or both endpoints are outside the filter, only skip if both endpoints are
+      // in unloaded layers. If either endpoint is in a loaded layer, we must validate it.
+      if (sourceLayer && targetLayer) {
+        const sourceInFilter = model.loadedLayerFilter.includes(sourceLayer);
+        const targetInFilter = model.loadedLayerFilter.includes(targetLayer);
+
+        // Skip only if BOTH endpoints are in unloaded layers
+        if (!sourceInFilter && !targetInFilter) {
+          return errors;
+        }
+
+        // If at least one endpoint is in a loaded layer, check if both elements exist in loaded layers
+        // If one is missing from a loaded layer, report error (genuine break)
+        if (sourceInFilter) {
+          sourceElement = this.findElementInModel(model, relationship.source);
+          if (!sourceElement) {
+            errors.push({
+              layer: relationship.layer,
+              elementId: relationship.source,
+              message: `Relationship source element '${relationship.source}' not found`,
+            });
+            return errors;
+          }
+        }
+
+        if (targetInFilter) {
+          targetElement = this.findElementInModel(model, relationship.target);
+          if (!targetElement) {
+            errors.push({
+              layer: relationship.layer,
+              elementId: relationship.target,
+              message: `Relationship target element '${relationship.target}' not found`,
+            });
+            return errors;
+          }
+        }
+
+        // If one or both endpoints are in unloaded layers, skip full validation
+        if (!sourceInFilter || !targetInFilter) {
+          return errors;
+        }
+
+        // Both endpoints are in loaded layers and we've already found them
+        bothInFilterAndFound = true;
+      }
+      // If we can't parse layers (unparseable element IDs), proceed to validation
+      // where findElementInModel will fail with a proper error message
+    }
+
+    // Find source and destination elements only if we haven't already found them
+    if (!bothInFilterAndFound) {
+      sourceElement = this.findElementInModel(model, relationship.source);
+      targetElement = this.findElementInModel(model, relationship.target);
+    }
+
+    if (!sourceElement) {
+      errors.push({
+        layer: relationship.layer,
+        elementId: relationship.source,
+        message: `Relationship source element '${relationship.source}' not found`,
+      });
+      return errors;
+    }
+
+    if (!targetElement) {
+      errors.push({
+        layer: relationship.layer,
+        elementId: relationship.target,
+        message: `Relationship target element '${relationship.target}' not found`,
+      });
+      return errors;
+    }
+
+    // Extract element types AND layers (CRITICAL FIX for cross-layer relationships)
+    // The source and target elements may be in different layers
+    const sourceLayer = sourceElement.layer_id || sourceElement.layer || relationship.layer;
+    const targetLayer = targetElement.layer_id || targetElement.layer || relationship.layer;
+
+    // Use spec_node_id if present, otherwise construct from layer and type
+    // spec_node_id contains the canonical type (e.g., "application.applicationservice")
+    // Guard against empty spec_node_id from older CLI versions or manually authored elements
+    const sourceSpecId = sourceElement.spec_node_id
+      ? sourceElement.spec_node_id
+      : `${sourceLayer}.${sourceElement.type}`;
+    const targetSpecId = targetElement.spec_node_id
+      ? targetElement.spec_node_id
+      : `${targetLayer}.${targetElement.type}`;
+
+    // Find applicable relationship schema using actual source/target layers and spec node IDs
+    // (not relationship.layer for both, which assumes intra-layer relationships)
+    const schemaKey = this.findRelationshipSchemaKeyBySpecId(
+      sourceSpecId,
+      targetSpecId,
+      relationship.predicate
+    );
+
+    if (!schemaKey) {
+      // Extract type names from spec_node_id for error message (e.g., "applicationservice" from "application.applicationservice")
+      const sourceType = sourceSpecId.includes(".") ? sourceSpecId.split(".")[1] : sourceElement.type;
+      const targetType = targetSpecId.includes(".") ? targetSpecId.split(".")[1] : targetElement.type;
+      errors.push({
+        layer: relationship.layer,
+        elementId: relationship.source,
+        message: `No schema found for relationship: ${sourceLayer}.${sourceType} --[${relationship.predicate}]--> ${targetLayer}.${targetType}`,
+      });
+      return errors;
+    }
+
+    const schema = this.relationshipSchemas.get(schemaKey);
+    if (!schema) {
+      errors.push({
+        layer: relationship.layer,
+        elementId: relationship.source,
+        message: `Failed to load schema for relationship: ${schemaKey}`,
+      });
+      return errors;
+    }
+
+    // Validate cardinality constraints
+    const cardinalityErrors = this.validateCardinality(
+      relationship,
+      schema,
+      relationshipsBySource,
+      relationshipsByTarget
+    );
+
+    errors.push(...cardinalityErrors);
+
+    // Validate relationship attributes if schema specifies them
+    if (relationship.properties && schema.attributes) {
+      const attrErrors = this.validateRelationshipAttributes(
+        relationship,
+        schema
+      );
+      errors.push(...attrErrors);
+    }
+
+    return errors;
+  }
+
+  /**
+   * Validate cardinality constraints for a relationship
+   *
+   * Cardinality constraint semantics:
+   * - "one-to-one": Each source can have at most 1 such relationship, and each target can be involved in at most 1
+   * - "one-to-many": Each target can receive at most 1 such relationship (target is the "one"); source is unconstrained
+   * - "many-to-one": Each source can be involved in at most 1 such relationship (maps to one target); multiple sources may share the same target
+   * - "many-to-many": No cardinality constraints
+   */
+  private validateCardinality(
+    relationship: Relationship,
+    schema: RelationshipSchema,
+    relationshipsBySource: Map<string, Relationship[]>,
+    relationshipsByTarget: Map<string, Relationship[]>
+  ): Array<{ layer: string; message: string; elementId?: string }> {
+    const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
+    const cardinality = schema.cardinality;
+
+    // Count OTHER relationships for this predicate from source and to target
+    // (excluding the current relationship to get accurate violation detection)
+    const sourceRelCount =
+      relationshipsBySource
+        .get(relationship.source)
+        ?.filter(
+          (r) =>
+            r.predicate === relationship.predicate &&
+            r.target !== relationship.target  // Exclude current relationship
+        ).length || 0;
+
+    const targetRelCount =
+      relationshipsByTarget
+        .get(relationship.target)
+        ?.filter(
+          (r) =>
+            r.predicate === relationship.predicate &&
+            r.source !== relationship.source  // Exclude current relationship
+        ).length || 0;
+
+    // Validate based on cardinality type
+    switch (cardinality) {
+      case "one-to-one":
+        // Source can have at most 1 such relationship
+        if (sourceRelCount > 0) {
+          errors.push({
+            layer: relationship.layer,
+            elementId: relationship.source,
+            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'one-to-one', but source '${relationship.source}' already has this relationship`,
+          });
+        }
+        // Target can be involved in at most 1 such relationship
+        if (targetRelCount > 0) {
+          errors.push({
+            layer: relationship.layer,
+            elementId: relationship.target,
+            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'one-to-one', but target '${relationship.target}' is already involved in this relationship`,
+          });
+        }
+        break;
+
+      case "one-to-many":
+        // Standard ER one-to-many: the "one" is at the target end.
+        // Each target can receive at most 1 incoming relationship of this type.
+        // The source is unconstrained — it may have many outgoing of this type
+        // to different targets.
+        if (targetRelCount > 0) {
+          errors.push({
+            layer: relationship.layer,
+            elementId: relationship.target,
+            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'one-to-many', but target '${relationship.target}' already has this relationship`,
+          });
+        }
+        break;
+
+      case "many-to-one":
+        // Standard ER many-to-one: the "one" is at the source end.
+        // Each source can be involved in at most 1 relationship of this type
+        // (it maps to exactly one target). Multiple sources CAN share the same
+        // target — fan-in is allowed and expected for shared services.
+        if (sourceRelCount > 0) {
+          errors.push({
+            layer: relationship.layer,
+            elementId: relationship.source,
+            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'many-to-one', but source '${relationship.source}' already has this relationship`,
+          });
+        }
+        break;
+
+      case "many-to-many":
+        // No cardinality constraints
+        break;
+    }
+
+    return errors;
+  }
+
+  /**
+   * Validate relationship attributes against schema
+   */
+  private validateRelationshipAttributes(
+    relationship: Relationship,
+    schema: RelationshipSchema
+  ): Array<{ layer: string; message: string; elementId?: string }> {
+    const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
+
+    if (!schema.attributes || !relationship.properties) {
+      return errors;
+    }
+
+    // Simple validation: check that properties match schema keys
+    for (const key of Object.keys(relationship.properties)) {
+      if (!(key in schema.attributes)) {
+        errors.push({
+          layer: relationship.layer,
+          elementId: relationship.source,
+          message: `Relationship property '${key}' not defined in schema for predicate '${relationship.predicate}'`,
+        });
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Find relationship schema ID by source/dest spec node IDs and predicate
+   *
+   * Matches relationship schemas by:
+   * 1. Predicate (must match exactly)
+   * 2. Spec node ID pair (source and destination must match exactly)
+   *
+   * Spec node IDs are in the format "layer.type" (e.g., "application.applicationservice")
+   * and uniquely identify an element type across the model.
+   *
+   * Supports both intra-layer (motivation -> motivation) and cross-layer
+   * (motivation -> business) relationships.
+   */
+  private findRelationshipSchemaKeyBySpecId(
+    sourceSpecId: string,
+    destSpecId: string,
+    predicate: string
+  ): string | null {
+    // Search for matching schema
+    for (const [schemaId, schema] of this.relationshipSchemas.entries()) {
+      // First filter: predicate must match exactly
+      if (schema.predicate !== predicate) {
+        continue;
+      }
+
+      // Second filter: spec node ID pair must match exactly
+      // This directly compares canonical forms like "application.applicationservice"
+      if (
+        schema.source_spec_node_id === sourceSpecId &&
+        schema.destination_spec_node_id === destSpecId
+      ) {
+        return schemaId;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Group relationships by source or target element
+   */
+  private groupRelationshipsBySourceTarget(
+    relationships: Relationship[],
+    by: "source" | "target"
+  ): Map<string, Relationship[]> {
+    const grouped = new Map<string, Relationship[]>();
+
+    for (const rel of relationships) {
+      const key = by === "source" ? rel.source : rel.target;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(rel);
+    }
+
+    return grouped;
+  }
+
+  /**
+   * Find an element in the model by ID
+   *
+   * Performs element lookup using Layer.getElement(), which supports multiple lookup strategies:
+   * - Direct lookup by graph key (path)
+   * - UUID lookup
+   * - Semantic ID lookup (for legacy format elements converted to UUID)
+   * - Element ID lookup
+   *
+   * This comprehensive lookup ensures elements are found regardless of how they were stored.
+   */
+  private findElementInModel(model: Model, elementId: string) {
+    for (const layer of model.layers.values()) {
+      const element = layer.getElement(elementId);
+      if (element) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  private extractLayerFromElementId(elementId: string): string | null {
+    const parts = elementId.split(".");
+    if (parts.length < 2) {
+      return null;
+    }
+    return parts[0];
+  }
+
+}

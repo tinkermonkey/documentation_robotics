@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Span",
+  "description": "A named, timed unit of work in a distributed trace, as defined by the OpenTelemetry Trace Data Model. Each span is identified by a traceId+spanId pair, carries optional parent linkage (parentSpanId) for hierarchical trace composition, and is classified by SpanKind (SERVER, CLIENT, INTERNAL, PRODUCER, CONSUMER) indicating its role in the calling topology. The startTimeUnixNano and endTimeUnixNano bound the operation's timing window; statusCode (UNSET, OK, ERROR) is the canonical success/failure signal per OTel semantic conventions. Spans are produced via the OTel Tracer API, processed by SpanProcessors, and exported via SpanExporters.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.span"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "span"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "traceId": {
+          "type": "string"
+        },
+        "spanId": {
+          "type": "string"
+        },
+        "traceState": {
+          "type": "string"
+        },
+        "parentSpanId": {
+          "type": "string"
+        },
+        "spanKind": {
+          "type": "string",
+          "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"],
+          "description": "OTel SpanKind indicating the span's relationship to the calling and receiving system"
+        },
+        "startTimeUnixNano": {
+          "type": "string"
+        },
+        "endTimeUnixNano": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "integer"
+        },
+        "droppedEventsCount": {
+          "type": "string"
+        },
+        "droppedLinksCount": {
+          "type": "string"
+        },
+        "statusCode": {
+          "type": "string",
+          "enum": ["UNSET", "OK", "ERROR"],
+          "description": "OTel span status code. UNSET = not explicitly set by instrumentation; OK = explicitly successful; ERROR = explicitly failed. Once set to OK, cannot be overridden to ERROR."
+        },
+        "statusMessage": {
+          "type": "string",
+          "description": "Optional human-readable error message, used when statusCode is ERROR."
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "traceId",
+        "spanId",
+        "traceState",
+        "parentSpanId",
+        "spanKind",
+        "startTimeUnixNano",
+        "endTimeUnixNano",
+        "droppedAttributesCount",
+        "droppedEventsCount",
+        "droppedLinksCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

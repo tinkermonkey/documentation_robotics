@@ -1,0 +1,3500 @@
+/**
+ * Visualization Server
+ * HTTP server with WebSocket support for real-time model updates
+ */
+
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
+import { swaggerUI } from "@hono/swagger-ui";
+import { serve } from "@hono/node-server";
+import { createNodeWebSocket } from "@hono/node-ws";
+import { spawn, spawnSync, type ChildProcess } from "child_process";
+import chokidar from "chokidar";
+import { randomBytes } from "crypto";
+import { createRequire } from "module";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const require = createRequire(import.meta.url);
+import { Model } from "../core/model.js";
+import { Element } from "../core/element.js";
+import { Changeset as StagedChangeset } from "../core/changeset.js";
+import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
+import { telemetryMiddleware } from "./telemetry-middleware.js";
+import { BaseChatClient } from "../coding-agents/base-chat-client.js";
+import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
+import { CopilotClient } from "../coding-agents/copilot-client.js";
+import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
+import { formatForClaudeCode, applyCopilotPermissions } from "../coding-agents/default-permissions.js";
+import { getErrorMessage } from "../utils/errors.js";
+import {
+  AnnotationCreateSchema,
+  AnnotationUpdateSchema,
+  AnnotationReplyCreateSchema,
+  LayerNameSchema,
+  IdSchema,
+  AnnotationFilterSchema,
+  ErrorResponseSchema,
+  HealthResponseSchema,
+  AnnotationSchema,
+  AnnotationReplySchema,
+  AnnotationsListSchema,
+  ChangesetsListSchema,
+  ChangesetDetailSchema,
+  ModelResponseSchema,
+  LayerResponseSchema,
+  SpecResponseSchema,
+  AnnotationRepliesSchema,
+  WSMessageSchema,
+  SimpleWSMessageSchema,
+  JSONRPCRequestSchema,
+  JSONRPCResponseSchema,
+} from "./schemas.js";
+
+/**
+ * JSON-RPC 2.0 Error Codes
+ * Subset of JSON-RPC 2.0 error codes used in this implementation.
+ * Standard JSON-RPC 2.0 also defines PARSE_ERROR (-32700) and INVALID_REQUEST (-32600)
+ * for protocol-level errors not applicable to WebSocket message handling.
+ */
+const JSONRPC_ERRORS = {
+  // Standard JSON-RPC errors
+  INVALID_PARAMS: -32602,      // Invalid method parameters
+  METHOD_NOT_FOUND: -32601,    // Method does not exist
+  INTERNAL_ERROR: -32603,      // Internal server error
+
+  // Custom application errors
+  NO_CLIENT_AVAILABLE: -32001, // No chat client available
+} as const;
+
+/**
+ * Type Casting Note
+ *
+ * Type casts (`as any`) are used in this file due to @hono/zod-openapi v1.2.1
+ * type inference limitations with async middleware handlers. The middleware
+ * properly validates and transforms request/response data at runtime via Zod,
+ * so the type assertions are safe despite bypassing TypeScript's type checker.
+ *
+ * TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+ * Upstream tracking: https://github.com/honojs/hono/issues/3524
+ * Target version: @hono/zod-openapi v2.0.0+ (when async handler typing is improved)
+ *
+ * Affected endpoints:
+ * - Annotation creation (POST /api/annotations)
+ * - Annotation retrieval (GET /api/annotations/:id)
+ * - Annotation updates (PATCH /api/annotations/:id)
+ * - Annotation replacement (PUT /api/annotations/:id)
+ * - Annotation deletion (DELETE /api/annotations/:id)
+ * - Layer retrieval (GET /api/layers/:layerName)
+ * - Schema retrieval (GET /api/spec)
+ */
+
+// WebSocket message types derived from Zod schemas for type safety and runtime validation
+type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;
+type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
+type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
+type WSMessage = z.infer<typeof WSMessageSchema>;
+
+type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
+
+// Derive ClientAnnotation type from AnnotationSchema with proper serialization
+type ClientAnnotation = z.infer<typeof AnnotationSchema>;
+
+// Type for WebSocket context from Hono's WebSocket helper (hono/ws), shared by all
+// runtime adapters (@hono/node-ws, hono/bun, hono/cloudflare-workers, etc.)
+// Defines the interface for WebSocket operations within the Hono environment
+interface HonoWSContext {
+  send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: { compress?: boolean }): void;
+  close(code?: number, reason?: string): void;
+}
+
+export interface VisualizationServerOptions {
+  authEnabled?: boolean;
+  authToken?: string;
+  withDanger?: boolean;
+  viewerPath?: string;
+}
+
+/**
+ * Visualization Server class
+ */
+export class VisualizationServer {
+  private app: OpenAPIHono;
+  private model: Model;
+  private _server?: ReturnType<typeof serve>; // Node HTTP server returned by @hono/node-server
+  private upgradeWebSocket?: ReturnType<typeof createNodeWebSocket>["upgradeWebSocket"];
+  private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
+  private clients: Set<HonoWSContext> = new Set();
+  private watcher?: any;
+  private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
+  private annotationsByElement: Map<string, Set<string>> = new Map(); // elementId -> Set<annotationId>
+  private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
+  private changesets: Map<string, StagedChangeset> = new Map(); // changesetId -> changeset
+  private changesetStorage?: StagedChangesetStorage;
+  private authToken: string;
+  private authEnabled: boolean = true;
+  private withDanger: boolean = false; // Danger mode disabled by default
+  private viewerPath?: string; // Optional custom viewer path
+  private activeChatProcesses: Map<string, ChildProcess> = new Map(); // conversationId -> spawned chat process
+  private chatConversationCounter: number = 0;
+  private selectedChatClient?: BaseChatClient; // Selected chat client for server
+  private chatInitializationError?: Error; // Store initialization error for status endpoint
+  private _testClaudeCmdOverride?: string[];
+  private _testCopilotCmdOverride?: string[];
+
+  /**
+   * Valid spec node IDs per layer
+   * Dynamically loaded from compiled spec (spec/dist/{layer}.json at module load time)
+   * Used to validate and resolve viewer spec node IDs
+   * Prevents silent drift when node types are added to spec/schemas/nodes/
+   */
+  private static readonly VALID_SPEC_NODE_IDS: Record<string, string[]> = VisualizationServer.loadValidSpecNodeIds();
+
+  /**
+   * Load valid spec node IDs dynamically from bundled spec files
+   * Extracts node_types arrays from each layer's compiled schema file
+   * This ensures the list is always in sync with the spec build output
+   * If any file cannot be loaded, falls back to a minimal safe set
+   */
+  private static loadValidSpecNodeIds(): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+
+    // Get the directory of this file to build absolute path to bundled schemas
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const bundledDir = path.join(__dirname, "..", "schemas", "bundled");
+
+    for (const layer of CANONICAL_LAYER_NAMES) {
+      try {
+        // Build absolute path to the layer's compiled spec file
+        const specFilePath = path.join(bundledDir, `${layer}.json`);
+
+        // Use require() to synchronously load bundled spec file
+        // These JSON files are built by "npm run build" from spec source
+        const spec = require(specFilePath) as {
+          layer?: { node_types?: string[] };
+          specVersion?: string;
+        };
+
+        // Extract node_types array from layer object in the compiled spec
+        const nodeTypes = spec.layer?.node_types;
+        if (Array.isArray(nodeTypes) && nodeTypes.length > 0) {
+          result[layer] = nodeTypes;
+        } else {
+          console.warn(
+            `[SPEC-LOAD-001] Layer ${layer} has no node_types in spec file`
+          );
+          result[layer] = [];
+        }
+      } catch (error) {
+        console.warn(
+          `[SPEC-LOAD-002] Failed to load spec node IDs for layer ${layer}: ${getErrorMessage(error)}`
+        );
+        // Use empty array as fallback - will be caught by usage code
+        result[layer] = [];
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Fallback spec node IDs used when type extraction from elementId fails
+   * These are used when no valid spec node ID can be extracted from the elementId
+   * or found through other resolution strategies
+   */
+  private static readonly LAYER_FALLBACK: Record<string, string> = {
+    product: "business.businessservice",
+    security: "business.businessprocess",
+    technology: "application.applicationservice",
+    api: "business.businessprocess",
+    "data-model": "data-store.database",
+    "data-store": "data-store.database",
+    ux: "application.applicationcomponent",
+    navigation: "application.applicationcomponent",
+    apm: "application.applicationservice",
+    testing: "business.businessprocess",
+  };
+
+  /**
+   * All valid spec node IDs across all layers (cached Set for O(1) lookup)
+   */
+  private static readonly ALL_VALID_IDS: Set<string> = (() => {
+    const ids = new Set<string>();
+    Object.values(VisualizationServer.VALID_SPEC_NODE_IDS).forEach((layerIds) => {
+      layerIds.forEach((id) => ids.add(id));
+    });
+    return ids;
+  })();
+
+  constructor(model: Model, options?: VisualizationServerOptions) {
+    this.app = new OpenAPIHono();
+    this.model = model;
+
+    // Set up the WebSocket adapter for this app instance (works under both
+    // Node.js and Bun, since @hono/node-server/@hono/node-ws use Node's
+    // http module, which Bun also implements).
+    this.loadWebSocketAdapter();
+
+    // Auth configuration (CLI options override environment variables)
+    this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
+    this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
+    this.withDanger = options?.withDanger || false;
+    // Use explicit viewerPath if provided, otherwise fall back to the bundled viewer
+    this.viewerPath = options?.viewerPath ||
+      new URL("../viewer", import.meta.url).pathname;
+
+    // Validate cross-field configuration
+    if (!this.authEnabled && options?.authToken) {
+      console.warn(
+        "[VisualizationServer] Warning: authToken provided but authEnabled is false. " +
+        "The token will be generated but not used for authentication. " +
+        "Set authEnabled: true to enable authentication."
+      );
+    }
+
+    // Add CORS middleware
+    this.app.use("/*", cors());
+
+    // Add telemetry middleware to instrument all HTTP requests
+    this.app.use("/*", telemetryMiddleware);
+
+    // Add authentication middleware (except for health endpoint and root)
+    this.app.use("/api/*", async (c, next) => {
+      if (!this.authEnabled) {
+        return next();
+      }
+
+      // Check for token in Authorization header or query parameter
+      const authHeader = c.req.header("Authorization");
+      const queryToken = c.req.query("token");
+
+      let providedToken: string | null = null;
+
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        providedToken = authHeader.substring(7);
+      } else if (queryToken) {
+        providedToken = queryToken;
+      }
+
+      if (!providedToken) {
+        return c.json({ error: "Authentication required. Please provide a valid token." }, 401);
+      }
+
+      if (providedToken !== this.authToken) {
+        return c.json({ error: "Invalid authentication token" }, 403);
+      }
+
+      return next();
+    });
+
+    this.setupRoutes();
+
+    // Log auth token if enabled
+    if (this.authEnabled && process.env.VERBOSE) {
+      console.log(`[Auth] Authentication enabled. Token: ${this.authToken}`);
+    }
+
+    // Initialize chat clients asynchronously
+    this.initializeChatClients().catch((error) => {
+      this.chatInitializationError = error instanceof Error ? error : new Error(String(error));
+      console.error("[Chat] Failed to initialize chat clients:", error);
+    });
+  }
+
+  /**
+   * Set up the WebSocket adapter for this server instance
+   * This is called in the constructor to support WebSocket functionality via @hono/node-ws,
+   * which works identically under Node.js and Bun (both implement Node's http module).
+   * Wrapped in try/catch as a defensive guard so a WS setup failure would degrade the
+   * server gracefully (no /ws route) rather than crash construction entirely, in case
+   * this ever becomes fallible again in the future.
+   */
+  private loadWebSocketAdapter(): void {
+    try {
+      const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: this.app });
+      this.injectWebSocket = injectWebSocket;
+      this.upgradeWebSocket = upgradeWebSocket;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[Server] WARNING: Could not set up WebSocket adapter: ${message}. ` +
+          `WebSocket endpoints (/ws) will not be available.`
+      );
+      if (process.env.VERBOSE && error instanceof Error && error.stack) {
+        console.debug("[Server] Stack trace:", error.stack);
+      }
+    }
+  }
+
+  /**
+   * Detect and initialize available chat clients
+   */
+  private async initializeChatClients(): Promise<void> {
+    const clients = await detectAvailableClients();
+
+    // Select the chat client from available clients
+    // Note: Chat client preference is no longer persisted in manifest
+    this.selectedChatClient = selectChatClient(clients, null);
+
+    if (this.selectedChatClient && process.env.VERBOSE) {
+      console.log(`[Chat] Using chat client: ${this.selectedChatClient.getClientName()}`);
+    } else if (clients.length === 0 && process.env.VERBOSE) {
+      console.log("[Chat] No chat clients available");
+    }
+  }
+
+  /**
+   * Generate a random auth token
+   */
+  private generateAuthToken(): string {
+    return `dr-${randomBytes(24).toString('base64url')}`;
+  }
+
+  /**
+   * Shared annotation update logic for PUT/PATCH handlers
+   * Performs partial updates with atomic operations
+   */
+  private async updateAnnotation(
+    annotationId: string,
+    body: z.infer<typeof AnnotationUpdateSchema>
+  ): Promise<ClientAnnotation | null> {
+    const annotation = this.annotations.get(annotationId);
+
+    if (!annotation) {
+      return null;
+    }
+
+    // Create new annotation object with updates (atomic update, no direct mutation)
+    // This prevents race conditions if the annotation is read during WebSocket broadcast
+    const updatedAnnotation: ClientAnnotation = {
+      ...annotation,
+      content: body.content ?? annotation.content,
+      tags: body.tags ?? annotation.tags,
+      resolved: body.resolved ?? annotation.resolved,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Store the updated annotation atomically
+    this.annotations.set(annotationId, updatedAnnotation);
+
+    // Broadcast to all clients
+    await this.broadcastMessage({
+      type: "annotation.updated",
+      annotationId: updatedAnnotation.id,
+      timestamp: updatedAnnotation.updatedAt,
+    });
+
+    return updatedAnnotation;
+  }
+
+  /**
+   * Setup HTTP routes and WebSocket handler
+   */
+  private setupRoutes(): void {
+    // Register bearerAuth security scheme for protected /api/* routes
+    this.app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+      type: 'http',
+      scheme: 'bearer',
+      description: 'API token (shown at server startup, pass as Authorization: Bearer <token>)',
+    });
+
+    // Static viewer HTML at root
+    this.app.get("/", (c) => {
+      if (this.viewerPath) {
+        // Serve custom viewer index.html
+        return this.serveCustomViewer("index.html");
+      }
+      return c.html(this.getViewerHTML());
+    });
+
+    // Serve static files from custom viewer path if provided
+    // Note: This catch-all route must skip API/WS routes by passing to next handler
+    if (this.viewerPath) {
+      this.app.get("/*", async (c, next) => {
+        const requestPath = c.req.path;
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
+
+        // Skip API routes and WebSocket - let them be handled by their specific routes
+        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health" || requestPath === "/api-spec.yaml" || requestPath === "/api-docs") {
+          if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
+          return next(); // Pass to next handler instead of returning 404
+        }
+
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
+        return this.serveCustomViewer(requestPath.substring(1));
+      });
+    }
+
+    // Health check endpoint
+    const healthRoute = createRoute({
+      method: 'get',
+      path: '/health',
+      tags: ['Health'],
+      summary: 'Health check',
+      description: 'Check if the server is running and healthy',
+      responses: {
+        200: {
+          description: 'Server is healthy',
+          content: {
+            'application/json': {
+              schema: HealthResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(healthRoute, (c) => {
+      const response: any = {
+        status: this.chatInitializationError ? "degraded" : "ok",
+        version: "0.1.0",
+      };
+
+      // Include warnings if any services failed to initialize
+      if (this.chatInitializationError) {
+        response.warnings = [
+          `Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`
+        ];
+      }
+
+      return c.json(response);
+    });
+
+    // Get full model
+    const getModelRoute = createRoute({
+      method: 'get',
+      path: '/api/model',
+      tags: ['Model'],
+      summary: 'Get full model',
+      description: 'Retrieve the complete architecture model across all layers',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: 'Model data retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ModelResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getModelRoute, async (c) => {
+      if (process.env.VERBOSE) console.log(`[ROUTE] /api/model handler called`);
+      try {
+        if (process.env.VERBOSE) console.log(`[ROUTE] /api/model serializing model...`);
+        const modelData = await this.serializeModel();
+        if (process.env.VERBOSE)
+          console.log(
+            `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
+          );
+        return c.json(modelData);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        console.error(`[ROUTE] /api/model error: ${message}`);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // Get specific layer
+    const getLayerRoute = createRoute({
+      method: 'get',
+      path: '/api/layers/:layerName',
+      tags: ['Model'],
+      summary: 'Get layer',
+      description: 'Retrieve a specific layer with all its elements',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ layerName: LayerNameSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Layer retrieved successfully',
+          content: {
+            'application/json': {
+              schema: LayerResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Layer not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getLayerRoute, (async (c: any) => {
+      try {
+        const { layerName } = c.req.valid("param");
+        const layer = await this.model.getLayer(layerName);
+
+        if (!layer) {
+          return c.json({ error: "Layer not found" }, 404);
+        }
+
+        const elements = layer.listElements().map((e) => e.toJSON());
+
+        return c.json({
+          name: layerName,
+          elements,
+          elementCount: elements.length,
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
+
+    // Get JSON Schema specifications
+    const getSpecRoute = createRoute({
+      method: 'get',
+      path: '/api/spec',
+      tags: ['Schema'],
+      summary: 'Get JSON schemas',
+      description: 'Retrieve all JSON Schema definitions used by the system',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: 'Schemas retrieved successfully',
+          content: {
+            'application/json': {
+              schema: SpecResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getSpecRoute, (async (c: any) => {
+      try {
+        const schemas = await this.loadSchemas();
+        return c.json({
+          version: "0.1.0",
+          type: "schema-collection",
+          description: "JSON Schema definitions from dr CLI",
+          source: "dr-cli",
+          schemas,
+          schemaCount: Object.keys(schemas).length,
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
+
+    // Annotations API (spec-compliant routes)
+
+    // Get all annotations (optionally filtered by elementId)
+    const getAnnotationsRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Get annotations',
+      description: 'Retrieve all annotations, optionally filtered by element',
+      security: [{ bearerAuth: [] }],
+      request: {
+        query: AnnotationFilterSchema,
+      },
+      responses: {
+        200: {
+          description: 'Annotations retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getAnnotationsRoute, (c) => {
+      const query = c.req.valid("query");
+
+      const elementId = query.elementId;
+
+      if (elementId) {
+        // Filter by element
+        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
+        const annotations = Array.from(annotationIds)
+          .map((id) => this.annotations.get(id))
+          .filter((a): a is ClientAnnotation => a !== undefined);
+
+        return c.json({ annotations });
+      } else {
+        // Return all annotations
+        const annotations = Array.from(this.annotations.values());
+        return c.json({ annotations });
+      }
+    });
+
+    // Create annotation
+    const createAnnotationRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Create annotation',
+      description: 'Create a new annotation on a model element',
+      security: [{ bearerAuth: [] }],
+      request: {
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationCreateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Annotation created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        400: {
+          description: 'Invalid request body',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationRoute, async (c) => {
+      try {
+        const body = c.req.valid("json");
+
+        // Verify element exists
+        const element = await this.findElement(body.elementId);
+        if (!element) {
+          return c.json({ error: "Element not found" }, 404);
+        }
+
+        // Create annotation
+        const annotation: ClientAnnotation = {
+          id: this.generateAnnotationId(),
+          elementId: body.elementId,
+          author: body.author,
+          content: body.content,
+          createdAt: new Date().toISOString(),
+          tags: body.tags,
+          resolved: false, // Default to unresolved
+        };
+
+        // Store annotation
+        this.annotations.set(annotation.id, annotation);
+        if (!this.annotationsByElement.has(annotation.elementId)) {
+          this.annotationsByElement.set(annotation.elementId, new Set());
+        }
+        this.annotationsByElement.get(annotation.elementId)!.add(annotation.id);
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.added",
+          annotationId: annotation.id,
+          elementId: annotation.elementId,
+          timestamp: annotation.createdAt,
+        });
+
+        return c.json(annotation, 201);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // Get individual annotation by ID
+    const getAnnotationRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Get annotation by ID',
+      description: 'Retrieve a specific annotation by its ID',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Annotation retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getAnnotationRoute, (async (c: any) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
+
+    // Update annotation (PUT - partial update for backwards compatibility)
+    // NOTE: DESIGN RATIONALE - Non-standard PUT behavior:
+    // This endpoint performs PARTIAL updates (idempotent) like PATCH, not full replacement
+    // like standard HTTP PUT. This is a known deviation from HTTP semantics, chosen for
+    // backwards compatibility with existing API consumers. New code should prefer PATCH
+    // for partial updates. If full replacement semantics are needed in future, a new
+    // endpoint should be created rather than changing this one's behavior.
+    const putAnnotationRoute = createRoute({
+      method: 'put',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Update annotation (partial)',
+      description: 'Update an existing annotation with partial fields (NOTE: partial updates, use PATCH for recommended behavior)',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(putAnnotationRoute, (async (c: any) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const body = c.req.valid("json");
+
+        const updatedAnnotation = await this.updateAnnotation(annotationId, body);
+
+        if (!updatedAnnotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        return c.json(updatedAnnotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
+
+    // Update annotation (PATCH)
+    const patchAnnotationRoute = createRoute({
+      method: 'patch',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Partially update annotation',
+      description: 'Partially update an existing annotation (recommended over PUT)',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(patchAnnotationRoute, (async (c: any) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const body = c.req.valid("json");
+
+        const updatedAnnotation = await this.updateAnnotation(annotationId, body);
+
+        if (!updatedAnnotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        return c.json(updatedAnnotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
+
+    // Delete annotation
+    const deleteAnnotationRoute = createRoute({
+      method: 'delete',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Delete annotation',
+      description: 'Delete an existing annotation',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        204: {
+          description: 'Annotation deleted successfully',
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(deleteAnnotationRoute, async (c) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        // Remove from storage
+        this.annotations.delete(annotationId);
+        this.replies.delete(annotationId); // Clean up replies
+        const elementAnnotations = this.annotationsByElement.get(annotation.elementId);
+        if (elementAnnotations) {
+          elementAnnotations.delete(annotationId);
+        }
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.deleted",
+          annotationId,
+          timestamp: new Date().toISOString(),
+        });
+
+        return c.body(null, 204);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // GET annotation replies
+    const getAnnotationRepliesRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Get annotation replies',
+      description: 'Retrieve all replies to an annotation',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Replies retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationRepliesSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
+      const { annotationId } = c.req.valid("param");
+      const annotation = this.annotations.get(annotationId);
+
+      if (!annotation) {
+        return c.json({ error: "Annotation not found" }, 404);
+      }
+
+      const replies = this.replies.get(annotationId) || [];
+      return c.json({ replies });
+    }) as any);
+
+    // POST annotation reply
+    const createAnnotationReplyRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Create annotation reply',
+      description: 'Add a reply to an annotation',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationReplyCreateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Reply created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationReplySchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationReplyRoute, async (c) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        const body = c.req.valid("json");
+
+        const reply: AnnotationReply = {
+          id: this.generateReplyId(),
+          author: body.author,
+          content: body.content,
+          createdAt: new Date().toISOString(),
+        };
+
+        // Store reply
+        if (!this.replies.has(annotationId)) {
+          this.replies.set(annotationId, []);
+        }
+        this.replies.get(annotationId)!.push(reply);
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.reply.added",
+          annotationId,
+          replyId: reply.id,
+          timestamp: reply.createdAt,
+        });
+
+        return c.json(reply, 201);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // Changesets API
+
+    // Get all changesets
+    const getChangesetsRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets',
+      tags: ['Changesets'],
+      summary: 'Get changesets',
+      description: 'Retrieve a list of all changesets',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: 'Changesets retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ChangesetsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getChangesetsRoute, (c) => {
+      const changesets: Record<string, any> = {};
+
+      for (const [id, changeset] of this.changesets) {
+        changesets[id] = {
+          name: changeset.name,
+          status: changeset.status,
+          created: changeset.created,
+          changes_count: changeset.changes.length,
+        };
+      }
+
+      return c.json({
+        version: "1.0.0",
+        changesets,
+      });
+    });
+
+    // Get specific changeset
+    const getChangesetRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets/:changesetId',
+      tags: ['Changesets'],
+      summary: 'Get changeset',
+      description: 'Retrieve a specific changeset with all its changes',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Changeset retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ChangesetDetailSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Changeset not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getChangesetRoute, ((c: any) => {
+      const { changesetId } = c.req.valid("param");
+      const changeset = this.changesets.get(changesetId);
+
+      if (!changeset) {
+        return c.json({ error: "Changeset not found" }, 404);
+      }
+
+      return c.json({
+        id: changeset.id,
+        name: changeset.name,
+        description: changeset.description,
+        status: changeset.status,
+        created: changeset.created,
+        modified: changeset.modified,
+        baseSnapshot: changeset.baseSnapshot,
+        stats: changeset.stats,
+        changes: changeset.changes,
+      });
+    }) as any);
+
+    // OpenAPI documentation endpoint
+    // Note: @hono/zod-openapi always generates 3.1.0, so we specify it here
+    // but the version is normalized to 3.0.3 in the generate-openapi.ts script
+    this.app.doc('/api-spec.yaml', {
+      openapi: '3.1.0',
+      info: {
+        title: 'Documentation Robotics Visualization Server API',
+        version: '0.1.0',
+        description: 'API specification for the DR CLI visualization server',
+        contact: {
+          name: 'Documentation Robotics',
+          url: 'https://github.com/tinkermonkey/documentation_robotics',
+        },
+        license: {
+          name: 'ISC',
+        },
+      },
+      servers: [
+        { url: 'http://localhost:8080', description: 'Local development server' },
+      ],
+      tags: [
+        { name: 'Health', description: 'Server health and status' },
+        { name: 'Schema', description: 'JSON Schema specifications' },
+        { name: 'Model', description: 'Architecture model data' },
+        { name: 'Changesets', description: 'Model changesets and history' },
+        { name: 'Annotations', description: 'User annotations on model elements' },
+        { name: 'WebSocket', description: 'Real-time updates via WebSocket' },
+      ],
+    });
+
+    // Swagger UI for interactive API exploration
+    this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
+
+    // WebSocket endpoint
+    // Only register if the WebSocket adapter was set up successfully
+    if (this.upgradeWebSocket) {
+      this.app.get(
+        "/ws",
+        async (c, next) => {
+          // Check WebSocket auth if enabled
+          if (this.authEnabled) {
+            // Accept token from multiple sources to support diverse client environments:
+            // 1. Query parameter: ?token=<token>
+            //    Why: Works in all browsers. Simple and universally compatible.
+            // 2. Sec-WebSocket-Protocol header: token, <actual-token>
+            //    Why: Browsers cannot set custom HTTP headers during WebSocket handshake
+            //    for security reasons. The WebSocket spec allows subprotocol negotiation
+            //    as an alternative auth mechanism. Format: ["token", "YOUR_TOKEN"]
+            // 3. Authorization header: Bearer <token>
+            //    Why: Standard OAuth2/JWT pattern for non-browser clients (Node.js, cURL, etc)
+            //    that can set arbitrary headers. Browsers cannot use this for WebSocket due
+            //    to HTTP header restrictions during handshake.
+
+            const queryToken = c.req.query("token");
+
+            // Check Sec-WebSocket-Protocol header (browser-compatible method)
+            // Format: "token, <actual-token>" or "token,<actual-token>"
+            const wsProtocol = c.req.header("Sec-WebSocket-Protocol");
+            let protocolToken: string | null = null;
+            if (wsProtocol) {
+              const protocols = wsProtocol.split(",").map((p) => p.trim());
+              // Look for protocol pair: ['token', '<actual-token>']
+              const tokenIndex = protocols.indexOf("token");
+              if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
+                protocolToken = protocols[tokenIndex + 1];
+              }
+            }
+
+            // Check Authorization header (non-browser clients)
+            const authHeader = c.req.header("Authorization");
+            const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+            const token = queryToken || protocolToken || bearerToken;
+
+            if (!token) {
+              return c.json(
+                {
+                  error:
+                    'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)',
+                },
+                401
+              );
+            }
+
+            if (token !== this.authToken) {
+              return c.json({ error: "Invalid authentication token" }, 403);
+            }
+
+            // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
+            // This is required by the WebSocket spec for subprotocol negotiation
+            if (protocolToken) {
+              c.header("Sec-WebSocket-Protocol", "token");
+            }
+          }
+
+          return next();
+        },
+        this.upgradeWebSocket(() => ({
+        onOpen: async (_evt: any, ws: HonoWSContext) => {
+          // Telemetry: Track WebSocket connection
+          await this.recordWebSocketEvent("ws.connection.open", {
+            "ws.client_count": this.clients.size + 1,
+          });
+
+          this.clients.add(ws);
+
+          // Send connected message per spec
+          ws.send(
+            JSON.stringify({
+              type: "connected",
+              version: "0.1.0",
+              timestamp: new Date().toISOString(),
+            })
+          );
+
+          if (process.env.VERBOSE) {
+            console.log(`[WebSocket] Client connected (total: ${this.clients.size})`);
+          }
+        },
+
+        onClose: async (_evt: any, ws: HonoWSContext) => {
+          // Telemetry: Track WebSocket disconnection
+          await this.recordWebSocketEvent("ws.connection.close", {
+            "ws.client_count": this.clients.size - 1,
+          });
+
+          this.clients.delete(ws);
+          if (process.env.VERBOSE) {
+            console.log(`[WebSocket] Client disconnected (total: ${this.clients.size})`);
+          }
+        },
+
+        onMessage: async (message: any, ws: HonoWSContext) => {
+          const messageStartTime = Date.now();
+          let messageType = "unknown";
+
+          try {
+            // Extract the actual message data
+            // In Hono's WebSocket helper, message is a MessageEvent with a data property
+            const rawData = (message as any).data ?? message;
+
+            // Handle different message types (string, Buffer, ArrayBuffer)
+            let msgStr: string;
+            if (typeof rawData === "string") {
+              msgStr = rawData;
+            } else if (rawData instanceof Buffer || rawData instanceof Uint8Array) {
+              msgStr = new TextDecoder().decode(rawData);
+            } else {
+              msgStr = String(rawData);
+            }
+            const rawMessage = JSON.parse(msgStr);
+
+            // Runtime validation of WebSocket message format
+            const validationResult = WSMessageSchema.safeParse(rawMessage);
+            if (!validationResult.success) {
+              const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+              // Always log validation errors for production debugging
+              console.error("Invalid WebSocket message format:", errorMsg);
+              ws.send(JSON.stringify({ error: "Invalid message format", details: errorMsg }));
+              return;
+            }
+
+            const data = validationResult.data as WSMessage;
+
+            // Type-safe discriminated union handling
+            if ('jsonrpc' in data && data.jsonrpc === '2.0') {
+              // Check if it's a request (has method) or response (has result/error)
+              if ('method' in data && typeof data.method === 'string') {
+                messageType = (data as JSONRPCRequest).method;
+              } else {
+                messageType = (data as JSONRPCResponse).id?.toString() || "jsonrpc-response";
+              }
+            } else if ('type' in data) {
+              messageType = (data as SimpleWSMessage).type;
+            } else {
+              messageType = "unknown";
+            }
+
+            // Telemetry: Track message processing
+            await this.recordWebSocketEvent("ws.message.received", {
+              "ws.message.type": messageType,
+              "ws.message.size_bytes": msgStr.length,
+            });
+
+            // Check if it's a JSON-RPC message
+            if ('jsonrpc' in data && data.jsonrpc === "2.0") {
+              await this.handleJSONRPCMessage(ws, data);
+            } else {
+              await this.handleWSMessage(ws, data);
+            }
+
+            // Telemetry: Track successful message processing
+            const durationMs = Date.now() - messageStartTime;
+            await this.recordWebSocketEvent("ws.message.processed", {
+              "ws.message.type": messageType,
+              "ws.message.duration_ms": durationMs,
+              "ws.message.status": "success",
+            });
+          } catch (error) {
+            const errorMsg = getErrorMessage(error);
+            const durationMs = Date.now() - messageStartTime;
+
+            // Telemetry: Track message processing error
+            await this.recordWebSocketEvent("ws.message.error", {
+              "ws.message.type": messageType,
+              "ws.message.duration_ms": durationMs,
+              "ws.message.status": "error",
+              "error.message": errorMsg,
+            });
+
+            // Always log message handling errors for operational visibility
+            console.warn(
+              `[WebSocket] Error handling ${messageType} message (${durationMs}ms): ${errorMsg}`
+            );
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: errorMsg,
+              })
+            );
+          }
+        },
+
+        onError: async (error: any) => {
+          const message = getErrorMessage(error);
+
+          // Telemetry: Track WebSocket error
+          await this.recordWebSocketEvent("ws.error", {
+            "error.type": error instanceof Error ? error.constructor.name : "unknown",
+            "error.message": message,
+          });
+
+          // Always log WebSocket errors with full context including stack trace for debugging
+          console.error("[WebSocket] Error:", error);
+        },
+      }))
+      );
+    }
+  }
+
+  /**
+   * Get OpenAPI specification document
+   * Provides a stable public API for OpenAPI spec generation.
+   *
+   * BEHAVIOR: Returns an OpenAPI spec with the version specified in `config.openapi`.
+   * The returned document will have whatever OpenAPI version was passed in the config.
+   *
+   * NOTE: Hono's getOpenAPI31Document() passes the config directly through and
+   * uses the specified version in the output. There is no forced version conversion.
+   */
+  public getOpenAPIDocument(config: {
+    openapi: string;
+    info: {
+      title: string;
+      version: string;
+      description?: string;
+      contact?: { name?: string; url?: string };
+      license?: { name: string };
+    };
+    servers?: Array<{ url: string; description?: string }>;
+  }): any {
+    return this.app.getOpenAPI31Document(config);
+  }
+
+  /**
+   * Serialize model to graph format for client consumption.
+   *
+   * Returns { nodes, links } where:
+   * - nodes: flat array of all elements across all layers
+   * - links: intra-layer relationships (carry layer_id) and cross-layer
+   *   references (carry source_layer_id + target_layer_id)
+   *
+   * Links are deduplicated: if the same relationship appears on multiple
+   * elements (e.g. stored on both source and target), only one entry is kept.
+   */
+  private async serializeModel(): Promise<any> {
+    const nodes: any[] = [];
+    const linksMap = new Map<string, any>();
+
+    // Build element-id → layer_id lookup so cross-layer reference links can
+    // carry accurate source_layer_id / target_layer_id even when the
+    // referenced element lives in a different layer.
+    const elementLayerMap = new Map<string, string>();
+    for (const [layerName, layer] of this.model.layers) {
+      for (const e of layer.listElements()) {
+        const layerId = e.layer_id || layerName;
+        if (e.id) elementLayerMap.set(e.id, layerId);
+        // Also index by path so references that use dot-separated slugs resolve correctly.
+        // For new-format elements: e.id is a UUID, e.path is the dot-separated slug.
+        // For old-format elements: e.id === e.path (both the slug), so no duplicate work.
+        if (e.path && e.path !== e.id) elementLayerMap.set(e.path, layerId);
+      }
+    }
+
+    for (const [layerName, layer] of this.model.layers) {
+      for (const e of layer.listElements()) {
+        const layerId = e.layer_id || layerName;
+
+        // Resolve a viewer-compatible spec_node_id so every element renders
+        // correctly in the v0.3.0 viewer regardless of which layer it belongs to.
+        const viewerSpecNodeId = this.resolveViewerSpecNodeId(e.id, layerId, e.type, e.spec_node_id);
+
+        // Node — all model fields for complete client-side access
+        const node: any = {
+          id: e.id,
+          spec_node_id: viewerSpecNodeId,
+          type: e.type,
+          layer_id: layerId,
+          name: e.name,
+        };
+        if (e.description) node.description = e.description;
+        if (e.attributes && Object.keys(e.attributes).length > 0) node.attributes = e.attributes;
+        if (e.source_reference) node.source_reference = e.source_reference;
+        if (e.metadata) node.metadata = e.metadata;
+
+        nodes.push(node);
+
+        // Intra-layer links from relationships
+        for (const rel of e.relationships) {
+          const linkId = `rel:${rel.source}:${rel.target}:${rel.predicate}`;
+          if (!linksMap.has(linkId)) {
+            linksMap.set(linkId, {
+              id: linkId,
+              source: rel.source,
+              target: rel.target,
+              type: rel.predicate,
+              layer_id: layerId,
+            });
+          }
+        }
+
+        // Cross-layer links from references
+        for (const ref of e.references) {
+          const linkId = `ref:${ref.source}:${ref.target}:${ref.type}`;
+          if (!linksMap.has(linkId)) {
+            linksMap.set(linkId, {
+              id: linkId,
+              source: ref.source,
+              target: ref.target,
+              type: ref.type,
+              source_layer_id: elementLayerMap.get(ref.source) || layerId,
+              target_layer_id: elementLayerMap.get(ref.target) || 'unknown',
+            });
+          }
+        }
+      }
+    }
+
+    // Central relationships.yaml links (added via `dr relationship add`)
+    // These are NOT attached to individual elements, so the per-element loop
+    // above misses them entirely. Emit them here using the same linksMap so
+    // duplicates are naturally de-duplicated.
+    for (const rel of this.model.relationships.getAll()) {
+      const linkId = `rel:${rel.source}:${rel.target}:${rel.predicate}`;
+      if (!linksMap.has(linkId)) {
+        const layerId = rel.layer || elementLayerMap.get(rel.source);
+        if (!layerId) continue; // Skip — source element not found and no layer field set
+        const link: any = {
+          id: linkId,
+          source: rel.source,
+          target: rel.target,
+          type: rel.predicate,
+        };
+        // Cross-layer relationships set targetLayer; intra-layer relationships do not.
+        // Both paths are reachable through normal CLI usage via `dr relationship add`.
+        if (rel.targetLayer) {
+          link.source_layer_id = layerId;
+          link.target_layer_id = rel.targetLayer;
+        } else {
+          link.layer_id = layerId;
+        }
+        linksMap.set(linkId, link);
+      }
+    }
+
+    return {
+      nodes,
+      links: Array.from(linksMap.values()),
+    };
+  }
+
+  /**
+   * Resolve viewer spec node ID with fallback logic
+   * Handles multiple resolution strategies:
+   * 1. Valid pass-through: Return specNodeId if it's already a valid spec node ID
+   * 2. Dot-format extraction: Extract type from elementId in "layer.type.name" format and construct candidate
+   * 3. Hyphen-format extraction: Extract type from elementId in "layer-type-name" format and construct candidate
+   * 4. Type-parameter fallback: If extracted type differs from type parameter, retry with type parameter
+   * 5. Layer-specific fallback: Use LAYER_FALLBACK map for layers with limited viewer support
+   *
+   * @param elementId - The element ID (can be in dot-format or hyphen-format)
+   * @param layer - The layer name (canonical form)
+   * @param type - The element type field
+   * @param specNodeId - The spec node ID if already known
+   * @returns The resolved spec node ID string
+   */
+  private resolveViewerSpecNodeId(
+    elementId: string,
+    layer: string,
+    type: string,
+    specNodeId: string
+  ): string {
+    // Strategy 1: Valid pass-through - return if specNodeId is valid (anywhere in the model)
+    if (specNodeId && VisualizationServer.ALL_VALID_IDS.has(specNodeId)) {
+      return specNodeId;
+    }
+
+    // Strategy 2 & 3: Extract type from elementId and construct candidate
+    // Only extract if elementId is not empty
+    let extractedType: string | null = null;
+
+    if (elementId) {
+      // Try dot-format extraction first (layer.type.name)
+      if (elementId.includes(".")) {
+        const parts = elementId.split(".");
+        if (parts.length >= 2) {
+          extractedType = parts[1]; // Second segment is the type
+        }
+      }
+
+      // If no dot-format extraction, try hyphen-format (layer-type-name)
+      if (!extractedType && elementId.includes("-")) {
+        // For multi-word layers like "data-model" or "data-store", handle specially
+        if (layer === "data-model" || layer === "data-store") {
+          // These layers have hyphens in their names
+          // For "data-model-entity-users", we need to extract after "data-model-"
+          const expectedPrefix = layer + "-";
+          if (elementId.startsWith(expectedPrefix)) {
+            const afterPrefix = elementId.substring(expectedPrefix.length);
+            const parts = afterPrefix.split("-");
+            if (parts.length >= 1) {
+              extractedType = parts[0]; // First segment after layer prefix is the type
+            }
+          }
+        } else {
+          // For single-word layers, split by hyphen and take second part
+          const parts = elementId.split("-");
+          if (parts.length >= 2) {
+            // Second segment is the type (first is layer)
+            extractedType = parts[1];
+          }
+        }
+      }
+    }
+
+    // If we extracted a type, try to construct a valid candidate
+    if (extractedType) {
+      const candidate = `${layer}.${extractedType}`;
+      const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
+      if (layerIds.includes(candidate)) {
+        return candidate;
+      }
+    }
+
+    // Strategy 4: If type param was provided, try with provided type
+    // This applies when:
+    // - extractedType is null (e.g., unparseable elementId) but type is valid
+    // - extractedType differs from type (prefer extracted over provided)
+    if (type && (!extractedType || extractedType !== type)) {
+      const candidate = `${layer}.${type}`;
+      const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
+      if (layerIds.includes(candidate)) {
+        return candidate;
+      }
+    }
+
+    // Strategy 5: Fall back to layer-specific fallback
+    if (layer in VisualizationServer.LAYER_FALLBACK) {
+      return VisualizationServer.LAYER_FALLBACK[layer];
+    }
+
+    // Default fallback for unknown layers
+    return "data-store.database";
+  }
+
+  /**
+   * Generate unique annotation ID
+   * Uses cryptographically secure random bytes for collision-resistant IDs
+   */
+  private generateAnnotationId(): string {
+    return `ann-${Date.now()}-${randomBytes(4).toString('hex')}`;
+  }
+
+  /**
+   * Generate unique reply ID
+   * Uses cryptographically secure random bytes for collision-resistant IDs
+   */
+  private generateReplyId(): string {
+    return `reply-${Date.now()}-${randomBytes(4).toString('hex')}`;
+  }
+
+  /**
+   * Broadcast message to all connected WebSocket clients
+   */
+  private async broadcastMessage(message: any): Promise<void> {
+    const messageStr = JSON.stringify(message);
+    const messageType = message.type || "unknown";
+
+    // Telemetry: Track broadcast start
+    await this.recordWebSocketEvent("ws.broadcast.start", {
+      "ws.broadcast.type": messageType,
+      "ws.broadcast.client_count": this.clients.size,
+      "ws.broadcast.message_size_bytes": messageStr.length,
+    });
+
+    let failureCount = 0;
+    const failedClients: HonoWSContext[] = [];
+
+    for (const client of this.clients) {
+      try {
+        client.send(messageStr);
+      } catch (error) {
+        failureCount++;
+        failedClients.push(client);
+        const msg = getErrorMessage(error);
+        // Always log broadcast failures for operational visibility in production
+        console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
+      }
+    }
+
+    // Remove dead clients from the active client set
+    for (const client of failedClients) {
+      this.clients.delete(client);
+    }
+
+    // Telemetry: Track broadcast completion
+    await this.recordWebSocketEvent("ws.broadcast.complete", {
+      "ws.broadcast.type": messageType,
+      "ws.broadcast.success_count": this.clients.size - failureCount,
+      "ws.broadcast.failure_count": failureCount,
+    });
+
+    // Always warn about significant broadcast failures (>10% failure rate)
+    if (failureCount > 0) {
+      const failureRate = this.clients.size > 0 ? (failureCount / this.clients.size) * 100 : 0;
+      if (failureRate >= 10 || failureCount > 5) {
+        console.warn(
+          `[WebSocket] Broadcast completed with ${failureCount}/${this.clients.size} client failures (${failureRate.toFixed(1)}% failure rate)`
+        );
+      }
+    }
+  }
+
+  /**
+   * Record WebSocket telemetry event
+   * Creates spans for WebSocket operations when telemetry is enabled
+   */
+  private async recordWebSocketEvent(
+    eventName: string,
+    attributes: Record<string, any>
+  ): Promise<void> {
+    // Check if telemetry is enabled (compile-time constant set by esbuild)
+    // @ts-ignore - TELEMETRY_ENABLED is a global constant defined at build time
+    const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
+
+    if (!isTelemetryEnabled) {
+      return;
+    }
+
+    try {
+      // Dynamic import for tree-shaking
+      const { startSpan, endSpan } = await import("../telemetry/index.js");
+
+      // Create span for WebSocket event
+      const span = startSpan(eventName, attributes);
+
+      // End span immediately (WebSocket events are typically instantaneous)
+      endSpan(span);
+    } catch (error) {
+      // Log telemetry failures to enable production debugging
+      // Always log errors (not just in DEBUG) to catch silent failures
+      console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Find an element across all layers
+   */
+  private async findElement(id: string): Promise<Element | null> {
+    for (const layer of this.model.layers.values()) {
+      const element = layer.getElement(id);
+      if (element) return element;
+    }
+    return null;
+  }
+
+  /**
+   * Handle WebSocket messages
+   */
+  private async handleWSMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
+    const simpleMsg = data as SimpleWSMessage;
+    switch (simpleMsg.type) {
+      case "subscribe":
+        // Send subscribed confirmation
+        const topics = simpleMsg.topics || ["model", "annotations"];
+        ws.send(
+          JSON.stringify({
+            type: "subscribed",
+            topics,
+            timestamp: new Date().toISOString(),
+          })
+        );
+
+        // Send initial model state
+        const modelData = await this.serializeModel();
+        ws.send(
+          JSON.stringify({
+            type: "model",
+            data: modelData,
+            timestamp: new Date().toISOString(),
+          })
+        );
+        break;
+
+      case "ping":
+        // Respond with pong
+        ws.send(
+          JSON.stringify({
+            type: "pong",
+            timestamp: new Date().toISOString(),
+          })
+        );
+        break;
+
+      case "annotate":
+        if (simpleMsg.annotation) {
+          await this.broadcastMessage({
+            type: "annotation",
+            data: simpleMsg.annotation,
+          });
+        }
+        break;
+
+      default:
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: `Unknown message type: ${simpleMsg.type}`,
+          })
+        );
+    }
+  }
+
+  /**
+   * Handle JSON-RPC 2.0 messages for chat functionality
+   */
+  private async handleJSONRPCMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
+    // Only requests have a method; responses have result/error
+    if (!('method' in data)) {
+      // This is a response, not something we handle in this function
+      // Log unexpected protocol patterns for operational visibility
+      const responseType = ('result' in data) ? 'success' : ('error' in data) ? 'error' : 'unknown';
+      const msgId = ('id' in data) ? data.id : 'unknown';
+      console.warn(
+        `[WebSocket] Received JSON-RPC ${responseType} response from client (ID: ${msgId}), ignoring`
+      );
+      return;
+    }
+    const rpcMsg = data as JSONRPCRequest;
+    const { method, params, id } = rpcMsg;
+
+    // Helper to send JSON-RPC response
+    const sendResponse = (result: any) => {
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          result,
+          id,
+        })
+      );
+    };
+
+    // Helper to send JSON-RPC error
+    const sendError = (code: number, message: string, data?: any) => {
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code, message, data },
+          id,
+        })
+      );
+    };
+
+    try {
+      switch (method) {
+        case "chat.status":
+          // Check if any chat client is available
+          const hasClient = this.selectedChatClient !== undefined;
+
+          // Determine error message: initialization error takes precedence
+          let statusError: string | null = null;
+          if (this.chatInitializationError) {
+            statusError = `Chat initialization failed: ${this.chatInitializationError.message}`;
+          } else if (!hasClient) {
+            statusError = "No chat client available. Install Claude Code or GitHub Copilot.";
+          }
+
+          sendResponse({
+            sdk_available: hasClient,
+            sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
+            error_message: statusError,
+          });
+          break;
+
+        case "chat.send":
+          // Validate params
+          if (!params || typeof params !== 'object' || !('message' in params) || typeof (params as any).message !== 'string' || (params as any).message.trim() === '') {
+            sendError(JSONRPC_ERRORS.INVALID_PARAMS, "Message cannot be empty");
+            return;
+          }
+
+          // Check if chat client is available
+          if (!this.selectedChatClient) {
+            sendError(
+              JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
+              "No chat client available. Install Claude Code or GitHub Copilot to enable chat."
+            );
+            return;
+          }
+
+          // Generate conversation ID
+          const conversationId = `conv-${++this.chatConversationCounter}-${Date.now()}`;
+
+          // Launch chat with selected client
+          await this.launchChat(ws, conversationId, (params as any).message, id);
+          break;
+
+        case "chat.cancel":
+          // Find and cancel any active conversation
+          let cancelled = false;
+          let cancelledConvId = null;
+
+          for (const [convId, process] of this.activeChatProcesses) {
+            try {
+              process.kill();
+              this.activeChatProcesses.delete(convId);
+              cancelled = true;
+              cancelledConvId = convId;
+              break;
+            } catch (error) {
+              console.warn(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
+            }
+          }
+
+          sendResponse({
+            cancelled,
+            conversation_id: cancelledConvId,
+          });
+          break;
+
+        default:
+          sendError(JSONRPC_ERRORS.METHOD_NOT_FOUND, `Method not found: ${method}`);
+      }
+    } catch (error) {
+      const errorMsg = getErrorMessage(error);
+      sendError(JSONRPC_ERRORS.INTERNAL_ERROR, "Internal error", errorMsg);
+    }
+  }
+
+  /**
+   * Launch chat with selected client and stream responses via WebSocket
+   */
+  private async launchChat(
+    ws: HonoWSContext,
+    conversationId: string,
+    message: string,
+    requestId: string | number | undefined
+  ): Promise<void> {
+    if (!this.selectedChatClient) {
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
+            message: "No chat client available",
+          },
+          id: requestId,
+        })
+      );
+      return;
+    }
+
+    // Route to appropriate client-specific handler
+    if (this.selectedChatClient instanceof ClaudeCodeClient) {
+      await this.launchClaudeCodeChat(ws, conversationId, message, requestId);
+    } else if (this.selectedChatClient instanceof CopilotClient) {
+      await this.launchCopilotChat(ws, conversationId, message, requestId);
+    } else {
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
+            message: "Unknown chat client type",
+          },
+          id: requestId,
+        })
+      );
+    }
+  }
+
+  /**
+   * Build command arguments for Claude Code launch
+   */
+  private buildClaudeChatArgs(): string[] {
+    const cmd = ["claude", "--agent", "dr-architect", "--print"];
+
+    // Apply permissions: either full access or read-safe allowlist
+    if (this.withDanger) {
+      cmd.push("--dangerously-skip-permissions");
+    } else {
+      cmd.push("--allowedTools", formatForClaudeCode());
+    }
+
+    cmd.push("--verbose", "--output-format", "stream-json");
+    return cmd;
+  }
+
+  /**
+   * Add permission flags to Copilot command based on withDanger setting
+   * Applies read-safe permissions when withDanger is false, with graceful degradation
+   * if the installed Copilot CLI doesn't support granular permission flags.
+   * @param cmd The command array to modify (will be mutated)
+   * @param variant The Copilot variant for error messages (e.g., "gh copilot" or "copilot")
+   */
+  private addCopilotPermissionFlags(cmd: string[], variant: string): void {
+    const copilotCommand = cmd[0] === "gh" ? "gh" : "copilot";
+    applyCopilotPermissions(cmd, variant, copilotCommand, this.withDanger);
+  }
+
+  /**
+   * Launch Claude Code CLI with dr-architect agent and stream responses
+   */
+  private async launchClaudeCodeChat(
+    ws: HonoWSContext,
+    conversationId: string,
+    message: string,
+    requestId: string | number | undefined
+  ): Promise<void> {
+    try {
+      const cmd = this.buildClaudeChatArgs();
+
+      // Test hook: allow tests to substitute a fixture command for the real claude binary
+      if (this._testClaudeCmdOverride) {
+        cmd.splice(0, cmd.length, ...this._testClaudeCmdOverride);
+      }
+
+      // Launch claude with dr-architect agent for comprehensive DR expertise
+      const proc = spawn(cmd[0], cmd.slice(1), {
+        cwd: this.model.rootPath,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      // Node reports spawn failures (e.g. ENOENT if `claude` isn't on PATH) asynchronously
+      // via an 'error' event rather than a synchronous throw. Without this handler, an
+      // unhandled 'error' event on the ChildProcess EventEmitter throws and crashes the
+      // whole server (server-entry.ts's uncaughtException handler tears the process down)
+      // instead of just failing this one chat request.
+      proc.on("error", (err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(
+          `[Claude Code] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
+        );
+        this.activeChatProcesses.delete(conversationId);
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Failed to launch Claude Code: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(
+            `[Claude Code] Failed to send spawn-error notification: ${getErrorMessage(sendError)}`
+          );
+        }
+      });
+      // A failed spawn also destroys the stdio streams Node already created, which can
+      // raise a second, separate unhandled 'error' event on `proc.stdin` itself. Swallow
+      // it here since the handler above already reports the failure to the client.
+      proc.stdin?.on("error", () => {});
+
+      // Store active process
+      this.activeChatProcesses.set(conversationId, proc);
+
+      // Send user message via stdin (like Python prototype)
+      proc.stdin?.write(message);
+      proc.stdin?.end();
+
+      // Stream stdout (JSON events)
+      const decoder = new TextDecoder();
+
+      const streamOutput = async () => {
+        let accumulatedText = "";
+        let buffer = "";
+
+        try {
+          for await (const chunkBuf of proc.stdout!) {
+            const chunk = decoder.decode(chunkBuf, { stream: true });
+            buffer += chunk;
+
+            // Process complete lines (JSON events)
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+
+              try {
+                const event = JSON.parse(line);
+
+                if (event.type === "assistant") {
+                  // Extract content blocks from assistant message
+                  const content = event.message?.content || [];
+                  for (const block of content) {
+                    if (block.type === "text") {
+                      accumulatedText += block.text;
+                      // Send text chunk notification
+                      ws.send(
+                        JSON.stringify({
+                          jsonrpc: "2.0",
+                          method: "chat.response.chunk",
+                          params: {
+                            conversation_id: conversationId,
+                            content: block.text,
+                            is_final: false,
+                            timestamp: new Date().toISOString(),
+                          },
+                        })
+                      );
+                    } else if (block.type === "tool_use") {
+                      // Send tool invocation notification
+                      ws.send(
+                        JSON.stringify({
+                          jsonrpc: "2.0",
+                          method: "chat.tool.invoke",
+                          params: {
+                            conversation_id: conversationId,
+                            tool_name: block.name,
+                            tool_input: block.input,
+                            timestamp: new Date().toISOString(),
+                          },
+                        })
+                      );
+                    }
+                  }
+                } else if (event.type === "result") {
+                  // Tool result
+                  ws.send(
+                    JSON.stringify({
+                      jsonrpc: "2.0",
+                      method: "chat.tool.result",
+                      params: {
+                        conversation_id: conversationId,
+                        result: event.result,
+                        timestamp: new Date().toISOString(),
+                      },
+                    })
+                  );
+                }
+              } catch (parseError) {
+                // Non-JSON line, send as raw text chunk
+                if (process.env.DEBUG) {
+                  console.debug(`[Chat] Failed to parse JSON chunk: ${getErrorMessage(parseError)}`);
+                }
+                ws.send(
+                  JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "chat.response.chunk",
+                    params: {
+                      conversation_id: conversationId,
+                      content: line + "\n",
+                      is_final: false,
+                      timestamp: new Date().toISOString(),
+                    },
+                  })
+                );
+              }
+            }
+          }
+
+          // Process remaining buffer
+          if (buffer.trim()) {
+            ws.send(
+              JSON.stringify({
+                jsonrpc: "2.0",
+                method: "chat.response.chunk",
+                params: {
+                  conversation_id: conversationId,
+                  content: buffer,
+                  is_final: true,
+                  timestamp: new Date().toISOString(),
+                },
+              })
+            );
+          }
+
+          // Wait for process to complete
+          const exitCode = await this.waitForExit(proc);
+
+          // Clean up
+          this.activeChatProcesses.delete(conversationId);
+
+          // Send completion response
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              result: {
+                conversation_id: conversationId,
+                status: exitCode === 0 ? "complete" : "error",
+                exit_code: exitCode,
+                full_response: accumulatedText,
+                timestamp: new Date().toISOString(),
+              },
+              id: requestId,
+            })
+          );
+        } catch (error) {
+          // A process that never actually spawned (see the proc.on("error", ...)
+          // handler above, which already reported this failure to the client) has no
+          // pid - Node assigns one synchronously only once posix_spawn succeeds. Bail
+          // out here instead of sending a second, duplicate JSON-RPC response for the
+          // same request or trying to kill a process that never started.
+          if (!proc.pid) {
+            return;
+          }
+
+          const errorMsg = getErrorMessage(error);
+
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Chat failed: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+
+          this.activeChatProcesses.delete(conversationId);
+
+          try {
+            await this.killProcessWithRetry(proc, conversationId, "Claude Code");
+          } catch (error) {
+            console.error(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+          }
+        }
+      };
+
+      // Start streaming in background
+      streamOutput().catch((err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(`[Claude Code] Stream error: ${errorMsg}`);
+
+        // Notify client of stream failure via WebSocket
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Stream error: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(`[Claude Code] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
+        }
+      });
+    } catch (error) {
+      const errorMsg = getErrorMessage(error);
+
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: JSONRPC_ERRORS.INTERNAL_ERROR,
+            message: `Failed to launch Claude Code: ${errorMsg}`,
+          },
+          id: requestId,
+        })
+      );
+    }
+  }
+
+  /**
+   * Launch GitHub Copilot CLI and stream responses via WebSocket
+   */
+  private async launchCopilotChat(
+    ws: HonoWSContext,
+    conversationId: string,
+    message: string,
+    requestId: string | number | undefined
+  ): Promise<void> {
+    try {
+      // Determine which command to use (gh copilot or standalone copilot)
+      let cmd: string[];
+
+      // Test hook: allow tests to substitute a fixture command for the real copilot binary
+      if (this._testCopilotCmdOverride) {
+        cmd = [...this._testCopilotCmdOverride];
+      } else {
+        // Check if gh CLI with copilot extension is available
+        const ghResult = spawnSync("gh", ["copilot", "--version"], {
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+
+        // Log why we're falling back to standalone copilot, for debuggability: `gh`
+        // missing (ENOENT), `gh` present but the copilot extension isn't installed
+        // (non-zero exit), or another spawn failure are otherwise indistinguishable.
+        if (ghResult.error) {
+          console.warn(
+            `[Copilot] 'gh copilot --version' probe failed to spawn: ${getErrorMessage(ghResult.error)}`
+          );
+        } else if (ghResult.status !== 0 && process.env.VERBOSE) {
+          console.log(
+            `[Copilot] 'gh copilot' unavailable (exit ${ghResult.status}), falling back to standalone 'copilot'`
+          );
+        }
+
+        if (ghResult.status === 0) {
+          cmd = ["gh", "copilot", "explain"];
+          this.addCopilotPermissionFlags(cmd, "gh copilot");
+          cmd.push(message);
+        } else {
+          // Try standalone copilot
+          cmd = ["copilot", "explain"];
+          this.addCopilotPermissionFlags(cmd, "copilot");
+          cmd.push(message);
+        }
+      }
+
+      // Launch GitHub Copilot
+      const proc = spawn(cmd[0], cmd.slice(1), {
+        cwd: this.model.rootPath,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      // See the matching handler in launchClaudeCodeChat: Node reports spawn failures
+      // (e.g. ENOENT if `gh`/`copilot` isn't on PATH) asynchronously via an 'error'
+      // event, and an unhandled one would crash the whole server instead of just this
+      // one chat request.
+      proc.on("error", (err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(
+          `[Copilot] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
+        );
+        this.activeChatProcesses.delete(conversationId);
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Failed to launch GitHub Copilot: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(
+            `[Copilot] Failed to send spawn-error notification: ${getErrorMessage(sendError)}`
+          );
+        }
+      });
+      // See the matching guard in launchClaudeCodeChat: a failed spawn can also raise a
+      // separate unhandled 'error' event on the stdin stream Node already created.
+      proc.stdin?.on("error", () => {});
+
+      // Store active process
+      this.activeChatProcesses.set(conversationId, proc);
+
+      // GitHub Copilot outputs plain text/markdown (not JSON)
+      const decoder = new TextDecoder();
+
+      const streamOutput = async () => {
+        let accumulatedText = "";
+
+        try {
+          for await (const chunkBuf of proc.stdout!) {
+            const chunk = decoder.decode(chunkBuf, { stream: true });
+            accumulatedText += chunk;
+
+            // Send text chunk as it arrives
+            ws.send(
+              JSON.stringify({
+                jsonrpc: "2.0",
+                method: "chat.response.chunk",
+                params: {
+                  conversation_id: conversationId,
+                  content: chunk,
+                  is_final: false,
+                  timestamp: new Date().toISOString(),
+                },
+              })
+            );
+          }
+
+          // Wait for process to complete
+          const exitCode = await this.waitForExit(proc);
+
+          // Clean up
+          this.activeChatProcesses.delete(conversationId);
+
+          // Send completion response
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              result: {
+                conversation_id: conversationId,
+                status: exitCode === 0 ? "complete" : "error",
+                exit_code: exitCode,
+                full_response: accumulatedText,
+                timestamp: new Date().toISOString(),
+              },
+              id: requestId,
+            })
+          );
+        } catch (error) {
+          // See the matching guard in launchClaudeCodeChat: a process that never
+          // actually spawned has no pid, and its own proc.on("error", ...) handler
+          // above already reported the failure - avoid a duplicate response/kill.
+          if (!proc.pid) {
+            return;
+          }
+
+          const errorMsg = getErrorMessage(error);
+
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Chat failed: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+
+          this.activeChatProcesses.delete(conversationId);
+
+          try {
+            await this.killProcessWithRetry(proc, conversationId, "Copilot");
+          } catch (error) {
+            console.error(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+          }
+        }
+      };
+
+      // Start streaming in background
+      streamOutput().catch((err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(`[Copilot] Stream error: ${errorMsg}`);
+
+        // Notify client of stream failure via WebSocket
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Stream error: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(`[Copilot] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
+        }
+      });
+    } catch (error) {
+      const errorMsg = getErrorMessage(error);
+
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: JSONRPC_ERRORS.INTERNAL_ERROR,
+            message: `Failed to launch GitHub Copilot: ${errorMsg}`,
+          },
+          id: requestId,
+        })
+      );
+    }
+  }
+
+  /**
+   * Setup file watcher for model changes
+   */
+  private setupFileWatcher(): void {
+    const modelPath = `${this.model.rootPath}/documentation-robotics/model`;
+
+    // Use chokidar for consistent, well-tested cross-platform recursive watching
+    // rather than Node's built-in recursive fs.watch (Linux support for the
+    // `recursive` option only landed in Node 19.1.0, and its maturity/event
+    // semantics still vary more by platform than chokidar's).
+    try {
+      this.watcher = chokidar.watch(modelPath, {
+        persistent: true,
+        ignoreInitial: true,
+      });
+
+      this.watcher.on("all", async (_event: string, path: string) => {
+        if (process.env.VERBOSE) {
+          console.log(`[Watcher] File changed: ${path}`);
+        }
+
+        try {
+          // Reload model and changesets
+          this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
+          await this.loadChangesetsFromDisk();
+
+          // Broadcast update to all clients
+          const modelData = await this.serializeModel();
+          const message = JSON.stringify({
+            type: "model.updated",
+            data: modelData,
+            timestamp: new Date().toISOString(),
+          });
+
+          for (const client of this.clients) {
+            try {
+              client.send(message);
+            } catch (error) {
+              const msg = getErrorMessage(error);
+              console.warn(`[Watcher] Failed to send update: ${msg}`);
+            }
+          }
+        } catch (error) {
+          const message = getErrorMessage(error);
+          console.error(`[Watcher] Failed to reload model: ${message}`);
+        }
+      });
+
+      this.watcher.on("error", (err: unknown) => {
+        console.warn(`[Watcher] Could not watch ${modelPath}: ${getErrorMessage(err)}`);
+      });
+    } catch (err) {
+      console.warn(`[Watcher] Could not watch ${modelPath}: ${err}`);
+    }
+  }
+
+  /**
+   * Load all JSON schemas from bundled directory (recursive)
+   * Loads schemas from all subdirectories: base/, nodes/, relationships/, etc.
+   */
+  private async loadSchemas(): Promise<Record<string, any>> {
+    const schemasPath = new URL("../schemas/bundled/", import.meta.url).pathname;
+    const schemas: Record<string, any> = {};
+
+    try {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Recursive function to walk through directories
+      const walkDirectory = async (dir: string, prefix: string = ""): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const schemaKey = prefix ? `${prefix}/${entry.name}` : entry.name;
+
+          if (entry.isDirectory()) {
+            // Recursively walk subdirectories
+            await walkDirectory(fullPath, schemaKey);
+          } else if (entry.isFile() && (entry.name.endsWith(".schema.json") || entry.name.endsWith(".json"))) {
+            // Load JSON schema files
+            const content = await fs.readFile(fullPath, "utf-8");
+            try {
+              schemas[schemaKey] = JSON.parse(content);
+            } catch (parseError) {
+              const parseErrorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+              throw new Error(`Invalid JSON in schema file ${fullPath}: ${parseErrorMsg}`);
+            }
+          }
+        }
+      };
+
+      await walkDirectory(schemasPath);
+
+      return schemas;
+    } catch (error) {
+      const errorMsg = getErrorMessage(error);
+      console.error("Failed to load schemas:", error);
+      throw new Error(`Failed to load schema files: ${errorMsg}`);
+    }
+  }
+
+  /**
+   * Get viewer HTML
+   */
+  private getViewerHTML(): string {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation Robotics Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.connected {
+      background: #4caf50;
+      color: white;
+    }
+
+    .status-badge.disconnected {
+      background: #f44336;
+      color: white;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      height: calc(100vh - 100px);
+    }
+
+    .sidebar {
+      background: white;
+      border-radius: 4px;
+      overflow-y: auto;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 16px;
+    }
+
+    .main-panel {
+      background: white;
+      border-radius: 4px;
+      overflow-y: auto;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+
+    .layer-group {
+      margin-bottom: 16px;
+    }
+
+    .layer-header {
+      font-weight: 600;
+      padding: 8px 0;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .layer-header:hover {
+      color: #2196F3;
+    }
+
+    .layer-header::before {
+      content: '▶';
+      margin-right: 8px;
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+
+    .layer-header.expanded::before {
+      transform: rotate(90deg);
+    }
+
+    .layer-elements {
+      margin-left: 16px;
+      display: none;
+    }
+
+    .layer-elements.expanded {
+      display: block;
+    }
+
+    .element-item {
+      padding: 8px;
+      margin-bottom: 4px;
+      background: #f9f9f9;
+      border-left: 3px solid #e0e0e0;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+
+    .element-item:hover {
+      background: #f0f0f0;
+      border-left-color: #2196F3;
+    }
+
+    .element-item.selected {
+      background: #e3f2fd;
+      border-left-color: #2196F3;
+      font-weight: 500;
+    }
+
+    .element-details {
+      min-height: 300px;
+    }
+
+    .detail-header {
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .detail-header h2 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .detail-header .element-type {
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-section {
+      margin-bottom: 16px;
+    }
+
+    .detail-section h3 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+      word-break: break-word;
+    }
+
+    .annotations-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 8px;
+    }
+
+    .annotation-item {
+      padding: 8px;
+      margin-bottom: 8px;
+      background: #fffde7;
+      border-left: 3px solid #fbc02d;
+      border-radius: 2px;
+      font-size: 12px;
+    }
+
+    .annotation-item .author {
+      font-weight: 600;
+      color: #666;
+    }
+
+    .annotation-item .text {
+      margin: 4px 0 0 0;
+      color: #333;
+    }
+
+    .annotation-item .timestamp {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .annotation-form {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .annotation-form input,
+    .annotation-form textarea {
+      padding: 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    .annotation-form textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .annotation-form button {
+      padding: 8px 12px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .annotation-form button:hover {
+      background: #1976D2;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #2196F3;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .stats {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div>
+        <h1>📚 Documentation Robotics Viewer</h1>
+      </div>
+      <div class="status-badge connected" id="status">● Connected</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="content">
+      <div class="sidebar">
+        <div class="stats" id="stats">Loading...</div>
+        <div id="model-tree">
+          <div class="loading">Loading model...</div>
+        </div>
+      </div>
+
+      <div class="main-panel">
+        <div id="element-details">
+          <div class="loading">Select an element to view details</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentModel = null;
+    let selectedElementId = null;
+
+    const statusEl = document.getElementById('status');
+    const modelTreeEl = document.getElementById('model-tree');
+    const detailsEl = document.getElementById('element-details');
+    const statsEl = document.getElementById('stats');
+
+    /**
+     * Escape HTML special characters to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} HTML-escaped text
+     */
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Extract token from URL query parameters if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    // Log token status for debugging
+    if (!token) {
+      console.warn('[WebSocket] No authentication token found in URL. If authentication is enabled, connection will fail.');
+      console.warn('[WebSocket] Expected URL format: http://localhost:PORT?token=YOUR_TOKEN');
+    } else {
+      console.log('[WebSocket] Found authentication token in URL');
+    }
+
+    // Build WebSocket URL with token if available
+    let wsUrl = \`ws://\${window.location.host}/ws\`;
+    if (token) {
+      wsUrl += \`?token=\${encodeURIComponent(token)}\`;
+    }
+
+    console.log('[WebSocket] Connecting to:', wsUrl.replace(/token=[^&]+/, 'token=***'));
+
+    const ws = new WebSocket(wsUrl);
+
+    ws.addEventListener('open', () => {
+      console.log('WebSocket connected');
+      updateStatus(true);
+      ws.send(JSON.stringify({ type: 'subscribe' }));
+    });
+
+    ws.addEventListener('message', (event) => {
+      try {
+        const message = JSON.parse(event.data);
+
+        if (message.type === 'model' || message.type === 'model-update') {
+          currentModel = message.data;
+          renderModel();
+        } else if (message.type === 'annotation') {
+          // Update annotations for the element
+          renderSelectedElement();
+        } else if (message.type === 'error') {
+          console.error('WebSocket error:', message.message);
+        }
+      } catch (error) {
+        console.error('Failed to parse message:', error);
+      }
+    });
+
+    ws.addEventListener('close', (event) => {
+      console.log('WebSocket disconnected', event.code, event.reason);
+      updateStatus(false);
+
+      // If closed immediately with auth error codes, show helpful message
+      if (!token && (event.code === 1002 || event.code === 1008 || event.code === 1006)) {
+        showAuthError();
+      }
+    });
+
+    ws.addEventListener('error', (error) => {
+      console.error('WebSocket error:', error);
+      updateStatus(false);
+
+      // If we don't have a token, likely an auth issue
+      if (!token) {
+        showAuthError();
+      }
+    });
+
+    function showAuthError() {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #f44336; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; max-width: 500px; text-align: center;';
+      errorDiv.innerHTML = \`
+        <strong>⚠️ Authentication Required</strong><br>
+        <span style="font-size: 14px; margin-top: 8px; display: inline-block;">
+          Please use the full URL with authentication token from the terminal.
+        </span>
+      \`;
+      document.body.appendChild(errorDiv);
+
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => {
+        errorDiv.style.transition = 'opacity 0.5s';
+        errorDiv.style.opacity = '0';
+        setTimeout(() => errorDiv.remove(), 500);
+      }, 10000);
+    }
+
+    function updateStatus(connected) {
+      if (connected) {
+        statusEl.className = 'status-badge connected';
+        statusEl.textContent = '● Connected';
+      } else {
+        statusEl.className = 'status-badge disconnected';
+        statusEl.textContent = '● Disconnected';
+      }
+    }
+
+    function renderModel() {
+      if (!currentModel) return;
+
+      // Update stats
+      const layerCount = Object.keys(currentModel.layers).length;
+      const elementCount = currentModel.totalElements || 0;
+      statsEl.textContent = \`\${layerCount} layers · \${elementCount} elements\`;
+
+      // Render layers and elements
+      modelTreeEl.innerHTML = '';
+      const layers = Object.entries(currentModel.layers)
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
+      for (const [layerName, layerData] of layers) {
+        const layerDiv = document.createElement('div');
+        layerDiv.className = 'layer-group';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'layer-header';
+        headerDiv.textContent = layerName;
+        headerDiv.addEventListener('click', () => {
+          headerDiv.classList.toggle('expanded');
+          elementsDiv.classList.toggle('expanded');
+        });
+
+        const elementsDiv = document.createElement('div');
+        elementsDiv.className = 'layer-elements';
+
+        for (const element of layerData.elements) {
+          const elemDiv = document.createElement('div');
+          elemDiv.className = 'element-item';
+          const elementSlug = element.path || element.id;
+          if (elementSlug === selectedElementId) {
+            elemDiv.classList.add('selected');
+          }
+          elemDiv.innerHTML = \`\${escapeHtml(elementSlug)}<br><span style="font-size: 11px; color: #999;">\${escapeHtml(element.name)}</span>\`;
+          elemDiv.addEventListener('click', () => {
+            selectedElementId = elementSlug;
+            document.querySelectorAll('.element-item').forEach(el => el.classList.remove('selected'));
+            elemDiv.classList.add('selected');
+            renderSelectedElement();
+          });
+
+          elementsDiv.appendChild(elemDiv);
+        }
+
+        layerDiv.appendChild(headerDiv);
+        layerDiv.appendChild(elementsDiv);
+        modelTreeEl.appendChild(layerDiv);
+      }
+    }
+
+    function renderSelectedElement() {
+      if (!selectedElementId || !currentModel) {
+        detailsEl.innerHTML = '<div class="loading">Select an element to view details</div>';
+        return;
+      }
+
+      // Find element in model
+      let element = null;
+      for (const layer of Object.values(currentModel.layers)) {
+        element = layer.elements.find(e => (e.path || e.id) === selectedElementId);
+        if (element) break;
+      }
+
+      if (!element) {
+        detailsEl.innerHTML = '<div class="loading">Element not found</div>';
+        return;
+      }
+
+      let html = \`
+        <div class="detail-header">
+          <div class="element-type">\${escapeHtml(element.type)}</div>
+          <h2>\${escapeHtml(element.name)}</h2>
+          <div style="font-size: 12px; color: #666; margin-top: 4px;"><code>\${escapeHtml(element.path || element.id)}</code></div>
+        </div>
+      \`;
+
+      if (element.description) {
+        html += \`
+          <div class="detail-section">
+            <h3>Description</h3>
+            <div class="detail-value">\${escapeHtml(element.description)}</div>
+          </div>
+        \`;
+      }
+
+      if (element.properties && Object.keys(element.properties).length > 0) {
+        html += \`
+          <div class="detail-section">
+            <h3>Properties</h3>
+            <div class="detail-value"><pre>\${escapeHtml(JSON.stringify(element.properties, null, 2))}</pre></div>
+          </div>
+        \`;
+      }
+
+      if (element.annotations && element.annotations.length > 0) {
+        html += \`
+          <div class="detail-section">
+            <h3>Annotations</h3>
+            <div class="annotations-list">
+              \${element.annotations.map(ann => \`
+                <div class="annotation-item">
+                  <div class="author">\${escapeHtml(ann.author)}</div>
+                  <div class="text">\${escapeHtml(ann.text)}</div>
+                  <div class="timestamp">\${new Date(ann.timestamp).toLocaleString()}</div>
+                </div>
+              \`).join('')}
+            </div>
+          </div>
+        \`;
+      }
+
+      html += \`
+        <div class="detail-section">
+          <h3>Add Annotation</h3>
+          <form class="annotation-form" onsubmit="addAnnotation(event, '\${escapeHtml(element.path || element.id)}')">
+            <input type="text" placeholder="Author name" id="ann-author" required>
+            <textarea placeholder="Annotation text" id="ann-text" required></textarea>
+            <button type="submit">Add Annotation</button>
+          </form>
+          <div id="ann-error" style="margin-top: 8px; min-height: 1.2em;"></div>
+        </div>
+      \`;
+
+      detailsEl.innerHTML = html;
+    }
+
+    function addAnnotation(event, elementId) {
+      event.preventDefault();
+
+      const author = document.getElementById('ann-author').value;
+      const text = document.getElementById('ann-text').value;
+
+      if (!author || !text) return;
+
+      // Send to server using new annotation API
+      fetch('/api/annotations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ elementId, author, content: text })
+      })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data && data.id) {
+            document.getElementById('ann-author').value = '';
+            document.getElementById('ann-text').value = '';
+            const errorDiv = document.getElementById('ann-error');
+            if (errorDiv) errorDiv.textContent = '';
+          } else if (!ok) {
+            const errorMsg = (data && data.error) ? data.error : 'Failed to create annotation';
+            const errorDiv = document.getElementById('ann-error');
+            if (errorDiv) {
+              errorDiv.textContent = 'Error: ' + errorMsg;
+              errorDiv.style.color = '#d32f2f';
+              errorDiv.style.marginTop = '8px';
+            }
+          }
+        })
+        .catch(err => {
+          const errorDiv = document.getElementById('ann-error');
+          if (errorDiv) {
+            errorDiv.textContent = 'Error: Failed to add annotation: ' + err.message;
+            errorDiv.style.color = '#d32f2f';
+            errorDiv.style.marginTop = '8px';
+          }
+        });
+    }
+  </script>
+</body>
+</html>`;
+  }
+
+  /**
+   * Serve a file from the custom viewer path
+   */
+  private async serveCustomViewer(filePath: string): Promise<Response> {
+    if (process.env.VERBOSE) console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
+
+    if (!this.viewerPath) {
+      console.error(`[VIEWER] Custom viewer path not configured`);
+      return new Response("Custom viewer path not configured", { status: 500 });
+    }
+
+    try {
+      const path = await import("path");
+      const fs = await import("fs/promises");
+
+      // Resolve absolute path and prevent directory traversal
+      const fullPath = path.resolve(this.viewerPath, filePath);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Resolved path: ${fullPath}`);
+
+      // Security check: ensure the resolved path is within viewerPath
+      if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
+        console.error(`[VIEWER] Security check failed - path outside viewer directory`);
+        return new Response("Forbidden", { status: 403 });
+      }
+
+      // Read file
+      if (process.env.VERBOSE) console.log(`[VIEWER] Reading file: ${fullPath}`);
+      const content = await fs.readFile(fullPath);
+
+      // Determine content type
+      const ext = path.extname(fullPath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        ".html": "text/html",
+        ".css": "text/css",
+        ".js": "application/javascript",
+        ".json": "application/json",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".ico": "image/x-icon",
+        ".woff": "font/woff",
+        ".woff2": "font/woff2",
+        ".ttf": "font/ttf",
+        ".eot": "application/vnd.ms-fontobject",
+      };
+
+      const contentType = contentTypes[ext] || "application/octet-stream";
+
+      if (process.env.VERBOSE)
+        console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
+      return new Response(content, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+        },
+      });
+    } catch (error) {
+      if ((error as any).code === "ENOENT") {
+        console.error(`[VIEWER] File not found: ${filePath}`);
+        return new Response("File not found", { status: 404 });
+      }
+      console.error(`[VIEWER] Error serving custom viewer file ${filePath}:`, error);
+      return new Response("Internal server error", { status: 500 });
+    }
+  }
+
+  /**
+   * Load all changesets from disk into the in-memory map
+   */
+  private async loadChangesetsFromDisk(): Promise<void> {
+    if (!this.changesetStorage) return;
+    try {
+      const changesets = await this.changesetStorage.list();
+      this.changesets.clear();
+      for (const cs of changesets) {
+        this.changesets.set(cs.id, cs);
+      }
+      if (process.env.VERBOSE) {
+        console.log(`[Changesets] Loaded ${changesets.length} changeset(s) from disk`);
+      }
+    } catch (err) {
+      console.warn(`[Changesets] Warning: Failed to load changesets from disk: ${err}`);
+    }
+  }
+
+  /**
+   * Start the server
+   */
+  async start(port: number = 8080): Promise<void> {
+    // Initialize changeset storage and load from disk
+    this.changesetStorage = new StagedChangesetStorage(this.model.rootPath);
+    await this.loadChangesetsFromDisk();
+
+    this.setupFileWatcher();
+
+    // @hono/node-server works identically under Node.js and Bun (both implement
+    // Node's http module), so no runtime-specific branching is needed here.
+    this._server = serve({
+      port,
+      fetch: this.app.fetch,
+    });
+
+    // Node reports bind failures (e.g. EADDRINUSE from a still-running previous
+    // instance) asynchronously via an 'error' event rather than a synchronous throw.
+    // Waiting on it here turns that into a clean, catchable rejection instead of an
+    // unhandled 'error' event that would otherwise crash the whole process via
+    // server-entry.ts's uncaughtException handler.
+    await new Promise<void>((resolve, reject) => {
+      this._server!.once("listening", resolve);
+      this._server!.once("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "EADDRINUSE") {
+          reject(new Error(`Port ${port} is already in use. Try a different port with --port <port>.`));
+        } else {
+          reject(err);
+        }
+      });
+    });
+
+    // Wire up the WebSocket upgrade handler on the underlying HTTP server
+    this.injectWebSocket?.(this._server);
+
+    console.log(`✓ Visualization server running at http://localhost:${port}`);
+  }
+
+  /**
+   * Get the current auth token
+   */
+  getAuthToken(): string {
+    return this.authToken;
+  }
+
+  /**
+   * Check if authentication is enabled
+   */
+  isAuthEnabled(): boolean {
+    return this.authEnabled;
+  }
+
+  /**
+   * Wait for a spawned child process to exit and resolve with its exit code
+   * Node's ChildProcess doesn't expose a Bun-style `.exited` promise, so this
+   * wraps the "exit" event (or the already-set exitCode, if it fired before
+   * we started listening).
+   */
+  private waitForExit(proc: ChildProcess): Promise<number> {
+    return new Promise((resolve) => {
+      if (proc.exitCode !== null) {
+        resolve(proc.exitCode);
+        return;
+      }
+      proc.once("exit", (code) => resolve(code ?? 0));
+    });
+  }
+
+  /**
+   * Whether a child process has actually terminated.
+   *
+   * NOTE: Node's `ChildProcess.killed` means "kill() was successfully used to send a
+   * signal" — it does NOT mean the process has exited (a process can ignore SIGTERM
+   * and keep running with `.killed === true`). This differs from Bun's
+   * `Subprocess.killed`, which does mean "has the process exited". Use exitCode/
+   * signalCode (set only once the process has actually terminated) instead of
+   * `.killed` to decide whether retry/escalation is still needed.
+   */
+  private hasExited(proc: ChildProcess): boolean {
+    return proc.exitCode !== null || proc.signalCode !== null;
+  }
+
+  /**
+   * Kill a process with retry logic and exponential backoff
+   * Attempts graceful SIGTERM first, then force SIGKILL if needed
+   */
+  private async killProcessWithRetry(
+    proc: ChildProcess,
+    conversationId: string,
+    label: string
+  ): Promise<void> {
+    const maxRetries = 3;
+    let attempt = 0;
+    const baseDelay = 100; // milliseconds
+
+    while (attempt < maxRetries) {
+      try {
+        if (this.hasExited(proc)) {
+          // Process already terminated
+          return;
+        }
+
+        // Try graceful termination with SIGTERM
+        proc.kill("SIGTERM");
+
+        // Wait for process to exit gracefully
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (this.hasExited(proc)) {
+          return;
+        }
+      } catch (error) {
+        // Continue to retry
+      }
+
+      attempt++;
+      if (attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    // Force kill if graceful shutdown failed
+    try {
+      if (!this.hasExited(proc)) {
+        proc.kill("SIGKILL");
+        console.warn(
+          `[${label}] Process for conversation ${conversationId} did not respond to SIGTERM, force killed with SIGKILL`
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Stop the server
+   */
+  stop(): void {
+    // Close all WebSocket connections
+    for (const client of this.clients) {
+      try {
+        client.close();
+      } catch (error) {
+        // Log unexpected errors regardless of VERBOSE flag for operational visibility
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('already closed')) {
+          console.warn(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
+        }
+      }
+    }
+    this.clients.clear();
+
+    // Stop file watcher
+    if (this.watcher) {
+      this.watcher.close?.();
+    }
+
+    // Stop the server
+    if (this._server) {
+      this._server.close((error) => {
+        if (error && process.env.VERBOSE) {
+          console.warn(`[SERVER] Error while closing HTTP server: ${getErrorMessage(error)}`);
+        }
+      });
+    }
+  }
+}

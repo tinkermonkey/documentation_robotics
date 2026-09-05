@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InputSpacePartition",
+  "description": "Partitioning of an input dimension into testable equivalence classes, where each class groups values expected to behave identically under test. Enables systematic, structured coverage analysis per IEEE 829-2008 equivalence partitioning guidance by ensuring distinct behavioral categories are explicitly identified before test case selection.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.inputspacepartition"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "inputspacepartition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "fieldRef": {
+          "type": "string"
+        },
+        "presenceRule": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "conditional",
+            "forbidden",
+            "mutually-exclusive"
+          ],
+          "description": "Whether this input field must be present in test inputs for this partition"
+        }
+      },
+      "required": ["fieldRef", "presenceRule"],
+      "additionalProperties": false
+    }
+  }
+}

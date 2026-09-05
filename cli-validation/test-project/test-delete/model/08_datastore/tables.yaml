@@ -1,0 +1,11 @@
+Todos Table:
+  name: Todos Table
+  description: Database table storing todo items
+  schema: public
+  id: todos-table
+  columns:
+    - todos-id-column
+    - todos-title-column
+    - todos-done-column
+  constraints:
+    - todos-pkey-constraint

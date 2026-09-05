@@ -1,0 +1,118 @@
+name: "Changeset Operations"
+description: "Test changeset lifecycle: create, activate, deactivate, apply, list, revert; and complex operations with multiple elements and deletions"
+priority: medium
+
+pipelines:
+  - name: "Changeset core lifecycle"
+    description: "Tests fundamental changeset operations: create, activate, deactivate, apply, list, and revert"
+    steps:
+      - command: "changeset create core-lifecycle-changeset --description 'Test changeset for lifecycle validation'"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Created"
+          - "core-lifecycle-changeset"
+
+      - command: "changeset activate core-lifecycle-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
+      - command: 'add motivation goal lifecycle-goal-001 --name ''Lifecycle Test Goal'' --description ''Goal created within changeset'' --attributes ''{"priority": "medium"}'''
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Staged"
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
+
+      - command: "changeset apply core-lifecycle-changeset --no-validate --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Applied"
+
+      - command: "changeset list"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "changeset"
+
+      - command: "changeset revert core-lifecycle-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Reverted"
+
+  - name: "Changeset with multiple elements and relationships"
+    description: "Tests complex changeset operations: multiple element additions, relationship creation, and element deletion"
+    steps:
+      - command: "changeset create complex-ops-changeset --description 'Changeset with multiple element changes and relationships'"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Created"
+
+      - command: "changeset activate complex-ops-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
+      - command: "add business process multi-process-001 --name 'Multi Process First' --description 'First business process in changeset'"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "add business process multi-process-002 --name 'Multi Process Second' --description 'Second business process for relationship'"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: 'add motivation goal multi-goal-001 --name ''Multi Goal'' --description ''Goal for deletion testing'' --attributes ''{"priority": "medium"}'''
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
+
+      - command: "changeset apply complex-ops-changeset --no-validate --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+          - 02_business/business_process.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Applied"
+
+      - command: "relationship add business.businessprocess.multi-process-001 business.businessprocess.multi-process-002 --predicate flows-to"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete business.businessprocess.multi-process-001 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/business_process.yaml
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete business.businessprocess.multi-process-002 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/business_process.yaml
+        expect_exit_code: 0
+
+      - command: "delete motivation.goal.multi-goal-001 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0

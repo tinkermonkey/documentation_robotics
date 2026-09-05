@@ -1,0 +1,100 @@
+{
+  "name": "@documentation-robotics/cli",
+  "version": "0.1.13",
+  "description": "CLI for Documentation Robotics",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "dr": "dist/cli.js"
+  },
+  "files": [
+    "dist/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
+    "pretest": "[ -f dist/cli.js ] || npm run build",
+    "build:debug": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
+    "build:ci": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts --strict && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
+    "sync-schemas": "bash scripts/sync-spec-schemas.sh",
+    "copy-schemas": "cp -r src/schemas dist/",
+    "generate-layer-reports": "bun run ../scripts/generate-layer-reports.ts",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
+    "dev": "node dist/cli.js",
+    "lint": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
+    "test": "bun test --timeout=30000 --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/audit/ ./tests/unit/export/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 ./tests/unit/analyzers/ ; bun test --timeout=30000 ./tests/unit/mcp/ ; bun test --timeout=30000 tests/unit/chat/*.test.ts ./tests/integration/ tests/unit/integrations/base-manager.test.ts --test-name-pattern '^(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)'",
+    "test:unit": "bun test --timeout=30000 --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/scripts/ ./tests/unit/audit/ ./tests/unit/export/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 ./tests/unit/analyzers/ ; bun test --timeout=30000 ./tests/unit/mcp/ ; bun test --timeout=30000 tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
+    "test:generated": "bun test --timeout=30000 tests/unit/generators/*.test.ts",
+    "test:integration": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 ./tests/integration/ --test-name-pattern '^(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)'",
+    "test:validators": "bun test --timeout=30000 --concurrent ./tests/unit/validators/",
+    "test:compatibility": "bun test --timeout=30000 --concurrent tests/compatibility",
+    "test:all": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 --concurrent ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 tests/unit/integrations/base-manager.test.ts",
+    "test:coverage": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 --concurrent --coverage ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 --coverage tests/unit/integrations/base-manager.test.ts",
+    "test:coverage:html": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 --concurrent --coverage --coverage-reporter=html ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 --coverage --coverage-reporter=html tests/unit/integrations/base-manager.test.ts",
+    "test:coverage:ci": "[ -f dist/cli.js ] || npm run build && bun test --timeout=30000 --concurrent --coverage --coverage-reporter=lcov ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)(?!.*trace with three-element dependency chain)(?!.*trace with branching dependencies)' ; bun test --timeout=30000 --coverage --coverage-reporter=lcov tests/unit/integrations/base-manager.test.ts && node scripts/validate-coverage-threshold.js",
+    "test:perf": "bun test --timeout=30000 ./tests/performance/",
+    "test:smoke": "[ -f dist/cli.js ] || npm run build && bash scripts/run-smoke-tests.sh"
+  },
+  "keywords": [
+    "architecture",
+    "documentation",
+    "modeling",
+    "federated"
+  ],
+  "author": "Documentation Robotics Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tinkermonkey/documentation_robotics.git",
+    "directory": "cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@clack/prompts": "^0.8.0",
+    "@hono/node-server": "^1.19.17",
+    "@hono/node-ws": "^1.3.1",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^1.2.1",
+    "@hono/zod-validator": "^0.7.6",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api-logs": "^0.57.0",
+    "@xmldom/xmldom": "^0.8.11",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.0",
+    "ansis": "^3.0.0",
+    "chokidar": "^4.0.3",
+    "commander": "^12.0.0",
+    "glob": "^11.1.0",
+    "graphology": "^0.25.4",
+    "graphology-traversal": "^0.3.1",
+    "graphology-types": "^0.24.8",
+    "hono": "^4.11.1",
+    "minimatch": "^10.0.0",
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@opentelemetry/core": "^1.30.1",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.57.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57.0",
+    "@opentelemetry/resources": "^1.30.1",
+    "@opentelemetry/sdk-logs": "^0.57.0",
+    "@opentelemetry/sdk-node": "^0.57.0",
+    "@opentelemetry/sdk-trace-base": "^1.30.0",
+    "@types/bun": "^1.3.5",
+    "@types/xmldom": "^0.1.34",
+    "bun": "^1.3.5",
+    "bun-types": "^1.3.5",
+    "diff": "^8.0.2",
+    "esbuild": "^0.24.2",
+    "prettier": "^3.8.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

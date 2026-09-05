@@ -1,0 +1,350 @@
+/**
+ * Tests for OTLP configuration loader
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { loadOTLPConfig } from "../../../src/telemetry/config";
+
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// Store original env variables
+const originalOTLPEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+const originalOTLPLogsEndpoint = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
+const originalServiceName = process.env.OTEL_SERVICE_NAME;
+const originalDROTLPEndpoint = process.env.DR_OTLP_ENDPOINT;
+const originalDROTLPLogsEndpoint = process.env.DR_OTLP_LOGS_ENDPOINT;
+const originalDROTLPServiceName = process.env.DR_OTLP_SERVICE_NAME;
+const originalDRConfigPath = process.env.DR_CONFIG_PATH;
+
+// Point at a guaranteed non-existent path so ~/.dr-config.yaml is never read.
+// This keeps unit tests independent of the developer's local config file.
+const absentConfigPath = join(tmpdir(), `.dr-config-unit-test-absent-${Date.now()}.yaml`);
+
+beforeEach(() => {
+  // Clear all telemetry-related environment variables before each test
+  delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
+  delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_OTLP_ENDPOINT;
+  delete process.env.DR_OTLP_LOGS_ENDPOINT;
+  delete process.env.DR_OTLP_SERVICE_NAME;
+  // Route config file reads to a non-existent path so the real ~/.dr-config.yaml
+  // never influences unit test outcomes.
+  process.env.DR_CONFIG_PATH = absentConfigPath;
+});
+
+afterEach(() => {
+  // Restore environment
+  if (originalOTLPEndpoint) process.env.OTEL_EXPORTER_OTLP_ENDPOINT = originalOTLPEndpoint;
+  if (originalOTLPLogsEndpoint)
+    process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = originalOTLPLogsEndpoint;
+  if (originalServiceName) process.env.OTEL_SERVICE_NAME = originalServiceName;
+  if (originalDROTLPEndpoint) process.env.DR_OTLP_ENDPOINT = originalDROTLPEndpoint;
+  if (originalDROTLPLogsEndpoint) process.env.DR_OTLP_LOGS_ENDPOINT = originalDROTLPLogsEndpoint;
+  if (originalDROTLPServiceName) process.env.DR_OTLP_SERVICE_NAME = originalDROTLPServiceName;
+  if (originalDRConfigPath) process.env.DR_CONFIG_PATH = originalDRConfigPath;
+  else delete process.env.DR_CONFIG_PATH;
+
+  delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
+  delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_OTLP_ENDPOINT;
+  delete process.env.DR_OTLP_LOGS_ENDPOINT;
+  delete process.env.DR_OTLP_SERVICE_NAME;
+});
+
+describe("loadOTLPConfig()", () => {
+  describe("Default Configuration", () => {
+    it("should return defaults when no env vars or config file", async () => {
+      const config = await loadOTLPConfig();
+
+      expect(config).toEqual({
+        endpoint: "http://localhost:4318/v1/traces",
+        logsEndpoint: "http://localhost:4318/v1/logs",
+        serviceName: "dr-cli",
+        isExplicitlyConfigured: false,
+      });
+    });
+  });
+
+  describe("Environment Variable Precedence", () => {
+    it("should use OTEL_EXPORTER_OTLP_ENDPOINT when set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://custom:4318/v1/traces";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("http://custom:4318/v1/traces");
+    });
+
+    it("should use OTEL_EXPORTER_OTLP_LOGS_ENDPOINT when set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://custom:4318/v1/logs";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.logsEndpoint).toBe("http://custom:4318/v1/logs");
+    });
+
+    it("should use OTEL_SERVICE_NAME when set", async () => {
+      process.env.OTEL_SERVICE_NAME = "custom-service";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.serviceName).toBe("custom-service");
+    });
+
+    it("should use all env vars when set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://env-endpoint:4318/v1/traces";
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://env-logs:4318/v1/logs";
+      process.env.OTEL_SERVICE_NAME = "env-service";
+
+      const config = await loadOTLPConfig();
+
+      expect(config).toEqual({
+        endpoint: "http://env-endpoint:4318/v1/traces",
+        logsEndpoint: "http://env-logs:4318/v1/logs",
+        serviceName: "env-service",
+        isExplicitlyConfigured: true,
+      });
+    });
+  });
+
+  describe("File Configuration", () => {
+    it("should handle missing config file gracefully", async () => {
+      // When config file doesn't exist (which is the normal case for most users)
+      // the function should return defaults without errors
+      const config = await loadOTLPConfig();
+
+      expect(config).toEqual({
+        endpoint: "http://localhost:4318/v1/traces",
+        logsEndpoint: "http://localhost:4318/v1/logs",
+        serviceName: "dr-cli",
+        isExplicitlyConfigured: false,
+      });
+    });
+  });
+
+  describe("Configuration Precedence", () => {
+    it("should prefer env vars over defaults", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://env-endpoint:4318/v1/traces";
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://env-logs:4318/v1/logs";
+      process.env.OTEL_SERVICE_NAME = "env-service";
+
+      const config = await loadOTLPConfig();
+
+      expect(config).toEqual({
+        endpoint: "http://env-endpoint:4318/v1/traces",
+        logsEndpoint: "http://env-logs:4318/v1/logs",
+        serviceName: "env-service",
+        isExplicitlyConfigured: true,
+      });
+    });
+
+    it("should demonstrate precedence pattern", async () => {
+      // When no env var is set, should use default
+      delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+
+      const config = await loadOTLPConfig();
+
+      // endpoint should be the default
+      expect(config.endpoint).toBe("http://localhost:4318/v1/traces");
+    });
+  });
+
+  describe("Return Type", () => {
+    it("should return OTLPConfig interface with required fields", async () => {
+      const config = await loadOTLPConfig();
+
+      expect(typeof config.endpoint).toBe("string");
+      expect(typeof config.logsEndpoint).toBe("string");
+      expect(typeof config.serviceName).toBe("string");
+      expect(typeof config.isExplicitlyConfigured).toBe("boolean");
+    });
+
+    it("should set isExplicitlyConfigured false with only defaults", async () => {
+      const config = await loadOTLPConfig();
+      expect(config.isExplicitlyConfigured).toBe(false);
+    });
+
+    it("should set isExplicitlyConfigured true when trace endpoint env var is set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://collector:4318/v1/traces";
+      const config = await loadOTLPConfig();
+      expect(config.isExplicitlyConfigured).toBe(true);
+    });
+
+    it("should set isExplicitlyConfigured true when logs endpoint env var is set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://collector:4318/v1/logs";
+      const config = await loadOTLPConfig();
+      expect(config.isExplicitlyConfigured).toBe(true);
+    });
+
+    it("should return non-empty string values", async () => {
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint.length).toBeGreaterThan(0);
+      expect(config.logsEndpoint.length).toBeGreaterThan(0);
+      expect(config.serviceName.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Edge Cases", () => {
+    it("should handle empty environment variable values", async () => {
+      // Empty string env var should be treated as not set
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "";
+
+      const config = await loadOTLPConfig();
+
+      // Empty string is falsy, so should fall back to default
+      expect(config.endpoint).toBe("http://localhost:4318/v1/traces");
+    });
+
+    it("should preserve whitespace in configuration values", async () => {
+      process.env.OTEL_SERVICE_NAME = "my-service ";
+
+      const config = await loadOTLPConfig();
+
+      // Should preserve the trailing space
+      expect(config.serviceName).toBe("my-service ");
+    });
+  });
+
+  describe("Special Characters and URLs", () => {
+    it("should handle URLs with special characters", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
+        "http://localhost:4318/v1/traces?api_key=secret&version=1";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("http://localhost:4318/v1/traces?api_key=secret&version=1");
+    });
+
+    it("should handle HTTPS URLs", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "https://secure.example.com:4318/v1/traces";
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "https://secure.example.com:4318/v1/logs";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("https://secure.example.com:4318/v1/traces");
+      expect(config.logsEndpoint).toBe("https://secure.example.com:4318/v1/logs");
+    });
+  });
+
+  describe("URL Validation", () => {
+    it("should reject invalid endpoint URLs and use default", async () => {
+      // Set invalid URL in env var
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "not-a-valid-url";
+
+      const config = await loadOTLPConfig();
+
+      // Should fall back to default when invalid URL provided
+      expect(config.endpoint).toBe("http://localhost:4318/v1/traces");
+    });
+
+    it("should reject invalid logs endpoint URLs and use default", async () => {
+      // Set invalid URL in env var
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://[invalid-ipv6]:4318";
+
+      const config = await loadOTLPConfig();
+
+      // Should fall back to default when invalid URL provided
+      expect(config.logsEndpoint).toBe("http://localhost:4318/v1/logs");
+    });
+
+    it("should accept valid URLs with ports", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:9999/v1/traces";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("http://localhost:9999/v1/traces");
+    });
+
+    it("should accept valid URLs with paths", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/custom/path/traces";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("http://localhost:4318/custom/path/traces");
+    });
+
+    it("should accept valid URLs with query parameters", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/v1/traces?key=value&foo=bar";
+
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("http://localhost:4318/v1/traces?key=value&foo=bar");
+    });
+
+    it("should prefer valid file config over invalid env var", async () => {
+      // Set invalid URL in env var
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "invalid-url-string";
+
+      // Create a temporary config file with valid URL
+      const { tmpdir } = await import("node:os");
+      const { writeFileSync, unlinkSync } = await import("node:fs");
+      const { join } = await import("node:path");
+
+      const configPath = join(tmpdir(), `.dr-config-test-${Date.now()}.yaml`);
+      process.env.DR_CONFIG_PATH = configPath;
+      const configContent = `telemetry:
+  otlp:
+    endpoint: 'http://valid-file-config:4318/v1/traces'
+`;
+      writeFileSync(configPath, configContent);
+
+      try {
+        const config = await loadOTLPConfig();
+
+        // Invalid env var should fall back to file config
+        expect(config.endpoint).toBe("http://valid-file-config:4318/v1/traces");
+      } finally {
+        // Clean up
+        try {
+          unlinkSync(configPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it("should handle mixed valid and invalid URLs in config file", async () => {
+      // Set invalid logs endpoint in env var
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "not a url";
+
+      // Create config file with valid logs endpoint
+      const { tmpdir } = await import("node:os");
+      const { writeFileSync, unlinkSync } = await import("node:fs");
+      const { join } = await import("node:path");
+
+      const configPath = join(tmpdir(), `.dr-config-test-${Date.now()}.yaml`);
+      process.env.DR_CONFIG_PATH = configPath;
+      const configContent = `telemetry:
+  otlp:
+    logs_endpoint: 'http://file-logs:4318/v1/logs'
+`;
+      writeFileSync(configPath, configContent);
+
+      try {
+        const config = await loadOTLPConfig();
+
+        // Invalid env var for logs endpoint should use file config
+        expect(config.logsEndpoint).toBe("http://file-logs:4318/v1/logs");
+      } finally {
+        // Clean up
+        try {
+          unlinkSync(configPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it("should reject URLs missing scheme", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "localhost:4318/v1/traces";
+
+      const config = await loadOTLPConfig();
+
+      // URL without scheme is invalid, should use default
+      expect(config.endpoint).toBe("http://localhost:4318/v1/traces");
+    });
+  });
+});

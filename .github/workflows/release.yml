@@ -1,0 +1,237 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "cli-v*.*.*"
+      - "spec-v*.*.*"
+
+jobs:
+  release-spec:
+    name: Release Specification
+    if: startsWith(github.ref, 'refs/tags/spec-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/spec-v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing specification v$VERSION"
+
+      - name: Verify VERSION file matches
+        run: |
+          FILE_VERSION=$(cat spec/VERSION)
+          if [ "$FILE_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Version mismatch: tag=${{ steps.version.outputs.version }}, file=$FILE_VERSION"
+            exit 1
+          fi
+
+      - name: Package schemas
+        run: |
+          cd spec
+          # Copy VERSION into schemas directory for packaging
+          cp VERSION schemas/
+
+          # Create tarball
+          tar -czf schemas-${{ steps.version.outputs.version }}.tar.gz schemas/
+
+          # Create zip
+          zip -r schemas-${{ steps.version.outputs.version }}.zip schemas/
+
+          # Remove VERSION from schemas (keep repo clean)
+          rm schemas/VERSION
+
+          echo "Created packages:"
+          ls -lh schemas-*.tar.gz schemas-*.zip
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          # Extract the section for this version from CHANGELOG.md
+          VERSION=${{ steps.version.outputs.version }}
+          awk -v ver="$VERSION" '
+            /^## \['"$VERSION"'\]/ { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' spec/CHANGELOG.md > /tmp/release_notes.md
+
+          # If no release notes found, use a default message
+          if [ ! -s /tmp/release_notes.md ]; then
+            echo "Specification release v$VERSION" > /tmp/release_notes.md
+            echo "" >> /tmp/release_notes.md
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/spec-v$VERSION/spec/CHANGELOG.md) for details." >> /tmp/release_notes.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Specification v${{ steps.version.outputs.version }}
+          body_path: /tmp/release_notes.md
+          files: |
+            spec/schemas-${{ steps.version.outputs.version }}.tar.gz
+            spec/schemas-${{ steps.version.outputs.version }}.zip
+            spec/VERSION
+            spec/CHANGELOG.md
+            spec/README.md
+          draft: false
+          prerelease: false
+
+  test-cli:
+    name: Test CLI (Release Gate)
+    if: startsWith(github.ref, 'refs/tags/cli-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./cli
+        run: npm install
+
+      - name: Build CLI
+        working-directory: ./cli
+        run: npm run build:ci
+
+      - name: Simulate fresh consumer install
+        working-directory: ./cli
+        run: |
+          set -euo pipefail
+
+          # Pack exactly what would be published, then install it the way a
+          # real consumer would: `npm install -g`, which only fetches
+          # `dependencies`, never `devDependencies`. This is the check that
+          # would have caught @opentelemetry/api-logs and glob being
+          # misclassified as devDependencies (see #797) - a plain `npm
+          # install` in this repo checkout installs devDependencies too and
+          # would never have surfaced the bug. --omit=dev is redundant here
+          # (npm never installs a target package's own devDependencies) but
+          # documents the intent explicitly.
+          #
+          # --loglevel=warn (not --silent) so a real `npm pack` failure still
+          # prints npm's error text instead of leaving a bare, unexplained
+          # non-zero exit in the CI log.
+          PACK_FILE=$(npm pack --loglevel=warn | tail -n1)
+          if [ -z "$PACK_FILE" ]; then
+            echo "::error::npm pack produced no output; expected a tarball filename"
+            exit 1
+          fi
+          echo "Packed tarball: $PACK_FILE"
+
+          INSTALL_PREFIX=$(mktemp -d)
+          npm install --global --omit=dev --prefix "$INSTALL_PREFIX" "$(pwd)/$PACK_FILE"
+
+          # Resolve as a checked assignment, not inline in an echo argument -
+          # a failed `command -v` inside an echo's command substitution does
+          # not trip `set -e`, so this would otherwise silently pass through
+          # even if `dr` failed to install. Also assert the resolved binary
+          # is actually the one we just installed, not some other `dr` that
+          # happened to already be on PATH.
+          export PATH="$INSTALL_PREFIX/bin:$PATH"
+          DR_BIN="$(command -v dr)"
+          echo "Resolved dr binary: $DR_BIN"
+          case "$DR_BIN" in
+            "$INSTALL_PREFIX"/*) ;;
+            *)
+              echo "::error::dr resolved to '$DR_BIN', expected a path under $INSTALL_PREFIX"
+              exit 1
+              ;;
+          esac
+
+          echo "--- dr --version ---"
+          dr --version
+
+          echo "--- dr --help ---"
+          dr --help | head -20
+
+          echo "✓ Fresh install smoke test passed"
+
+      - name: Install codebase-memory-mcp (analyzer test dependency)
+        run: npm install -g codebase-memory-mcp
+
+      - name: Run tests
+        working-directory: ./cli
+        run: npm test
+
+  release-cli:
+    name: Release CLI
+    needs: [test-cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # Required for npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Update npm
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/cli-v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing CLI v$VERSION"
+
+      - name: Install dependencies
+        working-directory: ./cli
+        run: npm install
+
+      - name: Build package
+        working-directory: ./cli
+        run: npm run build
+
+      - name: Generate OpenAPI specification
+        working-directory: ./cli
+        run: npm run generate:openapi
+
+      - name: Publish to npm via Trusted Publisher
+        working-directory: ./cli
+        env:
+          # NPM_TOKEN is only needed for first publish, optional after Trusted Publisher is configured
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: CLI v${{ steps.version.outputs.version }}
+          body: |
+            CLI release v${{ steps.version.outputs.version }}
+
+            Install: `npm install -g @documentation-robotics/cli@${{ steps.version.outputs.version }}`
+
+            See [CLI CHANGELOG](cli/CHANGELOG.md) for details.
+          files: |
+            cli/dist/*
+          draft: false
+          prerelease: false

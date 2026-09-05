@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Feature",
+  "description": "A user-visible unit of product functionality that delivers one or more capabilities",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.feature"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "feature"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the feature"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "informational"],
+          "description": "Priority level"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "planned",
+            "developing",
+            "delivered",
+            "deprecated"
+          ],
+          "description": "Lifecycle status of the feature"
+        },
+        "size": {
+          "type": "string",
+          "enum": ["xs", "s", "m", "l", "xl"],
+          "description": "Relative sizing estimate"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": ["priority", "status"],
+      "additionalProperties": false
+    }
+  }
+}

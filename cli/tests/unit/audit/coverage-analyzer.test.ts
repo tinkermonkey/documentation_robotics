@@ -1,0 +1,191 @@
+/**
+ * Unit tests for CoverageAnalyzer
+ */
+
+import { describe, it, expect, beforeAll } from "bun:test";
+import { CoverageAnalyzer } from "../../../src/audit/relationships/analysis/coverage-analyzer.js";
+import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
+import {
+  getLayerById,
+  getAllLayers,
+  type LayerMetadata,
+} from "../../../src/generated/layer-registry.js";
+
+describe("CoverageAnalyzer", () => {
+  let catalog: RelationshipCatalog;
+  let analyzer: CoverageAnalyzer;
+
+  beforeAll(async () => {
+    catalog = new RelationshipCatalog();
+    await catalog.load();
+    analyzer = new CoverageAnalyzer(catalog);
+  });
+
+  it("should analyze coverage for all layers", async () => {
+    const analysisResult = await analyzer.analyzeAll();
+
+    expect(analysisResult).toBeDefined();
+    expect(analysisResult.results).toBeDefined();
+    expect(analysisResult.results.length).toBe(13); // 13 layers
+    expect(analysisResult.isComplete).toBe(true); // No errors
+
+    // Each result should have required properties
+    for (const result of analysisResult.results) {
+      expect(result).toHaveProperty("layer");
+      expect(result).toHaveProperty("nodeTypeCount");
+      expect(result).toHaveProperty("relationshipCount");
+      expect(result).toHaveProperty("isolatedNodeTypes");
+      expect(result).toHaveProperty("isolationPercentage");
+      expect(result).toHaveProperty("availablePredicates");
+      expect(result).toHaveProperty("usedPredicates");
+      expect(result).toHaveProperty("utilizationPercentage");
+      expect(result).toHaveProperty("relationshipsPerNodeType");
+    }
+  });
+
+  it("should identify zero-relationship layers", async () => {
+    // Create mock layers with fake node type IDs that don't exist in RELATIONSHIPS_BY_SOURCE,
+    // so they will have zero relationships even though real layers now all have relationships.
+    const mockLayer1: LayerMetadata = {
+      id: "mock-layer",
+      number: 99,
+      name: "Mock Layer",
+      description: "Mock layer for testing zero-relationship behavior",
+      nodeTypes: ["mock-layer.nodetype1", "mock-layer.nodetype2", "mock-layer.nodetype3"],
+    };
+    const mockLayer2: LayerMetadata = {
+      id: "mock-layer2",
+      number: 98,
+      name: "Mock Layer 2",
+      description: "Mock layer 2 for testing zero-relationship behavior",
+      nodeTypes: ["mock-layer2.typeA", "mock-layer2.typeB"],
+    };
+
+    const coverage1 = await analyzer.analyzeLayer(mockLayer1);
+    const coverage2 = await analyzer.analyzeLayer(mockLayer2);
+
+    // Mock layers have no entries in RELATIONSHIPS_BY_SOURCE
+    expect(coverage1.relationshipCount).toBe(0);
+    expect(coverage2.relationshipCount).toBe(0);
+
+    // Isolation percentage should be 100%
+    expect(coverage1.isolationPercentage).toBe(100);
+    expect(coverage2.isolationPercentage).toBe(100);
+
+    // All node types should be isolated
+    expect(coverage1.isolatedNodeTypes.length).toBe(coverage1.nodeTypeCount);
+    expect(coverage2.isolatedNodeTypes.length).toBe(coverage2.nodeTypeCount);
+  });
+
+  it("should calculate correct isolation percentage", async () => {
+    const motivationLayer = getLayerById("motivation");
+    expect(motivationLayer).toBeDefined();
+
+    const coverage = await analyzer.analyzeLayer(motivationLayer!);
+
+    // Motivation layer should have relationships
+    expect(coverage.relationshipCount).toBeGreaterThan(0);
+
+    // Isolation percentage should be less than 100%
+    expect(coverage.isolationPercentage).toBeLessThan(100);
+    expect(coverage.isolationPercentage).toBeGreaterThanOrEqual(0);
+
+    // Calculate expected isolation
+    const expectedIsolation =
+      (coverage.isolatedNodeTypes.length / coverage.nodeTypeCount) * 100;
+    expect(coverage.isolationPercentage).toBe(expectedIsolation);
+  });
+
+  it("should calculate predicate utilization", async () => {
+    const motivationLayer = getLayerById("motivation");
+    expect(motivationLayer).toBeDefined();
+
+    const coverage = await analyzer.analyzeLayer(motivationLayer!);
+
+    // Should have available predicates
+    expect(coverage.availablePredicates.length).toBeGreaterThan(0);
+
+    // Should have some used predicates
+    expect(coverage.usedPredicates.length).toBeGreaterThan(0);
+
+    // Used predicates should be subset of available
+    for (const used of coverage.usedPredicates) {
+      expect(coverage.availablePredicates).toContain(used);
+    }
+
+    // Utilization should be correct
+    const expectedUtilization =
+      (coverage.usedPredicates.length / coverage.availablePredicates.length) *
+      100;
+    expect(coverage.utilizationPercentage).toBe(expectedUtilization);
+  });
+
+  it("should calculate relationship density", async () => {
+    const apiLayer = getLayerById("api");
+    expect(apiLayer).toBeDefined();
+
+    const coverage = await analyzer.analyzeLayer(apiLayer!);
+
+    // Density should be correct
+    const expectedDensity =
+      coverage.nodeTypeCount > 0
+        ? coverage.relationshipCount / coverage.nodeTypeCount
+        : 0;
+    expect(coverage.relationshipsPerNodeType).toBe(expectedDensity);
+  });
+
+  it("should include standard alignment for ArchiMate layers", async () => {
+    const motivationLayer = getLayerById("motivation");
+    const businessLayer = getLayerById("business");
+    const applicationLayer = getLayerById("application");
+    const technologyLayer = getLayerById("technology");
+
+    const motivationCoverage = await analyzer.analyzeLayer(motivationLayer!);
+    const businessCoverage = await analyzer.analyzeLayer(businessLayer!);
+    const applicationCoverage = await analyzer.analyzeLayer(applicationLayer!);
+    const technologyCoverage = await analyzer.analyzeLayer(technologyLayer!);
+
+    // ArchiMate layers should have standard alignment
+    expect(motivationCoverage.standardAlignment).toBeDefined();
+    expect(motivationCoverage.standardAlignment?.standard).toBe(
+      "ArchiMate 3.2"
+    );
+
+    expect(businessCoverage.standardAlignment).toBeDefined();
+    expect(businessCoverage.standardAlignment?.standard).toBe("ArchiMate 3.2");
+
+    expect(applicationCoverage.standardAlignment).toBeDefined();
+    expect(applicationCoverage.standardAlignment?.standard).toBe(
+      "ArchiMate 3.2"
+    );
+
+    expect(technologyCoverage.standardAlignment).toBeDefined();
+    expect(technologyCoverage.standardAlignment?.standard).toBe(
+      "ArchiMate 3.2"
+    );
+  });
+
+  it("should not include standard alignment for non-ArchiMate layers", async () => {
+    const apiLayer = getLayerById("api");
+    const securityLayer = getLayerById("security");
+
+    const apiCoverage = await analyzer.analyzeLayer(apiLayer!);
+    const securityCoverage = await analyzer.analyzeLayer(securityLayer!);
+
+    // Non-ArchiMate layers should not have ArchiMate standard alignment
+    expect(apiCoverage.standardAlignment).toBeUndefined();
+    expect(securityCoverage.standardAlignment).toBeUndefined();
+  });
+
+  it("should handle empty node types gracefully", async () => {
+    const dataModelLayer = getLayerById("data-model");
+    expect(dataModelLayer).toBeDefined();
+
+    const coverage = await analyzer.analyzeLayer(dataModelLayer!);
+
+    // Data-model layer has 0 node types in the layer registry
+    expect(coverage.nodeTypeCount).toBe(0);
+    expect(coverage.isolatedNodeTypes.length).toBe(0);
+    expect(coverage.isolationPercentage).toBe(0);
+  });
+});

@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analyzer-spec.schema.json",
+  "title": "AnalyzerSpec",
+  "description": "Schema for analyzer metadata configuration. Defines the analyzer tool, its capabilities, supported languages, and tool contract.",
+  "type": "object",
+  "required": [
+    "name",
+    "display_name",
+    "mcp_server_name",
+    "supported_tool_contract",
+    "supported_languages",
+    "project_identification"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique lowercase identifier for the analyzer (e.g., 'cbm'). Used in file paths and references."
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable display name for the analyzer (e.g., 'CodePrism')"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional detailed description of what this analyzer does"
+    },
+    "mcp_server_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "MCP server identifier for this analyzer. Used to locate and invoke the analyzer service."
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional URL to the analyzer's homepage or documentation"
+    },
+    "binary_names": {
+      "type": "array",
+      "description": "Optional list of executable or binary names associated with this analyzer",
+      "items": {
+        "type": "string"
+      }
+    },
+    "known_minimum_version": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d+)*$",
+          "description": "Minimum version of the analyzer tool that is supported"
+        },
+        {
+          "type": "null",
+          "description": "null indicates the minimum version is unknown or not specified"
+        }
+      ]
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional implementation notes or additional context about this analyzer"
+    },
+    "supported_tool_contract": {
+      "type": "object",
+      "description": "Specifies the MCP tools required and optional for this analyzer",
+      "required": ["required_tools"],
+      "additionalProperties": false,
+      "properties": {
+        "required_tools": {
+          "type": "array",
+          "description": "Required MCP tools that must be available",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["initialize", "search_graph", "trace_call_path"]]
+        },
+        "optional_tools": {
+          "type": "array",
+          "description": "Optional MCP tools that may be available",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "supported_languages": {
+      "type": "array",
+      "description": "List of programming languages supported by this analyzer",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9+#-]*$"
+      },
+      "minItems": 1,
+      "examples": [
+        ["typescript", "javascript"],
+        ["python", "python3"],
+        ["java", "kotlin"],
+        ["c++", "c#", "tsx", "lua", "scala"]
+      ]
+    },
+    "project_identification": {
+      "type": "object",
+      "description": "Specifies how this analyzer identifies and validates the project being analyzed",
+      "required": ["strategy"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["absolute_path"],
+          "description": "Strategy used to identify the project. 'absolute_path' uses findProjectRoot() to determine stable project identity."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed explanation of how the DR CLI passes the project root and how the analyzer uses it for identification"
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Optional analyzer-specific configuration options",
+      "additionalProperties": true
+    }
+  }
+}

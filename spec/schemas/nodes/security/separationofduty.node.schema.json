@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SeparationOfDuty",
+  "description": "Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + approval, initiate + authorize) are performed by different actors or roles, preventing fraud, collusion, and undetected errors. MutuallyExclusive indicates roles that cannot be assigned to the same individual.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.separationofduty"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "separationofduty"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "mutuallyExclusive": {
+          "type": "boolean",
+          "description": "When true, the roles in this constraint cannot be held simultaneously by the same subject. Enforces strict role exclusivity within the separation of duty rule."
+        }
+      },
+      "required": ["message"],
+      "additionalProperties": false
+    }
+  }
+}

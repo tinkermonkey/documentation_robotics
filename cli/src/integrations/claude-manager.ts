@@ -1,0 +1,573 @@
+/**
+ * Claude Code Integration Manager
+ *
+ * Manages installation, updates, and removal of Claude Code integration files.
+ * Extends the base integration manager with Claude-specific configuration and behavior.
+ *
+ * Handles 5 component types:
+ * - reference_sheets: Knowledge base files (.md files in knowledge/)
+ * - commands: Slash commands (.md files in commands/)
+ * - agents: Specialized agents (.md files in agents/)
+ * - skills: Auto-activating capabilities (directories with SKILL.md)
+ * - templates: Customization templates (mixed file types)
+ */
+
+import { BaseIntegrationManager } from "./base-manager.js";
+import { ComponentConfig } from "./types.js";
+import { findProjectRoot } from "../utils/project-paths.js";
+import { confirm, spinner, isCancel } from "@clack/prompts";
+import ansis from "ansis";
+import { join } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+
+/**
+ * Claude Code Integration Manager
+ *
+ * Manages installation and updating of Claude Code integration files in .claude/ directory
+ */
+export class ClaudeIntegrationManager extends BaseIntegrationManager {
+  protected targetDir: string = ".claude";
+  protected readonly versionFileName = ".dr-version";
+  protected readonly integrationSourceDir = "claude_code";
+
+  /**
+   * Component configuration for Claude integration
+   * Extends BaseIntegrationManager with Claude-specific components.
+   *
+   * The `tracked` property controls whether a component is included in
+   * version file tracking. Only `tracked: false` needs to be explicit
+   * (for user-customizable components like templates). DR-owned components
+   * default to tracked: true (see isTrackedComponent check in base-manager.ts).
+   *
+   * DR-owned components (tracked: true or default) are monitored for updates.
+   * User-customizable components (tracked: false) are installed but not
+   * version-tracked to avoid conflicts with user modifications.
+   */
+  protected readonly components: Record<string, ComponentConfig> = {
+    reference_sheets: {
+      source: "reference_sheets",
+      target: "knowledge",
+      description: "Reference documentation for agents",
+      prefix: "dr-",
+      type: "files",
+      // tracked: true (default)
+    },
+    commands: {
+      source: "commands",
+      target: "commands",
+      description: "Slash commands for DR workflows",
+      prefix: "dr-",
+      type: "files",
+      // tracked: true (default)
+    },
+    agents: {
+      source: "agents",
+      target: "agents",
+      description: "Specialized sub-agent definitions",
+      prefix: "dr-",
+      type: "files",
+      // tracked: true (default)
+    },
+    skills: {
+      source: "skills",
+      target: "skills",
+      description: "Auto-activating capabilities",
+      prefix: "",
+      type: "dirs",
+      // tracked: true (default)
+    },
+    templates: {
+      source: "templates",
+      target: "templates",
+      description: "Customization templates and examples",
+      prefix: "",
+      type: "files",
+      tracked: false,
+    },
+  };
+
+  /**
+   * Install Claude integration files
+   *
+   * Copies files from bundled source to .claude/ directory, prompting for
+   * confirmation if files already exist. Optionally filters to specific components.
+   *
+   * @param options Installation options
+   * @param options.components Optional list of component names to install
+   * @param options.force Skip confirmation prompts
+   */
+  async install(
+    options: {
+      components?: string[];
+      force?: boolean;
+    } = {}
+  ): Promise<void> {
+    const projectRoot = await this.getProjectRoot();
+    this.targetDir = join(projectRoot, ".claude");
+
+    const { components = Object.keys(this.components), force = false } = options;
+
+    // Validate components
+    const invalid = components.filter((c) => !this.components[c]);
+    if (invalid.length > 0) {
+      throw new Error(
+        `Invalid components: ${invalid.join(", ")}\n` +
+          `Valid: ${Object.keys(this.components).join(", ")}`
+      );
+    }
+
+    // Check if already installed
+    if (await this.isInstalled()) {
+      if (!force) {
+        // Check for non-TTY only when we need confirmation
+        const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+        if (!isInteractive) {
+          throw new Error(
+            "Interactive confirmation is not available in non-TTY environments.\n" +
+              "Use --force to skip confirmation and proceed with installation"
+          );
+        }
+
+        const response = await confirm({
+          message: "Claude integration already installed. Overwrite?",
+        });
+        if (isCancel(response) || !response) {
+          console.log(ansis.yellow("✗ Installation cancelled"));
+          return;
+        }
+      }
+    }
+
+    // Create .claude directory
+    await mkdir(this.targetDir, { recursive: true });
+
+    // Install components
+    let totalInstalled = 0;
+    const spinnerObj = spinner();
+    spinnerObj.start("Installing components...");
+
+    try {
+      for (const componentName of components) {
+        const count = await this.installComponent(componentName, force);
+        totalInstalled += count;
+      }
+
+      spinnerObj.stop("Installation complete");
+
+      // Update version file
+      const cliVersion = await this.getCliVersion();
+      await this.updateVersionFile(cliVersion);
+
+      console.log(ansis.green("✓ Claude integration installed successfully!"));
+      console.log(ansis.green("  Installed " + totalInstalled + " files"));
+
+      // Print next steps
+      this.printNextSteps();
+    } catch (error) {
+      spinnerObj.stop("Installation failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Upgrade installed Claude integration files
+   *
+   * Detects file changes, shows a summary, and applies upgrades with optional
+   * dry-run mode to preview changes without applying them.
+   *
+   * @param options Upgrade options
+   * @param options.dryRun Preview changes without applying
+   * @param options.force Skip confirmation prompts and overwrite conflict/user-modified files
+   */
+  async upgrade(
+    options: {
+      dryRun?: boolean;
+      force?: boolean;
+    } = {}
+  ): Promise<void> {
+    const projectRoot = await this.getProjectRoot();
+    this.targetDir = join(projectRoot, ".claude");
+
+    const { dryRun = false, force = false } = options;
+
+    // Check if installed
+    if (!(await this.isInstalled())) {
+      console.log(ansis.yellow("⚠ Claude integration not installed"));
+      console.log(ansis.dim("Run: dr claude install"));
+      return;
+    }
+
+    // Load version file
+    const versionData = await this.loadVersionFile();
+    if (!versionData) {
+      throw new Error("Version file corrupted. Run: dr claude install");
+    }
+
+    // Check for updates
+    let totalChanges = 0;
+    const changes: Array<{ file: string; status: string; action: string }> = [];
+    const unknownComponents = new Set<string>();
+
+    // Only check components that are currently installed (have actual files in target directory)
+    for (const componentName of Object.keys(versionData.components || {})) {
+      const config = this.components[componentName];
+
+      // Track unknown components (e.g., if CLI was updated and a component was removed)
+      if (!config) {
+        unknownComponents.add(componentName);
+        console.warn(
+          ansis.yellow(`⚠ Unknown component in version file: ${componentName}. Skipping.`)
+        );
+        continue;
+      }
+
+      // Skip non-tracked components (user-customizable)
+      if (!this.isTrackedComponent(componentName)) {
+        continue;
+      }
+
+      const targetPath = join(this.targetDir, config.target);
+
+      // Only check components that have files in the target directory
+      if (!existsSync(targetPath)) {
+        continue;
+      }
+
+      const componentChanges = await this.checkUpdates(componentName, versionData);
+
+      for (const change of componentChanges) {
+        const status = this.changeTypeToStatus(change.changeType);
+        // When force=true, conflicts and user-modified files are overwritten rather than skipped
+        const action =
+          force && (change.changeType === "conflict" || change.changeType === "user-modified")
+            ? "Overwrite"
+            : this.changeTypeToAction(change.changeType);
+        changes.push({
+          file: change.component + "/" + change.path,
+          status,
+          action,
+        });
+        totalChanges++;
+      }
+    }
+
+    // Check for obsolete files
+    const obsolete = await this.detectObsoleteFiles();
+    for (const file of obsolete) {
+      changes.push({
+        file: file.component + "/" + file.path,
+        status: "Obsolete",
+        action: "Remove",
+      });
+      totalChanges++;
+    }
+
+    // If no changes, still update version file if needed
+    if (totalChanges === 0) {
+      console.log(ansis.green("✓ All files are up to date"));
+
+      // Update version file even if no file changes
+      const cliVersion = await this.getCliVersion();
+      if (versionData.version !== cliVersion) {
+        await this.updateVersionFile(cliVersion);
+        console.log(ansis.green("✓ Version updated to " + cliVersion));
+      }
+      return;
+    }
+
+    // Show changes
+    console.log(ansis.bold("\nPlanned Changes:"));
+    for (const change of changes) {
+      const statusColor = change.status === "Obsolete" ? ansis.yellow : ansis.cyan;
+      const actionColor = change.action === "Remove" ? ansis.red : ansis.green;
+      console.log(
+        "  " +
+          statusColor(change.status.padEnd(10)) +
+          " " +
+          change.file +
+          " " +
+          actionColor(change.action)
+      );
+    }
+
+    if (dryRun) {
+      console.log(ansis.yellow("\nDry run - no changes applied"));
+      return;
+    }
+
+    // Check if there are actual changes to apply (not just skipped changes)
+    const hasActualChanges = changes.some((c) => c.action !== "Skip");
+
+    // If no actual changes to apply, return early
+    if (!hasActualChanges) {
+      console.log(ansis.yellow("⚠ No changes to apply (all changes are skipped or conflicts)"));
+      return;
+    }
+
+    // Only ask for confirmation if there are real changes to apply
+    if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with upgrade"
+        );
+      }
+
+      const response = await confirm({
+        message: "Apply upgrades?",
+      });
+      if (isCancel(response) || !response) {
+        console.log(ansis.yellow("✗ Upgrade cancelled"));
+        return;
+      }
+    }
+
+    // Apply upgrades
+    const spinnerObj = spinner();
+    spinnerObj.start("Applying upgrades...");
+
+    try {
+      // Only upgrade components that are currently installed (have actual files)
+      for (const componentName of Object.keys(versionData.components || {})) {
+        // Skip unknown components silently (already warned during detection phase)
+        if (unknownComponents.has(componentName)) {
+          continue;
+        }
+
+        const config = this.components[componentName];
+        if (!config) {
+          continue;
+        }
+
+        // Skip non-tracked components (user-customizable)
+        if (!this.isTrackedComponent(componentName)) {
+          continue;
+        }
+
+        const targetPath = join(this.targetDir, config.target);
+
+        // Only upgrade components that have files in the target directory
+        if (!existsSync(targetPath)) {
+          continue;
+        }
+
+        await this.installComponent(componentName, force);
+      }
+
+      // Remove obsolete files
+      await this.removeObsoleteFiles();
+
+      spinnerObj.stop("Upgrades applied");
+
+      // Update version file
+      const cliVersion = await this.getCliVersion();
+      await this.updateVersionFile(cliVersion);
+
+      console.log(ansis.green("✓ Upgrade completed successfully!"));
+    } catch (error) {
+      spinnerObj.stop("Upgrade failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Remove Claude integration files
+   *
+   * Removes files and the version file. Optionally filters to specific components.
+   *
+   * @param options Remove options
+   * @param options.components Optional list of component names to remove
+   * @param options.force Skip confirmation prompts
+   */
+  async remove(
+    options: {
+      components?: string[];
+      force?: boolean;
+    } = {}
+  ): Promise<void> {
+    const projectRoot = await this.getProjectRoot();
+    this.targetDir = join(projectRoot, ".claude");
+
+    const { components = Object.keys(this.components), force = false } = options;
+
+    // Check if installed
+    if (!(await this.isInstalled())) {
+      console.log(ansis.yellow("⚠ Claude integration not installed"));
+      return;
+    }
+
+    // Ask for confirmation (check for non-TTY only when we need confirmation)
+    if (!force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new Error(
+          "Interactive confirmation is not available in non-TTY environments.\n" +
+            "Use --force to skip confirmation and proceed with removal"
+        );
+      }
+
+      console.log(ansis.yellow("This will remove: " + components.join(", ")));
+      const response = await confirm({
+        message: "Continue?",
+      });
+      if (isCancel(response) || !response) {
+        console.log(ansis.yellow("✗ Removal cancelled"));
+        return;
+      }
+    }
+
+    // Remove components
+    const spinnerObj = spinner();
+    spinnerObj.start("Removing files...");
+
+    try {
+      const fs = await import("node:fs/promises");
+      const { rmSync } = await import("node:fs");
+
+      let removedCount = 0;
+
+      for (const componentName of components) {
+        const config = this.components[componentName];
+        if (!config) continue;
+
+        const targetPath = join(this.targetDir, config.target);
+        if (existsSync(targetPath)) {
+          rmSync(targetPath, { recursive: true, force: true });
+          removedCount++;
+        }
+      }
+
+      // Remove version file if all components were removed
+      if (components.length === Object.keys(this.components).length) {
+        const versionFile = join(this.targetDir, this.versionFileName);
+        if (existsSync(versionFile)) {
+          await fs.unlink(versionFile);
+        }
+      }
+
+      spinnerObj.stop("Removal complete");
+      console.log(ansis.green("✓ Removed " + removedCount + " component(s) successfully"));
+    } catch (error) {
+      spinnerObj.stop("Removal failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Display installation status
+   *
+   * Shows what's installed, which files are modified, and version information.
+   */
+  async status(): Promise<void> {
+    const projectRoot = await this.getProjectRoot();
+    this.targetDir = join(projectRoot, ".claude");
+
+    if (!(await this.isInstalled())) {
+      console.log(ansis.yellow("Claude integration not installed"));
+      console.log(ansis.dim("Run: dr claude install"));
+      return;
+    }
+
+    const versionData = await this.loadVersionFile();
+    if (!versionData) {
+      console.log(ansis.red("✗ Version file corrupted"));
+      return;
+    }
+
+    console.log(ansis.bold("\nInstallation Status"));
+    console.log("Version: " + ansis.cyan(versionData.version));
+    console.log("Installed: " + ansis.cyan(new Date(versionData.installed_at).toLocaleString()));
+    console.log("");
+
+    // Show component table
+    console.log(ansis.bold("Components:"));
+    for (const [componentName] of Object.entries(this.components)) {
+      const files = versionData.components[componentName] || {};
+      const fileCount = Object.keys(files).length;
+      const status = fileCount > 0 ? ansis.green("✓") : ansis.dim("-");
+
+      console.log("  " + status + " " + componentName.padEnd(20) + " " + fileCount + " files");
+    }
+  }
+
+  /**
+   * List available components
+   *
+   * Shows all components that can be installed along with descriptions.
+   */
+  async list(): Promise<void> {
+    console.log(ansis.bold("\nAvailable Components:"));
+    console.log("");
+
+    for (const [name, config] of Object.entries(this.components)) {
+      console.log(ansis.cyan(name));
+      console.log(ansis.dim("  " + config.description));
+      console.log("");
+    }
+  }
+
+  /**
+   * Get the project root directory
+   *
+   * @returns Absolute path to project root
+   * @throws Error if no project found
+   */
+  private async getProjectRoot(): Promise<string> {
+    const root = await findProjectRoot();
+    if (!root) {
+      throw new Error('No DR project found. Run "dr init" to create a new project');
+    }
+    return root;
+  }
+
+  /**
+   * Convert change type to human-readable status
+   */
+  private changeTypeToStatus(changeType: string): string {
+    switch (changeType) {
+      case "added":
+        return "New";
+      case "modified":
+        return "Updated";
+      case "user-modified":
+        return "Modified";
+      case "conflict":
+        return "Conflict";
+      case "deleted":
+        return "Removed";
+      default:
+        return changeType;
+    }
+  }
+
+  /**
+   * Convert change type to action
+   */
+  private changeTypeToAction(changeType: string): string {
+    switch (changeType) {
+      case "added":
+      case "modified":
+      case "deleted":
+        return "Update";
+      case "user-modified":
+        return "Skip";
+      case "conflict":
+        return "Skip";
+      default:
+        return "Update";
+    }
+  }
+
+  /**
+   * Print helpful next steps after installation
+   */
+  private printNextSteps(): void {
+    console.log(ansis.bold("\nNext steps:"));
+    console.log("1. Reference sheets available in: .claude/knowledge/");
+    console.log("2. Try slash commands: /dr-init, /dr-model");
+    console.log("3. Run: dr claude status");
+    console.log(ansis.dim("\nNote: Restart Claude Code to load new files"));
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoverageRequirement",
+  "description": "A specification of coverage criteria that must be satisfied for a TestCoverageTarget, defining which input partitions, context variations, and outcome categories must be exercised per IEEE 829-2008 test design specification requirements. The specific partitions, context variations, and outcome categories are associated via relationships (to InputPartitionSelection, ContextVariation, and OutcomeCategory nodes) rather than direct attributes.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "coveragerequirement"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "coverageCriteria": {
+          "type": "string",
+          "enum": [
+            "all-partitions",
+            "boundary-values",
+            "pairwise",
+            "each-choice",
+            "MC/DC",
+            "path-coverage"
+          ],
+          "description": "The coverage strategy defining which combinations of partition values must be exercised"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Relative importance of fulfilling this coverage requirement"
+        }
+      },
+      "required": ["coverageCriteria"],
+      "additionalProperties": false
+    }
+  }
+}

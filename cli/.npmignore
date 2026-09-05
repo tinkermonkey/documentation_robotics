@@ -1,0 +1,50 @@
+# Only publish dist/, package.json, README, and LICENSE
+# Everything else is excluded by default when .npmignore exists
+
+# Development files
+tests/
+src/
+*.test.ts
+*.test.js
+
+# Build configuration
+tsconfig.json
+esbuild.config.js
+scripts/
+
+# CI/CD
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+
+# Temp files
+*.tmp
+*.log
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Bun
+.bun
+
+# Internal documentation (not for end-users)
+NPM_PUBLISHING_SETUP.md
+
+# Developer documentation is included for contributors
+# CONTRIBUTING.md is included
+
+# Only include:
+# - dist/
+# - package.json (automatic)
+# - README.md (automatic)
+# - LICENSE (automatic)

@@ -1,0 +1,18 @@
+{
+  "id": "product",
+  "number": 3,
+  "name": "Product Layer",
+  "description": "Layer 3: Product Layer",
+  "inspired_by": {
+    "standard": "ArchiMate 3.2 Strategy Extension + Product Management Practice",
+    "version": "3.2",
+    "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+  },
+  "node_types": [
+    "product.capability",
+    "product.feature",
+    "product.milestone",
+    "product.persona",
+    "product.userworkflow"
+  ]
+}

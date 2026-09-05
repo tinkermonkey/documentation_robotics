@@ -1,0 +1,9 @@
+# Generated Neo4j export files are now tracked in git
+# This allows non-maintainers to explore the spec structure without regenerating
+#
+# Previously ignored:
+# import.cypher
+# csv/
+
+# Runtime files
+.cors-server.pid

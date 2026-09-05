@@ -1,0 +1,344 @@
+/**
+ * Delete an element
+ */
+
+import { confirm } from "@clack/prompts";
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import { MutationHandler } from "../core/mutation-handler.js";
+import { ReferenceRegistry } from "../core/reference-registry.js";
+import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js";
+import { findElementLayer } from "../utils/element-utils.js";
+import { CLIError, handleError, handleSuccess, handleInfo, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
+
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
+
+export interface DeleteOptions {
+  model?: string;
+  force?: boolean;
+  verbose?: boolean;
+  debug?: boolean;
+  cascade?: boolean;
+  dryRun?: boolean;
+}
+
+export async function deleteCommand(id: string, options: DeleteOptions): Promise<void> {
+  const span = isTelemetryEnabled
+    ? startSpan("element.delete", {
+        "element.id": id,
+        "element.force": !!options.force,
+        "element.cascade": !!options.cascade,
+        "element.dryRun": !!options.dryRun,
+      })
+    : null;
+
+  try {
+    // Load model (with error handling for missing models)
+    let model: Model;
+    try {
+      model = await Model.load(options.model || process.cwd());
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (message.includes("No DR project") || message.includes("Model not found")) {
+        throw new ModelNotFoundError();
+      }
+      throw error;
+    }
+
+    // Find element
+    const layerName = await findElementLayer(model, id);
+    if (!layerName) {
+      throw new CLIError(`Element ${id} not found`, ErrorCategory.USER, [
+        `Use "dr search ${id}" to find similar elements`,
+        'Use "dr list <layer>" to list all elements in a layer',
+      ]);
+    }
+
+    const layer = (await model.getLayer(layerName))!;
+    const element = layer.getElement(id);
+
+    if (!element) {
+      throw new CLIError(`Element ${id} not found`, ErrorCategory.USER, [
+        `Use "dr search ${id}" to find similar elements`,
+        'Use "dr list <layer>" to list all elements in a layer',
+      ]);
+    }
+
+    // Build reference registry to track dependencies
+    const registry = new ReferenceRegistry();
+    for (const layer of model.layers.values()) {
+      for (const element of layer.listElements()) {
+        registry.registerElement(element);
+      }
+    }
+
+    // Create dependency tracker
+    const tracker = new DependencyTracker(registry, model);
+
+    // Find all elements that depend on this element (would be orphaned)
+    const dependents = tracker.traceDependencies(id, TraceDirection.DOWN, null);
+
+    // Display element information
+    handleInfo("");
+    handleInfo(ansis.bold(`Removing element: ${ansis.yellow(id)}`), {
+      Layer: layerName,
+      Type: element.type || "unknown",
+      ...(element.name ? { Name: element.name } : {}),
+    });
+
+    // Display dependencies if any exist
+    if (dependents.length > 0) {
+      handleInfo("");
+      handleInfo(
+        ansis.yellow(`⚠ Warning: This element has ${dependents.length} dependent element(s):`)
+      );
+
+      const directDependents = tracker.traceDependencies(id, TraceDirection.DOWN, 1);
+
+      // Show direct dependents
+      for (const dep of directDependents.slice(0, 5)) {
+        const depElement = model.getElementById(dep);
+        const depLayer = depElement?.layer || "unknown";
+        handleInfo(ansis.dim(`  - ${dep} (${depLayer})`));
+      }
+
+      if (directDependents.length > 5) {
+        handleInfo(ansis.dim(`  ... and ${directDependents.length - 5} more direct dependents`));
+      }
+
+      if (dependents.length > directDependents.length) {
+        handleInfo(
+          ansis.dim(
+            `  (${dependents.length - directDependents.length} transitive dependents not shown)`
+          )
+        );
+      }
+
+      // Check if cascade or force is enabled
+      if (!options.cascade && !options.force) {
+        handleInfo("");
+        handleInfo(ansis.red("✗ Cannot remove element with dependencies."));
+        handleInfo(ansis.dim("Use --cascade to remove all dependent elements"));
+        handleInfo(ansis.dim("or --force to skip dependency checks"));
+        const suggestions = [
+          `Use --dry-run with --cascade to preview what would be deleted`,
+          'Review dependencies before deletion using "dr show <element>"',
+          "Use --cascade to automatically remove all dependent elements",
+          "Or use --force to remove only this element (dependencies will reference a non-existent element)",
+        ];
+        throw new CLIError("Element has dependencies", ErrorCategory.USER, suggestions, {
+          operation: "delete",
+          relatedElements: directDependents.slice(0, 10),
+          context: `Element ${id} has ${dependents.length} dependent elements`,
+        });
+      }
+    }
+
+    // Calculate total elements to remove
+    const elementsToRemove = options.cascade ? [id, ...dependents] : [id];
+
+    // Display dry-run summary
+    if (options.dryRun) {
+      handleInfo("");
+      handleInfo(ansis.yellow(`Dry run - not removing`));
+      handleInfo(ansis.dim(`Would remove ${elementsToRemove.length} element(s)`));
+
+      if (options.cascade && dependents.length > 0) {
+        handleInfo("");
+        handleInfo(ansis.dim("Elements that would be removed:"));
+        handleInfo(ansis.dim(`  - ${id} (target)`));
+        for (const dep of dependents.slice(0, 10)) {
+          handleInfo(ansis.dim(`  - ${dep} (dependent)`));
+        }
+        if (dependents.length > 10) {
+          handleInfo(ansis.dim(`  ... and ${dependents.length - 10} more`));
+        }
+      }
+
+      handleSuccess(
+        `Dry run: would remove ${elementsToRemove.length} element(s)`,
+        {
+          elementId: id,
+          layer: layerName!,
+          dryRun: true,
+          elementsToRemoveCount: 1,
+          dependentElementsToRemoveCount: dependents.length,
+        },
+        { verbose: options.verbose }
+      );
+      return;
+    }
+
+    // Confirm deletion unless --force
+    if (!options.force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        handleInfo(ansis.dim("Non-interactive environment detected - proceeding without confirmation"));
+      } else {
+        const message =
+          options.cascade && dependents.length > 0
+            ? `Delete ${ansis.bold(id)} and ${ansis.bold(String(dependents.length))} dependent element(s)? This cannot be undone.`
+            : `Delete element ${ansis.bold(id)}? This cannot be undone.`;
+
+        const confirmed = await confirm({
+          message,
+          initialValue: false,
+        });
+
+        if (!confirmed) {
+          handleSuccess(
+            "Deletion cancelled",
+            {
+              status: "cancelled",
+              elementId: id,
+              layer: layerName!,
+            },
+            { verbose: options.verbose }
+          );
+          return;
+        }
+      }
+    }
+
+    // Execute deletion with error recovery guidance
+    let deletedCount = 0;
+    try {
+      if (options.cascade && dependents.length > 0) {
+        // Delete dependents first (reverse dependency order to avoid orphaned references)
+        const sortedDependents = [...dependents].reverse();
+
+        for (const depId of sortedDependents) {
+          try {
+            const depLayerName = await findElementLayer(model, depId);
+            if (!depLayerName) continue;
+
+            const depLayer = (await model.getLayer(depLayerName))!;
+            const depElement = depLayer.getElement(depId)!;
+
+            const handler = new MutationHandler(model, depId, depLayerName);
+            await handler.executeDelete(depElement);
+            deletedCount++;
+
+            if (options.verbose) {
+              handleInfo(ansis.dim(`  Deleted dependent: ${depId}`));
+            }
+          } catch (depError) {
+            // Track partial progress for error recovery
+            const suggestions = [
+              `${deletedCount} dependent element(s) were deleted before the error`,
+              'Check the model state with "dr validate" to identify any broken references',
+              'You may need to manually delete remaining elements or use "dr show" to inspect',
+            ];
+            throw new CLIError(
+              `Failed to delete dependent element ${depId}`,
+              ErrorCategory.SYSTEM,
+              suggestions,
+              {
+                operation: "delete (cascade)",
+                partialProgress: { completed: deletedCount, total: sortedDependents.length },
+                relatedElements: [id, ...sortedDependents.slice(0, 5)],
+              }
+            );
+          }
+        }
+      }
+    } catch (error) {
+      // If we're in the middle of cascade deletion, provide recovery info
+      if (options.cascade && deletedCount > 0 && !(error instanceof CLIError)) {
+        const suggestions = [
+          `${deletedCount} dependent element(s) were successfully deleted`,
+          'Use "dr validate" to check for broken references',
+          "The target element was not deleted - you can retry the operation",
+        ];
+        throw new CLIError(
+          "Cascade deletion was partially completed but encountered an error",
+          ErrorCategory.SYSTEM,
+          suggestions,
+          {
+            operation: "delete (cascade)",
+            partialProgress: { completed: deletedCount, total: dependents.length },
+          }
+        );
+      }
+      throw error;
+    }
+
+    // Delete the target element
+    const handler = new MutationHandler(model, id, layerName);
+    await handler.executeDelete(element);
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute("layer.name", layerName);
+      (span as any).setAttribute("element.dependents", dependents.length);
+      (span as any).setAttribute("element.totalDeleted", elementsToRemove.length);
+    }
+
+    // Check if operation was staged or applied to base model
+    const beforeState = handler.getBeforeState();
+    if (beforeState) {
+      // Check if we went through staging path
+      const stagingManager = handler.getStagingManager();
+      const activeChangeset = await stagingManager.getActive();
+      if (activeChangeset && activeChangeset.status === "staged") {
+        // Staging path
+        handleSuccess(
+          `Staged deletion of element ${ansis.bold(id)} to ${ansis.bold(activeChangeset.name)}`,
+          {
+            elementId: id,
+            layer: layerName!,
+            changesetStatus: "staged",
+            changeset: activeChangeset.name,
+            totalElementsDeleted: elementsToRemove.length,
+          },
+          { verbose: options.verbose }
+        );
+      } else {
+        // Base model path: purge any stale relationships MutationHandler may have missed
+        const staleBase = elementsToRemove.reduce(
+          (n, eid) => n + model.relationships.deleteForElement(eid), 0
+        );
+        if (staleBase > 0) await model.saveRelationships();
+
+        // Report deletion with cascade confirmation
+        showDeletionSuccess();
+      }
+    } else {
+      // Fallback success message if before state is not available
+      // This should rarely occur, but ensures user always gets feedback
+      const staleFallback = elementsToRemove.reduce(
+        (n, eid) => n + model.relationships.deleteForElement(eid), 0
+      );
+      if (staleFallback > 0) await model.saveRelationships();
+
+      // Report deletion with cascade confirmation
+      showDeletionSuccess();
+    }
+
+    function showDeletionSuccess(): void {
+      const details: Record<string, unknown> = {
+        elementId: id,
+        layer: layerName!,
+        totalElementsDeleted: elementsToRemove.length,
+      };
+      handleSuccess(`Deleted element ${ansis.bold(id)}`, details, { verbose: options.verbose });
+
+      // Show cascade confirmation when cascade is active
+      if (options.cascade && dependents.length > 0) {
+        handleInfo(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
+      }
+    }
+  } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: (error as Error).message });
+    }
+    handleError(error);
+  } finally {
+    if (isTelemetryEnabled) {
+      endSpan(span);
+    }
+  }
+}

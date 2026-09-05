@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NavigationTransition",
+  "description": "A directed edge in the navigation graph representing an authorized route change from a source route to a destination route, triggered by a specific mechanism (user click, programmatic dispatch, timeout, browser-back, or redirect). Models the actual paths users traverse between states in the application — distinct from the routes themselves — enabling analysis of navigation flows, dead-end detection, and trigger-based transition policies.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.navigationtransition"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "navigationtransition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "user-click",
+            "programmatic",
+            "timeout",
+            "browser-back",
+            "redirect"
+          ],
+          "description": "Mechanism that initiates the route transition: user-click (explicit user interaction), programmatic (code-driven), timeout (time-based), browser-back (browser history navigation), redirect (automatic server/guard redirect)."
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": ["from", "to", "trigger"],
+      "additionalProperties": false
+    }
+  }
+}

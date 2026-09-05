@@ -1,0 +1,24 @@
+todos-id-column:
+  id: todos-id-column
+  path: data-store.column.todos-id-column
+  spec_node_id: data-store.column
+  type: column
+  layer_id: data-store
+  name: Id Column
+  description: Primary key column
+todos-title-column:
+  id: todos-title-column
+  path: data-store.column.todos-title-column
+  spec_node_id: data-store.column
+  type: column
+  layer_id: data-store
+  name: Title Column
+  description: Title column
+todos-done-column:
+  id: todos-done-column
+  path: data-store.column.todos-done-column
+  spec_node_id: data-store.column
+  type: column
+  layer_id: data-store
+  name: Done Column
+  description: Done status column

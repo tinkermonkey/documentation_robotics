@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FlowStep",
+  "description": "A single ordered node in a NavigationFlow, binding a sequence position to a specific route that the user must visit as part of a multi-step process. Each step carries a sequence index (determines order), a route reference, an optional required flag (whether the step may be skipped), and a waitBehavior governing whether the flow advances immediately or blocks until the step completes. FlowSteps compose into NavigationFlows that realize multi-page business processes such as checkout, onboarding, or wizards.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.flowstep"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "flowstep"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "integer"
+        },
+        "route": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "waitBehavior": {
+          "type": "string",
+          "enum": ["blocking", "non-blocking", "timeout", "async"],
+          "description": "Execution model governing how the flow waits for this step to complete before advancing."
+        }
+      },
+      "required": ["sequence", "route"],
+      "additionalProperties": false
+    }
+  }
+}

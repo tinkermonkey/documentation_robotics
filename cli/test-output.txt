@@ -1,0 +1,28 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/integration/json-output-mutating-commands.test.ts:
+(pass) JSON Output on Mutating Commands > dr add --json > should output valid JSON with elementId, layer, type, name fields [9953.53ms]
+(pass) JSON Output on Mutating Commands > dr add --json > should include changeset name when staging is active [8881.14ms]
+(pass) JSON Output on Mutating Commands > dr update --json > should output valid JSON with elementId, layer fields [5651.60ms]
+(pass) JSON Output on Mutating Commands > dr delete --json > should output valid JSON with elementId, layer, totalElementsDeleted [7232.60ms]
+(pass) JSON Output on Mutating Commands > dr delete --json > should output valid JSON with dryRun flag when --dry-run is used [9921.35ms]
+(pass) JSON Output on Mutating Commands > dr relationship add --json > should output valid JSON with source, target, predicate, layer fields [10925.65ms]
+(pass) JSON Output on Mutating Commands > dr relationship add --json > should output duplicate: true in JSON when relationship already exists [9738.62ms]
+(pass) JSON Output on Mutating Commands > dr relationship delete --json > should output valid JSON with source, target, deletedCount fields [8871.61ms]
+(pass) JSON Output on Mutating Commands > JSON output with verbose flag > should not mix human-oriented text with JSON in JSON mode [10654.31ms]
+(pass) JSON Output on Mutating Commands > Error handling with --json flag > should output valid JSON on validation error (missing required field) [6474.97ms]
+(pass) JSON Output on Mutating Commands > Error handling with --json flag > should output valid JSON on element not found error [3986.27ms]
+(pass) JSON Output on Mutating Commands > Error handling with --json flag > should output valid JSON on invalid layer error [3324.32ms]
+(pass) JSON Output on Mutating Commands > Error handling with --json flag > should output valid JSON with suggestions on error [10223.04ms]
+(pass) JSON Output on Mutating Commands > Error handling with --json flag > should output valid JSON when relationship references non-existent element [5323.03ms]
+(pass) JSON Output on Mutating Commands > Changeset commands JSON output > dr changeset create --json should output valid JSON [10425.32ms]
+(pass) JSON Output on Mutating Commands > Changeset commands JSON output > dr changeset revert --json should output valid JSON [12594.11ms]
+(pass) JSON Output on Mutating Commands > Changeset commands JSON output > dr changeset activate --json should output valid JSON [10239.17ms]
+(pass) JSON Output on Mutating Commands > Changeset commands JSON output > dr changeset apply --json should output valid JSON [12284.06ms]
+(pass) JSON Output on Mutating Commands > Changeset commands JSON output > dr changeset deactivate --json should output valid JSON [11011.95ms]
+(pass) JSON Output on Mutating Commands > Changeset commands JSON output > dr changeset delete --json should output valid JSON [7085.64ms]
+
+ 20 pass
+ 0 fail
+ 118 expect() calls
+Ran 20 tests across 1 file. [174.88s]

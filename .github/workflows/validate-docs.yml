@@ -1,0 +1,54 @@
+name: Validate Documentation
+
+# Temporarily disabled due to non-deterministic filesystem/environment ordering
+# between local (tsx) and CI (bun) environments. Docs should be manually regenerated
+# before committing spec changes.
+on:
+  workflow_dispatch: # Manual trigger only
+  # pull_request:
+  #   paths:
+  #     - "spec/schemas/base/**"
+  #     - "spec/schemas/*.schema.json"
+  #     - "spec/layers/*.layer.json"
+  #     - "spec/nodes/**/*.node.json"
+  #     - "scripts/generate-layer-reports.ts"
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Generate documentation
+        run: bun run scripts/generate-layer-reports.ts
+
+      - name: Check for changes
+        run: |
+          # Check for meaningful changes (ignore timestamp and commit hash in footer)
+          # Extract only content changes (single + or - followed by non-special char), excluding Generated footer
+          git diff spec/browser/ | grep "^[+-][^+-]" | grep -v "^[+-]_Generated:" > /tmp/meaningful_diff.txt || true
+          if [ -s /tmp/meaningful_diff.txt ]; then
+            echo "❌ Documentation is out of sync with schemas."
+            echo ""
+            echo "Documentation files are auto-generated from specification instances."
+            echo "To fix this, run:"
+            echo ""
+            echo "  bun run scripts/generate-layer-reports.ts"
+            echo ""
+            echo "Then commit the updated files."
+            echo ""
+            echo "Meaningful changes detected:"
+            cat /tmp/meaningful_diff.txt
+            exit 1
+          fi
+
+      - name: Documentation validation successful
+        if: success()
+        run: echo "✅ Documentation is in sync with schemas"

@@ -1,0 +1,100 @@
+{
+  "specVersion": "0.10.0",
+  "layers": [
+    {
+      "id": "motivation",
+      "number": 1,
+      "name": "Motivation Layer",
+      "nodeTypeCount": 10,
+      "relationshipCount": 80
+    },
+    {
+      "id": "business",
+      "number": 2,
+      "name": "Business Layer",
+      "nodeTypeCount": 13,
+      "relationshipCount": 73
+    },
+    {
+      "id": "product",
+      "number": 3,
+      "name": "Product Layer",
+      "nodeTypeCount": 5,
+      "relationshipCount": 19
+    },
+    {
+      "id": "security",
+      "number": 4,
+      "name": "Security Layer",
+      "nodeTypeCount": 29,
+      "relationshipCount": 183
+    },
+    {
+      "id": "application",
+      "number": 5,
+      "name": "Application Layer",
+      "nodeTypeCount": 9,
+      "relationshipCount": 80
+    },
+    {
+      "id": "technology",
+      "number": 6,
+      "name": "Technology Layer",
+      "nodeTypeCount": 13,
+      "relationshipCount": 128
+    },
+    {
+      "id": "api",
+      "number": 7,
+      "name": "API Layer",
+      "nodeTypeCount": 27,
+      "relationshipCount": 196
+    },
+    {
+      "id": "data-model",
+      "number": 8,
+      "name": "Data Model Layer",
+      "nodeTypeCount": 9,
+      "relationshipCount": 74
+    },
+    {
+      "id": "data-store",
+      "number": 9,
+      "name": "Data Store Layer",
+      "nodeTypeCount": 11,
+      "relationshipCount": 106
+    },
+    {
+      "id": "ux",
+      "number": 10,
+      "name": "UX Layer",
+      "nodeTypeCount": 22,
+      "relationshipCount": 188
+    },
+    {
+      "id": "navigation",
+      "number": 11,
+      "name": "Navigation Layer",
+      "nodeTypeCount": 11,
+      "relationshipCount": 122
+    },
+    {
+      "id": "apm",
+      "number": 12,
+      "name": "APM Observability Layer",
+      "nodeTypeCount": 15,
+      "relationshipCount": 138
+    },
+    {
+      "id": "testing",
+      "number": 13,
+      "name": "Testing Layer",
+      "nodeTypeCount": 17,
+      "relationshipCount": 202
+    }
+  ],
+  "totals": {
+    "nodeTypes": 191,
+    "relationships": 1589
+  }
+}

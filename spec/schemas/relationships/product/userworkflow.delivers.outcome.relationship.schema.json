@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UserWorkflow delivers Outcome",
+  "description": "Defines relationship: product.userworkflow delivers motivation.outcome",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "product.userworkflow.delivers.motivation.outcome"
+    },
+    "source_spec_node_id": {
+      "const": "product.userworkflow"
+    },
+    "source_layer": {
+      "const": "product"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.outcome"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "delivers"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

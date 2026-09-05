@@ -1,0 +1,156 @@
+name: "Validation Workflows"
+description: "Test validation operations including error scenarios and constraint violations"
+priority: medium
+
+pipelines:
+  - name: "Validate model state"
+    steps:
+      - command: "validate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Model is valid"
+
+      - command: "info"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "model"
+          - "elements"
+
+  - name: "List operations across layers"
+    steps:
+      - command: "list motivation"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "list data-store"
+        files_to_compare: []
+        expect_exit_code: 0
+
+  - name: "Search functionality"
+    steps:
+      - command: "search goal"
+        files_to_compare: []
+        expect_exit_code: 0
+
+  - name: "Element inspection"
+    steps:
+      - command: 'add motivation goal inspect-test-goal --name ''Test Goal for Inspection'' --description ''Goal to inspect'' --attributes ''{"priority": "medium"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+      - command: "show motivation.goal.inspect-test-goal"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "inspect-test-goal"
+          - "Test Goal for Inspection"
+
+      - command: "delete motivation.goal.inspect-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+  - name: "Model conformance check"
+    steps:
+      - command: "conformance"
+        files_to_compare: []
+        expect_exit_code: 0
+
+  - name: "Invalid element ID format"
+    description: "Verify that underscores in element IDs are normalized to hyphens"
+    steps:
+      - command: 'add motivation goal invalid_id_with_underscore --name ''Invalid ID'' --description ''Testing invalid ID format'' --attributes ''{"priority": "medium"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "invalid-id-with-underscore"
+
+      - command: "delete motivation.goal.invalid-id-with-underscore --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+  - name: "Duplicate element creation"
+    description: "Verify error when attempting to create duplicate element"
+    steps:
+      - command: 'add motivation goal dup-test-goal --name ''Duplicate Test'' --description ''First goal'' --attributes ''{"priority": "medium"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+      - command: 'add motivation goal dup-test-goal --name ''Duplicate Test 2'' --description ''Second goal with same ID'' --attributes ''{"priority": "medium"}'''
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "already exists"
+
+      - command: "delete motivation.goal.dup-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+  - name: "Missing required properties"
+    description: "Verify that name property defaults to element ID when not provided"
+    steps:
+      - command: 'add api operation missing-name-operation --description ''Missing required name'' --attributes ''{"operationId":"missing-name-operation","summary":"Missing Name Operation","tags":"test"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 07_api/operation.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "missing-name-operation"
+
+      - command: "delete api.operation.missing-name-operation --force"
+        files_to_compare:
+          - manifest.yaml
+          - 07_api/operation.yaml
+        expect_exit_code: 0
+
+  - name: "Reference to non-existent element"
+    description: "Verify validation when referencing non-existent elements"
+    steps:
+      - command: "add data-store collection ref-test-table --name 'test_collection' --description 'Collection for reference test'"
+        files_to_compare:
+          - manifest.yaml
+          - 09_data-store/collection.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add data-store.collection.ref-test-table nonexistent-element --predicate composes"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "not found"
+
+      - command: "delete data-store.collection.ref-test-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 09_data-store/collection.yaml
+        expect_exit_code: 0
+
+  - name: "Invalid layer name"
+    description: "Verify validation of layer names in commands"
+    steps:
+      - command: "add invalid_layer goal test-goal --name 'Test' --description 'Test'"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "Unknown layer"
+
+  - name: "Delete non-existent element"
+    description: "Verify error when deleting non-existent element"
+    steps:
+      - command: "delete nonexistent-element-id --force"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "not found"

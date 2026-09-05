@@ -1,0 +1,418 @@
+/**
+ * Validation formatter for detailed and actionable output
+ */
+
+import ansis from "ansis";
+import type { ValidationResult } from "./types.js";
+import type { Model } from "../core/model.js";
+import { formatLayerNameWithSuffix } from "../utils/layer-name-formatter.js";
+
+interface ValidationStats {
+  totalElements: number;
+  totalRelationships: number;
+  elementsPerLayer: Record<string, number>;
+  relationshipsByPredicate: Record<string, number>;
+  orphanedElements: string[];
+}
+
+/**
+ * Formats validation results into detailed, human-readable output
+ */
+export class ValidationFormatter {
+  /**
+   * Format validation result for display
+   */
+  static format(
+    result: ValidationResult,
+    model: Model,
+    options: {
+      verbose?: boolean;
+      quiet?: boolean;
+    } = {}
+  ): string {
+    if (options.quiet) {
+      return this.formatQuiet(result);
+    }
+
+    if (options.verbose) {
+      return this.formatVerbose(result, model);
+    }
+
+    return this.formatStandard(result, model);
+  }
+
+  /**
+   * Format quiet output (minimal)
+   */
+  private static formatQuiet(result: ValidationResult): string {
+    if (result.isValid() && result.warnings.length === 0) {
+      return ansis.green("✓ Validation passed");
+    }
+
+    const lines: string[] = [];
+
+    if (result.errors.length > 0) {
+      lines.push(ansis.red(`✗ ${result.errors.length} error(s)`));
+    }
+
+    if (result.warnings.length > 0) {
+      lines.push(ansis.yellow(`⚠ ${result.warnings.length} warning(s)`));
+    }
+
+    return lines.join(" ");
+  }
+
+  /**
+   * Format standard output (enhanced with stats)
+   */
+  private static formatStandard(result: ValidationResult, model: Model): string {
+    const lines: string[] = [];
+
+    lines.push("");
+    lines.push(ansis.bold("Validating Documentation Robotics Model"));
+    lines.push(ansis.bold("========================================"));
+    lines.push("");
+
+    // Layer-by-layer validation summary
+    lines.push(ansis.bold("Schema Validation:"));
+    const layerStats = this.getLayerStats(model);
+    for (const [layerName, count] of Object.entries(layerStats)) {
+      const hasErrors = result.errors.some((e) => e.layer === layerName);
+      if (hasErrors) {
+        const errorCount = result.errors.filter((e) => e.layer === layerName).length;
+        lines.push(
+          `${ansis.red("✗")} ${formatLayerNameWithSuffix(layerName)} (${count} elements) - ${errorCount} error(s)`
+        );
+      } else {
+        lines.push(`${ansis.green("✓")} ${formatLayerNameWithSuffix(layerName)} (${count} elements)`);
+      }
+    }
+
+    lines.push("");
+
+    // Cross-layer validation
+    lines.push(ansis.bold("Cross-Layer Validation:"));
+    const stats = this.calculateStats(model);
+    lines.push(
+      `${ansis.green("✓")} ${stats.totalRelationships} relationships validated`
+    );
+
+    // Orphaned element warnings are injected into result.warnings in validate.ts
+    // so they appear in the warnings section and are counted in the summary.
+    // Do not display a separate orphan count here to avoid double-reporting.
+
+    lines.push("");
+
+    // Error details
+    if (result.errors.length > 0) {
+      lines.push(ansis.bold("Errors:"));
+      lines.push("");
+      result.errors.forEach((error, index) => {
+        lines.push(`${index + 1}. ${error.message}`);
+        if (error.location) {
+          lines.push(`   ${ansis.dim(`File: ${error.location}`)}`);
+        }
+        if (error.elementId) {
+          lines.push(`   ${ansis.dim(`Element: ${error.elementId}`)}`);
+        }
+        if (error.fixSuggestion) {
+          lines.push(`   ${ansis.dim(`→ Suggestion: ${error.fixSuggestion}`)}`);
+        }
+        lines.push("");
+      });
+    }
+
+    // Warning details — split schema/semantic warnings from connectivity (orphan) warnings
+    const schemaWarnings = result.warnings.filter((w) => w.category !== "orphan");
+    const orphanWarnings = result.warnings.filter((w) => w.category === "orphan");
+
+    if (schemaWarnings.length > 0) {
+      lines.push(ansis.bold("Warnings:"));
+      lines.push("");
+      schemaWarnings.forEach((warning, index) => {
+        lines.push(`${index + 1}. ${warning.message}`);
+        if (warning.location) {
+          lines.push(`   ${ansis.dim(`File: ${warning.location}`)}`);
+        }
+        if (warning.elementId) {
+          lines.push(`   ${ansis.dim(`Element: ${warning.elementId}`)}`);
+        }
+        if (warning.fixSuggestion) {
+          lines.push(`   ${ansis.dim(`→ Suggestion: ${warning.fixSuggestion}`)}`);
+        }
+        lines.push("");
+      });
+    }
+
+    if (orphanWarnings.length > 0) {
+      lines.push(ansis.bold("Connectivity Warnings:"));
+      lines.push(
+        ansis.dim(
+          `  ${orphanWarnings.length} element(s) have no cross-layer references or intra-layer relationships.`
+        )
+      );
+      lines.push(
+        ansis.dim("  These are connectivity gaps, not structural errors — the model schema is valid.")
+      );
+      lines.push("");
+      orphanWarnings.forEach((warning, index) => {
+        lines.push(`${index + 1}. ${warning.message}`);
+        if (warning.elementId) {
+          lines.push(`   ${ansis.dim(`Element: ${warning.elementId}`)}`);
+        }
+        if (warning.fixSuggestion) {
+          lines.push(`   ${ansis.dim(`→ Suggestion: ${warning.fixSuggestion}`)}`);
+        }
+        lines.push("");
+      });
+    }
+
+    // Summary
+    lines.push(ansis.bold("Summary:"));
+    lines.push(
+      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${stats.totalElements} total elements validated`
+    );
+    lines.push(`${ansis.green("✓")} ${stats.totalRelationships} relationships validated`);
+    lines.push(`${ansis.green("✓")} ${Object.keys(layerStats).length} layers validated`);
+    lines.push(
+      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${result.errors.length} error(s), ${result.warnings.length} warning(s)`
+    );
+    lines.push("");
+
+    if (result.isValid()) {
+      if (result.warnings.length === 0) {
+        lines.push(ansis.green("Model is valid and ready for use."));
+      } else {
+        lines.push(ansis.yellow("Model is valid but consider addressing warnings."));
+      }
+    } else {
+      lines.push(ansis.red("Model validation failed. Please fix errors before proceeding."));
+    }
+
+    lines.push("");
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Format verbose output (detailed with relationship breakdown)
+   */
+  private static formatVerbose(result: ValidationResult, model: Model): string {
+    const standard = this.formatStandard(result, model);
+    const lines = standard.split("\n");
+
+    // Find the "Cross-Layer Validation:" section and expand it
+    const crossLayerIndex = lines.findIndex((l) => l.includes("Cross-Layer Validation:"));
+    if (crossLayerIndex >= 0) {
+      const stats = this.calculateStats(model);
+      const relationshipLines: string[] = [];
+
+      // Add breakdown by relationship type
+      if (Object.keys(stats.relationshipsByPredicate).length > 0) {
+        relationshipLines.push("");
+        relationshipLines.push(ansis.dim("Relationship breakdown:"));
+        for (const [predicate, count] of Object.entries(stats.relationshipsByPredicate).sort()) {
+          relationshipLines.push(ansis.dim(`  • ${predicate}: ${count} relationship(s)`));
+        }
+      }
+
+      // Insert after the cross-layer section
+      lines.splice(crossLayerIndex + 4, 0, ...relationshipLines);
+    }
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Get statistics about layers
+   */
+  private static getLayerStats(model: Model): Record<string, number> {
+    const stats: Record<string, number> = {};
+
+    for (const [layerName, layer] of model.layers) {
+      const count = layer.listElements().length;
+      if (count > 0) {
+        stats[layerName] = count;
+      }
+    }
+
+    return stats;
+  }
+
+  /**
+   * Calculate validation statistics
+   */
+  static calculateStats(model: Model): ValidationStats {
+    const stats: ValidationStats = {
+      totalElements: 0,
+      totalRelationships: 0,
+      elementsPerLayer: {},
+      relationshipsByPredicate: {},
+      orphanedElements: [],
+    };
+
+    const elementIds = new Set<string>();
+    const crossLayerRefCounts = new Map<string, number>();
+
+    // Count elements and cross-layer references (element.references[])
+    for (const [layerName, layer] of model.layers) {
+      let layerCount = 0;
+      for (const element of layer.listElements()) {
+        elementIds.add(element.path || element.id);
+        layerCount++;
+        stats.totalElements++;
+
+        const refCount = (element.references || []).length;
+        crossLayerRefCounts.set(element.path || element.id, refCount);
+        stats.totalRelationships += refCount;
+
+        for (const ref of element.references || []) {
+          const predicate = ref.type || "references";
+          stats.relationshipsByPredicate[predicate] =
+            (stats.relationshipsByPredicate[predicate] || 0) + 1;
+        }
+      }
+
+      if (layerCount > 0) {
+        stats.elementsPerLayer[layerName] = layerCount;
+      }
+    }
+
+    // Also count intra-layer relationships from relationships.yaml
+    const intraLayerRels = model.relationships.getAll();
+    stats.totalRelationships += intraLayerRels.length;
+    const connectedViaIntraLayer = new Set<string>();
+    for (const rel of intraLayerRels) {
+      stats.relationshipsByPredicate[rel.predicate] =
+        (stats.relationshipsByPredicate[rel.predicate] || 0) + 1;
+      connectedViaIntraLayer.add(rel.source);
+      connectedViaIntraLayer.add(rel.target);
+    }
+
+    // Find orphaned elements: no cross-layer refs and not touched by any intra-layer relationship
+    for (const elementId of elementIds) {
+      if (connectedViaIntraLayer.has(elementId)) {
+        continue;
+      }
+
+      const outgoingCrossLayer = crossLayerRefCounts.get(elementId) || 0;
+      let incomingCrossLayer = 0;
+      for (const [, layer] of model.layers) {
+        for (const element of layer.listElements()) {
+          for (const ref of element.references || []) {
+            if (ref.target === elementId) {
+              incomingCrossLayer++;
+            }
+          }
+        }
+      }
+
+      if (outgoingCrossLayer === 0 && incomingCrossLayer === 0) {
+        stats.orphanedElements.push(elementId);
+      }
+    }
+
+    return stats;
+  }
+
+  /**
+   * Export validation result as JSON
+   */
+  static toJSON(result: ValidationResult, model: Model): Record<string, unknown> {
+    const stats = this.calculateStats(model);
+    const layerStats = this.getLayerStats(model);
+
+    return {
+      valid: result.isValid(),
+      summary: {
+        totalElements: stats.totalElements,
+        totalRelationships: stats.totalRelationships,
+        errorCount: result.errors.length,
+        warningCount: result.warnings.length,
+        orphanedCount: stats.orphanedElements.length,
+        layersValidated: Object.keys(layerStats).length,
+      },
+      layerStats,
+      relationshipsByPredicate: stats.relationshipsByPredicate,
+      orphanedElements: stats.orphanedElements,
+      errors: result.errors,
+      warnings: result.warnings,
+    };
+  }
+
+  /**
+   * Export validation result as Markdown
+   */
+  static toMarkdown(result: ValidationResult, model: Model): string {
+    const lines: string[] = [];
+    const stats = this.calculateStats(model);
+    const layerStats = this.getLayerStats(model);
+
+    lines.push("# Validation Report");
+    lines.push("");
+    lines.push(`**Status**: ${result.isValid() ? "✓ Valid" : "✗ Invalid"}`);
+    lines.push(`**Generated**: ${new Date().toISOString()}`);
+    lines.push("");
+
+    lines.push("## Summary");
+    lines.push("");
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Total Elements | ${stats.totalElements} |`);
+    lines.push(`| Total Relationships | ${stats.totalRelationships} |`);
+    lines.push(`| Layers Validated | ${Object.keys(layerStats).length} |`);
+    lines.push(`| Errors | ${result.errors.length} |`);
+    lines.push(`| Warnings | ${result.warnings.length} |`);
+    lines.push(`| Orphaned Elements | ${stats.orphanedElements.length} |`);
+    lines.push("");
+
+    lines.push("## Layer Statistics");
+    lines.push("");
+    for (const [layerName, count] of Object.entries(layerStats)) {
+      const hasErrors = result.errors.some((e) => e.layer === layerName);
+      const status = hasErrors ? "✗" : "✓";
+      lines.push(`- ${status} ${layerName}: ${count} elements`);
+    }
+    lines.push("");
+
+    if (result.errors.length > 0) {
+      lines.push("## Errors");
+      lines.push("");
+      result.errors.forEach((error, index) => {
+        lines.push(`### ${index + 1}. ${error.message}`);
+        lines.push("");
+        if (error.location) {
+          lines.push(`**File**: \`${error.location}\``);
+        }
+        if (error.elementId) {
+          lines.push(`**Element**: \`${error.elementId}\``);
+        }
+        if (error.fixSuggestion) {
+          lines.push(`**Suggestion**: ${error.fixSuggestion}`);
+        }
+        lines.push("");
+      });
+    }
+
+    if (result.warnings.length > 0) {
+      lines.push("## Warnings");
+      lines.push("");
+      result.warnings.forEach((warning, index) => {
+        lines.push(`### ${index + 1}. ${warning.message}`);
+        lines.push("");
+        if (warning.location) {
+          lines.push(`**File**: \`${warning.location}\``);
+        }
+        if (warning.elementId) {
+          lines.push(`**Element**: \`${warning.elementId}\``);
+        }
+        if (warning.fixSuggestion) {
+          lines.push(`**Suggestion**: ${warning.fixSuggestion}`);
+        }
+        lines.push("");
+      });
+    }
+
+    return lines.join("\n");
+  }
+}

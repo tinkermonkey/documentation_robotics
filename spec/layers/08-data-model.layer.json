@@ -1,0 +1,12 @@
+{
+  "id": "data-model",
+  "number": 8,
+  "name": "Data Model Layer",
+  "description": "Layer 8: Data Model Layer",
+  "inspired_by": {
+    "standard": "JSON Schema Draft 7",
+    "version": "Draft 7",
+    "url": "https://json-schema.org/draft-07/"
+  },
+  "node_types": []
+}
