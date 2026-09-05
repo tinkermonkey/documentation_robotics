@@ -8,7 +8,9 @@
     "description": "Tree-sitter-based code knowledge graph server by DeusData",
     "homepage": "https://github.com/DeusData/codebase-memory-mcp",
     "mcp_server_name": "codebase-memory-mcp",
-    "binary_names": ["codebase-memory-mcp"],
+    "binary_names": [
+      "codebase-memory-mcp"
+    ],
     "supported_tool_contract": {
       "required_tools": [
         "search_graph",
@@ -406,10 +408,15 @@
       {
         "name": "min_fan_in",
         "description": "Function/method with high fan-in (many callers) may be a service",
-        "applies_to": ["application.applicationfunction"],
+        "applies_to": [
+          "application.applicationfunction"
+        ],
         "parameters": {
           "threshold": 5,
-          "source_types": ["function", "method"]
+          "source_types": [
+            "function",
+            "method"
+          ]
         },
         "rule": "If a function/method is called by 5+ other functions/methods, it exhibits service-like behavior and is eligible for promotion to applicationservice",
         "confidence_adjustment": 0.15
@@ -455,7 +462,9 @@
       {
         "name": "class_is_service",
         "description": "Class structure and interface patterns indicate service behavior",
-        "applies_to": ["application.applicationcomponent"],
+        "applies_to": [
+          "application.applicationcomponent"
+        ],
         "parameters": {
           "indicators": [
             "implements_interface",
@@ -471,7 +480,9 @@
       {
         "name": "service_class_naming",
         "description": "Class names following service patterns within classes indicate service methods",
-        "applies_to": ["application.applicationfunction"],
+        "applies_to": [
+          "application.applicationfunction"
+        ],
         "parameters": {
           "service_method_prefixes": [
             "create",
@@ -492,7 +503,9 @@
       {
         "name": "is_entry_point",
         "description": "Functions that serve as entry points (main, handler, endpoint) indicate service potential",
-        "applies_to": ["application.applicationfunction"],
+        "applies_to": [
+          "application.applicationfunction"
+        ],
         "parameters": {
           "entry_point_patterns": [
             "main",
@@ -509,7 +522,9 @@
       {
         "name": "handles_route",
         "description": "Functions that handle HTTP routes map directly to API operations",
-        "applies_to": ["api.operation"],
+        "applies_to": [
+          "api.operation"
+        ],
         "rule": "Function/method decorated with @Route, @Handler, or similar HTTP decorator maps to api.operation with high confidence",
         "confidence_adjustment": 0.3
       },

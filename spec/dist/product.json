@@ -61,7 +61,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["status"],
+          "required": [
+            "status"
+          ],
           "additionalProperties": false
         }
       },
@@ -95,7 +97,13 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["critical", "high", "medium", "low", "informational"],
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low",
+                "informational"
+              ],
               "description": "Priority level"
             },
             "status": {
@@ -111,7 +119,13 @@
             },
             "size": {
               "type": "string",
-              "enum": ["xs", "s", "m", "l", "xl"],
+              "enum": [
+                "xs",
+                "s",
+                "m",
+                "l",
+                "xl"
+              ],
               "description": "Relative sizing estimate"
             },
             "properties": {
@@ -119,7 +133,10 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["priority", "status"],
+          "required": [
+            "priority",
+            "status"
+          ],
           "additionalProperties": false
         }
       },
@@ -163,7 +180,9 @@
               "description": "Milestone status"
             }
           },
-          "required": ["status"],
+          "required": [
+            "status"
+          ],
           "additionalProperties": false
         }
       },
@@ -197,16 +216,29 @@
             },
             "category": {
               "type": "string",
-              "enum": ["primary", "secondary", "served", "negative"],
+              "enum": [
+                "primary",
+                "secondary",
+                "served",
+                "negative"
+              ],
               "description": "Persona classification by importance"
             },
             "proficiency": {
               "type": "string",
-              "enum": ["novice", "intermediate", "advanced", "expert"],
+              "enum": [
+                "novice",
+                "intermediate",
+                "advanced",
+                "expert"
+              ],
               "description": "Technical proficiency level"
             }
           },
-          "required": ["category", "proficiency"],
+          "required": [
+            "category",
+            "proficiency"
+          ],
           "additionalProperties": false
         }
       },
@@ -240,7 +272,11 @@
             },
             "complexity": {
               "type": "string",
-              "enum": ["simple", "moderate", "complex"],
+              "enum": [
+                "simple",
+                "moderate",
+                "complex"
+              ],
               "description": "Workflow complexity assessment"
             },
             "properties": {
@@ -248,7 +284,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["complexity"],
+          "required": [
+            "complexity"
+          ],
           "additionalProperties": false
         }
       },
