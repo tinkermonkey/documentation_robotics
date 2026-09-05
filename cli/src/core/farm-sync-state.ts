@@ -2,7 +2,6 @@
  * Farm Sync State - Manages .farm-sync.yaml per project
  *
  * Tracks sync history, last sync commit, and timestamps for each project.
- * Persisted separately from the model in the farm's git repository.
  */
 
 import yaml from "yaml";
