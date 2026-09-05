@@ -132,10 +132,6 @@ describe("Model.load — Detached Manifest Path Validation", () => {
     await mkdir(nestedPath, { recursive: true });
 
     const manifestPath = path.join(nestedPath, "manifest.yaml");
-    const manifest = new Manifest({
-      name: "Test Model",
-      version: "1.0.0",
-    });
     await writeFile(manifestPath, "name: Test Model\nversion: 1.0.0\n");
 
     // Attempting to load model from detached manifest should throw error
