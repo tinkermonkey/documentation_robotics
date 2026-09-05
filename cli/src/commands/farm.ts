@@ -293,8 +293,8 @@ export async function farmRemoveCommand(
       const modelFullPath = path.resolve(path.join(farmRoot, project.model));
       const farmRootResolved = path.resolve(farmRoot);
 
-      // Validate that the resolved path is within the farm root to prevent path traversal
-      if (!modelFullPath.startsWith(farmRootResolved + path.sep) && modelFullPath !== farmRootResolved) {
+      // Validate that the resolved path is strictly within the farm root to prevent path traversal
+      if (!modelFullPath.startsWith(farmRootResolved + path.sep)) {
         throw new Error(
           `Invalid model path: would escape farm root. Path: ${project.model}`
         );
