@@ -571,10 +571,20 @@ export async function farmValidateCommand(options: {
       try {
         const model = await Model.load();
 
+        let platformViewInfo: {
+          declared_models: string[];
+          missing_models: string[];
+        } | undefined;
+
         // For platform-view projects, validate that all declared external models are resolvable
         if (isPlatformViewValidation) {
           const declaredModels = model.manifest.models || {};
           const declaredModelNames = Object.keys(declaredModels);
+
+          platformViewInfo = {
+            declared_models: declaredModelNames,
+            missing_models: [],
+          };
 
           if (declaredModelNames.length === 0) {
             if (!useJson && !options.quiet) {
@@ -597,6 +607,8 @@ export async function farmValidateCommand(options: {
                 missingModels.push(declaredModelName);
               }
             }
+
+            platformViewInfo.missing_models = missingModels;
 
             if (missingModels.length > 0) {
               if (!useJson) {
@@ -622,7 +634,7 @@ export async function farmValidateCommand(options: {
         });
 
         // Collect report data for output file
-        reportData.push({
+        const reportItem: any = {
           project: project.name,
           valid: result.isValid(),
           errors: result.errors.map((e) => ({
@@ -638,7 +650,13 @@ export async function farmValidateCommand(options: {
             location: w.location,
           })),
           formatted,
-        });
+        };
+
+        if (platformViewInfo) {
+          reportItem.platform_view_info = platformViewInfo;
+        }
+
+        reportData.push(reportItem);
 
         if (!options.quiet) {
           console.log(ansis.bold(`\nProject: ${project.name}`));
@@ -675,12 +693,18 @@ export async function farmValidateCommand(options: {
           timestamp: new Date().toISOString(),
           farm_root: farmRoot,
           all_valid: allValid,
-          projects: reportData.map((r) => ({
-            project: r.project,
-            valid: r.valid,
-            errors: r.errors,
-            warnings: r.warnings,
-          })),
+          projects: reportData.map((r) => {
+            const projectData: any = {
+              project: r.project,
+              valid: r.valid,
+              errors: r.errors,
+              warnings: r.warnings,
+            };
+            if (r.platform_view_info) {
+              projectData.platform_view_info = r.platform_view_info;
+            }
+            return projectData;
+          }),
         };
         await (await import("fs/promises")).writeFile(
           options.output,
@@ -1166,7 +1190,12 @@ Examples:
   $ dr farm init
   $ dr farm init --name "My Architecture Farm"
   $ dr farm init --platform-view
-  $ dr farm init --format json`
+  $ dr farm init --format json
+
+Notes:
+  When using --platform-view, create a project named exactly "platform-view" to serve as
+  the aggregation hub. When validating this project with 'dr farm validate --project platform-view',
+  the CLI will automatically resolve cross-model references from all farm projects.`
     )
     .action(async (options) => {
       await farmInitCommand(options);
@@ -1239,7 +1268,12 @@ Examples:
   $ dr farm validate --project my-service
   $ dr farm validate --verbose
   $ dr farm validate --format json
-  $ dr farm validate --output report.json`
+  $ dr farm validate --output report.json
+
+Notes:
+  For platform-view aggregation: Use 'dr farm validate --project platform-view' to validate
+  a platform-view project. The project name must be exactly 'platform-view' and the farm
+  must have platform-view enabled (set during 'dr farm init --platform-view').`
     )
     .action(async (options) => {
       await farmValidateCommand(options);

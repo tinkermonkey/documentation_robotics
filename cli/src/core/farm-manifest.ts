@@ -179,14 +179,6 @@ export class FarmManifest {
   }
 
   /**
-   * Get the platform-view project if it exists
-   * @returns The platform-view project or undefined
-   */
-  getPlatformViewProject(): FarmProject | undefined {
-    return this.getProject("platform-view");
-  }
-
-  /**
    * Serialize to JSON representation for saving
    */
   toJSON(): FarmManifestData {

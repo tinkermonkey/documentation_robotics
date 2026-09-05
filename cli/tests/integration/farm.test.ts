@@ -840,3 +840,219 @@ describe("Farm model initialization and git setup", () => {
     }
   });
 });
+
+describe("Farm platform-view command-level tests", () => {
+  let testDir: string;
+  let farmRoot: string;
+
+  beforeEach(async () => {
+    testDir = path.join("/tmp", `farm-platform-view-test-${Date.now()}`);
+    farmRoot = testDir;
+    await ensureDir(farmRoot);
+  });
+
+  afterEach(async () => {
+    if (await fileExists(testDir)) {
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should enable platform-view flag when creating farm with --platform-view option", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+
+    // Create farm with platform-view enabled
+    const manifest = FarmManifest.create("Test Farm", { platform_view: true });
+    await manifest.save(farmYamlPath);
+
+    // Verify platform-view is enabled
+    const loaded = await FarmManifest.load(farmYamlPath);
+    expect(loaded.isPlatformViewEnabled()).toBe(true);
+  });
+
+  it("should include platform_view_info in validation results when validating platform-view project", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm", { platform_view: true });
+
+    // Create service-a project
+    const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
+    const serviceAModel = path.join(serviceADocRobotics, "model");
+    const serviceAApi = path.join(serviceAModel, "07_api");
+
+    await ensureDir(serviceAApi);
+
+    // Create manifest.yaml for service-a
+    const serviceAManifestContent = `
+project: service-a
+`;
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), serviceAManifestContent);
+
+    // Create an API operation in service-a
+    const operationContent = `list-items:
+  id: list-items
+  path: api.operation.list-items
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: List Items
+  description: List all items
+`;
+    await writeFile(path.join(serviceAApi, "operation.yaml"), operationContent);
+
+    // Create platform-view project
+    const platformViewCodebase = path.join(farmRoot, "platform-view");
+    const platformViewDocRobotics = path.join(platformViewCodebase, "documentation-robotics");
+    const platformViewModel = path.join(platformViewDocRobotics, "model");
+    const platformViewBusiness = path.join(platformViewModel, "02_business");
+
+    await ensureDir(platformViewBusiness);
+
+    // Create manifest.yaml for platform-view that declares service-a
+    const platformViewManifestContent = `
+project: platform-view
+models:
+  service-a: {}
+`;
+    await writeFile(path.join(platformViewModel, "manifest.yaml"), platformViewManifestContent);
+
+    // Create a business service
+    const businessServiceContent = `item-management:
+  id: item-management
+  path: business.service.item-management
+  spec_node_id: business.service
+  type: service
+  layer_id: business
+  name: Item Management
+  description: Manages items
+  references:
+    - target: "@service-a/api.operation.list-items"
+      relationship: uses
+`;
+    await writeFile(path.join(platformViewBusiness, "service.yaml"), businessServiceContent);
+
+    // Register both projects in farm manifest
+    manifest.addProject("service-a", {
+      name: "service-a",
+      source: "service-a",
+      model: "service-a",
+    });
+
+    manifest.addProject("platform-view", {
+      name: "platform-view",
+      source: "platform-view",
+      model: "platform-view",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Mock process.cwd to return farm root
+    const originalCwd = process.cwd;
+    process.cwd = () => farmRoot;
+
+    try {
+      // Validate platform-view project using the command
+      const { farmValidateCommand } = await import("../../src/commands/farm.js");
+
+      // Capture console output to verify platform_view_info is included in JSON
+      const originalLog = console.log;
+      const outputs: string[] = [];
+      console.log = (msg: string) => {
+        outputs.push(msg);
+      };
+
+      try {
+        await farmValidateCommand({
+          project: "platform-view",
+          format: "json",
+          quiet: false,
+        });
+
+        // Look for the initial status message which should be JSON
+        const jsonOutput = outputs.find((o) => o.includes("platform_view"));
+        expect(jsonOutput).toBeDefined();
+        const parsed = JSON.parse(jsonOutput!);
+        expect(parsed.platform_view).toBe(true);
+      } finally {
+        console.log = originalLog;
+      }
+    } finally {
+      process.cwd = originalCwd;
+    }
+  });
+
+  it("should report missing declared models in validation output", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm", { platform_view: true });
+
+    // Create platform-view project that declares non-existent models
+    const platformViewCodebase = path.join(farmRoot, "platform-view");
+    const platformViewDocRobotics = path.join(platformViewCodebase, "documentation-robotics");
+    const platformViewModel = path.join(platformViewDocRobotics, "model");
+    const platformViewBusiness = path.join(platformViewModel, "02_business");
+
+    await ensureDir(platformViewBusiness);
+
+    // Create manifest.yaml for platform-view with non-existent external models
+    const platformViewManifestContent = `
+project: platform-view
+models:
+  missing-service: {}
+  another-missing: {}
+`;
+    await writeFile(path.join(platformViewModel, "manifest.yaml"), platformViewManifestContent);
+
+    // Create dummy business service
+    const businessServiceContent = `service:
+  id: service
+  path: business.service.service
+  spec_node_id: business.service
+  type: service
+  layer_id: business
+  name: Service
+  description: A service
+`;
+    await writeFile(path.join(platformViewBusiness, "service.yaml"), businessServiceContent);
+
+    // Register platform-view project in farm manifest
+    manifest.addProject("platform-view", {
+      name: "platform-view",
+      source: "platform-view",
+      model: "platform-view",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Mock process.cwd to return farm root
+    const originalCwd = process.cwd;
+    process.cwd = () => farmRoot;
+
+    try {
+      const { farmValidateCommand } = await import("../../src/commands/farm.js");
+
+      // Capture console output
+      const originalError = console.error;
+      const errorOutputs: string[] = [];
+      console.error = (msg: string) => {
+        errorOutputs.push(msg);
+      };
+
+      try {
+        await farmValidateCommand({
+          project: "platform-view",
+          format: "text",
+          quiet: false,
+        });
+
+        // Verify warning was displayed about missing models
+        const missingModelsWarning = errorOutputs.find((o) =>
+          o.includes("declared external models are not registered")
+        );
+        expect(missingModelsWarning).toBeDefined();
+      } finally {
+        console.error = originalError;
+      }
+    } finally {
+      process.cwd = originalCwd;
+    }
+  });
+});
