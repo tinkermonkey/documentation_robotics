@@ -406,7 +406,8 @@ export async function farmStatusCommand(options: {
       })
     );
 
-    if (options.format === "json") {
+    const useJson = options.format === "json" || isJson();
+    if (useJson) {
       console.log(
         JSON.stringify({
           status: "ok",
@@ -452,7 +453,8 @@ export async function farmStatusCommand(options: {
 
     if (span) endSpan(span);
   } catch (error) {
-    if (options.format === "json") {
+    const useJsonError = options.format === "json" || isJson();
+    if (useJsonError) {
       console.log(
         JSON.stringify({
           status: "error",
@@ -559,13 +561,9 @@ export async function farmValidateCommand(options: {
         process.exit(2);
       }
 
-      // Load the model using DR_MODEL_PATH to support detached model layouts
-      // Save current DR_MODEL_PATH if it exists
-      const originalDRModelPath = process.env.DR_MODEL_PATH;
-
+      // Load the model using the safer startPath parameter
       // For detached models, check if manifest.yaml exists directly in the model folder.
-      // If so, set DR_MODEL_PATH to point to the manifest.yaml file so Model.load()
-      // can find it correctly.
+      // If so, pass it directly to Model.load().
       let drModelPath = modelPath;
       const manifestPath = path.join(modelPath, "manifest.yaml");
       if (await fileExists(manifestPath)) {
@@ -573,117 +571,106 @@ export async function farmValidateCommand(options: {
         drModelPath = manifestPath;
       }
 
-      process.env.DR_MODEL_PATH = drModelPath;
+      const model = await Model.load(drModelPath);
 
-      try {
-        const model = await Model.load();
+      let platformViewInfo: {
+        declared_models: string[];
+        missing_models: string[];
+      } | undefined;
 
-        let platformViewInfo: {
-          declared_models: string[];
-          missing_models: string[];
-        } | undefined;
+      // For platform-view projects, validate that all declared external models are resolvable
+      if (isPlatformViewValidation) {
+        const declaredModels = model.manifest.models || {};
+        const declaredModelNames = Object.keys(declaredModels);
 
-        // For platform-view projects, validate that all declared external models are resolvable
-        if (isPlatformViewValidation) {
-          const declaredModels = model.manifest.models || {};
-          const declaredModelNames = Object.keys(declaredModels);
-
-          platformViewInfo = {
-            declared_models: declaredModelNames,
-            missing_models: [],
-          };
-
-          if (declaredModelNames.length === 0) {
-            if (!useJson && !options.quiet) {
-              handleInfo(
-                `  Platform-view project has no declared external models`
-              );
-            }
-          } else {
-            if (!useJson && !options.quiet) {
-              handleInfo(
-                `  Platform-view is declaring external models: ${declaredModelNames.join(", ")}`
-              );
-            }
-
-            // Verify all declared models are available in the farm
-            const missingModels: string[] = [];
-            for (const declaredModelName of declaredModelNames) {
-              const farmProject = farmManifest.getProject(declaredModelName);
-              if (!farmProject) {
-                missingModels.push(declaredModelName);
-              }
-            }
-
-            platformViewInfo.missing_models = missingModels;
-
-            if (missingModels.length > 0) {
-              if (!useJson) {
-                console.error(
-                  ansis.yellow(
-                    `  ⚠ Warning: The following declared external models are not registered in the farm: ${missingModels.join(", ")}`
-                  )
-                );
-              }
-            }
-          }
-        }
-
-        // Validate using composed reference validator
-        const result = await composedValidator.validateModel(model);
-
-        allResults.push({ project: project.name, result });
-
-        // Format and display validation output
-        const formatted = ValidationFormatter.format(result, model, {
-          verbose: options.verbose,
-          quiet: options.quiet,
-        });
-
-        // Collect report data for output file
-        const reportItem: any = {
-          project: project.name,
-          valid: result.isValid(),
-          errors: result.errors.map((e) => ({
-            message: e.message,
-            layer: e.layer,
-            elementId: e.elementId,
-            location: e.location,
-          })),
-          warnings: result.warnings.map((w) => ({
-            message: w.message,
-            layer: w.layer,
-            elementId: w.elementId,
-            location: w.location,
-          })),
-          formatted,
+        platformViewInfo = {
+          declared_models: declaredModelNames,
+          missing_models: [],
         };
 
-        if (platformViewInfo) {
-          reportItem.platform_view_info = platformViewInfo;
-        }
-
-        reportData.push(reportItem);
-
-        if (!options.quiet) {
-          console.log(ansis.bold(`\nProject: ${project.name}`));
-          console.log(formatted);
-        }
-
-        if (!result.isValid()) {
-          if (options.project) {
-            // Single project validation failed
-            throw new Error(`Validation failed for project '${project.name}'`);
+        if (declaredModelNames.length === 0) {
+          if (!useJson && !options.quiet) {
+            handleInfo(
+              `  Platform-view project has no declared external models`
+            );
           }
-          // Multi-project validation: track but continue
-        }
-      } finally {
-        // Restore original DR_MODEL_PATH
-        if (originalDRModelPath !== undefined) {
-          process.env.DR_MODEL_PATH = originalDRModelPath;
         } else {
-          delete process.env.DR_MODEL_PATH;
+          if (!useJson && !options.quiet) {
+            handleInfo(
+              `  Platform-view is declaring external models: ${declaredModelNames.join(", ")}`
+            );
+          }
+
+          // Verify all declared models are available in the farm
+          const missingModels: string[] = [];
+          for (const declaredModelName of declaredModelNames) {
+            const farmProject = farmManifest.getProject(declaredModelName);
+            if (!farmProject) {
+              missingModels.push(declaredModelName);
+            }
+          }
+
+          platformViewInfo.missing_models = missingModels;
+
+          if (missingModels.length > 0) {
+            if (!useJson) {
+              console.error(
+                ansis.yellow(
+                  `  ⚠ Warning: The following declared external models are not registered in the farm: ${missingModels.join(", ")}`
+                )
+              );
+            }
+          }
         }
+      }
+
+      // Validate using composed reference validator
+      const result = await composedValidator.validateModel(model);
+
+      allResults.push({ project: project.name, result });
+
+      // Format and display validation output
+      const formatted = ValidationFormatter.format(result, model, {
+        verbose: options.verbose,
+        quiet: options.quiet,
+      });
+
+      // Collect report data for output file
+      const reportItem: any = {
+        project: project.name,
+        valid: result.isValid(),
+        errors: result.errors.map((e) => ({
+          message: e.message,
+          layer: e.layer,
+          elementId: e.elementId,
+          location: e.location,
+        })),
+        warnings: result.warnings.map((w) => ({
+          message: w.message,
+          layer: w.layer,
+          elementId: w.elementId,
+          location: w.location,
+        })),
+        formatted,
+      };
+
+      if (platformViewInfo) {
+        reportItem.platform_view_info = platformViewInfo;
+      }
+
+      reportData.push(reportItem);
+
+      if (!options.quiet) {
+        console.log(ansis.bold(`\nProject: ${project.name}`));
+        console.log(formatted);
+      }
+
+      if (!result.isValid()) {
+        if (options.project) {
+          // Single project validation failed
+          throw new Error(`Validation failed for project '${project.name}'`);
+        }
+        // Multi-project validation: track but continue
       }
     }
 
