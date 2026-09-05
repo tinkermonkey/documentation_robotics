@@ -12,6 +12,7 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
+import { getErrorMessage } from "../utils/errors.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -736,8 +737,14 @@ export class Model {
       let manifest: any;
       try {
         manifest = await FarmManifest.load(farmYamlPath);
-      } catch {
-        return null; // If farm.yaml can't be loaded, just return null
+      } catch (error) {
+        // Re-throw meaningful errors (YAML parse, permission errors, etc.)
+        // Only return null if the farm setup is genuinely not present
+        const errorMsg = getErrorMessage(error);
+        if (errorMsg.includes("ENOENT") || errorMsg.includes("not found")) {
+          return null; // Farm not found - expected case, not an error
+        }
+        throw new Error(`Failed to load farm manifest at ${farmYamlPath}: ${errorMsg}`);
       }
 
       // Find the model folder name relative to farm root
@@ -752,9 +759,10 @@ export class Model {
         }
       }
 
-      return null; // No matching project found
-    } catch {
-      return null; // If anything fails, just return null (graceful fallback)
+      return null; // No matching project found in farm - not an error
+    } catch (error) {
+      // Re-throw critical errors that should not be silently swallowed
+      throw error;
     }
   }
 
@@ -939,7 +947,15 @@ export class Model {
           codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
         } else {
           // Try to auto-resolve from farm manifest if inside a farm
-          codebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot) || projectRoot;
+          try {
+            const farmCodebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot);
+            if (farmCodebaseRoot) {
+              codebaseRoot = farmCodebaseRoot;
+            }
+          } catch (error) {
+            // Log farm resolution errors but don't fail - fall back to projectRoot
+            console.warn(`Warning: Failed to resolve farm codebase root: ${getErrorMessage(error)}`);
+          }
         }
       }
 

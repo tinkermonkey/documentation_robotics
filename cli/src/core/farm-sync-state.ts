@@ -139,16 +139,21 @@ export class FarmSyncState {
   }
 
   /**
-   * Record a successful sync
+   * Record a sync (successful or failed)
    */
   recordSync(record: Omit<SyncRecord, "status"> & { status?: "success" | "partial" | "failed" }): void {
-    this.lastSyncCommit = record.commit;
-    this.lastSyncTimestamp = record.timestamp;
+    const status = record.status || "success";
+
+    // Only update lastSyncCommit on successful syncs to avoid advancing past unprocessed changes
+    if (status === "success") {
+      this.lastSyncCommit = record.commit;
+      this.lastSyncTimestamp = record.timestamp;
+    }
 
     this.syncHistory.push({
       timestamp: record.timestamp,
       commit: record.commit,
-      status: record.status || "success",
+      status,
       changesetId: record.changesetId,
       filesChanged: record.filesChanged,
       elementsAffected: record.elementsAffected,

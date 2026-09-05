@@ -97,15 +97,34 @@ export class FarmSyncEngine {
       // Try to fetch latest if remote exists
       try {
         execSync("git fetch --prune", { cwd: fullPath, stdio: "pipe" });
-      } catch {
-        // Repository has no remote - this is okay for local-only repos
+      } catch (fetchError) {
+        const fetchMsg = getErrorMessage(fetchError);
+        // Only treat "no remote" as acceptable; re-throw auth, merge, and network errors
+        if (!fetchMsg.includes("No remote repository specified") &&
+            !fetchMsg.includes("no remote") &&
+            !fetchMsg.includes("fatal") &&
+            !fetchMsg.includes("merge conflict")) {
+          // If it looks like a genuine error (auth, conflict, network), throw it
+          if (fetchMsg.length > 0) {
+            throw new Error(`git fetch failed: ${fetchMsg}`);
+          }
+        }
       }
 
       // Try to pull if remote exists
       try {
         execSync("git pull --no-rebase", { cwd: fullPath, stdio: "pipe" });
-      } catch {
-        // Repository has no remote - this is okay for local-only repos
+      } catch (pullError) {
+        const pullMsg = getErrorMessage(pullError);
+        // Only treat "no remote" as acceptable; re-throw auth, merge, and network errors
+        if (!pullMsg.includes("No remote repository specified") &&
+            !pullMsg.includes("no remote") &&
+            !pullMsg.includes("fatal") &&
+            !pullMsg.includes("merge conflict")) {
+          if (pullMsg.length > 0) {
+            throw new Error(`git pull failed: ${pullMsg}`);
+          }
+        }
       }
 
       // Get current HEAD commit

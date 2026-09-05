@@ -1038,6 +1038,7 @@ export async function farmSyncCommand(options: {
             } catch (commitError) {
               resultEntry.autoCommitted = false;
               resultEntry.commitError = getErrorMessage(commitError);
+              resultEntry.status = "error";
               if (options.verbose && !useJson) {
                 handleInfo(`  Auto-commit failed: ${getErrorMessage(commitError)}`);
               }
