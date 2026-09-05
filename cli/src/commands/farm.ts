@@ -40,6 +40,7 @@ export async function farmInitCommand(options: {
   name?: string;
   description?: string;
   format?: string;
+  platformView?: boolean;
 }): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.init") : null;
 
@@ -80,15 +81,18 @@ export async function farmInitCommand(options: {
       farmName = "Architecture Farm";
     }
 
-    // Create manifest
-    const manifest = FarmManifest.create(farmName);
+    // Create manifest with platform_view support if requested
+    const manifest = FarmManifest.create(farmName, {
+      platform_view: options.platformView || false,
+    });
     await manifest.save(farmYamlPath);
 
     if (useJson) {
-      console.log(JSON.stringify({ status: "ok", farmPath, farmName }));
+      console.log(JSON.stringify({ status: "ok", farmPath, farmName, platform_view: options.platformView || false }));
     } else {
+      const platformViewNote = options.platformView ? " (platform-view enabled)" : "";
       handleSuccess(
-        `Farm initialized: ${ansis.bold(farmName)}\n  Location: ${farmPath}`
+        `Farm initialized: ${ansis.bold(farmName)}${platformViewNote}\n  Location: ${farmPath}`
       );
     }
 
@@ -404,6 +408,7 @@ export async function farmStatusCommand(options: {
             path: farmRoot,
             created: manifest.created,
             modified: manifest.modified,
+            platform_view: manifest.platform_view,
           },
           projects: projectsWithStatus,
           project_count: projects.length,
@@ -412,6 +417,9 @@ export async function farmStatusCommand(options: {
     } else {
       console.log(ansis.bold(`Farm: ${manifest.name}`));
       console.log(`Location: ${farmRoot}`);
+      if (manifest.platform_view) {
+        console.log(`Platform-View: ${ansis.green("enabled")}`);
+      }
       console.log(`Projects: ${projects.length}\n`);
 
       if (projects.length === 0) {
@@ -474,15 +482,30 @@ export async function farmValidateCommand(options: {
 
     const farmYamlPath = path.join(farmRoot, "farm.yaml");
     const farmManifest = await FarmManifest.load(farmYamlPath);
+    const useJson = options.format === "json" || isJson();
 
     // Determine which projects to validate
     let projectsToValidate = farmManifest.getAllProjects();
+    let isPlatformViewValidation = false;
+
     if (options.project) {
       const project = farmManifest.getProject(options.project);
       if (!project) {
         throw new Error(`Project '${options.project}' not found in farm`);
       }
       projectsToValidate = [project];
+
+      // Check if this is a platform-view project validation
+      if (farmManifest.isPlatformViewEnabled() && options.project === "platform-view") {
+        isPlatformViewValidation = true;
+      } else if (options.project === "platform-view" && !farmManifest.isPlatformViewEnabled()) {
+        // Warn if platform-view project is being validated but platform-view is not enabled
+        if (!useJson && !options.quiet) {
+          handleInfo(
+            `Note: Validating platform-view project, but platform-view is not enabled on this farm`
+          );
+        }
+      }
     }
 
     if (projectsToValidate.length === 0) {
@@ -490,14 +513,14 @@ export async function farmValidateCommand(options: {
     }
 
     // Create composed validator from farm
+    // This automatically resolves model-path overrides for all projects in the farm
     const composedValidator = await ComposedReferenceValidator.fromFarm(farmRoot);
-
-    const useJson = options.format === "json" || isJson();
     if (useJson) {
-      console.log(JSON.stringify({ status: "validating", projects: projectsToValidate.length }));
+      console.log(JSON.stringify({ status: "validating", projects: projectsToValidate.length, platform_view: isPlatformViewValidation }));
     } else if (!options.quiet) {
       if (options.project) {
-        handleInfo(`Validating project '${options.project}' with farm-aware references...`);
+        const platformViewNote = isPlatformViewValidation ? " (platform-view aggregation)" : "";
+        handleInfo(`Validating project '${options.project}'${platformViewNote} with farm-aware references...`);
       } else {
         handleInfo(`Validating ${projectsToValidate.length} farm project(s) with farm-aware references...`);
       }
@@ -547,6 +570,45 @@ export async function farmValidateCommand(options: {
 
       try {
         const model = await Model.load();
+
+        // For platform-view projects, validate that all declared external models are resolvable
+        if (isPlatformViewValidation) {
+          const declaredModels = model.manifest.models || {};
+          const declaredModelNames = Object.keys(declaredModels);
+
+          if (declaredModelNames.length === 0) {
+            if (!useJson && !options.quiet) {
+              handleInfo(
+                `  Platform-view project has no declared external models`
+              );
+            }
+          } else {
+            if (!useJson && !options.quiet) {
+              handleInfo(
+                `  Platform-view is declaring external models: ${declaredModelNames.join(", ")}`
+              );
+            }
+
+            // Verify all declared models are available in the farm
+            const missingModels: string[] = [];
+            for (const declaredModelName of declaredModelNames) {
+              const farmProject = farmManifest.getProject(declaredModelName);
+              if (!farmProject) {
+                missingModels.push(declaredModelName);
+              }
+            }
+
+            if (missingModels.length > 0) {
+              if (!useJson) {
+                console.error(
+                  ansis.yellow(
+                    `  ⚠ Warning: The following declared external models are not registered in the farm: ${missingModels.join(", ")}`
+                  )
+                );
+              }
+            }
+          }
+        }
 
         // Validate using composed reference validator
         const result = await composedValidator.validateModel(model);
@@ -1095,6 +1157,7 @@ export function farmCommands(program: Command): void {
     .command("init")
     .description("Initialize a new farm")
     .option("--name <name>", "Farm name")
+    .option("--platform-view", "Enable platform-view support for cross-model aggregation")
     .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
@@ -1102,6 +1165,7 @@ export function farmCommands(program: Command): void {
 Examples:
   $ dr farm init
   $ dr farm init --name "My Architecture Farm"
+  $ dr farm init --platform-view
   $ dr farm init --format json`
     )
     .action(async (options) => {

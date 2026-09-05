@@ -171,6 +171,22 @@ export class FarmManifest {
   }
 
   /**
+   * Check if platform-view is enabled on this farm
+   * @returns true if platform-view is enabled
+   */
+  isPlatformViewEnabled(): boolean {
+    return this.platform_view === true;
+  }
+
+  /**
+   * Get the platform-view project if it exists
+   * @returns The platform-view project or undefined
+   */
+  getPlatformViewProject(): FarmProject | undefined {
+    return this.getProject("platform-view");
+  }
+
+  /**
    * Serialize to JSON representation for saving
    */
   toJSON(): FarmManifestData {
