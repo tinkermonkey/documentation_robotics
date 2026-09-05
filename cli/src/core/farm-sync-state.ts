@@ -98,7 +98,14 @@ export class FarmSyncState {
         status: record.status,
         notes: record.notes,
       })),
-      ambiguities: rawData.ambiguities,
+      ambiguities: (rawData.ambiguities || []).map((a: any) => ({
+        file_path: a.file_path || a.filePath,
+        possible_elements: (a.possible_elements || a.possibleElements || []).map((e: any) => ({
+          element_id: e.element_id || e.elementId,
+          layer: e.layer,
+          confidence: e.confidence,
+        })),
+      })),
     };
 
     if (!data.project_name) {

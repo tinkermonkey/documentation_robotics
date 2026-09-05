@@ -440,9 +440,9 @@ export async function farmStatusCommand(options: {
             source: p.source,
             model: p.model,
             remote: p.remote,
-            lastSyncCommit: undefined,
-            currentCommit: undefined,
-            hasPendingChanges: false,
+            last_sync_commit: undefined,
+            current_commit: undefined,
+            has_pending_changes: false,
           };
         }
       })
@@ -482,9 +482,9 @@ export async function farmStatusCommand(options: {
           if (project.remote) {
             console.log(`    Remote:   ${project.remote}`);
           }
-          if (project.hasPendingChanges) {
+          if (project.has_pending_changes) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
-          } else if (project.lastSyncCommit) {
+          } else if (project.last_sync_commit) {
             console.log(`    Status:   ${ansis.green("✓ Up to date")}`);
           } else {
             console.log(`    Status:   ${ansis.dim("Not synced yet")}`);
@@ -1163,7 +1163,7 @@ export async function farmSyncCommand(options: {
           projects: allResults,
           synced: allResults.filter((r) => r.status === "success").length,
           failed: allResults.filter((r) => r.status === "error").length,
-          autoCommitted: options.autoCommit,
+          auto_committed: options.autoCommit,
         })
       );
     } else {

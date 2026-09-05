@@ -771,6 +771,23 @@ describe("Farm model initialization and git setup", () => {
     const farmManifest = FarmManifest.create("Test Farm");
     await farmManifest.save(farmYamlPath);
 
+    // Initialize farm-level git repository
+    try {
+      execSync("git init", { cwd: farmRoot, stdio: "pipe" });
+      execSync("git config user.email 'dr-farm@localhost'", {
+        cwd: farmRoot,
+        stdio: "pipe",
+      });
+      execSync("git config user.name 'DR Farm'", { cwd: farmRoot, stdio: "pipe" });
+      execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
+      execSync("git commit -m 'Initialize farm manifest'", {
+        cwd: farmRoot,
+        stdio: "pipe",
+      });
+    } catch (e) {
+      throw new Error(`Failed to initialize farm git: ${e}`);
+    }
+
     // Mock process.cwd to return farm root
     const originalCwd = process.cwd;
     process.cwd = () => farmRoot;
@@ -825,9 +842,17 @@ describe("Farm model initialization and git setup", () => {
       );
       expect(await fileExists(relationshipsPath)).toBe(true);
 
-      // Note: Git repository is now at farm level, not per-model
-      // So we don't check for individual model git repos anymore
-      // The farm-level repo tracks changes across all models
+      // Verify farm-level git repository exists and has commits
+      const gitDir = path.join(farmRoot, ".git");
+      expect(await fileExists(gitDir)).toBe(true);
+
+      // Verify at least one commit exists in farm repo
+      const logOutput = execSync("git log --oneline", {
+        cwd: farmRoot,
+        stdio: "pipe",
+      }).toString();
+      const commits = logOutput.trim().split("\n").filter((line) => line.length > 0);
+      expect(commits.length).toBeGreaterThanOrEqual(1);
     } finally {
       process.cwd = originalCwd;
     }
