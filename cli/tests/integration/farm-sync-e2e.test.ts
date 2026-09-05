@@ -277,4 +277,81 @@ describe("Farm Sync - End-to-End Flow", () => {
       }
     }
   });
+
+  it("should create git commits in model directory with auto-commit", async () => {
+    const originalDRModelPath = process.env.DR_MODEL_PATH;
+    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+
+    try {
+      // Initialize git repo in model directory
+      execSync("git init", { cwd: modelDir, stdio: "pipe" });
+      execSync("git config user.email 'test@example.com'", { cwd: modelDir, stdio: "pipe" });
+      execSync("git config user.name 'Test User'", { cwd: modelDir, stdio: "pipe" });
+      execSync("git add .", { cwd: modelDir, stdio: "pipe" });
+      execSync("git commit -m 'Initial model commit'", { cwd: modelDir, stdio: "pipe" });
+
+      // Update farm manifest to enable track_commits at farm level
+      farmManifest = FarmManifest.create("Test Farm", {
+        sync: { track_commits: true },
+      });
+      farmManifest.addProject("test-project", {
+        name: "test-project",
+        source: "codebase",
+        model: "model",
+      });
+      const farmYamlPath = path.join(farmDir, "farm.yaml");
+      await farmManifest.save(farmYamlPath);
+
+      // Load and sync with autoCommit enabled
+      const model = await Model.load();
+      const engine = new FarmSyncEngine(farmDir, model);
+      const project = farmManifest.getProject("test-project")!;
+
+      // Initial sync
+      const initialResult = await engine.syncProject(project, { verbose: false });
+      expect(initialResult).toBeDefined();
+
+      // Make changes to codebase
+      await writeFile(path.join(codebaseDir, "src/new-file.ts"), "export function newFunc() { }");
+      execSync("git add .", { cwd: codebaseDir, stdio: "pipe" });
+      execSync("git commit -m 'Add new file'", { cwd: codebaseDir, stdio: "pipe" });
+
+      // Get commit count before sync
+      const commitsBefore = execSync("git rev-list --count HEAD", {
+        cwd: modelDir,
+        encoding: "utf-8",
+      })
+        .trim();
+
+      // Sync with autoCommit option
+      await farmSyncCommand({
+        project: "test-project",
+        verbose: false,
+        autoCommit: true,
+      });
+
+      // Verify that new commits were created in model directory
+      const commitsAfter = execSync("git rev-list --count HEAD", {
+        cwd: modelDir,
+        encoding: "utf-8",
+      })
+        .trim();
+
+      expect(parseInt(commitsAfter)).toBeGreaterThan(parseInt(commitsBefore));
+
+      // Verify commit message contains sync info
+      const lastCommitMessage = execSync("git log -1 --pretty=%B", {
+        cwd: modelDir,
+        encoding: "utf-8",
+      }).trim();
+
+      expect(lastCommitMessage).toContain("Sync:");
+    } finally {
+      if (originalDRModelPath !== undefined) {
+        process.env.DR_MODEL_PATH = originalDRModelPath;
+      } else {
+        delete process.env.DR_MODEL_PATH;
+      }
+    }
+  });
 });

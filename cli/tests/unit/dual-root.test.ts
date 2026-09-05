@@ -67,14 +67,14 @@ describe("Dual-Root Foundation", () => {
       await mkdir(modelRoot, { recursive: true });
       await mkdir(codebaseRoot, { recursive: true });
 
-      // Initialize model with relative source
+      // Initialize model with relative codebase_path
       const model = await Model.init(
         modelRoot,
         {
           name: "Detached Service Model",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../service-a",
+          codebase_path: "../service-a",
         }
       );
 
@@ -99,13 +99,13 @@ describe("Dual-Root Foundation", () => {
           name: "Detached Reload Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../service-b",
+          codebase_path: "../service-b",
         }
       );
 
       // Verify initialization
       expect(initialModel.codebaseRoot).toBe(codebaseRoot);
-      expect(initialModel.manifest.source).toBe("../service-b");
+      expect(initialModel.manifest.codebase_path).toBe("../service-b");
 
       // Save and reload
       await initialModel.saveManifest();
@@ -114,7 +114,7 @@ describe("Dual-Root Foundation", () => {
       // Verify reload preserves codebaseRoot
       expect(reloadedModel.rootPath).toBe(modelRoot);
       expect(reloadedModel.codebaseRoot).toBe(codebaseRoot);
-      expect(reloadedModel.manifest.source).toBe("../service-b");
+      expect(reloadedModel.manifest.codebase_path).toBe("../service-b");
       expect(reloadedModel.manifest.name).toBe("Detached Reload Test");
     });
 
@@ -132,12 +132,12 @@ describe("Dual-Root Foundation", () => {
           name: "Serialize Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../service-c",
+          codebase_path: "../service-c",
         }
       );
 
       const manifestJson = model.manifest.toJSON();
-      expect(manifestJson.source).toBe("../service-c");
+      expect(manifestJson.codebase_path).toBe("../service-c");
     });
 
     it("should support nested relative paths in source", async () => {
@@ -154,7 +154,7 @@ describe("Dual-Root Foundation", () => {
           name: "Nested Path Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../../codebases/service-d",
+          codebase_path: "../../codebases/service-d",
         }
       );
 
@@ -223,7 +223,7 @@ describe("Dual-Root Foundation", () => {
           name: "YAML Write Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../code",
+          codebase_path: "../code",
         }
       );
 
@@ -234,7 +234,7 @@ describe("Dual-Root Foundation", () => {
       const manifestContent = await Bun.file(manifestPath).text();
       const manifestYaml = yaml.parse(manifestContent);
 
-      expect(manifestYaml.source).toBe("../code");
+      expect(manifestYaml.codebase_path).toBe("../code");
     });
 
     it("should not write source to manifest if not set", async () => {
@@ -257,7 +257,7 @@ describe("Dual-Root Foundation", () => {
       const manifestContent = await Bun.file(manifestPath).text();
       const manifestYaml = yaml.parse(manifestContent);
 
-      expect(manifestYaml.source).toBeUndefined();
+      expect(manifestYaml.codebase_path).toBeUndefined();
     });
   });
 
@@ -277,7 +277,7 @@ describe("Dual-Root Foundation", () => {
           name: "Load Manifest Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../app",
+          codebase_path: "../app",
         }
       );
       await model.saveManifest();
@@ -286,7 +286,7 @@ describe("Dual-Root Foundation", () => {
       const loadedModel = await Model.load(modelRoot);
 
       expect(loadedModel.codebaseRoot).toBe(codebaseRoot);
-      expect(loadedModel.manifest.source).toBe("../app");
+      expect(loadedModel.manifest.codebase_path).toBe("../app");
     });
 
     it("should load model from sibling directory with detached layout", async () => {
@@ -303,7 +303,7 @@ describe("Dual-Root Foundation", () => {
           name: "Sibling Layout Test",
           version: "0.1.0",
           specVersion: "0.6.0",
-          source: "../project-source",
+          codebase_path: "../project-source",
         }
       );
       await model.saveManifest();
