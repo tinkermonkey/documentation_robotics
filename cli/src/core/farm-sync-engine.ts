@@ -181,7 +181,21 @@ export class FarmSyncEngine {
           case "D":
             deleted.push(filePath);
             break;
-          // Ignore renames, copies, etc for now - they'll be handled as add+delete
+          case "R":
+          case "R100":
+            // Handle renames (R100 = 100% rename confidence)
+            // Report as both a delete of the old name and add of the new name
+            const [oldPath, newPath] = fileParts;
+            deleted.push(oldPath);
+            added.push(newPath);
+            break;
+          case "C":
+          case "C100":
+            // Handle copies (C100 = 100% copy confidence)
+            // Report as add of new file
+            added.push(fileParts[1]);
+            break;
+          // Ignore other statuses
         }
       }
 
@@ -278,7 +292,8 @@ export class FarmSyncEngine {
       throw new Error("Model is required for changeset generation");
     }
 
-    const stagingManager = new StagingAreaManager(this.farmRoot, this.model);
+    const projectModelPath = path.join(this.farmRoot, project.model);
+    const stagingManager = new StagingAreaManager(projectModelPath, this.model);
 
     // Create a new changeset
     const changesetName = `farm-sync-${project.name}-${Date.now()}`;
@@ -420,7 +435,7 @@ export class FarmSyncEngine {
         success: true,
         projectName: project.name,
         commitsBefore: "none",
-        commitsAfter: currentCommit,
+        commitsAfter: currentCommit.substring(0, 8),
         filesChanged: { added: [], modified: [], deleted: [] },
         elementMappings: [],
         ambiguities: [],

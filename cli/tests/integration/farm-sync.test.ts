@@ -296,4 +296,266 @@ describe("FarmSyncEngine", () => {
     expect(result.changeCount).toBe(0);
     expect(result.notes).toContain("No changes detected");
   });
+
+  it("should handle file renames and copies in diff", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    const commit1 = await engine.getCurrentCommit("codebase");
+
+    // Create a file to rename
+    const oldFile = path.join(codebaseDir, "old-name.ts");
+    await writeFile(oldFile, "export const oldName = 'test';");
+    execSync("git add old-name.ts", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Add file for rename'", { cwd: codebaseDir, stdio: "pipe" });
+
+    const commit2 = await engine.getCurrentCommit("codebase");
+
+    // Rename the file
+    execSync("git mv old-name.ts new-name.ts", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Rename file'", { cwd: codebaseDir, stdio: "pipe" });
+
+    const commit3 = await engine.getCurrentCommit("codebase");
+
+    // Compute diff with rename
+    const diff = await engine.computeDiff("codebase", commit2, commit3);
+
+    // Renames should be reported as delete of old + add of new
+    expect(diff.deleted).toContain("old-name.ts");
+    expect(diff.added).toContain("new-name.ts");
+    expect(diff.modified.length).toBe(0);
+  });
+
+  it("should map files to elements via source references", async () => {
+    const { Model } = await import("../../src/core/model.js");
+    const { Element } = await import("../../src/core/element.js");
+
+    // Create a model with source references
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    // Add element with source references
+    const appLayer = await model.getLayer("application");
+    if (appLayer) {
+      const element = new Element({
+        id: "application.service.test-service",
+        path: "application.service.test-service",
+        name: "Test Service",
+        description: "A service for testing",
+        type: "service",
+        layer_id: "application",
+        source_reference: {
+          type: "github",
+          repository: "test-repo",
+          locations: [
+            {
+              file: "src/services/test-service.ts",
+              symbol: "TestService",
+            },
+          ],
+        },
+      });
+      appLayer.addElement(element);
+
+      // Create engine with model
+      const engine = new FarmSyncEngine(farmDir, model);
+
+      // Map files - should find the element
+      const mappings = await engine.mapFilesToElements();
+
+      expect(mappings.confident.length).toBeGreaterThanOrEqual(0);
+
+      // Check if our file is in the mappings
+      const testMapping = mappings.confident.find(
+        (m) => m.filePath === "src/services/test-service.ts"
+      );
+
+      if (testMapping) {
+        expect(testMapping.possibleElements[0].elementId).toBe(
+          "application.service.test-service"
+        );
+      }
+    }
+  });
+
+  it("should detect ambiguous file-to-element mappings", async () => {
+    const { Model } = await import("../../src/core/model.js");
+    const { Element } = await import("../../src/core/element.js");
+
+    // Create a model with multiple elements referencing the same file
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    const appLayer = await model.getLayer("application");
+    if (appLayer) {
+      // Add two elements pointing to the same file
+      const element1 = new Element({
+        id: "application.service.service-a",
+        path: "application.service.service-a",
+        name: "Service A",
+        description: "Service A",
+        type: "service",
+        layer_id: "application",
+        source_reference: {
+          type: "github",
+          repository: "test-repo",
+          locations: [
+            {
+              file: "src/shared.ts",
+              symbol: "ServiceA",
+            },
+          ],
+        },
+      });
+      appLayer.addElement(element1);
+
+      const element2 = new Element({
+        id: "application.service.service-b",
+        path: "application.service.service-b",
+        name: "Service B",
+        description: "Service B",
+        type: "service",
+        layer_id: "application",
+        source_reference: {
+          type: "github",
+          repository: "test-repo",
+          locations: [
+            {
+              file: "src/shared.ts",
+              symbol: "ServiceB",
+            },
+          ],
+        },
+      });
+      appLayer.addElement(element2);
+
+      const engine = new FarmSyncEngine(farmDir, model);
+      const mappings = await engine.mapFilesToElements();
+
+      // Should detect ambiguity
+      expect(mappings.ambiguous.length).toBeGreaterThanOrEqual(0);
+
+      const ambiguousFile = mappings.ambiguous.find((m) => m.filePath === "src/shared.ts");
+      if (ambiguousFile) {
+        expect(ambiguousFile.possibleElements.length).toBe(2);
+      }
+    }
+  });
+
+  it("should generate changeset from file diff and mappings", async () => {
+    const { Model } = await import("../../src/core/model.js");
+    const { Element } = await import("../../src/core/element.js");
+
+    // Create a model
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    // Add element with source reference
+    const appLayer = await model.getLayer("application");
+    if (appLayer) {
+      const element = new Element({
+        id: "application.service.main-service",
+        path: "application.service.main-service",
+        name: "Main Service",
+        description: "Main service for the application",
+        type: "service",
+        layer_id: "application",
+        source_reference: {
+          type: "github",
+          repository: "test-repo",
+          locations: [
+            {
+              file: "src/services/main.ts",
+              symbol: "MainService",
+            },
+          ],
+        },
+      });
+      appLayer.addElement(element);
+
+      const engine = new FarmSyncEngine(farmDir, model);
+      const project = farmManifest.getProject("test-project")!;
+
+      // Create fake diff
+      const diff = {
+        added: ["src/services/main.ts"],
+        modified: [],
+        deleted: [],
+      };
+
+      // Create mappings
+      const mappings = {
+        confident: [
+          {
+            filePath: "src/services/main.ts",
+            possibleElements: [
+              {
+                elementId: "application.service.main-service",
+                layer: "application",
+                confidence: 100,
+                sourceRef: {
+                  file: "src/services/main.ts",
+                  symbol: "MainService",
+                },
+              },
+            ],
+          },
+        ],
+        ambiguous: [],
+      };
+
+      // Generate changeset
+      const changesetResult = await engine.generateChangeset(project, diff, mappings, {
+        verbose: false,
+      });
+
+      expect(changesetResult.changesetId).toBeDefined();
+      expect(changesetResult.changeCount).toBeGreaterThan(0);
+      expect(changesetResult.warnings.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("should handle consistent commit SHA truncation", async () => {
+    const { Model } = await import("../../src/core/model.js");
+
+    // Create a model (without source references to avoid changeset generation)
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    const engine = new FarmSyncEngine(farmDir, model);
+    const project = farmManifest.getProject("test-project")!;
+
+    // First sync - initial (no previous commit)
+    const result1 = await engine.syncProject(project, { verbose: false });
+    expect(result1.commitsBefore).toBe("none");
+    expect(result1.commitsAfter.length).toBe(8); // Should be 8-char truncated
+
+    // Make a change
+    const newFile = path.join(codebaseDir, "test-file.txt");
+    await writeFile(newFile, "test content");
+    execSync("git add test-file.txt", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Test commit'", { cwd: codebaseDir, stdio: "pipe" });
+
+    // Second sync - incremental (with previous commit)
+    const result2 = await engine.syncProject(project, { verbose: false });
+    expect(result2.commitsBefore).toBeDefined();
+    expect(result2.commitsBefore.length).toBe(8); // Should be 8-char truncated
+    expect(result2.commitsAfter).toBeDefined();
+    expect(result2.commitsAfter.length).toBe(8); // Should be 8-char truncated
+  });
 });

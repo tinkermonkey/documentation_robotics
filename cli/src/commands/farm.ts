@@ -1008,8 +1008,9 @@ export async function farmSyncCommand(options: {
           // Auto-commit if requested and changes were staged
           if (options.autoCommit && result.changesetId && result.changeCount > 0 && !options.dryRun) {
             try {
+              const projectModelPath = path.join(farmRoot, project.model);
               const stagingManager = new (await import("../core/staging-area.js")).StagingAreaManager(
-                farmRoot,
+                projectModelPath,
                 model
               );
               const commitResult = await stagingManager.commit(model, result.changesetId);
@@ -1102,11 +1103,13 @@ export async function farmSyncCommand(options: {
         while (active.length < concurrency && queue.length > 0) {
           const project = queue.shift()!;
           const promise = processSyncProject(project);
-          active.push(
-            promise.then(() => {
-              active.splice(active.indexOf(promise), 1);
-            })
-          );
+          const wrapped = promise.then(() => {
+            const idx = active.indexOf(wrapped);
+            if (idx !== -1) {
+              active.splice(idx, 1);
+            }
+          });
+          active.push(wrapped);
         }
 
         if (active.length > 0) {
