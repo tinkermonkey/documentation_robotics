@@ -73,7 +73,9 @@
               "description": "References EnvironmentFactor nodes specifying the concrete environmental constraints (OS, locale, network, hardware, dependency versions) that define this context variation."
             }
           },
-          "required": ["contextType"],
+          "required": [
+            "contextType"
+          ],
           "additionalProperties": false
         }
       },
@@ -123,7 +125,11 @@
               "description": "ISO date when the exclusion was formally approved, supporting audit trail requirements"
             }
           },
-          "required": ["reason", "riskAccepted", "approvedBy"],
+          "required": [
+            "reason",
+            "riskAccepted",
+            "approvedBy"
+          ],
           "additionalProperties": false
         }
       },
@@ -156,7 +162,12 @@
             },
             "severity": {
               "type": "string",
-              "enum": ["critical", "high", "medium", "low"],
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low"
+              ],
               "description": "Risk level of leaving this gap unaddressed"
             },
             "affectedRequirements": {
@@ -165,7 +176,12 @@
             },
             "remediationStatus": {
               "type": "string",
-              "enum": ["open", "deferred", "resolved", "accepted-risk"],
+              "enum": [
+                "open",
+                "deferred",
+                "resolved",
+                "accepted-risk"
+              ],
               "description": "Lifecycle state of this coverage gap."
             },
             "targetRef": {
@@ -173,7 +189,10 @@
               "description": "ID of the testing.testcoveragetarget where this gap was identified"
             }
           },
-          "required": ["severity", "affectedRequirements"],
+          "required": [
+            "severity",
+            "affectedRequirements"
+          ],
           "additionalProperties": false
         }
       },
@@ -218,11 +237,18 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["critical", "high", "medium", "low"],
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low"
+              ],
               "description": "Relative importance of fulfilling this coverage requirement"
             }
           },
-          "required": ["coverageCriteria"],
+          "required": [
+            "coverageCriteria"
+          ],
           "additionalProperties": false
         }
       },
@@ -267,7 +293,11 @@
               "type": "integer"
             }
           },
-          "required": ["totalTargets", "totalRequirements", "totalSketches"],
+          "required": [
+            "totalTargets",
+            "totalRequirements",
+            "totalSketches"
+          ],
           "additionalProperties": false
         }
       },
@@ -322,7 +352,10 @@
               "type": "string"
             }
           },
-          "required": ["factorType", "value"],
+          "required": [
+            "factorType",
+            "value"
+          ],
           "additionalProperties": false
         }
       },
@@ -411,7 +444,12 @@
             },
             "valueSource": {
               "type": "string",
-              "enum": ["manual", "generated", "data-driven", "fixture"],
+              "enum": [
+                "manual",
+                "generated",
+                "data-driven",
+                "fixture"
+              ],
               "description": "How the concrete value was obtained: manually authored, algorithmically generated, drawn from a data set, or loaded from a test fixture"
             }
           },
@@ -466,7 +504,10 @@
               "description": "Whether this input field must be present in test inputs for this partition"
             }
           },
-          "required": ["fieldRef", "presenceRule"],
+          "required": [
+            "fieldRef",
+            "presenceRule"
+          ],
           "additionalProperties": false
         }
       },
@@ -511,7 +552,9 @@
               "description": "The class of observable outcome this category represents, used to group test cases by expected result type for coverage analysis and reporting."
             }
           },
-          "required": ["outcomeType"],
+          "required": [
+            "outcomeType"
+          ],
           "additionalProperties": false
         }
       },
@@ -729,11 +772,19 @@
             },
             "relevance": {
               "type": "string",
-              "enum": ["required", "optional", "conditional", "not-applicable"],
+              "enum": [
+                "required",
+                "optional",
+                "conditional",
+                "not-applicable"
+              ],
               "description": "Whether this field must be included in test case input specifications"
             }
           },
-          "required": ["fieldRef", "partitionRef"],
+          "required": [
+            "fieldRef",
+            "partitionRef"
+          ],
           "additionalProperties": false
         }
       },
@@ -782,7 +833,12 @@
             },
             "implementationFormat": {
               "type": "string",
-              "enum": ["manual", "automated", "semi-automated", "exploratory"],
+              "enum": [
+                "manual",
+                "automated",
+                "semi-automated",
+                "exploratory"
+              ],
               "description": "How the test case will be executed"
             },
             "source": {
@@ -790,7 +846,9 @@
               "description": "Source code reference to the test case implementation"
             }
           },
-          "required": ["status"],
+          "required": [
+            "status"
+          ],
           "additionalProperties": false
         }
       },
@@ -833,7 +891,10 @@
               "description": "Provenance information indicating the origin of this model (e.g., manually authored, imported from OpenAPI, or generated from source artifacts)"
             }
           },
-          "required": ["version", "application"],
+          "required": [
+            "version",
+            "application"
+          ],
           "additionalProperties": false
         }
       },
@@ -878,7 +939,12 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["critical", "high", "medium", "low"],
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low"
+              ],
               "description": "Relative importance of achieving coverage for this target"
             },
             "source": {
@@ -886,7 +952,9 @@
               "description": "Source code reference for the artifact requiring test coverage"
             }
           },
-          "required": ["targetType"],
+          "required": [
+            "targetType"
+          ],
           "additionalProperties": false
         }
       },

@@ -62,7 +62,9 @@
               "description": "Classification of the assessment method or framework used"
             }
           },
-          "required": ["assessmentType"],
+          "required": [
+            "assessmentType"
+          ],
           "additionalProperties": false
         }
       },
@@ -110,7 +112,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["constraintType"],
+          "required": [
+            "constraintType"
+          ],
           "additionalProperties": false
         }
       },
@@ -156,7 +160,9 @@
               "description": "Category of the motivating condition or force"
             }
           },
-          "required": ["category"],
+          "required": [
+            "category"
+          ],
           "additionalProperties": false
         }
       },
@@ -189,7 +195,13 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["critical", "high", "medium", "low", "informational"],
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low",
+                "informational"
+              ],
               "description": "Priority level of this goal"
             },
             "properties": {
@@ -197,7 +209,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["priority"],
+          "required": [
+            "priority"
+          ],
           "additionalProperties": false
         }
       },
@@ -275,7 +289,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["status"],
+          "required": [
+            "status"
+          ],
           "additionalProperties": false
         }
       },
@@ -324,7 +340,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["category"],
+          "required": [
+            "category"
+          ],
           "additionalProperties": false
         }
       },
@@ -368,7 +386,13 @@
             },
             "priority": {
               "type": "string",
-              "enum": ["critical", "high", "medium", "low", "informational"],
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low",
+                "informational"
+              ],
               "description": "Priority level of this requirement"
             },
             "properties": {
@@ -376,7 +400,10 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["requirementType", "priority"],
+          "required": [
+            "requirementType",
+            "priority"
+          ],
           "additionalProperties": false
         }
       },
@@ -421,7 +448,9 @@
               "description": "Classification of the stakeholder's relationship to the organization"
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -468,7 +497,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["valueType"],
+          "required": [
+            "valueType"
+          ],
           "additionalProperties": false
         }
       },

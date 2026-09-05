@@ -20,7 +20,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import prettier from "prettier";
 import Ajv from "ajv";
 import { default as ajvFormats } from "ajv-formats";
 
@@ -587,14 +586,8 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
 // ─── Phase 2-5: Compile and write ─────────────────────────────────────────────
 
 async function writeJsonFile(filepath: string, data: unknown): Promise<void> {
-  // Write JSON with Prettier formatting to match project's prettier config
   const json = JSON.stringify(data, null, 2);
-  const options = await prettier.resolveConfig(filepath);
-  const formatted = await prettier.format(json, {
-    ...options,
-    parser: "json",
-  });
-  fs.writeFileSync(filepath, formatted, "utf-8");
+  fs.writeFileSync(filepath, json + "\n", "utf-8");
 }
 
 function ensureDistDir(): void {

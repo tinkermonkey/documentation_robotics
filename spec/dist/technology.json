@@ -73,7 +73,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["artifactType"],
+          "required": [
+            "artifactType"
+          ],
           "additionalProperties": false
         }
       },
@@ -106,7 +108,14 @@
             },
             "networkType": {
               "type": "string",
-              "enum": ["lan", "wan", "vpn", "wireless", "internet", "intranet"],
+              "enum": [
+                "lan",
+                "wan",
+                "vpn",
+                "wireless",
+                "internet",
+                "intranet"
+              ],
               "description": "Topology and scope classification of the network, per ArchiMate 3.2 CommunicationNetwork element."
             },
             "properties": {
@@ -118,7 +127,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["networkType"],
+          "required": [
+            "networkType"
+          ],
           "additionalProperties": false
         }
       },
@@ -170,7 +181,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["deviceType"],
+          "required": [
+            "deviceType"
+          ],
           "additionalProperties": false
         }
       },
@@ -221,7 +234,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["nodeType"],
+          "required": [
+            "nodeType"
+          ],
           "additionalProperties": false
         }
       },
@@ -281,7 +296,9 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": ["pathType"],
+          "required": [
+            "pathType"
+          ],
           "additionalProperties": false
         }
       },
@@ -333,7 +350,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["softwareType"],
+          "required": [
+            "softwareType"
+          ],
           "additionalProperties": false
         }
       },
@@ -423,7 +442,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["eventType"],
+          "required": [
+            "eventType"
+          ],
           "additionalProperties": false
         }
       },
@@ -555,7 +576,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["protocol"],
+          "required": [
+            "protocol"
+          ],
           "additionalProperties": false
         }
       },
@@ -647,7 +670,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["serviceType"],
+          "required": [
+            "serviceType"
+          ],
           "additionalProperties": false
         }
       },

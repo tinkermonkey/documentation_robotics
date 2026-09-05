@@ -53,7 +53,11 @@
           "properties": {
             "severity": {
               "type": "string",
-              "enum": ["critical", "warning", "info"],
+              "enum": [
+                "critical",
+                "warning",
+                "info"
+              ],
               "description": "Alert severity level, controlling routing and escalation policy."
             },
             "condition": {
@@ -76,7 +80,10 @@
               "description": "Human-readable description of what the alert detects and why it matters."
             }
           },
-          "required": ["severity", "condition"],
+          "required": [
+            "severity",
+            "condition"
+          ],
           "additionalProperties": false
         }
       },
@@ -132,7 +139,12 @@
                   },
                   "signalType": {
                     "type": "string",
-                    "enum": ["metric", "trace", "log", "alert"],
+                    "enum": [
+                      "metric",
+                      "trace",
+                      "log",
+                      "alert"
+                    ],
                     "description": "The APM signal type visualized by this panel."
                   },
                   "visualizationType": {
@@ -150,12 +162,17 @@
                     "description": "Visualization form used to render the panel data."
                   }
                 },
-                "required": ["title", "signalType"],
+                "required": [
+                  "title",
+                  "signalType"
+                ],
                 "additionalProperties": false
               }
             }
           },
-          "required": ["tool"],
+          "required": [
+            "tool"
+          ],
           "additionalProperties": false
         }
       },
@@ -206,16 +223,28 @@
             },
             "authType": {
               "type": "string",
-              "enum": ["none", "api_key", "bearer", "tls_client_cert", "basic"],
+              "enum": [
+                "none",
+                "api_key",
+                "bearer",
+                "tls_client_cert",
+                "basic"
+              ],
               "description": "Authentication method used for the export destination"
             },
             "compression": {
               "type": "string",
-              "enum": ["none", "gzip"],
+              "enum": [
+                "none",
+                "gzip"
+              ],
               "description": "Compression algorithm for OTLP export payloads. Applies to OTLP exporters only."
             }
           },
-          "required": ["type", "endpoint"],
+          "required": [
+            "type",
+            "endpoint"
+          ],
           "additionalProperties": false
         }
       },
@@ -258,11 +287,17 @@
             },
             "instrumentationType": {
               "type": "string",
-              "enum": ["automatic", "manual", "both"],
+              "enum": [
+                "automatic",
+                "manual",
+                "both"
+              ],
               "description": "Whether instrumentation is applied automatically, manually, or both"
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -305,7 +340,9 @@
               "additionalProperties": true
             }
           },
-          "required": ["droppedAttributesCount"],
+          "required": [
+            "droppedAttributesCount"
+          ],
           "additionalProperties": false
         }
       },
@@ -338,11 +375,20 @@
             },
             "minimumSeverity": {
               "type": "string",
-              "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+              "enum": [
+                "TRACE",
+                "DEBUG",
+                "INFO",
+                "WARN",
+                "ERROR",
+                "FATAL"
+              ],
               "description": "Minimum OTel SeverityText level for log records to be emitted"
             }
           },
-          "required": ["serviceName"],
+          "required": [
+            "serviceName"
+          ],
           "additionalProperties": false
         }
       },
@@ -372,7 +418,11 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["simple", "batch", "custom"],
+              "enum": [
+                "simple",
+                "batch",
+                "custom"
+              ],
               "description": "OTel log record processor type (simple: synchronous, batch: asynchronous buffered)"
             },
             "order": {
@@ -382,7 +432,9 @@
               "type": "boolean"
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -488,7 +540,11 @@
             },
             "exemplarFilter": {
               "type": "string",
-              "enum": ["always_on", "always_off", "trace_based"],
+              "enum": [
+                "always_on",
+                "always_off",
+                "trace_based"
+              ],
               "description": "OTel exemplar filter controlling which exemplars are recorded"
             },
             "exemplarReservoirSize": {
@@ -496,7 +552,9 @@
               "description": "Maximum number of exemplars retained per instrument per collection cycle. Used in conjunction with exemplarFilter to control exemplar sampling volume."
             }
           },
-          "required": ["serviceName"],
+          "required": [
+            "serviceName"
+          ],
           "additionalProperties": false
         }
       },
@@ -551,7 +609,10 @@
               "description": "Source code reference for code-defined metrics"
             }
           },
-          "required": ["type", "unit"],
+          "required": [
+            "type",
+            "unit"
+          ],
           "additionalProperties": false
         }
       },
@@ -603,7 +664,9 @@
               "additionalProperties": true
             }
           },
-          "required": ["droppedAttributesCount"],
+          "required": [
+            "droppedAttributesCount"
+          ],
           "additionalProperties": false
         }
       },
@@ -645,7 +708,13 @@
             },
             "spanKind": {
               "type": "string",
-              "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"],
+              "enum": [
+                "INTERNAL",
+                "SERVER",
+                "CLIENT",
+                "PRODUCER",
+                "CONSUMER"
+              ],
               "description": "OTel SpanKind indicating the span's relationship to the calling and receiving system"
             },
             "startTimeUnixNano": {
@@ -665,7 +734,11 @@
             },
             "statusCode": {
               "type": "string",
-              "enum": ["UNSET", "OK", "ERROR"],
+              "enum": [
+                "UNSET",
+                "OK",
+                "ERROR"
+              ],
               "description": "OTel span status code. UNSET = not explicitly set by instrumentation; OK = explicitly successful; ERROR = explicitly failed. Once set to OK, cannot be overridden to ERROR."
             },
             "statusMessage": {
@@ -729,7 +802,10 @@
               "additionalProperties": true
             }
           },
-          "required": ["timeUnixNano", "droppedAttributesCount"],
+          "required": [
+            "timeUnixNano",
+            "droppedAttributesCount"
+          ],
           "additionalProperties": false
         }
       },
@@ -775,7 +851,11 @@
               "additionalProperties": true
             }
           },
-          "required": ["traceId", "spanId", "droppedAttributesCount"],
+          "required": [
+            "traceId",
+            "spanId",
+            "droppedAttributesCount"
+          ],
           "additionalProperties": false
         }
       },
