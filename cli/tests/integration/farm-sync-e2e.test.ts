@@ -22,6 +22,7 @@ async function createTestModel(modelPath: string): Promise<string> {
   await ensureDir(modelPath);
 
   // Create basic manifest.yaml directly in modelPath
+  // (For farm sync, the model directory structure is simpler than standard DR)
   const manifestPath = path.join(modelPath, "manifest.yaml");
   await writeFile(
     manifestPath,
@@ -105,7 +106,7 @@ describe("Farm Sync - End-to-End Flow", () => {
   it("should perform initial sync without changes", async () => {
     // Load model
     const originalDRModelPath = process.env.DR_MODEL_PATH;
-    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+    process.env.DR_MODEL_PATH = modelDir;
 
     try {
       const model = await Model.load();
@@ -139,7 +140,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
   it("should detect changes after second sync", async () => {
     const originalDRModelPath = process.env.DR_MODEL_PATH;
-    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+    process.env.DR_MODEL_PATH = modelDir;
 
     try {
       const model = await Model.load();
@@ -179,7 +180,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
   it("should track sync state across multiple syncs", async () => {
     const originalDRModelPath = process.env.DR_MODEL_PATH;
-    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+    process.env.DR_MODEL_PATH = modelDir;
 
     try {
       const model = await Model.load();
@@ -218,7 +219,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
   it("should handle file modifications correctly", async () => {
     const originalDRModelPath = process.env.DR_MODEL_PATH;
-    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+    process.env.DR_MODEL_PATH = modelDir;
 
     try {
       const model = await Model.load();
@@ -250,7 +251,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
   it("should handle file deletions correctly", async () => {
     const originalDRModelPath = process.env.DR_MODEL_PATH;
-    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+    process.env.DR_MODEL_PATH = modelDir;
 
     try {
       const model = await Model.load();
@@ -280,7 +281,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
   it("should support autoCommit configuration for model synchronization", async () => {
     const originalDRModelPath = process.env.DR_MODEL_PATH;
-    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+    process.env.DR_MODEL_PATH = modelDir;
 
     try {
       // Initialize git repo in model directory

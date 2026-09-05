@@ -229,7 +229,8 @@ export class Model {
       let layerPath: string | null = null;
 
       // Auto-discover by scanning directory with naming convention
-      const modelDir = `${this.rootPath}/documentation-robotics/model`;
+      // Support both standard structure (rootPath/documentation-robotics/model) and non-standard (rootPath directly)
+      let modelDir = `${this.rootPath}/documentation-robotics/model`;
 
       try {
         const entries = await fs.readdir(modelDir, { withFileTypes: true });
@@ -242,7 +243,20 @@ export class Model {
           layerPath = `${modelDir}/${layerDir.name}`;
         }
       } catch {
-        // Model directory doesn't exist or can't be read
+        // Standard structure doesn't exist, try non-standard structure (rootPath directly)
+        try {
+          const entries = await fs.readdir(this.rootPath, { withFileTypes: true });
+          const layerDir = entries.find(
+            (e) =>
+              e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
+          );
+
+          if (layerDir) {
+            layerPath = `${this.rootPath}/${layerDir.name}`;
+          }
+        } catch {
+          // Neither structure found
+        }
       }
 
       if (!layerPath) {
@@ -415,7 +429,7 @@ export class Model {
 
     let layerPath: string | null = null;
 
-    // Discover by scanning directory
+    // Discover by scanning directory (support both standard and non-standard structures)
     const modelDir = `${this.rootPath}/documentation-robotics/model`;
 
     try {
@@ -429,7 +443,20 @@ export class Model {
         layerPath = `${modelDir}/${layerDir.name}`;
       }
     } catch {
-      // Model directory doesn't exist or can't be read
+      // Standard structure doesn't exist, try non-standard structure (rootPath directly)
+      try {
+        const entries = await fs.readdir(this.rootPath, { withFileTypes: true });
+        const layerDir = entries.find(
+          (e) =>
+            e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
+        );
+
+        if (layerDir) {
+          layerPath = `${this.rootPath}/${layerDir.name}`;
+        }
+      } catch {
+        // Neither structure found
+      }
     }
 
     // If still not found, create using default format
@@ -787,8 +814,11 @@ export class Model {
       try {
         await fs.access(manifestPath);
 
-        // Determine projectRoot: check if manifest is in standard documentation-robotics/model structure
+        // Determine projectRoot: flexible approach for both standard and non-standard structures
         let projectRoot: string;
+        const manifestParentDir = path.dirname(manifestPath);
+
+        // First, try assuming the standard structure (manifest 3 levels deep)
         const standardProjectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
         const standardDocRobotsPath = path.join(standardProjectRoot, "documentation-robotics", "model");
 
@@ -796,8 +826,8 @@ export class Model {
           await fs.access(standardDocRobotsPath);
           projectRoot = standardProjectRoot;
         } catch {
-          // Not in standard structure, use parent of manifest directory as project root
-          projectRoot = path.dirname(path.dirname(manifestPath));
+          // Not in standard structure, use manifest's parent directory as project root
+          projectRoot = manifestParentDir;
         }
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
@@ -822,8 +852,11 @@ export class Model {
       try {
         await fs.access(manifestPath);
 
-        // Determine projectRoot: check if manifest is in standard documentation-robotics/model structure
+        // Determine projectRoot: flexible approach for both standard and non-standard structures
         let projectRoot: string;
+        const manifestParentDir = path.dirname(manifestPath);
+
+        // First, try assuming the standard structure (manifest 3 levels deep)
         const standardProjectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
         const standardDocRobotsPath = path.join(standardProjectRoot, "documentation-robotics", "model");
 
@@ -831,8 +864,8 @@ export class Model {
           await fs.access(standardDocRobotsPath);
           projectRoot = standardProjectRoot;
         } catch {
-          // Not in standard structure, use parent of manifest directory as project root
-          projectRoot = path.dirname(path.dirname(manifestPath));
+          // Not in standard structure, use manifest's parent directory as project root
+          projectRoot = manifestParentDir;
         }
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
