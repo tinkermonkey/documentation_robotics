@@ -492,13 +492,39 @@ export class FarmSyncEngine {
       `Files changed: ${diff.added.length} added, ${diff.modified.length} modified, ${diff.deleted.length} deleted`
     );
 
-    // Step 5: Map files to elements
+    // Step 5: Check that model is available before attempting to map files
+    if (!this.model) {
+      notes.push("CRITICAL: Model is not loaded, cannot map files to elements");
+      syncState.recordSync({
+        timestamp: new Date().toISOString(),
+        commit: previousCommit, // Don't advance lastSyncCommit - stay at previous commit
+        status: "failed",
+        files_changed: diff.added.length + diff.modified.length + diff.deleted.length,
+        elements_affected: 0,
+        notes: "Model not loaded - file changes not synced. Load the model and retry to process these files.",
+      });
+      await syncState.save(syncStatePath);
+
+      return {
+        success: false,
+        projectName: project.name,
+        commitsBefore: previousCommit.substring(0, 8),
+        commitsAfter: currentCommit.substring(0, 8),
+        filesChanged: diff,
+        elementMappings: [],
+        ambiguities: [],
+        changeCount: 0,
+        notes,
+      };
+    }
+
+    // Step 6: Map files to elements
     if (options.verbose) {
       notes.push("Mapping changed files to model elements...");
     }
     const mappings = await this.mapFilesToElements();
 
-    // Step 6: Record ambiguities in sync state
+    // Step 7: Record ambiguities in sync state
     if (mappings.ambiguous.length > 0) {
       syncState.recordAmbiguities(
         mappings.ambiguous.map((m) => ({
@@ -513,7 +539,7 @@ export class FarmSyncEngine {
       notes.push(`Ambiguities detected: ${mappings.ambiguous.length} files`);
     }
 
-    // Step 7: Generate changeset
+    // Step 8: Generate changeset
     let changesetId: string | undefined;
     let changeCount = 0;
 
@@ -524,7 +550,7 @@ export class FarmSyncEngine {
       notes.push(...changesetResult.warnings);
     }
 
-    // Step 8: Record sync in state
+    // Step 9: Record sync in state
     syncState.recordSync({
       timestamp: new Date().toISOString(),
       commit: currentCommit,

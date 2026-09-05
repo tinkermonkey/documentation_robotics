@@ -990,6 +990,14 @@ export async function farmSyncCommand(options: {
       throw new Error("Concurrency must be a positive number");
     }
 
+    // Reject incompatible option combination: --auto-commit with --concurrency > 1
+    if (options.autoCommit && concurrency > 1) {
+      throw new Error(
+        "Cannot use --auto-commit with --concurrency > 1: concurrent git operations would cause race conditions. " +
+        "Use --concurrency 1 for auto-commit, or remove --auto-commit for parallel processing."
+      );
+    }
+
     const useJson = options.format === "json" || isJson();
     if (!useJson && !options.verbose) {
       handleInfo(`Syncing ${projectsToSync.length} project(s) (concurrency: ${concurrency})...`);
@@ -1047,11 +1055,12 @@ export async function farmSyncCommand(options: {
               resultEntry.committed_changes = commitResult.committed;
 
               // Commit changes to the farm-level git repository if git is available
+              // Scope git add to the project's model folder to avoid staging unrelated changes
               try {
                 execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
                 // Git repo exists, proceed with commit
                 try {
-                  execSync("git add .", { cwd: farmRoot, stdio: "pipe" });
+                  execFileSync("git", ["add", project.model], { cwd: farmRoot, stdio: "pipe" });
                   execFileSync(
                     "git",
                     ["commit", "-m", `Sync: ${result.changesetId} - ${commitResult.committed} change(s)`],
@@ -1367,7 +1376,11 @@ Examples:
   $ dr farm sync --concurrency 4
 
 Automation (cron/CI):
-  $ dr farm sync --format json --auto-commit --concurrency 4 --output sync-report.json`
+  $ dr farm sync --format json --auto-commit --output sync-report.json
+  $ dr farm sync --format json --concurrency 4 --output sync-report.json
+
+Note: --auto-commit and --concurrency > 1 cannot be used together (race condition risk).
+Use --concurrency 1 (default) with --auto-commit for automated syncs.`
     )
     .action(async (options) => {
       await farmSyncCommand(options);
