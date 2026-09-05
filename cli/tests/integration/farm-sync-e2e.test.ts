@@ -317,7 +317,7 @@ describe("Farm Sync - End-to-End Flow", () => {
         dryRun: false,
       });
 
-      // Verify that farmSyncCommand executed without error - commits should either stay same or increase
+      // Verify that farmSyncCommand executed without error - commits should increase due to the new file we added
       const commitsAfter = execSync("git rev-list --count HEAD", {
         cwd: modelDir,
         encoding: "utf-8",
@@ -326,9 +326,8 @@ describe("Farm Sync - End-to-End Flow", () => {
       const commitsAfterNum = parseInt(commitsAfter, 10);
       const commitsBeforeNum = parseInt(commitsBefore, 10);
 
-      // Verify that autoCommit either created a commit (if changes detected) or didn't (if no changes)
-      // The key assertion is that farmSyncCommand ran successfully without breaking git state
-      expect(commitsAfterNum).toBeGreaterThanOrEqual(commitsBeforeNum);
+      // We specifically added a new file to codebase, so farmSyncCommand should detect and sync changes, creating at least one commit
+      expect(commitsAfterNum).toBeGreaterThan(commitsBeforeNum);
     } finally {
       process.chdir(originalCwd);
       if (originalDRModelPath !== undefined) {
