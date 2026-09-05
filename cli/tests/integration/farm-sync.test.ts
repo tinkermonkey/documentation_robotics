@@ -371,6 +371,7 @@ describe("FarmSyncEngine", () => {
   it("should map files to elements via source references", async () => {
     const { Model } = await import("../../src/core/model.js");
     const { Element } = await import("../../src/core/element.js");
+    const { Layer } = await import("../../src/core/layer.js");
 
     // Create a model with source references
     const model = await Model.init(modelDir, {
@@ -380,8 +381,9 @@ describe("FarmSyncEngine", () => {
       created: new Date().toISOString(),
     });
 
-    // Add element with source references
-    const appLayer = await model.getLayer("application");
+    // Create and add the application layer
+    const appLayer = new Layer("application");
+    model.layers.set("application", appLayer);
     expect(appLayer).toBeDefined();
 
     const element = new Element({
@@ -402,7 +404,7 @@ describe("FarmSyncEngine", () => {
         ],
       },
     });
-    appLayer!.addElement(element);
+    appLayer.addElement(element);
 
     // Create engine with model
     const engine = new FarmSyncEngine(farmDir, model);
@@ -426,6 +428,7 @@ describe("FarmSyncEngine", () => {
   it("should detect ambiguous file-to-element mappings", async () => {
     const { Model } = await import("../../src/core/model.js");
     const { Element } = await import("../../src/core/element.js");
+    const { Layer } = await import("../../src/core/layer.js");
 
     // Create a model with multiple elements referencing the same file
     const model = await Model.init(modelDir, {
@@ -435,7 +438,9 @@ describe("FarmSyncEngine", () => {
       created: new Date().toISOString(),
     });
 
-    const appLayer = await model.getLayer("application");
+    // Create and add the application layer
+    const appLayer = new Layer("application");
+    model.layers.set("application", appLayer);
     expect(appLayer).toBeDefined();
 
     // Add two elements pointing to the same file
@@ -457,7 +462,7 @@ describe("FarmSyncEngine", () => {
         ],
       },
     });
-    appLayer!.addElement(element1);
+    appLayer.addElement(element1);
 
     const element2 = new Element({
       id: "application.service.service-b",
@@ -477,7 +482,7 @@ describe("FarmSyncEngine", () => {
         ],
       },
     });
-    appLayer!.addElement(element2);
+    appLayer.addElement(element2);
 
     const engine = new FarmSyncEngine(farmDir, model);
     const mappings = await engine.mapFilesToElements();
@@ -493,6 +498,7 @@ describe("FarmSyncEngine", () => {
   it("should generate changeset from file diff and mappings", async () => {
     const { Model } = await import("../../src/core/model.js");
     const { Element } = await import("../../src/core/element.js");
+    const { Layer } = await import("../../src/core/layer.js");
 
     // Create a model
     const model = await Model.init(modelDir, {
@@ -502,8 +508,9 @@ describe("FarmSyncEngine", () => {
       created: new Date().toISOString(),
     });
 
-    // Add element with source reference
-    const appLayer = await model.getLayer("application");
+    // Create and add the application layer
+    const appLayer = new Layer("application");
+    model.layers.set("application", appLayer);
     expect(appLayer).toBeDefined();
 
     const element = new Element({
@@ -524,7 +531,7 @@ describe("FarmSyncEngine", () => {
         ],
       },
     });
-    appLayer!.addElement(element);
+    appLayer.addElement(element);
 
     const engine = new FarmSyncEngine(farmDir, model);
     const project = farmManifest.getProject("test-project")!;
