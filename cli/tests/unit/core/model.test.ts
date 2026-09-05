@@ -121,24 +121,33 @@ describe("Model", () => {
 });
 
 describe("Model.load — Detached Manifest Path Validation", () => {
-  it("should throw error when loading model with detached manifest path", async () => {
+  it("should successfully load model from detached manifest path", async () => {
     const { mkdir, writeFile } = await import("fs/promises");
     const path = await import("path");
 
     // Create a detached manifest path (simulating /farm/svc-model/manifest.yaml)
-    // where dirname³ yields a root that lacks documentation-robotics/model structure
+    // This is now supported for farm sync scenarios where models live in temporary directories
     const detachedDir = `${tmpdir()}/dr-detached-${randomUUID()}`;
-    const nestedPath = path.join(detachedDir, "level1", "level2", "level3");
-    await mkdir(nestedPath, { recursive: true });
+    const modelDir = path.join(detachedDir, "model");
+    await mkdir(modelDir, { recursive: true });
 
-    const manifestPath = path.join(nestedPath, "manifest.yaml");
-    await writeFile(manifestPath, "name: Test Model\nversion: 1.0.0\n");
-
-    // Attempting to load model from detached manifest should throw error
-    // because projectRoot (dirname³) won't contain documentation-robotics/model structure
-    await expect(Model.load(manifestPath)).rejects.toThrow(
-      /Invalid model path|does not contain documentation-robotics\/model/
+    const manifestPath = path.join(modelDir, "manifest.yaml");
+    const now = new Date().toISOString();
+    await writeFile(
+      manifestPath,
+      `version: "1.0.0"
+project:
+  name: Test Model
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
     );
+
+    // Loading model from detached manifest should now succeed
+    const model = await Model.load(manifestPath);
+    expect(model).toBeDefined();
+    expect(model.manifest.name).toBe("Test Model");
   });
 });
 

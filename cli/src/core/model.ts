@@ -786,25 +786,22 @@ export class Model {
 
       try {
         await fs.access(manifestPath);
-        const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
 
-        // Validate that projectRoot contains documentation-robotics structure
-        const docRobotsPath = path.join(projectRoot, "documentation-robotics", "model");
+        // Determine projectRoot: check if manifest is in standard documentation-robotics/model structure
+        let projectRoot: string;
+        const standardProjectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+        const standardDocRobotsPath = path.join(standardProjectRoot, "documentation-robotics", "model");
+
         try {
-          await fs.access(docRobotsPath);
+          await fs.access(standardDocRobotsPath);
+          projectRoot = standardProjectRoot;
         } catch {
-          throw new Error(
-            `Invalid model path: ${startPath}\n` +
-            `Computed project root ${projectRoot} does not contain documentation-robotics/model structure.\n` +
-            `Ensure the path is within a valid DR project or points to a model directory.`
-          );
+          // Not in standard structure, use parent of manifest directory as project root
+          projectRoot = path.dirname(path.dirname(manifestPath));
         }
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
-        if (err instanceof Error && err.message.includes("Invalid model path")) {
-          throw err;
-        }
         throw new Error(`Model not found at ${startPath}`);
       }
     }
@@ -824,25 +821,22 @@ export class Model {
 
       try {
         await fs.access(manifestPath);
-        const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
 
-        // Validate that projectRoot contains documentation-robotics structure
-        const docRobotsPath = path.join(projectRoot, "documentation-robotics", "model");
+        // Determine projectRoot: check if manifest is in standard documentation-robotics/model structure
+        let projectRoot: string;
+        const standardProjectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+        const standardDocRobotsPath = path.join(standardProjectRoot, "documentation-robotics", "model");
+
         try {
-          await fs.access(docRobotsPath);
+          await fs.access(standardDocRobotsPath);
+          projectRoot = standardProjectRoot;
         } catch {
-          throw new Error(
-            `Invalid DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}\n` +
-            `Computed project root ${projectRoot} does not contain documentation-robotics/model structure.\n` +
-            `Ensure DR_MODEL_PATH points to a valid DR project or model directory.`
-          );
+          // Not in standard structure, use parent of manifest directory as project root
+          projectRoot = path.dirname(path.dirname(manifestPath));
         }
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
-        if (err instanceof Error && err.message.includes("Invalid DR_MODEL_PATH")) {
-          throw err;
-        }
         throw new Error(`Model not found at DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}`);
       }
     }
