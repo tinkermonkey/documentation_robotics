@@ -100,14 +100,10 @@ export class FarmSyncEngine {
       } catch (fetchError) {
         const fetchMsg = getErrorMessage(fetchError);
         // Only treat "no remote" as acceptable; re-throw auth, merge, and network errors
-        if (!fetchMsg.includes("No remote repository specified") &&
-            !fetchMsg.includes("no remote") &&
-            !fetchMsg.includes("fatal") &&
-            !fetchMsg.includes("merge conflict")) {
-          // If it looks like a genuine error (auth, conflict, network), throw it
-          if (fetchMsg.length > 0) {
-            throw new Error(`git fetch failed: ${fetchMsg}`);
-          }
+        const isNoRemote = fetchMsg.includes("No remote repository specified") ||
+                          fetchMsg.includes("no remote");
+        if (!isNoRemote) {
+          throw new Error(`git fetch failed: ${fetchMsg}`);
         }
       }
 
@@ -117,13 +113,10 @@ export class FarmSyncEngine {
       } catch (pullError) {
         const pullMsg = getErrorMessage(pullError);
         // Only treat "no remote" as acceptable; re-throw auth, merge, and network errors
-        if (!pullMsg.includes("No remote repository specified") &&
-            !pullMsg.includes("no remote") &&
-            !pullMsg.includes("fatal") &&
-            !pullMsg.includes("merge conflict")) {
-          if (pullMsg.length > 0) {
-            throw new Error(`git pull failed: ${pullMsg}`);
-          }
+        const isNoRemote = pullMsg.includes("No remote repository specified") ||
+                          pullMsg.includes("no remote");
+        if (!isNoRemote) {
+          throw new Error(`git pull failed: ${pullMsg}`);
         }
       }
 

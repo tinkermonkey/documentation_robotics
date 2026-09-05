@@ -131,6 +131,71 @@ describe("FarmSyncState", () => {
 
     expect(state.ambiguities.length).toBe(0);
   });
+
+  it("should not update lastSyncCommit when sync status is 'failed'", () => {
+    const state = FarmSyncState.create("test-project");
+    const successTimestamp = new Date().toISOString();
+    const failedTimestamp = new Date(Date.now() + 1000).toISOString();
+
+    // Record successful sync
+    state.recordSync({
+      timestamp: successTimestamp,
+      commit: "success-commit-123",
+      status: "success",
+    });
+
+    expect(state.lastSyncCommit).toBe("success-commit-123");
+    expect(state.lastSyncTimestamp).toBe(successTimestamp);
+
+    // Record failed sync - should NOT update lastSyncCommit
+    state.recordSync({
+      timestamp: failedTimestamp,
+      commit: "failed-commit-456",
+      status: "failed",
+      notes: "Sync failed due to errors",
+    });
+
+    // lastSyncCommit should still point to successful commit
+    expect(state.lastSyncCommit).toBe("success-commit-123");
+    expect(state.lastSyncTimestamp).toBe(successTimestamp);
+
+    // But the failed sync should be in history
+    expect(state.syncHistory.length).toBe(2);
+    const lastRecord = state.getLastSync();
+    expect(lastRecord?.status).toBe("failed");
+    expect(lastRecord?.commit).toBe("failed-commit-456");
+  });
+
+  it("should not update lastSyncCommit when sync status is 'partial'", () => {
+    const state = FarmSyncState.create("test-project");
+    const successTimestamp = new Date().toISOString();
+    const partialTimestamp = new Date(Date.now() + 1000).toISOString();
+
+    // Record successful sync
+    state.recordSync({
+      timestamp: successTimestamp,
+      commit: "success-commit-123",
+      status: "success",
+    });
+
+    expect(state.lastSyncCommit).toBe("success-commit-123");
+
+    // Record partial sync - should NOT update lastSyncCommit
+    state.recordSync({
+      timestamp: partialTimestamp,
+      commit: "partial-commit-789",
+      status: "partial",
+      notes: "Some changes not processed",
+    });
+
+    // lastSyncCommit should still point to successful commit
+    expect(state.lastSyncCommit).toBe("success-commit-123");
+
+    // But the partial sync should be in history
+    expect(state.syncHistory.length).toBe(2);
+    const lastRecord = state.getLastSync();
+    expect(lastRecord?.status).toBe("partial");
+  });
 });
 
 describe("FarmSyncEngine", () => {
@@ -605,5 +670,111 @@ describe("FarmSyncEngine", () => {
     expect(result2.commitsBefore.length).toBe(8); // Should be 8-char truncated
     expect(result2.commitsAfter).toBeDefined();
     expect(result2.commitsAfter.length).toBe(8); // Should be 8-char truncated
+  });
+
+  it("should throw error when git fetch fails with auth error", async () => {
+    const { Model } = await import("../../src/core/model.js");
+
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    // Create a second codebase with a mock remote
+    const remoteDirPath = path.join(farmDir, "fake-remote");
+    await ensureDir(remoteDirPath);
+    execSync("git init --bare", { cwd: remoteDirPath, stdio: "pipe" });
+
+    // Set up the codebase with a remote pointing to an inaccessible location
+    const codebase2Path = path.join(farmDir, "codebase2");
+    await createTestGitRepo(codebase2Path, true);
+
+    // Add a remote with invalid credentials (will fail auth)
+    execSync('git remote add origin "https://user:invalid@example.com/repo.git"', {
+      cwd: codebase2Path,
+      stdio: "pipe",
+    });
+
+    // Update farm manifest with the new codebase
+    farmManifest.addProject("test-project-2", {
+      name: "test-project-2",
+      source: "codebase2",
+      model: "model",
+    });
+
+    const engine = new FarmSyncEngine(farmDir, model);
+
+    // pullCodebase should throw auth error
+    try {
+      await engine.pullCodebase("codebase2");
+      throw new Error("Expected auth error to be thrown");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      expect(msg).toContain("git");
+    }
+  });
+
+  it("should silently continue for no remote error", async () => {
+    const { Model } = await import("../../src/core/model.js");
+
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    const engine = new FarmSyncEngine(farmDir, model);
+
+    // pullCodebase should succeed even though there's no remote
+    // (the initial test repo at codebaseDir has no remote)
+    const commit = await engine.pullCodebase("codebase");
+
+    expect(commit).toBeDefined();
+    expect(commit.length).toBe(40); // Full SHA
+  });
+
+  it("should load model and gracefully handle missing farm configuration", async () => {
+    const { Model } = await import("../../src/core/model.js");
+
+    // Create a valid model without farm configuration
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    // Model should load successfully
+    expect(model).toBeDefined();
+    expect(model.manifest.name).toBe("test-model");
+
+    // Loading the same model again should work
+    const reloadedModel = await Model.load(modelDir);
+    expect(reloadedModel.manifest.name).toBe("test-model");
+  });
+
+  it("should handle model load with corrupt farm sync file gracefully", async () => {
+    const { Model } = await import("../../src/core/model.js");
+
+    // Create a model
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    // Create a corrupt .farm-sync.yaml file
+    const syncFile = path.join(modelDir, ".farm-sync.yaml");
+    await writeFile(syncFile, "invalid: yaml: content: [");
+
+    // Reload the model - should handle the error gracefully
+    // (the error is caught and logged but doesn't prevent model loading)
+    const reloadedModel = await Model.load(modelDir);
+    expect(reloadedModel).toBeDefined();
+    expect(reloadedModel.manifest.name).toBe("test-model");
   });
 });

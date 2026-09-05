@@ -722,48 +722,43 @@ export class Model {
    * @returns Resolved codebase root path, or null if not in farm or resolution fails
    */
   private static async resolveFarmCodebaseRoot(modelRoot: string): Promise<string | null> {
-    try {
-      const { findFarmRoot } = await import("../utils/project-paths.js");
-      const { FarmManifest } = await import("./farm-manifest.js");
+    const { findFarmRoot } = await import("../utils/project-paths.js");
+    const { FarmManifest } = await import("./farm-manifest.js");
 
-      // Find farm root (may return null if not in a farm)
-      const farmRoot = await findFarmRoot(modelRoot);
-      if (!farmRoot) {
-        return null;
-      }
-
-      // Load farm manifest
-      const farmYamlPath = path.join(farmRoot, "farm.yaml");
-      let manifest: any;
-      try {
-        manifest = await FarmManifest.load(farmYamlPath);
-      } catch (error) {
-        // Re-throw meaningful errors (YAML parse, permission errors, etc.)
-        // Only return null if the farm setup is genuinely not present
-        const errorMsg = getErrorMessage(error);
-        if (errorMsg.includes("ENOENT") || errorMsg.includes("not found")) {
-          return null; // Farm not found - expected case, not an error
-        }
-        throw new Error(`Failed to load farm manifest at ${farmYamlPath}: ${errorMsg}`);
-      }
-
-      // Find the model folder name relative to farm root
-      const modelName = path.basename(modelRoot);
-
-      // Look for a project where model matches our model's basename
-      for (const project of manifest.getAllProjects()) {
-        if (path.basename(project.model) === modelName) {
-          // Found matching project, resolve codebase path
-          const codebaseFullPath = path.resolve(farmRoot, project.source);
-          return codebaseFullPath;
-        }
-      }
-
-      return null; // No matching project found in farm - not an error
-    } catch (error) {
-      // Re-throw critical errors that should not be silently swallowed
-      throw error;
+    // Find farm root (may return null if not in a farm)
+    const farmRoot = await findFarmRoot(modelRoot);
+    if (!farmRoot) {
+      return null;
     }
+
+    // Load farm manifest
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    let manifest: any;
+    try {
+      manifest = await FarmManifest.load(farmYamlPath);
+    } catch (error) {
+      // Re-throw meaningful errors (YAML parse, permission errors, etc.)
+      // Only return null if the farm setup is genuinely not present
+      const errorMsg = getErrorMessage(error);
+      if (errorMsg.includes("ENOENT") || errorMsg.includes("not found")) {
+        return null; // Farm not found - expected case, not an error
+      }
+      throw new Error(`Failed to load farm manifest at ${farmYamlPath}: ${errorMsg}`);
+    }
+
+    // Find the model folder name relative to farm root
+    const modelName = path.basename(modelRoot);
+
+    // Look for a project where model matches our model's basename
+    for (const project of manifest.getAllProjects()) {
+      if (path.basename(project.model) === modelName) {
+        // Found matching project, resolve codebase path
+        const codebaseFullPath = path.resolve(farmRoot, project.source);
+        return codebaseFullPath;
+      }
+    }
+
+    return null; // No matching project found in farm - not an error
   }
 
   /**
