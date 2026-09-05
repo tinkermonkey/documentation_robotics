@@ -739,8 +739,8 @@ describe("FarmSyncEngine", () => {
   it("should load model and gracefully handle missing farm configuration", async () => {
     const { Model } = await import("../../src/core/model.js");
 
-    // Create a valid model without farm configuration
-    const model = await Model.init(modelDir, {
+    // Create a valid model at the farm root (not in a subdirectory)
+    const model = await Model.init(farmDir, {
       name: "test-model",
       version: "0.1.0",
       specVersion: "0.9.0",
@@ -752,28 +752,28 @@ describe("FarmSyncEngine", () => {
     expect(model.manifest.name).toBe("test-model");
 
     // Loading the same model again should work
-    const reloadedModel = await Model.load(modelDir);
+    const reloadedModel = await Model.load(farmDir);
     expect(reloadedModel.manifest.name).toBe("test-model");
   });
 
   it("should handle model load with corrupt farm sync file gracefully", async () => {
     const { Model } = await import("../../src/core/model.js");
 
-    // Create a model
-    const model = await Model.init(modelDir, {
+    // Create a model at the farm root (not in a subdirectory)
+    const model = await Model.init(farmDir, {
       name: "test-model",
       version: "0.1.0",
       specVersion: "0.9.0",
       created: new Date().toISOString(),
     });
 
-    // Create a corrupt .farm-sync.yaml file
-    const syncFile = path.join(modelDir, ".farm-sync.yaml");
+    // Create a corrupt .farm-sync.yaml file in the model directory
+    const syncFile = path.join(farmDir, "documentation-robotics", "model", ".farm-sync.yaml");
     await writeFile(syncFile, "invalid: yaml: content: [");
 
     // Reload the model - should handle the error gracefully
     // (the error is caught and logged but doesn't prevent model loading)
-    const reloadedModel = await Model.load(modelDir);
+    const reloadedModel = await Model.load(farmDir);
     expect(reloadedModel).toBeDefined();
     expect(reloadedModel.manifest.name).toBe("test-model");
   });

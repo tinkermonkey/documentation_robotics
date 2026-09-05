@@ -112,10 +112,11 @@ export class FarmSyncEngine {
         execSync("git pull --no-rebase", { cwd: fullPath, stdio: "pipe" });
       } catch (pullError) {
         const pullMsg = getErrorMessage(pullError);
-        // Only treat "no remote" as acceptable; re-throw auth, merge, and network errors
-        const isNoRemote = pullMsg.includes("No remote repository specified") ||
-                          pullMsg.includes("no remote");
-        if (!isNoRemote) {
+        // Only treat "no remote" or "no tracking information" as acceptable; re-throw auth, merge, and network errors
+        const isAcceptable = pullMsg.includes("No remote repository specified") ||
+                             pullMsg.includes("no remote") ||
+                             pullMsg.includes("no tracking information");
+        if (!isAcceptable) {
           throw new Error(`git pull failed: ${pullMsg}`);
         }
       }
