@@ -128,7 +128,7 @@ describe("--codebase-path CLI Flag", () => {
       expect(getCodebasePath()).toBe("/some/path");
 
       // Reset options
-      setGlobalOptions({});
+      resetGlobalOptions();
       expect(getCodebasePath()).toBeUndefined();
     });
 
