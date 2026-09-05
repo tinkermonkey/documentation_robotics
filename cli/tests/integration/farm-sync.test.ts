@@ -325,6 +325,49 @@ describe("FarmSyncEngine", () => {
     expect(diff.modified.length).toBe(0);
   });
 
+  it("should handle renames with content changes (partial similarity index)", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    const commit1 = await engine.getCurrentCommit("codebase");
+
+    // Create a file to rename with modifications
+    const oldFile = path.join(codebaseDir, "old-file-name.ts");
+    await writeFile(oldFile, "export const oldName = 'test';");
+    execSync("git add old-file-name.ts", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Add file for rename with edits'", {
+      cwd: codebaseDir,
+      stdio: "pipe",
+    });
+
+    const commit2 = await engine.getCurrentCommit("codebase");
+
+    // Rename the file and modify its content in the same commit
+    execSync("git mv old-file-name.ts renamed-file-name.ts", {
+      cwd: codebaseDir,
+      stdio: "pipe",
+    });
+    const renamedFile = path.join(codebaseDir, "renamed-file-name.ts");
+    await writeFile(
+      renamedFile,
+      "export const oldName = 'test';\nexport const newVariable = 'added';"
+    );
+    execSync("git add renamed-file-name.ts", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Rename file with content changes'", {
+      cwd: codebaseDir,
+      stdio: "pipe",
+    });
+
+    const commit3 = await engine.getCurrentCommit("codebase");
+
+    // Compute diff - git will report this with partial similarity (e.g., R087)
+    const diff = await engine.computeDiff("codebase", commit2, commit3);
+
+    // Even with partial similarity, should report as delete + add
+    expect(diff.deleted).toContain("old-file-name.ts");
+    expect(diff.added).toContain("renamed-file-name.ts");
+    expect(diff.modified.length).toBe(0);
+  });
+
   it("should map files to elements via source references", async () => {
     const { Model } = await import("../../src/core/model.js");
     const { Element } = await import("../../src/core/element.js");
@@ -339,46 +382,45 @@ describe("FarmSyncEngine", () => {
 
     // Add element with source references
     const appLayer = await model.getLayer("application");
-    if (appLayer) {
-      const element = new Element({
-        id: "application.service.test-service",
-        path: "application.service.test-service",
-        name: "Test Service",
-        description: "A service for testing",
-        type: "service",
-        layer_id: "application",
-        source_reference: {
-          type: "github",
-          repository: "test-repo",
-          locations: [
-            {
-              file: "src/services/test-service.ts",
-              symbol: "TestService",
-            },
-          ],
-        },
-      });
-      appLayer.addElement(element);
+    expect(appLayer).toBeDefined();
 
-      // Create engine with model
-      const engine = new FarmSyncEngine(farmDir, model);
+    const element = new Element({
+      id: "application.service.test-service",
+      path: "application.service.test-service",
+      name: "Test Service",
+      description: "A service for testing",
+      type: "service",
+      layer_id: "application",
+      source_reference: {
+        type: "github",
+        repository: "test-repo",
+        locations: [
+          {
+            file: "src/services/test-service.ts",
+            symbol: "TestService",
+          },
+        ],
+      },
+    });
+    appLayer!.addElement(element);
 
-      // Map files - should find the element
-      const mappings = await engine.mapFilesToElements();
+    // Create engine with model
+    const engine = new FarmSyncEngine(farmDir, model);
 
-      expect(mappings.confident.length).toBeGreaterThanOrEqual(0);
+    // Map files - should find the element
+    const mappings = await engine.mapFilesToElements();
 
-      // Check if our file is in the mappings
-      const testMapping = mappings.confident.find(
-        (m) => m.filePath === "src/services/test-service.ts"
-      );
+    expect(mappings.confident.length).toBeGreaterThanOrEqual(0);
 
-      if (testMapping) {
-        expect(testMapping.possibleElements[0].elementId).toBe(
-          "application.service.test-service"
-        );
-      }
-    }
+    // Check if our file is in the mappings
+    const testMapping = mappings.confident.find(
+      (m) => m.filePath === "src/services/test-service.ts"
+    );
+
+    expect(testMapping).toBeDefined();
+    expect(testMapping!.possibleElements[0].elementId).toBe(
+      "application.service.test-service"
+    );
   });
 
   it("should detect ambiguous file-to-element mappings", async () => {
@@ -394,59 +436,58 @@ describe("FarmSyncEngine", () => {
     });
 
     const appLayer = await model.getLayer("application");
-    if (appLayer) {
-      // Add two elements pointing to the same file
-      const element1 = new Element({
-        id: "application.service.service-a",
-        path: "application.service.service-a",
-        name: "Service A",
-        description: "Service A",
-        type: "service",
-        layer_id: "application",
-        source_reference: {
-          type: "github",
-          repository: "test-repo",
-          locations: [
-            {
-              file: "src/shared.ts",
-              symbol: "ServiceA",
-            },
-          ],
-        },
-      });
-      appLayer.addElement(element1);
+    expect(appLayer).toBeDefined();
 
-      const element2 = new Element({
-        id: "application.service.service-b",
-        path: "application.service.service-b",
-        name: "Service B",
-        description: "Service B",
-        type: "service",
-        layer_id: "application",
-        source_reference: {
-          type: "github",
-          repository: "test-repo",
-          locations: [
-            {
-              file: "src/shared.ts",
-              symbol: "ServiceB",
-            },
-          ],
-        },
-      });
-      appLayer.addElement(element2);
+    // Add two elements pointing to the same file
+    const element1 = new Element({
+      id: "application.service.service-a",
+      path: "application.service.service-a",
+      name: "Service A",
+      description: "Service A",
+      type: "service",
+      layer_id: "application",
+      source_reference: {
+        type: "github",
+        repository: "test-repo",
+        locations: [
+          {
+            file: "src/shared.ts",
+            symbol: "ServiceA",
+          },
+        ],
+      },
+    });
+    appLayer!.addElement(element1);
 
-      const engine = new FarmSyncEngine(farmDir, model);
-      const mappings = await engine.mapFilesToElements();
+    const element2 = new Element({
+      id: "application.service.service-b",
+      path: "application.service.service-b",
+      name: "Service B",
+      description: "Service B",
+      type: "service",
+      layer_id: "application",
+      source_reference: {
+        type: "github",
+        repository: "test-repo",
+        locations: [
+          {
+            file: "src/shared.ts",
+            symbol: "ServiceB",
+          },
+        ],
+      },
+    });
+    appLayer!.addElement(element2);
 
-      // Should detect ambiguity
-      expect(mappings.ambiguous.length).toBeGreaterThanOrEqual(0);
+    const engine = new FarmSyncEngine(farmDir, model);
+    const mappings = await engine.mapFilesToElements();
 
-      const ambiguousFile = mappings.ambiguous.find((m) => m.filePath === "src/shared.ts");
-      if (ambiguousFile) {
-        expect(ambiguousFile.possibleElements.length).toBe(2);
-      }
-    }
+    // Should detect ambiguity
+    expect(mappings.ambiguous.length).toBeGreaterThanOrEqual(0);
+
+    const ambiguousFile = mappings.ambiguous.find((m) => m.filePath === "src/shared.ts");
+    expect(ambiguousFile).toBeDefined();
+    expect(ambiguousFile!.possibleElements.length).toBe(2);
   });
 
   it("should generate changeset from file diff and mappings", async () => {
@@ -463,67 +504,67 @@ describe("FarmSyncEngine", () => {
 
     // Add element with source reference
     const appLayer = await model.getLayer("application");
-    if (appLayer) {
-      const element = new Element({
-        id: "application.service.main-service",
-        path: "application.service.main-service",
-        name: "Main Service",
-        description: "Main service for the application",
-        type: "service",
-        layer_id: "application",
-        source_reference: {
-          type: "github",
-          repository: "test-repo",
-          locations: [
+    expect(appLayer).toBeDefined();
+
+    const element = new Element({
+      id: "application.service.main-service",
+      path: "application.service.main-service",
+      name: "Main Service",
+      description: "Main service for the application",
+      type: "service",
+      layer_id: "application",
+      source_reference: {
+        type: "github",
+        repository: "test-repo",
+        locations: [
+          {
+            file: "src/services/main.ts",
+            symbol: "MainService",
+          },
+        ],
+      },
+    });
+    appLayer!.addElement(element);
+
+    const engine = new FarmSyncEngine(farmDir, model);
+    const project = farmManifest.getProject("test-project")!;
+
+    // Create fake diff
+    const diff = {
+      added: ["src/services/main.ts"],
+      modified: [],
+      deleted: [],
+    };
+
+    // Create mappings
+    const mappings = {
+      confident: [
+        {
+          filePath: "src/services/main.ts",
+          possibleElements: [
             {
-              file: "src/services/main.ts",
-              symbol: "MainService",
+              elementId: "application.service.main-service",
+              layer: "application",
+              confidence: 100,
+              sourceRef: {
+                file: "src/services/main.ts",
+                symbol: "MainService",
+              },
             },
           ],
         },
-      });
-      appLayer.addElement(element);
+      ],
+      ambiguous: [],
+    };
 
-      const engine = new FarmSyncEngine(farmDir, model);
-      const project = farmManifest.getProject("test-project")!;
+    // Generate changeset
+    const changesetResult = await engine.generateChangeset(project, diff, mappings, {
+      verbose: false,
+    });
 
-      // Create fake diff
-      const diff = {
-        added: ["src/services/main.ts"],
-        modified: [],
-        deleted: [],
-      };
-
-      // Create mappings
-      const mappings = {
-        confident: [
-          {
-            filePath: "src/services/main.ts",
-            possibleElements: [
-              {
-                elementId: "application.service.main-service",
-                layer: "application",
-                confidence: 100,
-                sourceRef: {
-                  file: "src/services/main.ts",
-                  symbol: "MainService",
-                },
-              },
-            ],
-          },
-        ],
-        ambiguous: [],
-      };
-
-      // Generate changeset
-      const changesetResult = await engine.generateChangeset(project, diff, mappings, {
-        verbose: false,
-      });
-
-      expect(changesetResult.changesetId).toBeDefined();
-      expect(changesetResult.changeCount).toBeGreaterThan(0);
-      expect(changesetResult.warnings.length).toBeGreaterThan(0);
-    }
+    expect(changesetResult.changesetId).toBeDefined();
+    expect(changesetResult.changeCount).toBeGreaterThan(0);
+    expect(changesetResult.warnings.length).toBeGreaterThan(0);
   });
 
   it("should handle consistent commit SHA truncation", async () => {

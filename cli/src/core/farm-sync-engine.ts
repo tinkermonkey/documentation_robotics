@@ -181,19 +181,18 @@ export class FarmSyncEngine {
           case "D":
             deleted.push(filePath);
             break;
-          case "R":
-          case "R100":
-            // Handle renames (R100 = 100% rename confidence)
-            // Report as both a delete of the old name and add of the new name
-            const [oldPath, newPath] = fileParts;
-            deleted.push(oldPath);
-            added.push(newPath);
-            break;
-          case "C":
-          case "C100":
-            // Handle copies (C100 = 100% copy confidence)
-            // Report as add of new file
-            added.push(fileParts[1]);
+          default:
+            if (status.startsWith("R")) {
+              // Handle renames (R100, R087, R095, etc. - any similarity index)
+              // Report as both a delete of the old name and add of the new name
+              const [oldPath, newPath] = fileParts;
+              deleted.push(oldPath);
+              added.push(newPath);
+            } else if (status.startsWith("C")) {
+              // Handle copies (C100, C087, etc. - any similarity index)
+              // Report as add of new file
+              added.push(fileParts[1]);
+            }
             break;
           // Ignore other statuses
         }
