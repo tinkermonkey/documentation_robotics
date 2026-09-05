@@ -58,7 +58,7 @@ describe("Verify Integration - Full Verify Flow", () => {
   describe("Changeset-aware verification path", () => {
     it("should use base_model when changesetAware=false explicitly", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -109,7 +109,7 @@ get-users:
 
     it("should default to base_model when changesetAware is undefined and no active changeset", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -162,7 +162,7 @@ get-users:
 
     it("should use changeset_view when changesetAware=true with active changeset", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -249,7 +249,7 @@ get-users:
   describe("Base model path (no active changeset)", () => {
     it("should verify against base model when no changeset is active", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -318,7 +318,7 @@ get-users:
   describe("Ignore file handling", () => {
     it("should honor .dr-verify-ignore.yaml rules with path matching", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -402,7 +402,7 @@ get-users:
 
     it("should honor .dr-verify-ignore.yaml rules with handler glob matching", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -482,7 +482,7 @@ get-users:
 
     it("should honor .dr-verify-ignore.yaml rules with element_id matching", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -567,12 +567,13 @@ get-users:
         "223e4567-e89b-12d3-a456-426614174002"
       );
     });
+
   });
 
   describe("Layer filtering", () => {
     it("should verify only api layer regardless of layer option", async () => {
       // Create minimal model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(testProjectRoot, "documentation-robotics", "model", "manifest.yaml");
@@ -608,7 +609,7 @@ spec_version: "0.8.4"`
   describe("Report structure and metadata", () => {
     it("should include all required fields in verify report", async () => {
       // Create model structure
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(

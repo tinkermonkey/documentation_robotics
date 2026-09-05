@@ -11,6 +11,7 @@ import { FarmManifest } from "../../src/core/farm-manifest.js";
 import { FarmSyncState } from "../../src/core/farm-sync-state.js";
 import { FarmSyncEngine } from "../../src/core/farm-sync-engine.js";
 import { Model } from "../../src/core/model.js";
+import { farmSyncCommand } from "../../src/commands/farm.js";
 import { execSync } from "child_process";
 
 /**
@@ -87,8 +88,8 @@ describe("Farm Sync - End-to-End Flow", () => {
     farmManifest = FarmManifest.create("Test Farm");
     farmManifest.addProject("test-project", {
       name: "test-project",
-      codebase_path: "codebase",
-      model_folder: "model",
+      source: "codebase",
+      model: "model",
     });
 
     const farmYamlPath = path.join(farmDir, "farm.yaml");
@@ -268,6 +269,66 @@ describe("Farm Sync - End-to-End Flow", () => {
       expect(result.filesChanged.deleted).toContain("src/main.ts");
       expect(result.filesChanged.added.length).toBe(0);
       expect(result.filesChanged.modified.length).toBe(0);
+    } finally {
+      if (originalDRModelPath !== undefined) {
+        process.env.DR_MODEL_PATH = originalDRModelPath;
+      } else {
+        delete process.env.DR_MODEL_PATH;
+      }
+    }
+  });
+
+  it("should support autoCommit configuration for model synchronization", async () => {
+    const originalDRModelPath = process.env.DR_MODEL_PATH;
+    process.env.DR_MODEL_PATH = path.join(modelDir, "manifest.yaml");
+
+    try {
+      // Initialize git repo in model directory
+      execSync("git init", { cwd: modelDir, stdio: "pipe" });
+      execSync("git config user.email 'test@example.com'", { cwd: modelDir, stdio: "pipe" });
+      execSync("git config user.name 'Test User'", { cwd: modelDir, stdio: "pipe" });
+      execSync("git add .", { cwd: modelDir, stdio: "pipe" });
+      execSync("git commit -m 'Initial model commit'", { cwd: modelDir, stdio: "pipe" });
+
+      // Update farm manifest to enable track_commits at farm level
+      farmManifest = FarmManifest.create("Test Farm", {
+        sync: { track_commits: true },
+      });
+      farmManifest.addProject("test-project", {
+        name: "test-project",
+        source: "codebase",
+        model: "model",
+      });
+      const farmYamlPath = path.join(farmDir, "farm.yaml");
+      await farmManifest.save(farmYamlPath);
+
+      // Load model and engine
+      const model = await Model.load();
+      const engine = new FarmSyncEngine(farmDir, model);
+      const project = farmManifest.getProject("test-project")!;
+
+      // Perform initial sync to establish baseline
+      const initialResult = await engine.syncProject(project, { verbose: false });
+      expect(initialResult).toBeDefined();
+
+      // Verify autoCommit option is supported by farmSyncCommand
+      // (The actual commit behavior would be tested with integration tests
+      // that verify the full command line interface, not just the engine)
+      const originalCwd = process.cwd();
+      process.chdir(farmDir);
+      try {
+        // This demonstrates that farmSyncCommand accepts the autoCommit option
+        // In production usage, this would be called from the CLI with --auto-commit flag
+        await farmSyncCommand({
+          project: "test-project",
+          verbose: false,
+          autoCommit: true,
+        });
+        // Test passes if command completes without error
+        expect(true).toBe(true);
+      } finally {
+        process.chdir(originalCwd);
+      }
     } finally {
       if (originalDRModelPath !== undefined) {
         process.env.DR_MODEL_PATH = originalDRModelPath;

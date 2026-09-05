@@ -13,24 +13,24 @@ import { readFile, writeFile } from "../utils/file-io.js";
  */
 export interface FarmProject {
   name: string;
-  codebase_path: string; // Path to the codebase folder (relative to farm root)
-  model_folder: string; // Path to the model folder (relative to farm root, usually {name}-model)
-  remote_url?: string; // Optional git remote URL
+  source: string; // Path to the codebase folder (relative to farm root)
+  model: string; // Path to the model folder (relative to farm root)
+  remote?: string; // Optional git remote URL
+  branch?: string; // Optional git branch
 }
 
 /**
  * Farm manifest data structure
  */
 export interface FarmManifestData {
-  id?: string; // Unique farm identifier
+  schema: string; // Schema version (e.g., "dr-farm-v1")
   name: string; // Human-readable farm name
   created?: string; // ISO 8601 timestamp
   modified?: string; // ISO 8601 timestamp
   projects: Record<string, FarmProject>; // Projects indexed by name
   platform_view?: boolean; // Optional: Enable platform view mode
   sync?: {
-    enabled?: boolean; // Optional: Enable auto-sync
-    interval?: number; // Optional: Sync interval in seconds
+    track_commits?: boolean; // Optional: Track commits during sync
   };
 }
 
@@ -38,20 +38,19 @@ export interface FarmManifestData {
  * FarmManifest class - Load, validate, and save farm.yaml
  */
 export class FarmManifest {
-  id?: string;
+  schema: string;
   name: string;
   created: string;
   modified: string;
   projects: Map<string, FarmProject>;
   platform_view?: boolean;
   sync?: {
-    enabled?: boolean;
-    interval?: number;
+    track_commits?: boolean;
   };
   filePath?: string;
 
   constructor(data: FarmManifestData) {
-    this.id = data.id;
+    this.schema = data.schema;
     this.name = data.name;
     this.created = data.created ?? new Date().toISOString();
     this.modified = data.modified ?? new Date().toISOString();
@@ -68,6 +67,10 @@ export class FarmManifest {
   static async load(filePath: string): Promise<FarmManifest> {
     const content = await readFile(filePath);
     const data = yaml.parse(content) as FarmManifestData;
+
+    if (!data.schema) {
+      throw new Error("Farm manifest must have a 'schema' field");
+    }
 
     if (!data.name) {
       throw new Error("Farm manifest must have a 'name' field");
@@ -91,16 +94,14 @@ export class FarmManifest {
   static create(
     name: string,
     options: {
-      id?: string;
       platform_view?: boolean;
       sync?: {
-        enabled?: boolean;
-        interval?: number;
+        track_commits?: boolean;
       };
     } = {}
   ): FarmManifest {
     return new FarmManifest({
-      id: options.id,
+      schema: "dr-farm-v1",
       name,
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
@@ -170,11 +171,19 @@ export class FarmManifest {
   }
 
   /**
+   * Check if platform-view is enabled on this farm
+   * @returns true if platform-view is enabled
+   */
+  isPlatformViewEnabled(): boolean {
+    return this.platform_view === true;
+  }
+
+  /**
    * Serialize to JSON representation for saving
    */
   toJSON(): FarmManifestData {
     return {
-      id: this.id,
+      schema: this.schema,
       name: this.name,
       created: this.created,
       modified: this.modified,

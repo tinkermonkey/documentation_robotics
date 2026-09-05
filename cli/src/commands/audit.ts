@@ -26,6 +26,7 @@ export interface AuditOptions {
   verbose?: boolean;
   debug?: boolean;
   saveSnapshot?: boolean;
+  projectRoot?: string;
 }
 
 /**
@@ -40,6 +41,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
       );
     }
     const auditType: AuditType = options.type ?? "relationships";
+    const projectRoot = options.projectRoot ?? process.cwd();
 
     // Determine output format
     let format: AuditReportFormat = "text";
@@ -62,7 +64,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
       const report = await orchestrator.runAudit({
         layer: options.layer,
         verbose: options.verbose,
-        projectRoot: process.cwd(),
+        projectRoot,
       });
 
       output = formatNodeAuditReport(report, { format, verbose: options.verbose });
@@ -73,12 +75,12 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
           layer: options.layer,
           verbose: options.verbose,
           debug: options.debug,
-          projectRoot: process.cwd(),
+          projectRoot,
         }),
         new ModelNodeAuditOrchestrator().runAudit({
           layer: options.layer,
           verbose: options.verbose,
-          projectRoot: process.cwd(),
+          projectRoot,
         }),
       ]);
 
@@ -115,7 +117,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
         layer: options.layer,
         verbose: options.verbose,
         debug: options.debug,
-        projectRoot: process.cwd(),
+        projectRoot,
       });
 
       output = formatAuditReport(report, { format, verbose: options.verbose });
@@ -136,7 +138,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
 
     // Write to file or stdout
     if (options.output) {
-      const outputPath = path.resolve(process.cwd(), options.output);
+      const outputPath = path.resolve(projectRoot, options.output);
       const outputDir = path.dirname(outputPath);
 
       await ensureDir(outputDir);

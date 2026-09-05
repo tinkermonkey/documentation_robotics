@@ -43,6 +43,7 @@ dr farm validate [options]
 ```
 
 Options:
+
 - `--format json` — Structured validation results
 - `--project <name>` — Validate single project
 - `--quiet` — Suppress non-error output
@@ -55,6 +56,7 @@ dr farm pull [options]
 ```
 
 Options:
+
 - `--format json` — Structured pull results
 - `--project <name>` — Pull single project
 - `--verbose` — Show per-project details
@@ -66,6 +68,7 @@ dr farm sync [options]
 ```
 
 Options:
+
 - `--format json` — Structured sync results
 - `--project <name>` — Sync single project
 - `--verbose` — Show per-project details
@@ -155,26 +158,26 @@ name: Farm Sync and Validate
 on:
   schedule:
     # Run every 4 hours
-    - cron: '0 */4 * * *'
+    - cron: "0 */4 * * *"
   workflow_dispatch:
 
 jobs:
   farm-sync:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout farm repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install CLI
         run: |
           npm install -g @architecture-robotics/cli
-      
+
       - name: Run Farm Sync
         run: |
           dr farm sync \
@@ -183,28 +186,28 @@ jobs:
             --concurrency 4 \
             --output sync-report.json
         continue-on-error: true
-      
+
       - name: Upload Sync Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sync-report
           path: sync-report.json
-      
+
       - name: Validate Farm
         run: |
           dr farm validate \
             --format json \
             --output validation-report.json
         continue-on-error: true
-      
+
       - name: Upload Validation Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: validation-report
           path: validation-report.json
-      
+
       - name: Comment on PR (if applicable)
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -213,15 +216,15 @@ jobs:
             const fs = require('fs');
             const syncReport = JSON.parse(fs.readFileSync('sync-report.json', 'utf8'));
             const validationReport = JSON.parse(fs.readFileSync('validation-report.json', 'utf8'));
-            
+
             const message = `## Farm Status Update
-            
+
             **Sync Results**: ${syncReport.synced}/${syncReport.projects.length} projects synced
             **Validation**: ${validationReport.all_valid ? '✅ All valid' : '❌ Validation issues found'}
-            
+
             [View detailed reports in artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             `;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -231,19 +234,19 @@ jobs:
 
   farm-status:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout farm repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install CLI
         run: npm install -g @architecture-robotics/cli
-      
+
       - name: Check Farm Status
         run: |
           STATUS=$(dr farm status --format json)
@@ -256,11 +259,11 @@ jobs:
 farm-automation:
   stage: sync
   image: node:20-alpine
-  
+
   script:
     # Install CLI
     - npm install -g @architecture-robotics/cli
-    
+
     # Sync with auto-commit and capture exit code
     - |
       dr farm sync \
@@ -269,14 +272,14 @@ farm-automation:
         --concurrency 4 \
         --output sync-report.json
       SYNC_STATUS=$?
-    
+
     # Validate and capture exit code
     - |
       dr farm validate \
         --format json \
         --output validation-report.json
       VALIDATE_STATUS=$?
-    
+
     # Check exit codes (both commands allow warnings: exit code 1)
     - |
       if [ $SYNC_STATUS -ne 0 ] && [ $SYNC_STATUS -ne 1 ]; then
@@ -287,14 +290,14 @@ farm-automation:
         echo "Farm validation failed with exit code $VALIDATE_STATUS"
         exit $VALIDATE_STATUS
       fi
-  
+
   artifacts:
     paths:
       - sync-report.json
       - validation-report.json
     reports:
       dotenv: farm-status.env
-  
+
   only:
     - schedules
     - web
@@ -302,14 +305,14 @@ farm-automation:
 farm-status-webhook:
   stage: notify
   image: alpine:latest
-  
+
   script:
     - |
       # Send status to monitoring system
       curl -X POST https://monitoring.example.com/farm-status \
         -H "Content-Type: application/json" \
         -d @sync-report.json
-  
+
   dependencies:
     - farm-automation
 ```
@@ -460,6 +463,7 @@ fi
 ### Concurrency Issues
 
 If using high concurrency (`--concurrency > 4`):
+
 - Ensure your system has sufficient file descriptors: `ulimit -n`
 - Monitor disk I/O during peak operations
 - Consider staggering multiple farm operations
@@ -467,6 +471,7 @@ If using high concurrency (`--concurrency > 4`):
 ### Memory Usage
 
 For very large farms (50+ projects):
+
 - Process projects in batches using `--project` flag
 - Use `--concurrency 2-4` instead of higher numbers
 - Monitor memory usage during sync operations

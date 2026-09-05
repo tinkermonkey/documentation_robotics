@@ -118,6 +118,7 @@ program
   .option("-v, --verbose", "Enable verbose output")
   .option("--debug", "Enable debug mode")
   .option("--json", "Output as JSON (supported on mutating and query commands)")
+  .option("--codebase-path <path>", "Override codebase root path (default: resolved from manifest or project root)")
   .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
   .showSuggestionAfterError() // "Did you mean X?" on unknown commands/options
   .hook("preAction", async (thisCommand) => {
@@ -127,6 +128,7 @@ program
       verbose: options.verbose as boolean | undefined,
       debug: options.debug as boolean | undefined,
       json: options.json as boolean | undefined,
+      codebasePath: options.codebasePath as string | undefined,
     });
   });
 

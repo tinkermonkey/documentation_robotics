@@ -11,6 +11,7 @@ import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
+import { getCodebasePath } from "../utils/globals.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -742,11 +743,11 @@ export class Model {
       // Find the model folder name relative to farm root
       const modelName = path.basename(modelRoot);
 
-      // Look for a project where model_folder matches our model's basename
+      // Look for a project where model matches our model's basename
       for (const project of manifest.getAllProjects()) {
-        if (path.basename(project.model_folder) === modelName) {
+        if (path.basename(project.model) === modelName) {
           // Found matching project, resolve codebase path
-          const codebaseFullPath = path.resolve(farmRoot, project.codebase_path);
+          const codebaseFullPath = path.resolve(farmRoot, project.source);
           return codebaseFullPath;
         }
       }
@@ -926,15 +927,20 @@ export class Model {
 
       const manifest = new Manifest(manifestData);
 
-      // Resolve codebaseRoot from manifest, farm, or options
+      // Resolve codebaseRoot with priority: options > CLI flag > manifest > farm > default
       let codebaseRoot = projectRoot;
       if (options.codebaseRoot) {
         codebaseRoot = options.codebaseRoot;
-      } else if (manifest.codebase_path) {
-        codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
       } else {
-        // Try to auto-resolve from farm manifest if inside a farm
-        codebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot) || projectRoot;
+        const globalCodebasePath = getCodebasePath();
+        if (globalCodebasePath) {
+          codebaseRoot = path.resolve(globalCodebasePath);
+        } else if (manifest.codebase_path) {
+          codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
+        } else {
+          // Try to auto-resolve from farm manifest if inside a farm
+          codebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot) || projectRoot;
+        }
       }
 
       const model = new Model(projectRoot, manifest, { ...options, codebaseRoot });
@@ -1096,12 +1102,17 @@ export class Model {
 
     const manifest = new Manifest(manifestData);
 
-    // Resolve codebaseRoot from manifest or options
+    // Resolve codebaseRoot with priority: options > CLI flag > manifest > default
     let codebaseRoot = rootPath;
     if (options.codebaseRoot) {
       codebaseRoot = options.codebaseRoot;
-    } else if (manifest.codebase_path) {
-      codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
+    } else {
+      const globalCodebasePath = getCodebasePath();
+      if (globalCodebasePath) {
+        codebaseRoot = path.resolve(globalCodebasePath);
+      } else if (manifest.codebase_path) {
+        codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
+      }
     }
 
     const model = new Model(rootPath, manifest, { ...options, codebaseRoot });

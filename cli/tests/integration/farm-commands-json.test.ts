@@ -53,8 +53,8 @@ describe("Farm Commands - JSON Output Format Support", () => {
     const manifest = FarmManifest.create("Test Farm");
     manifest.addProject("test-service", {
       name: "test-service",
-      codebase_path: "test-service",
-      model_folder: "test-service-model",
+      source: "test-service",
+      model: "test-service-model",
     });
     await manifest.save(farmYamlPath);
 

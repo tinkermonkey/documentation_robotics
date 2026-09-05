@@ -9,6 +9,7 @@ import { FarmManifest } from "../../src/core/farm-manifest.js";
 import { fileExists, ensureDir, writeFile } from "../../src/utils/file-io.js";
 import { ComposedReferenceValidator } from "../../src/validators/composed-reference-validator.js";
 import { Model } from "../../src/core/model.js";
+import { execSync } from "child_process";
 
 describe("FarmManifest", () => {
   let testDir: string;
@@ -54,15 +55,15 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
-      remote_url: "https://github.com/org/service-a.git",
+      source: "services/service-a",
+      model: "service-a-model",
+      remote: "https://github.com/org/service-a.git",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "services/service-b",
-      model_folder: "service-b-model",
+      source: "services/service-b",
+      model: "service-b-model",
     });
 
     expect(manifest.projects.size).toBe(2);
@@ -75,8 +76,8 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     expect(manifest.projects.size).toBe(1);
@@ -100,14 +101,14 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "services/service-b",
-      model_folder: "service-b-model",
+      source: "services/service-b",
+      model: "service-b-model",
     });
 
     const projects = manifest.getAllProjects();
@@ -125,16 +126,16 @@ describe("FarmManifest", () => {
 
     manifest.addProject("api-service", {
       name: "api-service",
-      codebase_path: "services/api",
-      model_folder: "api-service-model",
-      remote_url: "https://github.com/org/api-service.git",
+      source: "services/api",
+      model: "api-service-model",
+      remote: "https://github.com/org/api-service.git",
     });
 
     manifest.addProject("web-service", {
       name: "web-service",
-      codebase_path: "services/web",
-      model_folder: "web-service-model",
-      remote_url: "https://github.com/org/web-service.git",
+      source: "services/web",
+      model: "web-service-model",
+      remote: "https://github.com/org/web-service.git",
     });
 
     await manifest.save(farmYamlPath);
@@ -149,9 +150,9 @@ describe("FarmManifest", () => {
 
     const apiService = loaded.getProject("api-service");
     expect(apiService).toBeDefined();
-    expect(apiService?.codebase_path).toBe("services/api");
-    expect(apiService?.model_folder).toBe("api-service-model");
-    expect(apiService?.remote_url).toBe("https://github.com/org/api-service.git");
+    expect(apiService?.source).toBe("services/api");
+    expect(apiService?.model).toBe("api-service-model");
+    expect(apiService?.remote).toBe("https://github.com/org/api-service.git");
   });
 
   it("should update modified timestamp when adding projects", async () => {
@@ -163,8 +164,8 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     expect(manifest.modified).not.toBe(originalModified);
@@ -175,8 +176,8 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     const afterAdd = manifest.modified;
@@ -192,16 +193,16 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
-      remote_url: "https://github.com/org/service-a.git",
+      source: "services/service-a",
+      model: "service-a-model",
+      remote: "https://github.com/org/service-a.git",
     });
 
     const json = manifest.toJSON();
 
     expect(json.name).toBe("Test Farm");
     expect(json.projects.hasOwnProperty("service-a")).toBe(true);
-    expect(json.projects["service-a"].codebase_path).toBe("services/service-a");
+    expect(json.projects["service-a"].source).toBe("services/service-a");
   });
 
   it("should handle farm with optional fields", async () => {
@@ -214,10 +215,10 @@ describe("FarmManifest", () => {
     expect(loaded.sync).toBeUndefined();
   });
 
-  it("should throw error on missing name", async () => {
+  it("should throw error on missing schema", async () => {
     const invalidYamlPath = path.join(testDir, "invalid.yaml");
     const invalidContent = `
-id: test-id
+name: Test Farm
 projects: {}
 `;
 
@@ -227,7 +228,7 @@ projects: {}
       await FarmManifest.load(invalidYamlPath);
       expect.fail("Should have thrown an error");
     } catch (error: any) {
-      expect(error.message).toContain("must have a 'name' field");
+      expect(error.message).toContain("must have a 'schema' field");
     }
   });
 });
@@ -260,8 +261,8 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     // Add second project
@@ -272,8 +273,8 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "services/service-b",
-      model_folder: "service-b-model",
+      source: "services/service-b",
+      model: "service-b-model",
     });
 
     await manifest.save(farmYamlPath);
@@ -300,8 +301,8 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("auth-service", {
       name: "auth-service",
-      codebase_path: codebasePath,
-      model_folder: modelFolder,
+      source: codebasePath,
+      model: modelFolder,
     });
 
     await manifest.save(farmYamlPath);
@@ -309,8 +310,8 @@ describe("Farm integration with model paths", () => {
     const loaded = await FarmManifest.load(farmYamlPath);
     const project = loaded.getProject("auth-service");
 
-    expect(project?.codebase_path).toBe(codebasePath);
-    expect(project?.model_folder).toBe(modelFolder);
+    expect(project?.source).toBe(codebasePath);
+    expect(project?.model).toBe(modelFolder);
   });
 });
 
@@ -358,14 +359,14 @@ project: service-b
     // Add projects to farm
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a-model",
+      source: "service-a",
+      model: "service-a-model",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b-model",
+      source: "service-b",
+      model: "service-b-model",
     });
 
     await manifest.save(farmYamlPath);
@@ -395,8 +396,8 @@ project: service-a
 
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "services/service-a",
-      model_folder: "service-a-model",
+      source: "services/service-a",
+      model: "service-a-model",
     });
 
     await manifest.save(farmYamlPath);
@@ -428,8 +429,8 @@ project: ${service}
 
       manifest.addProject(service, {
         name: service,
-        codebase_path: service,
-        model_folder: `${service}-model`,
+        source: service,
+        model: `${service}-model`,
       });
     }
 
@@ -509,14 +510,14 @@ models:
     // Register projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a", // Will use documentation-robotics/model path
+      source: "service-a",
+      model: "service-a", // Will use documentation-robotics/model path
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b",
+      source: "service-b",
+      model: "service-b",
     });
 
     await manifest.save(farmYamlPath);
@@ -592,14 +593,14 @@ models:
     // Register projects in farm
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a",
+      source: "service-a",
+      model: "service-a",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b",
+      source: "service-b",
+      model: "service-b",
     });
 
     await manifest.save(farmYamlPath);
@@ -716,20 +717,20 @@ models:
     // Register all three projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      codebase_path: "service-a",
-      model_folder: "service-a",
+      source: "service-a",
+      model: "service-a",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      codebase_path: "service-b",
-      model_folder: "service-b",
+      source: "service-b",
+      model: "service-b",
     });
 
     manifest.addProject("platform-view", {
       name: "platform-view",
-      codebase_path: "platform-view",
-      model_folder: "platform-view",
+      source: "platform-view",
+      model: "platform-view",
     });
 
     await manifest.save(farmYamlPath);
@@ -743,5 +744,343 @@ models:
 
     // Validation should pass because both referenced elements exist in their respective services
     expect(result.isValid()).toBe(true);
+  });
+});
+
+describe("Farm model initialization and git setup", () => {
+  let testDir: string;
+  let farmRoot: string;
+
+  beforeEach(async () => {
+    testDir = path.join("/tmp", `farm-model-init-${Date.now()}`);
+    farmRoot = testDir;
+    await ensureDir(farmRoot);
+  });
+
+  afterEach(async () => {
+    if (await fileExists(testDir)) {
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should initialize model with proper scaffold when adding project", async () => {
+    const { farmAddCommand } = await import("../../src/commands/farm.js");
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+
+    // Initialize farm first
+    const farmManifest = FarmManifest.create("Test Farm");
+    await farmManifest.save(farmYamlPath);
+
+    // Mock process.cwd to return farm root
+    const originalCwd = process.cwd;
+    process.cwd = () => farmRoot;
+
+    try {
+      // Run farm add command
+      await farmAddCommand("test-service", {
+        format: "text",
+      });
+
+      // Verify model directory structure was created
+      const modelPath = path.join(farmRoot, "test-service-model");
+      expect(await fileExists(modelPath)).toBe(true);
+
+      // Verify manifest.yaml was created inside documentation-robotics/model/
+      const manifestPath = path.join(
+        modelPath,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
+      expect(await fileExists(manifestPath)).toBe(true);
+
+      // Verify layer directories were created
+      const layerPaths = [
+        "01_motivation",
+        "02_business",
+        "03_product",
+        "04_security",
+        "05_application",
+        "06_technology",
+        "07_api",
+        "08_data-model",
+        "09_data-store",
+        "10_ux",
+        "11_navigation",
+        "12_apm",
+        "13_testing",
+      ];
+
+      for (const layer of layerPaths) {
+        const layerPath = path.join(modelPath, "documentation-robotics", "model", layer);
+        expect(await fileExists(layerPath)).toBe(true);
+      }
+
+      // Verify relationships.yaml was created
+      const relationshipsPath = path.join(
+        modelPath,
+        "documentation-robotics",
+        "model",
+        "relationships.yaml"
+      );
+      expect(await fileExists(relationshipsPath)).toBe(true);
+
+      // Verify git repository was initialized
+      const gitPath = path.join(modelPath, ".git");
+      expect(await fileExists(gitPath)).toBe(true);
+
+      // Verify initial commit was created
+      const commitCount = execSync("git rev-list --count HEAD", {
+        cwd: path.join(modelPath),
+        encoding: "utf-8",
+      }).trim();
+      expect(parseInt(commitCount, 10)).toBeGreaterThan(0);
+    } finally {
+      process.cwd = originalCwd;
+    }
+  });
+});
+
+describe("Farm platform-view command-level tests", () => {
+  let testDir: string;
+  let farmRoot: string;
+
+  beforeEach(async () => {
+    testDir = path.join("/tmp", `farm-platform-view-test-${Date.now()}`);
+    farmRoot = testDir;
+    await ensureDir(farmRoot);
+  });
+
+  afterEach(async () => {
+    if (await fileExists(testDir)) {
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should enable platform-view flag when creating farm with --platform-view option", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+
+    // Create farm with platform-view enabled
+    const manifest = FarmManifest.create("Test Farm", { platform_view: true });
+    await manifest.save(farmYamlPath);
+
+    // Verify platform-view is enabled
+    const loaded = await FarmManifest.load(farmYamlPath);
+    expect(loaded.isPlatformViewEnabled()).toBe(true);
+  });
+
+  it("should include platform_view_info in validation results when validating platform-view project", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm", { platform_view: true });
+
+    // Create service-a project
+    const serviceACodebase = path.join(farmRoot, "service-a");
+    const serviceADocRobotics = path.join(serviceACodebase, "documentation-robotics");
+    const serviceAModel = path.join(serviceADocRobotics, "model");
+    const serviceAApi = path.join(serviceAModel, "07_api");
+
+    await ensureDir(serviceAApi);
+
+    // Create manifest.yaml for service-a
+    const serviceAManifestContent = `
+project: service-a
+`;
+    await writeFile(path.join(serviceAModel, "manifest.yaml"), serviceAManifestContent);
+
+    // Create an API operation in service-a
+    const operationContent = `list-items:
+  id: list-items
+  path: api.operation.list-items
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: List Items
+  description: List all items
+`;
+    await writeFile(path.join(serviceAApi, "operation.yaml"), operationContent);
+
+    // Create platform-view project
+    const platformViewCodebase = path.join(farmRoot, "platform-view");
+    const platformViewDocRobotics = path.join(platformViewCodebase, "documentation-robotics");
+    const platformViewModel = path.join(platformViewDocRobotics, "model");
+    const platformViewBusiness = path.join(platformViewModel, "02_business");
+
+    await ensureDir(platformViewBusiness);
+
+    // Create manifest.yaml for platform-view that declares service-a
+    const platformViewManifestContent = `
+project: platform-view
+models:
+  service-a: {}
+`;
+    await writeFile(path.join(platformViewModel, "manifest.yaml"), platformViewManifestContent);
+
+    // Create a business service
+    const businessServiceContent = `item-management:
+  id: item-management
+  path: business.service.item-management
+  spec_node_id: business.service
+  type: service
+  layer_id: business
+  name: Item Management
+  description: Manages items
+  references:
+    - target: "@service-a/api.operation.list-items"
+      relationship: uses
+`;
+    await writeFile(path.join(platformViewBusiness, "service.yaml"), businessServiceContent);
+
+    // Register both projects in farm manifest
+    manifest.addProject("service-a", {
+      name: "service-a",
+      source: "service-a",
+      model: "service-a",
+    });
+
+    manifest.addProject("platform-view", {
+      name: "platform-view",
+      source: "platform-view",
+      model: "platform-view",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Mock process.cwd to return farm root
+    const originalCwd = process.cwd;
+    process.cwd = () => farmRoot;
+
+    try {
+      // Validate platform-view project using the command
+      const { farmValidateCommand } = await import("../../src/commands/farm.js");
+
+      // Capture console output to verify platform_view_info is included in JSON
+      const originalLog = console.log;
+      const outputs: string[] = [];
+      console.log = (msg: string) => {
+        outputs.push(msg);
+      };
+
+      try {
+        // Create temp output file path
+        const outputFile = path.join(farmRoot, "validation-output.json");
+
+        await farmValidateCommand({
+          project: "platform-view",
+          format: "json",
+          output: outputFile,
+          quiet: false,
+        });
+
+        // Read the output file and verify platform_view_info is present
+        const jsonContent = await fs.readFile(outputFile, "utf-8");
+        const report = JSON.parse(jsonContent);
+
+        // Verify the structure
+        expect(report).toBeDefined();
+        expect(report.projects).toBeDefined();
+        expect(report.projects.length).toBeGreaterThan(0);
+
+        // Find the platform-view project in the report
+        const platformViewProject = report.projects.find(
+          (p: any) => p.project === "platform-view"
+        );
+        expect(platformViewProject).toBeDefined();
+
+        // Verify platform_view_info is present with declared_models and missing_models
+        expect(platformViewProject.platform_view_info).toBeDefined();
+        expect(platformViewProject.platform_view_info.declared_models).toBeDefined();
+        expect(Array.isArray(platformViewProject.platform_view_info.declared_models)).toBe(true);
+        expect(platformViewProject.platform_view_info.missing_models).toBeDefined();
+        expect(Array.isArray(platformViewProject.platform_view_info.missing_models)).toBe(true);
+
+        // Verify the declared models match what we configured
+        expect(platformViewProject.platform_view_info.declared_models).toContain(
+          "service-a"
+        );
+
+        // Clean up output file
+        await fs.rm(outputFile);
+      } finally {
+        console.log = originalLog;
+      }
+    } finally {
+      process.cwd = originalCwd;
+    }
+  });
+
+  it("should report missing declared models in validation output", async () => {
+    const farmYamlPath = path.join(farmRoot, "farm.yaml");
+    const manifest = FarmManifest.create("Test Farm", { platform_view: true });
+
+    // Create platform-view project that declares non-existent models
+    const platformViewCodebase = path.join(farmRoot, "platform-view");
+    const platformViewDocRobotics = path.join(platformViewCodebase, "documentation-robotics");
+    const platformViewModel = path.join(platformViewDocRobotics, "model");
+    const platformViewBusiness = path.join(platformViewModel, "02_business");
+
+    await ensureDir(platformViewBusiness);
+
+    // Create manifest.yaml for platform-view with non-existent external models
+    const platformViewManifestContent = `
+project: platform-view
+models:
+  missing-service: {}
+  another-missing: {}
+`;
+    await writeFile(path.join(platformViewModel, "manifest.yaml"), platformViewManifestContent);
+
+    // Create dummy business service
+    const businessServiceContent = `service:
+  id: service
+  path: business.service.service
+  spec_node_id: business.service
+  type: service
+  layer_id: business
+  name: Service
+  description: A service
+`;
+    await writeFile(path.join(platformViewBusiness, "service.yaml"), businessServiceContent);
+
+    // Register platform-view project in farm manifest
+    manifest.addProject("platform-view", {
+      name: "platform-view",
+      source: "platform-view",
+      model: "platform-view",
+    });
+
+    await manifest.save(farmYamlPath);
+
+    // Mock process.cwd to return farm root
+    const originalCwd = process.cwd;
+    process.cwd = () => farmRoot;
+
+    try {
+      const { farmValidateCommand } = await import("../../src/commands/farm.js");
+
+      // Capture console output
+      const originalError = console.error;
+      const errorOutputs: string[] = [];
+      console.error = (msg: string) => {
+        errorOutputs.push(msg);
+      };
+
+      try {
+        await farmValidateCommand({
+          project: "platform-view",
+          format: "text",
+          quiet: false,
+        });
+
+        // Verify warning was displayed about missing models
+        const missingModelsWarning = errorOutputs.find((o) =>
+          o.includes("declared external models are not registered")
+        );
+        expect(missingModelsWarning).toBeDefined();
+      } finally {
+        console.error = originalError;
+      }
+    } finally {
+      process.cwd = originalCwd;
+    }
   });
 });

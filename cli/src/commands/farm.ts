@@ -7,7 +7,7 @@ import { Command } from "commander";
 import path from "path";
 import { FarmManifest } from "../core/farm-manifest.js";
 import { findFarmRoot } from "../utils/project-paths.js";
-import { fileExists, ensureDir } from "../utils/file-io.js";
+import { fileExists } from "../utils/file-io.js";
 import { execSync } from "child_process";
 import * as prompts from "@clack/prompts";
 import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
@@ -40,6 +40,7 @@ export async function farmInitCommand(options: {
   name?: string;
   description?: string;
   format?: string;
+  platformView?: boolean;
 }): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("farm.init") : null;
 
@@ -80,15 +81,18 @@ export async function farmInitCommand(options: {
       farmName = "Architecture Farm";
     }
 
-    // Create manifest
-    const manifest = FarmManifest.create(farmName);
+    // Create manifest with platform_view support if requested
+    const manifest = FarmManifest.create(farmName, {
+      platform_view: options.platformView || false,
+    });
     await manifest.save(farmYamlPath);
 
     if (useJson) {
-      console.log(JSON.stringify({ status: "ok", farmPath, farmName }));
+      console.log(JSON.stringify({ status: "ok", farmPath, farmName, platform_view: options.platformView || false }));
     } else {
+      const platformViewNote = options.platformView ? " (platform-view enabled)" : "";
       handleSuccess(
-        `Farm initialized: ${ansis.bold(farmName)}\n  Location: ${farmPath}`
+        `Farm initialized: ${ansis.bold(farmName)}${platformViewNote}\n  Location: ${farmPath}`
       );
     }
 
@@ -163,23 +167,60 @@ export async function farmAddCommand(
       }
     }
 
-    // Create model folder
+    // Create and scaffold model folder
     const modelFolder = `${name}-model`;
     const modelFullPath = path.join(farmRoot, modelFolder);
 
     if (!(await fileExists(modelFullPath))) {
-      await ensureDir(modelFullPath);
+      // Initialize model with manifest and layer structure
+      await Model.init(
+        modelFullPath,
+        {
+          name: name,
+          version: "0.1.0",
+          description: undefined,
+          author: undefined,
+          specVersion: (await import("../utils/spec-version.js")).getCliBundledSpecVersion(),
+          created: new Date().toISOString(),
+        },
+        { lazyLoad: false }
+      );
+
+      // Initialize git repository for the model
+      try {
+        execSync("git init", { cwd: modelFullPath, stdio: useJson ? "pipe" : "inherit" });
+        execSync("git config user.email 'dr-farm@localhost'", {
+          cwd: modelFullPath,
+          stdio: "pipe",
+        });
+        execSync("git config user.name 'DR Farm'", {
+          cwd: modelFullPath,
+          stdio: "pipe",
+        });
+
+        // Add all initial files and commit
+        execSync("git add .", { cwd: modelFullPath, stdio: "pipe" });
+        execSync("git commit -m 'Initialize model scaffold'", {
+          cwd: modelFullPath,
+          stdio: useJson ? "pipe" : "inherit",
+        });
+      } catch (gitError) {
+        throw new Error(
+          `Failed to initialize model git repository: ${getErrorMessage(gitError)}`
+        );
+      }
+
       if (!useJson) {
-        handleInfo(`Created model folder: ${modelFolder}`);
+        handleInfo(`Created and initialized model folder: ${modelFolder}`);
       }
     }
 
     // Add project to manifest
     manifest.addProject(name, {
       name,
-      codebase_path: codebasePath,
-      model_folder: modelFolder,
-      remote_url: options.remote,
+      source: codebasePath,
+      model: modelFolder,
+      remote: options.remote,
     });
 
     await manifest.save(farmYamlPath);
@@ -189,8 +230,8 @@ export async function farmAddCommand(
         JSON.stringify({
           status: "ok",
           project: name,
-          codebase_path: codebasePath,
-          model_folder: modelFolder,
+          source: codebasePath,
+          model: modelFolder,
         })
       );
     } else {
@@ -248,7 +289,7 @@ export async function farmRemoveCommand(
 
     // Remove model folder if requested
     if (options.deleteModel) {
-      const modelFullPath = path.join(farmRoot, project.model_folder);
+      const modelFullPath = path.join(farmRoot, project.model);
       if (await fileExists(modelFullPath)) {
         try {
           // Use rm -rf for simplicity; in production, might use fs.rmdir with recursive: true
@@ -256,7 +297,7 @@ export async function farmRemoveCommand(
             stdio: useJson ? "pipe" : "inherit",
           });
           if (!useJson) {
-            handleInfo(`Deleted model folder: ${project.model_folder}`);
+            handleInfo(`Deleted model folder: ${project.model}`);
           }
         } catch (error) {
           throw new Error(`Failed to delete model folder: ${getErrorMessage(error)}`);
@@ -330,15 +371,15 @@ export async function farmStatusCommand(options: {
           );
 
           // Use lightweight commit comparison instead of full diff
-          const currentCommit = await engine.getCurrentCommit(p.codebase_path);
+          const currentCommit = await engine.getCurrentCommit(p.source);
           const lastSyncCommit = syncState.lastSyncCommit;
           const hasPendingChanges = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
 
           return {
             name: p.name,
-            codebase_path: p.codebase_path,
-            model_folder: p.model_folder,
-            remote_url: p.remote_url,
+            source: p.source,
+            model: p.model,
+            remote: p.remote,
             lastSyncCommit: lastSyncCommit,
             currentCommit: currentCommit,
             hasPendingChanges: hasPendingChanges,
@@ -347,9 +388,9 @@ export async function farmStatusCommand(options: {
           // If sync state doesn't exist or error reading commits, treat as no sync yet
           return {
             name: p.name,
-            codebase_path: p.codebase_path,
-            model_folder: p.model_folder,
-            remote_url: p.remote_url,
+            source: p.source,
+            model: p.model,
+            remote: p.remote,
             lastSyncCommit: undefined,
             currentCommit: undefined,
             hasPendingChanges: false,
@@ -367,6 +408,7 @@ export async function farmStatusCommand(options: {
             path: farmRoot,
             created: manifest.created,
             modified: manifest.modified,
+            platform_view: manifest.platform_view,
           },
           projects: projectsWithStatus,
           project_count: projects.length,
@@ -375,6 +417,9 @@ export async function farmStatusCommand(options: {
     } else {
       console.log(ansis.bold(`Farm: ${manifest.name}`));
       console.log(`Location: ${farmRoot}`);
+      if (manifest.platform_view) {
+        console.log(`Platform-View: ${ansis.green("enabled")}`);
+      }
       console.log(`Projects: ${projects.length}\n`);
 
       if (projects.length === 0) {
@@ -382,10 +427,10 @@ export async function farmStatusCommand(options: {
       } else {
         projectsWithStatus.forEach((project) => {
           console.log(`  ${ansis.cyan(project.name)}`);
-          console.log(`    Codebase: ${project.codebase_path}`);
-          console.log(`    Model:    ${project.model_folder}`);
-          if (project.remote_url) {
-            console.log(`    Remote:   ${project.remote_url}`);
+          console.log(`    Codebase: ${project.source}`);
+          console.log(`    Model:    ${project.model}`);
+          if (project.remote) {
+            console.log(`    Remote:   ${project.remote}`);
           }
           if (project.hasPendingChanges) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
@@ -437,15 +482,30 @@ export async function farmValidateCommand(options: {
 
     const farmYamlPath = path.join(farmRoot, "farm.yaml");
     const farmManifest = await FarmManifest.load(farmYamlPath);
+    const useJson = options.format === "json" || isJson();
 
     // Determine which projects to validate
     let projectsToValidate = farmManifest.getAllProjects();
+    let isPlatformViewValidation = false;
+
     if (options.project) {
       const project = farmManifest.getProject(options.project);
       if (!project) {
         throw new Error(`Project '${options.project}' not found in farm`);
       }
       projectsToValidate = [project];
+
+      // Check if this is a platform-view project validation
+      if (farmManifest.isPlatformViewEnabled() && options.project === "platform-view") {
+        isPlatformViewValidation = true;
+      } else if (options.project === "platform-view" && !farmManifest.isPlatformViewEnabled()) {
+        // Warn if platform-view project is being validated but platform-view is not enabled
+        if (!useJson && !options.quiet) {
+          handleInfo(
+            `Note: Validating platform-view project, but platform-view is not enabled on this farm`
+          );
+        }
+      }
     }
 
     if (projectsToValidate.length === 0) {
@@ -453,14 +513,14 @@ export async function farmValidateCommand(options: {
     }
 
     // Create composed validator from farm
+    // This automatically resolves model-path overrides for all projects in the farm
     const composedValidator = await ComposedReferenceValidator.fromFarm(farmRoot);
-
-    const useJson = options.format === "json" || isJson();
     if (useJson) {
-      console.log(JSON.stringify({ status: "validating", projects: projectsToValidate.length }));
+      console.log(JSON.stringify({ status: "validating", projects: projectsToValidate.length, platform_view: isPlatformViewValidation }));
     } else if (!options.quiet) {
       if (options.project) {
-        handleInfo(`Validating project '${options.project}' with farm-aware references...`);
+        const platformViewNote = isPlatformViewValidation ? " (platform-view aggregation)" : "";
+        handleInfo(`Validating project '${options.project}'${platformViewNote} with farm-aware references...`);
       } else {
         handleInfo(`Validating ${projectsToValidate.length} farm project(s) with farm-aware references...`);
       }
@@ -471,7 +531,7 @@ export async function farmValidateCommand(options: {
 
     // Validate each project
     for (const project of projectsToValidate) {
-      const modelPath = path.join(farmRoot, project.model_folder);
+      const modelPath = path.join(farmRoot, project.model);
 
       // Check if model folder exists
       if (!(await fileExists(modelPath))) {
@@ -511,6 +571,57 @@ export async function farmValidateCommand(options: {
       try {
         const model = await Model.load();
 
+        let platformViewInfo: {
+          declared_models: string[];
+          missing_models: string[];
+        } | undefined;
+
+        // For platform-view projects, validate that all declared external models are resolvable
+        if (isPlatformViewValidation) {
+          const declaredModels = model.manifest.models || {};
+          const declaredModelNames = Object.keys(declaredModels);
+
+          platformViewInfo = {
+            declared_models: declaredModelNames,
+            missing_models: [],
+          };
+
+          if (declaredModelNames.length === 0) {
+            if (!useJson && !options.quiet) {
+              handleInfo(
+                `  Platform-view project has no declared external models`
+              );
+            }
+          } else {
+            if (!useJson && !options.quiet) {
+              handleInfo(
+                `  Platform-view is declaring external models: ${declaredModelNames.join(", ")}`
+              );
+            }
+
+            // Verify all declared models are available in the farm
+            const missingModels: string[] = [];
+            for (const declaredModelName of declaredModelNames) {
+              const farmProject = farmManifest.getProject(declaredModelName);
+              if (!farmProject) {
+                missingModels.push(declaredModelName);
+              }
+            }
+
+            platformViewInfo.missing_models = missingModels;
+
+            if (missingModels.length > 0) {
+              if (!useJson) {
+                console.error(
+                  ansis.yellow(
+                    `  ⚠ Warning: The following declared external models are not registered in the farm: ${missingModels.join(", ")}`
+                  )
+                );
+              }
+            }
+          }
+        }
+
         // Validate using composed reference validator
         const result = await composedValidator.validateModel(model);
 
@@ -523,7 +634,7 @@ export async function farmValidateCommand(options: {
         });
 
         // Collect report data for output file
-        reportData.push({
+        const reportItem: any = {
           project: project.name,
           valid: result.isValid(),
           errors: result.errors.map((e) => ({
@@ -539,7 +650,13 @@ export async function farmValidateCommand(options: {
             location: w.location,
           })),
           formatted,
-        });
+        };
+
+        if (platformViewInfo) {
+          reportItem.platform_view_info = platformViewInfo;
+        }
+
+        reportData.push(reportItem);
 
         if (!options.quiet) {
           console.log(ansis.bold(`\nProject: ${project.name}`));
@@ -576,12 +693,18 @@ export async function farmValidateCommand(options: {
           timestamp: new Date().toISOString(),
           farm_root: farmRoot,
           all_valid: allValid,
-          projects: reportData.map((r) => ({
-            project: r.project,
-            valid: r.valid,
-            errors: r.errors,
-            warnings: r.warnings,
-          })),
+          projects: reportData.map((r) => {
+            const projectData: any = {
+              project: r.project,
+              valid: r.valid,
+              errors: r.errors,
+              warnings: r.warnings,
+            };
+            if (r.platform_view_info) {
+              projectData.platform_view_info = r.platform_view_info;
+            }
+            return projectData;
+          }),
         };
         await (await import("fs/promises")).writeFile(
           options.output,
@@ -722,7 +845,7 @@ export async function farmPullCommand(options: {
     // Pull each project
     for (const project of projectsToPull) {
       try {
-        const commit = await engine.pullCodebase(project.codebase_path);
+        const commit = await engine.pullCodebase(project.source);
 
         results.push({
           project: project.name,
@@ -841,7 +964,7 @@ export async function farmSyncCommand(options: {
     // Process projects with concurrency control
     const processSyncProject = async (project: typeof projectsToSync[0]) => {
       try {
-        const modelPath = path.join(farmRoot, project.model_folder);
+        const modelPath = path.join(farmRoot, project.model);
 
         if (!(await fileExists(modelPath))) {
           throw new Error(`Model folder not found for project '${project.name}' at ${modelPath}`);
@@ -885,6 +1008,22 @@ export async function farmSyncCommand(options: {
               const commitResult = await stagingManager.commit(model, result.changesetId);
               resultEntry.autoCommitted = true;
               resultEntry.committedChanges = commitResult.committed;
+
+              // Also commit changes to the farm's model git repository
+              try {
+                const modelPath = path.join(farmRoot, project.model);
+                execSync("git add .", { cwd: modelPath, stdio: "pipe" });
+                execSync(
+                  `git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`,
+                  { cwd: modelPath, stdio: "pipe" }
+                );
+              } catch (gitCommitError) {
+                // If there's nothing to commit (no changes), that's fine
+                if (!getErrorMessage(gitCommitError).includes("nothing to commit")) {
+                  throw gitCommitError;
+                }
+              }
+
               if (options.verbose && !useJson) {
                 handleInfo(`  Auto-committed: ${commitResult.committed} change(s)`);
               }
@@ -1042,6 +1181,7 @@ export function farmCommands(program: Command): void {
     .command("init")
     .description("Initialize a new farm")
     .option("--name <name>", "Farm name")
+    .option("--platform-view", "Enable platform-view support for cross-model aggregation")
     .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
@@ -1049,7 +1189,13 @@ export function farmCommands(program: Command): void {
 Examples:
   $ dr farm init
   $ dr farm init --name "My Architecture Farm"
-  $ dr farm init --format json`
+  $ dr farm init --platform-view
+  $ dr farm init --format json
+
+Notes:
+  When using --platform-view, create a project named exactly "platform-view" to serve as
+  the aggregation hub. When validating this project with 'dr farm validate --project platform-view',
+  the CLI will automatically resolve cross-model references from all farm projects.`
     )
     .action(async (options) => {
       await farmInitCommand(options);
@@ -1122,7 +1268,12 @@ Examples:
   $ dr farm validate --project my-service
   $ dr farm validate --verbose
   $ dr farm validate --format json
-  $ dr farm validate --output report.json`
+  $ dr farm validate --output report.json
+
+Notes:
+  For platform-view aggregation: Use 'dr farm validate --project platform-view' to validate
+  a platform-view project. The project name must be exactly 'platform-view' and the farm
+  must have platform-view enabled (set during 'dr farm init --platform-view').`
     )
     .action(async (options) => {
       await farmValidateCommand(options);

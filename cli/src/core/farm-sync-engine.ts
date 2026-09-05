@@ -385,7 +385,7 @@ export class FarmSyncEngine {
    * Execute a complete sync operation for a project
    */
   async syncProject(project: FarmProject, options: SyncOptions = {}): Promise<SyncResult> {
-    const codebasePath = project.codebase_path;
+    const codebasePath = project.source;
     const notes: string[] = [];
 
     // Step 1: Pull latest changes

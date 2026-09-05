@@ -178,7 +178,7 @@ handle-request:
       const sourceFile = join(modelRoot, "src", "service.ts");
       await writeFile(sourceFile, "export class Service { }");
 
-      // Create model structure with manifest (no codebase_path)
+      // Create model structure with manifest (no source)
       const modelDir = join(modelRoot, "documentation-robotics", "model");
       await mkdir(modelDir, { recursive: true });
       await mkdir(join(modelDir, "07_api"), { recursive: true });

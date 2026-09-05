@@ -41,7 +41,7 @@ export class ComposedReferenceValidator {
       // The validator will look for manifest.yaml within this folder.
       // If the model is co-located (inside codebase), it will also find it
       // via the documentation-robotics/model/ path search.
-      const modelFullPath = path.join(farmRoot, project.model_folder);
+      const modelFullPath = path.join(farmRoot, project.model);
       modelPathOverrides[project.name] = modelFullPath;
     }
 

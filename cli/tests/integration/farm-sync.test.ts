@@ -157,8 +157,8 @@ describe("FarmSyncEngine", () => {
     farmManifest = FarmManifest.create("Test Farm");
     farmManifest.addProject("test-project", {
       name: "test-project",
-      codebase_path: "codebase",
-      model_folder: "model",
+      source: "codebase",
+      model: "model",
     });
 
     const farmYamlPath = path.join(farmDir, "farm.yaml");
