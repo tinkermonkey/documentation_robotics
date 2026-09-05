@@ -68,6 +68,12 @@ export class FarmManifest {
     const content = await readFile(filePath);
     const data = yaml.parse(content) as FarmManifestData;
 
+    if (!data) {
+      throw new Error(
+        `Invalid farm manifest: file is empty or contains invalid YAML at ${filePath}`
+      );
+    }
+
     if (!data.schema) {
       throw new Error("Farm manifest must have a 'schema' field");
     }

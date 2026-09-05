@@ -84,6 +84,12 @@ export class FarmSyncState {
     const content = await readFile(filePath);
     const rawData = yaml.parse(content) as any;
 
+    if (!rawData) {
+      throw new Error(
+        `Invalid farm sync state: file is empty or contains invalid YAML at ${filePath}`
+      );
+    }
+
     // Handle both old (camelCase) and new (snake_case) formats for backward compatibility
     const data: FarmSyncStateData = {
       project_name: rawData.project_name || rawData.projectName,

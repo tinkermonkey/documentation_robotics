@@ -227,9 +227,17 @@ export async function farmAddCommand(
     await manifest.save(farmYamlPath);
 
     // Commit farm.yaml changes to farm-level git repository if git is available
+    // Check for git repo first
+    let gitRepoExists = false;
     try {
       execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-      // Git repo exists, proceed with commit
+      gitRepoExists = true;
+    } catch {
+      // Git repo not initialized yet - that's fine, skip commit
+    }
+
+    // If git repo exists, proceed with commit (handle commit errors independently)
+    if (gitRepoExists) {
       try {
         execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
         execFileSync("git", ["commit", "-m", `Add project: ${name}`], {
@@ -243,8 +251,6 @@ export async function farmAddCommand(
           throw new Error(`Failed to commit farm changes: ${errorMsg}`);
         }
       }
-    } catch (gitCheckError) {
-      // Git repo not initialized yet - that's fine, skip commit
     }
 
     if (useJson) {
@@ -338,9 +344,17 @@ export async function farmRemoveCommand(
     await manifest.save(farmYamlPath);
 
     // Commit farm.yaml changes to farm-level git repository if git is available
+    // Check for git repo first
+    let gitRepoExists = false;
     try {
       execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-      // Git repo exists, proceed with commit
+      gitRepoExists = true;
+    } catch {
+      // Git repo not initialized yet - that's fine, skip commit
+    }
+
+    // If git repo exists, proceed with commit (handle commit errors independently)
+    if (gitRepoExists) {
       try {
         execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
         execFileSync("git", ["commit", "-m", `Remove project: ${name}`], {
@@ -354,8 +368,6 @@ export async function farmRemoveCommand(
           throw new Error(`Failed to commit farm changes: ${errorMsg}`);
         }
       }
-    } catch (gitCheckError) {
-      // Git repo not initialized yet - that's fine, skip commit
     }
 
     if (useJson) {
@@ -433,8 +445,20 @@ export async function farmStatusCommand(options: {
             current_commit: currentCommit,
             has_pending_changes: hasPendingChanges,
           };
-        } catch {
-          // If sync state doesn't exist or error reading commits, treat as no sync yet
+        } catch (error) {
+          // If sync state doesn't exist yet, that's expected - treat as no sync yet
+          // For unexpected errors (YAML parse, git permission, etc), log them
+          const errorMsg = getErrorMessage(error);
+          if (
+            !errorMsg.includes("not found") &&
+            !errorMsg.includes("does not exist") &&
+            !errorMsg.includes("ENOENT")
+          ) {
+            // Unexpected error - log it (but still return default to keep status resilient)
+            if (process.env.DEBUG) {
+              console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
+            }
+          }
           return {
             name: p.name,
             source: p.source,
@@ -1056,9 +1080,17 @@ export async function farmSyncCommand(options: {
 
               // Commit changes to the farm-level git repository if git is available
               // Scope git add to the project's model folder to avoid staging unrelated changes
+              // Check for git repo first
+              let gitRepoExists = false;
               try {
                 execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-                // Git repo exists, proceed with commit
+                gitRepoExists = true;
+              } catch {
+                // Git repo not initialized yet - that's fine, skip commit
+              }
+
+              // If git repo exists, proceed with commit (handle commit errors independently)
+              if (gitRepoExists) {
                 try {
                   execFileSync("git", ["add", project.model], { cwd: farmRoot, stdio: "pipe" });
                   execFileSync(
@@ -1072,8 +1104,6 @@ export async function farmSyncCommand(options: {
                     throw gitCommitError;
                   }
                 }
-              } catch (gitCheckError) {
-                // Git repo not initialized yet - that's fine, skip commit
               }
 
               if (options.verbose && !useJson) {
