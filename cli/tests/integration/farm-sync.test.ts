@@ -271,7 +271,7 @@ describe("FarmSyncEngine", () => {
     expect(result.notes).toContain("Initial sync - recording baseline only");
 
     // Verify sync state was recorded
-    const syncStateFile = path.join(farmDir, ".farm-sync", "test-project.yaml");
+    const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
     expect(await fileExists(syncStateFile)).toBe(true);
 
     const syncState = await FarmSyncState.load(syncStateFile);

@@ -395,7 +395,7 @@ export class FarmSyncEngine {
     const currentCommit = await this.pullCodebase(codebasePath);
 
     // Step 2: Load sync state
-    const syncStatePath = path.join(this.farmRoot, ".farm-sync", `${project.name}.yaml`);
+    const syncStatePath = path.join(this.farmRoot, project.model, ".farm-sync.yaml");
     await ensureDir(path.dirname(syncStatePath));
     const syncState = await FarmSyncState.loadOrCreate(syncStatePath, project.name);
 

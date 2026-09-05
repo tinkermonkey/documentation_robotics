@@ -364,7 +364,7 @@ export async function farmStatusCommand(options: {
     const projectsWithStatus = await Promise.all(
       projects.map(async (p) => {
         try {
-          const syncStatePath = path.join(farmRoot, ".farm-sync", `${p.name}.yaml`);
+          const syncStatePath = path.join(farmRoot, p.model, ".farm-sync.yaml");
           const syncState = await (await import("../core/farm-sync-state.js")).FarmSyncState.loadOrCreate(
             syncStatePath,
             p.name

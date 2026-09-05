@@ -122,7 +122,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       expect(result.changeCount).toBe(0);
 
       // Verify sync state was saved
-      const syncStateFile = path.join(farmDir, ".farm-sync", "test-project.yaml");
+      const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
       expect(await fileExists(syncStateFile)).toBe(true);
 
       const syncState = await FarmSyncState.load(syncStateFile);
@@ -164,7 +164,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       expect(result2.filesChanged.added).toContain("src/service.ts");
 
       // Verify sync state history
-      const syncStateFile = path.join(farmDir, ".farm-sync", "test-project.yaml");
+      const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
       const syncState = await FarmSyncState.load(syncStateFile);
       expect(syncState.syncHistory.length).toBe(2);
       expect(syncState.getLastSync()?.filesChanged).toBeGreaterThan(0);
@@ -201,7 +201,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       }
 
       // Verify sync history
-      const syncStateFile = path.join(farmDir, ".farm-sync", "test-project.yaml");
+      const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
       const syncState = await FarmSyncState.load(syncStateFile);
       expect(syncState.syncHistory.length).toBe(3);
 
