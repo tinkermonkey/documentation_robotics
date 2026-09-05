@@ -9,6 +9,7 @@ import { FarmManifest } from "../../src/core/farm-manifest.js";
 import { fileExists, ensureDir, writeFile } from "../../src/utils/file-io.js";
 import { ComposedReferenceValidator } from "../../src/validators/composed-reference-validator.js";
 import { Model } from "../../src/core/model.js";
+import { execSync } from "child_process";
 
 describe("FarmManifest", () => {
   let testDir: string;
@@ -827,6 +828,13 @@ describe("Farm model initialization and git setup", () => {
       // Verify git repository was initialized
       const gitPath = path.join(modelPath, ".git");
       expect(await fileExists(gitPath)).toBe(true);
+
+      // Verify initial commit was created
+      const commitCount = execSync("git rev-list --count HEAD", {
+        cwd: path.join(modelPath),
+        encoding: "utf-8",
+      }).trim();
+      expect(parseInt(commitCount, 10)).toBeGreaterThan(0);
     } finally {
       process.cwd = originalCwd;
     }
