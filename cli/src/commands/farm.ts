@@ -232,7 +232,7 @@ export async function farmAddCommand(
       // Git repo exists, proceed with commit
       try {
         execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
-        execSync(`git commit -m "Add project: ${name}"`, {
+        execFileSync("git", ["commit", "-m", `Add project: ${name}`], {
           cwd: farmRoot,
           stdio: useJson ? "pipe" : "inherit",
         });
@@ -343,7 +343,7 @@ export async function farmRemoveCommand(
       // Git repo exists, proceed with commit
       try {
         execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
-        execSync(`git commit -m "Remove project: ${name}"`, {
+        execFileSync("git", ["commit", "-m", `Remove project: ${name}`], {
           cwd: farmRoot,
           stdio: useJson ? "pipe" : "inherit",
         });
@@ -1052,8 +1052,9 @@ export async function farmSyncCommand(options: {
                 // Git repo exists, proceed with commit
                 try {
                   execSync("git add .", { cwd: farmRoot, stdio: "pipe" });
-                  execSync(
-                    `git commit -m "Sync: ${result.changesetId} - ${commitResult.committed} change(s)"`,
+                  execFileSync(
+                    "git",
+                    ["commit", "-m", `Sync: ${result.changesetId} - ${commitResult.committed} change(s)`],
                     { cwd: farmRoot, stdio: "pipe" }
                   );
                 } catch (gitCommitError) {
