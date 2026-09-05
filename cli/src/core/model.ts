@@ -927,23 +927,20 @@ export class Model {
 
       const manifest = new Manifest(manifestData);
 
-      // Resolve codebaseRoot from manifest, farm, or options
-      // Resolution order:
-      // 1. Explicit codebaseRoot in options (from programmatic calls)
-      // 2. Global --codebase-path CLI flag
-      // 3. manifest.codebase_path
-      // 4. Farm-based auto-resolution
-      // 5. projectRoot (default)
+      // Resolve codebaseRoot with priority: options > CLI flag > manifest > farm > default
       let codebaseRoot = projectRoot;
       if (options.codebaseRoot) {
         codebaseRoot = options.codebaseRoot;
-      } else if (getCodebasePath()) {
-        codebaseRoot = path.resolve(getCodebasePath()!);
-      } else if (manifest.codebase_path) {
-        codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
       } else {
-        // Try to auto-resolve from farm manifest if inside a farm
-        codebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot) || projectRoot;
+        const globalCodebasePath = getCodebasePath();
+        if (globalCodebasePath) {
+          codebaseRoot = path.resolve(globalCodebasePath);
+        } else if (manifest.codebase_path) {
+          codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
+        } else {
+          // Try to auto-resolve from farm manifest if inside a farm
+          codebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot) || projectRoot;
+        }
       }
 
       const model = new Model(projectRoot, manifest, { ...options, codebaseRoot });
@@ -1105,19 +1102,17 @@ export class Model {
 
     const manifest = new Manifest(manifestData);
 
-    // Resolve codebaseRoot from manifest or options
-    // Resolution order:
-    // 1. Explicit codebaseRoot in options
-    // 2. Global --codebase-path CLI flag
-    // 3. manifest.codebase_path
-    // 4. rootPath (default)
+    // Resolve codebaseRoot with priority: options > CLI flag > manifest > default
     let codebaseRoot = rootPath;
     if (options.codebaseRoot) {
       codebaseRoot = options.codebaseRoot;
-    } else if (getCodebasePath()) {
-      codebaseRoot = path.resolve(getCodebasePath()!);
-    } else if (manifest.codebase_path) {
-      codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
+    } else {
+      const globalCodebasePath = getCodebasePath();
+      if (globalCodebasePath) {
+        codebaseRoot = path.resolve(globalCodebasePath);
+      } else if (manifest.codebase_path) {
+        codebaseRoot = path.resolve(rootPath, manifest.codebase_path);
+      }
     }
 
     const model = new Model(rootPath, manifest, { ...options, codebaseRoot });

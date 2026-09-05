@@ -16,7 +16,7 @@
  */
 
 import { fileExists } from "./file-io.js";
-import { join, dirname } from "path";
+import { join, dirname, resolve } from "path";
 
 const MAX_SEARCH_DEPTH = 5;
 const PROJECT_FOLDER_NAME = "documentation-robotics";
@@ -133,7 +133,7 @@ export async function isInDRProject(startPath?: string): Promise<boolean> {
 export async function findFarmRoot(startPath?: string): Promise<string | null> {
   // Check DR_FARM_PATH environment variable first
   if (process.env.DR_FARM_PATH) {
-    const envPath = process.env.DR_FARM_PATH;
+    const envPath = resolve(process.env.DR_FARM_PATH);
     const farmFilePath = join(envPath, FARM_FILE_NAME);
     if (await fileExists(farmFilePath)) {
       return envPath;
