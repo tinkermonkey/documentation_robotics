@@ -339,34 +339,37 @@ export class VerifyEngine {
     // Add to in_model_only only if file exists, then check against ignore rules
     for (let i = 0; i < elementsToCheck.length; i++) {
       const fileExists = fileExistsResults[i];
+      const elem = elementsToCheck[i];
 
-      if (fileExists) {
-        const elem = elementsToCheck[i];
+      // Skip only if file definitively doesn't exist (false).
+      // Process if file exists (true) or if check is unavailable (undefined).
+      if (fileExists === false) {
+        continue;
+      }
 
-        // Check if element matches any ignore rule
-        // Use element.path (semantic path) instead of elem.id (UUID)
-        const ignoreReason = IgnoreFileLoader.matches(
-          {
-            element_id: elem.path,
-          },
-          "element",
-          ignoreRules
-        );
+      // Check if element matches any ignore rule
+      // Use element.path (semantic path) instead of elem.id (UUID)
+      const ignoreReason = IgnoreFileLoader.matches(
+        {
+          element_id: elem.path,
+        },
+        "element",
+        ignoreRules
+      );
 
-        if (ignoreReason) {
-          ignored.push({
-            id: elem.id,
-            entry_type: "element",
-            reason: ignoreReason,
-          });
-        } else {
-          inModelOnly.push({
-            id: elem.id,
-            type: "operation",
-            source_file: elem.file,
-            source_symbol: elem.symbol,
-          });
-        }
+      if (ignoreReason) {
+        ignored.push({
+          id: elem.id,
+          entry_type: "element",
+          reason: ignoreReason,
+        });
+      } else {
+        inModelOnly.push({
+          id: elem.id,
+          type: "operation",
+          source_file: elem.file,
+          source_symbol: elem.symbol,
+        });
       }
     }
 
