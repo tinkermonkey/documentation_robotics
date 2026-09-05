@@ -98,7 +98,7 @@ export class VerifyEngine {
       if (
         message.includes("No DR project") ||
         message.includes("Model not found") ||
-        message.includes("No model found") ||
+        message.includes("no model found") ||
         message.includes("Could not find documentation_robotics")
       ) {
         throw new Error(
