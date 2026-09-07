@@ -235,14 +235,10 @@ describe("Flag Effectiveness Tests", () => {
         standardLogs.push(args.join(" "));
       };
 
-      const originalCwd = process.cwd();
       try {
-        process.chdir(workdir.path);
-        await auditCommand({});
+        await auditCommand({ projectRoot: workdir.path });
       } catch {
         // Audit may not throw, continue
-      } finally {
-        process.chdir(originalCwd);
       }
 
       const standardOutput = standardLogs.join("\n");
@@ -258,12 +254,9 @@ describe("Flag Effectiveness Tests", () => {
       };
 
       try {
-        process.chdir(workdir.path);
-        await auditCommand({ verbose: true });
+        await auditCommand({ verbose: true, projectRoot: workdir.path });
       } catch {
         // Verbose audit may not throw, continue
-      } finally {
-        process.chdir(originalCwd);
       }
 
       const verboseOutput = verboseLogs.join("\n");

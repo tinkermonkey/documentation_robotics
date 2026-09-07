@@ -63,7 +63,7 @@ describe("audit snapshots command", () => {
 
         try {
           // Create a snapshot
-          await auditCommand({ format: "json", saveSnapshot: true });
+          await auditCommand({ format: "json", saveSnapshot: true, projectRoot: workdir.path });
         } finally {
           console.log = originalLog;
         }
@@ -103,7 +103,7 @@ describe("audit snapshots command", () => {
 
         try {
           // Create a single snapshot
-          await auditCommand({ format: "json", saveSnapshot: true });
+          await auditCommand({ format: "json", saveSnapshot: true, projectRoot: workdir.path });
         } finally {
           console.log = originalLog;
         }
@@ -190,7 +190,7 @@ describe("audit snapshots command", () => {
 
         try {
           // Create a snapshot
-          await auditCommand({ format: "json", saveSnapshot: true });
+          await auditCommand({ format: "json", saveSnapshot: true, projectRoot: workdir.path });
         } finally {
           console.log = originalLog;
         }
@@ -269,9 +269,9 @@ describe("audit snapshots command", () => {
 
         try {
           // Create multiple snapshots (need > 1 second delay for unique IDs)
-          await auditCommand({ format: "json", saveSnapshot: true });
+          await auditCommand({ format: "json", saveSnapshot: true, projectRoot: workdir.path });
           await new Promise((resolve) => setTimeout(resolve, 1100));
-          await auditCommand({ format: "json", saveSnapshot: true });
+          await auditCommand({ format: "json", saveSnapshot: true, projectRoot: workdir.path });
         } finally {
           console.log = originalLog;
         }
@@ -319,7 +319,7 @@ describe("audit snapshots command", () => {
 
         try {
           // Create a single snapshot
-          await auditCommand({ format: "json", saveSnapshot: true });
+          await auditCommand({ format: "json", saveSnapshot: true, projectRoot: workdir.path });
         } finally {
           console.log = originalLog;
         }

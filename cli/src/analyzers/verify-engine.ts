@@ -8,6 +8,7 @@
 import * as path from "path";
 import { access } from "fs/promises";
 import { Model } from "../core/model.js";
+import { getErrorMessage } from "../utils/errors.js";
 import type {
   VerifyReport,
   VerifyOptions,
@@ -92,18 +93,20 @@ export class VerifyEngine {
     try {
       model = await Model.load(projectRoot);
     } catch (error) {
-      const err = error as NodeJS.ErrnoException;
-      // Provide helpful error message if model directory is missing or corrupted
-      if (err.code === "ENOENT" || err.code === "ENOTDIR") {
+      const message = getErrorMessage(error);
+      // Check for model-not-found errors (matches all 4 error messages from Model.resolveModelPaths)
+      if (
+        message.includes("No DR project") ||
+        message.includes("Model not found") ||
+        message.includes("no model found") ||
+        message.includes("Could not find documentation_robotics")
+      ) {
         throw new Error(
-          `Failed to load DR model at ${projectRoot}: Model directory not found or inaccessible. ` +
-          `Please run 'dr init' to initialize the documentation robotics model.`
+          `Failed to load DR model at ${projectRoot}: Model not found. Please run 'dr init' to initialize the documentation robotics model.`
         );
       }
-      throw new Error(
-        `Failed to load DR model at ${projectRoot}: ${err.message}. ` +
-        `Please check that the model directory exists and is accessible.`
-      );
+      // Re-throw original error unchanged to preserve stack trace and error type (e.g., YAML parse errors)
+      throw error;
     }
 
     const activeChangesetId = model.getActiveChangesetId();
@@ -294,7 +297,7 @@ export class VerifyEngine {
         symbol: firstLocation.symbol || "",
       });
 
-      const filePath = path.join(projectRoot, firstLocation.file);
+      const filePath = path.join(model.codebaseRoot, firstLocation.file);
       fileChecks.push(
         access(filePath)
           .then(() => true)
@@ -336,34 +339,37 @@ export class VerifyEngine {
     // Add to in_model_only only if file exists, then check against ignore rules
     for (let i = 0; i < elementsToCheck.length; i++) {
       const fileExists = fileExistsResults[i];
+      const elem = elementsToCheck[i];
 
-      if (fileExists) {
-        const elem = elementsToCheck[i];
+      // Skip only if file definitively doesn't exist (false).
+      // Process if file exists (true) or if check is unavailable (undefined).
+      if (fileExists === false) {
+        continue;
+      }
 
-        // Check if element matches any ignore rule
-        // Use element.path (semantic path) instead of elem.id (UUID)
-        const ignoreReason = IgnoreFileLoader.matches(
-          {
-            element_id: elem.path,
-          },
-          "element",
-          ignoreRules
-        );
+      // Check if element matches any ignore rule
+      // Use element.path (semantic path) instead of elem.id (UUID)
+      const ignoreReason = IgnoreFileLoader.matches(
+        {
+          element_id: elem.path,
+        },
+        "element",
+        ignoreRules
+      );
 
-        if (ignoreReason) {
-          ignored.push({
-            id: elem.id,
-            entry_type: "element",
-            reason: ignoreReason,
-          });
-        } else {
-          inModelOnly.push({
-            id: elem.id,
-            type: "operation",
-            source_file: elem.file,
-            source_symbol: elem.symbol,
-          });
-        }
+      if (ignoreReason) {
+        ignored.push({
+          id: elem.id,
+          entry_type: "element",
+          reason: ignoreReason,
+        });
+      } else {
+        inModelOnly.push({
+          id: elem.id,
+          type: "operation",
+          source_file: elem.file,
+          source_symbol: elem.symbol,
+        });
       }
     }
 

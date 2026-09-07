@@ -27,6 +27,7 @@ export class Manifest {
   specVersion?: string;
   changeset_history?: ChangesetHistoryEntry[];
   models?: Record<string, ExternalModelDeclaration>;
+  codebase_path?: string;
 
   constructor(data: ManifestData) {
     this.name = data.name;
@@ -38,6 +39,7 @@ export class Manifest {
     this.cliVersion = data.cliVersion;
     this.specVersion = data.specVersion;
     this.models = data.models;
+    this.codebase_path = data.codebase_path;
 
     // Migrate changeset history from legacy format (if present)
     this.changeset_history = this.migrateChangesetHistory(data.changeset_history);
@@ -118,6 +120,10 @@ export class Manifest {
 
     if (this.specVersion) {
       result.specVersion = this.specVersion;
+    }
+
+    if (this.codebase_path) {
+      result.codebase_path = this.codebase_path;
     }
 
     if (this.changeset_history && this.changeset_history.length > 0) {

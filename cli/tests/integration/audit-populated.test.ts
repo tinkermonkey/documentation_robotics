@@ -179,6 +179,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "motivation",
           output: outputPath,
           format: "json",
@@ -214,6 +215,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "business",
           output: outputPath,
           format: "json",
@@ -250,6 +252,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "motivation",
           output: outputPath,
           format: "json",
@@ -286,6 +289,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "business",
           output: outputPath,
           format: "json",
@@ -328,6 +332,7 @@ describe("audit command with populated model", () => {
       try {
         process.chdir(workdir.path);
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "motivation",
           verbose: false,
         });
@@ -348,6 +353,7 @@ describe("audit command with populated model", () => {
       try {
         process.chdir(workdir.path);
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "motivation",
           verbose: true,
         });
@@ -374,6 +380,7 @@ describe("audit command with populated model", () => {
       try {
         process.chdir(workdir.path);
         await auditCommand({
+          projectRoot: workdir.path,
           layer: "motivation",
           verbose: true,
         });
@@ -400,6 +407,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           type: "nodes",
           output: outputPath,
           format: "json",
@@ -439,6 +447,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           type: "nodes",
           layer: "business",
           output: outputPath,
@@ -475,6 +484,7 @@ describe("audit command with populated model", () => {
       try {
         process.chdir(workdir.path);
         await auditCommand({
+          projectRoot: workdir.path,
           type: "nodes",
           layer: "motivation",
         });
@@ -499,6 +509,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           output: outputPath,
           format: "json",
         });
@@ -533,6 +544,7 @@ describe("audit command with populated model", () => {
         process.chdir(workdir.path);
 
         await auditCommand({
+          projectRoot: workdir.path,
           type: "all",
           output: outputPath,
           format: "json",
@@ -562,6 +574,7 @@ describe("audit command with populated model", () => {
         // Test relationships audit
         const relOutputPath = path.join(workdir.path, "audit-rel.json");
         await auditCommand({
+          projectRoot: workdir.path,
           type: "relationships",
           output: relOutputPath,
           format: "json",
@@ -585,6 +598,7 @@ describe("audit command with populated model", () => {
         // Test nodes audit
         const nodeOutputPath = path.join(workdir.path, "audit-nodes.json");
         await auditCommand({
+          projectRoot: workdir.path,
           type: "nodes",
           output: nodeOutputPath,
           format: "json",

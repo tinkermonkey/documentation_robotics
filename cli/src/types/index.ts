@@ -13,6 +13,12 @@ export type {
   SourceReference,
 } from "./source-reference.js";
 
+// Export farm-related types
+export type {
+  FarmProject,
+  FarmManifestData,
+} from "../core/farm-manifest.js";
+
 /**
  * Reference across layers
  */
@@ -131,6 +137,8 @@ export interface ManifestData {
   changeset_history?: ChangesetHistoryEntry[];
   /** External model declarations: model name to declaration metadata */
   models?: Record<string, ExternalModelDeclaration>;
+  /** Relative path to the codebase root (for detached models). Resolved relative to model root. */
+  codebase_path?: string;
 }
 
 /**
@@ -141,6 +149,7 @@ export interface ModelOptions {
   lazyLoad?: boolean;
   referenceRegistry?: unknown; // Will be properly typed when implemented
   layers?: string[]; // If set, only these layers are loaded (selective loading)
+  codebaseRoot?: string; // If set, points to the codebase directory (for detached models)
 }
 
 /**

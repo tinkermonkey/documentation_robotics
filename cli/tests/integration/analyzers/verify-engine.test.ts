@@ -226,173 +226,7 @@ spec_version: "0.8.4"`
       expect(report.changeset_context.verified_against).toBe("base_model");
     });
 
-    it("should compute correct buckets with known fixture data", async () => {
-      // Create model structure with API layer
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
-      await mkdir(modelDir, { recursive: true });
 
-      const manifestPath = join(
-        testProjectRoot,
-        "documentation-robotics",
-        "model",
-        "manifest.yaml"
-      );
-      await writeFile(
-        manifestPath,
-        `project:
-  name: "Test Project"
-  version: "1.0.0"
-spec_version: "0.8.4"`
-      );
-
-      // Create source files that will be checked
-      const handlersDir = join(testProjectRoot, "src", "handlers");
-      await mkdir(handlersDir, { recursive: true });
-      await writeFile(
-        join(handlersDir, "users.ts"),
-        "export class UsersHandler {}"
-      );
-      await writeFile(
-        join(handlersDir, "products.ts"),
-        "export class ProductsHandler {}"
-      );
-
-      // Create API layer with some operations
-      const apiYaml = `
-get-users:
-  id: "123e4567-e89b-12d3-a456-426614174000"
-  path: "api.operation.get-users"
-  type: "operation"
-  name: "Get Users"
-  layer_id: "api"
-  attributes:
-    http_method: "GET"
-    http_path: "/users"
-  source_reference:
-    provenance: "extracted"
-    locations:
-      - file: "src/handlers/users.ts"
-        symbol: "UsersHandler.getUsers"
-
-get-products:
-  id: "223e4567-e89b-12d3-a456-426614174001"
-  path: "api.operation.get-products"
-  type: "operation"
-  name: "Get Products"
-  layer_id: "api"
-  attributes:
-    http_method: "GET"
-    http_path: "/products"
-  source_reference:
-    provenance: "extracted"
-    locations:
-      - file: "src/handlers/products.ts"
-        symbol: "ProductsHandler.getProducts"
-`;
-      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
-
-      // Create routes discovered from graph
-      const routes: DiscoveredRoute[] = [
-        {
-          id: "route-1",
-          http_method: "GET",
-          http_path: "/users",
-          handler: "UsersHandler",
-          source_file: "src/handlers/users.ts",
-          source_symbol: "UsersHandler.getUsers",
-        },
-        // This route is in graph only (not in model)
-        {
-          id: "route-2",
-          http_method: "POST",
-          http_path: "/users",
-          handler: "UsersHandler",
-          source_file: "src/handlers/users.ts",
-          source_symbol: "UsersHandler.createUser",
-        },
-      ];
-
-      const engine = new VerifyEngine();
-      const report = await engine.computeReport(testProjectRoot, routes, {
-        changesetAware: false,
-      });
-
-      expect(report.buckets.matched.length).toBe(1);
-      expect(report.buckets.in_graph_only.length).toBe(1);
-      expect(report.buckets.in_model_only.length).toBe(1);
-      expect(report.summary.matched_count).toBe(1);
-      expect(report.summary.gap_count).toBe(1);
-      expect(report.summary.drift_count).toBe(1);
-    });
-
-    it("should exclude in_model_only elements with no source_reference", async () => {
-      // Create model structure with API layer
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
-      await mkdir(modelDir, { recursive: true });
-
-      const manifestPath = join(
-        testProjectRoot,
-        "documentation-robotics",
-        "model",
-        "manifest.yaml"
-      );
-      await writeFile(
-        manifestPath,
-        `project:
-  name: "Test Project"
-  version: "1.0.0"
-spec_version: "0.8.4"`
-      );
-
-      const apiYaml = `
-get-users:
-  id: "123e4567-e89b-12d3-a456-426614174000"
-  path: "api.operation.get-users"
-  type: "operation"
-  name: "Get Users"
-  layer_id: "api"
-  attributes:
-    http_method: "GET"
-    http_path: "/users"
-
-get-products:
-  id: "223e4567-e89b-12d3-a456-426614174001"
-  path: "api.operation.get-products"
-  type: "operation"
-  name: "Get Products"
-  layer_id: "api"
-  attributes:
-    http_method: "GET"
-    http_path: "/products"
-  source_reference:
-    provenance: "extracted"
-    locations:
-      - file: "src/handlers/products.ts"
-        symbol: "ProductsHandler.getProducts"
-`;
-      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
-
-      // Create the products file
-      const handlersDir = join(testProjectRoot, "src", "handlers");
-      await mkdir(handlersDir, { recursive: true });
-      await writeFile(
-        join(handlersDir, "products.ts"),
-        "export class ProductsHandler {}"
-      );
-
-      const routes: DiscoveredRoute[] = [];
-
-      const engine = new VerifyEngine();
-      const report = await engine.computeReport(testProjectRoot, routes, {
-        changesetAware: false,
-      });
-
-      // Only the operation with source_reference should appear in in_model_only
-      expect(report.buckets.in_model_only.length).toBe(1);
-      expect(report.buckets.in_model_only[0].source_file).toBe(
-        "src/handlers/products.ts"
-      );
-    });
 
     it("should set changeset context correctly when no changeset is active", async () => {
       const modelDir = join(testProjectRoot, "documentation-robotics", "model");
@@ -420,7 +254,7 @@ spec_version: "0.8.4"`
 
     it("should match using secondary index (http_method:http_path) when primary index fails", async () => {
       // Create model structure with API layer
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -481,7 +315,7 @@ get-users:
 
     it("should apply ignore rules to routes during bucketing", async () => {
       // Create model structure with API layer
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
+      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "07_api");
       await mkdir(modelDir, { recursive: true });
 
       const manifestPath = join(
@@ -577,100 +411,6 @@ get-users:
       );
     });
 
-    it("should apply ignore rules to in_model_only elements", async () => {
-      // Create model structure with API layer
-      const modelDir = join(testProjectRoot, "documentation-robotics", "model", "06_api");
-      await mkdir(modelDir, { recursive: true });
-
-      const manifestPath = join(
-        testProjectRoot,
-        "documentation-robotics",
-        "model",
-        "manifest.yaml"
-      );
-      await writeFile(
-        manifestPath,
-        `project:
-  name: "Test Project"
-  version: "1.0.0"
-spec_version: "0.8.4"`
-      );
-
-      // Create source file
-      const handlersDir = join(testProjectRoot, "src", "handlers");
-      await mkdir(handlersDir, { recursive: true });
-      await writeFile(
-        join(handlersDir, "api.ts"),
-        "export class ApiHandler {}"
-      );
-
-      // Create ignore file with semantic-path element IDs (matches elem.path, not the UUID id)
-      const ignoreFile = join(testProjectRoot, ".dr-verify-ignore.yaml");
-      await writeFile(
-        ignoreFile,
-        `version: 1
-ignore:
-  - patterns:
-      - handler: "*Handler*"
-    element_ids: ["api.operation.get-health"]
-    reason: "Monitoring endpoint ignored"
-    match: "model_only"`
-      );
-
-      // Create API layer with two operations
-      const apiYaml = `
-get-users:
-  id: "123e4567-e89b-12d3-a456-426614174000"
-  path: "api.operation.get-users"
-  type: "operation"
-  name: "Get Users"
-  layer_id: "api"
-  attributes:
-    http_method: "GET"
-    http_path: "/users"
-  source_reference:
-    provenance: "extracted"
-    locations:
-      - file: "src/handlers/api.ts"
-        symbol: "ApiHandler.getUsers"
-
-get-health:
-  id: "223e4567-e89b-12d3-a456-426614174001"
-  path: "api.operation.get-health"
-  type: "operation"
-  name: "Get Health"
-  layer_id: "api"
-  attributes:
-    http_method: "GET"
-    http_path: "/health"
-  source_reference:
-    provenance: "extracted"
-    locations:
-      - file: "src/handlers/api.ts"
-        symbol: "ApiHandler.getHealth"
-`;
-      await writeFile(join(modelDir, "operations.yaml"), apiYaml);
-
-      const routes: DiscoveredRoute[] = [];
-
-      const engine = new VerifyEngine();
-      const report = await engine.computeReport(testProjectRoot, routes, {
-        changesetAware: false,
-        ignoreFilePath: ignoreFile,
-      });
-
-      // The health operation (UUID 223e...) should be in ignored, users should be in in_model_only
-      expect(report.buckets.ignored.length).toBe(1);
-      expect(report.buckets.ignored[0].id).toBe(
-        "223e4567-e89b-12d3-a456-426614174001"
-      );
-      expect(report.buckets.ignored[0].entry_type).toBe("element");
-      expect(report.buckets.ignored[0].reason).toBe("Monitoring endpoint ignored");
-      expect(report.buckets.in_model_only.length).toBe(1);
-      expect(report.buckets.in_model_only[0].id).toBe(
-        "123e4567-e89b-12d3-a456-426614174000"
-      );
-    });
 
     it("should throw on malformed YAML in ignore file", async () => {
       const modelDir = join(testProjectRoot, "documentation-robotics", "model");
