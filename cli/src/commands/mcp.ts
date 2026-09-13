@@ -34,9 +34,47 @@ const promptForKeyPath: ApiKeyStoragePrompt = async (defaultPath) => {
   return result.trim();
 };
 
+/**
+ * Extract and create a configured MCP server with tools, resources, and model warmup.
+ * Returns the connected McpServer instance ready for use with any transport.
+ *
+ * This shared setup is called once for stdio (unchanged behavior) and per-session
+ * for HTTP (to support multiple concurrent clients).
+ */
+async function createConfiguredServer() {
+  const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+
+  const server = new McpServer({
+    name: "documentation-robotics",
+    version: cliVersion,
+  });
+
+  // Register the model tool surface and spec/model manifest resources.
+  new McpToolRegistry().registerAll(server);
+  await new McpResourceRegistry().registerAll(server);
+
+  // Warm the model cache at startup so it's loaded once and held in memory
+  // for the session, rather than waiting for the first tool call. Best-effort:
+  // a server started outside a DR project still starts up cleanly — the first
+  // tool call that supplies a valid rootPath will load and cache it.
+  try {
+    await loadModel();
+  } catch (error) {
+    process.stderr.write(`[mcp] model warmup skipped: ${getErrorMessage(error)}\n`);
+  }
+
+  return server;
+}
+
 export interface McpCommandOptions {
   /** Force-generate a new API key, overwrite it at the configured storage path, and exit. */
   regenerateKey?: boolean;
+  /** Transport type: "stdio" or "http" (default: "stdio") */
+  transport?: "stdio" | "http";
+  /** Port for HTTP transport (default: 3100, only meaningful with --transport http) */
+  port?: number;
+  /** Host address for HTTP transport (default: "127.0.0.1", only meaningful with --transport http) */
+  host?: string;
 }
 
 export async function mcpCommand(options: McpCommandOptions = {}): Promise<void> {
@@ -84,40 +122,18 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
     const transport = await startActiveSpan(
       "mcp.server.start",
       async (span) => {
-        const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
         const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
 
-        const server = new McpServer({
-          name: "documentation-robotics",
-          version: cliVersion,
-        });
-
-        // Register the model tool surface (list/show/search/add/update/delete/
-        // validate/export/trace/stats/info) and the spec/model manifest resources.
-        new McpToolRegistry().registerAll(server);
-        await new McpResourceRegistry().registerAll(server);
-
-        // Warm the model cache at startup so it's loaded once and held in memory
-        // for the session, rather than waiting for the first tool call. Best-effort:
-        // a server started outside a DR project (or before one exists) still starts
-        // up cleanly — the first tool call that supplies a valid rootPath will load
-        // and cache it.
-        try {
-          await loadModel();
-        } catch (error) {
-          process.stderr.write(
-            `[mcp] model warmup skipped: ${getErrorMessage(error)}\n`
-          );
-        }
+        const server = await createConfiguredServer();
 
         span.setAttribute("mcp.server.name", "documentation-robotics");
         span.setAttribute("mcp.server.version", cliVersion);
+        span.setAttribute("mcp.server.transport", options.transport || "stdio");
 
         const serverTransport = new StdioServerTransport();
         await server.connect(serverTransport);
         return serverTransport;
-      },
-      { "mcp.server.transport": "stdio" }
+      }
     );
 
     process.stderr.write("Documentation Robotics MCP server ready (stdio)\n");

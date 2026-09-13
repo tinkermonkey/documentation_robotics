@@ -679,17 +679,34 @@ The --viewer-path option allows loading a local build of the web UI:
 
 program
   .command("mcp")
-  .description("Start MCP server for AI assistant integration (stdio transport)")
+  .description("Start MCP server for AI assistant integration")
   .option(
     "--regenerate-key",
     "Generate a new MCP API key, overwrite it at the configured storage path, and print it (does not start the server)"
+  )
+  .option(
+    "--transport <type>",
+    "Transport type: stdio or http (default: stdio)",
+    "stdio"
+  )
+  .option(
+    "--port <number>",
+    "Port for HTTP transport (default: 3100, only meaningful with --transport http)",
+    "3100"
+  )
+  .option(
+    "--host <address>",
+    "Host address for HTTP transport (default: 127.0.0.1, only meaningful with --transport http)",
+    "127.0.0.1"
   )
   .addHelpText(
     "after",
     `
 Examples:
-  $ dr mcp
-  $ dr mcp --regenerate-key
+  $ dr mcp                                     # stdio transport (default)
+  $ dr mcp --transport http                    # HTTP on localhost:3100
+  $ dr mcp --transport http --port 8200        # HTTP on custom port
+  $ dr mcp --regenerate-key                    # rotate API key
 
 On first launch, generates an API key and asks where to store it (interactive
 sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
@@ -702,7 +719,16 @@ manually deleting the stored key file or config.`
   )
   .action(async (options) => {
     const { mcpCommand } = await import("./commands/mcp.js");
-    await mcpCommand({ regenerateKey: options.regenerateKey });
+    const transport = (options.transport as string).toLowerCase();
+    if (transport !== "stdio" && transport !== "http") {
+      throw new Error(`Invalid transport: ${transport}. Allowed values: stdio, http`);
+    }
+    await mcpCommand({
+      regenerateKey: options.regenerateKey,
+      transport: transport as "stdio" | "http",
+      port: parseInt(options.port as string, 10),
+      host: options.host as string,
+    });
   });
 
 // AI Integration command
