@@ -702,17 +702,50 @@ program
   .addHelpText(
     "after",
     `
+Options:
+  --transport <type>    Transport mode: stdio (default) or http
+  --port <number>       HTTP server port (default: 3100)
+  --host <address>      HTTP server bind address (default: 127.0.0.1)
+  --regenerate-key      Generate new API key and exit
+
 Examples:
-  $ dr mcp                                     # stdio transport (default)
+
+Stdio transport (default):
+  $ dr mcp
+
+HTTP transport:
   $ dr mcp --transport http                    # HTTP on localhost:3100
   $ dr mcp --transport http --port 8200        # HTTP on custom port
-  $ dr mcp --regenerate-key                    # rotate API key
+  $ dr mcp --transport http --host 0.0.0.0 --port 3100  # Listen on all interfaces
 
+Key management:
+  $ dr mcp --regenerate-key                    # Generate new API key
+
+Initial Setup:
 On first launch, generates an API key and asks where to store it (interactive
 sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
-printed to stderr on every launch and must be supplied via DR_MCP_API_KEY:
+printed to stderr on every launch and must be supplied via environment variable.
 
-  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }
+Stdio Configuration:
+For stdio transport, supply the key via environment variable:
+
+  {
+    "command": "dr",
+    "args": ["mcp"],
+    "env": { "DR_MCP_API_KEY": "<your-api-key>" }
+  }
+
+HTTP Configuration:
+For HTTP transport, include the API key as a Bearer token in the Authorization header:
+
+  {
+    "command": "dr",
+    "args": ["mcp", "--transport", "http", "--port", "3100"],
+    "url": "http://localhost:3100/mcp",
+    "headers": {
+      "Authorization": "Bearer <your-api-key>"
+    }
+  }
 
 Use --regenerate-key to rotate the key (e.g. after a suspected leak) without
 manually deleting the stored key file or config.`
