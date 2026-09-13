@@ -150,19 +150,22 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       process.stderr.write(`Documentation Robotics MCP server ready (http://${host}:${port}/mcp)\n`);
 
       // Set up graceful shutdown on SIGINT/SIGTERM
+      let resolveKeepAlive: () => void;
+      const keepAlive = new Promise<void>((resolve) => {
+        resolveKeepAlive = resolve;
+      });
+
       const shutdown = async () => {
         process.stderr.write("\nShutting down HTTP server...\n");
         await closeHttpServer(httpServer);
-        process.exit(0);
+        resolveKeepAlive!();
       };
 
       process.on("SIGINT", shutdown);
       process.on("SIGTERM", shutdown);
 
       // Keep the process alive until explicitly terminated
-      await new Promise<void>(() => {
-        // Never resolves - process stays alive until signal
-      });
+      await keepAlive;
     } else {
       // Stdio transport (default)
       const transport = await startActiveSpan(

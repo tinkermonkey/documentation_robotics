@@ -46,7 +46,7 @@ import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
 import { repairAttributeCollisionCommand } from "./commands/repair.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
-import { getErrorMessage } from "./utils/errors.js";
+import { getErrorMessage, CLIError } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
@@ -721,11 +721,11 @@ manually deleting the stored key file or config.`
     const { mcpCommand } = await import("./commands/mcp.js");
     const transport = (options.transport as string).toLowerCase();
     if (transport !== "stdio" && transport !== "http") {
-      throw new Error(`Invalid transport: ${transport}. Allowed values: stdio, http`);
+      throw new CLIError(`Invalid transport: ${transport}. Allowed values: stdio, http`, 1);
     }
     const port = parseInt(options.port as string, 10);
     if (!Number.isFinite(port) || port < 1 || port > 65535) {
-      throw new Error(`Invalid port: ${options.port}. Must be a number between 1 and 65535`);
+      throw new CLIError(`Invalid port: ${options.port}. Must be a number between 1 and 65535`, 1);
     }
     await mcpCommand({
       regenerateKey: options.regenerateKey,

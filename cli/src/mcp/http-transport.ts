@@ -80,26 +80,17 @@ export async function createMcpHttpApp(
         sessionIdGenerator: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       });
 
-      const sessionId = transport.sessionId;
-
       // Connect server to transport before handling the request
       await server.connect(transport);
-
-      // Store session data for later cleanup
-      if (sessionId) {
-        sessions.set(sessionId, { server, transport });
-      }
 
       // Handle the request through the streamable HTTP transport
       await transport.handleRequest(req, res, req.body);
 
-      // Clean up session on completion if it was closed
-      res.on("finish", () => {
-        if (sessionId && sessions.has(sessionId)) {
-          // Only delete if the response indicates the session is complete
-          // The transport's handleRequest will manage session lifecycle
-        }
-      });
+      // Store session data for later cleanup after handleRequest completes and sessionId is set
+      const sessionId = transport.sessionId;
+      if (sessionId && !sessions.has(sessionId)) {
+        sessions.set(sessionId, { server, transport });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Internal server error";
       if (!res.headersSent) {

@@ -137,19 +137,14 @@ describe("dr mcp --transport http", () => {
     expect(ready).toBe(true);
     expect(state.stderr).toContain("http://127.0.0.1:3100/mcp");
 
-    // Give the server a moment to start
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Give the server time to fully initialize after the ready message
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Attempt to make a request with a valid bearer token
-    try {
-      const response = await makeHttpRequest(3100, "POST", {
-        Authorization: `Bearer ${apiKey}`,
-      });
-      expect(response.status).not.toBe(401);
-    } catch (error) {
-      // Connection refused is expected if the server isn't fully ready yet
-      // The key is that we saw the ready message and the server started
-    }
+    const response = await makeHttpRequest(3100, "POST", {
+      Authorization: `Bearer ${apiKey}`,
+    });
+    expect(response.status).not.toBe(401);
 
     state.proc.kill("SIGINT");
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -175,16 +170,12 @@ describe("dr mcp --transport http", () => {
     const ready = await waitForServerReady(state);
     expect(ready).toBe(true);
 
-    // Give the server a moment to start
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Give the server time to fully initialize after the ready message
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    try {
-      // Request without authorization header
-      const response = await makeHttpRequest(3100, "POST", {});
-      expect(response.status).toBe(401);
-    } catch (error) {
-      // Connection refused may happen if server isn't fully ready
-    }
+    // Request without authorization header
+    const response = await makeHttpRequest(3100, "POST", {});
+    expect(response.status).toBe(401);
 
     state.proc.kill("SIGINT");
     await new Promise((resolve) => setTimeout(resolve, 100));
