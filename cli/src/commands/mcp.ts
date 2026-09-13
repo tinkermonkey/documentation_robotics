@@ -1,8 +1,11 @@
 /**
  * MCP server command - Starts an MCP server for AI assistant integration
  *
- * Runs in-process over stdio. All non-protocol output goes to stderr, since stdout
- * carries the MCP JSON-RPC transport once the server is connected.
+ * Supports two transport modes:
+ * - stdio (default): In-process over stdio; stdout carries the MCP JSON-RPC protocol
+ * - http: HTTP server with Express, exposing MCP at /mcp endpoint with bearer token auth
+ *
+ * All non-protocol output goes to stderr.
  */
 
 import { isCancel, text } from "@clack/prompts";
@@ -112,37 +115,96 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       throw new CLIError("MCP authentication failed: invalid or missing DR_MCP_API_KEY", 1);
     }
 
-    const transport = await startActiveSpan(
-      "mcp.server.start",
-      async (span) => {
-        const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+    if (options.transport === "http") {
+      // HTTP transport implementation
+      const { createMcpHttpApp, startHttpServer, closeHttpServer } = await import(
+        "../mcp/http-transport.js"
+      );
 
-        const server = await createConfiguredServer();
+      const httpServer = await startActiveSpan(
+        "mcp.server.start",
+        async (span) => {
+          const app = await createMcpHttpApp(keyManager, key, createConfiguredServer);
+          const server = await startHttpServer(app, options.host || "127.0.0.1", options.port || 3100);
 
-        span.setAttribute("mcp.server.name", "documentation-robotics");
-        span.setAttribute("mcp.server.version", cliVersion);
-        span.setAttribute("mcp.server.transport", options.transport || "stdio");
+          span.setAttribute("mcp.server.name", "documentation-robotics");
+          span.setAttribute("mcp.server.version", cliVersion);
+          span.setAttribute("mcp.server.transport", "http");
+          span.setAttribute("mcp.server.host", options.host || "127.0.0.1");
+          span.setAttribute("mcp.server.port", options.port || 3100);
 
-        const serverTransport = new StdioServerTransport();
-        await server.connect(serverTransport);
-        return serverTransport;
+          return server;
+        }
+      );
+
+      const host = options.host || "127.0.0.1";
+      const port = options.port || 3100;
+
+      // Warn if bound to 0.0.0.0
+      if (host === "0.0.0.0") {
+        process.stderr.write(
+          "Warning: Server bound to 0.0.0.0. DNS rebinding protection is not automatic; ensure your MCP client validates the Host header.\n"
+        );
       }
-    );
 
-    process.stderr.write("Documentation Robotics MCP server ready (stdio)\n");
+      process.stderr.write(`Documentation Robotics MCP server ready (http://${host}:${port}/mcp)\n`);
 
-    // Keep the process alive for the lifetime of the stdio session; the
-    // transport closes (and the process exits) when stdin closes. Shutdown
-    // is implicit in the `mcp.server.start` span's end, so no separate
-    // zero-duration "stop" span is recorded here.
-    await new Promise<void>((resolve) => {
-      transport.onclose = () => resolve();
-    });
+      // Set up graceful shutdown on SIGINT/SIGTERM
+      const shutdown = async () => {
+        process.stderr.write("\nShutting down HTTP server...\n");
+        await closeHttpServer(httpServer);
+        process.exit(0);
+      };
+
+      process.on("SIGINT", shutdown);
+      process.on("SIGTERM", shutdown);
+
+      // Keep the process alive until explicitly terminated
+      await new Promise<void>(() => {
+        // Never resolves - process stays alive until signal
+      });
+    } else {
+      // Stdio transport (default)
+      const transport = await startActiveSpan(
+        "mcp.server.start",
+        async (span) => {
+          const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+
+          const server = await createConfiguredServer();
+
+          span.setAttribute("mcp.server.name", "documentation-robotics");
+          span.setAttribute("mcp.server.version", cliVersion);
+          span.setAttribute("mcp.server.transport", "stdio");
+
+          const serverTransport = new StdioServerTransport();
+          await server.connect(serverTransport);
+          return serverTransport;
+        }
+      );
+
+      process.stderr.write("Documentation Robotics MCP server ready (stdio)\n");
+
+      // Keep the process alive for the lifetime of the stdio session; the
+      // transport closes (and the process exits) when stdin closes. Shutdown
+      // is implicit in the `mcp.server.start` span's end, so no separate
+      // zero-duration "stop" span is recorded here.
+      await new Promise<void>((resolve) => {
+        transport.onclose = () => resolve();
+      });
+    }
   } catch (error) {
     if (error instanceof CLIError) {
       throw error;
     }
-    const message = getErrorMessage(error);
+
+    let message = getErrorMessage(error);
+
+    // Handle port-in-use errors with actionable message
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+      const port = options.port || 3100;
+      message = `Port ${port} is already in use. Try a different port with --port or kill the process using that port.`;
+    }
+
     process.stderr.write(`Error: ${message}\n`);
     throw new CLIError(message, 1);
   }
