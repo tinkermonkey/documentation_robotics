@@ -22,7 +22,7 @@ const sessions = new Map<string, SessionData>();
  * Middleware to validate bearer token authentication.
  * Extracts and validates the Authorization header, rejecting with 401 if invalid.
  */
-function createBearerAuthMiddleware(keyManager: ApiKeyManager, expectedKey: string) {
+export function createBearerAuthMiddleware(keyManager: ApiKeyManager, expectedKey: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const authHeader = req.get("Authorization") || "";
     const match = authHeader.match(/^Bearer\s+(.+)$/);

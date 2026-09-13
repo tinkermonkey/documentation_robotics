@@ -1,90 +1,155 @@
 /**
  * Unit tests for the bearer auth middleware used by the HTTP MCP transport.
  *
- * Tests all branches: missing header, malformed header, invalid token, and valid token.
+ * Tests the actual createBearerAuthMiddleware function from http-transport.ts
+ * using mock Request/Response objects.
  */
 
 import { describe, it, expect } from "bun:test";
+import { createBearerAuthMiddleware } from "../../../src/mcp/http-transport";
 import { ApiKeyManager } from "../../../src/mcp/api-key-manager";
 
 describe("Bearer Auth Middleware", () => {
   const testKey = "dr-mcp-test-key-12345";
 
-  // Extracts the token extraction and validation logic from the middleware
-  function extractAndValidateToken(
-    keyManager: ApiKeyManager,
-    authHeader: string,
-    expectedKey: string
-  ): boolean {
-    const match = authHeader.match(/^Bearer\s+(.+)$/);
-    const providedKey = match ? match[1] : undefined;
-    return keyManager.validate(providedKey, expectedKey);
+  // Mock Request object with get method
+  class MockRequest {
+    private headers: Record<string, string>;
+
+    constructor(headers: Record<string, string> = {}) {
+      this.headers = headers;
+    }
+
+    get(key: string): string | undefined {
+      return this.headers[key.toLowerCase()];
+    }
+  }
+
+  // Mock Response object
+  class MockResponse {
+    statusCode = 200;
+    responseBody: any = null;
+    headersSent = false;
+
+    status(code: number) {
+      this.statusCode = code;
+      return this;
+    }
+
+    json(body: any) {
+      this.responseBody = body;
+      this.headersSent = true;
+    }
   }
 
   it("rejects requests with a missing Authorization header", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const isValid = extractAndValidateToken(keyManager, "", testKey);
-    expect(isValid).toBe(false);
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({});
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    middleware(req as any, res, next);
+
+    expect(res.statusCode).toBe(401);
+    expect(nextCalled).toBe(false);
   });
 
   it("rejects requests with a malformed Authorization header", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const isValid = extractAndValidateToken(keyManager, "InvalidFormat", testKey);
-    expect(isValid).toBe(false);
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({ authorization: "InvalidFormat" });
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    middleware(req as any, res, next);
+
+    expect(res.statusCode).toBe(401);
+    expect(nextCalled).toBe(false);
   });
 
   it("rejects requests with an invalid bearer token", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const isValid = extractAndValidateToken(keyManager, "Bearer wrong-key", testKey);
-    expect(isValid).toBe(false);
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({ authorization: "Bearer wrong-key" });
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    middleware(req as any, res, next);
+
+    expect(res.statusCode).toBe(401);
+    expect(nextCalled).toBe(false);
   });
 
   it("allows requests with a valid bearer token", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const isValid = extractAndValidateToken(keyManager, `Bearer ${testKey}`, testKey);
-    expect(isValid).toBe(true);
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({ authorization: `Bearer ${testKey}` });
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    middleware(req as any, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(nextCalled).toBe(true);
   });
 
-  it("rejects Bearer tokens with extra leading whitespace in the header", async () => {
+  it("handles Bearer tokens with extra leading whitespace in the header", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const authHeader = `Bearer   ${testKey}`;
-    const match = authHeader.match(/^Bearer\s+(.+)$/);
-    const providedKey = match ? match[1] : undefined;
-    const isValid = keyManager.validate(providedKey, testKey);
-    // The regex handles multiple spaces correctly, so this should be valid
-    expect(isValid).toBe(true);
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({ authorization: `Bearer   ${testKey}` });
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    middleware(req as any, res, next);
+
+    expect(nextCalled).toBe(true);
   });
 
   it("rejects Bearer tokens with trailing whitespace in the token itself", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const authHeader = `Bearer ${testKey}   `;
-    const match = authHeader.match(/^Bearer\s+(.+)$/);
-    const providedKey = match ? match[1] : undefined;
-    // The regex captures trailing spaces as part of the token
-    const isValid = keyManager.validate(providedKey, testKey);
-    // This will be invalid because the key includes trailing spaces
-    expect(isValid).toBe(false);
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({ authorization: `Bearer ${testKey}   ` });
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
+
+    middleware(req as any, res, next);
+
+    expect(res.statusCode).toBe(401);
+    expect(nextCalled).toBe(false);
   });
 
   it("is case-sensitive for the Bearer scheme", async () => {
     const keyManager = new ApiKeyManager("/tmp/test-key");
-    const isValid = extractAndValidateToken(keyManager, `bearer ${testKey}`, testKey);
-    // Bearer is case-sensitive; lowercase "bearer" should not match
-    expect(isValid).toBe(false);
-  });
+    const middleware = createBearerAuthMiddleware(keyManager, testKey);
+    const req = new MockRequest({ authorization: `bearer ${testKey}` });
+    const res = new MockResponse() as any;
+    let nextCalled = false;
+    const next = () => {
+      nextCalled = true;
+    };
 
-  it("validates using constant-time comparison", async () => {
-    const keyManager = new ApiKeyManager("/tmp/test-key");
+    middleware(req as any, res, next);
 
-    // Test that two different lengths are rejected (timing attack protection)
-    const shortKey = "short";
-    const longKey = testKey;
-
-    const isValid1 = extractAndValidateToken(keyManager, `Bearer ${shortKey}`, longKey);
-    expect(isValid1).toBe(false);
-
-    // Test that the same key is always accepted
-    const isValid2 = extractAndValidateToken(keyManager, `Bearer ${longKey}`, longKey);
-    expect(isValid2).toBe(true);
+    expect(res.statusCode).toBe(401);
+    expect(nextCalled).toBe(false);
   });
 });

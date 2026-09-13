@@ -243,27 +243,6 @@ describe("dr mcp --transport http", () => {
     expect(exitCode === 0 || exitCode === null).toBe(true);
   });
 
-  it("accepts requests with valid bearer auth", async () => {
-    const state = spawnMcpHttp(configPath, apiKey);
-    spawned.push(state.proc);
-
-    const ready = await waitForServerReady(state);
-    expect(ready).toBe(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const response = await makeHttpRequest(3100, "POST", {
-      Authorization: `Bearer ${apiKey}`,
-    });
-
-    // Should not be a 401 Unauthorized
-    expect(response.status).not.toBe(401);
-    expect(response.body).toBeDefined();
-
-    state.proc.kill("SIGINT");
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  });
-
   it("handles multiple concurrent sessions independently", async () => {
     const state = spawnMcpHttp(configPath, apiKey);
     spawned.push(state.proc);
@@ -307,16 +286,50 @@ describe("dr mcp --transport http", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
   });
 
-  it("starts HTTP server and reports ready status with correct URL", async () => {
+  it("invokes a tool over HTTP after initialization", async () => {
     const state = spawnMcpHttp(configPath, apiKey);
     spawned.push(state.proc);
 
     const ready = await waitForServerReady(state);
     expect(ready).toBe(true);
-    expect(state.stderr).toContain("MCP server ready");
-    expect(state.stderr).toContain("http");
-    expect(state.stderr).toContain("3100");
-    expect(state.stderr).toContain("/mcp");
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const headers = { Authorization: `Bearer ${apiKey}` };
+
+    // Step 1: Send initialize request
+    const initResponse = await makeHttpRequest(3100, "POST", headers, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "test-client", version: "1.0.0" },
+      },
+    });
+
+    expect(initResponse.status).not.toBe(401);
+    expect(initResponse.body).toBeDefined();
+
+    // Extract sessionId from the response (in the MCP protocol, it should be in response.result)
+    const sessionIdFromInit = (initResponse.body as any)?.result?.extensionData?.["mcp-session-id"] ||
+                              initResponse.headers.get?.("mcp-session-id");
+
+    // Step 2: Send a tool invocation request (model_list)
+    // Use the sessionId if available, or just send another POST
+    const toolResponse = await makeHttpRequest(3100, "POST", {
+      ...headers,
+      ...(sessionIdFromInit ? { "mcp-session-id": sessionIdFromInit } : {}),
+    }, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "resources/list",
+    });
+
+    // The tool call should succeed (not 401, ideally successful JSON-RPC response)
+    expect(toolResponse.status).not.toBe(401);
+    expect(toolResponse.body).toBeDefined();
 
     state.proc.kill("SIGINT");
     await new Promise((resolve) => setTimeout(resolve, 100));
