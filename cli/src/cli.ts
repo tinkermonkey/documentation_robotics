@@ -702,12 +702,6 @@ program
   .addHelpText(
     "after",
     `
-Options:
-  --transport <type>    Transport mode: stdio (default) or http
-  --port <number>       HTTP server port (default: 3100)
-  --host <address>      HTTP server bind address (default: 127.0.0.1)
-  --regenerate-key      Generate new API key and exit
-
 Examples:
 
 Stdio transport (default):
@@ -739,8 +733,6 @@ HTTP Configuration:
 For HTTP transport, include the API key as a Bearer token in the Authorization header:
 
   {
-    "command": "dr",
-    "args": ["mcp", "--transport", "http", "--port", "3100"],
     "url": "http://localhost:3100/mcp",
     "headers": {
       "Authorization": "Bearer <your-api-key>"
