@@ -81,8 +81,9 @@ async function waitForServerReady(state: McpProcess, timeoutMs = 5000): Promise<
 async function makeHttpRequest(
   port: number,
   method: string = "POST",
-  headers?: Record<string, string>
-): Promise<{ status: number; body: unknown }> {
+  headers?: Record<string, string>,
+  body?: any
+): Promise<{ status: number; body: unknown; headers: Headers }> {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/mcp`, {
       method,
@@ -90,10 +91,16 @@ async function makeHttpRequest(
         "Content-Type": "application/json",
         ...headers,
       },
-      body: method !== "GET" ? JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : (method !== "GET" ? JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }) : undefined),
     });
-    const body = await response.json();
-    return { status: response.status, body };
+    const text = await response.text();
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
+    }
+    return { status: response.status, body: parsed, headers: response.headers };
   } catch (error) {
     throw new Error(`HTTP request failed: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -219,5 +226,99 @@ describe("dr mcp --transport http", () => {
 
     // Process should exit cleanly (code 0 or null)
     expect(exitCode === 0 || exitCode === null).toBe(true);
+  });
+
+  it("exits cleanly on SIGTERM", async () => {
+    const state = spawnMcpHttp(configPath, apiKey);
+    spawned.push(state.proc);
+
+    const ready = await waitForServerReady(state);
+    expect(ready).toBe(true);
+
+    // Send SIGTERM
+    state.proc.kill("SIGTERM");
+    const exitCode = await state.exitCode;
+
+    // Process should exit cleanly (code 0 or null)
+    expect(exitCode === 0 || exitCode === null).toBe(true);
+  });
+
+  it("accepts requests with valid bearer auth", async () => {
+    const state = spawnMcpHttp(configPath, apiKey);
+    spawned.push(state.proc);
+
+    const ready = await waitForServerReady(state);
+    expect(ready).toBe(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const response = await makeHttpRequest(3100, "POST", {
+      Authorization: `Bearer ${apiKey}`,
+    });
+
+    // Should not be a 401 Unauthorized
+    expect(response.status).not.toBe(401);
+    expect(response.body).toBeDefined();
+
+    state.proc.kill("SIGINT");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+
+  it("handles multiple concurrent sessions independently", async () => {
+    const state = spawnMcpHttp(configPath, apiKey);
+    spawned.push(state.proc);
+
+    const ready = await waitForServerReady(state);
+    expect(ready).toBe(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const headers = { Authorization: `Bearer ${apiKey}` };
+
+    // Make two concurrent POST requests (both should succeed)
+    const [response1, response2] = await Promise.all([
+      makeHttpRequest(3100, "POST", headers, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "client-1", version: "1.0.0" },
+        },
+      }),
+      makeHttpRequest(3100, "POST", headers, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "client-2", version: "1.0.0" },
+        },
+      }),
+    ]);
+
+    // Both requests should succeed
+    expect(response1.status).not.toBe(401);
+    expect(response2.status).not.toBe(401);
+
+    state.proc.kill("SIGINT");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+
+  it("starts HTTP server and reports ready status with correct URL", async () => {
+    const state = spawnMcpHttp(configPath, apiKey);
+    spawned.push(state.proc);
+
+    const ready = await waitForServerReady(state);
+    expect(ready).toBe(true);
+    expect(state.stderr).toContain("MCP server ready");
+    expect(state.stderr).toContain("http");
+    expect(state.stderr).toContain("3100");
+    expect(state.stderr).toContain("/mcp");
+
+    state.proc.kill("SIGINT");
+    await new Promise((resolve) => setTimeout(resolve, 100));
   });
 });

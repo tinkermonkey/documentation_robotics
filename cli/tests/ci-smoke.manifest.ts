@@ -57,4 +57,5 @@ export const SMOKE_TESTS: string[] = [
 
   // MCP Server
   "tests/integration/mcp-server-smoke.test.ts",
+  "tests/integration/mcp-http-transport-smoke.test.ts",
 ];
