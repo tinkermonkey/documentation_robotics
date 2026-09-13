@@ -723,10 +723,14 @@ manually deleting the stored key file or config.`
     if (transport !== "stdio" && transport !== "http") {
       throw new Error(`Invalid transport: ${transport}. Allowed values: stdio, http`);
     }
+    const port = parseInt(options.port as string, 10);
+    if (!Number.isFinite(port) || port < 1 || port > 65535) {
+      throw new Error(`Invalid port: ${options.port}. Must be a number between 1 and 65535`);
+    }
     await mcpCommand({
       regenerateKey: options.regenerateKey,
       transport: transport as "stdio" | "http",
-      port: parseInt(options.port as string, 10),
+      port,
       host: options.host as string,
     });
   });

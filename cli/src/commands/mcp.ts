@@ -34,13 +34,6 @@ const promptForKeyPath: ApiKeyStoragePrompt = async (defaultPath) => {
   return result.trim();
 };
 
-/**
- * Extract and create a configured MCP server with tools, resources, and model warmup.
- * Returns the connected McpServer instance ready for use with any transport.
- *
- * This shared setup is called once for stdio (unchanged behavior) and per-session
- * for HTTP (to support multiple concurrent clients).
- */
 async function createConfiguredServer() {
   const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
 
