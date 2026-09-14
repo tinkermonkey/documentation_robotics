@@ -19,13 +19,7 @@ export interface FarmProject {
   branch?: string; // Optional git branch
 }
 
-/**
- * Validate that a project object has all required FarmProject fields
- * @param project - Object to validate
- * @param projectKey - Key/name of the project for error messages
- * @returns Validated FarmProject
- * @throws Error if required fields are missing or invalid
- */
+// Validate project object has required fields and key/name consistency
 function validateFarmProject(project: any, projectKey: string): FarmProject {
   if (!project || typeof project !== "object") {
     throw new Error(
@@ -33,24 +27,31 @@ function validateFarmProject(project: any, projectKey: string): FarmProject {
     );
   }
 
-  if (!project.name) {
+  if (typeof project.name !== "string" || project.name === "") {
     throw new Error(
       `Project "${projectKey}" is missing required 'name' field. ` +
       `Each project must have name, source, and model fields.`
     );
   }
 
-  if (!project.source) {
+  if (typeof project.source !== "string" || project.source === "") {
     throw new Error(
       `Project "${projectKey}" is missing required 'source' field. ` +
       `Each project must have name, source, and model fields.`
     );
   }
 
-  if (!project.model) {
+  if (typeof project.model !== "string" || project.model === "") {
     throw new Error(
       `Project "${projectKey}" is missing required 'model' field. ` +
       `Each project must have name, source, and model fields.`
+    );
+  }
+
+  if (project.name !== projectKey) {
+    throw new Error(
+      `Project name mismatch: key is "${projectKey}" but project.name is "${project.name}". ` +
+      `They must match for consistent sync state tracking.`
     );
   }
 
@@ -179,12 +180,7 @@ export class FarmManifest {
     this.filePath = targetPath;
   }
 
-  /**
-   * Add a project to the farm
-   * @param name - Project name (must match project.name)
-   * @param project - Project configuration
-   * @throws Error if name parameter doesn't match project.name
-   */
+  // Add a project to the farm; ensures name parameter matches project.name
   addProject(name: string, project: FarmProject): void {
     if (project.name !== name) {
       throw new Error(
