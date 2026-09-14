@@ -166,7 +166,7 @@ describe("FarmSyncState", () => {
     expect(lastRecord?.commit).toBe("failed-commit-456");
   });
 
-  it("should not update lastSyncCommit when sync status is 'partial'", () => {
+  it("should update lastSyncCommit when sync status is 'partial' (confident files processed)", () => {
     const state = FarmSyncState.create("test-project");
     const successTimestamp = new Date().toISOString();
     const partialTimestamp = new Date(Date.now() + 1000).toISOString();
@@ -180,18 +180,19 @@ describe("FarmSyncState", () => {
 
     expect(state.lastSyncCommit).toBe("success-commit-123");
 
-    // Record partial sync - should NOT update lastSyncCommit
+    // Record partial sync - SHOULD update lastSyncCommit because confident files are processed
     state.recordSync({
       timestamp: partialTimestamp,
       commit: "partial-commit-789",
       status: "partial",
-      notes: "Some changes not processed",
+      notes: "Some changes have ambiguities",
     });
 
-    // lastSyncCommit should still point to successful commit
-    expect(state.lastSyncCommit).toBe("success-commit-123");
+    // lastSyncCommit should be updated to the partial commit (confident files processed)
+    // This prevents reprocessing confident files on next sync
+    expect(state.lastSyncCommit).toBe("partial-commit-789");
 
-    // But the partial sync should be in history
+    // Partial sync should be in history
     expect(state.syncHistory.length).toBe(2);
     const lastRecord = state.getLastSync();
     expect(lastRecord?.status).toBe("partial");
@@ -330,7 +331,7 @@ describe("FarmSyncEngine", () => {
     const project = farmManifest.getProject("test-project")!;
     const result = await engine.syncProject(project, { verbose: false });
 
-    expect(result.success).toBe(true);
+    expect(result.status).toBe("success");
     expect(result.projectName).toBe("test-project");
     expect(result.changeCount).toBe(0);
     expect(result.notes).toContain("Initial sync - recording baseline only");
@@ -354,7 +355,7 @@ describe("FarmSyncEngine", () => {
     // Second sync without changes
     const result = await engine.syncProject(project, { verbose: false });
 
-    expect(result.success).toBe(true);
+    expect(result.status).toBe("success");
     expect(result.filesChanged.added.length).toBe(0);
     expect(result.filesChanged.modified.length).toBe(0);
     expect(result.filesChanged.deleted.length).toBe(0);

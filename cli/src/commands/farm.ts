@@ -1057,7 +1057,7 @@ export async function farmSyncCommand(options: {
 
           const resultEntry: FarmSyncResultEntry = {
             project: project.name,
-            status: result.success ? "success" : "error",
+            status: result.status === "failed" ? "error" : result.status,
             change_count: result.changeCount,
             changeset_id: result.changesetId,
             files_changed: result.filesChanged,
@@ -1123,7 +1123,9 @@ export async function farmSyncCommand(options: {
 
           if (options.verbose && !useJson) {
             handleInfo(`\nProject: ${project.name}`);
-            handleInfo(`  Status: ${result.success ? "✓ Success" : "✗ Failed"}`);
+            const statusEmoji = result.status === "success" ? "✓" : result.status === "partial" ? "⚠" : "✗";
+            const statusText = result.status === "success" ? "Success" : result.status === "partial" ? "Partial" : "Failed";
+            handleInfo(`  Status: ${statusEmoji} ${statusText}`);
             handleInfo(`  Commits: ${result.commitsBefore}...${result.commitsAfter}`);
             handleInfo(
               `  Files changed: +${result.filesChanged.added.length} ~${result.filesChanged.modified.length} -${result.filesChanged.deleted.length}`

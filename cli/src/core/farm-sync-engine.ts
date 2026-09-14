@@ -56,7 +56,7 @@ export interface FileElementMapping {
  * Result of a sync operation
  */
 export interface SyncResult {
-  success: boolean;
+  status: "success" | "partial" | "failed";
   projectName: string;
   commitsBefore: string;
   commitsAfter: string;
@@ -66,6 +66,7 @@ export interface SyncResult {
   changesetId?: string; // ID of generated changeset if applicable
   changeCount: number; // Total staged changes
   notes: string[];
+  dryRun?: boolean; // True if this was a dry run (no state changed)
 }
 
 /**
@@ -433,18 +434,22 @@ export class FarmSyncEngine {
     // Step 3: If no previous sync, this is initial sync - just record state
     if (!previousCommit) {
       notes.push("Initial sync - recording baseline only");
-      syncState.recordSync({
-        timestamp: new Date().toISOString(),
-        commit: currentCommit,
-        status: "success",
-        files_changed: 0,
-        elements_affected: 0,
-        notes: "Initial sync, no changes to sync",
-      });
-      await syncState.save(syncStatePath);
+      if (!options.dryRun) {
+        syncState.recordSync({
+          timestamp: new Date().toISOString(),
+          commit: currentCommit,
+          status: "success",
+          files_changed: 0,
+          elements_affected: 0,
+          notes: "Initial sync, no changes to sync",
+        });
+        await syncState.save(syncStatePath);
+      } else {
+        notes.push("(DRY RUN - sync state not recorded)");
+      }
 
       return {
-        success: true,
+        status: "success",
         projectName: project.name,
         commitsBefore: "none",
         commitsAfter: currentCommit.substring(0, 8),
@@ -453,6 +458,7 @@ export class FarmSyncEngine {
         ambiguities: [],
         changeCount: 0,
         notes,
+        dryRun: options.dryRun,
       };
     }
 
@@ -465,18 +471,22 @@ export class FarmSyncEngine {
     // If no changes, return early
     if (diff.added.length === 0 && diff.modified.length === 0 && diff.deleted.length === 0) {
       notes.push("No changes detected");
-      syncState.recordSync({
-        timestamp: new Date().toISOString(),
-        commit: currentCommit,
-        status: "success",
-        files_changed: 0,
-        elements_affected: 0,
-        notes: "No changes to sync",
-      });
-      await syncState.save(syncStatePath);
+      if (!options.dryRun) {
+        syncState.recordSync({
+          timestamp: new Date().toISOString(),
+          commit: currentCommit,
+          status: "success",
+          files_changed: 0,
+          elements_affected: 0,
+          notes: "No changes to sync",
+        });
+        await syncState.save(syncStatePath);
+      } else {
+        notes.push("(DRY RUN - sync state not recorded)");
+      }
 
       return {
-        success: true,
+        status: "success",
         projectName: project.name,
         commitsBefore: previousCommit.substring(0, 8),
         commitsAfter: currentCommit.substring(0, 8),
@@ -485,6 +495,7 @@ export class FarmSyncEngine {
         ambiguities: [],
         changeCount: 0,
         notes,
+        dryRun: options.dryRun,
       };
     }
 
@@ -495,18 +506,22 @@ export class FarmSyncEngine {
     // Step 5: Check that model is available before attempting to map files
     if (!this.model) {
       notes.push("CRITICAL: Model is not loaded, cannot map files to elements");
-      syncState.recordSync({
-        timestamp: new Date().toISOString(),
-        commit: previousCommit, // Don't advance lastSyncCommit - stay at previous commit
-        status: "failed",
-        files_changed: diff.added.length + diff.modified.length + diff.deleted.length,
-        elements_affected: 0,
-        notes: "Model not loaded - file changes not synced. Load the model and retry to process these files.",
-      });
-      await syncState.save(syncStatePath);
+      if (!options.dryRun) {
+        syncState.recordSync({
+          timestamp: new Date().toISOString(),
+          commit: previousCommit, // Don't advance lastSyncCommit - stay at previous commit
+          status: "failed",
+          files_changed: diff.added.length + diff.modified.length + diff.deleted.length,
+          elements_affected: 0,
+          notes: "Model not loaded - file changes not synced. Load the model and retry to process these files.",
+        });
+        await syncState.save(syncStatePath);
+      } else {
+        notes.push("(DRY RUN - sync state not recorded)");
+      }
 
       return {
-        success: false,
+        status: "failed",
         projectName: project.name,
         commitsBefore: previousCommit.substring(0, 8),
         commitsAfter: currentCommit.substring(0, 8),
@@ -515,6 +530,7 @@ export class FarmSyncEngine {
         ambiguities: [],
         changeCount: 0,
         notes,
+        dryRun: options.dryRun,
       };
     }
 
@@ -550,20 +566,26 @@ export class FarmSyncEngine {
       notes.push(...changesetResult.warnings);
     }
 
-    // Step 9: Record sync in state
-    syncState.recordSync({
-      timestamp: new Date().toISOString(),
-      commit: currentCommit,
-      status: mappings.ambiguous.length > 0 && !options.force ? "partial" : "success",
-      changeset: changesetId,
-      files_changed: diff.added.length + diff.modified.length + diff.deleted.length,
-      elements_affected: mappings.confident.length + mappings.ambiguous.length,
-      notes: notes.join("\n"),
-    });
-    await syncState.save(syncStatePath);
+    // Step 9: Record sync in state (skip for dry run)
+    const syncStatus = mappings.ambiguous.length > 0 && !options.force ? "partial" : "success";
+
+    if (!options.dryRun) {
+      syncState.recordSync({
+        timestamp: new Date().toISOString(),
+        commit: currentCommit,
+        status: syncStatus,
+        changeset: changesetId,
+        files_changed: diff.added.length + diff.modified.length + diff.deleted.length,
+        elements_affected: mappings.confident.length + mappings.ambiguous.length,
+        notes: notes.join("\n"),
+      });
+      await syncState.save(syncStatePath);
+    } else {
+      notes.push("(DRY RUN - sync state not recorded)");
+    }
 
     return {
-      success: true,
+      status: syncStatus,
       projectName: project.name,
       commitsBefore: previousCommit.substring(0, 8),
       commitsAfter: currentCommit.substring(0, 8),
@@ -573,6 +595,7 @@ export class FarmSyncEngine {
       changesetId,
       changeCount,
       notes,
+      dryRun: options.dryRun,
     };
   }
 }

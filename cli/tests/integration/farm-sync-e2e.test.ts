@@ -116,7 +116,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       const result = await engine.syncProject(project, { verbose: false });
 
       // Verify result
-      expect(result.success).toBe(true);
+      expect(result.status).toBe("success");
       expect(result.projectName).toBe("test-project");
       expect(result.commitsBefore).toBe("none");
       expect(result.filesChanged.added.length).toBe(0);
@@ -190,7 +190,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       // Perform 3 syncs with changes
       for (let i = 0; i < 3; i++) {
         const result = await engine.syncProject(project, { verbose: false });
-        expect(result.success).toBe(true);
+        expect(result.status).toBe("success");
 
         if (i < 2) {
           // Add file between syncs
