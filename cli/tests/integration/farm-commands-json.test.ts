@@ -181,8 +181,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     });
     await manifest.save(farmYamlPath);
 
-    // Create a model directory
-    await ensureDir(modelPath);
+    // Add content to the model directory
     await fs.writeFile(path.join(modelPath, "test.txt"), "test content");
 
     // Capture console output
@@ -249,7 +248,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     await fs.rm(parentDir, { recursive: true, force: true });
   });
 
-  it("should reject symlink escapes in model deletion", async () => {
+  it("should not delete external directories when model path is a symlink", async () => {
     // Create a farm structure
     const manifest = FarmManifest.create("Test Farm");
     const modelsDir = path.join(farmDir, "models");
@@ -287,14 +286,17 @@ describe("Farm Commands - JSON Output Format Support", () => {
     await farmRemoveCommand("symlink-project", { deleteModel: true, format: "json" });
     console.log = originalLog;
 
-    // The path traversal guard should catch resolved symlink paths that escape
+    // Verify the operation succeeded (symlink is removed safely)
     const output = JSON.parse(capturedOutput);
-    // Either the operation fails due to path traversal, or succeeds because the symlink was deleted
-    if (output.status === "error") {
-      expect(output.message).toContain("Invalid model path");
-    }
+    expect(output.status).toBe("ok");
+    expect(output.modelDeleted).toBe(true);
+
+    // Verify the symlink itself was deleted
+    expect(await fileExists(symlinkPath)).toBe(false);
 
     // Verify external directory still exists and wasn't deleted
+    // This is the critical safety check: fs.rm on a symlink removes the link itself,
+    // not the target directory it points to
     expect(await fileExists(externalDir)).toBe(true);
     const content = await fs.readFile(path.join(externalDir, "secret.txt"), "utf-8");
     expect(content).toBe("secret content");
