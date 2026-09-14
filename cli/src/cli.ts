@@ -46,7 +46,7 @@ import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
 import { repairAttributeCollisionCommand } from "./commands/repair.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
-import { getErrorMessage } from "./utils/errors.js";
+import { getErrorMessage, CLIError } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
@@ -679,30 +679,85 @@ The --viewer-path option allows loading a local build of the web UI:
 
 program
   .command("mcp")
-  .description("Start MCP server for AI assistant integration (stdio transport)")
+  .description("Start MCP server for AI assistant integration")
   .option(
     "--regenerate-key",
     "Generate a new MCP API key, overwrite it at the configured storage path, and print it (does not start the server)"
+  )
+  .option(
+    "--transport <type>",
+    "Transport type: stdio or http (default: stdio)",
+    "stdio"
+  )
+  .option(
+    "--port <number>",
+    "Port for HTTP transport (default: 3100, only meaningful with --transport http)",
+    "3100"
+  )
+  .option(
+    "--host <address>",
+    "Host address for HTTP transport (default: 127.0.0.1, only meaningful with --transport http)",
+    "127.0.0.1"
   )
   .addHelpText(
     "after",
     `
 Examples:
-  $ dr mcp
-  $ dr mcp --regenerate-key
 
+Stdio transport (default):
+  $ dr mcp
+
+HTTP transport:
+  $ dr mcp --transport http                    # HTTP on localhost:3100
+  $ dr mcp --transport http --port 8200        # HTTP on custom port
+  $ dr mcp --transport http --host 0.0.0.0 --port 3100  # Listen on all interfaces
+
+Key management:
+  $ dr mcp --regenerate-key                    # Generate new API key
+
+Initial Setup:
 On first launch, generates an API key and asks where to store it (interactive
 sessions only; non-interactive launches default to ~/.dr-mcp-key). The key is
-printed to stderr on every launch and must be supplied via DR_MCP_API_KEY:
+printed to stderr on every launch and must be supplied via environment variable.
 
-  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }
+Stdio Configuration:
+For stdio transport, supply the key via environment variable:
+
+  {
+    "command": "dr",
+    "args": ["mcp"],
+    "env": { "DR_MCP_API_KEY": "<your-api-key>" }
+  }
+
+HTTP Configuration:
+For HTTP transport, include the API key as a Bearer token in the Authorization header:
+
+  {
+    "url": "http://localhost:3100/mcp",
+    "headers": {
+      "Authorization": "Bearer <your-api-key>"
+    }
+  }
 
 Use --regenerate-key to rotate the key (e.g. after a suspected leak) without
 manually deleting the stored key file or config.`
   )
   .action(async (options) => {
     const { mcpCommand } = await import("./commands/mcp.js");
-    await mcpCommand({ regenerateKey: options.regenerateKey });
+    const transport = (options.transport as string).toLowerCase();
+    if (transport !== "stdio" && transport !== "http") {
+      throw new CLIError(`Invalid transport: ${transport}. Allowed values: stdio, http`, 1);
+    }
+    const port = parseInt(options.port as string, 10);
+    if (!Number.isFinite(port) || port < 1 || port > 65535) {
+      throw new CLIError(`Invalid port: ${options.port}. Must be a number between 1 and 65535`, 1);
+    }
+    await mcpCommand({
+      regenerateKey: options.regenerateKey,
+      transport: transport as "stdio" | "http",
+      port,
+      host: options.host as string,
+    });
   });
 
 // AI Integration command

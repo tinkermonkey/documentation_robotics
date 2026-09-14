@@ -166,7 +166,7 @@ describe("FarmSyncState", () => {
     expect(lastRecord?.commit).toBe("failed-commit-456");
   });
 
-  it("should not update lastSyncCommit when sync status is 'partial'", () => {
+  it("should update lastSyncCommit when sync status is 'partial' (confident files processed)", () => {
     const state = FarmSyncState.create("test-project");
     const successTimestamp = new Date().toISOString();
     const partialTimestamp = new Date(Date.now() + 1000).toISOString();
@@ -180,18 +180,19 @@ describe("FarmSyncState", () => {
 
     expect(state.lastSyncCommit).toBe("success-commit-123");
 
-    // Record partial sync - should NOT update lastSyncCommit
+    // Record partial sync - SHOULD update lastSyncCommit because confident files are processed
     state.recordSync({
       timestamp: partialTimestamp,
       commit: "partial-commit-789",
       status: "partial",
-      notes: "Some changes not processed",
+      notes: "Some changes have ambiguities",
     });
 
-    // lastSyncCommit should still point to successful commit
-    expect(state.lastSyncCommit).toBe("success-commit-123");
+    // lastSyncCommit should be updated to the partial commit (confident files processed)
+    // This prevents reprocessing confident files on next sync
+    expect(state.lastSyncCommit).toBe("partial-commit-789");
 
-    // But the partial sync should be in history
+    // Partial sync should be in history
     expect(state.syncHistory.length).toBe(2);
     const lastRecord = state.getLastSync();
     expect(lastRecord?.status).toBe("partial");
@@ -324,13 +325,123 @@ describe("FarmSyncEngine", () => {
     expect(diff.added.length).toBe(0);
   });
 
+  it("should reject invalid commit SHA format to prevent command injection", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    // Get a valid commit SHA for testing
+    const validCommit = await engine.getCurrentCommit("codebase");
+
+    // Test various injection attempts that should be rejected
+    const injectionAttempts = [
+      // Shell metacharacters
+      "abc123; rm -rf /",
+      "abc123 && malicious-command",
+      "abc123 | grep something",
+      "abc123 $(whoami)",
+      "abc123 `cat /etc/passwd`",
+      // Path traversal
+      "../../../etc/passwd",
+      "abc123/../../../etc/passwd",
+      // Newlines and control characters
+      "abc123\nmalicious",
+      "abc123\rmalicious",
+      // Too long SHA
+      "0123456789abcdef0123456789abcdef0123456789abcdef",
+      // Invalid characters
+      "abc123xyz!@#",
+      "abc123-dash",
+      "abc123_underscore",
+      // Empty and whitespace
+      "",
+      "   ",
+      // Non-hex characters
+      "zzzzzzzzzz",
+      "abc12g",
+    ];
+
+    for (const injection of injectionAttempts) {
+      let error: Error | null = null;
+      try {
+        await engine.computeDiff("codebase", injection, validCommit);
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).not.toBeNull(
+        `Expected rejection of malicious commit SHA: "${injection}"`
+      );
+      expect(error?.message).toContain("Invalid commit SHA format");
+    }
+  });
+
+  it("should reject invalid toCommit SHA to prevent command injection", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    const validCommit = await engine.getCurrentCommit("codebase");
+
+    const injectionAttempts = [
+      "abc123; rm -rf /",
+      "abc123 && echo hacked",
+      "$(whoami)",
+      "`id > /tmp/pwned`",
+      "abc123\nmalicious",
+    ];
+
+    for (const injection of injectionAttempts) {
+      let error: Error | null = null;
+      try {
+        await engine.computeDiff("codebase", validCommit, injection);
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).not.toBeNull(
+        `Expected rejection of malicious toCommit SHA: "${injection}"`
+      );
+      expect(error?.message).toContain("Invalid commit SHA format");
+    }
+  });
+
+  it("should accept valid commit SHAs of varying lengths", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    // Create test commits
+    const commit1 = await engine.getCurrentCommit("codebase");
+
+    // Add a file and commit
+    const testFile = path.join(codebaseDir, "test-valid-sha.txt");
+    await writeFile(testFile, "test content");
+    execSync("git add test-valid-sha.txt", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Test valid SHA'", {
+      cwd: codebaseDir,
+      stdio: "pipe",
+    });
+
+    const commit2 = await engine.getCurrentCommit("codebase");
+
+    // Full SHA should work
+    const diffFull = await engine.computeDiff("codebase", commit1, commit2);
+    expect(diffFull.added).toContain("test-valid-sha.txt");
+
+    // Short SHA (7 chars) should also work
+    const shortCommit1 = commit1.substring(0, 7);
+    const shortCommit2 = commit2.substring(0, 7);
+
+    const diffShort = await engine.computeDiff(
+      "codebase",
+      shortCommit1,
+      shortCommit2
+    );
+    expect(diffShort.added).toContain("test-valid-sha.txt");
+  });
+
   it("should handle initial sync with no previous commit", async () => {
     const engine = new FarmSyncEngine(farmDir);
 
     const project = farmManifest.getProject("test-project")!;
     const result = await engine.syncProject(project, { verbose: false });
 
-    expect(result.success).toBe(true);
+    expect(result.status).toBe("success");
     expect(result.projectName).toBe("test-project");
     expect(result.changeCount).toBe(0);
     expect(result.notes).toContain("Initial sync - recording baseline only");
@@ -354,7 +465,7 @@ describe("FarmSyncEngine", () => {
     // Second sync without changes
     const result = await engine.syncProject(project, { verbose: false });
 
-    expect(result.success).toBe(true);
+    expect(result.status).toBe("success");
     expect(result.filesChanged.added.length).toBe(0);
     expect(result.filesChanged.modified.length).toBe(0);
     expect(result.filesChanged.deleted.length).toBe(0);
@@ -777,4 +888,72 @@ describe("FarmSyncEngine", () => {
     expect(reloadedModel).toBeDefined();
     expect(reloadedModel.manifest.name).toBe("test-model");
   });
+
+  it("should handle model-null failure: record failed status and not advance lastSyncCommit", async () => {
+    const { Model } = await import("../../src/core/model.js");
+    const project = farmManifest.getProject("test-project")!;
+
+    // First: establish baseline with a valid model
+    const model = await Model.init(modelDir, {
+      name: "test-model",
+      version: "0.1.0",
+      specVersion: "0.9.0",
+      created: new Date().toISOString(),
+    });
+
+    let engine = new FarmSyncEngine(farmDir, model);
+    const baselineResult = await engine.syncProject(project, { verbose: false });
+    expect(baselineResult.status).toBe("success");
+    expect(baselineResult.notes).toContain("Initial sync - recording baseline only");
+
+    // Verify baseline advanced the commit pointer
+    let syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
+    let syncState = await FarmSyncState.load(syncStateFile);
+    const baselineCommit = syncState.lastSyncCommit;
+    expect(baselineCommit).toBeDefined();
+
+    // Second: make a change to the codebase
+    const newFile = path.join(codebaseDir, "test-file.txt");
+    await writeFile(newFile, "test content");
+    execSync("git add test-file.txt", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Test commit with changes'", { cwd: codebaseDir, stdio: "pipe" });
+
+    // Third: attempt sync WITHOUT a model (model is null) - should fail
+    engine = new FarmSyncEngine(farmDir, undefined);
+    const failResult = await engine.syncProject(project, { verbose: false });
+
+    // Verify result indicates failure
+    expect(failResult.status).toBe("failed");
+    expect(failResult.projectName).toBe("test-project");
+    expect(failResult.notes).toContain("CRITICAL: Model is not loaded, cannot map files to elements");
+
+    // Reload sync state and verify the failure was recorded
+    syncState = await FarmSyncState.load(syncStateFile);
+    expect(syncState.syncHistory.length).toBe(2);
+
+    const failedRecord = syncState.syncHistory[1];
+    expect(failedRecord.status).toBe("failed");
+    expect(failedRecord.notes).toContain("Model not loaded");
+
+    // Critical: lastSyncCommit must NOT advance after failed sync
+    expect(syncState.lastSyncCommit).toBe(baselineCommit);
+
+    // Make another change and test again to verify the failure is reproducible
+    const file2 = path.join(codebaseDir, "another-file.txt");
+    await writeFile(file2, "more content");
+    execSync("git add another-file.txt", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Another commit'", { cwd: codebaseDir, stdio: "pipe" });
+
+    // Attempt another sync with null model - should also fail
+    engine = new FarmSyncEngine(farmDir, undefined);
+    const secondFailResult = await engine.syncProject(project, { verbose: false });
+    expect(secondFailResult.status).toBe("failed");
+
+    // Verify lastSyncCommit still hasn't advanced
+    syncState = await FarmSyncState.load(syncStateFile);
+    expect(syncState.lastSyncCommit).toBe(baselineCommit);
+    expect(syncState.syncHistory.length).toBe(3);
+    expect(syncState.syncHistory[2].status).toBe("failed");
+  });
 });
+

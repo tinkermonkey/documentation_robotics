@@ -116,7 +116,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       const result = await engine.syncProject(project, { verbose: false });
 
       // Verify result
-      expect(result.success).toBe(true);
+      expect(result.status).toBe("success");
       expect(result.projectName).toBe("test-project");
       expect(result.commitsBefore).toBe("none");
       expect(result.filesChanged.added.length).toBe(0);
@@ -150,7 +150,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
       // First sync
       const result1 = await engine.syncProject(project, { verbose: false });
-      expect(result1.success).toBe(true);
+      expect(result1.status).toBe("success");
 
       // Make a change to the codebase
       const serviceFile = path.join(codebaseDir, "src/service.ts");
@@ -160,7 +160,7 @@ describe("Farm Sync - End-to-End Flow", () => {
 
       // Second sync - should detect changes
       const result2 = await engine.syncProject(project, { verbose: false });
-      expect(result2.success).toBe(true);
+      expect(result2.status).toBe("success");
       expect(result2.filesChanged.added.length).toBeGreaterThan(0);
       expect(result2.filesChanged.added).toContain("src/service.ts");
 
@@ -190,7 +190,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       // Perform 3 syncs with changes
       for (let i = 0; i < 3; i++) {
         const result = await engine.syncProject(project, { verbose: false });
-        expect(result.success).toBe(true);
+        expect(result.status).toBe("success");
 
         if (i < 2) {
           // Add file between syncs
@@ -270,6 +270,63 @@ describe("Farm Sync - End-to-End Flow", () => {
       expect(result.filesChanged.deleted).toContain("src/main.ts");
       expect(result.filesChanged.added.length).toBe(0);
       expect(result.filesChanged.modified.length).toBe(0);
+    } finally {
+      if (originalDRModelPath !== undefined) {
+        process.env.DR_MODEL_PATH = originalDRModelPath;
+      } else {
+        delete process.env.DR_MODEL_PATH;
+      }
+    }
+  });
+
+  it("should prevent dry runs from advancing lastSyncCommit", async () => {
+    const originalDRModelPath = process.env.DR_MODEL_PATH;
+    process.env.DR_MODEL_PATH = modelDir;
+
+    try {
+      const model = await Model.load();
+      const engine = new FarmSyncEngine(farmDir, model);
+      const project = farmManifest.getProject("test-project")!;
+
+      // Initial sync to establish baseline
+      const result1 = await engine.syncProject(project, { verbose: false });
+      expect(result1.status).toBe("success");
+      expect(result1.dryRun).toBeFalsy();
+
+      // Get the sync state after initial sync
+      const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
+      const syncState1 = await FarmSyncState.load(syncStateFile);
+      const initialLastSyncCommit = syncState1.lastSyncCommit;
+      const initialSyncHistoryLength = syncState1.syncHistory.length;
+
+      // Add a change to the codebase
+      const serviceFile = path.join(codebaseDir, "src/service.ts");
+      await writeFile(serviceFile, "export class Service {}");
+      execSync("git add src/service.ts", { cwd: codebaseDir, stdio: "pipe" });
+      execSync("git commit -m 'Add service'", { cwd: codebaseDir, stdio: "pipe" });
+
+      // Perform dry-run sync
+      const dryRunResult = await engine.syncProject(project, { verbose: false, dryRun: true });
+      expect(dryRunResult.status).toBe("success");
+      expect(dryRunResult.dryRun).toBe(true);
+      expect(dryRunResult.filesChanged.added).toContain("src/service.ts");
+
+      // Verify sync state file was not modified by dry run
+      const syncState2 = await FarmSyncState.load(syncStateFile);
+      expect(syncState2.lastSyncCommit).toBe(initialLastSyncCommit);
+      expect(syncState2.syncHistory.length).toBe(initialSyncHistoryLength);
+      expect(syncState2.syncHistory).toEqual(syncState1.syncHistory);
+
+      // Perform another normal sync and verify it advances from the original lastSyncCommit
+      const result3 = await engine.syncProject(project, { verbose: false });
+      expect(result3.status).toBe("success");
+      expect(result3.dryRun).toBeFalsy();
+      expect(result3.filesChanged.added).toContain("src/service.ts");
+
+      // Verify sync state was updated by normal sync
+      const syncState3 = await FarmSyncState.load(syncStateFile);
+      expect(syncState3.lastSyncCommit).not.toBe(initialLastSyncCommit);
+      expect(syncState3.syncHistory.length).toBe(initialSyncHistoryLength + 1);
     } finally {
       if (originalDRModelPath !== undefined) {
         process.env.DR_MODEL_PATH = originalDRModelPath;

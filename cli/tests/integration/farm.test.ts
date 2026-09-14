@@ -1102,3 +1102,148 @@ models:
     }
   });
 });
+
+describe("Farm Manifest Validation - Issue #948", () => {
+  let testDir: string;
+  let farmYamlPath: string;
+
+  beforeEach(async () => {
+    testDir = path.join("/tmp", `farm-validation-test-${Date.now()}`);
+    await ensureDir(testDir);
+    farmYamlPath = path.join(testDir, "farm.yaml");
+  });
+
+  afterEach(async () => {
+    if (await fileExists(testDir)) {
+      await fs.rm(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should reject malformed farm.yaml with project missing 'name' field", async () => {
+    const invalidContent = `
+schema: dr-farm-v1
+name: Test Farm
+projects:
+  service-a:
+    source: services/service-a
+    model: service-a-model
+`;
+
+    await fs.writeFile(farmYamlPath, invalidContent, "utf-8");
+
+    try {
+      await FarmManifest.load(farmYamlPath);
+      expect.fail("Should have thrown an error for missing name field");
+    } catch (error: any) {
+      expect(error.message).toContain("missing required 'name' field");
+    }
+  });
+
+  it("should reject malformed farm.yaml with project missing 'source' field", async () => {
+    const invalidContent = `
+schema: dr-farm-v1
+name: Test Farm
+projects:
+  service-a:
+    name: service-a
+    model: service-a-model
+`;
+
+    await fs.writeFile(farmYamlPath, invalidContent, "utf-8");
+
+    try {
+      await FarmManifest.load(farmYamlPath);
+      expect.fail("Should have thrown an error for missing source field");
+    } catch (error: any) {
+      expect(error.message).toContain("missing required 'source' field");
+    }
+  });
+
+  it("should reject malformed farm.yaml with project missing 'model' field", async () => {
+    const invalidContent = `
+schema: dr-farm-v1
+name: Test Farm
+projects:
+  service-a:
+    name: service-a
+    source: services/service-a
+`;
+
+    await fs.writeFile(farmYamlPath, invalidContent, "utf-8");
+
+    try {
+      await FarmManifest.load(farmYamlPath);
+      expect.fail("Should have thrown an error for missing model field");
+    } catch (error: any) {
+      expect(error.message).toContain("missing required 'model' field");
+    }
+  });
+
+  it("should reject addProject when name key doesn't match project.name", async () => {
+    const manifest = FarmManifest.create("Test Farm");
+
+    try {
+      manifest.addProject("service-a", {
+        name: "service-b", // Mismatch!
+        source: "services/service-b",
+        model: "service-b-model",
+      });
+      expect.fail("Should have thrown an error for name mismatch");
+    } catch (error: any) {
+      expect(error.message).toContain("Project name mismatch");
+      expect(error.message).toContain('key is "service-a"');
+      expect(error.message).toContain('project.name is "service-b"');
+    }
+  });
+
+  it("should accept valid farm.yaml and properly load all projects", async () => {
+    const validContent = `
+schema: dr-farm-v1
+name: Valid Test Farm
+projects:
+  service-a:
+    name: service-a
+    source: services/service-a
+    model: service-a-model
+  service-b:
+    name: service-b
+    source: services/service-b
+    model: service-b-model
+    remote: https://github.com/org/service-b.git
+    branch: main
+`;
+
+    await fs.writeFile(farmYamlPath, validContent, "utf-8");
+
+    const manifest = await FarmManifest.load(farmYamlPath);
+
+    expect(manifest.name).toBe("Valid Test Farm");
+    expect(manifest.projects.size).toBe(2);
+
+    const projectA = manifest.getProject("service-a");
+    expect(projectA).toBeDefined();
+    expect(projectA?.name).toBe("service-a");
+    expect(projectA?.source).toBe("services/service-a");
+    expect(projectA?.model).toBe("service-a-model");
+
+    const projectB = manifest.getProject("service-b");
+    expect(projectB).toBeDefined();
+    expect(projectB?.name).toBe("service-b");
+    expect(projectB?.remote).toBe("https://github.com/org/service-b.git");
+    expect(projectB?.branch).toBe("main");
+  });
+
+  it("should allow addProject with matching name and project.name", async () => {
+    const manifest = FarmManifest.create("Test Farm");
+
+    manifest.addProject("service-a", {
+      name: "service-a",
+      source: "services/service-a",
+      model: "service-a-model",
+    });
+
+    expect(manifest.projects.size).toBe(1);
+    const project = manifest.getProject("service-a");
+    expect(project?.name).toBe("service-a");
+  });
+});

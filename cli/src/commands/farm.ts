@@ -35,6 +35,35 @@ interface FarmSyncResultEntry {
 }
 
 /**
+ * Check if a directory is a git repository.
+ * Returns true if git rev-parse succeeds, false if the directory is not a git repo
+ * or if unexpected errors occur (which are logged in DEBUG mode only).
+ * Does not re-throw errors; unexpected git errors are logged diagnostically but do not
+ * prevent the operation from proceeding.
+ */
+function isGitRepository(cwd: string): boolean {
+  try {
+    execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
+    return true;
+  } catch (error) {
+    const errorMsg = getErrorMessage(error);
+
+    // Only return false for the "not a git repository" case
+    // Pattern: "fatal: not a git repository" (case insensitive check for safety)
+    if (errorMsg.toLowerCase().includes("not a git repository")) {
+      return false;
+    }
+
+    // For unexpected errors (missing git binary, permission denied, etc), log diagnostically
+    // but return false to preserve existing behavior of not blocking operations
+    if (process.env.DEBUG) {
+      console.warn(`Warning: Unexpected error checking git repository at ${cwd}: ${errorMsg}`);
+    }
+    return false;
+  }
+}
+
+/**
  * Initialize a new farm
  */
 export async function farmInitCommand(options: {
@@ -228,13 +257,7 @@ export async function farmAddCommand(
 
     // Commit farm.yaml changes to farm-level git repository if git is available
     // Check for git repo first
-    let gitRepoExists = false;
-    try {
-      execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-      gitRepoExists = true;
-    } catch {
-      // Git repo not initialized yet - that's fine, skip commit
-    }
+    const gitRepoExists = isGitRepository(farmRoot);
 
     // If git repo exists, proceed with commit (handle commit errors independently)
     if (gitRepoExists) {
@@ -345,13 +368,7 @@ export async function farmRemoveCommand(
 
     // Commit farm.yaml changes to farm-level git repository if git is available
     // Check for git repo first
-    let gitRepoExists = false;
-    try {
-      execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-      gitRepoExists = true;
-    } catch {
-      // Git repo not initialized yet - that's fine, skip commit
-    }
+    const gitRepoExists = isGitRepository(farmRoot);
 
     // If git repo exists, proceed with commit (handle commit errors independently)
     if (gitRepoExists) {
@@ -447,17 +464,15 @@ export async function farmStatusCommand(options: {
           };
         } catch (error) {
           // If sync state doesn't exist yet, that's expected - treat as no sync yet
-          // For unexpected errors (YAML parse, git permission, etc), log them
+          // For unexpected errors (YAML parse, git permission, etc), always log them
           const errorMsg = getErrorMessage(error);
           if (
             !errorMsg.includes("not found") &&
             !errorMsg.includes("does not exist") &&
             !errorMsg.includes("ENOENT")
           ) {
-            // Unexpected error - log it (but still return default to keep status resilient)
-            if (process.env.DEBUG) {
-              console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
-            }
+            // Unexpected error - always log it to surface issues to users
+            console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
           }
           return {
             name: p.name,
@@ -1057,7 +1072,7 @@ export async function farmSyncCommand(options: {
 
           const resultEntry: FarmSyncResultEntry = {
             project: project.name,
-            status: result.success ? "success" : "error",
+            status: result.status === "failed" ? "error" : result.status,
             change_count: result.changeCount,
             changeset_id: result.changesetId,
             files_changed: result.filesChanged,
@@ -1081,13 +1096,7 @@ export async function farmSyncCommand(options: {
               // Commit changes to the farm-level git repository if git is available
               // Scope git add to the project's model folder to avoid staging unrelated changes
               // Check for git repo first
-              let gitRepoExists = false;
-              try {
-                execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-                gitRepoExists = true;
-              } catch {
-                // Git repo not initialized yet - that's fine, skip commit
-              }
+              const gitRepoExists = isGitRepository(farmRoot);
 
               // If git repo exists, proceed with commit (handle commit errors independently)
               if (gitRepoExists) {
@@ -1113,7 +1122,7 @@ export async function farmSyncCommand(options: {
               resultEntry.auto_committed = false;
               resultEntry.commit_error = getErrorMessage(commitError);
               resultEntry.status = "error";
-              if (options.verbose && !useJson) {
+              if (!useJson) {
                 handleInfo(`  Auto-commit failed: ${getErrorMessage(commitError)}`);
               }
             }
@@ -1123,7 +1132,9 @@ export async function farmSyncCommand(options: {
 
           if (options.verbose && !useJson) {
             handleInfo(`\nProject: ${project.name}`);
-            handleInfo(`  Status: ${result.success ? "✓ Success" : "✗ Failed"}`);
+            const statusEmoji = result.status === "success" ? "✓" : result.status === "partial" ? "⚠" : "✗";
+            const statusText = result.status === "success" ? "Success" : result.status === "partial" ? "Partial" : "Failed";
+            handleInfo(`  Status: ${statusEmoji} ${statusText}`);
             handleInfo(`  Commits: ${result.commitsBefore}...${result.commitsAfter}`);
             handleInfo(
               `  Files changed: +${result.filesChanged.added.length} ~${result.filesChanged.modified.length} -${result.filesChanged.deleted.length}`

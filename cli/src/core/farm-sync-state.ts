@@ -181,8 +181,11 @@ export class FarmSyncState {
   recordSync(record: Omit<SyncRecord, "status"> & { status?: "success" | "partial" | "failed" }): void {
     const status = record.status || "success";
 
-    // Only update lastSyncCommit on successful syncs to avoid advancing past unprocessed changes
-    if (status === "success") {
+    // Update lastSyncCommit on successful and partial syncs to avoid reprocessing confident files.
+    // Failed syncs do not advance the pointer (will retry from same point).
+    // Partial syncs advance because confident files have been processed and staged;
+    // ambiguous files are tracked separately for manual review.
+    if (status === "success" || status === "partial") {
       this.lastSyncCommit = record.commit;
       this.lastSyncTimestamp = record.timestamp;
     }

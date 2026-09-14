@@ -120,6 +120,150 @@ describe("Model", () => {
   });
 });
 
+describe("Model.loadLayer — Error Handling", () => {
+  it("should silently handle ENOENT when layer directory not found", async () => {
+    const testDir = `${tmpdir()}/dr-layer-test-${randomUUID()}`;
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+
+    // Should not throw when layer directory doesn't exist
+    await model.loadLayer("motivation");
+    expect(model.layers.get("motivation")).toBeUndefined();
+  });
+
+  it("should propagate EACCES errors instead of silently failing", async () => {
+    const fs = await import("fs/promises");
+
+    const testDir = `${tmpdir()}/dr-layer-permission-test-${randomUUID()}`;
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+
+    const eacces = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+    eacces.code = "EACCES";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eacces);
+    });
+
+    try {
+      await model.loadLayer("motivation");
+      expect.unreachable("Should have thrown permission error");
+    } catch (err) {
+      expect((err as Error).message).toContain("permission denied");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+
+  it("should propagate EIO errors on I/O failure", async () => {
+    const fs = await import("fs/promises");
+
+    const testDir = `${tmpdir()}/dr-layer-io-test-${randomUUID()}`;
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+
+    const eio = new Error("EIO: input/output error") as NodeJS.ErrnoException;
+    eio.code = "EIO";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eio);
+    });
+
+    try {
+      await model.loadLayer("motivation");
+      expect.unreachable("Should have thrown I/O error");
+    } catch (err) {
+      expect((err as Error).message).toContain("input/output error");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+});
+
+describe("Model.saveLayer — Error Handling", () => {
+  it("should propagate EACCES errors when accessing layer directory", async () => {
+    const { mkdir } = await import("fs/promises");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    const testDir = `${tmpdir()}/dr-save-layer-test-${randomUUID()}`;
+    await mkdir(testDir, { recursive: true });
+
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+    const layer = new Layer("motivation");
+    model.addLayer(layer);
+
+    const eacces = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+    eacces.code = "EACCES";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eacces);
+    });
+
+    try {
+      await model.saveLayer("motivation");
+      expect.unreachable("Should have thrown permission error");
+    } catch (err) {
+      expect((err as Error).message).toContain("permission denied");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+
+  it("should propagate EIO errors on I/O failure when cleaning files", async () => {
+    const { mkdir, writeFile } = await import("fs/promises");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    const testDir = `${tmpdir()}/dr-save-layer-io-test-${randomUUID()}`;
+    const modelDir = path.join(testDir, "documentation-robotics", "model", "01_motivation");
+    await mkdir(modelDir, { recursive: true });
+
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+    const layer = new Layer("motivation");
+    model.addLayer(layer);
+
+    const eio = new Error("EIO: input/output error") as NodeJS.ErrnoException;
+    eio.code = "EIO";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eio);
+    });
+
+    try {
+      await model.saveLayer("motivation");
+      expect.unreachable("Should have thrown I/O error");
+    } catch (err) {
+      // The I/O error should be re-thrown, not wrapped
+      expect((err as Error).message).toContain("input/output error");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+});
+
 describe("Model.load — Detached Manifest Path Validation", () => {
   it("should successfully load model from detached manifest path", async () => {
     const { mkdir, writeFile } = await import("fs/promises");
@@ -205,5 +349,100 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
       model.graph.addEdge = originalAddEdge;
       warnSpy.mockRestore();
     }
+  });
+});
+
+describe("Model.load — Error Handling for Filesystem Errors", () => {
+  describe("startPath branch", () => {
+    it("should silently handle ENOENT from non-standard structure check and use manifest parent", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      const path = await import("path");
+
+      const testDir = `${tmpdir()}/dr-resolve-test-${randomUUID()}`;
+      // Create non-standard structure: model/ at root with manifest inside
+      const modelDir = path.join(testDir, "model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = path.join(modelDir, "manifest.yaml");
+      const now = new Date().toISOString();
+      await writeFile(
+        manifestPath,
+        `version: "1.0.0"
+project:
+  name: Test Model
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
+      );
+
+      // Load from the model directory (non-standard structure)
+      const model = await Model.load(modelDir);
+      expect(model).toBeDefined();
+      expect(model.manifest.name).toBe("Test Model");
+    });
+
+    it("should throw error when manifest file cannot be found at startPath", async () => {
+      // Attempt to load from a path that doesn't contain a manifest
+      // This should result in "Model not found" error, not a permission error
+      try {
+        await Model.load("/nonexistent/path/that/does/not/exist");
+        expect.unreachable("Should have thrown error");
+      } catch (err) {
+        // Should get model not found error since path doesn't exist
+        expect((err as Error).message).toContain("Model not found");
+      }
+    });
+  });
+
+  describe("DR_MODEL_PATH branch", () => {
+    it("should silently handle ENOENT errors with DR_MODEL_PATH env var", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      const path = await import("path");
+
+      const testDir = `${tmpdir()}/dr-env-test-${randomUUID()}`;
+      // Create non-standard structure: model/ at root with manifest inside
+      const modelDir = path.join(testDir, "model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = path.join(modelDir, "manifest.yaml");
+      const now = new Date().toISOString();
+      await writeFile(
+        manifestPath,
+        `version: "1.0.0"
+project:
+  name: Test Model
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
+      );
+
+      const oldEnv = process.env.DR_MODEL_PATH;
+      try {
+        // Point DR_MODEL_PATH to the model directory (non-standard structure)
+        process.env.DR_MODEL_PATH = modelDir;
+        // Should succeed with non-standard structure (ENOENT for standard structure ignored)
+        const model = await Model.load();
+        expect(model).toBeDefined();
+        expect(model.manifest.name).toBe("Test Model");
+      } finally {
+        process.env.DR_MODEL_PATH = oldEnv;
+      }
+    });
+
+    it("should throw error when manifest file cannot be found at DR_MODEL_PATH", async () => {
+      const oldEnv = process.env.DR_MODEL_PATH;
+      try {
+        process.env.DR_MODEL_PATH = "/nonexistent/path/that/does/not/exist";
+        await Model.load();
+        expect.unreachable("Should have thrown error");
+      } catch (err) {
+        // Should get model not found error
+        expect((err as Error).message).toContain("Model not found");
+      } finally {
+        process.env.DR_MODEL_PATH = oldEnv;
+      }
+    });
   });
 });

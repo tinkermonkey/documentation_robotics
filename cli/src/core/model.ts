@@ -242,7 +242,12 @@ export class Model {
         if (layerDir) {
           layerPath = `${modelDir}/${layerDir.name}`;
         }
-      } catch {
+      } catch (err) {
+        // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         // Standard structure doesn't exist, try non-standard structure (rootPath directly)
         try {
           const entries = await fs.readdir(this.rootPath, { withFileTypes: true });
@@ -254,7 +259,12 @@ export class Model {
           if (layerDir) {
             layerPath = `${this.rootPath}/${layerDir.name}`;
           }
-        } catch {
+        } catch (err) {
+          // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+          const isNotFoundError = (err as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            throw err;
+          }
           // Neither structure found
         }
       }
@@ -442,7 +452,12 @@ export class Model {
       if (layerDir) {
         layerPath = `${modelDir}/${layerDir.name}`;
       }
-    } catch {
+    } catch (err) {
+      // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+      const isNotFoundError = (err as any)?.code === "ENOENT";
+      if (!isNotFoundError) {
+        throw err;
+      }
       // Standard structure doesn't exist, try non-standard structure (rootPath directly)
       try {
         const entries = await fs.readdir(this.rootPath, { withFileTypes: true });
@@ -454,7 +469,12 @@ export class Model {
         if (layerDir) {
           layerPath = `${this.rootPath}/${layerDir.name}`;
         }
-      } catch {
+      } catch (err) {
+        // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         // Neither structure found
       }
     }
@@ -825,13 +845,23 @@ export class Model {
         try {
           await fs.access(standardDocRobotsPath);
           projectRoot = standardProjectRoot;
-        } catch {
+        } catch (err) {
+          // Only ignore ENOENT (path not found) — re-throw permission/I/O errors
+          const isNotFoundError = (err as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            throw err;
+          }
           // Not in standard structure, use manifest's parent directory as project root
           projectRoot = manifestParentDir;
         }
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
+        // Only wrap ENOENT errors as "not found" — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         throw new Error(`Model not found at ${startPath}`);
       }
     }
@@ -863,13 +893,23 @@ export class Model {
         try {
           await fs.access(standardDocRobotsPath);
           projectRoot = standardProjectRoot;
-        } catch {
+        } catch (err) {
+          // Only ignore ENOENT (path not found) — re-throw permission/I/O errors
+          const isNotFoundError = (err as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            throw err;
+          }
           // Not in standard structure, use manifest's parent directory as project root
           projectRoot = manifestParentDir;
         }
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
+        // Only wrap ENOENT errors as "not found" — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         throw new Error(`Model not found at DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}`);
       }
     }
@@ -1001,14 +1041,9 @@ export class Model {
           codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
         } else {
           // Try to auto-resolve from farm manifest if inside a farm
-          try {
-            const farmCodebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot);
-            if (farmCodebaseRoot) {
-              codebaseRoot = farmCodebaseRoot;
-            }
-          } catch (error) {
-            // Log farm resolution errors but don't fail - fall back to projectRoot
-            console.warn(`Warning: Failed to resolve farm codebase root: ${getErrorMessage(error)}`);
+          const farmCodebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot);
+          if (farmCodebaseRoot) {
+            codebaseRoot = farmCodebaseRoot;
           }
         }
       }

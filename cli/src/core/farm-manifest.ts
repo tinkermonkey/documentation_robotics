@@ -19,6 +19,45 @@ export interface FarmProject {
   branch?: string; // Optional git branch
 }
 
+// Validate project object has required fields and key/name consistency
+function validateFarmProject(project: any, projectKey: string): FarmProject {
+  if (!project || typeof project !== "object") {
+    throw new Error(
+      `Invalid project entry "${projectKey}": expected object, got ${typeof project}`
+    );
+  }
+
+  if (typeof project.name !== "string" || project.name === "") {
+    throw new Error(
+      `Project "${projectKey}" is missing required 'name' field. ` +
+      `Each project must have name, source, and model fields.`
+    );
+  }
+
+  if (typeof project.source !== "string" || project.source === "") {
+    throw new Error(
+      `Project "${projectKey}" is missing required 'source' field. ` +
+      `Each project must have name, source, and model fields.`
+    );
+  }
+
+  if (typeof project.model !== "string" || project.model === "") {
+    throw new Error(
+      `Project "${projectKey}" is missing required 'model' field. ` +
+      `Each project must have name, source, and model fields.`
+    );
+  }
+
+  if (project.name !== projectKey) {
+    throw new Error(
+      `Project name mismatch: key is "${projectKey}" but project.name is "${project.name}". ` +
+      `They must match for consistent sync state tracking.`
+    );
+  }
+
+  return project as FarmProject;
+}
+
 /**
  * Farm manifest data structure
  */
@@ -63,6 +102,7 @@ export class FarmManifest {
    * Load farm manifest from file
    * @param filePath - Path to farm.yaml
    * @returns FarmManifest instance
+   * @throws Error if manifest is malformed or projects lack required fields
    */
   static async load(filePath: string): Promise<FarmManifest> {
     const content = await readFile(filePath);
@@ -84,6 +124,11 @@ export class FarmManifest {
 
     if (!data.projects) {
       data.projects = {};
+    } else {
+      // Validate each project has required fields before proceeding
+      for (const [key, project] of Object.entries(data.projects)) {
+        data.projects[key] = validateFarmProject(project, key);
+      }
     }
 
     const manifest = new FarmManifest(data);
@@ -135,12 +180,16 @@ export class FarmManifest {
     this.filePath = targetPath;
   }
 
-  /**
-   * Add a project to the farm
-   * @param name - Project name
-   * @param project - Project configuration
-   */
+  // Add a project to the farm; ensures name parameter matches project.name
   addProject(name: string, project: FarmProject): void {
+    if (project.name !== name) {
+      throw new Error(
+        `Project name mismatch: key is "${name}" but project.name is "${project.name}". ` +
+        `They must match for consistent sync state tracking. ` +
+        `Downstream code reads project.name for changeset names and sync state paths.`
+      );
+    }
+
     this.projects.set(name, project);
     this.modified = new Date().toISOString();
   }
