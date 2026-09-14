@@ -3,7 +3,7 @@ import type { Model } from "../core/model.js";
 import { Validator } from "./validator.js";
 import { parseReferencePath, ReferencePathParseError } from "../utils/reference-path-parser.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { promises as fs, Dirent } from "fs";
+import { promises as fs, Dirent, Stats } from "fs";
 import path from "path";
 import { parse as parseYAML } from "yaml";
 import { FarmManifest } from "../core/farm-manifest.js";
@@ -150,7 +150,7 @@ export class ComposedReferenceValidator {
 
     try {
       // Verify modelPath itself is a directory
-      let rootStats: any;
+      let rootStats: Stats | undefined;
       try {
         rootStats = await fs.stat(modelPath);
       } catch (err) {
@@ -172,7 +172,7 @@ export class ComposedReferenceValidator {
 
       // Try standard layout first: {modelPath}/documentation-robotics/model/
       let modelDir = path.join(modelPath, "documentation-robotics", "model");
-      let stats: any;
+      let stats: Stats | undefined;
       try {
         stats = await fs.stat(modelDir);
       } catch (err) {

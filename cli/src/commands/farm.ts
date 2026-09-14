@@ -36,16 +36,16 @@ interface FarmSyncResultEntry {
 
 /**
  * Check if a directory is a git repository.
- * Only returns false if the directory is genuinely not a git repo (not found case).
- * Re-throws errors for missing git binary, permission denied, and other real issues.
+ * Returns true if git rev-parse succeeds, false if the directory is not a git repo
+ * or if unexpected errors occur (which are logged in DEBUG mode only).
+ * Does not re-throw errors; unexpected git errors are logged diagnostically but do not
+ * prevent the operation from proceeding.
  */
 function isGitRepository(cwd: string): boolean {
   try {
     execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
     return true;
   } catch (error) {
-    // If it's not a git repo, the git command will exit with code 128
-    // Other errors (missing git, permission denied, resource limit) should be re-thrown
     const errorMsg = getErrorMessage(error);
 
     // Only return false for the "not a git repository" case
@@ -54,8 +54,8 @@ function isGitRepository(cwd: string): boolean {
       return false;
     }
 
-    // For any other error, log a warning but don't fail the operation
-    // This preserves the existing behavior of not blocking operations if git has issues
+    // For unexpected errors (missing git binary, permission denied, etc), log diagnostically
+    // but return false to preserve existing behavior of not blocking operations
     if (process.env.DEBUG) {
       console.warn(`Warning: Unexpected error checking git repository at ${cwd}: ${errorMsg}`);
     }
