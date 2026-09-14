@@ -10,6 +10,7 @@
 
 import { isCancel, text } from "@clack/prompts";
 import { ApiKeyManager, type ApiKeyStoragePrompt } from "../mcp/api-key-manager.js";
+import { type HttpTransportApp } from "../mcp/http-transport.js";
 import { McpResourceRegistry } from "../mcp/resource-registry.js";
 import { McpToolRegistry } from "../mcp/tool-registry.js";
 import { loadModel } from "../mcp/tools/shared.js";
@@ -111,7 +112,7 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       const host = options.host || "127.0.0.1";
       const port = options.port || 3100;
 
-      let httpApp: any;
+      let httpApp: HttpTransportApp;
       const httpServer = await startActiveSpan(
         "mcp.server.start",
         async (span) => {

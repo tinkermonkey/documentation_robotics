@@ -19,7 +19,7 @@ interface SessionData {
   transport: StreamableHTTPServerTransport;
 }
 
-interface HttpTransportApp extends Express {
+export interface HttpTransportApp extends Express {
   __mcp_sessions?: Map<string, SessionData>;
 }
 
