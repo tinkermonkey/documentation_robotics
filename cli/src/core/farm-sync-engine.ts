@@ -416,11 +416,16 @@ export class FarmSyncEngine {
     const codebasePath = project.source;
     const notes: string[] = [];
 
-    // Step 1: Pull latest changes
-    if (options.verbose) {
+    // Step 1: Get current commit (pull only if not dry run)
+    if (options.verbose && !options.dryRun) {
       notes.push(`Pulling latest from ${codebasePath}...`);
     }
-    const currentCommit = await this.pullCodebase(codebasePath);
+    const currentCommit = options.dryRun
+      ? await this.getCurrentCommit(codebasePath)
+      : await this.pullCodebase(codebasePath);
+    if (options.dryRun) {
+      notes.push("(DRY RUN - skipping git pull)");
+    }
 
     // Step 2: Load sync state
     const syncStatePath = path.join(this.farmRoot, project.model, ".farm-sync.yaml");
