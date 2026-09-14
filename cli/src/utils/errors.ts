@@ -263,19 +263,27 @@ export function handleError(error: unknown): never {
 
 export function handleWarning(message: string, suggestions?: string[]): void {
   if (isJson()) {
-    // In JSON mode, warnings are suppressed to maintain clean machine output
-    return;
-  }
-  const lines: string[] = [];
-  lines.push(ansis.yellow(`Warning: ${message}`));
-  if (suggestions && suggestions.length > 0) {
-    lines.push("");
-    lines.push(ansis.dim("Suggestions:"));
-    for (const suggestion of suggestions) {
-      lines.push(ansis.dim(`  • ${suggestion}`));
+    // In JSON mode, emit warnings to stderr as structured JSON
+    const output: Record<string, unknown> = {
+      level: "warning",
+      message,
+    };
+    if (suggestions && suggestions.length > 0) {
+      output.suggestions = suggestions;
     }
+    console.error(JSON.stringify(output));
+  } else {
+    const lines: string[] = [];
+    lines.push(ansis.yellow(`Warning: ${message}`));
+    if (suggestions && suggestions.length > 0) {
+      lines.push("");
+      lines.push(ansis.dim("Suggestions:"));
+      for (const suggestion of suggestions) {
+        lines.push(ansis.dim(`  • ${suggestion}`));
+      }
+    }
+    console.warn(lines.join("\n"));
   }
-  console.warn(lines.join("\n"));
 }
 
 export function handleSuccess(message: string, details?: Record<string, unknown>, options?: { verbose?: boolean }): void {

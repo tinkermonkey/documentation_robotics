@@ -35,6 +35,35 @@ interface FarmSyncResultEntry {
 }
 
 /**
+ * Check if a directory is a git repository.
+ * Only returns false if the directory is genuinely not a git repo (not found case).
+ * Re-throws errors for missing git binary, permission denied, and other real issues.
+ */
+function isGitRepository(cwd: string): boolean {
+  try {
+    execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
+    return true;
+  } catch (error) {
+    // If it's not a git repo, the git command will exit with code 128
+    // Other errors (missing git, permission denied, resource limit) should be re-thrown
+    const errorMsg = getErrorMessage(error);
+
+    // Only return false for the "not a git repository" case
+    // Pattern: "fatal: not a git repository" (case insensitive check for safety)
+    if (errorMsg.toLowerCase().includes("not a git repository")) {
+      return false;
+    }
+
+    // For any other error, log a warning but don't fail the operation
+    // This preserves the existing behavior of not blocking operations if git has issues
+    if (process.env.DEBUG) {
+      console.warn(`Warning: Unexpected error checking git repository at ${cwd}: ${errorMsg}`);
+    }
+    return false;
+  }
+}
+
+/**
  * Initialize a new farm
  */
 export async function farmInitCommand(options: {
@@ -228,13 +257,7 @@ export async function farmAddCommand(
 
     // Commit farm.yaml changes to farm-level git repository if git is available
     // Check for git repo first
-    let gitRepoExists = false;
-    try {
-      execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-      gitRepoExists = true;
-    } catch {
-      // Git repo not initialized yet - that's fine, skip commit
-    }
+    const gitRepoExists = isGitRepository(farmRoot);
 
     // If git repo exists, proceed with commit (handle commit errors independently)
     if (gitRepoExists) {
@@ -345,13 +368,7 @@ export async function farmRemoveCommand(
 
     // Commit farm.yaml changes to farm-level git repository if git is available
     // Check for git repo first
-    let gitRepoExists = false;
-    try {
-      execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-      gitRepoExists = true;
-    } catch {
-      // Git repo not initialized yet - that's fine, skip commit
-    }
+    const gitRepoExists = isGitRepository(farmRoot);
 
     // If git repo exists, proceed with commit (handle commit errors independently)
     if (gitRepoExists) {
@@ -1079,13 +1096,7 @@ export async function farmSyncCommand(options: {
               // Commit changes to the farm-level git repository if git is available
               // Scope git add to the project's model folder to avoid staging unrelated changes
               // Check for git repo first
-              let gitRepoExists = false;
-              try {
-                execSync("git rev-parse --git-dir", { cwd: farmRoot, stdio: "pipe" });
-                gitRepoExists = true;
-              } catch {
-                // Git repo not initialized yet - that's fine, skip commit
-              }
+              const gitRepoExists = isGitRepository(farmRoot);
 
               // If git repo exists, proceed with commit (handle commit errors independently)
               if (gitRepoExists) {

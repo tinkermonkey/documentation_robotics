@@ -1041,14 +1041,9 @@ export class Model {
           codebaseRoot = path.resolve(projectRoot, manifest.codebase_path);
         } else {
           // Try to auto-resolve from farm manifest if inside a farm
-          try {
-            const farmCodebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot);
-            if (farmCodebaseRoot) {
-              codebaseRoot = farmCodebaseRoot;
-            }
-          } catch (error) {
-            // Log farm resolution errors but don't fail - fall back to projectRoot
-            console.warn(`Warning: Failed to resolve farm codebase root: ${getErrorMessage(error)}`);
+          const farmCodebaseRoot = await Model.resolveFarmCodebaseRoot(projectRoot);
+          if (farmCodebaseRoot) {
+            codebaseRoot = farmCodebaseRoot;
           }
         }
       }
