@@ -6,7 +6,9 @@
  */
 
 import { Server as HttpServer } from "http";
+import { randomUUID } from "node:crypto";
 import express, { Express, Request, Response, NextFunction } from "express";
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
@@ -44,13 +46,15 @@ export function createBearerAuthMiddleware(keyManager: ApiKeyManager, expectedKe
  * @param keyManager API key manager for authentication
  * @param apiKey The API key to authenticate requests
  * @param createServer Async function to create a configured MCP server
+ * @param host Host address the server will bind to (used for DNS rebinding protection)
  */
 export async function createMcpHttpApp(
   keyManager: ApiKeyManager,
   apiKey: string,
-  createServer: () => Promise<McpServer>
+  createServer: () => Promise<McpServer>,
+  host: string = "127.0.0.1"
 ): Promise<Express> {
-  const app = express();
+  const app = createMcpExpressApp({ host });
 
   // Middleware
   app.use(express.json());
@@ -96,7 +100,7 @@ export async function createMcpHttpApp(
       try {
         server = await createServer();
         transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          sessionIdGenerator: () => randomUUID(),
         });
 
         // Register onclose handler to clean up session when transport closes

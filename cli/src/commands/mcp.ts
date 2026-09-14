@@ -108,24 +108,24 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
         "../mcp/http-transport.js"
       );
 
+      const host = options.host || "127.0.0.1";
+      const port = options.port || 3100;
+
       const httpServer = await startActiveSpan(
         "mcp.server.start",
         async (span) => {
-          const app = await createMcpHttpApp(keyManager, key, createConfiguredServer);
-          const server = await startHttpServer(app, options.host || "127.0.0.1", options.port || 3100);
+          const app = await createMcpHttpApp(keyManager, key, createConfiguredServer, host);
+          const server = await startHttpServer(app, host, port);
 
           span.setAttribute("mcp.server.name", "documentation-robotics");
           span.setAttribute("mcp.server.version", cliVersion);
           span.setAttribute("mcp.server.transport", "http");
-          span.setAttribute("mcp.server.host", options.host || "127.0.0.1");
-          span.setAttribute("mcp.server.port", options.port || 3100);
+          span.setAttribute("mcp.server.host", host);
+          span.setAttribute("mcp.server.port", port);
 
           return server;
         }
       );
-
-      const host = options.host || "127.0.0.1";
-      const port = options.port || 3100;
 
       // Warn if bound to 0.0.0.0
       if (host === "0.0.0.0") {
