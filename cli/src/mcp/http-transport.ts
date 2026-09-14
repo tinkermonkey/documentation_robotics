@@ -9,6 +9,7 @@ import { Server as HttpServer } from "http";
 import express, { Express, Request, Response, NextFunction } from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { ApiKeyManager } from "./api-key-manager.js";
 
 interface SessionData {
@@ -74,11 +75,24 @@ export async function createMcpHttpApp(
         }
       }
 
+      // Only create a new session for initialize requests
+      if (!isInitializeRequest(req.body)) {
+        res.status(400).json({ jsonrpc: "2.0", error: { code: -32600, message: "Invalid Request: initialize required for new session" }, id: null });
+        return;
+      }
+
       // Create a new session
       const server = await createServer();
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       });
+
+      // Register onclose handler to clean up session when transport closes
+      transport.onclose = () => {
+        if (transport.sessionId) {
+          sessions.delete(transport.sessionId);
+        }
+      };
 
       // Connect server to transport before handling the request
       await server.connect(transport);
@@ -127,30 +141,30 @@ export async function createMcpHttpApp(
 
   // Handle DELETE requests for session termination
   app.delete("/mcp", async (req: Request, res: Response) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+
+    if (!sessionId || !sessions.has(sessionId)) {
+      res.status(400).json({ error: "Invalid or missing session ID" });
+      return;
+    }
+
+    const sessionData = sessions.get(sessionId);
+    if (!sessionData) {
+      res.status(400).json({ error: "Session not found" });
+      return;
+    }
+
     try {
-      const sessionId = req.headers["mcp-session-id"] as string | undefined;
-
-      if (!sessionId || !sessions.has(sessionId)) {
-        res.status(400).json({ error: "Invalid or missing session ID" });
-        return;
-      }
-
-      const sessionData = sessions.get(sessionId);
-      if (!sessionData) {
-        res.status(400).json({ error: "Session not found" });
-        return;
-      }
-
       // Handle the DELETE request through the transport
       await sessionData.transport.handleRequest(req, res);
-
-      // Clean up the session
-      sessions.delete(sessionId);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Internal server error";
       if (!res.headersSent) {
         res.status(500).json({ error: message });
       }
+    } finally {
+      // Always clean up the session, even if handleRequest throws
+      sessions.delete(sessionId);
     }
   });
 
