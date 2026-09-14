@@ -102,19 +102,6 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
     // carries the MCP protocol).
     process.stderr.write(`MCP API key: ${key}\n`);
 
-    if (!keyManager.validate(process.env.DR_MCP_API_KEY, key)) {
-      process.stderr.write(
-        "Error: DR_MCP_API_KEY environment variable is missing or does not match the stored API key.\n"
-      );
-      process.stderr.write(
-        "Set DR_MCP_API_KEY to the key above when configuring the MCP client, e.g.:\n"
-      );
-      process.stderr.write(
-        '  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }\n'
-      );
-      throw new CLIError("MCP authentication failed: invalid or missing DR_MCP_API_KEY", 1);
-    }
-
     if (options.transport === "http") {
       // HTTP transport implementation
       const { createMcpHttpApp, startHttpServer, closeHttpServer } = await import(
@@ -168,6 +155,20 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       await keepAlive;
     } else {
       // Stdio transport (default)
+      // Validate that the environment has the correct API key configured
+      if (!keyManager.validate(process.env.DR_MCP_API_KEY, key)) {
+        process.stderr.write(
+          "Error: DR_MCP_API_KEY environment variable is missing or does not match the stored API key.\n"
+        );
+        process.stderr.write(
+          "Set DR_MCP_API_KEY to the key above when configuring the MCP client, e.g.:\n"
+        );
+        process.stderr.write(
+          '  { "command": "dr", "args": ["mcp"], "env": { "DR_MCP_API_KEY": "<key>" } }\n'
+        );
+        throw new CLIError("MCP authentication failed: invalid or missing DR_MCP_API_KEY", 1);
+      }
+
       const transport = await startActiveSpan(
         "mcp.server.start",
         async (span) => {
