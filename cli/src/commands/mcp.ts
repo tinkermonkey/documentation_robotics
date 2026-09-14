@@ -142,10 +142,22 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
         resolveKeepAlive = resolve;
       });
 
+      let isShuttingDown = false;
       const shutdown = async () => {
-        process.stderr.write("\nShutting down HTTP server...\n");
-        await closeHttpServer(httpServer);
-        resolveKeepAlive!();
+        if (isShuttingDown) {
+          return;
+        }
+        isShuttingDown = true;
+
+        try {
+          process.stderr.write("\nShutting down HTTP server...\n");
+          await closeHttpServer(httpServer);
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : "unknown error";
+          process.stderr.write(`[mcp] Error closing server: ${errorMsg}\n`);
+        } finally {
+          resolveKeepAlive!();
+        }
       };
 
       process.on("SIGINT", shutdown);
