@@ -57,7 +57,6 @@ export async function createMcpHttpApp(
   const app = createMcpExpressApp({ host });
 
   // Middleware
-  app.use(express.json());
   app.use(express.raw({ type: "application/octet-stream" }));
 
   // Apply bearer token authentication to all MCP endpoints
