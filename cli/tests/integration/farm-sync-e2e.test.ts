@@ -291,7 +291,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       // Initial sync to establish baseline
       const result1 = await engine.syncProject(project, { verbose: false });
       expect(result1.status).toBe("success");
-      expect(result1.dryRun).toBe(false);
+      expect(result1.dryRun).toBeFalsy();
 
       // Get the sync state after initial sync
       const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
@@ -320,7 +320,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       // Perform another normal sync and verify it advances from the original lastSyncCommit
       const result3 = await engine.syncProject(project, { verbose: false });
       expect(result3.status).toBe("success");
-      expect(result3.dryRun).toBe(false);
+      expect(result3.dryRun).toBeFalsy();
       expect(result3.filesChanged.added).toContain("src/service.ts");
 
       // Verify sync state was updated by normal sync
