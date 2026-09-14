@@ -120,6 +120,149 @@ describe("Model", () => {
   });
 });
 
+describe("Model.loadLayer — Error Handling", () => {
+  it("should silently handle ENOENT when layer directory not found", async () => {
+    const testDir = `${tmpdir()}/dr-layer-test-${randomUUID()}`;
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+
+    // Should not throw when layer directory doesn't exist
+    await model.loadLayer("motivation");
+    expect(model.layers.get("motivation")).toBeUndefined();
+  });
+
+  it("should propagate EACCES errors instead of silently failing", async () => {
+    const fs = await import("fs/promises");
+
+    const testDir = `${tmpdir()}/dr-layer-permission-test-${randomUUID()}`;
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+
+    const eacces = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+    eacces.code = "EACCES";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eacces);
+    });
+
+    try {
+      await model.loadLayer("motivation");
+      expect.unreachable("Should have thrown permission error");
+    } catch (err) {
+      expect((err as Error).message).toContain("permission denied");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+
+  it("should propagate EIO errors on I/O failure", async () => {
+    const fs = await import("fs/promises");
+
+    const testDir = `${tmpdir()}/dr-layer-io-test-${randomUUID()}`;
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+
+    const eio = new Error("EIO: input/output error") as NodeJS.ErrnoException;
+    eio.code = "EIO";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eio);
+    });
+
+    try {
+      await model.loadLayer("motivation");
+      expect.unreachable("Should have thrown I/O error");
+    } catch (err) {
+      expect((err as Error).message).toContain("input/output error");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+});
+
+describe("Model.saveLayer — Error Handling", () => {
+  it("should propagate EACCES errors when accessing layer directory", async () => {
+    const { mkdir } = await import("fs/promises");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    const testDir = `${tmpdir()}/dr-save-layer-test-${randomUUID()}`;
+    await mkdir(testDir, { recursive: true });
+
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+    const layer = new Layer("motivation");
+    model.addLayer(layer);
+
+    const eacces = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+    eacces.code = "EACCES";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eacces);
+    });
+
+    try {
+      await model.saveLayer("motivation");
+      expect.unreachable("Should have thrown permission error");
+    } catch (err) {
+      expect((err as Error).message).toContain("permission denied");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+
+  it("should propagate EIO errors on I/O failure when cleaning files", async () => {
+    const { mkdir, writeFile } = await import("fs/promises");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    const testDir = `${tmpdir()}/dr-save-layer-io-test-${randomUUID()}`;
+    const modelDir = path.join(testDir, "documentation-robotics", "model", "01_motivation");
+    await mkdir(modelDir, { recursive: true });
+
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(testDir, manifest);
+    const layer = new Layer("motivation");
+    model.addLayer(layer);
+
+    const eio = new Error("EIO: input/output error") as NodeJS.ErrnoException;
+    eio.code = "EIO";
+
+    const readdirSpy = vi.spyOn(fs, "readdir").mockImplementation(() => {
+      return Promise.reject(eio);
+    });
+
+    try {
+      await model.saveLayer("motivation");
+      expect.unreachable("Should have thrown I/O error");
+    } catch (err) {
+      expect((err as Error).message).toContain("Failed to clean existing YAML files");
+    } finally {
+      readdirSpy.mockRestore();
+    }
+  });
+});
+
 describe("Model.load — Detached Manifest Path Validation", () => {
   it("should successfully load model from detached manifest path", async () => {
     const { mkdir, writeFile } = await import("fs/promises");
