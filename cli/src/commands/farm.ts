@@ -447,17 +447,15 @@ export async function farmStatusCommand(options: {
           };
         } catch (error) {
           // If sync state doesn't exist yet, that's expected - treat as no sync yet
-          // For unexpected errors (YAML parse, git permission, etc), log them
+          // For unexpected errors (YAML parse, git permission, etc), always log them
           const errorMsg = getErrorMessage(error);
           if (
             !errorMsg.includes("not found") &&
             !errorMsg.includes("does not exist") &&
             !errorMsg.includes("ENOENT")
           ) {
-            // Unexpected error - log it (but still return default to keep status resilient)
-            if (process.env.DEBUG) {
-              console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
-            }
+            // Unexpected error - always log it to surface issues to users
+            console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
           }
           return {
             name: p.name,
@@ -1113,7 +1111,7 @@ export async function farmSyncCommand(options: {
               resultEntry.auto_committed = false;
               resultEntry.commit_error = getErrorMessage(commitError);
               resultEntry.status = "error";
-              if (options.verbose && !useJson) {
+              if (!useJson) {
                 handleInfo(`  Auto-commit failed: ${getErrorMessage(commitError)}`);
               }
             }
