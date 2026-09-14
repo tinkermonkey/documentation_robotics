@@ -308,6 +308,9 @@ export async function closeHttpServer(
           }\n`
         );
       }
+      // Remove from sessions map BEFORE closing transport to prevent the onclose handler
+      // from finding the session and trying to close the server again
+      sessions.delete(sessionId);
       try {
         // Close the transport
         await transport.close();
@@ -318,8 +321,6 @@ export async function closeHttpServer(
           }\n`
         );
       }
-      // Remove from sessions map
-      sessions.delete(sessionId);
     }
   }
 
