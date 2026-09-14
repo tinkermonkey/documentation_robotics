@@ -889,7 +889,7 @@ describe("FarmSyncEngine", () => {
     expect(reloadedModel.manifest.name).toBe("test-model");
   });
 
-  it("should handle model-null failure path: return failed status and not advance lastSyncCommit", async () => {
+  it("should handle model-null failure: record failed status and not advance lastSyncCommit", async () => {
     const { Model } = await import("../../src/core/model.js");
     const project = farmManifest.getProject("test-project")!;
 
@@ -906,6 +906,12 @@ describe("FarmSyncEngine", () => {
     expect(baselineResult.status).toBe("success");
     expect(baselineResult.notes).toContain("Initial sync - recording baseline only");
 
+    // Verify baseline advanced the commit pointer
+    let syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
+    let syncState = await FarmSyncState.load(syncStateFile);
+    const baselineCommit = syncState.lastSyncCommit;
+    expect(baselineCommit).toBeDefined();
+
     // Second: make a change to the codebase
     const newFile = path.join(codebaseDir, "test-file.txt");
     await writeFile(newFile, "test content");
@@ -914,77 +920,59 @@ describe("FarmSyncEngine", () => {
 
     // Third: attempt sync WITHOUT a model (model is null) - should fail
     engine = new FarmSyncEngine(farmDir, undefined);
-    const result = await engine.syncProject(project, { verbose: false });
+    const failResult = await engine.syncProject(project, { verbose: false });
 
     // Verify result indicates failure
-    expect(result.status).toBe("failed");
-    expect(result.projectName).toBe("test-project");
-    expect(result.notes).toContain("CRITICAL: Model is not loaded, cannot map files to elements");
+    expect(failResult.status).toBe("failed");
+    expect(failResult.projectName).toBe("test-project");
+    expect(failResult.notes).toContain("CRITICAL: Model is not loaded, cannot map files to elements");
 
-    // Verify sync state was recorded with failed status
-    const syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
-    expect(await fileExists(syncStateFile)).toBe(true);
-
-    const syncState = await FarmSyncState.load(syncStateFile);
-
-    // Critical: lastSyncCommit should still point to the baseline (not advance) after failed sync
-    expect(syncState.lastSyncCommit).toBeDefined();
-
-    // Verify both syncs are in history (baseline success + failure)
+    // Reload sync state and verify the failure was recorded
+    syncState = await FarmSyncState.load(syncStateFile);
     expect(syncState.syncHistory.length).toBe(2);
+
     const failedRecord = syncState.syncHistory[1];
     expect(failedRecord.status).toBe("failed");
     expect(failedRecord.notes).toContain("Model not loaded");
 
-    // Verify that lastSyncCommit still points to the baseline commit (didn't advance)
-    expect(syncState.lastSyncCommit).toBe(syncState.syncHistory[0].commit);
-  });
+    // Critical: lastSyncCommit must NOT advance after failed sync
+    expect(syncState.lastSyncCommit).toBe(baselineCommit);
 
-  it("should record model-null failure in sync state without advancing commit pointer", async () => {
-    const project = farmManifest.getProject("test-project")!;
-
-    // First, perform a successful sync with a model to establish lastSyncCommit
-    const { Model } = await import("../../src/core/model.js");
-    const model = await Model.init(modelDir, {
-      name: "test-model",
-      version: "0.1.0",
-      specVersion: "0.9.0",
-      created: new Date().toISOString(),
-    });
-
-    let engine = new FarmSyncEngine(farmDir, model);
-    const successResult = await engine.syncProject(project, { verbose: false });
-    expect(successResult.status).toBe("success");
-
-    // Verify successful sync advanced the commit pointer
-    let syncStateFile = path.join(farmDir, project.model, ".farm-sync.yaml");
-    let syncState = await FarmSyncState.load(syncStateFile);
-    const successCommit = syncState.lastSyncCommit;
-    expect(successCommit).toBeDefined();
-
-    // Make another change to the codebase
+    // Make another change and test again to verify the failure is reproducible
     const file2 = path.join(codebaseDir, "another-file.txt");
     await writeFile(file2, "more content");
     execSync("git add another-file.txt", { cwd: codebaseDir, stdio: "pipe" });
     execSync("git commit -m 'Another commit'", { cwd: codebaseDir, stdio: "pipe" });
 
-    // Now attempt sync with null model - should fail
+    // Attempt another sync with null model - should also fail
     engine = new FarmSyncEngine(farmDir, undefined);
-    const failResult = await engine.syncProject(project, { verbose: false });
-    expect(failResult.status).toBe("failed");
+    const secondFailResult = await engine.syncProject(project, { verbose: false });
+    expect(secondFailResult.status).toBe("failed");
 
-    // Reload sync state and verify lastSyncCommit was NOT advanced
+    // Verify lastSyncCommit still hasn't advanced
     syncState = await FarmSyncState.load(syncStateFile);
-    expect(syncState.lastSyncCommit).toBe(successCommit);
+    expect(syncState.lastSyncCommit).toBe(baselineCommit);
+    expect(syncState.syncHistory.length).toBe(3);
+    expect(syncState.syncHistory[2].status).toBe("failed");
+  });
+});
 
-    // Verify both syncs are in history
-    expect(syncState.syncHistory.length).toBe(2);
-    expect(syncState.syncHistory[1].status).toBe("failed");
+describe("farmSyncCommand - concurrency", () => {
+  let farmDir: string;
+
+  beforeEach(async () => {
+    farmDir = path.join("/tmp", `farm-concurrency-test-${Date.now()}`);
+    await ensureDir(farmDir);
+  });
+
+  afterEach(async () => {
+    if (await fileExists(farmDir)) {
+      await fs.rm(farmDir, { recursive: true, force: true });
+    }
   });
 
   it("should prevent --auto-commit with --concurrency > 1 to avoid race conditions", async () => {
     // This test verifies the safety check in farm sync command
-    // The actual concurrency logic is tested below
     const { farmSyncCommand } = await import("../../src/commands/farm.js");
 
     // Create a basic farm setup
@@ -1158,12 +1146,15 @@ describe("FarmSyncEngine", () => {
         console.log = originalLog;
       }
 
-      // Find JSON output
+      // Find JSON output - must exist (test fails explicitly if not)
       const jsonOutput = outputLines.find((line) => line.startsWith("{"));
+      expect(jsonOutput).toBeDefined();
+
       if (jsonOutput) {
         const result = JSON.parse(jsonOutput);
-        // All 3 projects should be in results
-        expect(result.projects || result.results || result.entries).toBeDefined();
+        // All 3 projects should be in results - assert on projects specifically
+        expect(result.projects).toBeDefined();
+        expect(Array.isArray(result.projects)).toBe(true);
       }
     } finally {
       process.chdir(originalCwd);
@@ -1245,15 +1236,11 @@ describe("FarmSyncEngine", () => {
     const { farmSyncCommand } = await import("../../src/commands/farm.js");
 
     // Create 4 projects for parallel processing with concurrency=2
-    const projDirs = [];
-    const modelDirs = [];
     for (let i = 1; i <= 4; i++) {
       const pDir = path.join(farmDir, `proj${i}`);
       const mDir = path.join(farmDir, `model${i}`);
       await createTestGitRepo(pDir, true);
       await ensureDir(mDir);
-      projDirs.push(pDir);
-      modelDirs.push(mDir);
     }
 
     // Create farm with 4 projects
@@ -1274,11 +1261,11 @@ describe("FarmSyncEngine", () => {
 
     try {
       const originalLog = console.log;
-      const processedProjects: string[] = [];
+      let jsonOutput: string | null = null;
       console.log = (msg: string) => {
-        // Track which projects are processed
-        if (msg.includes("project")) {
-          processedProjects.push(msg);
+        // Capture JSON output which contains the command result
+        if (msg.startsWith("{") && jsonOutput === null) {
+          jsonOutput = msg;
         }
       };
 
@@ -1293,18 +1280,24 @@ describe("FarmSyncEngine", () => {
           project: undefined,
         });
       } catch {
-        // Ignore errors - we're testing queue processing
+        // Ignore command errors - we're testing queue processing stability
       } finally {
         console.log = originalLog;
       }
 
-      // All 4 projects should be processed (order may vary)
-      const allProcessed = ["project1", "project2", "project3", "project4"].every(
-        (p) => processedProjects.some((line) => line.includes(p))
-      );
-      // Note: Due to parallel nature, all projects may not be individually logged
-      // The test verifies the command doesn't crash with concurrency > 1
-      expect(allProcessed || processedProjects.length >= 0).toBe(true);
+      // The command should complete without crashing (error handling in the command is expected)
+      // If JSON output was generated, verify all projects are present
+      if (jsonOutput) {
+        const result = JSON.parse(jsonOutput);
+        expect(result.projects).toBeDefined();
+        expect(Array.isArray(result.projects)).toBe(true);
+        // Verify all 4 projects are in the results
+        const projectNames = result.projects.map((p: any) => p.name);
+        expect(projectNames).toContain("project1");
+        expect(projectNames).toContain("project2");
+        expect(projectNames).toContain("project3");
+        expect(projectNames).toContain("project4");
+      }
     } finally {
       process.chdir(originalCwd);
     }
