@@ -857,6 +857,11 @@ export class Model {
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
+        // Only wrap ENOENT errors as "not found" — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         throw new Error(`Model not found at ${startPath}`);
       }
     }
@@ -900,6 +905,11 @@ export class Model {
 
         return { projectRoot, manifestPath: path.normalize(manifestPath) };
       } catch (err) {
+        // Only wrap ENOENT errors as "not found" — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         throw new Error(`Model not found at DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}`);
       }
     }

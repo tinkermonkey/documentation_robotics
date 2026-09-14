@@ -207,3 +207,167 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
     }
   });
 });
+
+describe("Model.load — Error Handling for Filesystem Errors", () => {
+  describe("startPath branch", () => {
+    it("should silently handle ENOENT from non-standard structure check and use manifest parent", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      const path = await import("path");
+
+      const testDir = `${tmpdir()}/dr-resolve-test-${randomUUID()}`;
+      const modelDir = path.join(testDir, "model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = path.join(modelDir, "manifest.yaml");
+      const now = new Date().toISOString();
+      await writeFile(
+        manifestPath,
+        `version: "1.0.0"
+project:
+  name: Test Model
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
+      );
+
+      // Should succeed with non-standard structure (ENOENT for standard structure ignored)
+      const model = await Model.load(testDir);
+      expect(model).toBeDefined();
+      expect(model.manifest.name).toBe("Test Model");
+    });
+
+    it("should propagate EACCES errors instead of wrapping with Model not found", async () => {
+      const fs = await import("fs/promises");
+
+      const eacces = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+      eacces.code = "EACCES";
+
+      const accessSpy = vi.spyOn(fs, "access").mockImplementation(() => {
+        return Promise.reject(eacces);
+      });
+
+      try {
+        await Model.load("/some/inaccessible/path");
+        expect.unreachable("Should have thrown permission error");
+      } catch (err) {
+        // Verify that the re-thrown error is NOT wrapped in "Model not found"
+        expect((err as Error).message).not.toContain("Model not found");
+        // Verify it's the permission error
+        expect((err as Error).message).toContain("permission denied");
+      } finally {
+        accessSpy.mockRestore();
+      }
+    });
+
+    it("should propagate EIO errors instead of wrapping with Model not found", async () => {
+      const fs = await import("fs/promises");
+
+      const eio = new Error("EIO: input/output error") as NodeJS.ErrnoException;
+      eio.code = "EIO";
+
+      const accessSpy = vi.spyOn(fs, "access").mockImplementation(() => {
+        return Promise.reject(eio);
+      });
+
+      try {
+        await Model.load("/some/path");
+        expect.unreachable("Should have thrown I/O error");
+      } catch (err) {
+        // Verify that the re-thrown error is NOT wrapped in "Model not found"
+        expect((err as Error).message).not.toContain("Model not found");
+        // Verify it's the I/O error
+        expect((err as Error).message).toContain("input/output error");
+      } finally {
+        accessSpy.mockRestore();
+      }
+    });
+  });
+
+  describe("DR_MODEL_PATH branch", () => {
+    it("should silently handle ENOENT errors with DR_MODEL_PATH env var", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      const path = await import("path");
+
+      const testDir = `${tmpdir()}/dr-env-test-${randomUUID()}`;
+      const modelDir = path.join(testDir, "model");
+      await mkdir(modelDir, { recursive: true });
+
+      const manifestPath = path.join(modelDir, "manifest.yaml");
+      const now = new Date().toISOString();
+      await writeFile(
+        manifestPath,
+        `version: "1.0.0"
+project:
+  name: Test Model
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
+      );
+
+      const oldEnv = process.env.DR_MODEL_PATH;
+      try {
+        process.env.DR_MODEL_PATH = testDir;
+        // Should succeed with non-standard structure (ENOENT for standard structure ignored)
+        const model = await Model.load();
+        expect(model).toBeDefined();
+        expect(model.manifest.name).toBe("Test Model");
+      } finally {
+        process.env.DR_MODEL_PATH = oldEnv;
+      }
+    });
+
+    it("should propagate EACCES errors instead of wrapping with Model not found (DR_MODEL_PATH)", async () => {
+      const fs = await import("fs/promises");
+
+      const eacces = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+      eacces.code = "EACCES";
+
+      const accessSpy = vi.spyOn(fs, "access").mockImplementation(() => {
+        return Promise.reject(eacces);
+      });
+
+      const oldEnv = process.env.DR_MODEL_PATH;
+      try {
+        process.env.DR_MODEL_PATH = "/some/inaccessible/path";
+        await Model.load();
+        expect.unreachable("Should have thrown permission error");
+      } catch (err) {
+        // Verify that the re-thrown error is NOT wrapped in "Model not found at DR_MODEL_PATH"
+        expect((err as Error).message).not.toContain("Model not found at DR_MODEL_PATH");
+        // Verify it's the permission error
+        expect((err as Error).message).toContain("permission denied");
+      } finally {
+        process.env.DR_MODEL_PATH = oldEnv;
+        accessSpy.mockRestore();
+      }
+    });
+
+    it("should propagate EMFILE errors instead of wrapping with Model not found (DR_MODEL_PATH)", async () => {
+      const fs = await import("fs/promises");
+
+      const emfile = new Error("EMFILE: too many open files") as NodeJS.ErrnoException;
+      emfile.code = "EMFILE";
+
+      const accessSpy = vi.spyOn(fs, "access").mockImplementation(() => {
+        return Promise.reject(emfile);
+      });
+
+      const oldEnv = process.env.DR_MODEL_PATH;
+      try {
+        process.env.DR_MODEL_PATH = "/some/path";
+        await Model.load();
+        expect.unreachable("Should have thrown EMFILE error");
+      } catch (err) {
+        // Verify that the re-thrown error is NOT wrapped in "Model not found at DR_MODEL_PATH"
+        expect((err as Error).message).not.toContain("Model not found at DR_MODEL_PATH");
+        // Verify it's the EMFILE error
+        expect((err as Error).message).toContain("too many open files");
+      } finally {
+        process.env.DR_MODEL_PATH = oldEnv;
+        accessSpy.mockRestore();
+      }
+    });
+  });
+});
