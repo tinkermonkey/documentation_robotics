@@ -70,7 +70,15 @@ export async function createMcpHttpApp(
         // Reuse existing session
         const sessionData = sessions.get(requestedSessionId);
         if (sessionData) {
-          await sessionData.transport.handleRequest(req, res, req.body);
+          try {
+            await sessionData.transport.handleRequest(req, res, req.body);
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : "unknown error";
+            process.stderr.write(`[mcp:http] POST handleRequest error: ${errorMsg}\n`);
+            if (!res.headersSent) {
+              res.status(500).json({ error: "Internal server error" });
+            }
+          }
           return;
         }
       }
@@ -82,33 +90,70 @@ export async function createMcpHttpApp(
       }
 
       // Create a new session
-      const server = await createServer();
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      });
+      let server: McpServer | null = null;
+      let transport: StreamableHTTPServerTransport | null = null;
 
-      // Register onclose handler to clean up session when transport closes
-      transport.onclose = () => {
-        if (transport.sessionId) {
-          sessions.delete(transport.sessionId);
+      try {
+        server = await createServer();
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        });
+
+        // Register onclose handler to clean up session when transport closes
+        transport.onclose = () => {
+          if (transport && transport.sessionId) {
+            sessions.delete(transport.sessionId);
+          }
+        };
+
+        // Connect server to transport before handling the request
+        await server.connect(transport);
+
+        // Handle the request through the streamable HTTP transport
+        await transport.handleRequest(req, res, req.body);
+
+        // Store session data for later cleanup after handleRequest completes and sessionId is set
+        const sessionId = transport.sessionId;
+        if (sessionId && !sessions.has(sessionId)) {
+          sessions.set(sessionId, { server, transport });
         }
-      };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "unknown error";
+        process.stderr.write(`[mcp:http] POST setup error: ${errorMsg}\n`);
 
-      // Connect server to transport before handling the request
-      await server.connect(transport);
+        // Clean up resources on setup failure
+        if (transport) {
+          try {
+            await transport.close();
+          } catch (closeError) {
+            process.stderr.write(
+              `[mcp:http] Error closing transport during cleanup: ${
+                closeError instanceof Error ? closeError.message : "unknown error"
+              }\n`
+            );
+          }
+        }
+        if (server) {
+          try {
+            await server.close();
+          } catch (closeError) {
+            process.stderr.write(
+              `[mcp:http] Error closing server during cleanup: ${
+                closeError instanceof Error ? closeError.message : "unknown error"
+              }\n`
+            );
+          }
+        }
 
-      // Handle the request through the streamable HTTP transport
-      await transport.handleRequest(req, res, req.body);
-
-      // Store session data for later cleanup after handleRequest completes and sessionId is set
-      const sessionId = transport.sessionId;
-      if (sessionId && !sessions.has(sessionId)) {
-        sessions.set(sessionId, { server, transport });
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Internal server error" });
+        }
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Internal server error";
+      const errorMsg = error instanceof Error ? error.message : "unknown error";
+      process.stderr.write(`[mcp:http] POST outer error: ${errorMsg}\n`);
       if (!res.headersSent) {
-        res.status(500).json({ error: message });
+        res.status(500).json({ error: "Internal server error" });
       }
     }
   });
@@ -132,9 +177,10 @@ export async function createMcpHttpApp(
       // Reuse the existing transport for this session
       await sessionData.transport.handleRequest(req, res);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Internal server error";
+      const errorMsg = error instanceof Error ? error.message : "unknown error";
+      process.stderr.write(`[mcp:http] GET handleRequest error: ${errorMsg}\n`);
       if (!res.headersSent) {
-        res.status(500).json({ error: message });
+        res.status(500).json({ error: "Internal server error" });
       }
     }
   });
@@ -158,9 +204,10 @@ export async function createMcpHttpApp(
       // Handle the DELETE request through the transport
       await sessionData.transport.handleRequest(req, res);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Internal server error";
+      const errorMsg = error instanceof Error ? error.message : "unknown error";
+      process.stderr.write(`[mcp:http] DELETE handleRequest error: ${errorMsg}\n`);
       if (!res.headersSent) {
-        res.status(500).json({ error: message });
+        res.status(500).json({ error: "Internal server error" });
       }
     } finally {
       // Always clean up the session, even if handleRequest throws
