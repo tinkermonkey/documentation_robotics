@@ -111,11 +111,12 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
       const host = options.host || "127.0.0.1";
       const port = options.port || 3100;
 
+      let httpApp: any;
       const httpServer = await startActiveSpan(
         "mcp.server.start",
         async (span) => {
-          const app = await createMcpHttpApp(keyManager, key, createConfiguredServer, host);
-          const server = await startHttpServer(app, host, port);
+          httpApp = await createMcpHttpApp(keyManager, key, createConfiguredServer, host);
+          const server = await startHttpServer(httpApp, host, port);
 
           span.setAttribute("mcp.server.name", "documentation-robotics");
           span.setAttribute("mcp.server.version", cliVersion);
@@ -151,7 +152,7 @@ export async function mcpCommand(options: McpCommandOptions = {}): Promise<void>
 
         try {
           process.stderr.write("\nShutting down HTTP server...\n");
-          await closeHttpServer(httpServer);
+          await closeHttpServer(httpServer, httpApp);
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : "unknown error";
           process.stderr.write(`[mcp] Error closing server: ${errorMsg}\n`);

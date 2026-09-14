@@ -19,7 +19,9 @@ interface SessionData {
   transport: StreamableHTTPServerTransport;
 }
 
-const sessions = new Map<string, SessionData>();
+interface HttpTransportApp extends Express {
+  __mcp_sessions?: Map<string, SessionData>;
+}
 
 /**
  * Middleware to validate bearer token authentication.
@@ -53,8 +55,10 @@ export async function createMcpHttpApp(
   apiKey: string,
   createServer: () => Promise<McpServer>,
   host: string = "127.0.0.1"
-): Promise<Express> {
-  const app = createMcpExpressApp({ host });
+): Promise<HttpTransportApp> {
+  const app = createMcpExpressApp({ host }) as HttpTransportApp;
+  app.__mcp_sessions = new Map<string, SessionData>();
+  const sessions = app.__mcp_sessions;
 
   // Middleware
   app.use(express.raw({ type: "application/octet-stream" }));
@@ -103,9 +107,23 @@ export async function createMcpHttpApp(
         });
 
         // Register onclose handler to clean up session when transport closes
-        transport.onclose = () => {
+        transport.onclose = async () => {
           if (transport && transport.sessionId) {
-            sessions.delete(transport.sessionId);
+            const sessionId = transport.sessionId;
+            const sessionData = sessions.get(sessionId);
+            if (sessionData) {
+              sessions.delete(sessionId);
+              // Close server to release resources
+              try {
+                await sessionData.server.close();
+              } catch (closeError) {
+                process.stderr.write(
+                  `[mcp:http] Error closing server in onclose handler: ${
+                    closeError instanceof Error ? closeError.message : "unknown error"
+                  }\n`
+                );
+              }
+            }
           }
         };
 
@@ -214,7 +232,29 @@ export async function createMcpHttpApp(
       }
     } finally {
       // Always clean up the session, even if handleRequest throws
-      sessions.delete(sessionId);
+      if (sessions.has(sessionId)) {
+        sessions.delete(sessionId);
+        // Close server to release resources
+        try {
+          await sessionData.server.close();
+        } catch (closeError) {
+          process.stderr.write(
+            `[mcp:http] Error closing server in DELETE handler: ${
+              closeError instanceof Error ? closeError.message : "unknown error"
+            }\n`
+          );
+        }
+        // Close transport to release resources
+        try {
+          await sessionData.transport.close();
+        } catch (closeError) {
+          process.stderr.write(
+            `[mcp:http] Error closing transport in DELETE handler: ${
+              closeError instanceof Error ? closeError.message : "unknown error"
+            }\n`
+          );
+        }
+      }
     }
   });
 
@@ -247,20 +287,39 @@ export async function startHttpServer(
  * Gracefully close all active sessions and the HTTP server.
  *
  * @param server HttpServer instance
+ * @param app Express application (used to access instance-scoped sessions)
  */
-export async function closeHttpServer(server: HttpServer): Promise<void> {
-  // Close all active sessions
-  for (const [sessionId, { transport }] of sessions.entries()) {
-    try {
-      await transport.close();
+export async function closeHttpServer(
+  server: HttpServer,
+  app?: HttpTransportApp
+): Promise<void> {
+  const sessions = app?.__mcp_sessions;
+
+  if (sessions) {
+    // Close all active sessions
+    for (const [sessionId, { server: mcpServer, transport }] of sessions.entries()) {
+      try {
+        // Close the server to release resources
+        await mcpServer.close();
+      } catch (error) {
+        process.stderr.write(
+          `[mcp] Error closing server for session ${sessionId}: ${
+            error instanceof Error ? error.message : "unknown error"
+          }\n`
+        );
+      }
+      try {
+        // Close the transport
+        await transport.close();
+      } catch (error) {
+        process.stderr.write(
+          `[mcp] Error closing transport for session ${sessionId}: ${
+            error instanceof Error ? error.message : "unknown error"
+          }\n`
+        );
+      }
+      // Remove from sessions map
       sessions.delete(sessionId);
-    } catch (error) {
-      // Log but continue closing other sessions
-      process.stderr.write(
-        `[mcp] Error closing session ${sessionId}: ${
-          error instanceof Error ? error.message : "unknown error"
-        }\n`
-      );
     }
   }
 
