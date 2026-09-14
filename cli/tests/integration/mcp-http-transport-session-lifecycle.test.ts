@@ -7,109 +7,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { type ChildProcessWithoutNullStreams } from "child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import path from "node:path";
-
-const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
-
-interface McpProcess {
-  proc: ChildProcessWithoutNullStreams;
-  stdout: string;
-  stderr: string;
-  exitCode: Promise<number | null>;
-}
-
-function spawnMcpHttp(
-  configPath: string,
-  apiKey: string,
-  port: number = 3100,
-  host: string = "127.0.0.1"
-): McpProcess {
-  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath };
-  delete env.DR_MCP_API_KEY;
-  if (apiKey !== undefined) {
-    env.DR_MCP_API_KEY = apiKey;
-  }
-
-  const args = [
-    CLI_PATH,
-    "mcp",
-    "--transport",
-    "http",
-    "--port",
-    port.toString(),
-    "--host",
-    host,
-  ];
-
-  const proc = spawn("node", args, { env, stdio: ["pipe", "pipe", "pipe"] });
-
-  const state: McpProcess = {
-    proc,
-    stdout: "",
-    stderr: "",
-    exitCode: new Promise((resolve) => {
-      proc.on("close", (code) => resolve(code));
-      proc.on("error", () => resolve(null));
-    }),
-  };
-
-  proc.stdout.on("data", (chunk) => {
-    state.stdout += chunk.toString();
-  });
-  proc.stderr.on("data", (chunk) => {
-    state.stderr += chunk.toString();
-  });
-
-  return state;
-}
-
-async function waitForServerReady(state: McpProcess, timeoutMs = 5000): Promise<boolean> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (state.stderr.includes("MCP server ready")) {
-      return true;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  return false;
-}
-
-async function makeHttpRequest(
-  port: number,
-  method: string = "POST",
-  headers?: Record<string, string>,
-  body?: any
-): Promise<{ status: number; body: unknown; headers: Headers }> {
-  try {
-    const response = await fetch(`http://127.0.0.1:${port}/mcp`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body:
-        body !== undefined
-          ? JSON.stringify(body)
-          : method !== "GET" && method !== "DELETE"
-            ? JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" })
-            : undefined,
-    });
-    const text = await response.text();
-    let parsed: any;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = text;
-    }
-    return { status: response.status, body: parsed, headers: response.headers };
-  } catch (error) {
-    throw new Error(`HTTP request failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
+import { spawnMcpHttp, waitForServerReady, makeHttpRequest } from "../helpers/mcp-http-helpers.js";
 
 describe("HTTP MCP Transport - Session Lifecycle (DELETE & GET/SSE Coverage)", () => {
   let testDir: string;
@@ -208,21 +110,25 @@ describe("HTTP MCP Transport - Session Lifecycle (DELETE & GET/SSE Coverage)", (
 
       expect(initResponse.status).not.toBe(401);
 
-      // Extract session ID from response if available
+      // Extract session ID from response (must be present for valid session)
       const sessionIdFromInit =
         (initResponse.body as any)?.result?.extensionData?.["mcp-session-id"] ||
-        initResponse.headers.get?.("mcp-session-id") ||
-        // Try another approach - if the server set a session ID, we need to track it
-        `session-${Date.now()}`;
+        initResponse.headers.get?.("mcp-session-id");
 
-      // Step 2: GET request with the session ID
+      // If no session ID was returned, skip GET test (not a regression we need to detect)
+      if (!sessionIdFromInit) {
+        state.proc.kill("SIGINT");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return;
+      }
+
+      // Step 2: GET request with the valid session ID should succeed (200)
       const getResponse = await makeHttpRequest(3202, "GET", {
         Authorization: `Bearer ${apiKey}`,
         "mcp-session-id": sessionIdFromInit,
       });
 
-      // Should either succeed or fail with proper error handling
-      expect([200, 400, 500]).toContain(getResponse.status);
+      expect(getResponse.status).toBe(200);
 
       state.proc.kill("SIGINT");
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -296,16 +202,35 @@ describe("HTTP MCP Transport - Session Lifecycle (DELETE & GET/SSE Coverage)", (
 
       expect(initResponse.status).not.toBe(401);
 
-      // We can't easily extract the session ID from MCP protocol response,
-      // so we'll test that DELETE endpoint handles requests properly
-      // and the server doesn't crash when receiving DELETE requests
+      // Extract session ID from response
+      const sessionId =
+        (initResponse.body as any)?.result?.extensionData?.["mcp-session-id"] ||
+        initResponse.headers.get?.("mcp-session-id");
+
+      // If no session ID was returned, skip DELETE test
+      if (!sessionId) {
+        state.proc.kill("SIGINT");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return;
+      }
+
+      // Step 2: DELETE the real session - should succeed (200) or return 204 (No Content)
       const deleteResponse = await makeHttpRequest(3205, "DELETE", {
         Authorization: `Bearer ${apiKey}`,
-        "mcp-session-id": "test-session-id",
+        "mcp-session-id": sessionId,
       });
 
-      // DELETE should either return 400 (session not found) or handle it properly
-      expect([400, 500]).toContain(deleteResponse.status);
+      // DELETE should succeed
+      expect([200, 204]).toContain(deleteResponse.status);
+
+      // Step 3: Verify session is deleted by trying GET with same session ID - should fail
+      const getAfterDelete = await makeHttpRequest(3205, "GET", {
+        Authorization: `Bearer ${apiKey}`,
+        "mcp-session-id": sessionId,
+      });
+
+      // Should now return 400 (session not found) since DELETE cleaned it up
+      expect(getAfterDelete.status).toBe(400);
 
       state.proc.kill("SIGINT");
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -324,7 +249,7 @@ describe("HTTP MCP Transport - Session Lifecycle (DELETE & GET/SSE Coverage)", (
 
       const headers = { Authorization: `Bearer ${apiKey}` };
 
-      // POST: Initialize
+      // Step 1: POST - Create session via initialize
       const postResponse = await makeHttpRequest(3206, "POST", headers, {
         jsonrpc: "2.0",
         id: 1,
@@ -338,25 +263,46 @@ describe("HTTP MCP Transport - Session Lifecycle (DELETE & GET/SSE Coverage)", (
 
       expect(postResponse.status).not.toBe(401);
 
-      // GET: Try to get with session
+      // Extract the real session ID from POST response
+      const sessionId =
+        (postResponse.body as any)?.result?.extensionData?.["mcp-session-id"] ||
+        postResponse.headers.get?.("mcp-session-id");
+
+      // If no session ID available, this is not a lifecycle test we can perform
+      if (!sessionId) {
+        state.proc.kill("SIGINT");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return;
+      }
+
+      // Step 2: GET - Reuse the session via GET with the real session ID
       const getResponse = await makeHttpRequest(3206, "GET", {
         Authorization: `Bearer ${apiKey}`,
-        "mcp-session-id": "some-session-id",
+        "mcp-session-id": sessionId,
       });
 
-      // GET should handle properly (either find or not find the session)
-      expect([400, 500]).toContain(getResponse.status);
+      // GET with valid session ID should succeed
+      expect(getResponse.status).toBe(200);
 
-      // DELETE: Try to delete session
+      // Step 3: DELETE - Terminate the session with the real session ID
       const deleteResponse = await makeHttpRequest(3206, "DELETE", {
         Authorization: `Bearer ${apiKey}`,
-        "mcp-session-id": "some-session-id",
+        "mcp-session-id": sessionId,
       });
 
-      // DELETE should handle properly
-      expect([400, 500]).toContain(deleteResponse.status);
+      // DELETE should succeed
+      expect([200, 204]).toContain(deleteResponse.status);
 
-      // Server should still be responsive
+      // Step 4: Verify the session is gone by attempting GET with same ID
+      const getAfterDelete = await makeHttpRequest(3206, "GET", {
+        Authorization: `Bearer ${apiKey}`,
+        "mcp-session-id": sessionId,
+      });
+
+      // Should now return 400 (session not found) since DELETE cleaned it up
+      expect(getAfterDelete.status).toBe(400);
+
+      // Step 5: Server should still be responsive - create a new session
       const finalPostResponse = await makeHttpRequest(3206, "POST", headers, {
         jsonrpc: "2.0",
         id: 2,
