@@ -1287,6 +1287,8 @@ describe("farmSyncCommand - concurrency", () => {
 
       // The command should complete without crashing (error handling in the command is expected)
       // If JSON output was generated, verify all projects are present
+      expect(jsonOutput).toBeDefined();
+
       if (jsonOutput) {
         const result = JSON.parse(jsonOutput);
         expect(result.projects).toBeDefined();
