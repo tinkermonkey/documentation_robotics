@@ -242,7 +242,12 @@ export class Model {
         if (layerDir) {
           layerPath = `${modelDir}/${layerDir.name}`;
         }
-      } catch {
+      } catch (err) {
+        // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         // Standard structure doesn't exist, try non-standard structure (rootPath directly)
         try {
           const entries = await fs.readdir(this.rootPath, { withFileTypes: true });
@@ -254,7 +259,12 @@ export class Model {
           if (layerDir) {
             layerPath = `${this.rootPath}/${layerDir.name}`;
           }
-        } catch {
+        } catch (err) {
+          // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+          const isNotFoundError = (err as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            throw err;
+          }
           // Neither structure found
         }
       }
@@ -442,7 +452,12 @@ export class Model {
       if (layerDir) {
         layerPath = `${modelDir}/${layerDir.name}`;
       }
-    } catch {
+    } catch (err) {
+      // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+      const isNotFoundError = (err as any)?.code === "ENOENT";
+      if (!isNotFoundError) {
+        throw err;
+      }
       // Standard structure doesn't exist, try non-standard structure (rootPath directly)
       try {
         const entries = await fs.readdir(this.rootPath, { withFileTypes: true });
@@ -454,7 +469,12 @@ export class Model {
         if (layerDir) {
           layerPath = `${this.rootPath}/${layerDir.name}`;
         }
-      } catch {
+      } catch (err) {
+        // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         // Neither structure found
       }
     }
@@ -825,7 +845,12 @@ export class Model {
         try {
           await fs.access(standardDocRobotsPath);
           projectRoot = standardProjectRoot;
-        } catch {
+        } catch (err) {
+          // Only ignore ENOENT (path not found) — re-throw permission/I/O errors
+          const isNotFoundError = (err as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            throw err;
+          }
           // Not in standard structure, use manifest's parent directory as project root
           projectRoot = manifestParentDir;
         }
@@ -863,7 +888,12 @@ export class Model {
         try {
           await fs.access(standardDocRobotsPath);
           projectRoot = standardProjectRoot;
-        } catch {
+        } catch (err) {
+          // Only ignore ENOENT (path not found) — re-throw permission/I/O errors
+          const isNotFoundError = (err as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            throw err;
+          }
           // Not in standard structure, use manifest's parent directory as project root
           projectRoot = manifestParentDir;
         }
