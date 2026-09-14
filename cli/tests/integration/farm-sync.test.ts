@@ -325,6 +325,116 @@ describe("FarmSyncEngine", () => {
     expect(diff.added.length).toBe(0);
   });
 
+  it("should reject invalid commit SHA format to prevent command injection", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    // Get a valid commit SHA for testing
+    const validCommit = await engine.getCurrentCommit("codebase");
+
+    // Test various injection attempts that should be rejected
+    const injectionAttempts = [
+      // Shell metacharacters
+      "abc123; rm -rf /",
+      "abc123 && malicious-command",
+      "abc123 | grep something",
+      "abc123 $(whoami)",
+      "abc123 `cat /etc/passwd`",
+      // Path traversal
+      "../../../etc/passwd",
+      "abc123/../../../etc/passwd",
+      // Newlines and control characters
+      "abc123\nmalicious",
+      "abc123\rmalicious",
+      // Too long SHA
+      "0123456789abcdef0123456789abcdef0123456789abcdef",
+      // Invalid characters
+      "abc123xyz!@#",
+      "abc123-dash",
+      "abc123_underscore",
+      // Empty and whitespace
+      "",
+      "   ",
+      // Non-hex characters
+      "zzzzzzzzzz",
+      "abc12g",
+    ];
+
+    for (const injection of injectionAttempts) {
+      let error: Error | null = null;
+      try {
+        await engine.computeDiff("codebase", injection, validCommit);
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).not.toBeNull(
+        `Expected rejection of malicious commit SHA: "${injection}"`
+      );
+      expect(error?.message).toContain("Invalid commit SHA format");
+    }
+  });
+
+  it("should reject invalid toCommit SHA to prevent command injection", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    const validCommit = await engine.getCurrentCommit("codebase");
+
+    const injectionAttempts = [
+      "abc123; rm -rf /",
+      "abc123 && echo hacked",
+      "$(whoami)",
+      "`id > /tmp/pwned`",
+      "abc123\nmalicious",
+    ];
+
+    for (const injection of injectionAttempts) {
+      let error: Error | null = null;
+      try {
+        await engine.computeDiff("codebase", validCommit, injection);
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).not.toBeNull(
+        `Expected rejection of malicious toCommit SHA: "${injection}"`
+      );
+      expect(error?.message).toContain("Invalid commit SHA format");
+    }
+  });
+
+  it("should accept valid commit SHAs of varying lengths", async () => {
+    const engine = new FarmSyncEngine(farmDir);
+
+    // Create test commits
+    const commit1 = await engine.getCurrentCommit("codebase");
+
+    // Add a file and commit
+    const testFile = path.join(codebaseDir, "test-valid-sha.txt");
+    await writeFile(testFile, "test content");
+    execSync("git add test-valid-sha.txt", { cwd: codebaseDir, stdio: "pipe" });
+    execSync("git commit -m 'Test valid SHA'", {
+      cwd: codebaseDir,
+      stdio: "pipe",
+    });
+
+    const commit2 = await engine.getCurrentCommit("codebase");
+
+    // Full SHA should work
+    const diffFull = await engine.computeDiff("codebase", commit1, commit2);
+    expect(diffFull.added).toContain("test-valid-sha.txt");
+
+    // Short SHA (7 chars) should also work
+    const shortCommit1 = commit1.substring(0, 7);
+    const shortCommit2 = commit2.substring(0, 7);
+
+    const diffShort = await engine.computeDiff(
+      "codebase",
+      shortCommit1,
+      shortCommit2
+    );
+    expect(diffShort.added).toContain("test-valid-sha.txt");
+  });
+
   it("should handle initial sync with no previous commit", async () => {
     const engine = new FarmSyncEngine(farmDir);
 
