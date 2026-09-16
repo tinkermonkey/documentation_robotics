@@ -393,6 +393,72 @@ modified: ${now}
         expect((err as Error).message).toContain("Model not found");
       }
     });
+
+    it("should find manifest via bounded upward walk when startPath is a subdirectory of the repo (e.g. cli/ generate-openapi.ts usage)", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      const path = await import("path");
+
+      // Simulate a repo layout: <repoRoot>/.git, <repoRoot>/documentation-robotics/model/manifest.yaml,
+      // and a startPath one level below the manifest location: <repoRoot>/cli
+      const repoRoot = `${tmpdir()}/dr-upward-walk-test-${randomUUID()}`;
+      const cliDir = path.join(repoRoot, "cli");
+      const modelDir = path.join(repoRoot, "documentation-robotics", "model");
+
+      await mkdir(path.join(repoRoot, ".git"), { recursive: true });
+      await mkdir(cliDir, { recursive: true });
+      await mkdir(modelDir, { recursive: true });
+
+      const now = new Date().toISOString();
+      await writeFile(
+        path.join(modelDir, "manifest.yaml"),
+        `version: "1.0.0"
+project:
+  name: Upward Walk Test
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
+      );
+
+      // startPath is cli/, one level below the true model location at repoRoot
+      const model = await Model.load(cliDir);
+      expect(model.manifest.name).toBe("Upward Walk Test");
+      expect(model.rootPath).toBe(repoRoot);
+    });
+
+    it("should NOT find a sibling farm/detached model directory via the upward walk (repo boundary stops the search)", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      const path = await import("path");
+
+      // Simulate a farm layout: <farmRoot>/service-a (own repo, has its own .git) and
+      // <farmRoot>/service-a-model/documentation-robotics/model/manifest.yaml as a SIBLING.
+      // Loading from the codebase path must not walk out of its own repo to find the sibling model.
+      const farmRoot = `${tmpdir()}/dr-farm-sibling-test-${randomUUID()}`;
+      const codebaseDir = path.join(farmRoot, "service-a");
+      const siblingModelDir = path.join(farmRoot, "service-a-model", "documentation-robotics", "model");
+
+      await mkdir(path.join(codebaseDir, ".git"), { recursive: true });
+      await mkdir(siblingModelDir, { recursive: true });
+
+      const now = new Date().toISOString();
+      await writeFile(
+        path.join(siblingModelDir, "manifest.yaml"),
+        `version: "1.0.0"
+project:
+  name: Sibling Farm Model
+  version: "1.0.0"
+created: ${now}
+modified: ${now}
+`
+      );
+
+      try {
+        await Model.load(codebaseDir);
+        expect.unreachable("Should have thrown error - sibling model must not be found");
+      } catch (err) {
+        expect((err as Error).message).toContain("Model not found");
+      }
+    });
   });
 
   describe("DR_MODEL_PATH branch", () => {
