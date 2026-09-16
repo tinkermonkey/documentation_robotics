@@ -809,6 +809,42 @@ export class Model {
   }
 
   /**
+   * Walk upward from startPath looking for documentation-robotics/model/manifest.yaml,
+   * stopping at the nearest .git directory (repo boundary) so this can never cross into
+   * an unrelated parent project or a sibling farm/detached model directory.
+   *
+   * @param startPath - Directory to start the walk from
+   * @returns Manifest path if found within the repo boundary, or null
+   */
+  private static async findManifestUpwardBounded(startPath: string): Promise<string | null> {
+    let currentPath = startPath;
+
+    while (true) {
+      const candidateManifestPath = path.join(currentPath, "documentation-robotics", "model", "manifest.yaml");
+      try {
+        await fs.access(candidateManifestPath);
+        return candidateManifestPath;
+      } catch {
+        // Not found at this level, keep looking
+      }
+
+      // Stop once we've checked the repo root (marked by .git) - never walk past it
+      try {
+        await fs.access(path.join(currentPath, ".git"));
+        return null;
+      } catch {
+        // Not a repo boundary, continue upward
+      }
+
+      const parentPath = path.dirname(currentPath);
+      if (parentPath === currentPath) {
+        return null; // Reached filesystem root
+      }
+      currentPath = parentPath;
+    }
+  }
+
+  /**
    * Resolve model paths (private helper)
    *
    * @param startPath - Starting path for search
@@ -862,6 +898,18 @@ export class Model {
         if (!isNotFoundError) {
           throw err;
         }
+
+        // startPath itself doesn't directly contain the manifest (e.g. it's a
+        // subdirectory of the repo, like cli/ within the repo root). Fall back to a
+        // bounded upward walk stopping at the nearest .git boundary. This never crosses
+        // into a sibling farm/detached model directory since those are siblings of the
+        // codebase, not ancestors, so they can't be reached by walking upward.
+        const fallbackManifestPath = await Model.findManifestUpwardBounded(resolvedPath);
+        if (fallbackManifestPath) {
+          const fallbackProjectRoot = path.dirname(path.dirname(path.dirname(fallbackManifestPath)));
+          return { projectRoot: fallbackProjectRoot, manifestPath: path.normalize(fallbackManifestPath) };
+        }
+
         throw new Error(`Model not found at ${startPath}`);
       }
     }
