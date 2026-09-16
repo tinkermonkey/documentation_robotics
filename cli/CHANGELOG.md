@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-16
+
+### Added
+
+- **HTTP transport for the MCP server**, allowing the MCP server to run as a standalone HTTP endpoint alongside the existing stdio transport (#934).
+- **Model Farm support**, introducing a dual-root model layout that decouples a model's location from its codebase root via an optional `codebase_path` manifest field, plus farm-wide project registration and sync tooling (#913).
+- **Multi-repo / federated model validation**, extending cross-model reference resolution and `VerifyEngine` source-path resolution to work across detached codebase and model roots (#897, #913).
+
 ## [0.1.13] - 2026-08-21
 
 **Specification Support:** v0.9.0 (now formally tagged as `spec-v0.9.0`; CLI content support is unchanged from 0.1.12)
