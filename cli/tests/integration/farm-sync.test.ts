@@ -956,4 +956,3 @@ describe("FarmSyncEngine", () => {
     expect(syncState.syncHistory[2].status).toBe("failed");
   });
 });
-
