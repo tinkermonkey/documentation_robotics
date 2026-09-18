@@ -26,6 +26,7 @@ import { CLIError, ModelNotFoundError, ErrorCategory, categorizeError } from "..
 import { findProjectRoot } from "../utils/project-paths.js";
 import { performDiscover } from "./discover-logic.js";
 import { formatVerifyReport } from "../export/verify-formatters.js";
+import { Model } from "../core/model.js";
 import type { SessionState, AnalyzerStatus } from "../analyzers/types.js";
 
 /**
@@ -271,7 +272,9 @@ Examples:
         const actualProjectRoot = await findProjectRoot();
         let status: AnalyzerStatus;
         if (actualProjectRoot) {
-          status = await backend.status(actualProjectRoot);
+          // Load model to get codebase root
+          const model = await Model.load(actualProjectRoot);
+          status = await backend.status(actualProjectRoot, { codebaseRoot: model.codebaseRoot });
         } else {
           const detected = await backend.detect();
           status = {
@@ -425,9 +428,12 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Index the project
         console.log(`Indexing project with ${analyzerName}...`);
-        const result = await backend.index(projectRoot, { force: options.force });
+        const result = await backend.index(projectRoot, { force: options.force, codebaseRoot: model.codebaseRoot });
 
         console.log(ansis.green(`✓ Indexing complete`));
         console.log(`  Nodes: ${result.node_count}`);
@@ -497,8 +503,11 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
-        const status = await backend.status(projectRoot);
+        const status = await backend.status(projectRoot, { codebaseRoot: model.codebaseRoot });
         if (!status.indexed) {
           throw new CLIError(
             "Project not indexed",
@@ -508,7 +517,7 @@ Examples:
         }
 
         // Query for endpoints
-        const endpoints = await backend.endpoints(projectRoot);
+        const endpoints = await backend.endpoints(projectRoot, { codebaseRoot: model.codebaseRoot });
 
         // JSON output
         if (jsonMode) {
@@ -623,6 +632,9 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
         const indexMeta = await readIndexMeta(projectRoot, analyzerName);
         if (!indexMeta) {
@@ -634,7 +646,7 @@ Examples:
         }
 
         // Query for services
-        let services = await backend.services(projectRoot);
+        let services = await backend.services(projectRoot, { codebaseRoot: model.codebaseRoot });
 
         // Filter by layer if specified
         if (options.layer) {
@@ -750,6 +762,9 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
         const indexMeta = await readIndexMeta(projectRoot, analyzerName);
         if (!indexMeta) {
@@ -761,7 +776,7 @@ Examples:
         }
 
         // Query for datastores
-        const datastores = await backend.datastores(projectRoot);
+        const datastores = await backend.datastores(projectRoot, { codebaseRoot: model.codebaseRoot });
 
         // JSON output
         if (jsonMode) {
@@ -868,6 +883,9 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
         const indexMeta = await readIndexMeta(projectRoot, analyzerName);
         if (!indexMeta) {
@@ -879,7 +897,7 @@ Examples:
         }
 
         // Query for callers
-        const callers = await backend.callers(projectRoot, qualifiedName, depth);
+        const callers = await backend.callers(projectRoot, qualifiedName, depth, { codebaseRoot: model.codebaseRoot });
 
         // JSON output
         if (jsonMode) {
@@ -983,6 +1001,9 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
         const indexMeta = await readIndexMeta(projectRoot, analyzerName);
         if (!indexMeta) {
@@ -994,7 +1015,7 @@ Examples:
         }
 
         // Query for callees
-        const callees = await backend.callees(projectRoot, qualifiedName, depth);
+        const callees = await backend.callees(projectRoot, qualifiedName, depth, { codebaseRoot: model.codebaseRoot });
 
         // JSON output
         if (jsonMode) {
@@ -1095,6 +1116,9 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
         const indexMeta = await readIndexMeta(projectRoot, analyzerName);
         if (!indexMeta) {
@@ -1106,7 +1130,7 @@ Examples:
         }
 
         // Execute query
-        const result = await backend.query(projectRoot, cypher);
+        const result = await backend.query(projectRoot, cypher, { codebaseRoot: model.codebaseRoot });
 
         // Output format: JSON is the only reasonable format for arbitrary query results
         // The --json flag is accepted for consistency, but JSON is always the output format
@@ -1232,6 +1256,9 @@ Examples:
           );
         }
 
+        // Load model to get codebase root
+        const model = await Model.load(projectRoot);
+
         // Check if project is indexed
         const indexMeta = await readIndexMeta(projectRoot, analyzerName);
         if (!indexMeta) {
@@ -1246,6 +1273,7 @@ Examples:
         const report = await backend.verify(projectRoot, {
           layers: apiLayers,
           changesetAware: true,
+          codebaseRoot: model.codebaseRoot,
         });
 
         const formatted = formatVerifyReport(report, { format });
