@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-PROJECT_DIR="/workspace/documentation_robotics"
+PROJECT_DIR="/workspace"
 CLI_DIR="$PROJECT_DIR/cli"
 
 # ============================================================================
@@ -101,6 +101,12 @@ if [ -d "$CLI_DIR/src" ]; then
       rm -rf "$CLI_DIR/node_modules/@modelcontextprotocol"
       cd "$CLI_DIR" && npm install 2>&1 | tail -10
     fi
+  fi
+
+  # Build the spec distribution (compiles spec/schemas/ → spec/dist/)
+  if [ -f "$PROJECT_DIR/package.json" ]; then
+    echo "[agent-entrypoint] Running npm run build:spec to compile spec distribution..."
+    cd "$PROJECT_DIR" && npm run build:spec 2>&1 | tail -5
   fi
 
   # Build the CLI (syncs spec schemas, generates registry, compiles TypeScript, bundles)
