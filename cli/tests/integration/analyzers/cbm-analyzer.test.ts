@@ -923,6 +923,12 @@ rl.on("line", async (line) => {
       const nonGitDir = `/tmp/cbm-nongit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       await mkdir(nonGitDir, { recursive: true });
 
+      const { StdioClient } = await import("@/analyzers/stdio-client.js");
+      const originalSpawn = StdioClient.prototype.spawn;
+      const originalInitialize = StdioClient.prototype.initialize;
+      const originalInvokeTool = StdioClient.prototype.invokeTool;
+      const originalClose = StdioClient.prototype.close;
+
       const originalStatus = analyzer.status.bind(analyzer);
       (analyzer as any).status = async () => ({
         indexed: false,
@@ -933,6 +939,20 @@ rl.on("line", async (line) => {
       });
 
       try {
+        // Mock StdioClient methods so we reach the git HEAD check
+        (StdioClient.prototype as any).spawn = function () {};
+        (StdioClient.prototype as any).initialize = async function () {
+          return { capabilities: {}, serverInfo: { name: "mock-cbm" } };
+        };
+        (StdioClient.prototype as any).invokeTool = async function (name: string) {
+          if (name === "list_projects") return { projects: [] };
+          if (name === "index_repository") {
+            return { nodes: 42, edges: 100, status: "indexed" };
+          }
+          return {};
+        };
+        (StdioClient.prototype as any).close = function () {};
+
         // index() should fail because codebaseRoot is not a git repo
         // status() is mocked to return installed: true so execution reaches the git HEAD check
         let error: CLIError | undefined;
@@ -947,6 +967,10 @@ rl.on("line", async (line) => {
         expect(error).toBeInstanceOf(CLIError);
         expect(error?.message).toContain("git HEAD");
       } finally {
+        StdioClient.prototype.spawn = originalSpawn;
+        StdioClient.prototype.initialize = originalInitialize;
+        StdioClient.prototype.invokeTool = originalInvokeTool;
+        StdioClient.prototype.close = originalClose;
         (analyzer as any).status = originalStatus;
         try {
           await rm(nonGitDir, { recursive: true, force: true });
