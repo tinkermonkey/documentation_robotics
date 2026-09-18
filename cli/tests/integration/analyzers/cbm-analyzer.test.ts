@@ -853,6 +853,9 @@ rl.on("line", async (line) => {
     it("should accept codebaseRoot option in status() and use it for git operations", async () => {
       // Model directory has no .git, codebase directory does
       // status() should successfully read git HEAD from codebaseRoot
+      // Git commands must run in codebaseRoot, not modelRoot (verified by the fact that
+      // status() succeeds even though modelDir has no .git, proving git rev-parse HEAD
+      // executed against codebaseDir)
 
       const status = await analyzer.status(modelDir, { codebaseRoot: codebaseDir });
 
@@ -915,38 +918,23 @@ rl.on("line", async (line) => {
       }
     });
 
-    it("should run git commands in codebaseRoot, not modelRoot when they differ", async () => {
-      const { spawnSync: originalSpawnSync } = require("child_process");
-      let gitCwdCapture: string | undefined;
-
-      // Mock spawnSync to capture the cwd used for git commands
-      const patchedSpawnSync = (command: string, args: string[], options?: any) => {
-        if (command === "git" && args[0] === "rev-parse") {
-          gitCwdCapture = options?.cwd;
-        }
-        return originalSpawnSync(command, args, options);
-      };
-
-      // Note: We can't easily mock the internal spawnSync in cbm-analyzer without deeper intervention,
-      // so instead we verify by checking that status() with divergent codebaseRoot succeeds.
-      // The acceptance criteria specifies that git operations should run in effectiveCodebaseRoot,
-      // and the implementation shows this happens at lines 361-365 (status method) and 525-529 (index method).
-
-      const status = await analyzer.status(modelDir, { codebaseRoot: codebaseDir });
-
-      // Should not error even though modelDir has no .git
-      // This proves git command is running against codebaseDir
-      expect(status).toBeDefined();
-      expect(typeof status.detected.installed).toBe("boolean");
-    });
-
     it("should fail appropriately when codebaseRoot is not a git repository", async () => {
       // Create a non-git directory as the codebaseRoot
       const nonGitDir = `/tmp/cbm-nongit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       await mkdir(nonGitDir, { recursive: true });
 
+      const originalStatus = analyzer.status.bind(analyzer);
+      (analyzer as any).status = async () => ({
+        indexed: false,
+        fresh: false,
+        last_indexed: null,
+        index_meta: null,
+        detected: { installed: true, binary_path: "node", contract_ok: true, mcp_registered: false },
+      });
+
       try {
         // index() should fail because codebaseRoot is not a git repo
+        // status() is mocked to return installed: true so execution reaches the git HEAD check
         let error: CLIError | undefined;
         try {
           await analyzer.index(modelDir, { codebaseRoot: nonGitDir });
@@ -959,6 +947,7 @@ rl.on("line", async (line) => {
         expect(error).toBeInstanceOf(CLIError);
         expect(error?.message).toContain("git HEAD");
       } finally {
+        (analyzer as any).status = originalStatus;
         try {
           await rm(nonGitDir, { recursive: true, force: true });
         } catch {
