@@ -1,6 +1,7 @@
 /**
  * Global ANSI code suppression for non-TTY output
- * Intercepts console output and strips ANSI escape sequences when stdout is not a TTY
+ * Intercepts console output and strips ANSI escape sequences when the target stream is not a TTY
+ * Handles stdout (log/info) and stderr (error/warn) independently based on their respective TTY status
  */
 
 function stripAnsi(text: string): string {

@@ -325,7 +325,7 @@ export function handleInfo(message: string, details?: Record<string, string>): v
     if (details) {
       output.details = details;
     }
-    console.log(JSON.stringify(output));
+    console.error(JSON.stringify(output));
   } else {
     console.log(message);
     if (details) {
