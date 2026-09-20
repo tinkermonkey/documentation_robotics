@@ -177,9 +177,21 @@ export class Model {
           this._activeChangesetId,
           name
         );
-      } catch {
-        // Fall back to base layer on projection failure (e.g. corrupt changeset)
-        return this.layers.get(name);
+      } catch (err) {
+        // Only fall back to base layer if the changeset is missing/corrupted
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const isChangesetNotFound =
+          errorMessage.includes("Changeset") && errorMessage.includes("not found");
+        const isCorrupted = errorMessage.includes("corrupted");
+
+        if (isChangesetNotFound || isCorrupted) {
+          // Expected case: changeset missing or corrupted, safe to fall back to base
+          return this.layers.get(name);
+        }
+
+        // Unexpected error: projection engine bug (TypeError, ReferenceError, etc.)
+        // Re-throw so caller sees the actual problem
+        throw err;
       }
     }
 
@@ -824,7 +836,12 @@ export class Model {
       try {
         await fs.access(candidateManifestPath);
         return candidateManifestPath;
-      } catch {
+      } catch (err) {
+        // Only ignore ENOENT (file not found) — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         // Not found at this level, keep looking
       }
 
@@ -832,7 +849,12 @@ export class Model {
       try {
         await fs.access(path.join(currentPath, ".git"));
         return null;
-      } catch {
+      } catch (err) {
+        // Only ignore ENOENT (directory not found) — re-throw permission/I/O errors
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          throw err;
+        }
         // Not a repo boundary, continue upward
       }
 
@@ -1156,65 +1178,80 @@ export class Model {
         if (activeId) {
           model._activeChangesetId = activeId;
           const storage = new StagedChangesetStorage(projectRoot);
-          const changeset = await storage.load(activeId);
-          if (changeset) {
-            for (const change of changeset.changes as StagedChange[]) {
-              // Track layer names for getLayerNames()
-              if (
-                change.type === "add" ||
-                change.type === "update" ||
-                change.type === "delete"
-              ) {
-                model._stagedLayerNames.add(change.layerName);
-              }
+          try {
+            const changeset = await storage.load(activeId);
+            if (changeset) {
+              for (const change of changeset.changes as StagedChange[]) {
+                // Track layer names for getLayerNames()
+                if (
+                  change.type === "add" ||
+                  change.type === "update" ||
+                  change.type === "delete"
+                ) {
+                  model._stagedLayerNames.add(change.layerName);
+                }
 
-              // Inject staged relationship-adds into model.relationships so that
-              // read commands (list, show, export) transparently see staged relationships.
-              if (change.type === "relationship-add" && change.after) {
-                const rel = change.after as {
-                  source: string;
-                  target: string;
-                  predicate: string;
-                  layer: string;
-                  targetLayer?: string;
-                  category?: "structural" | "behavioral";
-                  properties?: Record<string, unknown>;
-                };
-                // Only inject if not already in relationships.yaml (prevents duplicates
-                // if .active file is stale after a partial commit or manual edit).
-                const alreadyPresent = model.relationships.find(
-                  rel.source,
-                  rel.target,
-                  rel.predicate
-                );
-                if (alreadyPresent.length === 0) {
-                  model.relationships.add({
-                    source: rel.source,
-                    target: rel.target,
-                    predicate: rel.predicate,
-                    layer: rel.layer,
-                    ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-                    category: rel.category ?? "structural",
-                    ...(rel.properties ? { properties: rel.properties } : {}),
-                  });
+                // Inject staged relationship-adds into model.relationships so that
+                // read commands (list, show, export) transparently see staged relationships.
+                if (change.type === "relationship-add" && change.after) {
+                  const rel = change.after as {
+                    source: string;
+                    target: string;
+                    predicate: string;
+                    layer: string;
+                    targetLayer?: string;
+                    category?: "structural" | "behavioral";
+                    properties?: Record<string, unknown>;
+                  };
+                  // Only inject if not already in relationships.yaml (prevents duplicates
+                  // if .active file is stale after a partial commit or manual edit).
+                  const alreadyPresent = model.relationships.find(
+                    rel.source,
+                    rel.target,
+                    rel.predicate
+                  );
+                  if (alreadyPresent.length === 0) {
+                    model.relationships.add({
+                      source: rel.source,
+                      target: rel.target,
+                      predicate: rel.predicate,
+                      layer: rel.layer,
+                      ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+                      category: rel.category ?? "structural",
+                      ...(rel.properties ? { properties: rel.properties } : {}),
+                    });
+                  }
+                }
+
+                // Remove staged relationship-deletes from model.relationships so that
+                // read commands see the relationship as already deleted.
+                if (change.type === "relationship-delete" && change.before) {
+                  const rel = change.before as {
+                    source: string;
+                    target: string;
+                    predicate?: string;
+                  };
+                  model.relationships.delete(rel.source, rel.target, rel.predicate);
                 }
               }
-
-              // Remove staged relationship-deletes from model.relationships so that
-              // read commands see the relationship as already deleted.
-              if (change.type === "relationship-delete" && change.before) {
-                const rel = change.before as {
-                  source: string;
-                  target: string;
-                  predicate?: string;
-                };
-                model.relationships.delete(rel.source, rel.target, rel.predicate);
-              }
             }
+          } catch (err) {
+            // Changeset loading or processing failed — re-throw with context
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            throw new Error(
+              `Failed to load active changeset '${activeId}': ${errorMessage}`,
+              { cause: err }
+            );
           }
         }
-      } catch {
-        // No active changeset or unreadable — proceed with base model only
+      } catch (err) {
+        // Only ignore ENOENT (.active file doesn't exist - expected for no active changeset)
+        const isNotFoundError = (err as any)?.code === "ENOENT";
+        if (!isNotFoundError) {
+          // Re-throw permission/I/O errors and changeset loading errors
+          throw err;
+        }
+        // No active changeset file — proceed with base model only
         model._activeChangesetId = null;
       }
 

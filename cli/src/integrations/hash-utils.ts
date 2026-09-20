@@ -31,7 +31,7 @@ export async function computeFileHash(filePath: string): Promise<string> {
     const hash = createHash("sha256");
     const stream = createReadStream(filePath);
 
-    stream.on("data", (data: Buffer) => {
+    stream.on("data", (data: string | Buffer) => {
       hash.update(data);
     });
 

@@ -22,6 +22,22 @@ import type {
   VerifyReport,
 } from "./types.js";
 
+/**
+ * Optional codebase root configuration for analyzer operations
+ *
+ * Used to distinguish 'where model metadata lives' (projectRoot)
+ * from 'where source code lives' (codebaseRoot). When codebaseRoot
+ * is omitted, implementations default to projectRoot.
+ */
+export interface AnalyzerCodebaseOptions {
+  /**
+   * Absolute path to the codebase root for code analysis operations
+   * (e.g., indexing, git operations, CBM queries). When omitted,
+   * defaults to projectRoot.
+   */
+  codebaseRoot?: string;
+}
+
 export interface AnalyzerBackend {
   /**
    * Unique identifier for this analyzer
@@ -45,29 +61,31 @@ export interface AnalyzerBackend {
    * Get the current status of the analyzer for a project
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Current status including detection, index state, and freshness
    */
-  status(projectRoot: string): Promise<AnalyzerStatus>;
+  status(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<AnalyzerStatus>;
 
   /**
    * Index a project or update the index
    *
    * @param projectRoot Absolute path to the project root
-   * @param options Optional configuration
+   * @param options Optional configuration (force flag and codebase options)
    * @returns Index result with counts and metadata
    */
   index(
     projectRoot: string,
-    options?: { force?: boolean }
+    options?: { force?: boolean } & AnalyzerCodebaseOptions
   ): Promise<IndexResult>;
 
   /**
    * Query for API endpoints/routes in the indexed project
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Array of endpoint candidates with confidence and source info
    */
-  endpoints(projectRoot: string): Promise<EndpointCandidate[]>;
+  endpoints(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<EndpointCandidate[]>;
 
   /**
    * Execute a raw query against the analyzer's graph
@@ -77,25 +95,28 @@ export interface AnalyzerBackend {
    *
    * @param projectRoot Absolute path to the project root
    * @param rawQuery Query string in the analyzer's native language
+   * @param options Optional codebase configuration
    * @returns Query results (structure depends on analyzer)
    */
-  query(projectRoot: string, rawQuery: string): Promise<unknown>;
+  query(projectRoot: string, rawQuery: string, options?: AnalyzerCodebaseOptions): Promise<unknown>;
 
   /**
    * Query for services/components in the indexed project
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Array of service candidates with confidence and heuristic evidence
    */
-  services(projectRoot: string): Promise<ServiceCandidate[]>;
+  services(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<ServiceCandidate[]>;
 
   /**
    * Query for datastores/databases inferred from code analysis
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Array of datastore candidates with inference evidence
    */
-  datastores(projectRoot: string): Promise<DatastoreCandidate[]>;
+  datastores(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<DatastoreCandidate[]>;
 
   /**
    * Query for callers of a specific function or symbol
@@ -103,12 +124,14 @@ export interface AnalyzerBackend {
    * @param projectRoot Absolute path to the project root
    * @param symbol Fully qualified symbol name to find callers of
    * @param depth Maximum depth for call graph traversal (default: 3, max: 10)
+   * @param options Optional codebase configuration
    * @returns Array of call graph nodes representing callers
    */
   callers(
     projectRoot: string,
     symbol: string,
-    depth?: number
+    depth?: number,
+    options?: AnalyzerCodebaseOptions
   ): Promise<CallGraphNode[]>;
 
   /**
@@ -117,12 +140,14 @@ export interface AnalyzerBackend {
    * @param projectRoot Absolute path to the project root
    * @param symbol Fully qualified symbol name to find callees of
    * @param depth Maximum depth for call graph traversal (default: 3, max: 10)
+   * @param options Optional codebase configuration
    * @returns Array of call graph nodes representing callees
    */
   callees(
     projectRoot: string,
     symbol: string,
-    depth?: number
+    depth?: number,
+    options?: AnalyzerCodebaseOptions
   ): Promise<CallGraphNode[]>;
 
   /**
@@ -132,8 +157,8 @@ export interface AnalyzerBackend {
    * producing buckets of matched, in_graph_only, in_model_only, and ignored entries.
    *
    * @param projectRoot Absolute path to the project root
-   * @param options Verification options (layer filtering, changeset awareness, ignore file)
+   * @param options Verification options (layer filtering, changeset awareness, ignore file, codebase root)
    * @returns Detailed verification report with buckets and summary statistics
    */
-  verify(projectRoot: string, options: VerifyOptions): Promise<VerifyReport>;
+  verify(projectRoot: string, options: VerifyOptions & AnalyzerCodebaseOptions): Promise<VerifyReport>;
 }

@@ -8,7 +8,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
 import { FarmManifest } from "../../src/core/farm-manifest.js";
-import { farmStatusCommand, farmValidateCommand, farmSyncCommand, farmRemoveCommand } from "../../src/commands/farm.js";
+import { farmStatusCommand, farmValidateCommand, farmSyncCommand, farmRemoveCommand, farmAddCommand } from "../../src/commands/farm.js";
 
 describe("Farm Commands - JSON Output Format Support", () => {
   let farmDir: string;
@@ -303,6 +303,57 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     // Clean up
     await fs.rm(externalDir, { recursive: true, force: true });
+  });
+
+  it("should prevent path traversal in codebase path during farm add", async () => {
+    // Create a farm
+    const manifest = FarmManifest.create("Test Farm");
+    await manifest.save(farmYamlPath);
+
+    // Use consistent timestamp for all path constructions
+    const timestamp = Date.now();
+
+    // Create a directory outside the farm to check we don't use it
+    const parentDir = path.join("/tmp", `parent-add-${timestamp}`);
+    const targetDir = path.join(parentDir, "target");
+    await ensureDir(targetDir);
+    await fs.writeFile(path.join(targetDir, "protected.txt"), "protected content");
+
+    // Capture console output
+    const originalLog = console.log;
+    const originalError = console.error;
+    let capturedOutput = "";
+    console.log = (msg: string) => {
+      if (typeof msg === "string") {
+        capturedOutput = msg;
+      }
+    };
+    console.error = () => {
+      // Suppress error output
+    };
+
+    // Try to add a project with a path traversal codebase reference
+    await farmAddCommand("evil-service", {
+      codebase: `../parent-add-${timestamp}/target`, // Path traversal attempt
+      format: "json",
+    });
+
+    console.log = originalLog;
+    console.error = originalError;
+
+    // Parse output and verify error
+    const output = JSON.parse(capturedOutput);
+    expect(output.status).toBe("error");
+    expect(output.message).toContain("Invalid codebase path");
+
+    // Verify the target directory outside farm still exists and is intact
+    // (validation rejects the path before any filesystem operations)
+    expect(await fileExists(targetDir)).toBe(true);
+    const content = await fs.readFile(path.join(targetDir, "protected.txt"), "utf-8");
+    expect(content).toBe("protected content");
+
+    // Clean up
+    await fs.rm(parentDir, { recursive: true, force: true });
   });
 
   it("should verify farmRemoveCommand accepts format option", () => {

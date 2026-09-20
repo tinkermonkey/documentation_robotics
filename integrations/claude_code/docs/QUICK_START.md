@@ -185,6 +185,32 @@ dr analyzer index
 - **Pre-Briefs:** Analyzer provides summaries of endpoints, services, datastores that `/dr-map` uses for high-confidence extraction
 - **Three Buckets:** Verification shows **matched** (good), **graph-only** (gaps), **model-only** (drift)
 - **Interactive Reconciliation:** `/dr-verify` prompts you to add gaps or remove drift one by one
+- **Dual-Root Architecture:** Your model (metadata) and codebase (source code) can be in different directories. Configure via `codebase_path` in `manifest.yaml` if needed.
+
+---
+
+## Special Setup: Dual-Root Configuration
+
+If your source code and model are in **separate directories** (common in monorepos), configure the codebase root:
+
+**In `documentation-robotics/model/manifest.yaml`:**
+
+```yaml
+version: 0.1.0
+schema: documentation-robotics-v1
+...
+codebase_path: ../src # Path relative to model root
+```
+
+**Then re-index:**
+
+```bash
+dr analyzer index --force
+```
+
+**Don't have separate directories?** No action needed — DR defaults to the model directory.
+
+For complete details, see [dr-analyzer.md dual-root documentation](../commands/dr-analyzer.md).
 
 ---
 
@@ -231,14 +257,15 @@ Ready for export/sharing
 
 ## Troubleshooting Quick Fixes
 
-| Problem             | Solution                                                       |
-| ------------------- | -------------------------------------------------------------- |
-| "No analyzer"       | `dr analyzer discover` then pick one                           |
-| "Not indexed"       | `dr analyzer index` to build graph                             |
-| "Index stale"       | `dr analyzer index` to refresh                                 |
-| "Many gaps"         | `/dr-map ./src --layers api` to re-extract                     |
-| "Validation errors" | `dr validate --strict` to see details, then `/dr-model` to fix |
-| "Lost in process"   | Read `END_TO_END_WALKTHROUGH.md` for detailed guide            |
+| Problem             | Solution                                                               |
+| ------------------- | ---------------------------------------------------------------------- |
+| "No analyzer"       | `dr analyzer discover` then pick one                                   |
+| "Not indexed"       | `dr analyzer index` to build graph                                     |
+| "Index stale"       | `dr analyzer index` to refresh                                         |
+| "Many gaps"         | `/dr-map ./src --layers api` to re-extract                             |
+| "Wrong codebase"    | Set `codebase_path` in manifest.yaml, then `dr analyzer index --force` |
+| "Validation errors" | `dr validate --strict` to see details, then `/dr-model` to fix         |
+| "Lost in process"   | Read `END_TO_END_WALKTHROUGH.md` for detailed guide                    |
 
 ---
 

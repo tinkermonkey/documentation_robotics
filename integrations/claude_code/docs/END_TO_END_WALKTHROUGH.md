@@ -168,6 +168,18 @@ If you select [y], the analyzer is installed and ready.
 
 **What this does:** Scans your codebase and builds an indexed code graph for later verification.
 
+**Important: If Your Codebase is in a Different Directory**
+
+If your source code lives in a different directory than your model (common in monorepos), configure it first:
+
+**In `documentation-robotics/model/manifest.yaml`:**
+
+```yaml
+codebase_path: ../src # Path relative to model root
+```
+
+Then proceed with indexing.
+
 **Command:**
 
 ```bash
@@ -205,6 +217,8 @@ Ready for extraction with /dr-map
 - The index is saved locally; you can verify freshness before running `/dr-verify`
 
 **Then proceed to Step 3** with the analyzer installed. This enables `/dr-verify` for gap and drift detection.
+
+For complete analyzer documentation including dual-root configuration, see [dr-analyzer.md](../commands/dr-analyzer.md).
 
 ---
 

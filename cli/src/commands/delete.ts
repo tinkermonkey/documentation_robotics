@@ -39,7 +39,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     // Load model (with error handling for missing models)
     let model: Model;
     try {
-      model = await Model.load(options.model || process.cwd());
+      model = await Model.load(options.model);
     } catch (error) {
       const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {

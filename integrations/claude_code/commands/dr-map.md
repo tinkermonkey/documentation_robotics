@@ -246,6 +246,19 @@ Proceed with extraction?
 
 The extraction workflow can consult the dr-analyzer if one is installed and active.
 
+**Important: Dual-Root Configuration**
+
+If your codebase root (source code location) differs from your model root (metadata location):
+
+1. Ensure `codebase_path` is configured in `documentation-robotics/model/manifest.yaml`
+2. If you recently changed `codebase_path`, re-index before extraction:
+
+   ```bash
+   dr analyzer index --force
+   ```
+
+See [dr-analyzer.md](dr-analyzer.md) for complete dual-root setup instructions.
+
 **Check analyzer status:**
 
 Run the following command and save the result (it will guide the extraction agent):

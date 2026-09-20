@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { CLIError, ValidationError, ErrorCategory, handleError, handleWarning } from "../../src/utils/errors.js";
+import { CLIError, ValidationError, ErrorCategory, handleError, handleWarning, handleSuccess, handleInfo } from "../../src/utils/errors.js";
 
 // Mock console methods to capture output
 let capturedLogs: string[] = [];
@@ -41,16 +41,19 @@ afterEach(() => {
 
 describe("Error Handling in JSON Mode", () => {
   describe("handleWarning in JSON mode", () => {
-    it("should suppress warnings when isJson() returns true", async () => {
+    it("should emit structured JSON to stderr when isJson() returns true", async () => {
       // Temporarily set JSON mode
       const { setJsonMode } = await import("../../src/utils/globals.js");
       setJsonMode(true);
 
       handleWarning("This is a test warning");
 
-      // In JSON mode, warning should be suppressed (no output)
+      // In JSON mode, warning should be emitted to stderr as JSON
       expect(capturedWarnings.length).toBe(0);
-      expect(capturedErrors.length).toBe(0);
+      expect(capturedErrors.length).toBe(1);
+      const json = JSON.parse(capturedErrors[0]);
+      expect(json.level).toBe("warning");
+      expect(json.message).toBe("This is a test warning");
 
       setJsonMode(false);
     });
@@ -279,6 +282,150 @@ describe("Error Handling in JSON Mode", () => {
       expect(capturedLogs[0]).toContain("Operation completed");
 
       setJsonMode(false);
+    });
+  });
+
+  describe("handleInfo in JSON mode (regression test)", () => {
+    it("should emit structured JSON to stderr with level, message, and details", async () => {
+      const { setJsonMode } = await import("../../src/utils/globals.js");
+      setJsonMode(true);
+
+      handleInfo("Auto-commit failed", { commit_id: "abc123", error_code: "EACCES" });
+
+      // In JSON mode, info should be emitted to stderr (not stdout)
+      expect(capturedErrors.length).toBe(1);
+      expect(capturedLogs.length).toBe(0);
+
+      const json = JSON.parse(capturedErrors[0]);
+      expect(json.level).toBe("info");
+      expect(json.message).toBe("Auto-commit failed");
+      expect(json.details.commit_id).toBe("abc123");
+      expect(json.details.error_code).toBe("EACCES");
+
+      setJsonMode(false);
+    });
+
+    it("should emit structured JSON to stderr without details if not provided", async () => {
+      const { setJsonMode } = await import("../../src/utils/globals.js");
+      setJsonMode(true);
+
+      handleInfo("Progress update");
+
+      expect(capturedErrors.length).toBe(1);
+      const json = JSON.parse(capturedErrors[0]);
+      expect(json.level).toBe("info");
+      expect(json.message).toBe("Progress update");
+      expect(json.details).toBeUndefined();
+
+      setJsonMode(false);
+    });
+
+    it("should output text info messages to stdout in text mode", async () => {
+      const { setJsonMode } = await import("../../src/utils/globals.js");
+      setJsonMode(false);
+
+      handleInfo("Progress update", { step: "1", total: "5" });
+
+      expect(capturedLogs.length).toBeGreaterThan(0);
+      expect(capturedLogs[0]).toContain("Progress update");
+
+      setJsonMode(false);
+    });
+  });
+
+  describe("handleSuccess status override protection (regression test)", () => {
+    it("should ensure status is always 'ok' in JSON mode even if details contains status", async () => {
+      const { setJsonMode } = await import("../../src/utils/globals.js");
+      setJsonMode(true);
+
+      handleSuccess("Operation completed", { status: "overridden", data: "value" });
+
+      expect(capturedLogs.length).toBe(1);
+      const json = JSON.parse(capturedLogs[0]);
+      expect(json.status).toBe("ok");
+      expect(json.data).toBe("value");
+
+      setJsonMode(false);
+    });
+
+    it("should preserve other details while ensuring status is 'ok'", async () => {
+      const { setJsonMode } = await import("../../src/utils/globals.js");
+      setJsonMode(true);
+
+      handleSuccess("Element created", { elementId: "motivation.goal.test", created_at: "2024-01-01" });
+
+      expect(capturedLogs.length).toBe(1);
+      const json = JSON.parse(capturedLogs[0]);
+      expect(json.status).toBe("ok");
+      expect(json.elementId).toBe("motivation.goal.test");
+      expect(json.created_at).toBe("2024-01-01");
+
+      setJsonMode(false);
+    });
+  });
+
+  describe("ANSI suppressor independent TTY checks (regression test)", () => {
+    it("should suppress ANSI codes from stdout when stdout is not a TTY", async () => {
+      const { installAnsiSuppressor } = await import("../../src/utils/ansi-suppressor.js");
+
+      // Save original TTY state
+      const origStdoutIsTTY = process.stdout.isTTY;
+      const origStderrIsTTY = process.stderr.isTTY;
+
+      try {
+        // Mock stdout as non-TTY, stderr as TTY
+        Object.defineProperty(process.stdout, "isTTY", { value: false, writable: true, configurable: true });
+        Object.defineProperty(process.stderr, "isTTY", { value: true, writable: true, configurable: true });
+
+        installAnsiSuppressor();
+
+        // ANSI color code
+        const coloredText = "\x1b[32mGreen text\x1b[0m";
+
+        console.log(coloredText);
+        expect(capturedLogs[0]).toBe("Green text");
+
+        // stderr should retain ANSI codes
+        capturedErrors = [];
+        console.error(coloredText);
+        expect(capturedErrors[0]).toBe(coloredText);
+      } finally {
+        // Restore original TTY state
+        Object.defineProperty(process.stdout, "isTTY", { value: origStdoutIsTTY, writable: true, configurable: true });
+        Object.defineProperty(process.stderr, "isTTY", { value: origStderrIsTTY, writable: true, configurable: true });
+      }
+    });
+
+    it("should suppress ANSI codes from stderr when stderr is not a TTY", async () => {
+      const { installAnsiSuppressor } = await import("../../src/utils/ansi-suppressor.js");
+
+      // Save original TTY state
+      const origStdoutIsTTY = process.stdout.isTTY;
+      const origStderrIsTTY = process.stderr.isTTY;
+
+      try {
+        // Mock stdout as TTY, stderr as non-TTY
+        Object.defineProperty(process.stdout, "isTTY", { value: true, writable: true, configurable: true });
+        Object.defineProperty(process.stderr, "isTTY", { value: false, writable: true, configurable: true });
+
+        installAnsiSuppressor();
+
+        // ANSI color code
+        const coloredText = "\x1b[31mRed text\x1b[0m";
+
+        // stdout should retain ANSI codes
+        console.log(coloredText);
+        expect(capturedLogs[0]).toBe(coloredText);
+
+        // stderr should strip ANSI codes
+        capturedErrors = [];
+        console.error(coloredText);
+        expect(capturedErrors[0]).toBe("Red text");
+      } finally {
+        // Restore original TTY state
+        Object.defineProperty(process.stdout, "isTTY", { value: origStdoutIsTTY, writable: true, configurable: true });
+        Object.defineProperty(process.stderr, "isTTY", { value: origStderrIsTTY, writable: true, configurable: true });
+      }
     });
   });
 });
