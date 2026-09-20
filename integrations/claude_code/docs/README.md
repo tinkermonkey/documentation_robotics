@@ -50,6 +50,12 @@ The comprehensive manual walkthrough covering every step from fresh project thro
 
 ### Command Reference
 
+- **[dr-analyzer.md](../commands/dr-analyzer.md)** — Discover, install, and manage code analyzers
+  - Dual-root architecture (separate metadata and codebase roots)
+  - Index and query code graphs
+  - Analyzer endpoints, services, datastores
+  - Pre-index configuration for dual-root setups
+
 - **[dr-map.md](../commands/dr-map.md)** — Extract architecture from your codebase
   - Recipe vs. Targeted modes
   - Layer-by-layer extraction
@@ -59,6 +65,7 @@ The comprehensive manual walkthrough covering every step from fresh project thro
   - Three-bucket reporting (matched, gaps, drift)
   - Interactive reconciliation
   - Ignore lists and drift management
+  - Works with dual-root analyzer setup
 
 - **[dr-validate.md](../commands/dr-validate.md)** — Validate model integrity
   - Schema and reference validation
@@ -177,11 +184,35 @@ integrations/claude_code/
 
 ## 🔑 Key Concepts
 
+### Dual-Root Architecture
+
+Your Documentation Robotics project has two roots:
+
+- **Model Root** — Where your `documentation-robotics/` directory lives (contains manifest, layers, changesets)
+- **Codebase Root** — Where your actual source code is located
+
+These can be the same directory (typical) or different directories (useful for monorepos or federated architectures). Analyzer commands automatically respect this configuration.
+
+**Configure via `manifest.codebase_path`:**
+
+```yaml
+# documentation-robotics/model/manifest.yaml
+codebase_path: ../  # Relative to model root, points to actual source code
+```
+
+After configuration, re-index for changes to take effect:
+
+```bash
+dr analyzer index --force
+```
+
+For details, see [dr-analyzer.md](../commands/dr-analyzer.md).
+
 ### Source Provenance
 
 Every extracted element includes:
 
-- **source_file** — The file path (relative to repo root)
+- **source_file** — The file path (relative to codebase root)
 - **source_symbol** — The specific class/function/symbol
 - **source_provenance** — "extracted" (from code) or "inferred" (from patterns)
 
