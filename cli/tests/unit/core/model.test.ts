@@ -512,3 +512,61 @@ modified: ${now}
     });
   });
 });
+
+describe("Model — Error Handling", () => {
+  it("should preserve error cause chain when wrapping changeset loading errors", async () => {
+    const { mkdir, writeFile } = await import("fs/promises");
+    const path = await import("path");
+
+    const testDir = `${tmpdir()}/dr-changeset-error-${randomUUID()}`;
+    await mkdir(testDir, { recursive: true });
+
+    // Create manifest
+    const manifestPath = path.join(testDir, "documentation-robotics", "model");
+    await mkdir(manifestPath, { recursive: true });
+    await writeFile(
+      path.join(manifestPath, "manifest.yaml"),
+      "name: Test\nversion: 1.0.0"
+    );
+
+    // Create .active file with a changeset ID
+    const activeChangesetPath = path.join(testDir, "documentation-robotics", "changesets", ".active");
+    await mkdir(path.dirname(activeChangesetPath), { recursive: true });
+    await writeFile(activeChangesetPath, "bad-changeset-id");
+
+    // Create invalid YAML in the changeset
+    const changesetPath = path.join(testDir, "documentation-robotics", "changesets", "bad-changeset-id");
+    await mkdir(changesetPath, { recursive: true });
+    await writeFile(
+      path.join(changesetPath, "metadata.yaml"),
+      "invalid: yaml: content: }"
+    );
+
+    try {
+      await Model.load(testDir);
+      expect.unreachable("Should have thrown changeset loading error");
+    } catch (err) {
+      // Should wrap with "Failed to load active changeset" and preserve cause
+      expect((err as Error).message).toContain("Failed to load active changeset");
+      const cause = (err as any).cause;
+      expect(cause).toBeDefined();
+      // The original error should be in the cause chain
+      expect(cause).toBeTruthy();
+    }
+  });
+
+  it("should fall back to base layer when changeset projection encounters expected errors", async () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+    });
+
+    const model = new Model(tmpdir(), manifest);
+    const layer = new Layer("motivation");
+    model.addLayer(layer);
+
+    // When there's no active changeset, getLayer should return the base layer
+    const result = await model.getLayer("motivation");
+    expect(result).toBe(layer);
+  });
+});

@@ -1,0 +1,10 @@
+{
+  "mappings": [
+    {
+      "cbm_label": "TestNode",
+      "dr_layer": "api",
+      "dr_element_type": "endpoint",
+      "confidence": "high"
+    }
+  ]
+}

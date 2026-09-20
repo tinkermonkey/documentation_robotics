@@ -1239,7 +1239,8 @@ export class Model {
             // Changeset loading or processing failed — re-throw with context
             const errorMessage = err instanceof Error ? err.message : String(err);
             throw new Error(
-              `Failed to load active changeset '${activeId}': ${errorMessage}`
+              `Failed to load active changeset '${activeId}': ${errorMessage}`,
+              { cause: err }
             );
           }
         }
