@@ -24,7 +24,7 @@ These can be the **same directory** (typical case) or **different directories** 
 
 When you run analyzer commands, the codebase root is resolved in this order:
 
-1. **Explicit CLI option** (if added in the future)
+1. **`--codebase-path` CLI flag** — Global option that overrides all other resolution methods
 2. **`manifest.codebase_path`** — Relative path from model root (configured in `documentation-robotics/model/manifest.yaml`)
 3. **Farm auto-resolution** — If your model is inside a farm, resolved from farm configuration
 4. **Default** — Uses the model root itself
@@ -416,15 +416,18 @@ dr analyzer query "MATCH (n) WHERE n.name CONTAINS 'order' RETURN n"
 Cross-reference your model against discovered code routes. Reports matched, graph-only (suspected gaps), and model-only (possible drift) entries.
 
 ```bash
-dr analyzer verify [--name <analyzer>] [--layer <layer>...] [--format <format>] [--output <path>]
+dr analyzer verify [--name <analyzer>] [--layer <layer>...] [--json | --format <format>] [--output <path>]
 ```
 
 **Options:**
 
 - `--name <analyzer>` — Specific analyzer name (default: active)
 - `--layer <layer>` — Layer(s) to verify (default: api; v1 only supports api)
+- `--json` — Output as JSON (legacy shorthand equivalent to `--format json`)
 - `--format <format>` — Output format: text (default), json, markdown
 - `--output <path>` — Write report to file (format inferred from extension)
+
+**Note on `--json` and `--format`**: If both flags are provided, `--json` takes precedence and a warning is issued. Use `--format` for consistency with other tools.
 
 **Output Buckets:**
 

@@ -193,6 +193,15 @@ Your Documentation Robotics project has two roots:
 
 These can be the same directory (typical) or different directories (useful for monorepos or federated architectures). Analyzer commands automatically respect this configuration.
 
+**Resolution Priority:**
+
+The codebase root is resolved in this order:
+
+1. **`--codebase-path` CLI flag** — Global option that overrides all other resolution methods
+2. **`manifest.codebase_path`** — Configured in `documentation-robotics/model/manifest.yaml`
+3. **Farm auto-resolution** — If your model is in a farm, resolved from farm configuration
+4. **Default** — Uses the model root itself
+
 **Configure via `manifest.codebase_path`:**
 
 ```yaml
