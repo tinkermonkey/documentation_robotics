@@ -212,9 +212,17 @@ export async function farmAddCommand(
     // Determine codebase path
     let codebasePath = options.codebase || name;
 
+    // Validate path traversal: ensure codebasePath resolves within farmRoot
+    const codebaseFullPath = path.resolve(path.join(farmRoot, codebasePath));
+    const farmRootResolved = path.resolve(farmRoot);
+    if (!codebaseFullPath.startsWith(farmRootResolved + path.sep)) {
+      throw new Error(
+        `Invalid codebase path: would escape farm root. Path: ${codebasePath}`
+      );
+    }
+
     // Clone if remote URL provided
     if (options.remote) {
-      const codebaseFullPath = path.join(farmRoot, codebasePath);
       if (await fileExists(codebaseFullPath)) {
         throw new Error(`Codebase directory '${codebasePath}' already exists`);
       }
@@ -234,7 +242,14 @@ export async function farmAddCommand(
 
     // Create and scaffold model folder
     const modelFolder = `${name}-model`;
-    const modelFullPath = path.join(farmRoot, modelFolder);
+    const modelFullPath = path.resolve(path.join(farmRoot, modelFolder));
+
+    // Validate path traversal for model folder
+    if (!modelFullPath.startsWith(farmRootResolved + path.sep)) {
+      throw new Error(
+        `Invalid model path: would escape farm root. Path: ${modelFolder}`
+      );
+    }
 
     if (!(await fileExists(modelFullPath))) {
       // Initialize model with manifest and layer structure

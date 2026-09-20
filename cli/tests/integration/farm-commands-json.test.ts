@@ -305,6 +305,64 @@ describe("Farm Commands - JSON Output Format Support", () => {
     await fs.rm(externalDir, { recursive: true, force: true });
   });
 
+  it("should prevent path traversal in codebase path during farm add", async () => {
+    // Create a farm
+    const manifest = FarmManifest.create("Test Farm");
+    await manifest.save(farmYamlPath);
+
+    // Import farmAddCommand
+    const { farmAddCommand } = await import("../../src/commands/farm.js");
+
+    // Create a directory outside the farm to check we don't use it
+    const parentDir = path.join("/tmp", `parent-add-${Date.now()}`);
+    const targetDir = path.join(parentDir, "target");
+    await ensureDir(targetDir);
+    await fs.writeFile(path.join(targetDir, "protected.txt"), "protected content");
+
+    // Capture console output
+    const originalLog = console.log;
+    const originalError = console.error;
+    let capturedOutput = "";
+    console.log = (msg: string) => {
+      if (typeof msg === "string") {
+        capturedOutput = msg;
+      }
+    };
+    console.error = () => {
+      // Suppress error output
+    };
+
+    try {
+      // Try to add a project with a path traversal codebase reference
+      await farmAddCommand("evil-service", {
+        codebase: `../parent-add-${Date.now()}/target`, // Path traversal attempt
+        format: "json",
+      });
+    } catch (error) {
+      // Expected to fail
+    }
+
+    console.log = originalLog;
+    console.error = originalError;
+
+    // Parse output and verify error
+    const output = JSON.parse(capturedOutput);
+    expect(output.status).toBe("error");
+    expect(output.message).toContain("Invalid codebase path");
+
+    // Verify the target directory outside farm was NOT used/created
+    const clonedPath = path.join(farmDir, `../parent-add-${Date.now()}`, "target");
+    expect(await fileExists(clonedPath)).toBe(false);
+
+    // Verify the target directory outside farm still exists and is intact
+    expect(await fileExists(targetDir)).toBe(true);
+    const content = await fs.readFile(path.join(targetDir, "protected.txt"), "utf-8");
+    expect(content).toBe("protected content");
+
+    // Clean up
+    await fs.rm(parentDir, { recursive: true, force: true });
+  });
+
   it("should verify farmRemoveCommand accepts format option", () => {
     // The --format json flag is now available for dr farm remove
     expect(true).toBe(true);
