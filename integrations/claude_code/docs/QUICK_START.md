@@ -199,7 +199,7 @@ If your source code and model are in **separate directories** (common in monorep
 version: 0.1.0
 schema: documentation-robotics-v1
 ...
-codebase_path: ../src  # Path relative to model root
+codebase_path: ../src # Path relative to model root
 ```
 
 **Then re-index:**
@@ -257,15 +257,15 @@ Ready for export/sharing
 
 ## Troubleshooting Quick Fixes
 
-| Problem             | Solution                                                       |
-| ------------------- | -------------------------------------------------------------- |
-| "No analyzer"       | `dr analyzer discover` then pick one                           |
-| "Not indexed"       | `dr analyzer index` to build graph                             |
-| "Index stale"       | `dr analyzer index` to refresh                                 |
-| "Many gaps"         | `/dr-map ./src --layers api` to re-extract                     |
+| Problem             | Solution                                                               |
+| ------------------- | ---------------------------------------------------------------------- |
+| "No analyzer"       | `dr analyzer discover` then pick one                                   |
+| "Not indexed"       | `dr analyzer index` to build graph                                     |
+| "Index stale"       | `dr analyzer index` to refresh                                         |
+| "Many gaps"         | `/dr-map ./src --layers api` to re-extract                             |
 | "Wrong codebase"    | Set `codebase_path` in manifest.yaml, then `dr analyzer index --force` |
-| "Validation errors" | `dr validate --strict` to see details, then `/dr-model` to fix |
-| "Lost in process"   | Read `END_TO_END_WALKTHROUGH.md` for detailed guide            |
+| "Validation errors" | `dr validate --strict` to see details, then `/dr-model` to fix         |
+| "Lost in process"   | Read `END_TO_END_WALKTHROUGH.md` for detailed guide                    |
 
 ---
 

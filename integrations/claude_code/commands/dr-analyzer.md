@@ -154,6 +154,7 @@ dr analyzer index [--name <analyzer>] [--force]
 **Codebase Root Resolution:**
 
 When indexing, the analyzer:
+
 1. Locates your model root
 2. Resolves the codebase root using the priority order (see "Dual-Root Architecture")
 3. Scans the codebase root for code
@@ -275,6 +276,7 @@ dr analyzer datastores [--name <analyzer>] [--json]
 **Output:**
 
 For each datastore:
+
 - Name (inferred)
 - Source evidence (files and patterns)
 - Notes (if available)
@@ -312,6 +314,7 @@ dr analyzer callers <qualified-name> [--name <analyzer>] [--depth <n>] [--json]
 **Output:**
 
 For each caller:
+
 - Qualified name
 - Source file
 - Source symbol
@@ -354,6 +357,7 @@ dr analyzer callees <qualified-name> [--name <analyzer>] [--depth <n>] [--json]
 **Output:**
 
 For each callee:
+
 - Qualified name
 - Source file
 - Source symbol
@@ -472,7 +476,7 @@ For detailed verification workflow and reconciliation options, see `/dr-verify` 
 version: 0.1.0
 schema: documentation-robotics-v1
 ...
-codebase_path: ../  # Relative to model root
+codebase_path: ../ # Relative to model root
 ```
 
 Then re-index:
@@ -492,6 +496,7 @@ Farm auto-resolves the codebase root. See your farm's configuration for details.
 ### Problem: "Project not indexed"
 
 **Solution:**
+
 ```bash
 dr analyzer index
 ```
@@ -499,6 +504,7 @@ dr analyzer index
 ### Problem: "No analyzer selected"
 
 **Solution:**
+
 ```bash
 dr analyzer discover
 # Then select an analyzer
@@ -515,6 +521,7 @@ dr analyzer discover
 ### Problem: Index is Stale
 
 **Solution:**
+
 ```bash
 dr analyzer index --force
 ```

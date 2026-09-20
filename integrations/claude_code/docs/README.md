@@ -206,7 +206,7 @@ The codebase root is resolved in this order:
 
 ```yaml
 # documentation-robotics/model/manifest.yaml
-codebase_path: ../  # Relative to model root, points to actual source code
+codebase_path: ../ # Relative to model root, points to actual source code
 ```
 
 After configuration, re-index for changes to take effect:

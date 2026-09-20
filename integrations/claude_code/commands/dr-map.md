@@ -252,6 +252,7 @@ If your codebase root (source code location) differs from your model root (metad
 
 1. Ensure `codebase_path` is configured in `documentation-robotics/model/manifest.yaml`
 2. If you recently changed `codebase_path`, re-index before extraction:
+
    ```bash
    dr analyzer index --force
    ```
