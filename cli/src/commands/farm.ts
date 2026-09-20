@@ -34,6 +34,17 @@ interface FarmSyncResultEntry {
   message?: string;
 }
 
+interface ProjectStatus {
+  name: string;
+  source: string;
+  model: string;
+  remote?: string;
+  last_sync_commit: string | undefined;
+  current_commit: string | undefined;
+  has_pending_changes: boolean | undefined;
+  sync_state_error?: string;
+}
+
 /**
  * Check if a directory is a git repository.
  * Returns true if git rev-parse succeeds, false if the directory is not a git repo
@@ -453,7 +464,7 @@ export async function farmStatusCommand(options: {
           const lastSyncCommit = syncState.lastSyncCommit;
           const hasPendingChanges = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
 
-          return {
+          const result: ProjectStatus = {
             name: p.name,
             source: p.source,
             model: p.model,
@@ -462,6 +473,7 @@ export async function farmStatusCommand(options: {
             current_commit: currentCommit,
             has_pending_changes: hasPendingChanges,
           };
+          return result;
         } catch (error) {
           // If sync state doesn't exist yet, that's expected - treat as no sync yet
           // For unexpected errors (YAML parse, git permission, etc), always log them
@@ -476,14 +488,14 @@ export async function farmStatusCommand(options: {
             console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
           }
 
-          const result: any = {
+          const result: ProjectStatus = {
             name: p.name,
             source: p.source,
             model: p.model,
             remote: p.remote,
             last_sync_commit: undefined,
             current_commit: undefined,
-            has_pending_changes: false,
+            has_pending_changes: isMissingFile ? false : undefined,
           };
 
           // Track sync state errors separately from missing files
