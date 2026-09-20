@@ -43,7 +43,7 @@ export async function changesetCreateCommand(
   try {
     // Load with lazyLoad: false to ensure consistent snapshot hashing
     // (base snapshot must include all layers for accurate drift detection)
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     // Check if changeset already exists
@@ -130,7 +130,7 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
   const span = isTelemetryEnabled ? startSpan("changeset.list") : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const changesets = await manager.list();
 
@@ -380,7 +380,7 @@ export async function changesetRevertCommand(name: string, options: { model?: st
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
@@ -472,7 +472,7 @@ export async function changesetActivateCommand(name: string, options: { model?: 
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = await manager.load(name);
     if (!changeset) {
@@ -524,7 +524,7 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
   const span = isTelemetryEnabled ? startSpan("changeset.deactivate") : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const active = await manager.getActiveId();
 
@@ -591,7 +591,7 @@ export async function changesetDeleteCommand(
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
@@ -699,7 +699,7 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
   const span = isTelemetryEnabled ? startSpan("changeset.status") : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const active = await manager.getActiveId();
 
@@ -777,7 +777,7 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangeset = await manager.getActiveId();
 
@@ -887,7 +887,7 @@ export async function changesetExplicitStageCommand(elementId: string, options: 
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -981,7 +981,7 @@ export async function changesetUnstageCommand(elementId: string, options: { mode
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1074,7 +1074,7 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1220,7 +1220,7 @@ export async function changesetPreviewCommand(options: { model?: string; layer?:
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1343,7 +1343,7 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeChangesetId = await manager.getActiveId();
 
@@ -1648,7 +1648,7 @@ export async function changesetExportCommand(
     : null;
 
   try {
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: true });
+    const model = await Model.load(options.model, { lazyLoad: true });
     const exporter = new ChangesetExporter(model.rootPath);
 
     // Default output filename based on changeset id and format
@@ -1711,7 +1711,7 @@ export async function changesetImportCommand(
 
   try {
     // Load full model for compatibility validation
-    const model = await Model.load(options.model || process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options.model, { lazyLoad: false });
     const exporter = new ChangesetExporter(model.rootPath);
 
     // Ensure file path is absolute
