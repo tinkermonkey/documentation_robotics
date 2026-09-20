@@ -27,10 +27,6 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
 # environment variables are picked up automatically.
 
 # Disable keyring-based credential storage for gh CLI.
-# Without this, gh tries to use dbus-launch to access the system keyring,
-# which requires the dbus-x11 package (and X11 dependencies). Setting
-# GH_NO_KEYRING=1 tells gh to store credentials in plain text config
-# files instead — appropriate for headless container environments.
 ENV GH_NO_KEYRING=1
 ENV GH_NO_UPDATE_NOTIFIER=1
 ENV GH_CONFIG_DIR=/home/orchestrator/.config/gh
@@ -61,44 +57,38 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 RUN npm install -g bun
 
 # Install codebase-memory-mcp MCP server for code knowledge graph analysis
-# Official install: npm install -g codebase-memory-mcp
-# https://github.com/DeusData/codebase-memory-mcp
 RUN npm install -g codebase-memory-mcp
 
 # ============================================================================
-# Stage 3: Pre-install Dependencies (RECOMMENDED)
+# Stage 3: Pre-install Dependencies at /opt/deps
 # ============================================================================
-# Pre-installing dependencies speeds up agent startup time because the agent
-# doesn't have to install them every time it runs.
+# CRITICAL: Dependencies MUST be baked outside /workspace entirely.
+# The runtime bind mount replaces the ENTIRE /workspace subtree, so anything
+# baked under /workspace (including /workspace/node_modules) is shadowed.
+# /opt/deps sits outside that subtree and is extracted into each worktree
+# by the orchestrator's baked_dependency_extractor at creation time.
+WORKDIR /opt/deps
 
-# WORKDIR should match where the orchestrator will mount the project
-WORKDIR /workspace/documentation_robotics
-
-# NOTE: We do NOT copy pyproject.toml to avoid creating directories that conflict
-# with the runtime mount. All dependencies are installed explicitly below.
-# The source code (including pyproject.toml) comes from the runtime mount.
-
-# Pre-install Node.js dependencies for the TypeScript CLI
-# The node_modules installed here are overridden by the runtime bind mount.
-# The key purpose is to populate the npm cache under /home/orchestrator/.npm
-# so that the entrypoint's `npm install` (running as orchestrator) can resolve
-# packages from cache instead of downloading from the registry. This makes
-# startup fast and works even without network access.
-#
-# We intentionally run WITHOUT --ignore-scripts for the CLI so that packages
-# like @modelcontextprotocol/sdk that need post-install build steps are fully
-# built in the cache. The root install uses --ignore-scripts since it has no
-# packages requiring build scripts.
-COPY package.json package-lock.json ./
-COPY cli/package.json cli/package-lock.json ./cli/
-RUN cd /workspace/documentation_robotics && \
+# Pre-install root Node.js dependencies (needed for build:spec via tsx)
+COPY package.json package-lock.json /tmp/root-deps/
+RUN cd /tmp/root-deps && \
     npm install --ignore-scripts --cache /home/orchestrator/.npm && \
-    cd /workspace/documentation_robotics/cli && \
+    mv /tmp/root-deps/node_modules /opt/deps/node_modules && \
+    rm -rf /tmp/root-deps
+
+# Pre-install CLI Node.js dependencies (includes TypeScript compiler)
+# tsc is required by pre-commit hooks (npm run lint, npm run type-check)
+COPY cli/package.json cli/package-lock.json /tmp/cli-deps/
+RUN cd /tmp/cli-deps && \
     npm install --cache /home/orchestrator/.npm && \
-    chown -R orchestrator:orchestrator /home/orchestrator/.npm
+    mkdir -p /opt/deps/cli && \
+    mv /tmp/cli-deps/node_modules /opt/deps/cli/node_modules && \
+    rm -rf /tmp/cli-deps
+
+# Verify tsc is available in baked dependencies
+RUN /opt/deps/cli/node_modules/.bin/tsc --version
 
 # Pre-install Python dependencies
-# These match the dependencies from cli/pyproject.toml
 # Core CLI dependencies
 RUN pip install --no-cache-dir \
     'click>=8.1.0' \
@@ -146,17 +136,9 @@ RUN pip install --no-cache-dir \
 # ============================================================================
 # Stage 4: Ownership and Permissions
 # ============================================================================
-# Change ownership ONLY of what was installed, NOT source code
-# Source code ownership is handled by the mount
+RUN chown -R orchestrator:orchestrator /opt/deps /home/orchestrator/.npm
 
-# Python packages are already installed in /usr/local as root, no chown needed
-
-# ============================================================================
-# Stage 4b: Optimize filesystem for test execution
-# ============================================================================
 # Ensure /tmp has proper permissions for test golden copy operations.
-# Tests create many temporary directories under /tmp for golden copy cloning.
-# When running with --tmpfs /tmp, this is RAM-backed and fast.
 RUN chmod 1777 /tmp
 
 # ============================================================================
@@ -168,11 +150,6 @@ USER orchestrator
 # Stage 6: Verification (MANDATORY)
 # ============================================================================
 # Ensure a clean gh config directory exists for the orchestrator user.
-# This prevents "multi-account migration" errors at runtime when gh finds
-# stale config from a previous build layer or cache.
-# Writing version:1 to config.yml tells gh 2.40+ that config is already in
-# the current format, suppressing the interactive migration prompt that
-# hangs in non-interactive containers.
 RUN mkdir -p "$GH_CONFIG_DIR" && \
     rm -f "$GH_CONFIG_DIR/hosts.yml" && \
     printf 'version: 1\n' > "$GH_CONFIG_DIR/config.yml"
@@ -188,8 +165,8 @@ RUN node --version && \
     bun --version && \
     codebase-memory-mcp --version
 
-# Note: Node.js dependencies are verified at runtime after bind mount.
-# The entrypoint handles npm install + npm run build when dist/cli.js is missing.
+# Verify TypeScript compiler is available in baked deps
+RUN /opt/deps/cli/node_modules/.bin/tsc --version
 
 # Verify project-specific tools - core Python dependencies
 RUN python3 --version && \
