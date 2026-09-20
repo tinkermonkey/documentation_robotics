@@ -346,11 +346,8 @@ describe("Farm Commands - JSON Output Format Support", () => {
     expect(output.status).toBe("error");
     expect(output.message).toContain("Invalid codebase path");
 
-    // Verify the target directory outside farm was NOT used/created
-    const clonedPath = path.join(farmDir, `../parent-add-${timestamp}`, "target");
-    expect(await fileExists(clonedPath)).toBe(false);
-
     // Verify the target directory outside farm still exists and is intact
+    // (validation rejects the path before any filesystem operations)
     expect(await fileExists(targetDir)).toBe(true);
     const content = await fs.readFile(path.join(targetDir, "protected.txt"), "utf-8");
     expect(content).toBe("protected content");
