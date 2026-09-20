@@ -9,53 +9,56 @@ function stripAnsi(text: string): string {
 }
 
 export function installAnsiSuppressor(): void {
-  // Only suppress if stdout is not a TTY
-  if (process.stdout.isTTY === true) {
-    return;
-  }
-
   const originalLog = console.log;
   const originalError = console.error;
   const originalWarn = console.warn;
   const originalInfo = console.info;
 
-  console.log = function (...args: any[]) {
-    const stripped = args.map((arg) => {
-      if (typeof arg === "string") {
-        return stripAnsi(arg);
-      }
-      return arg;
-    });
-    return originalLog.apply(console, stripped);
-  };
+  // Suppress ANSI codes from stdout (log/info) if stdout is not a TTY
+  const shouldSuppressStdout = process.stdout.isTTY !== true;
+  if (shouldSuppressStdout) {
+    console.log = function (...args: any[]) {
+      const stripped = args.map((arg) => {
+        if (typeof arg === "string") {
+          return stripAnsi(arg);
+        }
+        return arg;
+      });
+      return originalLog.apply(console, stripped);
+    };
 
-  console.error = function (...args: any[]) {
-    const stripped = args.map((arg) => {
-      if (typeof arg === "string") {
-        return stripAnsi(arg);
-      }
-      return arg;
-    });
-    return originalError.apply(console, stripped);
-  };
+    console.info = function (...args: any[]) {
+      const stripped = args.map((arg) => {
+        if (typeof arg === "string") {
+          return stripAnsi(arg);
+        }
+        return arg;
+      });
+      return originalInfo.apply(console, stripped);
+    };
+  }
 
-  console.warn = function (...args: any[]) {
-    const stripped = args.map((arg) => {
-      if (typeof arg === "string") {
-        return stripAnsi(arg);
-      }
-      return arg;
-    });
-    return originalWarn.apply(console, stripped);
-  };
+  // Suppress ANSI codes from stderr (error/warn) if stderr is not a TTY
+  const shouldSuppressStderr = process.stderr.isTTY !== true;
+  if (shouldSuppressStderr) {
+    console.error = function (...args: any[]) {
+      const stripped = args.map((arg) => {
+        if (typeof arg === "string") {
+          return stripAnsi(arg);
+        }
+        return arg;
+      });
+      return originalError.apply(console, stripped);
+    };
 
-  console.info = function (...args: any[]) {
-    const stripped = args.map((arg) => {
-      if (typeof arg === "string") {
-        return stripAnsi(arg);
-      }
-      return arg;
-    });
-    return originalInfo.apply(console, stripped);
-  };
+    console.warn = function (...args: any[]) {
+      const stripped = args.map((arg) => {
+        if (typeof arg === "string") {
+          return stripAnsi(arg);
+        }
+        return arg;
+      });
+      return originalWarn.apply(console, stripped);
+    };
+  }
 }

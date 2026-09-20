@@ -289,8 +289,8 @@ export function handleWarning(message: string, suggestions?: string[]): void {
 export function handleSuccess(message: string, details?: Record<string, unknown>, options?: { verbose?: boolean }): void {
   if (isJson()) {
     const output: Record<string, unknown> = {
-      status: "ok",
       ...details,
+      status: "ok",
     };
     console.log(JSON.stringify(output));
   } else {
@@ -317,7 +317,16 @@ function keyToDisplayName(key: string): string {
 }
 
 export function handleInfo(message: string, details?: Record<string, string>): void {
-  if (!isJson()) {
+  if (isJson()) {
+    const output: Record<string, unknown> = {
+      level: "info",
+      message,
+    };
+    if (details) {
+      output.details = details;
+    }
+    console.log(JSON.stringify(output));
+  } else {
     console.log(message);
     if (details) {
       for (const [key, value] of Object.entries(details)) {
