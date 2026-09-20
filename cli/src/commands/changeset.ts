@@ -229,7 +229,7 @@ export async function changesetApplyCommand(
     : null;
 
   try {
-    const model = await Model.load(options?.model || process.cwd(), { lazyLoad: false });
+    const model = await Model.load(options?.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
@@ -1460,7 +1460,7 @@ export async function changesetCommitCommand(options?: {
     "changeset.commit",
     async (span) => {
       try {
-        const model = await Model.load(options?.model || process.cwd(), { lazyLoad: false });
+        const model = await Model.load(options?.model, { lazyLoad: false });
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
 
