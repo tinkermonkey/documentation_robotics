@@ -71,6 +71,16 @@ describe("CbmAnalyzer Dual-Root", () => {
         const originalClose = StdioClient.prototype.close;
         const originalInitialize = StdioClient.prototype.initialize;
         const originalInvokeTool = StdioClient.prototype.invokeTool;
+        const originalStatus = analyzer.status.bind(analyzer);
+
+        // Mock status to bypass detection check
+        (analyzer as any).status = async () => ({
+          indexed: false,
+          fresh: false,
+          last_indexed: null,
+          index_meta: null,
+          detected: { installed: true, binary_path: "/bin/mock", contract_ok: true, mcp_registered: false },
+        });
 
         StdioClient.prototype.spawn = function () { /* noop */ };
         StdioClient.prototype.close = function () { /* noop */ };
@@ -104,6 +114,7 @@ describe("CbmAnalyzer Dual-Root", () => {
           StdioClient.prototype.close = originalClose;
           StdioClient.prototype.initialize = originalInitialize;
           StdioClient.prototype.invokeTool = originalInvokeTool;
+          (analyzer as any).status = originalStatus;
         }
       });
 
@@ -130,6 +141,16 @@ describe("CbmAnalyzer Dual-Root", () => {
         const originalClose = StdioClient.prototype.close;
         const originalInitialize = StdioClient.prototype.initialize;
         const originalInvokeTool = StdioClient.prototype.invokeTool;
+        const originalStatus = analyzer.status.bind(analyzer);
+
+        // Mock status to bypass detection check
+        (analyzer as any).status = async () => ({
+          indexed: false,
+          fresh: false,
+          last_indexed: null,
+          index_meta: null,
+          detected: { installed: true, binary_path: "/bin/mock", contract_ok: true, mcp_registered: false },
+        });
 
         StdioClient.prototype.spawn = function () { /* noop */ };
         StdioClient.prototype.close = function () { /* noop */ };
@@ -160,6 +181,7 @@ describe("CbmAnalyzer Dual-Root", () => {
           StdioClient.prototype.close = originalClose;
           StdioClient.prototype.initialize = originalInitialize;
           StdioClient.prototype.invokeTool = originalInvokeTool;
+          (analyzer as any).status = originalStatus;
         }
       });
     });
@@ -207,11 +229,57 @@ describe("CbmAnalyzer Dual-Root", () => {
         spawnSync("git", ["add", "."], { cwd: codebaseRoot, stdio: "pipe" });
         spawnSync("git", ["commit", "-m", "Init"], { cwd: codebaseRoot, stdio: "pipe" });
 
-        // Verify both directories exist and are separate
-        // This verifies that the analyzer can work with separate roots
-        expect(codebaseRoot).not.toBe(modelRoot);
-        expect(codebaseRoot).toContain("code");
-        expect(modelRoot).toContain("model");
+        // Mock StdioClient for analyzer.index() call
+        const originalSpawn = StdioClient.prototype.spawn;
+        const originalClose = StdioClient.prototype.close;
+        const originalInitialize = StdioClient.prototype.initialize;
+        const originalInvokeTool = StdioClient.prototype.invokeTool;
+        const originalStatus = analyzer.status.bind(analyzer);
+
+        const invokedTools: Array<{ tool: string; params: unknown }> = [];
+
+        // Mock status to bypass detection check
+        (analyzer as any).status = async () => ({
+          indexed: false,
+          fresh: false,
+          last_indexed: null,
+          index_meta: null,
+          detected: { installed: true, binary_path: "/bin/mock", contract_ok: true, mcp_registered: false },
+        });
+
+        StdioClient.prototype.spawn = function () { /* noop */ };
+        StdioClient.prototype.close = function () { /* noop */ };
+        StdioClient.prototype.initialize = async function () { return { capabilities: {} }; };
+        StdioClient.prototype.invokeTool = async function (tool: string, params: unknown) {
+          invokedTools.push({ tool, params });
+          if (tool === "list_projects") {
+            return { projects: [{ name: "test-project", root_path: codebaseRoot }] };
+          }
+          if (tool === "index_repository") {
+            return { nodes: 3, edges: 2, status: "complete" };
+          }
+          return {};
+        };
+
+        try {
+          // Call analyzer.index with codebaseRoot to verify it uses that path for operations
+          const result = await analyzer.index(modelRoot, { codebaseRoot });
+
+          // Verify that analyzer used codebaseRoot (not modelRoot) in index_repository call
+          const indexCall = invokedTools.find((t) => t.tool === "index_repository");
+          expect(indexCall).toBeDefined();
+          const params = indexCall?.params as { repo_path?: string };
+          expect(params.repo_path).toBe(codebaseRoot);
+
+          // Verify indexing completed successfully
+          expect(result.node_count).toBe(3);
+        } finally {
+          StdioClient.prototype.spawn = originalSpawn;
+          StdioClient.prototype.close = originalClose;
+          StdioClient.prototype.initialize = originalInitialize;
+          StdioClient.prototype.invokeTool = originalInvokeTool;
+          (analyzer as any).status = originalStatus;
+        }
       });
     });
   });
@@ -383,8 +451,18 @@ describe("CbmAnalyzer Dual-Root", () => {
       const originalClose = StdioClient.prototype.close;
       const originalInitialize = StdioClient.prototype.initialize;
       const originalInvokeTool = StdioClient.prototype.invokeTool;
+      const originalStatus = analyzer.status.bind(analyzer);
 
       const invokedTools: Array<{ tool: string; params: unknown }> = [];
+
+      // Mock status to bypass detection check
+      (analyzer as any).status = async () => ({
+        indexed: false,
+        fresh: false,
+        last_indexed: null,
+        index_meta: null,
+        detected: { installed: true, binary_path: "/bin/mock", contract_ok: true, mcp_registered: false },
+      });
 
       StdioClient.prototype.spawn = function () { /* noop */ };
       StdioClient.prototype.close = function () { /* noop */ };
@@ -416,6 +494,7 @@ describe("CbmAnalyzer Dual-Root", () => {
         StdioClient.prototype.close = originalClose;
         StdioClient.prototype.initialize = originalInitialize;
         StdioClient.prototype.invokeTool = originalInvokeTool;
+        (analyzer as any).status = originalStatus;
       }
     });
 
@@ -439,8 +518,18 @@ describe("CbmAnalyzer Dual-Root", () => {
       const originalClose = StdioClient.prototype.close;
       const originalInitialize = StdioClient.prototype.initialize;
       const originalInvokeTool = StdioClient.prototype.invokeTool;
+      const originalStatus = analyzer.status.bind(analyzer);
 
       const invokedTools: Array<{ tool: string; params: unknown }> = [];
+
+      // Mock status to bypass detection check
+      (analyzer as any).status = async () => ({
+        indexed: false,
+        fresh: false,
+        last_indexed: null,
+        index_meta: null,
+        detected: { installed: true, binary_path: "/bin/mock", contract_ok: true, mcp_registered: false },
+      });
 
       StdioClient.prototype.spawn = function () { /* noop */ };
       StdioClient.prototype.close = function () { /* noop */ };
@@ -479,6 +568,7 @@ describe("CbmAnalyzer Dual-Root", () => {
         StdioClient.prototype.close = originalClose;
         StdioClient.prototype.initialize = originalInitialize;
         StdioClient.prototype.invokeTool = originalInvokeTool;
+        (analyzer as any).status = originalStatus;
       }
     });
   });
@@ -602,6 +692,16 @@ describe("CbmAnalyzer Dual-Root", () => {
         const originalClose = StdioClient.prototype.close;
         const originalInitialize = StdioClient.prototype.initialize;
         const originalInvokeTool = StdioClient.prototype.invokeTool;
+        const originalStatus = analyzer.status.bind(analyzer);
+
+        // Mock status to bypass detection check
+        (analyzer as any).status = async () => ({
+          indexed: false,
+          fresh: false,
+          last_indexed: null,
+          index_meta: null,
+          detected: { installed: true, binary_path: "/bin/mock", contract_ok: true, mcp_registered: false },
+        });
 
         StdioClient.prototype.spawn = function () { /* noop */ };
         StdioClient.prototype.close = function () { /* noop */ };
@@ -626,6 +726,7 @@ describe("CbmAnalyzer Dual-Root", () => {
           StdioClient.prototype.close = originalClose;
           StdioClient.prototype.initialize = originalInitialize;
           StdioClient.prototype.invokeTool = originalInvokeTool;
+          (analyzer as any).status = originalStatus;
         }
       });
     });
