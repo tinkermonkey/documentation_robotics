@@ -466,15 +466,17 @@ export async function farmStatusCommand(options: {
           // If sync state doesn't exist yet, that's expected - treat as no sync yet
           // For unexpected errors (YAML parse, git permission, etc), always log them
           const errorMsg = getErrorMessage(error);
-          if (
-            !errorMsg.includes("not found") &&
-            !errorMsg.includes("does not exist") &&
-            !errorMsg.includes("ENOENT")
-          ) {
-            // Unexpected error - always log it to surface issues to users
+          const isMissingFile =
+            errorMsg.includes("not found") ||
+            errorMsg.includes("does not exist") ||
+            errorMsg.includes("ENOENT");
+
+          if (!isMissingFile) {
+            // Unexpected error (corrupt YAML, permission denied, etc) - always log it to surface issues
             console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
           }
-          return {
+
+          const result: any = {
             name: p.name,
             source: p.source,
             model: p.model,
@@ -483,6 +485,13 @@ export async function farmStatusCommand(options: {
             current_commit: undefined,
             has_pending_changes: false,
           };
+
+          // Track sync state errors separately from missing files
+          if (!isMissingFile) {
+            result.sync_state_error = errorMsg;
+          }
+
+          return result;
         }
       })
     );
@@ -521,7 +530,10 @@ export async function farmStatusCommand(options: {
           if (project.remote) {
             console.log(`    Remote:   ${project.remote}`);
           }
-          if (project.has_pending_changes) {
+          if (project.sync_state_error) {
+            console.log(`    Status:   ${ansis.red("✗ Sync state corrupted")}`);
+            console.log(`    Error:    ${project.sync_state_error}`);
+          } else if (project.has_pending_changes) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
           } else if (project.last_sync_commit) {
             console.log(`    Status:   ${ansis.green("✓ Up to date")}`);
