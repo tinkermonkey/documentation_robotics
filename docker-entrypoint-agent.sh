@@ -69,7 +69,14 @@ fi
 # A stale dist/cli.js from a prior repair cycle will silently pass an
 # existence check but test against outdated code, producing false failures
 # (e.g., dependency counts of 0, direct/transitive count mismatches).
-if [ -d "$CLI_DIR/src" ]; then
+# Read-only agents (e.g. pr_code_reviewer, requirements_verifier run with
+# filesystem_write_allowed=false, so the workspace is bind-mounted read-only)
+# cannot rebuild anything: the rm/npm/build steps below would fail on the
+# read-only filesystem and, under `set -e`, kill the container before the
+# agent starts. They only read code, so skip the rebuild for them.
+if [ -d "$CLI_DIR/src" ] && [ ! -w "$CLI_DIR" ]; then
+  echo "[agent-entrypoint] Workspace is read-only — skipping CLI rebuild (read-only agents do not run the CLI)"
+elif [ -d "$CLI_DIR/src" ]; then
   echo "[agent-entrypoint] Force-rebuilding CLI to ensure dist/ matches current source..."
 
   # Remove stale build artifacts unconditionally.
