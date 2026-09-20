@@ -8,7 +8,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
 import { FarmManifest } from "../../src/core/farm-manifest.js";
-import { farmStatusCommand, farmValidateCommand, farmSyncCommand, farmRemoveCommand } from "../../src/commands/farm.js";
+import { farmStatusCommand, farmValidateCommand, farmSyncCommand, farmRemoveCommand, farmAddCommand } from "../../src/commands/farm.js";
 
 describe("Farm Commands - JSON Output Format Support", () => {
   let farmDir: string;
@@ -310,11 +310,11 @@ describe("Farm Commands - JSON Output Format Support", () => {
     const manifest = FarmManifest.create("Test Farm");
     await manifest.save(farmYamlPath);
 
-    // Import farmAddCommand
-    const { farmAddCommand } = await import("../../src/commands/farm.js");
+    // Use consistent timestamp for all path constructions
+    const timestamp = Date.now();
 
     // Create a directory outside the farm to check we don't use it
-    const parentDir = path.join("/tmp", `parent-add-${Date.now()}`);
+    const parentDir = path.join("/tmp", `parent-add-${timestamp}`);
     const targetDir = path.join(parentDir, "target");
     await ensureDir(targetDir);
     await fs.writeFile(path.join(targetDir, "protected.txt"), "protected content");
@@ -332,15 +332,11 @@ describe("Farm Commands - JSON Output Format Support", () => {
       // Suppress error output
     };
 
-    try {
-      // Try to add a project with a path traversal codebase reference
-      await farmAddCommand("evil-service", {
-        codebase: `../parent-add-${Date.now()}/target`, // Path traversal attempt
-        format: "json",
-      });
-    } catch (error) {
-      // Expected to fail
-    }
+    // Try to add a project with a path traversal codebase reference
+    await farmAddCommand("evil-service", {
+      codebase: `../parent-add-${timestamp}/target`, // Path traversal attempt
+      format: "json",
+    });
 
     console.log = originalLog;
     console.error = originalError;
@@ -351,7 +347,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     expect(output.message).toContain("Invalid codebase path");
 
     // Verify the target directory outside farm was NOT used/created
-    const clonedPath = path.join(farmDir, `../parent-add-${Date.now()}`, "target");
+    const clonedPath = path.join(farmDir, `../parent-add-${timestamp}`, "target");
     expect(await fileExists(clonedPath)).toBe(false);
 
     // Verify the target directory outside farm still exists and is intact
