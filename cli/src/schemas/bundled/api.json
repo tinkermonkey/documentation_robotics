@@ -2131,6 +2131,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.exposes.product.feature": {
+      "id": "api.operation.exposes.product.feature",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "exposes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "api.operation.realizes.application.applicationfunction": {
       "id": "api.operation.realizes.application.applicationfunction",
       "source_spec_node_id": "api.operation",

@@ -3401,6 +3401,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.view.realizes.product.feature": {
+      "id": "ux.view.realizes.product.feature",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "ux.view.realizes.motivation.goal": {
       "id": "ux.view.realizes.motivation.goal",
       "source_spec_node_id": "ux.view",

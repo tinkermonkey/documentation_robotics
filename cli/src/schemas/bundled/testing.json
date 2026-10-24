@@ -2324,6 +2324,17 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcasesketch.tests.product.feature": {
+      "id": "testing.testcasesketch.tests.product.feature",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "tests",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcasesketch.tests.ux.librarycomponent": {
       "id": "testing.testcasesketch.tests.ux.librarycomponent",
       "source_spec_node_id": "testing.testcasesketch",
@@ -2902,6 +2913,17 @@
       "source_layer": "testing",
       "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
+      "predicate": "covers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.covers.product.feature": {
+      "id": "testing.testcoveragetarget.covers.product.feature",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
       "predicate": "covers",
       "cardinality": "many-to-many",
       "strength": "medium",

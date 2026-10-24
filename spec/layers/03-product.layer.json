@@ -13,6 +13,7 @@
     "product.feature",
     "product.milestone",
     "product.persona",
-    "product.userworkflow"
+    "product.userworkflow",
+    "product.workflowstep"
   ]
 }

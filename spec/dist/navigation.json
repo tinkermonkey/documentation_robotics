@@ -748,6 +748,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.flowstep.realizes.product.workflowstep": {
+      "id": "navigation.flowstep.realizes.product.workflowstep",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "product.workflowstep",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.flowstep.requires.navigation.navigationguard": {
       "id": "navigation.flowstep.requires.navigation.navigationguard",
       "source_spec_node_id": "navigation.flowstep",
@@ -996,6 +1007,17 @@
       "source_layer": "navigation",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.realizes.product.userworkflow": {
+      "id": "navigation.navigationflow.realizes.product.userworkflow",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "product.userworkflow",
+      "destination_layer": "product",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",

@@ -589,6 +589,28 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationcomponent.realizes.product.capability": {
+      "id": "application.applicationcomponent.realizes.product.capability",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.capability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.realizes.product.feature": {
+      "id": "application.applicationcomponent.realizes.product.feature",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationcomponent.realizes.motivation.goal": {
       "id": "application.applicationcomponent.realizes.motivation.goal",
       "source_spec_node_id": "application.applicationcomponent",
@@ -1150,6 +1172,28 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationservice.realizes.product.capability": {
+      "id": "application.applicationservice.realizes.product.capability",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.capability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.realizes.product.feature": {
+      "id": "application.applicationservice.realizes.product.feature",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationservice.realizes.motivation.goal": {
       "id": "application.applicationservice.realizes.motivation.goal",
       "source_spec_node_id": "application.applicationservice",
@@ -1201,6 +1245,39 @@
       "destination_spec_node_id": "motivation.constraint",
       "destination_layer": "motivation",
       "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.serves.application.applicationcomponent": {
+      "id": "application.applicationservice.serves.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.serves.application.applicationfunction": {
+      "id": "application.applicationservice.serves.application.applicationfunction",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.serves.application.applicationprocess": {
+      "id": "application.applicationservice.serves.application.applicationprocess",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

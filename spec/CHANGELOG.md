@@ -7,6 +7,30 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- **`product.workflowstep` node type** — UserWorkflow previously carried only a `complexity` enum and
+  free-text documentation, so the steps of a workflow could not be modelled. WorkflowStep is a
+  product-level, implementation-independent step (`sequence`, `action`, `outcome`, `optional`) that a
+  UserWorkflow `composes`, that `flows-to` the next step, that `uses` the Feature it exercises and the
+  Capability it relies on, and that a navigation FlowStep `realizes`.
+- **Capability consumption** — `product.feature uses product.capability`,
+  `product.userworkflow uses product.capability` and `product.capability depends-on product.capability`.
+  Previously the only feature-to-capability predicate was `realizes`, so "the password-reset feature
+  uses the email-sending capability" could only be expressed by misusing realization.
+- **Realization of product elements from lower layers** — the catalog had no relationship with a
+  product type as destination from any other layer, although the product skill documented four. Added:
+  `application.applicationservice` / `application.applicationcomponent` / `technology.technologyservice`
+  `realizes product.capability`; `application.applicationservice` / `application.applicationcomponent`
+  / `ux.view realizes product.feature`; `api.operation exposes product.feature`;
+  `navigation.navigationflow realizes product.userworkflow`; `navigation.flowstep realizes
+  product.workflowstep`; `testing.testcasesketch tests product.feature`;
+  `testing.testcoveragetarget covers product.feature`.
+- **Application-layer serving** — `application.applicationservice serves application.applicationprocess`,
+  `application.applicationfunction` and `application.applicationcomponent` (ArchiMate 3.2 serving
+  relationship). Previously an application service could serve a business process only, so "this
+  process uses the email service" had no predicate inside the application layer.
+
 ### Changed
 
 - **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder
@@ -15,6 +39,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   elements in it, and where neighbouring concerns belong instead. The compiled `spec/dist/*.json`
   and `manifest.json` carry the new text. Tooling that classifies code into layers (the
   classification eval harness in `cli/scripts/classify-eval`) reads these definitions directly.
+- **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
+  Feature that did not exist in the catalog; it now matches the relationship schemas added above.
 
 ### Breaking Changes
 
