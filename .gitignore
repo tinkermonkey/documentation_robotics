@@ -83,9 +83,13 @@ cli-validation/test-suite/dist/
 cli-validation/test-suite/results/*.xml
 cli-validation/test-project/ts-cli/
 cli-validation/test-project/python-cli/
+.env*
 
 # CLI runtime test artifacts (generated during test execution)
 cli/documentation-robotics/
 
 # MCP server configuration
 .mcp.json
+
+# Classification eval corpora (cloned open-source repos)
+eval-corpus/

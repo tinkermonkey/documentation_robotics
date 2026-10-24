@@ -1,0 +1,19 @@
+{
+  "corpus": "dr-cli",
+  "root": "/Users/austinsand/workspace/documentation_robotics/cli",
+  "project": "Users-austinsand-workspace-documentation_robotics-cli",
+  "include": "src/**",
+  "exclude": "(^|\\/)(tests?|__tests__|fixtures?|__fixtures__|test-[^/]*|examples?|scripts|dist|node_modules|\\.venv|venv)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$|(^|\\/)test_[^/]*\\.py$|(^|\\/)conftest\\.py$",
+  "seed": 42,
+  "limit": 300,
+  "source_lines": 120,
+  "cards": 300,
+  "by_label": {
+    "Class": 60,
+    "Interface": 60,
+    "Function": 60,
+    "Method": 60,
+    "Module": 60
+  },
+  "generated_at": "2026-10-24T12:07:49.245Z"
+}
