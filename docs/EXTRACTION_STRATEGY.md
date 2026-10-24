@@ -116,6 +116,55 @@ becomes a labelled example, and the question bank gives cheap gates elsewhere ("
 this diff change architecture?" per changed symbol lets a cron farm skip the Claude
 pass on most commits).
 
+## Phase 0 results (2026-10-24)
+
+Three corpora, gold labels from Opus 5.5 (high effort, full card context), classifiers see a
+40-line state card. Layer accuracy / end-to-end type accuracy against gold:
+
+| corpus    | cards | clef          | clef-flash    | claude-sonnet | claude-haiku  |
+| --------- | ----- | ------------- | ------------- | ------------- | ------------- |
+| petclinic | 106   | 84.0% / 73.6% | 65.1% / 45.3% | 84.0% / 82.1% | 59.4% / 52.8% |
+| fastapi   | 200   | 78.5% / 69.5% | 78.5% / 59.5% | 71.5% / 62.0% | 72.0% / 63.5% |
+| dr-cli    | 300   | 81.3% / 57.3% | 61.7% / 50.3% | not run (1)   | not run (1)   |
+
+(1) The Anthropic account hit its configured monthly usage limit before these ran; it resets
+2026-11-01. Gold labels for dr-cli were fetched before the limit.
+
+Cost and latency per card: Clef about $0.001 and 650-700 ms median; Sonnet about $0.008 and
+1.6 s; Haiku about $0.0005 and 1.6 s; Clef-flash about $0.0003 and 1.0-1.2 s.
+
+What the numbers say:
+
+- **Zero-shot Clef is at least as accurate as Sonnet on layer choice** on both corpora where
+  both ran, at roughly a tenth of the cost and 2.4x the speed, with nothing but the spec's
+  layer descriptions as criteria.
+- **Clef's probabilities are underconfident but monotonic**, which is what a cascade needs:
+  a layer threshold of 0.60 gives 96-97% precision on 36-37% of cards on every corpus, and
+  0.50 gives about 92% on 65%. Sonnet's self-reported confidence needs 0.80 to reach 93-99%
+  precision (42-49% coverage). Haiku's confidence is not usable as a gate.
+- **Type selection is the weak link.** Given the correct layer, Clef picks the right element
+  type 88% of the time on petclinic and fastapi but only 70% on dr-cli, where almost everything
+  is `application` and the choice is among applicationfunction / applicationcomponent /
+  applicationservice / dataobject. Those criteria are the node-schema descriptions, which are
+  exactly the thin definitions Direction A is meant to fix. Type-given-layer accuracy is now the
+  measurable target for the enrichment pass.
+- **Systematic misses.** Clef recalled zero `technology` symbols on all three corpora
+  (technology elements come from manifests and Dockerfiles, not code symbols, so symbol
+  classification is the wrong extraction path for that layer). On dr-cli it sends borderline
+  application code to `none` (22) or `data-model` (19); on fastapi it labels trivial UI helpers
+  as `ux` (16). Sonnet errs the other way: it under-uses `none` (40% recall on fastapi, 78% on
+  petclinic) and over-assigns `api` and `ux`.
+- **"none" is a large class**: 27-43% of sampled symbols per corpus are not architecturally
+  meaningful on their own. The significance score agrees with gold within one level on
+  91-97% of cards for Clef.
+- **Clef-flash is not a candidate on its own** (weaker layer accuracy except on fastapi, worse
+  calibration); it may still serve as a cheap first gate once fine-tuned.
+
+Implications: Tier 1 of the cascade is viable now with Clef at a 0.6 layer threshold; the
+0.5-0.6 band and the rest escalate to Claude. The next experiments are the `none`-handling
+variants, richer type criteria from the enrichment pass, and a non-symbol path for the
+technology layer. Harness details and per-backend tables: `cli/scripts/classify-eval/data/*/report.md`.
+
 ## Sequencing
 
 | Phase | Deliverable                                                                                                                                                                                                                                                                                                                                 | Status                   |

@@ -184,7 +184,7 @@ function main() {
   }
   md.push("## Summary", "", ...summaries, "", "Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.", "", ...sections);
 
-  const out = md.join("\n");
+  const out = md.join("\n").replace(/\n+$/, "");
   writeFileSync(path.join(dir, "report.md"), out + "\n");
   console.log(out);
 }
