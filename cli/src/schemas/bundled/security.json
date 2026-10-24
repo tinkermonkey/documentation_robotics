@@ -4,7 +4,7 @@
     "id": "security",
     "number": 4,
     "name": "Security Layer",
-    "description": "Layer 4: Security Layer",
+    "description": "Defines how the system identifies, authorizes and protects: authentication configuration, roles, permissions, secure resources and their operations, access conditions and field-level controls, declarative policies and rules, data classification and rate limits, together with goal-oriented security concepts such as actors, objectives, delegations, threats, countermeasures and accountability (NIST SP 800-53 controls with STS-ml and XACML-style policy modelling). Code that checks identity or enforces permissions is evidence for elements here.",
     "inspired_by": {
       "standard": "NIST SP 800-53",
       "version": "5.1",

@@ -4,7 +4,7 @@
     "id": "apm",
     "number": 12,
     "name": "APM Observability Layer",
-    "description": "Layer 12: APM Observability Layer",
+    "description": "Defines how the system is observed in operation: instrumentation and telemetry configuration, metrics, spans and traces, logs, alerts, dashboards and service-level objectives, with the resources and attributes that describe them (OpenTelemetry 1.0). Logging, metrics and tracing code, exporters and alerting rules are evidence for elements here.",
     "inspired_by": {
       "standard": "OpenTelemetry",
       "version": "1.0",

@@ -7,6 +7,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Changed
+
+- **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder
+  description `Layer N: Name`. Each of the 13 layers now has a real purpose-and-scope definition:
+  what the layer models, which standard it follows, what code or documents count as evidence for
+  elements in it, and where neighbouring concerns belong instead. The compiled `spec/dist/*.json`
+  and `manifest.json` carry the new text. Tooling that classifies code into layers (the
+  classification eval harness in `cli/scripts/classify-eval`) reads these definitions directly.
+
 ### Breaking Changes
 
 - **BREAKING: `objectschema.required` Type Change** — The `required` field on `data-model.objectschema` nodes changed from `{"type": "string"}` to `{"type": "array", "items": {"type": "string"}}` in `spec/schemas/nodes/data-model/objectschema.node.schema.json`:

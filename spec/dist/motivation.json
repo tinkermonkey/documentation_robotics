@@ -4,7 +4,7 @@
     "id": "motivation",
     "number": 1,
     "name": "Motivation Layer",
-    "description": "Layer 1: Motivation Layer",
+    "description": "Captures why the system exists: stakeholders and their drivers, assessments, goals and outcomes, principles, requirements and constraints, and the meaning and value attached to them (ArchiMate 3.2 motivation elements). Motivation elements are expressed in documents, decision records and requirement text rather than in executable code; every lower layer should be traceable back to an element here.",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",

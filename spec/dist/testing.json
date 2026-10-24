@@ -4,7 +4,7 @@
     "id": "testing",
     "number": 13,
     "name": "Testing Layer",
-    "description": "Layer 13: Testing Layer",
+    "description": "Describes how the system is verified: test strategies and plans, suites and cases, fixtures and test data, mocks and stubs, coverage targets and summaries, and the environments tests run in (IEEE 829-2008 test documentation). Test files, fixtures and test configuration are evidence for elements here; the production code under test belongs to the layer it implements.",
     "inspired_by": {
       "standard": "IEEE 829-2008",
       "version": "2008",

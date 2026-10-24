@@ -2,7 +2,7 @@
   "id": "technology",
   "number": 6,
   "name": "Technology Layer",
-  "description": "Layer 6: Technology Layer",
+  "description": "Models the infrastructure and platform the application runs on: nodes and devices, system software and runtimes, frameworks, communication networks and paths, technology services, interfaces, functions and processes, and the artifacts that are deployed to them (ArchiMate 3.2 technology layer). Package manifests, container images, deployment descriptors and infrastructure-as-code are the usual evidence.",
   "inspired_by": {
     "standard": "ArchiMate 3.2",
     "version": "3.2",
