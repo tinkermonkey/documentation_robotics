@@ -31,6 +31,15 @@ const SKILL_DIRS: Record<string, string> = {
 
 const intentCache = new Map<string, string>();
 
+let charterCache: string | null = null;
+/** spec/DESIGN_CHARTER.md: what the spec is, what nodes and relationships model, how to judge a change. */
+export function charterText(): string {
+  if (charterCache !== null) return charterCache;
+  const f = path.join(repoRoot(), "spec", "DESIGN_CHARTER.md");
+  charterCache = existsSync(f) ? readFileSync(f, "utf8").replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim() : "";
+  return charterCache;
+}
+
 export function layerIntent(layer: string): string {
   const cached = intentCache.get(layer);
   if (cached) return cached;

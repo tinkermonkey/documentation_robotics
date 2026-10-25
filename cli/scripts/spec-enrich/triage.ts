@@ -3,6 +3,7 @@
  * severity, fix scope, and two yes/no questions.
  *
  *   bun triage.ts --backend clef [--layer <id>] [--ids a,b] [--limit n] [--tag v2] [--force] [--evidence]
+ *   --charter prepends spec/DESIGN_CHARTER.md (what the spec, nodes and relationships are for);
  *   --evidence appends a deterministic fact pack (attribute declarations across the layer,
  *   exact relationship lists between the named types) to the state.
  *
@@ -16,13 +17,14 @@ import { callClef, choiceOf, CLEF_MODELS, noulOf, scoreOf, type Question } from 
 import { anthropic, claudeCost, mapConcurrent, MODEL_IDS } from "../classify-eval/lib/claude.js";
 import { appendJsonl, flagNum, flagStr, parseFlags, readJsonl, writeJsonl } from "../classify-eval/lib/io.js";
 import { readdirSync, rmSync } from "node:fs";
-import { claimEvidence, layerIntent, typeContext } from "./lib/intent.js";
+import { charterText, claimEvidence, layerIntent, typeContext } from "./lib/intent.js";
 import { decisionsDir, harnessDir } from "./lib/paths.js";
 import { CATEGORIES, CATEGORY_IDS, FIX_SCOPE_LEVELS, SEVERITY_LEVELS, VALIDITY, VALIDITY_IDS, type Claim, type Decision } from "./lib/triage-types.js";
 
 /** The state every backend sees for a claim. */
-export function claimState(c: Claim, withEvidence = false): string {
+export function claimState(c: Claim, withEvidence = false, withCharter = false): string {
   return [
+    ...(withCharter ? ["# What the Documentation Robotics specification is for (design charter)", charterText(), ""] : []),
     `# Claim about the Documentation Robotics spec (layer ${c.layer})`,
     `Subject: ${c.subject} (${c.kind === "node" ? "element type" : "its relationships"})`,
     `Claim: ${c.text}`,
@@ -48,9 +50,10 @@ export const QUESTIONS: Record<string, Question> = {
 };
 
 let EVIDENCE = false;
+let CHARTER = false;
 async function withClef(backend: string, c: Claim): Promise<Decision> {
   const t0 = Date.now();
-  const r = await callClef(backend, claimState(c, EVIDENCE), QUESTIONS);
+  const r = await callClef(backend, claimState(c, EVIDENCE, CHARTER), QUESTIONS);
   const v = choiceOf(r.answers.validity);
   const cat = choiceOf(r.answers.category);
   return {
@@ -100,7 +103,7 @@ async function withClaude(backend: string, model: string, c: Claim): Promise<Dec
     max_tokens: 3000,
     system: [{ type: "text", text: claudeSystem(), cache_control: { type: "ephemeral" } }],
     output_config: { effort: "low", format: zodOutputFormat(ClaudeOut) },
-    messages: [{ role: "user", content: claimState(c, EVIDENCE) }],
+    messages: [{ role: "user", content: claimState(c, EVIDENCE, CHARTER) }],
   });
   const o = res.parsed_output;
   if (!o) throw new Error(`no parsed output (${res.stop_reason})`);
@@ -155,6 +158,7 @@ async function main() {
   const ids = flagStr(flags, "ids")?.split(",").map((s) => s.trim()).filter(Boolean);
   const limit = flagNum(flags, "limit", Infinity);
   EVIDENCE = !!flags.evidence;
+  CHARTER = !!flags.charter;
   if (flags.force) {
     for (const f of readdirSync(outDir)) if (!layerFilter || f === `${layerFilter}.jsonl`) rmSync(path.join(outDir, f));
   }
