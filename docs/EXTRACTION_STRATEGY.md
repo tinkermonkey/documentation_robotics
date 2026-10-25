@@ -240,8 +240,18 @@ accuracy on dr-cli fell from 81.3% to 34.3% with it (`clef@enriched-v1-kind-char
 charter's layer and relationship prose swamping the card. A one-paragraph summary of the charter
 is less damaging (56.7%) but still pushes Clef toward `none`: its granularity sentence
 ("implementation details are not elements") moves 96 application symbols to `none` on dr-cli.
-Whether that is wrong depends on gold produced under the same charter, which the Phase 0 gold
-was not; until gold is re-labelled with the charter, classification runs without it. For triage
+The Phase 0 gold was then re-labelled with the full charter in the labeler's context
+(`gold@charter.jsonl`, Opus 5.5, about $25): layer agreement with the original gold is 89.3%
+(dr-cli), 95.0% (fastapi) and 89.6% (petclinic), and only 6, 4 and 5 symbols respectively
+moved to `none`. So the charter's granularity rule is not what Clef made of it: Opus reading
+the same sentence kept the same granularity, and the Clef-with-charter variants score as badly
+against the new gold (37% and 57% on dr-cli) as against the old. The charter stays out of
+classification; the Phase 0 gold stands. The relabelling did settle one boundary the triage
+found: with the charter, Opus moved 20 TypeScript interfaces on dr-cli from
+`data-model.objectschema` to `application.dataobject` (in-code data structures are application
+data objects; published schemas are data-model), which is the precedence rule claim
+`application.dataobject#4` asked for. Against the charter gold, Clef's end-to-end type accuracy
+on dr-cli rises from 57.3% to 63.7% with kind narrowing, and on petclinic from 73.6% to 78.3%. For triage
 the summary is the better choice: it matches evidence-only accuracy, raises mean probability on
 the gold answer for Clef and Sonnet, and costs a fifth more than no charter, where the full text
 cost one claim of accuracy. `--charter short` is now the triage default.
