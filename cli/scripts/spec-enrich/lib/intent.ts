@@ -31,13 +31,22 @@ const SKILL_DIRS: Record<string, string> = {
 
 const intentCache = new Map<string, string>();
 
-let charterCache: string | null = null;
-/** spec/DESIGN_CHARTER.md: what the spec is, what nodes and relationships model, how to judge a change. */
-export function charterText(): string {
-  if (charterCache !== null) return charterCache;
+const charterCache = new Map<string, string>();
+/** spec/DESIGN_CHARTER.md: "full" strips the status line; "short" returns only the "In one paragraph" section. */
+export function charterText(mode: "full" | "short" = "full"): string {
+  const cached = charterCache.get(mode);
+  if (cached !== undefined) return cached;
   const f = path.join(repoRoot(), "spec", "DESIGN_CHARTER.md");
-  charterCache = existsSync(f) ? readFileSync(f, "utf8").replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim() : "";
-  return charterCache;
+  let out = "";
+  if (existsSync(f)) {
+    const raw = readFileSync(f, "utf8");
+    if (mode === "short") {
+      const m = /## In one paragraph\n\n([\s\S]*?)\n\n## /.exec(raw);
+      out = m ? m[1].replace(/\n/g, " ").trim() : "";
+    } else out = raw.replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim();
+  }
+  charterCache.set(mode, out);
+  return out;
 }
 
 export function layerIntent(layer: string): string {

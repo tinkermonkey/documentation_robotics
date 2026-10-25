@@ -9,7 +9,7 @@
  *        --only-gold (default true: only cards with a gold label), --all, --force,
  *        --tag <name> (write pred-<backend>@<name>.jsonl, e.g. to compare spec revisions),
  *        --kind-narrow (Clef only: restrict the element-type choice set by CBM symbol kind, Tier-0 rule),
- *        --charter (prepend spec/DESIGN_CHARTER.md to the state)
+ *        --charter full|short (prepend spec/DESIGN_CHARTER.md, or its one-paragraph summary, to the state)
  */
 import path from "node:path";
 import { classifyWithClaude } from "./backends/claude.js";
@@ -65,9 +65,14 @@ async function main() {
   if (flags.charter) {
     const f = path.join(repoRoot(), "spec", "DESIGN_CHARTER.md");
     if (!existsSync(f)) throw new Error(`--charter given but ${f} does not exist`);
-    charter = readFileSync(f, "utf8").replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim();
+    const raw = readFileSync(f, "utf8");
+    const mode = flagStr(flags, "charter", "full");
+    if (mode === "short") {
+      const m = /## In one paragraph\n\n([\s\S]*?)\n\n## /.exec(raw);
+      charter = m ? m[1].replace(/\n/g, " ").trim() : "";
+    } else charter = raw.replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim();
   }
-  const withCharter = (state: string) => (charter ? `# What the Documentation Robotics specification is for (design charter)\n${charter}\n\n# Symbol to classify\n${state}` : state);
+  const withCharter = (state: string) => (charter ? `Context: ${charter}\n\n${state}` : state);
   const kindOf = new Map(cards.map((c) => [c.id, c.label]));
   let classify: (cardId: string, state: string) => Promise<Prediction>;
   if (backend in CLEF_MODELS) {

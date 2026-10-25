@@ -5,6 +5,20 @@ for, what a node and a relationship are meant to model, and how a proposed chang
 specification should be judged. Tooling that reasons about the specification (enrichment,
 triage, classification) is given this text as its foundation.
 
+## In one paragraph
+
+Documentation Robotics models a software system as a federated set of elements across 13
+layers, from motivation through testing, so that people and AI agents share one frame of
+reference for what the system is and what it should become. An element is a named architectural
+fact a maintainer would point to (a goal, a service, a component, an endpoint, a schema, a table,
+a view, a route, a metric, a test), typed by exactly one element type in exactly one layer, with
+attributes for its intrinsic properties; implementation details are not elements. A relationship
+is a directed edge whose direction and meaning come from its predicate (realizes, serves,
+composes, accesses, triggers, uses), never from layer order; only the source-type, predicate,
+destination-type triples in the catalog are valid. Each layer adapts an established standard
+(ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) into this uniform form, and deliberate
+adaptations of a standard are design, not defects.
+
 ## What the specification is
 
 The specification defines a federated architecture data model of a software system across

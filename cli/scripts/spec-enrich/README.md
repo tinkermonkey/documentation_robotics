@@ -80,7 +80,9 @@ triage-bench.ts     scores every configuration against human gold              <
 add to it as you review layers, and re-run `triage-bench.ts` to see how each backend tracks you.
 `--evidence` appends, per claim, how every type in the layer declares a named attribute and the
 exact relationship schemas between the named types; on the first ten adjudicated claims it took
-Clef from 40% to 70% validity agreement at the same cost.
+Clef from 40% to 70% validity agreement at the same cost. `--charter short` (the default) prepends
+the one-paragraph summary from `spec/DESIGN_CHARTER.md`; `full` prepends the whole charter, which
+measured slightly worse on accuracy, and `none` disables it.
 
 ## Governance
 

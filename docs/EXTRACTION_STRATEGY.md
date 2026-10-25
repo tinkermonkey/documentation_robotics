@@ -237,8 +237,14 @@ exposed one gold-versus-charter inconsistency (the `api.operation realizes appli
 claim, re-adjudicated as a real defect in predicate choice once the layer-direction rule was
 withdrawn). **It must not be prepended to the symbol-classification state:** Clef's layer
 accuracy on dr-cli fell from 81.3% to 34.3% with it (`clef@enriched-v1-kind-charter`), the
-charter's layer and relationship prose swamping the card. The charter is context for reasoning
-about the spec, not for classifying code.
+charter's layer and relationship prose swamping the card. A one-paragraph summary of the charter
+is less damaging (56.7%) but still pushes Clef toward `none`: its granularity sentence
+("implementation details are not elements") moves 96 application symbols to `none` on dr-cli.
+Whether that is wrong depends on gold produced under the same charter, which the Phase 0 gold
+was not; until gold is re-labelled with the charter, classification runs without it. For triage
+the summary is the better choice: it matches evidence-only accuracy, raises mean probability on
+the gold answer for Clef and Sonnet, and costs a fifth more than no charter, where the full text
+cost one claim of accuracy. `--charter short` is now the triage default.
 
 **Proposals complete (2026-10-25):** definitions for all 192 node types and descriptions
 for all 1,611 relationships are in `cli/scripts/spec-enrich/data/proposals/` as reviewable

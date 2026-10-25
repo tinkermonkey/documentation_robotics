@@ -3,7 +3,7 @@
  * severity, fix scope, and two yes/no questions.
  *
  *   bun triage.ts --backend clef [--layer <id>] [--ids a,b] [--limit n] [--tag v2] [--force] [--evidence]
- *   spec/DESIGN_CHARTER.md is prepended by default (--no-charter to disable);
+ *   the one-paragraph charter summary is prepended by default (--charter full|short|none, --no-charter);
  *   --evidence appends a deterministic fact pack (attribute declarations across the layer,
  *   exact relationship lists between the named types) to the state.
  *
@@ -22,9 +22,10 @@ import { decisionsDir, harnessDir } from "./lib/paths.js";
 import { CATEGORIES, CATEGORY_IDS, FIX_SCOPE_LEVELS, SEVERITY_LEVELS, VALIDITY, VALIDITY_IDS, type Claim, type Decision } from "./lib/triage-types.js";
 
 /** The state every backend sees for a claim. */
-export function claimState(c: Claim, withEvidence = false, withCharter = false): string {
+export function claimState(c: Claim, withEvidence = false, withCharter: boolean | "full" | "short" = false): string {
+  const mode = withCharter === true ? "full" : withCharter;
   return [
-    ...(withCharter ? ["# What the Documentation Robotics specification is for (design charter)", charterText(), ""] : []),
+    ...(mode ? ["# What the Documentation Robotics specification is for (design charter)", charterText(mode), ""] : []),
     `# Claim about the Documentation Robotics spec (layer ${c.layer})`,
     `Subject: ${c.subject} (${c.kind === "node" ? "element type" : "its relationships"})`,
     `Claim: ${c.text}`,
@@ -50,7 +51,7 @@ export const QUESTIONS: Record<string, Question> = {
 };
 
 let EVIDENCE = false;
-let CHARTER = false;
+let CHARTER: false | "full" | "short" = false;
 async function withClef(backend: string, c: Claim): Promise<Decision> {
   const t0 = Date.now();
   const r = await callClef(backend, claimState(c, EVIDENCE, CHARTER), QUESTIONS);
@@ -158,7 +159,8 @@ async function main() {
   const ids = flagStr(flags, "ids")?.split(",").map((s) => s.trim()).filter(Boolean);
   const limit = flagNum(flags, "limit", Infinity);
   EVIDENCE = !!flags.evidence;
-  CHARTER = !flags["no-charter"];
+  const charterFlag = flagStr(flags, "charter", "short");
+  CHARTER = flags["no-charter"] || charterFlag === "none" ? false : charterFlag === "short" ? "short" : "full";
   if (flags.force) {
     for (const f of readdirSync(outDir)) if (!layerFilter || f === `${layerFilter}.jsonl`) rmSync(path.join(outDir, f));
   }
