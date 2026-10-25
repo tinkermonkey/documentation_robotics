@@ -1,6 +1,6 @@
 # Classification eval report: dr-cli
 
-Generated 2026-10-24T23:30:50.691Z. Cards: 300. Gold labels: 300.
+Generated 2026-10-25T11:09:52.804Z. Cards: 300. Gold labels: 300.
 
 ## Gold label distribution
 
@@ -20,12 +20,96 @@ Significance histogram (0..4): 44 / 90 / 99 / 65 / 2. Gold labels with a type id
 
 ## Summary
 
-| backend    | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
-| ---------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| clef       | 300 | 81.3%     | 57.3%                 | 70.5%                | 0.37    | 96.7%        | 0.261     | 654 ms         | $0.269     | $0.0009     |
-| clef-flash | 300 | 61.7%     | 50.3%                 | 81.6%                | 0.51    | 90.7%        | 0.182     | 979 ms         | $0.094     | $0.0003     |
+| backend       | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
+| ------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
+| claude-haiku  | 300 | 60.3%     | 49.3%                 | 81.8%                | 0.33    | 99.0%        | 0.140     | 1395 ms        | $0.113     | $0.0004     |
+| clef          | 300 | 81.3%     | 57.3%                 | 70.5%                | 0.37    | 96.7%        | 0.261     | 654 ms         | $0.269     | $0.0009     |
+| clef-flash    | 300 | 61.7%     | 50.3%                 | 81.6%                | 0.51    | 90.7%        | 0.182     | 979 ms         | $0.094     | $0.0003     |
+| claude-sonnet | 300 | 78.3%     | 68.3%                 | 87.2%                | 0.16    | 99.7%        | 0.067     | 1498 ms        | $2.221     | $0.0074     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
+
+## claude-haiku
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| application | 174    | 51.7%  | 104         |
+| none        | 82     | 84.1%  | 139         |
+| data-model  | 29     | 27.6%  | 11          |
+| apm         | 5      | 100.0% | 11          |
+| security    | 5      | 100.0% | 5           |
+| testing     | 2      | 100.0% | 9           |
+| technology  | 1      | 100.0% | 9           |
+| api         | 1      | 0.0%   | 8           |
+| data-store  | 1      | 100.0% | 2           |
+| product     | 0      | n/a    | 2           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| application → none       | 55    |
+| data-model → none        | 14    |
+| none → application       | 9     |
+| application → technology | 8     |
+| application → testing    | 6     |
+| application → api        | 6     |
+| data-model → application | 5     |
+| application → apm        | 4     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.0-0.1        | 5   | 0.06      | 0.00     | -0.06 |
+| 0.1-0.2        | 3   | 0.11      | 0.00     | -0.11 |
+| 0.2-0.3        | 9   | 0.20      | 0.00     | -0.20 |
+| 0.3-0.4        | 17  | 0.32      | 0.12     | -0.21 |
+| 0.4-0.5        | 9   | 0.45      | 0.56     | 0.11  |
+| 0.5-0.6        | 27  | 0.51      | 0.74     | 0.23  |
+| 0.6-0.7        | 115 | 0.60      | 0.70     | 0.10  |
+| 0.7-0.8        | 21  | 0.70      | 0.43     | -0.27 |
+| 0.8-0.9        | 89  | 0.81      | 0.67     | -0.13 |
+| 0.9-1.0        | 5   | 0.90      | 1.00     | 0.10  |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 85.7%    | 67.7%             |
+| ≥0.60     | 76.7%    | 67.0%             |
+| ≥0.70     | 38.3%    | 64.3%             |
+| ≥0.80     | 31.3%    | 69.1%             |
+| ≥0.90     | 1.7%     | 100.0%            |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 2              | 1.00      | 1.00   | 1.00       |
+| authorization        | 2              | 1.00      | 1.00   | 1.00       |
+| data_persistence     | 56             | 0.88      | 0.64   | 0.74       |
+| external_integration | 25             | 0.74      | 0.68   | 0.71       |
+| observability        | 35             | 0.76      | 0.63   | 0.69       |
+| user_interface       | 29             | 0.79      | 0.79   | 0.79       |
+
+### Sample layer disagreements
+
+| symbol                                                          | gold                             | predicted (conf)                       | gold rationale                                                                                                                                                   |
+| --------------------------------------------------------------- | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Module src.schemas.bundled.testing                              | data-model/jsonschema            | testing/testcoveragemodel (0.80)       | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
+| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | technology/artifact (0.30)             | A pluggable Exporter implementation that serializes the architecture model to GraphML. It is one of several format exporters used by the export command and MCP  |
+| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.60)                          | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
+| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | testing/- (0.12)                       | GapAnalyzer is a domain analysis class used by AuditOrchestrator. It compares layer relationship templates against existing relationships to find missing ones a |
+| Function src.integrations.hash-utils.scanDir                    | none/-                           | application/applicationfunction (0.50) | Nested recursive helper inside computeDirectoryHashes that walks a directory and hashes files. It is an implementation detail of a hashing utility, not an archi |
+| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.85)                          | A static configuration module holding per-layer relationship templates (expected source/destination/predicate patterns) that the audit gap analysis uses for sta |
+| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.60)                          | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
+| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.80)                          | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
+| Method src.analyzers.cbm-analyzer.CbmAnalyzer.shapeRoute        | none/-                           | application/applicationfunction (0.60) | A data-shaping helper that normalizes a raw CBM graph node into a route record with defaults. It is called only by verify() and was extracted for testability. I |
+| Class src.core.relationship-catalog.RelationshipCatalog         | application/applicationcomponent | technology/- (0.20)                    | Core component that loads relationship predicates and per-layer relationship schemas from bundled JSON files and exposes a catalog of relationship types. It is  |
 
 ## clef
 
@@ -183,3 +267,80 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.35)                          | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
 | Class src.core.relationship-catalog.RelationshipCatalog         | application/applicationcomponent | none/- (0.29)                          | Core component that loads relationship predicates and per-layer relationship schemas from bundled JSON files and exposes a catalog of relationship types. It is  |
 | Module src.integrations.hash-utils                              | application/applicationfunction  | none/- (0.55)                          | Utility module that computes SHA256 file and directory hashes for change detection of integration files. It reads files from disk, which counts as data persiste |
+
+## claude-sonnet
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| application | 174    | 95.4%  | 216         |
+| none        | 82     | 53.7%  | 50          |
+| data-model  | 29     | 55.2%  | 21          |
+| security    | 5      | 80.0%  | 4           |
+| apm         | 5      | 80.0%  | 5           |
+| testing     | 2      | 0.0%   | 0           |
+| api         | 1      | 0.0%   | 3           |
+| data-store  | 1      | 0.0%   | 0           |
+| technology  | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → application       | 35    |
+| data-model → application | 9     |
+| data-model → none        | 4     |
+| application → data-model | 4     |
+| application → api        | 2     |
+| application → none       | 2     |
+| testing → application    | 2     |
+| none → apm               | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.4-0.5        | 5   | 0.40      | 0.60     | 0.20 |
+| 0.5-0.6        | 24  | 0.51      | 0.58     | 0.07 |
+| 0.6-0.7        | 91  | 0.60      | 0.65     | 0.05 |
+| 0.7-0.8        | 23  | 0.71      | 0.78     | 0.08 |
+| 0.8-0.9        | 146 | 0.82      | 0.90     | 0.08 |
+| 0.9-1.0        | 11  | 0.90      | 0.91     | 0.01 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 98.3%    | 78.6%             |
+| ≥0.60     | 90.3%    | 80.4%             |
+| ≥0.70     | 60.0%    | 88.3%             |
+| ≥0.80     | 52.3%    | 89.8%             |
+| ≥0.90     | 3.7%     | 90.9%             |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 2              | 1.00      | 1.00   | 1.00       |
+| authorization        | 2              | 1.00      | 1.00   | 1.00       |
+| data_persistence     | 56             | 0.93      | 0.45   | 0.60       |
+| external_integration | 25             | 0.91      | 0.84   | 0.87       |
+| observability        | 35             | 0.89      | 0.23   | 0.36       |
+| user_interface       | 29             | 1.00      | 0.69   | 0.82       |
+
+### Sample layer disagreements
+
+| symbol                                                                | gold                   | predicted (conf)                       | gold rationale                                                                                                                                                   |
+| --------------------------------------------------------------------- | ---------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Module src.schemas.bundled.testing                                    | data-model/jsonschema  | none/- (0.50)                          | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
+| Method src.analyzers.cbm-analyzer.CbmAnalyzer.shapeRoute              | none/-                 | application/applicationfunction (0.80) | A data-shaping helper that normalizes a raw CBM graph node into a route record with defaults. It is called only by verify() and was extracted for testability. I |
+| Interface src.core.stats-collector.ValidationInfo                     | application/dataobject | data-model/objectschema (0.50)         | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
+| Method src.utils.errors.CLIError.format                               | none/-                 | application/applicationfunction (0.60) | Formatting method that builds a colored CLI error message string from the error's context and suggestions. It is a presentation helper on an error class, with n |
+| Interface src.validators.validation-formatter.ValidationStats         | none/-                 | application/dataobject (0.60)          | A small internal stats shape that the validation formatter uses to summarise element and relationship counts for output. It is a local helper type with no calle |
+| Interface src.commands.visualize.VisualizeOptions                     | none/-                 | application/dataobject (0.60)          | A CLI options bag interface for the visualize command. It is a plain parameter type that only shapes command input and holds no architectural behaviour of its o |
+| Module src.schemas.bundled.security                                   | data-model/jsonschema  | none/- (0.60)                          | Bundled JSON Schema (draft-07) document defining the node schemas for the security layer of the Documentation Robotics spec. It is a canonical data contract use |
+| Module src.schemas.bundled.application                                | data-model/jsonschema  | none/- (0.50)                          | A bundled JSON Schema document that defines the node schemas for the Application layer in the Documentation Robotics spec. It is a canonical schema contract con |
+| Function src.mcp.tools.shared.logToolError                            | none/-                 | apm/- (0.40)                           | Small helper that writes MCP tool failures to stderr for operator visibility. It does logging work, so observability applies, but it is a trivial internal utili |
+| Method src.core.virtual-projection.VirtualProjectionEngine.cloneLayer | none/-                 | application/applicationfunction (0.85) | Private helper that shallow-copies a Layer and its elements for read-only projection. It is an implementation detail of VirtualProjectionEngine, has a single ca |
