@@ -1,0 +1,69 @@
+{
+  "claim_id": "node:application.applicationinterface#2",
+  "first_pass": {
+    "choice": "real_defect",
+    "probabilities": {
+      "real_defect": 0.589,
+      "works_as_designed": 0.153,
+      "judgment_call": 0.211,
+      "out_of_scope": 0.047
+    },
+    "confidence": 0.223
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified fact confirms that applicationinterface.protocol is a required string enum listing HTTP and HTTPS as separate values alongside gRPC, AMQP, WebSocket, REST, GraphQL and SOAP.",
+      "The current schema's attribute description says to use application-level protocols only and that network/transport-level protocols such as TLS belong in the Technology Layer; the verified fact truncates this text but does not contradict it.",
+      "The verified facts show 'protocol' is declared on exactly one type in the application layer, so a merge would affect only applicationinterface.protocol.",
+      "The enum also mixes REST, an architectural style over HTTP, with HTTP itself, so the value list does not strictly keep to a single abstraction level beyond the HTTP/HTTPS split."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "HTTPS is HTTP over TLS. A separate value encodes the very transport concern the attribute's own description assigns to the Technology Layer.",
+          "The contradiction is internal to one attribute: the enum and its description disagree. A modeller following the guidance cannot tell which to obey.",
+          "Only one type declares protocol, so merging the two values is a contained, low-blast-radius correction."
+        ],
+        "arguments_against": [
+          "Merging is a breaking enum change. Existing models that use HTTPS would fail validation unless they are migrated.",
+          "Leaving HTTPS in the enum harms nothing functionally. A tightened description might resolve the tension without removing the value.",
+          "The enum already mixes abstraction levels, such as REST alongside HTTP, so a strict purity standard is not clearly the spec's intent."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "HTTPS is a distinct URI scheme that is commonly treated as an application-level protocol name. Modellers and extractors reading 'https://' endpoints get a direct mapping.",
+          "The guidance may be meant to exclude raw TCP/TLS entries, not to forbid a recognised scheme name like HTTPS."
+        ],
+        "arguments_against": [
+          "The description explicitly names TLS as belonging to the Technology Layer, and HTTPS differs from HTTP only by TLS.",
+          "Nothing in the layer intent or the definition justifies encoding transport security on an application interface."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Whether HTTPS counts as a protocol name or as a transport detail is debatable. Practitioners commonly treat it either way.",
+          "Fixing this could mean merging the values or rewording the guidance. Choosing between them is a product decision about the enum's granularity.",
+          "Migration cost for existing HTTPS models has to be weighed against conceptual purity."
+        ],
+        "arguments_against": [
+          "The attribute's own text already makes the call, naming TLS as a Technology Layer concern, so little is left to decide.",
+          "Keeping both values leaves the documented contradiction in place whichever way the product leans."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "One could argue that TLS handling is a Technology or Security layer matter rather than the application layer's."
+        ],
+        "arguments_against": [
+          "The claim concerns the application layer's own enum values, which the spec explicitly defines and models.",
+          "The claim is about the spec's schema, not about tooling or the CLI."
+        ]
+      }
+    ]
+  }
+}

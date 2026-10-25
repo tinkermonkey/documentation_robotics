@@ -1,0 +1,68 @@
+{
+  "claim_id": "node:security.accesscondition#6",
+  "first_pass": {
+    "choice": "judgment_call",
+    "probabilities": {
+      "real_defect": 0.231,
+      "works_as_designed": 0.288,
+      "judgment_call": 0.443,
+      "out_of_scope": 0.038
+    },
+    "confidence": 0.112
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified facts confirm security.accesscondition.composes.security.policyrule exists, and composes is the only predicate from accesscondition to policyrule.",
+      "The opposite direction, policyrule -> accesscondition, already carries a uses relationship, so the proposed fallback ('drop it in favor of uses') targets an existing edge.",
+      "The facts define composes as a whole-part relationship where the part cannot exist without the whole, but they do not say whether source or target is the whole, so the claimed reversal depends on unstated convention.",
+      "The current schema says accesscondition is 'composed inside a PolicyRule condition chain', which makes policyrule the whole. The proposed definition also places accesscondition in ResourceOperation and InformationRight, so it can exist outside any policyrule."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "If the spec reads composes as source-is-whole, as ArchiMate composition does, this edge makes accesscondition the whole, contradicting the schema text 'composed inside a PolicyRule'.",
+          "Pairing policyrule-uses-accesscondition with accesscondition-composes-policyrule gives contradictory or redundant semantics for one pair, which confuses modellers and CLI validation.",
+          "Composition says the part cannot exist without the whole, but the proposed definition lets accesscondition live in ResourceOperation and InformationRight checks too."
+        ],
+        "arguments_against": [
+          "The facts do not state the composes direction convention; English 'conditions compose a rule' reads naturally as part-to-whole, so the edge may already be correct.",
+          "Reversing the edge without first checking how other composes relationships across layers are oriented risks introducing inconsistency rather than fixing it."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "If the spec reads 'A composes B' as 'A is a part composing B', the edge says access conditions compose policy rules, which matches the schema description.",
+          "The existing reverse 'uses' edge lets policyrule reference conditions, while composes expresses the part side. That pairing may be intentional rather than an error."
+        ],
+        "arguments_against": [
+          "The proposed definition says accesscondition also sits within ResourceOperation and InformationRight, which undermines the 'cannot exist without the whole' meaning of composes.",
+          "Even if the direction is intended, having both composes and uses between the same pair suggests the design was not deliberately reconciled."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Choosing between composes, uses, or both depends on whether accesscondition is reusable across rules and other elements. That is a modelling decision, not an objective error.",
+          "The claimant offers two alternatives, reversing or dropping, which signals that more than one reasonable resolution exists.",
+          "Whether the predicate's direction convention is source-whole or source-part is a spec-wide choice needing a product decision."
+        ],
+        "arguments_against": [
+          "The direction convention for composes should already be fixed spec-wide; if it is, the edge is either right or wrong, not a matter of taste.",
+          "Leaving contradictory composes and uses edges unresolved has concrete costs for CLI validation, which argues for treating this as a correction."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "One could argue that how the CLI renders relationship direction is a tooling concern."
+        ],
+        "arguments_against": [
+          "The claim targets a specific relationship defined in the security layer schema, which is squarely spec content.",
+          "Relationships between policyrule and accesscondition are core to the XACML-style policy modelling the layer intent names explicitly."
+        ]
+      }
+    ]
+  }
+}

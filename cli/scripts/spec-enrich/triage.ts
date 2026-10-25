@@ -38,7 +38,7 @@ export function claimState(c: Claim, withEvidence = false): string {
   ].join("\n");
 }
 
-const QUESTIONS: Record<string, Question> = {
+export const QUESTIONS: Record<string, Question> = {
   validity: { type: "choice", instructions: "Is this claim a genuine problem with the spec, the spec working as designed, a judgment call, or out of scope? Judge against the design intent and the current schema shown.", criteria: VALIDITY },
   category: { type: "choice", instructions: "Which category best describes the claim?", criteria: CATEGORIES },
   severity: { type: "score", instructions: "If the claim is valid, how severe is the problem for people building models with this spec?", criteria: SEVERITY_LEVELS },

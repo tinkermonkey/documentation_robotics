@@ -1,0 +1,69 @@
+{
+  "claim_id": "node:application.applicationprocess#5",
+  "first_pass": {
+    "choice": "works_as_designed",
+    "probabilities": {
+      "real_defect": 0.094,
+      "works_as_designed": 0.346,
+      "judgment_call": 0.295,
+      "out_of_scope": 0.264
+    },
+    "confidence": 0.048
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified facts list exactly one relationship schema between application.applicationprocess elements: flows-to, which corresponds to ArchiMate's Flow relationship.",
+      "No depends-on relationship appears in the verified facts for this subject, so the claim's example is not substantiated here.",
+      "The facts cover only process-to-process relationships; they neither confirm nor refute non-ArchiMate names on relationships to other types such as dataobject or applicationcomponent.",
+      "ArchiMate 3.2 does not define access or assignment between two application processes, so their absence from the process-to-process list is expected."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "The layer declares ArchiMate 3.2 conformance, so any genuinely non-ArchiMate relationship name would conflict with that intent.",
+          "ArchiMate permits Triggering between processes, and it is absent from the listed process-to-process schemas, which may point to a vocabulary gap."
+        ],
+        "arguments_against": [
+          "The only verified relationship is flows-to, an ArchiMate Flow; no depends-on is evidenced for this subject.",
+          "Access and assignment are not valid ArchiMate process-to-process relationships, so the suggested replacements would themselves be non-conformant here.",
+          "No proposed change is stated, so there is no concrete correction to make."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "flows-to maps directly to ArchiMate Flow; hyphenated lowercase naming is a spec convention, not a departure from the standard.",
+          "The verified schema shows ArchiMate-aligned semantics for this subject, which contradicts the claim's premise.",
+          "The design intent explicitly cites ArchiMate 3.2, and the evidenced relationship honours it."
+        ],
+        "arguments_against": [
+          "The facts cover only process-to-process relationships; relationships to other types could still use non-ArchiMate names.",
+          "Missing Triggering could indicate the vocabulary is incomplete rather than fully as designed."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Whether to use exact ArchiMate verbs or a spec-specific naming convention such as hyphenated names is a product choice.",
+          "Adding further ArchiMate relationships, such as triggering, is an optional enrichment that needs a decision."
+        ],
+        "arguments_against": [
+          "The claim is factually unsupported for this subject, so there is no live choice to weigh.",
+          "The evidenced name already aligns with ArchiMate, leaving little to decide."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "The claim targets relationship vocabulary across the whole layer, not the applicationprocess type definition under review.",
+          "Relationship naming may be governed by a cross-layer relationship catalogue rather than by this element's schema."
+        ],
+        "arguments_against": [
+          "Relationship schemas are part of the spec, and the facts list one for this subject, so the topic is in scope.",
+          "ArchiMate conformance is explicitly part of the layer's design intent."
+        ]
+      }
+    ]
+  }
+}
