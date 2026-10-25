@@ -125,35 +125,36 @@ Three corpora, gold labels from Opus 5.5 (high effort, full card context), class
 | --------- | ----- | ------------- | ------------- | ------------- | ------------- |
 | petclinic | 106   | 84.0% / 73.6% | 65.1% / 45.3% | 84.0% / 82.1% | 59.4% / 52.8% |
 | fastapi   | 200   | 78.5% / 69.5% | 78.5% / 59.5% | 71.5% / 62.0% | 72.0% / 63.5% |
-| dr-cli    | 300   | 81.3% / 57.3% | 61.7% / 50.3% | not run (1)   | not run (1)   |
-
-(1) The Anthropic account hit its configured monthly usage limit before these ran; it resets
-2026-11-01. Gold labels for dr-cli were fetched before the limit.
+| dr-cli    | 300   | 81.3% / 57.3% | 61.7% / 50.3% | 78.3% / 68.3% | 60.3% / 49.3% |
 
 Cost and latency per card: Clef about $0.001 and 650-700 ms median; Sonnet about $0.008 and
 1.6 s; Haiku about $0.0005 and 1.6 s; Clef-flash about $0.0003 and 1.0-1.2 s.
 
 What the numbers say:
 
-- **Zero-shot Clef is at least as accurate as Sonnet on layer choice** on both corpora where
-  both ran, at roughly a tenth of the cost and 2.4x the speed, with nothing but the spec's
-  layer descriptions as criteria.
+- **Zero-shot Clef is at least as accurate as Sonnet on layer choice on all three corpora**
+  (84.0 vs 84.0, 78.5 vs 71.5, 81.3 vs 78.3), at roughly a tenth of the cost and 2.4x the
+  speed, with nothing but the spec's layer descriptions as criteria. Sonnet wins on end-to-end
+  type accuracy on two of three (82.1 vs 73.6 on petclinic, 68.3 vs 57.3 on dr-cli).
 - **Clef's probabilities are underconfident but monotonic**, which is what a cascade needs:
   a layer threshold of 0.60 gives 96-97% precision on 36-37% of cards on every corpus, and
-  0.50 gives about 92% on 65%. Sonnet's self-reported confidence needs 0.80 to reach 93-99%
-  precision (42-49% coverage). Haiku's confidence is not usable as a gate.
+  0.50 gives about 92% on 65%. Sonnet's self-reported confidence is better calibrated on
+  average (ECE 0.07-0.14) but discriminates less: on dr-cli precision only climbs from 79% at
+  0.50 to 90% at 0.80, so there is no clean auto-accept band. Haiku's confidence is not usable
+  as a gate.
 - **Type selection is the weak link.** Given the correct layer, Clef picks the right element
   type 88% of the time on petclinic and fastapi but only 70% on dr-cli, where almost everything
   is `application` and the choice is among applicationfunction / applicationcomponent /
-  applicationservice / dataobject. Those criteria are the node-schema descriptions, which are
-  exactly the thin definitions Direction A is meant to fix. Type-given-layer accuracy is now the
-  measurable target for the enrichment pass.
+  applicationservice / dataobject (Sonnet manages 87% there). Those criteria are the node-schema
+  descriptions, which are exactly the thin definitions Direction A is meant to fix.
+  Type-given-layer accuracy is now the measurable target for the enrichment pass.
 - **Systematic misses.** Clef recalled zero `technology` symbols on all three corpora
   (technology elements come from manifests and Dockerfiles, not code symbols, so symbol
   classification is the wrong extraction path for that layer). On dr-cli it sends borderline
   application code to `none` (22) or `data-model` (19); on fastapi it labels trivial UI helpers
-  as `ux` (16). Sonnet errs the other way: it under-uses `none` (40% recall on fastapi, 78% on
-  petclinic) and over-assigns `api` and `ux`.
+  as `ux` (16). Sonnet errs the other way: it under-uses `none` (40% recall on fastapi, 54% on
+  dr-cli, 78% on petclinic) and over-assigns `application`, `api` and `ux`. Haiku swings the
+  opposite way on dr-cli, sending 55 application symbols to `none`.
 - **"none" is a large class**: 27-43% of sampled symbols per corpus are not architecturally
   meaningful on their own. The significance score agrees with gold within one level on
   91-97% of cards for Clef.
@@ -167,13 +168,13 @@ technology layer. Harness details and per-backend tables: `cli/scripts/classify-
 
 ## Sequencing
 
-| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                 | Status                   |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| 0     | **Eval harness.** Three corpora (this repo's `cli/`, a cli-validation project, one framework-heavy OSS app). Claude via the Batch API produces gold labels for ~500 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. | in progress (2026-10-24) |
-| 1     | **Spec enrichment pass** (Direction A, stages 1-3), because its definitions are literally the classifier criteria.                                                                                                                                                                                                                          | planned                  |
-| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`.                                                                                                                                                                                                            | planned                  |
-| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                    | planned                  |
-| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                   | after phase 1            |
+| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                              | Status          |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above. | done 2026-10-25 |
+| 1     | **Spec enrichment pass** (Direction A, stages 1-3), because its definitions are literally the classifier criteria.                                                                                                                                                                                                                                                       | planned         |
+| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`.                                                                                                                                                                                                                                         | planned         |
+| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                 | planned         |
+| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                | after phase 1   |
 
 Preconditions: land PR #961 before any farm-mode use of the pipeline; fix #963 before
 any automated pipeline is allowed to delete elements.
