@@ -141,7 +141,7 @@ export class ReferenceValidator {
         }
       }
 
-      // Check directional constraint (higher → lower only)
+      // Check that both layers exist
       // For qualified references, extract layer from the parsed segment
       // For unqualified references, extract layer from the target directly
       const targetLayerName = this.extractLayerFromId(targetSegment);
@@ -171,18 +171,9 @@ export class ReferenceValidator {
         continue;
       }
 
-      // References must go from higher layers (lower numbers) to lower layers (higher numbers)
-      // or within the same layer
-      if (sourceLevel > targetLevel) {
-        result.addError({
-          layer: sourceLayerName,
-          elementId,
-          message: `Invalid reference direction: ${sourceLayerName} (level ${sourceLevel}) cannot reference ${targetLayerName} (level ${targetLevel})`,
-          fixSuggestion:
-            "References must go from higher layers to lower layers (motivation → testing)",
-          category: "reference",
-        });
-      }
+      // No directional constraint: direction is a property of the predicate, not of the
+      // layers (spec/DESIGN_CHARTER.md). Layer levels are resolved above only to reject
+      // references to unknown layers.
     }
   }
 

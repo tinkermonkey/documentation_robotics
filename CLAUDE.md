@@ -136,7 +136,8 @@ See `cli/README.md` for complete setup and usage documentation.
 
 ### 5. Cross-Layer References
 
-- **Direction**: Higher layers → lower layers only
+- **Direction is defined by the predicate, not by the layers** (see `spec/DESIGN_CHARTER.md`): `realizes` runs from the realizing element to what it realizes, `serves` from provider to consumer, `composes` from whole to part, and so on, whether or not the elements share a layer. Layer numbers are presentation order and carry no reference rule.
+- The relationship catalog (`spec/schemas/relationships/`) is the authority on which source-type, predicate, destination-type triples are valid
 - Always validate references exist before creating
 - Use reference registry for lookups and validation
 
@@ -250,7 +251,7 @@ Federated architecture model spanning 13 interconnected layers:
 12. **APM** - Observability and monitoring (OpenTelemetry)
 13. **Testing** - Test strategies, test cases, test data
 
-**Key Principle:** Elements in higher layers reference elements in lower layers, creating a dependency graph.
+**Key Principle:** Relationships are directed by their predicate (`realizes`, `serves`, `accesses`, ...), and most cross-layer relationships run from implementation layers toward intent layers because `realizes`, `satisfies` and `supports` point that way. Together they form a traceability graph from code to motivation; layer numbers themselves impose no direction.
 
 ## Architecture Overview
 
@@ -309,7 +310,7 @@ Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — the
 
 ### 2. Cross-Layer References
 
-- **Never** violate the "higher → lower" rule
+- Direction follows the predicate, not the layer numbers; use the predicate whose semantics match (an application function `realizes` an API operation, not the reverse)
 - Always validate references exist before creating
 - Use the reference registry, don't manually check
 

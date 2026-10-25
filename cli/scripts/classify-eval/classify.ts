@@ -8,7 +8,8 @@
  * Flags: --limit n, --concurrency n (default 4), --source-lines n (default 40),
  *        --only-gold (default true: only cards with a gold label), --all, --force,
  *        --tag <name> (write pred-<backend>@<name>.jsonl, e.g. to compare spec revisions),
- *        --kind-narrow (Clef only: restrict the element-type choice set by CBM symbol kind, Tier-0 rule)
+ *        --kind-narrow (Clef only: restrict the element-type choice set by CBM symbol kind, Tier-0 rule),
+ *        --charter (prepend spec/DESIGN_CHARTER.md to the state)
  */
 import path from "node:path";
 import { classifyWithClaude } from "./backends/claude.js";
@@ -16,6 +17,8 @@ import { classifyWithClef, CLEF_MODELS, stage1Questions, stage2Questions } from 
 import { mapConcurrent, MODEL_IDS } from "./lib/claude.js";
 import { appendJsonl, corpusDir, flagNum, flagStr, parseFlags, readJsonl, writeJsonl } from "./lib/io.js";
 import { renderState } from "./lib/state.js";
+import { existsSync, readFileSync } from "node:fs";
+import { repoRoot } from "./lib/env.js";
 import { NONE_OPTION } from "./lib/spec.js";
 import type { Card, Gold, Prediction } from "./lib/types.js";
 
@@ -58,6 +61,13 @@ async function main() {
   console.error(`Classifying ${pool.length} cards with ${backend} (source-lines ${sourceLines}); ${done.size} already done`);
 
   const kindNarrow = !!flags["kind-narrow"];
+  let charter = "";
+  if (flags.charter) {
+    const f = path.join(repoRoot(), "spec", "DESIGN_CHARTER.md");
+    if (!existsSync(f)) throw new Error(`--charter given but ${f} does not exist`);
+    charter = readFileSync(f, "utf8").replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim();
+  }
+  const withCharter = (state: string) => (charter ? `# What the Documentation Robotics specification is for (design charter)\n${charter}\n\n# Symbol to classify\n${state}` : state);
   const kindOf = new Map(cards.map((c) => [c.id, c.label]));
   let classify: (cardId: string, state: string) => Promise<Prediction>;
   if (backend in CLEF_MODELS) {
@@ -73,7 +83,7 @@ async function main() {
   let cost = 0;
   let errors = 0;
   await mapConcurrent(pool, concurrency, async (card, i) => {
-    const state = renderState(card, sourceLines);
+    const state = withCharter(renderState(card, sourceLines));
     try {
       const pred = await classify(card.id, state);
       cost += pred.cost_usd ?? 0;

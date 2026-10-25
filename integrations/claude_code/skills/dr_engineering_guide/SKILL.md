@@ -57,7 +57,7 @@ Map the proposed change to the 13-layer model:
 
 **2. Layer Hierarchy Check**
 
-- Does the proposal respect the "higher layers reference lower layers" rule?
+- Do the proposed relationships use predicates whose direction matches their meaning (an application function `realizes` an API operation; a service `serves` a process), and do implementation elements trace to a motivation element through `realizes`, `satisfies` or `supports`?
 - Example red flag: "A data-store change that has no corresponding data-model change"
 - Example red flag: "An API endpoint that doesn't map to any application service"
 

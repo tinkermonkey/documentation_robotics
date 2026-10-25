@@ -3,7 +3,7 @@
  * severity, fix scope, and two yes/no questions.
  *
  *   bun triage.ts --backend clef [--layer <id>] [--ids a,b] [--limit n] [--tag v2] [--force] [--evidence]
- *   --charter prepends spec/DESIGN_CHARTER.md (what the spec, nodes and relationships are for);
+ *   spec/DESIGN_CHARTER.md is prepended by default (--no-charter to disable);
  *   --evidence appends a deterministic fact pack (attribute declarations across the layer,
  *   exact relationship lists between the named types) to the state.
  *
@@ -158,7 +158,7 @@ async function main() {
   const ids = flagStr(flags, "ids")?.split(",").map((s) => s.trim()).filter(Boolean);
   const limit = flagNum(flags, "limit", Infinity);
   EVIDENCE = !!flags.evidence;
-  CHARTER = !!flags.charter;
+  CHARTER = !flags["no-charter"];
   if (flags.force) {
     for (const f of readdirSync(outDir)) if (!layerFilter || f === `${layerFilter}.jsonl`) rmSync(path.join(outDir, f));
   }

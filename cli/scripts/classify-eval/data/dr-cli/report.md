@@ -1,6 +1,6 @@
 # Classification eval report: dr-cli
 
-Generated 2026-10-25T11:31:00.343Z. Cards: 300. Gold labels: 300.
+Generated 2026-10-25T14:53:05.654Z. Cards: 300. Gold labels: 300.
 
 ## Gold label distribution
 
@@ -20,14 +20,15 @@ Significance histogram (0..4): 44 / 90 / 99 / 65 / 2. Gold labels with a type id
 
 ## Summary
 
-| backend               | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
-| --------------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| claude-haiku          | 300 | 60.3%     | 49.3%                 | 81.8%                | 0.33    | 99.0%        | 0.140     | 1395 ms        | $0.113     | $0.0004     |
-| clef                  | 300 | 81.3%     | 57.3%                 | 70.5%                | 0.37    | 96.7%        | 0.261     | 654 ms         | $0.269     | $0.0009     |
-| clef@enriched-v1-kind | 300 | 81.3%     | 60.7%                 | 74.6%                | 0.37    | 96.7%        | 0.261     | 754 ms         | $0.321     | $0.0011     |
-| clef-flash            | 300 | 61.7%     | 50.3%                 | 81.6%                | 0.51    | 90.7%        | 0.182     | 979 ms         | $0.094     | $0.0003     |
-| clef@enriched-v1      | 300 | 81.3%     | 58.0%                 | 71.3%                | 0.37    | 96.7%        | 0.261     | 824 ms         | $0.358     | $0.0012     |
-| claude-sonnet         | 300 | 78.3%     | 68.3%                 | 87.2%                | 0.16    | 99.7%        | 0.067     | 1498 ms        | $2.221     | $0.0074     |
+| backend                       | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
+| ----------------------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
+| claude-haiku                  | 300 | 60.3%     | 49.3%                 | 81.8%                | 0.33    | 99.0%        | 0.140     | 1395 ms        | $0.113     | $0.0004     |
+| clef                          | 300 | 81.3%     | 57.3%                 | 70.5%                | 0.37    | 96.7%        | 0.261     | 654 ms         | $0.269     | $0.0009     |
+| clef@enriched-v1-kind         | 300 | 81.3%     | 60.7%                 | 74.6%                | 0.37    | 96.7%        | 0.261     | 754 ms         | $0.321     | $0.0011     |
+| clef@enriched-v1-kind-charter | 300 | 34.3%     | 32.0%                 | 93.2%                | 0.68    | 77.0%        | 0.341     | 557 ms         | $0.346     | $0.0012     |
+| clef-flash                    | 300 | 61.7%     | 50.3%                 | 81.6%                | 0.51    | 90.7%        | 0.182     | 979 ms         | $0.094     | $0.0003     |
+| clef@enriched-v1              | 300 | 81.3%     | 58.0%                 | 71.3%                | 0.37    | 96.7%        | 0.261     | 824 ms         | $0.358     | $0.0012     |
+| claude-sonnet                 | 300 | 78.3%     | 68.3%                 | 87.2%                | 0.16    | 99.7%        | 0.067     | 1498 ms        | $2.221     | $0.0074     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
 
@@ -268,6 +269,84 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface configuring the staging-area commit operation (force, validate, dryRun). It is a passive parameter shape that matters only within the  |
 | Function src.commands.reports.hasLayerReports                        | application/applicationfunction | none/- (0.47)                  | Small helper that reads the reports directory on disk to check for existing markdown layer reports; used only by the upgrade command. It is a minor internal fun |
 | Interface src.core.virtual-projection.ProjectedModel                 | application/dataobject          | data-model/objectschema (0.40) | Interface defining the shape of a virtual projection of the architecture model (manifest, layers, relationships) with staged changes applied. It is an in-memory |
+
+## clef@enriched-v1-kind-charter
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| application | 174    | 8.6%   | 16          |
+| none        | 82     | 100.0% | 274         |
+| data-model  | 29     | 6.9%   | 5           |
+| security    | 5      | 20.0%  | 2           |
+| apm         | 5      | 60.0%  | 3           |
+| testing     | 2      | 0.0%   | 0           |
+| api         | 1      | 0.0%   | 0           |
+| data-store  | 1      | 0.0%   | 0           |
+| technology  | 1      | 0.0%   | 0           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| application → none       | 157   |
+| data-model → none        | 25    |
+| security → none          | 4     |
+| application → data-model | 2     |
+| testing → none           | 2     |
+| apm → none               | 2     |
+| data-model → security    | 1     |
+| data-model → application | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.3-0.4        | 8   | 0.36      | 0.25     | -0.11 |
+| 0.4-0.5        | 44  | 0.45      | 0.30     | -0.16 |
+| 0.5-0.6        | 42  | 0.56      | 0.10     | -0.46 |
+| 0.6-0.7        | 60  | 0.65      | 0.05     | -0.60 |
+| 0.7-0.8        | 65  | 0.76      | 0.25     | -0.51 |
+| 0.8-0.9        | 71  | 0.85      | 0.77     | -0.07 |
+| 0.9-1.0        | 10  | 0.91      | 1.00     | 0.09  |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 82.7%    | 35.5%             |
+| ≥0.60     | 68.7%    | 40.8%             |
+| ≥0.70     | 48.7%    | 55.5%             |
+| ≥0.80     | 27.0%    | 80.2%             |
+| ≥0.90     | 3.3%     | 100.0%            |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 2              | 1.00      | 1.00   | 1.00       |
+| authorization        | 2              | 1.00      | 1.00   | 1.00       |
+| data_persistence     | 56             | 1.00      | 0.23   | 0.38       |
+| external_integration | 25             | 1.00      | 0.60   | 0.75       |
+| observability        | 35             | 0.81      | 0.37   | 0.51       |
+| user_interface       | 29             | 0.83      | 0.66   | 0.73       |
+
+### Sample layer disagreements
+
+| symbol                                                          | gold                             | predicted (conf) | gold rationale                                                                                                                                                   |
+| --------------------------------------------------------------- | -------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.77)    | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
+| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.58)    | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
+| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.62)    | A pluggable Exporter implementation that serializes the architecture model to GraphML. It is one of several format exporters used by the export command and MCP  |
+| Module src.schemas.bundled.testing                              | data-model/jsonschema            | none/- (0.42)    | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
+| Interface src.types.BackupManifest                              | data-model/objectschema          | none/- (0.40)    | An exported type definition describing the shape of a backup manifest: a list of backed-up files plus a creation timestamp. It is a domain record schema, so it  |
+| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.68)    | A static configuration module holding per-layer relationship templates (expected source/destination/predicate patterns) that the audit gap analysis uses for sta |
+| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.72)    | GapAnalyzer is a domain analysis class used by AuditOrchestrator. It compares layer relationship templates against existing relationships to find missing ones a |
+| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.64)    | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
+| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.73)    | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
+| Interface src.core.spec-loader.CompiledBase                     | data-model/objectschema          | none/- (0.62)    | A small structural type describing the shape of a compiled spec bundle: version, schemas and predicates. It is a data-shape definition used internally by the sp |
 
 ## clef-flash
 

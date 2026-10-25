@@ -230,6 +230,16 @@ defects (250 with severity 2 or above), 685 as judgment calls, 178 as working as
 split claim ("self-relationship listed twice") was an artifact of the proposer prompt listing
 outgoing and incoming relationships separately; the benchmark includes it.
 
+**Design charter (2026-10-25).** `spec/DESIGN_CHARTER.md` now states what the spec is for,
+what nodes and relationships model, and how to judge a change; triage prepends it by default.
+On the ten-claim benchmark it raised every backend's mean probability on the gold answer and
+exposed one gold-versus-charter inconsistency (the `api.operation realizes applicationfunction`
+claim, re-adjudicated as a real defect in predicate choice once the layer-direction rule was
+withdrawn). **It must not be prepended to the symbol-classification state:** Clef's layer
+accuracy on dr-cli fell from 81.3% to 34.3% with it (`clef@enriched-v1-kind-charter`), the
+charter's layer and relationship prose swamping the card. The charter is context for reasoning
+about the spec, not for classifying code.
+
 **Proposals complete (2026-10-25):** definitions for all 192 node types and descriptions
 for all 1,611 relationships are in `cli/scripts/spec-enrich/data/proposals/` as reviewable
 files (about $5 via the Batch API), not yet applied beyond the application layer. Every type
@@ -277,6 +287,11 @@ any automated pipeline is allowed to delete elements.
 
 ## Decisions log
 
+- 2026-10-25: adopted `spec/DESIGN_CHARTER.md` and withdrew the layer-direction rule. The rule
+  turned out to be two contradictory conventions (reference validator: motivation → testing;
+  relationship catalog: implementation → intent) with no design record; direction now follows the
+  predicate, and the reference validator's direction check was removed. Triage prepends the charter
+  by default; classification can with `--charter`.
 - 2026-10-24: eval harness lives in `cli/scripts/classify-eval/` (experimental tooling),
   not a public `dr` command, until the measurements justify promoting it.
 - 2026-10-24: eval corpora cloned under `eval-corpus/` (gitignored); cards and gold

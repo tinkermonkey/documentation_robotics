@@ -39,6 +39,16 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   elements in it, and where neighbouring concerns belong instead. The compiled `spec/dist/*.json`
   and `manifest.json` carry the new text. Tooling that classifies code into layers (the
   classification eval harness in `cli/scripts/classify-eval`) reads these definitions directly.
+- **Design charter** — `spec/DESIGN_CHARTER.md` (informative) states what the specification is for,
+  what a node and a relationship model, and how a proposed change is judged (defect, working as
+  designed, judgment call, scope). Tooling that reasons about the spec is given it as context.
+- **Direction is defined by the predicate, not by layer order.** The informal "higher layers reference
+  lower layers" rule is withdrawn: it had been read both ways (the CLI's reference validator enforced
+  motivation → testing while the relationship catalog runs implementation → intent), and the 11
+  catalog relationships that run "upward" (schema `maps-to` collection, process `constrained-by`
+  policy) were always correct. Each predicate carries its own direction; the catalog is the authority
+  on valid source/predicate/destination triples; traceability to motivation is a coverage property for
+  audits, not a direction prohibition.
 - **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
   Feature that did not exist in the catalog; it now matches the relationship schemas added above.
 

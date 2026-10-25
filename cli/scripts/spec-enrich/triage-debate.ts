@@ -75,7 +75,7 @@ async function main() {
     if (!c) return;
     const t0 = Date.now();
     try {
-      const state = claimState(c, true);
+      const state = claimState(c, true, !flags["no-charter"]);
       const res = await client.messages.parse({
         model: "claude-opus-5-5",
         max_tokens: 6000,

@@ -143,14 +143,14 @@ describe("qualified references validation (integration)", () => {
     expect(output).toContain("undeclared-service");
   });
 
-  it("enforces directional constraint on qualified references", async () => {
+  it("accepts qualified references in either direction (direction is defined by the predicate)", async () => {
     // Initialize model with external declarations
     const model = await Model.init(
       workdir.path,
       {
-        name: "Direction Constraint Test",
+        name: "Direction Test",
         version: "1.0.0",
-        description: "Test directional constraint for qualified references",
+        description: "Qualified references are not constrained by layer order",
         specVersion: "0.9.0",
         created: new Date().toISOString(),
         models: {
@@ -160,7 +160,7 @@ describe("qualified references validation (integration)", () => {
       { lazyLoad: false }
     );
 
-    // Data Store layer (layer 9) should not reference API layer (layer 7) in external model
+    // Data Store layer (layer 9) referencing the API layer (layer 7) in an external model is valid
     const dataStoreLayer = new Layer("data-store");
     dataStoreLayer.addElement(
       new Element({
@@ -172,7 +172,7 @@ describe("qualified references validation (integration)", () => {
       })
     );
 
-    // Add invalid reference: lower layer referencing higher layer
+    // Add a reference from a higher-numbered layer to a lower-numbered one
     const element3 = dataStoreLayer.elements.get("data-store.table.users");
     if (element3) {
       element3.references = [
@@ -185,12 +185,12 @@ describe("qualified references validation (integration)", () => {
     await model.saveManifest();
     await model.saveLayer("data-store");
 
-    // Validate the model - should report directional constraint error
+    // Validate the model - no directional error may be reported
     const output = await captureConsole(() =>
       validateCommand({ model: workdir.path })
     );
 
-    expect(output).toContain("Invalid reference direction");
+    expect(output).not.toContain("Invalid reference direction");
   });
 
   it("validates qualified references with hyphenated layer names in path", async () => {

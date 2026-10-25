@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Reference validation no longer enforces a layer-direction rule.** `ReferenceValidator` used to
+  reject any per-element reference whose source layer number was greater than its target's
+  ("Invalid reference direction ... motivation → testing"), the opposite of the direction the
+  relationship catalog itself follows (541 of its 552 cross-layer relationship types run from
+  implementation layers toward intent layers). Direction is a property of the predicate, not of the
+  layers (`spec/DESIGN_CHARTER.md`); the validator keeps its existence and declared-external-model
+  checks. Models that validated before still validate; references previously rejected for direction
+  now pass.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added
