@@ -1,7 +1,7 @@
 {
   "source": "testing.testcasesketch",
   "model": "claude-opus-5-5",
-  "generated_at": "2026-10-25T11:45:07.312Z",
+  "generated_at": "2026-10-25T11:46:26.691Z",
   "relationships": [
     {
       "id": "testing.testcasesketch.accesses.data-store.collection",
@@ -248,6 +248,12 @@
       "previous_description": "Defines relationship: testing.testcasesketch validates testing.testcoveragetarget",
       "description": "A passing run of the test case contributes evidence that the in-scope production artifact behaves as required.",
       "evidence": "Test-run results for the linked test are attributed to the target in the coverage model's verification report."
+    },
+    {
+      "id": "testing.testcasesketch.references.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.testcasesketch references testing.partitionvalue",
+      "description": "The test case sketch selects this partition value as its chosen input for one dimension, so the sketch's concrete input is drawn from the value's representative and the case exercises that equivalence or boundary class.",
+      "evidence": "The test case sketch's input-selection entry in the test design YAML/JSON names the partition value's identifier, and the linked parameterized test row or scenario passes that value's representative value (or a value satisfying its boundary condition) as the argument for the corresponding input."
     }
   ],
   "notes": "tests, validates and references to CoverageRequirement overlap; keep references plus validates. references and validates TestCoverageTarget also overlap. accesses InputSelection duplicates composes. accesses InputPartitionSelection is a design lookup, better expressed as references. fulfills-requirements mislabels verification as realization; prefer validates. references LogConfiguration and supports-goals are weak links."

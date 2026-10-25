@@ -6,6 +6,7 @@
  *   bun propose-relationships.ts --layer product --sync
  *   bun propose-relationships.ts --submit [--layer <id>] | --status | --fetch
  *   bun propose-relationships.ts --source testing.testcasesketch --sync --force   # redo one group
+ *   bun propose-relationships.ts --ids <id,id> --sync --force                     # fill named relationships, merging into the group file
  *
  * Uses enriched node definitions from data/proposals/nodes when present.
  * Output: data/proposals/relationships/<layer>/<sourcetype>.json
@@ -112,15 +113,17 @@ async function main() {
     const byId = new Map(parsed.data.relationships.map((r) => [r.id, r]));
     const missing = group.filter((r) => !byId.has(r.id)).map((r) => r.id);
     if (missing.length) console.error(`  ${customId}: ${missing.length} relationship(s) missing from output: ${missing.slice(0, 3).join(", ")}`);
-    const out: RelationshipProposalFile = {
-      source: customId,
-      model: usedModel,
-      generated_at: new Date().toISOString(),
-      relationships: group
-        .filter((r) => byId.has(r.id))
-        .map((r) => ({ id: r.id, previous_description: r.description, description: byId.get(r.id)!.description, evidence: byId.get(r.id)!.evidence })),
-      notes: parsed.data.notes,
-    };
+    const fresh = group
+      .filter((r) => byId.has(r.id))
+      .map((r) => ({ id: r.id, previous_description: r.description, description: byId.get(r.id)!.description, evidence: byId.get(r.id)!.evidence }));
+    let out: RelationshipProposalFile = { source: customId, model: usedModel, generated_at: new Date().toISOString(), relationships: fresh, notes: parsed.data.notes };
+    if (idFilter?.length && existsSync(proposalFile(source))) {
+      // merge into the existing group file
+      const prev = JSON.parse(readFileSync(proposalFile(source), "utf8")) as RelationshipProposalFile;
+      const merged = new Map(prev.relationships.map((r) => [r.id, r]));
+      for (const r of fresh) merged.set(r.id, r);
+      out = { ...prev, generated_at: out.generated_at, relationships: [...merged.values()], notes: prev.notes };
+    }
     writeJson(proposalFile(source), out);
   };
 
@@ -134,6 +137,14 @@ async function main() {
   }
 
   const sourceFilter = flagStr(flags, "source");
+  const idFilter = flagStr(flags, "ids")?.split(",").map((x) => x.trim()).filter(Boolean);
+  if (idFilter?.length) {
+    for (const [src, arr] of bySource) {
+      const kept = arr.filter((r) => idFilter.includes(r.id));
+      if (kept.length) bySource.set(src, kept);
+      else bySource.delete(src);
+    }
+  }
   const sources = [...bySource.keys()]
     .map((id) => nodesById.get(id))
     .filter((n): n is NodeSchema => !!n)
