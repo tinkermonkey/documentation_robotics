@@ -1,9 +1,9 @@
 /**
  * Score predictions against gold labels: accuracy, calibration, thresholds, cost.
  *
- *   bun report.ts --corpus dr-cli [--backends clef-flash,claude-haiku]
+ *   bun report.ts --corpus dr-cli [--backends clef-flash,claude-haiku] [--gold <tag>]
  *
- * Writes data/<corpus>/report.md and prints it.
+ * Writes data/<corpus>/report[@<gold tag>].md and prints it. --gold scores against gold@<tag>.jsonl.
  */
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -129,11 +129,12 @@ function main() {
   }
   const dir = corpusDir(corpus);
   const cards = new Map(readJsonl<Card>(path.join(dir, "cards.jsonl")).map((c) => [c.id, c]));
-  const golds = new Map(readJsonl<Gold>(path.join(dir, "gold.jsonl")).map((g) => [g.card_id, g]));
+  const goldTag = flagStr(flags, "gold");
+  const golds = new Map(readJsonl<Gold>(path.join(dir, `gold${goldTag ? `@${goldTag}` : ""}.jsonl`)).map((g) => [g.card_id, g]));
   const backends = flagStr(flags, "backends")?.split(",").map((s) => s.trim()) ?? readdirSync(dir).filter((f) => f.startsWith("pred-") && f.endsWith(".jsonl")).map((f) => f.slice(5, -6));
 
   const md: string[] = [];
-  md.push(`# Classification eval report: ${corpus}`, "", `Generated ${new Date().toISOString()}. Cards: ${cards.size}. Gold labels: ${golds.size}.`, "");
+  md.push(`# Classification eval report: ${corpus}${goldTag ? ` (gold@${goldTag})` : ""}`, "", `Generated ${new Date().toISOString()}. Cards: ${cards.size}. Gold labels: ${golds.size}${goldTag ? ` from gold@${goldTag}.jsonl` : ""}.`, "");
 
   // Gold distribution
   const goldLayers = new Map<string, number>();
@@ -185,7 +186,7 @@ function main() {
   md.push("## Summary", "", ...summaries, "", "Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.", "", ...sections);
 
   const out = md.join("\n").replace(/\n+$/, "");
-  writeFileSync(path.join(dir, "report.md"), out + "\n");
+  writeFileSync(path.join(dir, `report${goldTag ? `@${goldTag}` : ""}.md`), out + "\n");
   console.log(out);
 }
 

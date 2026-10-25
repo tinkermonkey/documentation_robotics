@@ -7,13 +7,17 @@
  *   bun label.ts --corpus dr-cli --fetch                  # pull results into gold.jsonl
  *
  * Flags: --model opus|sonnet|haiku (default opus), --effort low|medium|high|xhigh (default high),
- *        --limit n, --concurrency n (sync mode), --force (relabel existing)
+ *        --limit n, --concurrency n (sync mode), --force (relabel existing),
+ *        --charter full|short (put spec/DESIGN_CHARTER.md in the labeler's context),
+ *        --tag <name> (write gold@<name>.jsonl and batch@<name>.json instead of the defaults)
  */
 import path from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, claudeCost, mapConcurrent, MODEL_IDS } from "./lib/claude.js";
+import { repoRoot } from "./lib/env.js";
 import { appendJsonl, corpusDir, flagNum, flagStr, parseFlags, readJson, readJsonl, writeJson, writeJsonl } from "./lib/io.js";
 import { isValidType, layerIds, specReferenceText } from "./lib/spec.js";
 import { renderState } from "./lib/state.js";
@@ -32,7 +36,18 @@ function outputSchema() {
 }
 type Output = z.infer<ReturnType<typeof outputSchema>>;
 
-function systemPrompt(): Anthropic.TextBlockParam[] {
+function charterText(mode: "full" | "short"): string {
+  const f = path.join(repoRoot(), "spec", "DESIGN_CHARTER.md");
+  if (!existsSync(f)) throw new Error(`--charter given but ${f} does not exist`);
+  const raw = readFileSync(f, "utf8");
+  if (mode === "short") {
+    const m = /## In one paragraph\n\n([\s\S]*?)\n\n## /.exec(raw);
+    return m ? m[1].replace(/\n/g, " ").trim() : "";
+  }
+  return raw.replace(/^\*\*Status:\*\*[^\n]*\n(?:[^\n]*\n)*?\n/m, "").trim();
+}
+
+function systemPrompt(charter?: "full" | "short"): Anthropic.TextBlockParam[] {
   const text = [
     "You are an enterprise architect producing gold-standard labels for an evaluation dataset. Each input is a symbol from a codebase (a class, interface, function, method, module or HTTP route) described by a state card built from a code knowledge graph: its signature, docstring, callers, callees, imports and source.",
     "",
@@ -45,6 +60,7 @@ function systemPrompt(): Anthropic.TextBlockParam[] {
     "",
     "Be decisive and consistent. Judge the symbol as it would be modelled, not by its file location alone.",
     "",
+    ...(charter ? ["# The specification's design charter (what elements and relationships are meant to model; apply its granularity rule)", charterText(charter), ""] : []),
     specReferenceText(),
   ].join("\n");
   return [{ type: "text", text, cache_control: { type: "ephemeral" } }];
@@ -81,14 +97,16 @@ async function main() {
   const model = MODEL_IDS[flagStr(flags, "model", "opus") ?? "opus"] ?? "claude-opus-5-5";
   const effort = (flagStr(flags, "effort", "high") ?? "high") as "low" | "medium" | "high" | "xhigh";
   const limit = flagNum(flags, "limit", Infinity);
-  const goldFile = path.join(dir, "gold.jsonl");
-  const batchFile = path.join(dir, "batch.json");
+  const tag = flagStr(flags, "tag");
+  const charter = flags.charter ? ((flagStr(flags, "charter", "full") === "short" ? "short" : "full") as "full" | "short") : undefined;
+  const goldFile = path.join(dir, `gold${tag ? `@${tag}` : ""}.jsonl`);
+  const batchFile = path.join(dir, `batch${tag ? `@${tag}` : ""}.json`);
   const cards = readJsonl<Card>(path.join(dir, "cards.jsonl"));
   const existing = new Set(readJsonl<Gold>(goldFile).map((g) => g.card_id));
   const todo = (flags.force ? cards : cards.filter((c) => !existing.has(c.id))).slice(0, limit);
   const schema = outputSchema();
   const format = zodOutputFormat(schema);
-  const system = systemPrompt();
+  const system = systemPrompt(charter);
   const client = anthropic();
 
   const baseParams = (card: Card): Anthropic.MessageCreateParamsNonStreaming => ({
@@ -136,7 +154,7 @@ async function main() {
     const state = readJson<{ batches: Array<{ id: string; created_at: string; count: number; model: string }> }>(batchFile, { batches: [] });
     state.batches.push({ id: batch.id, created_at: batch.created_at, count: requests.length, model });
     writeJson(batchFile, state);
-    console.log(`Submitted batch ${batch.id} with ${requests.length} requests (${model}, effort ${effort}). Status: ${batch.processing_status}`);
+    console.log(`Submitted batch ${batch.id} with ${requests.length} requests (${model}, effort ${effort}${charter ? `, charter ${charter}` : ""}${tag ? `, tag ${tag}` : ""}). Status: ${batch.processing_status}`);
     return;
   }
 
