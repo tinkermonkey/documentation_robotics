@@ -6,7 +6,9 @@
  *
  * Backends: clef, clef-flash, claude-haiku, claude-sonnet, claude-opus
  * Flags: --limit n, --concurrency n (default 4), --source-lines n (default 40),
- *        --only-gold (default true: only cards with a gold label), --all, --force
+ *        --only-gold (default true: only cards with a gold label), --all, --force,
+ *        --tag <name> (write pred-<backend>@<name>.jsonl, e.g. to compare spec revisions),
+ *        --kind-narrow (Clef only: restrict the element-type choice set by CBM symbol kind, Tier-0 rule)
  */
 import path from "node:path";
 import { classifyWithClaude } from "./backends/claude.js";
@@ -30,7 +32,8 @@ async function main() {
   const concurrency = flagNum(flags, "concurrency", 4);
   const sourceLines = flagNum(flags, "source-lines", 40);
   const effort = (flagStr(flags, "effort", "low") ?? "low") as "low" | "medium" | "high";
-  const predFile = path.join(dir, `pred-${backend}.jsonl`);
+  const tag = flagStr(flags, "tag");
+  const predFile = path.join(dir, `pred-${backend}${tag ? `@${tag}` : ""}.jsonl`);
 
   if (flags["dry-run"]) {
     const first = readJsonl<Card>(path.join(dir, "cards.jsonl"))[0];
@@ -54,9 +57,11 @@ async function main() {
   pool = pool.filter((c) => !done.has(c.id)).slice(0, limit);
   console.error(`Classifying ${pool.length} cards with ${backend} (source-lines ${sourceLines}); ${done.size} already done`);
 
+  const kindNarrow = !!flags["kind-narrow"];
+  const kindOf = new Map(cards.map((c) => [c.id, c.label]));
   let classify: (cardId: string, state: string) => Promise<Prediction>;
   if (backend in CLEF_MODELS) {
-    classify = (id, state) => classifyWithClef(backend, id, state);
+    classify = (id, state) => classifyWithClef(backend, id, state, { kind: kindOf.get(id), kindNarrow });
   } else if (backend.startsWith("claude-")) {
     const model = MODEL_IDS[backend.slice("claude-".length)];
     if (!model) throw new Error(`Unknown Claude backend ${backend}`);

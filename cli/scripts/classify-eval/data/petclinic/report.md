@@ -1,6 +1,6 @@
 # Classification eval report: petclinic
 
-Generated 2026-10-24T20:34:36.727Z. Cards: 106. Gold labels: 106.
+Generated 2026-10-25T11:28:27.626Z. Cards: 106. Gold labels: 106.
 
 ## Gold label distribution
 
@@ -17,12 +17,13 @@ Significance histogram (0..4): 35 / 20 / 25 / 25 / 1. Gold labels with a type id
 
 ## Summary
 
-| backend       | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
-| ------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| claude-haiku  | 106 | 59.4%     | 52.8%                 | 88.9%                | 0.25    | 99.1%        | 0.167     | 1666 ms        | $0.050     | $0.0005     |
-| clef          | 106 | 84.0%     | 73.6%                 | 87.6%                | 0.42    | 92.5%        | 0.254     | 642 ms         | $0.099     | $0.0009     |
-| clef-flash    | 106 | 65.1%     | 45.3%                 | 69.6%                | 0.65    | 88.7%        | 0.218     | 1097 ms        | $0.037     | $0.0003     |
-| claude-sonnet | 106 | 84.0%     | 82.1%                 | 97.8%                | 0.16    | 99.1%        | 0.145     | 1560 ms        | $0.902     | $0.0085     |
+| backend          | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
+| ---------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
+| claude-haiku     | 106 | 59.4%     | 52.8%                 | 88.9%                | 0.25    | 99.1%        | 0.167     | 1666 ms        | $0.050     | $0.0005     |
+| clef             | 106 | 84.0%     | 73.6%                 | 87.6%                | 0.42    | 92.5%        | 0.254     | 642 ms         | $0.099     | $0.0009     |
+| clef-flash       | 106 | 65.1%     | 45.3%                 | 69.6%                | 0.65    | 88.7%        | 0.218     | 1097 ms        | $0.037     | $0.0003     |
+| clef@enriched-v1 | 106 | 84.0%     | 72.6%                 | 86.5%                | 0.42    | 92.5%        | 0.254     | 621 ms         | $0.105     | $0.0010     |
+| claude-sonnet    | 106 | 84.0%     | 82.1%                 | 97.8%                | 0.16    | 99.1%        | 0.145     | 1560 ms        | $0.902     | $0.0085     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
 
@@ -252,6 +253,81 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Method src.main.java.org.springframework.samples.petclinic.owner.OwnerController.processFindForm                | api/operation            | application/applicationinterface (0.36) | Spring MVC GET /owners route handler implementing the owner search operation: it normalizes the last name, queries paginated results, and selects a view or redi |
 | Class src.main.java.org.springframework.samples.petclinic.system.CrashController                                | api/operation            | application/applicationinterface (0.31) | Spring MVC controller exposing a single GET /oups endpoint that deliberately throws an exception to demonstrate the error view. It is part of the HTTP surface,  |
 | Method src.main.java.org.springframework.samples.petclinic.owner.OwnerController.findPaginatedForOwnersLastName | none/-                   | application/applicationfunction (0.35)  | A private controller helper that builds a fixed-size Pageable and delegates to OwnerRepository. It is a small pagination implementation detail, used only by pro |
+
+## clef@enriched-v1
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 46     | 97.8%  | 54          |
+| api         | 27     | 96.3%  | 28          |
+| data-model  | 12     | 83.3%  | 10          |
+| application | 9      | 33.3%  | 9           |
+| data-store  | 7      | 71.4%  | 5           |
+| technology  | 5      | 0.0%   | 0           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| application → none       | 4     |
+| technology → none        | 4     |
+| data-store → application | 2     |
+| application → api        | 2     |
+| technology → application | 1     |
+| api → application        | 1     |
+| data-model → none        | 1     |
+| data-model → application | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 1   | 0.29      | 1.00     | 0.71 |
+| 0.3-0.4        | 11  | 0.36      | 0.82     | 0.46 |
+| 0.4-0.5        | 26  | 0.46      | 0.73     | 0.27 |
+| 0.5-0.6        | 25  | 0.55      | 0.84     | 0.29 |
+| 0.6-0.7        | 13  | 0.64      | 0.69     | 0.05 |
+| 0.7-0.8        | 12  | 0.75      | 1.00     | 0.25 |
+| 0.8-0.9        | 18  | 0.83      | 1.00     | 0.17 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 64.2%    | 88.2%             |
+| ≥0.60     | 40.6%    | 90.7%             |
+| ≥0.70     | 28.3%    | 100.0%            |
+| ≥0.80     | 17.0%    | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 0              | n/a       | n/a    | n/a        |
+| authorization        | 0              | n/a       | n/a    | n/a        |
+| data_persistence     | 16             | 1.00      | 0.25   | 0.40       |
+| external_integration | 0              | n/a       | n/a    | n/a        |
+| observability        | 1              | n/a       | 0.00   | n/a        |
+| user_interface       | 26             | n/a       | 0.00   | n/a        |
+
+### Sample layer disagreements
+
+| symbol                                                                                                                     | gold                             | predicted (conf)                        | gold rationale                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface src.main.java.org.springframework.samples.petclinic.vet.VetRepository                                            | data-store/accesspattern         | application/applicationcomponent (0.42) | Spring Data repository interface defining the read-only, cached query access to Vet records (findAll, paged findAll). It is the persistence access layer for the |
+| Class src.main.java.org.springframework.samples.petclinic.system.WebConfiguration                                          | technology/artifact              | application/applicationcomponent (0.49) | A Spring @Configuration class wiring the i18n framework infrastructure: a session-based locale resolver and a locale-change interceptor. It is framework configu |
+| Class src.main.java.org.springframework.samples.petclinic.owner.PetTypeFormatter                                           | application/applicationfunction  | none/- (0.64)                           | Spring MVC formatter component that converts PetType values to and from strings for form binding. It looks pet types up through the repository, but persistence  |
+| Interface src.main.java.org.springframework.samples.petclinic.owner.OwnerRepository                                        | data-store/accesspattern         | application/applicationcomponent (0.37) | Spring Data JPA repository for Owner entities defining query methods (last-name prefix search with paging, find by id). It is the persistence access layer for o |
+| Class src.main.java.org.springframework.samples.petclinic.PetClinicApplication                                             | application/applicationcomponent | none/- (0.44)                           | This is the Spring Boot application entry point (main method plus @SpringBootApplication) that bootstraps the whole PetClinic system. It represents the deployab |
+| Method src.main.java.org.springframework.samples.petclinic.owner.OwnerController.processFindForm                           | api/operation                    | application/applicationinterface (0.37) | Spring MVC GET /owners route handler implementing the owner search operation: it normalizes the last name, queries paginated results, and selects a view or redi |
+| Class src.main.java.org.springframework.samples.petclinic.PetClinicRuntimeHints                                            | technology/artifact              | none/- (0.61)                           | GraalVM native-image runtime hints registrar: build/deployment configuration that registers resource patterns and reflection types for AOT compilation. It is pl |
+| Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice     | none/- (0.47)                           | Spring configuration enabling JCache caching and creating the 'vets' cache with JMX statistics. This is infrastructure/platform configuration providing a cachin |
+| Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice     | none/- (0.67)                           | A Spring @Bean that registers the 'vets' JCache cache via a JCacheManagerCustomizer. It is infrastructure configuration for the caching technology service, name |
+| Class src.main.java.org.springframework.samples.petclinic.vet.VetController                                                | application/applicationcomponent | api/paths (0.43)                        | Spring MVC controller for the vet domain. It serves an HTML vet list view with pagination and a JSON /vets resource endpoint. As a class grouping several handle |
 
 ## claude-sonnet
 

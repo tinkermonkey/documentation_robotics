@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationprocess",
+  "previous_description": "An ordered sequence of application behaviors performed by an application component to achieve a specific operational result.",
+  "definition": "An internal behaviour element of an application component consisting of a fixed, ordered series of steps (calls, transformations, state transitions) that runs from a start trigger to a defined end result. What sets it apart is that the sequence and the outcome are explicit, as in a workflow, saga, pipeline or multi-step orchestration method, rather than a grouping of related capabilities.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationfunction",
+      "when": "the behaviour is a cohesive grouping of capability, such as a module of related operations or a single-purpose routine, with no meaningful step order or defined end-to-end outcome"
+    },
+    {
+      "type": "application.applicationservice",
+      "when": "the symbol is the externally consumable entry point or contract (a service method or endpoint offered to consumers) rather than the internal step sequence that fulfils it"
+    },
+    {
+      "type": "application.applicationinteraction",
+      "when": "the ordered behaviour is jointly performed by two or more components, for example a choreographed exchange, and cannot be attributed to a single component"
+    },
+    {
+      "type": "application.applicationevent",
+      "when": "the symbol represents the occurrence or state change that starts or ends the sequence (an event class or message type), not the steps themselves"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.3 Application Process (application internal behaviour element)",
+  "code_evidence": [
+    "A workflow, saga or state-machine definition (e.g. Temporal/Camunda/Step Functions workflow, Spring State Machine, a Saga class) declaring ordered steps or states with transitions",
+    "An orchestration method that calls several functions or services in a fixed sequence with intermediate results passed between steps and a final result or status returned (e.g. processOrder(): validate → reserve → charge → ship)",
+    "A pipeline or job definition (ETL job, batch Step/Job configuration, chain of handlers/middleware registered in order) that is started by a trigger such as a scheduled job, a message consumer or an event handler"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the process: its triggering event, its ordered main steps, and the result it produces. Set it whenever the step sequence is not evident from the element name, preferably drawn from code comments or workflow docs."
+    }
+  ],
+  "notes": "There are no attributes for trigger, steps or outcome, so the ordered nature that defines this type cannot be captured structurally. Consider adding a 'steps' list and an optional 'executionMode' attribute (sync/async/batch/long-running). Both application processes and application functions use delivers-value toward a service. The relationship names in this layer are non-ArchiMate (depends-on rather than access/assignment).",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:24:02.057Z"
+}

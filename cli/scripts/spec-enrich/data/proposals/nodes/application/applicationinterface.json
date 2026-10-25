@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationinterface",
+  "previous_description": "Point of access where application service is available",
+  "definition": "An active-structure access point owned by an application component, such as a mounted controller, gRPC server binding, GraphQL endpoint or message-channel listener, through which that component's application services are reachable by users or other components over a specific application-level protocol. It is the channel itself, not the behaviour offered through it and not the formal contract document describing it.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationservice",
+      "when": "the element describes the externally visible behaviour or functionality offered, such as 'order placement', independent of the endpoint, protocol or channel through which it is reached."
+    },
+    {
+      "type": "application.applicationcomponent",
+      "when": "the symbol is the deployable or replaceable module, service or package as a whole, rather than one of the access points it provides."
+    },
+    {
+      "type": "application.applicationinteraction",
+      "when": "the symbol represents joint behaviour carried out by two or more components exchanging messages, rather than the single access point one component offers."
+    },
+    {
+      "type": "application.applicationfunction",
+      "when": "the symbol is internal handler or business logic invoked behind the endpoint, rather than the endpoint binding or adapter itself."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.2.3 Application Interface",
+  "code_evidence": [
+    "A controller or router class that groups route handlers under a base path and is mounted on a web server, such as a Spring @RestController with @RequestMapping(\"/orders\"), an Express Router passed to app.use('/orders', ...), or a FastAPI APIRouter included in the app.",
+    "A gRPC servicer or GraphQL schema/resolver set registered on a server at startup, such as add_OrderServiceServicer_to_server(...) or an Apollo server exposing /graphql.",
+    "A message or socket entry point bound to a named channel in code or config, such as a @RabbitListener(queues=\"orders\") consumer, an AMQP queue binding in application.yml, or a WebSocket endpoint handler (@ServerEndpoint, socket.io namespace)."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the access point: which component provides it, its base path, address or channel name, the services reachable through it, and any notable constraints. Set it whenever the name and protocol alone do not identify the endpoint."
+    }
+  ],
+  "notes": "The protocol enum mixes protocols with architectural styles (REST, GraphQL). HTTP/HTTPS splits on TLS, which contradicts the attribute's own guidance. It lacks CLI, Kafka, MQTT and in-process/library APIs. Having both depends-on and serves to applicationservice is redundant. The boundary with the api layer needs stating: contract files go there, runtime bindings go here.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:23:54.778Z"
+}

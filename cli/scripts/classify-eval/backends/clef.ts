@@ -116,17 +116,41 @@ export function stage1Questions(): Record<string, Question> {
   return stage1;
 }
 
-export function stage2Questions(layer: string): Record<string, Question> {
+/**
+ * Tier-0 narrowing: which element types a given CBM symbol kind can plausibly be, per layer.
+ * Structural symbols (classes, modules, interfaces) map to structural types; callable symbols
+ * (functions, methods) to behavioural types. Layers not listed are left unrestricted.
+ */
+export const KIND_CANDIDATES: Record<string, Record<string, string[]>> = {
+  application: {
+    Class: ["applicationcomponent", "applicationinterface", "applicationservice", "applicationcollaboration", "dataobject", "applicationevent"],
+    Module: ["applicationcomponent", "applicationinterface", "applicationservice", "applicationcollaboration", "applicationfunction", "dataobject"],
+    Interface: ["dataobject", "applicationinterface", "applicationevent", "applicationservice"],
+    Function: ["applicationfunction", "applicationprocess", "applicationservice", "applicationinterface", "applicationevent"],
+    Method: ["applicationfunction", "applicationprocess", "applicationservice", "applicationinterface"],
+  },
+};
+
+export function stage2Questions(layer: string, kind?: string, kindNarrow = false): Record<string, Question> {
+  let criteria = typeCriteria(layer);
+  let kindNote = "";
+  if (kindNarrow && kind) {
+    const allowed = KIND_CANDIDATES[layer]?.[kind];
+    if (allowed) {
+      criteria = Object.fromEntries(Object.entries(criteria).filter(([k]) => k === NONE_OPTION || allowed.includes(k)));
+      kindNote = ` The symbol is a ${kind}; only the element types a ${kind} can be are listed.`;
+    }
+  }
   return {
     element_type: {
       type: "choice",
-      instructions: `This symbol belongs to the '${layer}' layer. Which element type within that layer best describes it? Choose 'none' if no listed type fits.`,
-      criteria: typeCriteria(layer),
+      instructions: `This symbol belongs to the '${layer}' layer. Which element type within that layer best describes it? Choose 'none' if no listed type fits.${kindNote}`,
+      criteria,
     },
   };
 }
 
-export async function classifyWithClef(backend: string, cardId: string, state: string): Promise<Prediction> {
+export async function classifyWithClef(backend: string, cardId: string, state: string, opts: { kind?: string; kindNarrow?: boolean } = {}): Promise<Prediction> {
   const t0 = Date.now();
   const cfg = CLEF_MODELS[backend];
   const stage1 = stage1Questions();
@@ -139,7 +163,7 @@ export async function classifyWithClef(backend: string, cardId: string, state: s
 
   let etype: { choice: string | null; probabilities: Record<string, number>; confidence: number | null } = { choice: null, probabilities: {}, confidence: null };
   if (layer.choice && layer.choice !== NONE_OPTION) {
-    const stage2 = stage2Questions(layer.choice);
+    const stage2 = stage2Questions(layer.choice, opts.kind, opts.kindNarrow);
     if (Object.keys(stage2.element_type.type === "choice" ? stage2.element_type.criteria : {}).length >= 2) {
       const r2 = await callClef(backend, state, stage2);
       etype = choiceOf(r2.answers.element_type);

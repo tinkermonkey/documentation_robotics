@@ -1,0 +1,62 @@
+{
+  "source": "application.applicationprocess",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:25:15.112Z",
+  "relationships": [
+    {
+      "id": "application.applicationprocess.delivers-value.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationprocess delivers-value application.applicationservice",
+      "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
+      "evidence": "The service's public operation (e.g. an API handler or service-interface method) delegates its work to the workflow, saga or pipeline entry point and returns that process's end result to the caller."
+    },
+    {
+      "id": "application.applicationprocess.depends-on.application.applicationcollaboration",
+      "previous_description": "Defines relationship: application.applicationprocess depends-on application.applicationcollaboration",
+      "description": "The workflow can only run end to end when the grouped components of the collaboration are all present, because its steps call across several of those cooperating components.",
+      "evidence": "The saga or orchestration definition calls services from several components that the deployment manifest, service mesh config or architecture docs list as one named collaboration, and the workflow fails if any member is missing."
+    },
+    {
+      "id": "application.applicationprocess.depends-on.application.applicationevent",
+      "previous_description": "Defines relationship: application.applicationprocess depends-on application.applicationevent",
+      "description": "The workflow needs the application event to occur before it can start or move past a waiting step, so the event acts as its start trigger or a resume signal.",
+      "evidence": "The workflow definition has a start trigger, subscription or wait-for-signal step bound to the named event type, such as a message listener or saga start handler keyed on that event."
+    },
+    {
+      "id": "application.applicationprocess.depends-on.application.applicationfunction",
+      "previous_description": "Defines relationship: application.applicationprocess depends-on application.applicationfunction",
+      "description": "One or more ordered steps of the workflow call the internal application function to perform a piece of work, so the process cannot finish without that capability.",
+      "evidence": "A step method or activity in the pipeline, saga or workflow code calls the function's internal module or class method, visible in the call graph or activity registration."
+    },
+    {
+      "id": "application.applicationprocess.depends-on.application.applicationinterface",
+      "previous_description": "Defines relationship: application.applicationprocess depends-on application.applicationinterface",
+      "description": "The workflow reaches another component's services through the application interface during its steps, so the process needs that endpoint or channel to be available.",
+      "evidence": "A workflow step calls through a generated client, HTTP or gRPC stub, GraphQL query or message-channel producer configured against that interface's endpoint or topic."
+    },
+    {
+      "id": "application.applicationprocess.depends-on.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationprocess depends-on application.dataobject",
+      "description": "The workflow creates, reads, transforms or passes along the data object between steps, so its inputs, intermediate state or result have that structure.",
+      "evidence": "The process's step signatures, saga state class or pipeline stage types take or return the data object's class, record or message payload type."
+    },
+    {
+      "id": "application.applicationprocess.flows-to.application.applicationprocess",
+      "previous_description": "Defines relationship: application.applicationprocess flows-to application.applicationprocess",
+      "description": "When the upstream workflow completes or reaches a hand-off point, control or its output data passes to the downstream workflow, which continues the end-to-end sequence.",
+      "evidence": "The upstream process's final step starts the downstream workflow, publishes the message it consumes, or is chained to it in the orchestration definition (e.g. Step Functions, Airflow DAG, Temporal child workflow)."
+    },
+    {
+      "id": "application.applicationprocess.realizes.business.businessprocess",
+      "previous_description": "Defines relationship: application.applicationprocess realizes business.businessprocess",
+      "description": "The automated workflow is the software execution of the business process, carrying out its ordered steps so the business result is reached without manual work.",
+      "evidence": "Process documentation or BPMN models map the business process steps to the workflow's stages, and the workflow code or definition is named for and traceable to that business process."
+    },
+    {
+      "id": "application.applicationprocess.triggers.application.applicationevent",
+      "previous_description": "Defines relationship: application.applicationprocess triggers application.applicationevent",
+      "description": "Running the workflow, or reaching a particular step, emits the application event as a signal that a state change has happened, for other behaviour to react to.",
+      "evidence": "A step or completion handler in the workflow code publishes, emits or dispatches the named event type to an event bus, topic or in-process event dispatcher."
+    }
+  ],
+  "notes": "delivers-value is a business-value traceability predicate; process-to-service is classically ArchiMate realizes. depends-on to ApplicationEvent and triggers to ApplicationEvent need direction clarity: inbound trigger vs emission. depends-on to ApplicationCollaboration inverts ArchiMate assignment (collaboration assigned-to process). depends-on to DataObject would be more precise as accesses."
+}

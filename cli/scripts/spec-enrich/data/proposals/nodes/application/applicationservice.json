@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationservice",
+  "previous_description": "Service that exposes application functionality",
+  "definition": "An externally visible unit of application behavior that a component, function, process or interaction makes available to consumers (users, business processes, or other components) as a named set of operations, defined by what it offers rather than how it is implemented or accessed.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationfunction",
+      "when": "the behavior is internal to a component, such as a private helper, mapper or validation routine, and is not offered as a named capability to callers outside that component"
+    },
+    {
+      "type": "application.applicationinterface",
+      "when": "the symbol is the access point or binding through which a service is reached, such as an HTTP controller, gRPC endpoint, WebSocket handler or message listener, carrying a specific protocol"
+    },
+    {
+      "type": "application.applicationcomponent",
+      "when": "the symbol is the deployable or replaceable structural unit (module, package, microservice, class as a unit of deployment) that performs or realizes behavior, rather than the behavior it exposes"
+    },
+    {
+      "type": "application.applicationprocess",
+      "when": "the symbol is an ordered sequence of steps, such as a saga, workflow or orchestrator method, that achieves a result rather than an offered capability"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.3 Application Service",
+  "code_evidence": [
+    "A service interface or abstract contract, such as IOrderService or a gRPC 'service' block in a .proto file, whose operations are injected into or called from controllers, handlers or other modules",
+    "A class annotated @Service, @Injectable or registered in a DI container whose public methods are invoked across module or component boundaries rather than only within its own package",
+    "A queue consumer, scheduled batch job or event subscriber documented or configured to fulfil requests from other systems under a named capability, for example a 'payment-processing' worker bound in messaging or cron configuration"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of what the service offers to its consumers, including its main operations and intended callers; set it whenever the service name alone does not convey its scope."
+    }
+  ],
+  "notes": "In code, a @Service class is often both component and service. Classifiers need a rule: model the exposed contract as service and the deployable unit as component. serviceType mixes timing (synchronous/asynchronous) with style (event-driven/batch), so the values overlap. 'applicationinterface depends-on applicationservice' duplicates 'serves' and should be reviewed.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:24:07.056Z"
+}

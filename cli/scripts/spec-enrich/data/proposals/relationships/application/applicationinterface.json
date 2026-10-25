@@ -1,0 +1,56 @@
+{
+  "source": "application.applicationinterface",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:25:08.858Z",
+  "relationships": [
+    {
+      "id": "application.applicationinterface.delivers-value.application.applicationcollaboration",
+      "previous_description": "Defines relationship: application.applicationinterface delivers-value application.applicationcollaboration",
+      "description": "The interface is the shared access point through which a collaboration's jointly performed behaviour reaches consumers, so the grouped components' collective value is realized through this endpoint.",
+      "evidence": "A gateway, federated GraphQL schema or shared API route configuration mounts the interface as the single entry point fronting several components that are declared together as one collaboration."
+    },
+    {
+      "id": "application.applicationinterface.depends-on.application.applicationcomponent",
+      "previous_description": "Defines relationship: application.applicationinterface depends-on application.applicationcomponent",
+      "description": "The interface cannot operate without the owning or backing component that actually handles the requests arriving on the channel.",
+      "evidence": "The controller, gRPC servicer or listener class is registered in the component's module or injects that component's classes, and fails to start or respond if that component is absent."
+    },
+    {
+      "id": "application.applicationinterface.depends-on.application.applicationfunction",
+      "previous_description": "Defines relationship: application.applicationinterface depends-on application.applicationfunction",
+      "description": "Requests received on the interface are handled by delegating to an internal function of the component, so the endpoint needs that function to produce its responses.",
+      "evidence": "The route handler or RPC method body calls the internal function's method or module directly, as shown in the import graph and call sites."
+    },
+    {
+      "id": "application.applicationinterface.depends-on.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationinterface depends-on application.applicationservice",
+      "description": "The interface requires the application service's operations to be available in order to fulfil the calls it accepts on its protocol.",
+      "evidence": "The controller or resolver injects the service class and invokes its operations, with the dependency declared in the DI container or constructor signature."
+    },
+    {
+      "id": "application.applicationinterface.depends-on.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationinterface depends-on application.dataobject",
+      "description": "The interface relies on the data object as the request, response or message payload structure it parses and emits on the channel.",
+      "evidence": "Handler signatures, OpenAPI/protobuf bindings or listener deserializers reference the data object's class or schema as input or output type."
+    },
+    {
+      "id": "application.applicationinterface.exposes.security.secureresource",
+      "previous_description": "Defines relationship: application.applicationinterface exposes security.secureresource",
+      "description": "The interface makes the protected resource reachable to callers, so the resource's permitted operations are invoked through this endpoint and its access controls must apply there.",
+      "evidence": "Routes or RPC methods on the interface map to the resource's operations and carry security annotations, guards or policy configuration naming that resource."
+    },
+    {
+      "id": "application.applicationinterface.serves.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationinterface serves application.applicationservice",
+      "description": "The interface is the protocol-specific channel through which the application service's operations are offered to its consumers.",
+      "evidence": "The service's operations are bound to routes, RPC methods or topics on this interface in the router, servicer registration or API specification."
+    },
+    {
+      "id": "application.applicationinterface.serves.business.businessrole",
+      "previous_description": "Defines relationship: application.applicationinterface serves business.businessrole",
+      "description": "Holders of the business role use the interface as their point of access to the application's functionality when carrying out their responsibilities.",
+      "evidence": "The interface's authorization configuration, UI/API documentation or access policy names the role as an intended consumer, e.g. role-restricted routes or a role-specific portal endpoint."
+    }
+  ],
+  "notes": "delivers-value to ApplicationCollaboration is odd: a traceability value predicate targeting an active-structure grouping; aggregation/assignment fits better. Interface depends-on ApplicationComponent inverts ArchiMate composition (component composed-of interface). depends-on ApplicationService and serves ApplicationService overlap and the latter inverts ArchiMate (service is exposed through/assigned to interface)."
+}

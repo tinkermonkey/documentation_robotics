@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "application.dataobject",
+  "previous_description": "A passive application element representing data structured for automated processing by application components. Unlike behavioral elements, it is accessed, manipulated, or stored by active elements — not an actor itself. For canonical data schema definitions shared across layers, use the Data Model layer instead.",
+  "definition": "A passive application element: a code-level data structure (class, record, struct, type alias or message payload) whose purpose is to hold state that application components, functions and services create, read, transform or pass along, and which performs no application behavior beyond trivial accessors, constructors or self-validation.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationcomponent",
+      "when": "the class encapsulates substantive behavior or dependencies (injected collaborators, business logic, I/O) and acts as a modular, replaceable unit rather than as a carrier of state."
+    },
+    {
+      "type": "application.applicationevent",
+      "when": "the structure represents the occurrence of a state change that is published or dispatched to trigger reactive behavior, rather than data that is merely accessed; an event class's separate payload type remains a data object."
+    },
+    {
+      "type": "application.applicationinterface",
+      "when": "the type defines an access point (method contract, endpoint binding, client stub) through which a service is invoked, rather than the data exchanged through it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.4.1 Data Object",
+  "code_evidence": [
+    "A class, record, struct or dataclass consisting mainly of fields with getters/setters or immutable properties (e.g. Python @dataclass, Java record, Lombok @Data, C# record, TypeScript interface or type alias) and no injected dependencies.",
+    "The type appears as a parameter or return type in signatures of service, handler or function methods, e.g. names ending in Dto, Command, Request, Result, Model or ValueObject.",
+    "Instances are constructed, mapped (e.g. via a mapper or serializer) and mutated by other classes, while the type itself carries no ORM table mapping, OpenAPI schema annotation or UI binding that would place it in a more specific layer."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of what information the data object holds, its main fields and which components produce or consume it; set it whenever the symbol name alone does not convey the data's meaning."
+    }
+  ],
+  "notes": "No attribute captures structure (fields), mutability or kind (DTO, value object, command). Boundary with data-model.objectschema, persistence entities and API schemas needs an explicit precedence rule (ORM-mapped → persistence; published schema → api/data-model). Event payload classes straddle applicationevent. The self-referencing 'realizes' relationship has unclear semantics.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:24:11.797Z"
+}

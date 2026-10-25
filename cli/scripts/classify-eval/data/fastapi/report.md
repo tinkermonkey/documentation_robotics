@@ -1,6 +1,6 @@
 # Classification eval report: fastapi
 
-Generated 2026-10-24T20:56:22.479Z. Cards: 200. Gold labels: 200.
+Generated 2026-10-25T11:28:27.582Z. Cards: 200. Gold labels: 200.
 
 ## Gold label distribution
 
@@ -21,12 +21,13 @@ Significance histogram (0..4): 56 / 62 / 43 / 35 / 4. Gold labels with a type id
 
 ## Summary
 
-| backend       | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
-| ------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| claude-haiku  | 200 | 72.0%     | 63.5%                 | 88.2%                | 0.41    | 99.0%        | 0.103     | 1624 ms        | $0.082     | $0.0004     |
-| clef          | 200 | 78.5%     | 69.5%                 | 88.5%                | 0.49    | 91.5%        | 0.240     | 696 ms         | $0.197     | $0.0010     |
-| clef-flash    | 200 | 78.5%     | 59.5%                 | 75.8%                | 0.73    | 70.5%        | 0.332     | 1190 ms        | $0.072     | $0.0004     |
-| claude-sonnet | 200 | 71.5%     | 62.0%                 | 86.7%                | 0.37    | 99.5%        | 0.144     | 1707 ms        | $1.478     | $0.0074     |
+| backend          | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
+| ---------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
+| claude-haiku     | 200 | 72.0%     | 63.5%                 | 88.2%                | 0.41    | 99.0%        | 0.103     | 1624 ms        | $0.082     | $0.0004     |
+| clef             | 200 | 78.5%     | 69.5%                 | 88.5%                | 0.49    | 91.5%        | 0.240     | 696 ms         | $0.197     | $0.0010     |
+| clef-flash       | 200 | 78.5%     | 59.5%                 | 75.8%                | 0.73    | 70.5%        | 0.332     | 1190 ms        | $0.072     | $0.0004     |
+| clef@enriched-v1 | 200 | 78.5%     | 69.5%                 | 88.5%                | 0.49    | 91.5%        | 0.240     | 755 ms         | $0.202     | $0.0010     |
+| claude-sonnet    | 200 | 71.5%     | 62.0%                 | 86.7%                | 0.37    | 99.5%        | 0.144     | 1707 ms        | $1.478     | $0.0074     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
 
@@ -268,6 +269,85 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Interface frontend.src.routeTree.gen.FileRoutesByPath          | none/-                | navigation/navigationgraph (0.44)       | This is a TanStack Router module-augmentation interface inside the generated routeTree.gen.ts file. It only provides compile-time typing for the route map. Gene |
 | Module frontend.src.routes.\_layout.settings                   | ux/view               | navigation/route (0.41)                 | A file-based route module defining the routable User Settings page, which composes profile, password and delete-account tabs. As a complete routable screen it i |
 | Interface frontend.src.components.Admin.EditUser.EditUserProps | none/-                | application/applicationcomponent (0.31) | A props type declaration for the EditUser React component, with only two fields (user, onSuccess). It is a component-local type detail, not an architectural ele |
+
+## clef@enriched-v1
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 73.8%  | 69          |
+| ux          | 54     | 87.0%  | 63          |
+| api         | 30     | 96.7%  | 29          |
+| data-model  | 10     | 100.0% | 14          |
+| data-store  | 8      | 50.0%  | 4           |
+| security    | 6      | 50.0%  | 3           |
+| technology  | 4      | 0.0%   | 0           |
+| application | 4      | 50.0%  | 7           |
+| navigation  | 3      | 66.7%  | 10          |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 16    |
+| none → navigation        | 5     |
+| ux → navigation          | 3     |
+| ux → none                | 3     |
+| security → none          | 3     |
+| technology → application | 2     |
+| data-store → data-model  | 2     |
+| data-store → application | 2     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 4   | 0.28      | 0.50     | 0.22 |
+| 0.3-0.4        | 19  | 0.36      | 0.42     | 0.06 |
+| 0.4-0.5        | 47  | 0.46      | 0.57     | 0.12 |
+| 0.5-0.6        | 56  | 0.54      | 0.86     | 0.31 |
+| 0.6-0.7        | 59  | 0.65      | 0.97     | 0.32 |
+| 0.7-0.8        | 13  | 0.73      | 1.00     | 0.27 |
+| 0.8-0.9        | 2   | 0.81      | 1.00     | 0.19 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 65.0%    | 92.3%             |
+| ≥0.60     | 37.0%    | 97.3%             |
+| ≥0.70     | 7.5%     | 100.0%            |
+| ≥0.80     | 1.0%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 24             | 0.90      | 0.38   | 0.53       |
+| authorization        | 9              | 1.00      | 0.44   | 0.62       |
+| data_persistence     | 32             | 1.00      | 0.44   | 0.61       |
+| external_integration | 22             | 0.92      | 0.50   | 0.65       |
+| observability        | 3              | n/a       | 0.00   | n/a        |
+| user_interface       | 70             | 0.93      | 0.94   | 0.94       |
+
+### Sample layer disagreements
+
+| symbol                                                                       | gold                  | predicted (conf)                  | gold rationale                                                                                                                                                   |
+| ---------------------------------------------------------------------------- | --------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class backend.app.core.config.Settings                                       | technology/artifact   | application/dataobject (0.54)     | Central application configuration loaded from environment/.env via pydantic BaseSettings: database DSN, SMTP, Sentry, secret key, token expiry. It is a deployme |
+| Class backend.app.models.User                                                | data-store/collection | data-model/- (0.55)               | SQLModel table=True class defining the physical user table with a primary key, a hashed password column, a timestamp and a cascading relationship to items. It i |
+| Interface frontend.src.components.Admin.DeleteUser.DeleteUserProps           | none/-                | ux/- (0.41)                       | A props type for the DeleteUser React component, holding only an id and an onSuccess callback. It is an implementation detail of that component's signature, not |
+| Interface frontend.src.components.Items.ItemActionsMenu.ItemActionsMenuProps | none/-                | ux/- (0.39)                       | A trivial React props interface with a single item field, used only to type the ItemActionsMenu component. It is a boilerplate implementation detail of that UI  |
+| Interface frontend.src.components.Common.Logo.LogoProps                      | none/-                | ux/librarycomponent (0.51)        | A small props interface for the Logo UI component. It only declares the component's input shape (variant, className, asLink) and is an implementation detail of  |
+| Interface frontend.src.routeTree.gen.FileRoutesByTo                          | none/-                | navigation/navigationgraph (0.49) | This is a TanStack Router type map generated in routeTree.gen.ts. Generated code is excluded from architectural modelling. The routes it lists would be modelled |
+| Class backend.app.api.routes.private.PrivateUserCreate                       | api/schema            | data-model/objectschema (0.44)    | Pydantic request body model defined inline in the private routes module, describing the payload for a private user-creation endpoint. It is an API-local request |
+| Interface frontend.src.routeTree.gen.FileRoutesByPath                        | none/-                | navigation/navigationgraph (0.46) | This is a TanStack Router module-augmentation interface inside the generated routeTree.gen.ts file. It only provides compile-time typing for the route map. Gene |
+| Module frontend.src.routes.\_layout.settings                                 | ux/view               | navigation/route (0.45)           | A file-based route module defining the routable User Settings page, which composes profile, password and delete-account tabs. As a complete routable screen it i |
+| Interface frontend.src.components.Admin.EditUser.EditUserProps               | none/-                | ux/- (0.42)                       | A props type declaration for the EditUser React component, with only two fields (user, onSuccess). It is a component-local type detail, not an architectural ele |
 
 ## claude-sonnet
 

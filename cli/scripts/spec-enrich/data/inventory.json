@@ -1,0 +1,224 @@
+{
+  "generated_at": "2026-10-25T11:22:47.409Z",
+  "short_threshold_chars": 120,
+  "total": {
+    "node_types": 192,
+    "short_descriptions": 24,
+    "without_evidence": 192,
+    "attributes": 829,
+    "attributes_without_description": 342,
+    "relationships": 1611,
+    "boilerplate_relationships": 1611,
+    "relationships_without_evidence": 1611
+  },
+  "layers": [
+    {
+      "layer": "motivation",
+      "node_types": 10,
+      "short_descriptions": 4,
+      "without_evidence": 10,
+      "attributes": 26,
+      "attributes_without_description": 10,
+      "relationships": 80,
+      "boilerplate_relationships": 80,
+      "relationships_without_evidence": 80,
+      "shortest": [
+        "motivation.goal (63)",
+        "motivation.value (104)",
+        "motivation.driver (109)"
+      ]
+    },
+    {
+      "layer": "business",
+      "node_types": 13,
+      "short_descriptions": 0,
+      "without_evidence": 13,
+      "attributes": 22,
+      "attributes_without_description": 13,
+      "relationships": 73,
+      "boilerplate_relationships": 73,
+      "relationships_without_evidence": 73,
+      "shortest": [
+        "business.businessinterface (167)",
+        "business.businessevent (191)",
+        "business.businessfunction (209)"
+      ]
+    },
+    {
+      "layer": "product",
+      "node_types": 6,
+      "short_descriptions": 5,
+      "without_evidence": 6,
+      "attributes": 22,
+      "attributes_without_description": 0,
+      "relationships": 27,
+      "boilerplate_relationships": 27,
+      "relationships_without_evidence": 27,
+      "shortest": [
+        "product.milestone (62)",
+        "product.capability (69)",
+        "product.userworkflow (72)"
+      ]
+    },
+    {
+      "layer": "security",
+      "node_types": 29,
+      "short_descriptions": 1,
+      "without_evidence": 29,
+      "attributes": 125,
+      "attributes_without_description": 64,
+      "relationships": 183,
+      "boilerplate_relationships": 183,
+      "relationships_without_evidence": 183,
+      "shortest": [
+        "security.dataclassification (43)",
+        "security.auditconfig (197)",
+        "security.retentionpolicy (204)"
+      ]
+    },
+    {
+      "layer": "application",
+      "node_types": 9,
+      "short_descriptions": 5,
+      "without_evidence": 9,
+      "attributes": 22,
+      "attributes_without_description": 9,
+      "relationships": 87,
+      "boilerplate_relationships": 87,
+      "relationships_without_evidence": 87,
+      "shortest": [
+        "application.applicationservice (46)",
+        "application.applicationcollaboration (52)",
+        "application.applicationcomponent (53)"
+      ]
+    },
+    {
+      "layer": "technology",
+      "node_types": 13,
+      "short_descriptions": 0,
+      "without_evidence": 13,
+      "attributes": 48,
+      "attributes_without_description": 13,
+      "relationships": 129,
+      "boilerplate_relationships": 129,
+      "relationships_without_evidence": 129,
+      "shortest": [
+        "technology.communicationnetwork (132)",
+        "technology.device (165)",
+        "technology.technologyfunction (173)"
+      ]
+    },
+    {
+      "layer": "api",
+      "node_types": 27,
+      "short_descriptions": 0,
+      "without_evidence": 27,
+      "attributes": 113,
+      "attributes_without_description": 55,
+      "relationships": 197,
+      "boilerplate_relationships": 197,
+      "relationships_without_evidence": 197,
+      "shortest": [
+        "api.example (141)",
+        "api.contact (145)",
+        "api.license (148)"
+      ]
+    },
+    {
+      "layer": "data-model",
+      "node_types": 9,
+      "short_descriptions": 0,
+      "without_evidence": 9,
+      "attributes": 52,
+      "attributes_without_description": 32,
+      "relationships": 74,
+      "boilerplate_relationships": 74,
+      "relationships_without_evidence": 74,
+      "shortest": [
+        "data-model.objectschema (160)",
+        "data-model.schemaproperty (168)",
+        "data-model.jsonschema (174)"
+      ]
+    },
+    {
+      "layer": "data-store",
+      "node_types": 11,
+      "short_descriptions": 0,
+      "without_evidence": 11,
+      "attributes": 70,
+      "attributes_without_description": 9,
+      "relationships": 106,
+      "boilerplate_relationships": 106,
+      "relationships_without_evidence": 106,
+      "shortest": [
+        "data-store.accesspattern (193)",
+        "data-store.namespace (246)",
+        "data-store.field (262)"
+      ]
+    },
+    {
+      "layer": "ux",
+      "node_types": 22,
+      "short_descriptions": 8,
+      "without_evidence": 22,
+      "attributes": 132,
+      "attributes_without_description": 49,
+      "relationships": 189,
+      "boilerplate_relationships": 189,
+      "relationships_without_evidence": 189,
+      "shortest": [
+        "ux.view (60)",
+        "ux.componentinstance (70)",
+        "ux.experiencestate (72)"
+      ]
+    },
+    {
+      "layer": "navigation",
+      "node_types": 11,
+      "short_descriptions": 0,
+      "without_evidence": 11,
+      "attributes": 46,
+      "attributes_without_description": 20,
+      "relationships": 124,
+      "boilerplate_relationships": 124,
+      "relationships_without_evidence": 124,
+      "shortest": [
+        "navigation.contextvariable (123)",
+        "navigation.navigationgraph (165)",
+        "navigation.breadcrumbconfig (320)"
+      ]
+    },
+    {
+      "layer": "apm",
+      "node_types": 15,
+      "short_descriptions": 0,
+      "without_evidence": 15,
+      "attributes": 78,
+      "attributes_without_description": 41,
+      "relationships": 138,
+      "boilerplate_relationships": 138,
+      "relationships_without_evidence": 138,
+      "shortest": [
+        "apm.logconfiguration (151)",
+        "apm.logprocessor (166)",
+        "apm.metricinstrument (175)"
+      ]
+    },
+    {
+      "layer": "testing",
+      "node_types": 17,
+      "short_descriptions": 1,
+      "without_evidence": 17,
+      "attributes": 73,
+      "attributes_without_description": 27,
+      "relationships": 204,
+      "boilerplate_relationships": 204,
+      "relationships_without_evidence": 204,
+      "shortest": [
+        "testing.targetcoveragesummary (58)",
+        "testing.coveragesummary (129)",
+        "testing.coverageexclusion (214)"
+      ]
+    }
+  ]
+}
