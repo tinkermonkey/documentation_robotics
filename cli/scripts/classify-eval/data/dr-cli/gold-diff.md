@@ -1,10 +1,10 @@
-# Gold diff: dr-cli, baseline vs charter
+# Gold diff: dr-cli, baseline vs
 
 Cards labelled in both: 300 (A 300, B 300)
 Layer agreement: 268/300 (89.3%). Layer+type agreement: 246/300 (82.0%)
-Mean significance: baseline 1.64, charter 1.55
+Mean significance: baseline 1.64, 1.55
 
-## Layer changes (baseline -> charter)
+## Layer changes (baseline -> )
 
 | transition                | n   |
 | ------------------------- | --- |
@@ -29,7 +29,7 @@ Mean significance: baseline 1.64, charter 1.55
 
 ## Prediction files scored against each gold (layer acc / type acc)
 
-| backend                             | vs baseline   | vs charter    |
+| backend                             | vs baseline   | vs            |
 | ----------------------------------- | ------------- | ------------- |
 | claude-haiku                        | 60.3% / 49.3% | 59.0% / 50.7% |
 | claude-sonnet                       | 78.3% / 68.3% | 77.7% / 66.7% |
@@ -42,7 +42,7 @@ Mean significance: baseline 1.64, charter 1.55
 
 ## Sample of relabelled symbols
 
-| symbol                                                                    | baseline                        | charter                | charter rationale                                                                                                                                      |
+| symbol                                                                    | baseline                        |                        | rationale                                                                                                                                              |
 | ------------------------------------------------------------------------- | ------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Interface src.core.annotation-store.AnnotationCreateInput                 | data-model/objectschema         | application/dataobject | A plain input DTO interface for creating annotations in the annotation store. It is a passive data structure with no behaviour, consumed only within t |
 | Interface src.analyzers.registry.RegistryManifest                         | data-model/objectschema         | application/dataobject | A small TypeScript interface describing the shape of the analyzer registry manifest: a spec version and a list of analyzer metadata. It is a passive d |

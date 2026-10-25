@@ -1,35 +1,33 @@
 # Classification eval report: dr-cli
 
-Generated 2026-10-25T18:18:58.429Z. Cards: 300. Gold labels: 300.
+Generated 2026-10-25T19:16:55.799Z. Cards: 300. Gold labels: 300.
 
 ## Gold label distribution
 
 | layer       | n   |
 | ----------- | --- |
-| application | 174 |
-| none        | 82  |
-| data-model  | 29  |
-| security    | 5   |
-| apm         | 5   |
+| application | 191 |
+| none        | 90  |
+| data-model  | 8   |
+| security    | 4   |
+| apm         | 4   |
 | testing     | 2   |
-| api         | 1   |
 | technology  | 1   |
-| data-store  | 1   |
 
-Significance histogram (0..4): 44 / 90 / 99 / 65 / 2. Gold labels with a type id not in the spec: 2.
+Significance histogram (0..4): 55 / 91 / 92 / 59 / 3. Gold labels with a type id not in the spec: 2.
 
 ## Summary
 
 | backend                             | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
 | ----------------------------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| claude-haiku                        | 300 | 60.3%     | 49.3%                 | 81.8%                | 0.33    | 99.0%        | 0.140     | 1395 ms        | $0.113     | $0.0004     |
-| clef                                | 300 | 81.3%     | 57.3%                 | 70.5%                | 0.37    | 96.7%        | 0.261     | 654 ms         | $0.269     | $0.0009     |
-| clef@enriched-v1-kind-charter-short | 300 | 56.7%     | 48.0%                 | 84.7%                | 0.50    | 92.0%        | 0.098     | 593 ms         | $0.295     | $0.0010     |
-| clef@enriched-v1-kind               | 300 | 81.3%     | 60.7%                 | 74.6%                | 0.37    | 96.7%        | 0.261     | 754 ms         | $0.321     | $0.0011     |
-| clef@enriched-v1-kind-charter       | 300 | 34.3%     | 32.0%                 | 93.2%                | 0.68    | 77.0%        | 0.341     | 557 ms         | $0.346     | $0.0012     |
-| clef-flash                          | 300 | 61.7%     | 50.3%                 | 81.6%                | 0.51    | 90.7%        | 0.182     | 979 ms         | $0.094     | $0.0003     |
-| clef@enriched-v1                    | 300 | 81.3%     | 58.0%                 | 71.3%                | 0.37    | 96.7%        | 0.261     | 824 ms         | $0.358     | $0.0012     |
-| claude-sonnet                       | 300 | 78.3%     | 68.3%                 | 87.2%                | 0.16    | 99.7%        | 0.067     | 1498 ms        | $2.221     | $0.0074     |
+| claude-haiku                        | 300 | 59.0%     | 50.7%                 | 85.9%                | 0.36    | 99.0%        | 0.120     | 1395 ms        | $0.113     | $0.0004     |
+| clef                                | 300 | 77.3%     | 53.0%                 | 68.5%                | 0.40    | 95.0%        | 0.226     | 654 ms         | $0.269     | $0.0009     |
+| clef@enriched-v1-kind-charter-short | 300 | 57.3%     | 50.0%                 | 87.2%                | 0.48    | 92.0%        | 0.078     | 593 ms         | $0.295     | $0.0010     |
+| clef@enriched-v1-kind               | 300 | 77.3%     | 63.7%                 | 82.3%                | 0.40    | 95.0%        | 0.226     | 754 ms         | $0.321     | $0.0011     |
+| clef@enriched-v1-kind-charter       | 300 | 37.0%     | 36.0%                 | 97.3%                | 0.62    | 80.3%        | 0.314     | 557 ms         | $0.346     | $0.0012     |
+| clef-flash                          | 300 | 60.3%     | 46.7%                 | 77.3%                | 0.57    | 85.7%        | 0.169     | 979 ms         | $0.094     | $0.0003     |
+| clef@enriched-v1                    | 300 | 77.3%     | 61.0%                 | 78.9%                | 0.40    | 95.0%        | 0.226     | 824 ms         | $0.358     | $0.0012     |
+| claude-sonnet                       | 300 | 77.7%     | 66.7%                 | 85.8%                | 0.21    | 99.7%        | 0.115     | 1498 ms        | $2.221     | $0.0074     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
 
@@ -39,29 +37,29 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 51.7%  | 104         |
-| none        | 82     | 84.1%  | 139         |
-| data-model  | 29     | 27.6%  | 11          |
-| apm         | 5      | 100.0% | 11          |
-| security    | 5      | 100.0% | 5           |
+| application | 191    | 47.6%  | 104         |
+| none        | 90     | 81.1%  | 139         |
+| data-model  | 8      | 25.0%  | 11          |
+| apm         | 4      | 100.0% | 11          |
+| security    | 4      | 100.0% | 5           |
 | testing     | 2      | 100.0% | 9           |
 | technology  | 1      | 100.0% | 9           |
-| api         | 1      | 0.0%   | 8           |
-| data-store  | 1      | 100.0% | 2           |
+| api         | 0      | n/a    | 8           |
+| data-store  | 0      | n/a    | 2           |
 | product     | 0      | n/a    | 2           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 55    |
-| data-model → none        | 14    |
-| none → application       | 9     |
+| application → none       | 63    |
+| none → application       | 12    |
+| application → data-model | 9     |
 | application → technology | 8     |
 | application → testing    | 6     |
 | application → api        | 6     |
-| data-model → application | 5     |
-| application → apm        | 4     |
+| application → apm        | 5     |
+| data-model → none        | 3     |
 
 ### Calibration of layer confidence
 
@@ -70,22 +68,22 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | 0.0-0.1        | 5   | 0.06      | 0.00     | -0.06 |
 | 0.1-0.2        | 3   | 0.11      | 0.00     | -0.11 |
 | 0.2-0.3        | 9   | 0.20      | 0.00     | -0.20 |
-| 0.3-0.4        | 17  | 0.32      | 0.12     | -0.21 |
-| 0.4-0.5        | 9   | 0.45      | 0.56     | 0.11  |
+| 0.3-0.4        | 17  | 0.32      | 0.06     | -0.26 |
+| 0.4-0.5        | 9   | 0.45      | 0.44     | -0.01 |
 | 0.5-0.6        | 27  | 0.51      | 0.74     | 0.23  |
-| 0.6-0.7        | 115 | 0.60      | 0.70     | 0.10  |
-| 0.7-0.8        | 21  | 0.70      | 0.43     | -0.27 |
-| 0.8-0.9        | 89  | 0.81      | 0.67     | -0.13 |
+| 0.6-0.7        | 115 | 0.60      | 0.66     | 0.06  |
+| 0.7-0.8        | 21  | 0.70      | 0.48     | -0.23 |
+| 0.8-0.9        | 89  | 0.81      | 0.69     | -0.12 |
 | 0.9-1.0        | 5   | 0.90      | 1.00     | 0.10  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 85.7%    | 67.7%             |
-| ≥0.60     | 76.7%    | 67.0%             |
-| ≥0.70     | 38.3%    | 64.3%             |
-| ≥0.80     | 31.3%    | 69.1%             |
+| ≥0.50     | 85.7%    | 66.9%             |
+| ≥0.60     | 76.7%    | 66.1%             |
+| ≥0.70     | 38.3%    | 66.1%             |
+| ≥0.80     | 31.3%    | 70.2%             |
 | ≥0.90     | 1.7%     | 100.0%            |
 | ≥0.95     | 0.0%     | n/a               |
 
@@ -95,25 +93,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 1.00      | 1.00   | 1.00       |
-| data_persistence     | 56             | 0.88      | 0.64   | 0.74       |
-| external_integration | 25             | 0.74      | 0.68   | 0.71       |
-| observability        | 35             | 0.76      | 0.63   | 0.69       |
-| user_interface       | 29             | 0.79      | 0.79   | 0.79       |
+| data_persistence     | 53             | 0.88      | 0.68   | 0.77       |
+| external_integration | 24             | 0.70      | 0.67   | 0.68       |
+| observability        | 34             | 0.72      | 0.62   | 0.67       |
+| user_interface       | 31             | 0.83      | 0.77   | 0.80       |
 
 ### Sample layer disagreements
 
 | symbol                                                          | gold                             | predicted (conf)                       | gold rationale                                                                                                                                                   |
 | --------------------------------------------------------------- | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Module src.schemas.bundled.testing                              | data-model/jsonschema            | testing/testcoveragemodel (0.80)       | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
-| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | technology/artifact (0.30)             | A pluggable Exporter implementation that serializes the architecture model to GraphML. It is one of several format exporters used by the export command and MCP  |
-| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.60)                          | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
-| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | testing/- (0.12)                       | GapAnalyzer is a domain analysis class used by AuditOrchestrator. It compares layer relationship templates against existing relationships to find missing ones a |
-| Function src.integrations.hash-utils.scanDir                    | none/-                           | application/applicationfunction (0.50) | Nested recursive helper inside computeDirectoryHashes that walks a directory and hashes files. It is an implementation detail of a hashing utility, not an archi |
-| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.85)                          | A static configuration module holding per-layer relationship templates (expected source/destination/predicate patterns) that the audit gap analysis uses for sta |
-| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.60)                          | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.80)                          | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
-| Method src.analyzers.cbm-analyzer.CbmAnalyzer.shapeRoute        | none/-                           | application/applicationfunction (0.60) | A data-shaping helper that normalizes a raw CBM graph node into a route record with defaults. It is called only by verify() and was extracted for testability. I |
-| Class src.core.relationship-catalog.RelationshipCatalog         | application/applicationcomponent | technology/- (0.20)                    | Core component that loads relationship predicates and per-layer relationship schemas from bundled JSON files and exposes a catalog of relationship types. It is  |
+| Module src.schemas.bundled.testing                              | data-model/jsonschema            | testing/testcoveragemodel (0.80)       | This is the bundled JSON Schema (draft-07) for the testing layer of the specification itself. It defines node schemas such as contextvariation and coverageexclu |
+| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | technology/artifact (0.30)             | A pluggable Exporter implementation that serializes the model to GraphML. It is a cohesive, replaceable unit used by the export command and the MCP export tool. |
+| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.60)                          | Small exported helper inside the relationship command module. It looks up the catalog entry for a source-predicate-destination triple and returns that relations |
+| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | testing/- (0.12)                       | GapAnalyzer is a cohesive analysis class within the relationship audit subsystem. The AuditOrchestrator instantiates it, and it compares layer templates against |
+| Function src.integrations.hash-utils.scanDir                    | none/-                           | application/applicationfunction (0.50) | A nested recursive helper inside computeDirectoryHashes that walks a directory and hashes the files in it. It is a private implementation detail of the hashing  |
+| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.85)                          | A static configuration module declaring the LayerTemplate interface and per-layer expected relationship patterns, used as reference data for audit gap analysis. |
+| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.60)                          | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.80)                          | BFS traversal over the in-memory graph model, optionally filtered by predicate and bounded by depth. It is a notable internal capability of the GraphModel compo |
+| Method src.analyzers.cbm-analyzer.CbmAnalyzer.shapeRoute        | none/-                           | application/applicationfunction (0.60) | An @internal data-shaping helper that normalizes a raw CBM graph node into a route record with default values. It is extracted only for testability and has a si |
+| Class src.core.relationship-catalog.RelationshipCatalog         | application/applicationcomponent | technology/- (0.20)                    | Core class that loads the predicate and relationship schema catalog from bundled JSON files on disk and exposes relationship type lookups. It is used by CLI com |
 
 ## clef
 
@@ -121,47 +119,46 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 76.4%  | 138         |
-| none        | 82     | 92.7%  | 99          |
-| data-model  | 29     | 89.7%  | 50          |
-| security    | 5      | 80.0%  | 5           |
-| apm         | 5      | 80.0%  | 6           |
+| application | 191    | 70.7%  | 138         |
+| none        | 90     | 90.0%  | 99          |
+| data-model  | 8      | 87.5%  | 50          |
+| security    | 4      | 100.0% | 5           |
+| apm         | 4      | 100.0% | 6           |
 | testing     | 2      | 50.0%  | 1           |
-| api         | 1      | 0.0%   | 1           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 0.0%   | 0           |
+| api         | 0      | n/a    | 1           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 22    |
-| application → data-model | 19    |
-| data-model → application | 2     |
-| none → data-model        | 2     |
+| application → data-model | 38    |
+| application → none       | 18    |
+| none → data-model        | 4     |
 | none → apm               | 2     |
+| none → application       | 2     |
 | data-model → security    | 1     |
-| api → data-model         | 1     |
-| data-store → application | 1     |
+| none → api               | 1     |
+| technology → data-model  | 1     |
 
 ### Calibration of layer confidence
 
-| confidence bin | n   | mean conf | accuracy | gap  |
-| -------------- | --- | --------- | -------- | ---- |
-| 0.2-0.3        | 3   | 0.28      | 0.33     | 0.06 |
-| 0.3-0.4        | 36  | 0.36      | 0.44     | 0.08 |
-| 0.4-0.5        | 65  | 0.45      | 0.72     | 0.27 |
-| 0.5-0.6        | 89  | 0.55      | 0.87     | 0.32 |
-| 0.6-0.7        | 73  | 0.66      | 0.97     | 0.31 |
-| 0.7-0.8        | 25  | 0.74      | 0.96     | 0.22 |
-| 0.8-0.9        | 9   | 0.83      | 0.89     | 0.06 |
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 3   | 0.28      | 0.00     | -0.28 |
+| 0.3-0.4        | 36  | 0.36      | 0.39     | 0.03  |
+| 0.4-0.5        | 65  | 0.45      | 0.72     | 0.27  |
+| 0.5-0.6        | 89  | 0.55      | 0.82     | 0.27  |
+| 0.6-0.7        | 73  | 0.66      | 0.90     | 0.25  |
+| 0.7-0.8        | 25  | 0.74      | 0.96     | 0.22  |
+| 0.8-0.9        | 9   | 0.83      | 0.89     | 0.06  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 65.3%    | 91.8%             |
-| ≥0.60     | 35.7%    | 96.3%             |
+| ≥0.50     | 65.3%    | 87.2%             |
+| ≥0.60     | 35.7%    | 91.6%             |
 | ≥0.70     | 11.3%    | 94.1%             |
 | ≥0.80     | 3.0%     | 88.9%             |
 | ≥0.90     | 0.0%     | n/a               |
@@ -173,25 +170,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 0.67      | 1.00   | 0.80       |
-| data_persistence     | 56             | 1.00      | 0.30   | 0.47       |
-| external_integration | 25             | 1.00      | 0.60   | 0.75       |
-| observability        | 35             | 0.81      | 0.37   | 0.51       |
-| user_interface       | 29             | 0.76      | 0.55   | 0.64       |
+| data_persistence     | 53             | 1.00      | 0.32   | 0.49       |
+| external_integration | 24             | 1.00      | 0.63   | 0.77       |
+| observability        | 34             | 0.69      | 0.32   | 0.44       |
+| user_interface       | 31             | 0.81      | 0.55   | 0.65       |
 
 ### Sample layer disagreements
 
 | symbol                                                               | gold                            | predicted (conf)               | gold rationale                                                                                                                                                   |
 | -------------------------------------------------------------------- | ------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Function src.commands.relationship.getRelationshipConstraints        | application/applicationfunction | none/- (0.37)                  | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
-| Interface src.core.virtual-projection.ModelDiff                      | application/dataobject          | data-model/objectschema (0.51) | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
-| Interface src.core.stats-collector.ValidationInfo                    | application/dataobject          | data-model/objectschema (0.36) | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Module src.integrations.hash-utils                                   | application/applicationfunction | none/- (0.61)                  | Utility module that computes SHA256 file and directory hashes for change detection of integration files. It reads files from disk, which counts as data persiste |
-| Method src.core.spec-data-service.SpecDataService.getValidPredicates | application/applicationfunction | none/- (0.42)                  | Small query method on SpecDataService that derives the unique relationship predicates valid between two spec node types using in-memory loader data. It is inter |
-| Interface src.core.spec-loader.CompiledBase                          | data-model/objectschema         | application/dataobject (0.33)  | A small structural type describing the shape of a compiled spec bundle: version, schemas and predicates. It is a data-shape definition used internally by the sp |
-| Interface src.validators.validation-formatter.ValidationStats        | none/-                          | data-model/- (0.31)            | A small internal stats shape that the validation formatter uses to summarise element and relationship counts for output. It is a local helper type with no calle |
-| Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface configuring the staging-area commit operation (force, validate, dryRun). It is a passive parameter shape that matters only within the  |
-| Function src.commands.reports.hasLayerReports                        | application/applicationfunction | none/- (0.47)                  | Small helper that reads the reports directory on disk to check for existing markdown layer reports; used only by the upgrade command. It is a minor internal fun |
-| Module src.schemas.bundled.security                                  | data-model/jsonschema           | security/securitymodel (0.39)  | Bundled JSON Schema (draft-07) document defining the node schemas for the security layer of the Documentation Robotics spec. It is a canonical data contract use |
+| Function src.commands.relationship.getRelationshipConstraints        | application/applicationfunction | none/- (0.37)                  | Small exported helper inside the relationship command module. It looks up the catalog entry for a source-predicate-destination triple and returns that relations |
+| Interface src.core.virtual-projection.ModelDiff                      | application/dataobject          | data-model/objectschema (0.51) | ModelDiff is a passive, exported data structure. It holds the additions, modifications and deletions computed when a changeset is projected onto the model. It h |
+| Interface src.core.stats-collector.ValidationInfo                    | application/dataobject          | data-model/objectschema (0.36) | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Module src.integrations.hash-utils                                   | application/applicationfunction | none/- (0.61)                  | Utility module providing SHA256 file and directory hashing to detect changes in installed integration files. It is a small internal helper capability that reads |
+| Method src.core.spec-data-service.SpecDataService.getValidPredicates | application/applicationfunction | none/- (0.42)                  | A public method on SpecDataService that looks up which relationship predicates are valid between two spec node types. This is the lookup the CLI uses to validat |
+| Interface src.core.relationship-registry.RelationshipTypeMetadata    | application/dataobject          | data-model/objectschema (0.68) | A passive TypeScript interface that holds relationship-type metadata (predicate, inverse, category) for the relationship registry. It has no behaviour and no ca |
+| Interface src.validators.validation-formatter.ValidationStats        | none/-                          | data-model/- (0.31)            | A small internal type holding summary counts for the validation formatter's output. It has no callers and no behaviour, and sits below the granularity a maintai |
+| Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface holding three boolean flags (force, validate, dryRun) for the staging-area commit operation. It is a passive data structure with no be |
+| Interface src.commands.visualize.VisualizeOptions                    | application/dataobject          | none/- (0.37)                  | A plain options interface holding the CLI flags for the visualize command (port, auth token, browser toggle). It is a passive data structure with no behaviour o |
+| Module src.schemas.bundled.security                                  | data-model/jsonschema           | security/securitymodel (0.39)  | A bundled JSON Schema document that defines the node schemas for the spec's security layer, covering its node types and their attributes. In this codebase it is |
 
 ## clef@enriched-v1-kind-charter-short
 
@@ -199,28 +196,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 38.5%  | 70          |
-| none        | 82     | 100.0% | 196         |
-| data-model  | 29     | 48.3%  | 26          |
-| security    | 5      | 80.0%  | 5           |
-| apm         | 5      | 60.0%  | 3           |
+| application | 191    | 36.6%  | 70          |
+| none        | 90     | 100.0% | 196         |
+| data-model  | 8      | 62.5%  | 26          |
+| security    | 4      | 100.0% | 5           |
+| apm         | 4      | 75.0%  | 3           |
 | testing     | 2      | 0.0%   | 0           |
-| api         | 1      | 0.0%   | 0           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 0.0%   | 0           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 96    |
-| data-model → none        | 12    |
-| application → data-model | 11    |
-| data-model → application | 2     |
+| application → none       | 101   |
+| application → data-model | 20    |
+| data-model → none        | 2     |
 | testing → none           | 2     |
-| apm → none               | 2     |
 | data-model → security    | 1     |
-| api → none               | 1     |
+| technology → data-model  | 1     |
+| apm → none               | 1     |
 
 ### Calibration of layer confidence
 
@@ -229,18 +223,18 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | 0.2-0.3        | 1   | 0.30      | 0.00     | -0.30 |
 | 0.3-0.4        | 25  | 0.37      | 0.24     | -0.13 |
 | 0.4-0.5        | 80  | 0.45      | 0.45     | -0.00 |
-| 0.5-0.6        | 69  | 0.54      | 0.62     | 0.08  |
-| 0.6-0.7        | 62  | 0.65      | 0.45     | -0.20 |
-| 0.7-0.8        | 44  | 0.75      | 0.86     | 0.11  |
+| 0.5-0.6        | 69  | 0.54      | 0.58     | 0.04  |
+| 0.6-0.7        | 62  | 0.65      | 0.52     | -0.13 |
+| 0.7-0.8        | 44  | 0.75      | 0.89     | 0.13  |
 | 0.8-0.9        | 19  | 0.84      | 1.00     | 0.16  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 64.7%    | 66.0%             |
-| ≥0.60     | 41.7%    | 68.0%             |
-| ≥0.70     | 21.0%    | 90.5%             |
+| ≥0.50     | 64.7%    | 67.0%             |
+| ≥0.60     | 41.7%    | 72.0%             |
+| ≥0.70     | 21.0%    | 92.1%             |
 | ≥0.80     | 6.3%     | 100.0%            |
 | ≥0.90     | 0.0%     | n/a               |
 | ≥0.95     | 0.0%     | n/a               |
@@ -251,25 +245,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 0.67      | 1.00   | 0.80       |
-| data_persistence     | 56             | 1.00      | 0.27   | 0.42       |
-| external_integration | 25             | 1.00      | 0.60   | 0.75       |
-| observability        | 35             | 0.83      | 0.43   | 0.57       |
-| user_interface       | 29             | 0.78      | 0.62   | 0.69       |
+| data_persistence     | 53             | 1.00      | 0.28   | 0.44       |
+| external_integration | 24             | 1.00      | 0.63   | 0.77       |
+| observability        | 34             | 0.72      | 0.38   | 0.50       |
+| user_interface       | 31             | 0.83      | 0.61   | 0.70       |
 
 ### Sample layer disagreements
 
 | symbol                                                          | gold                             | predicted (conf)               | gold rationale                                                                                                                                                   |
 | --------------------------------------------------------------- | -------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.44)                  | A pluggable Exporter implementation that serializes the architecture model to GraphML. It is one of several format exporters used by the export command and MCP  |
-| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.37)                  | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
-| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.62)                  | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
-| Module src.schemas.bundled.testing                              | data-model/jsonschema            | none/- (0.35)                  | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
-| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.55)                  | A static configuration module holding per-layer relationship templates (expected source/destination/predicate patterns) that the audit gap analysis uses for sta |
-| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.60)                  | GapAnalyzer is a domain analysis class used by AuditOrchestrator. It compares layer relationship templates against existing relationships to find missing ones a |
-| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.62)                  | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
-| Module src.integrations.hash-utils                              | application/applicationfunction  | none/- (0.74)                  | Utility module that computes SHA256 file and directory hashes for change detection of integration files. It reads files from disk, which counts as data persiste |
-| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | data-model/objectschema (0.40) | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Interface src.core.spec-loader.CompiledBase                     | data-model/objectschema          | none/- (0.38)                  | A small structural type describing the shape of a compiled spec bundle: version, schemas and predicates. It is a data-shape definition used internally by the sp |
+| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.44)                  | A pluggable Exporter implementation that serializes the model to GraphML. It is a cohesive, replaceable unit used by the export command and the MCP export tool. |
+| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.37)                  | ModelDiff is a passive, exported data structure. It holds the additions, modifications and deletions computed when a changeset is projected onto the model. It h |
+| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.62)                  | Small exported helper inside the relationship command module. It looks up the catalog entry for a source-predicate-destination triple and returns that relations |
+| Module src.schemas.bundled.testing                              | data-model/jsonschema            | none/- (0.35)                  | This is the bundled JSON Schema (draft-07) for the testing layer of the specification itself. It defines node schemas such as contextvariation and coverageexclu |
+| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.55)                  | A static configuration module declaring the LayerTemplate interface and per-layer expected relationship patterns, used as reference data for audit gap analysis. |
+| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.60)                  | GapAnalyzer is a cohesive analysis class within the relationship audit subsystem. The AuditOrchestrator instantiates it, and it compares layer templates against |
+| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.62)                  | BFS traversal over the in-memory graph model, optionally filtered by predicate and bounded by depth. It is a notable internal capability of the GraphModel compo |
+| Module src.integrations.hash-utils                              | application/applicationfunction  | none/- (0.74)                  | Utility module providing SHA256 file and directory hashing to detect changes in installed integration files. It is a small internal helper capability that reads |
+| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | data-model/objectschema (0.40) | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Interface src.core.spec-loader.CompiledBase                     | application/dataobject           | none/- (0.38)                  | A small TypeScript interface that only describes the shape of compiled spec data (version, schemas, predicates) used by the spec loader. As a passive state carr |
 
 ## clef@enriched-v1-kind
 
@@ -277,47 +271,46 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 76.4%  | 138         |
-| none        | 82     | 92.7%  | 99          |
-| data-model  | 29     | 89.7%  | 50          |
-| security    | 5      | 80.0%  | 5           |
-| apm         | 5      | 80.0%  | 6           |
+| application | 191    | 70.7%  | 138         |
+| none        | 90     | 90.0%  | 99          |
+| data-model  | 8      | 87.5%  | 50          |
+| security    | 4      | 100.0% | 5           |
+| apm         | 4      | 100.0% | 6           |
 | testing     | 2      | 50.0%  | 1           |
-| api         | 1      | 0.0%   | 1           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 0.0%   | 0           |
+| api         | 0      | n/a    | 1           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 22    |
-| application → data-model | 19    |
-| data-model → application | 2     |
-| none → data-model        | 2     |
+| application → data-model | 38    |
+| application → none       | 18    |
+| none → data-model        | 4     |
 | none → apm               | 2     |
+| none → application       | 2     |
 | data-model → security    | 1     |
-| api → data-model         | 1     |
-| data-store → application | 1     |
+| none → api               | 1     |
+| technology → data-model  | 1     |
 
 ### Calibration of layer confidence
 
-| confidence bin | n   | mean conf | accuracy | gap  |
-| -------------- | --- | --------- | -------- | ---- |
-| 0.2-0.3        | 3   | 0.28      | 0.33     | 0.06 |
-| 0.3-0.4        | 36  | 0.36      | 0.44     | 0.08 |
-| 0.4-0.5        | 65  | 0.45      | 0.72     | 0.27 |
-| 0.5-0.6        | 89  | 0.55      | 0.87     | 0.32 |
-| 0.6-0.7        | 73  | 0.66      | 0.97     | 0.31 |
-| 0.7-0.8        | 25  | 0.74      | 0.96     | 0.22 |
-| 0.8-0.9        | 9   | 0.83      | 0.89     | 0.06 |
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 3   | 0.28      | 0.00     | -0.28 |
+| 0.3-0.4        | 36  | 0.36      | 0.39     | 0.03  |
+| 0.4-0.5        | 65  | 0.45      | 0.72     | 0.27  |
+| 0.5-0.6        | 89  | 0.55      | 0.82     | 0.27  |
+| 0.6-0.7        | 73  | 0.66      | 0.90     | 0.25  |
+| 0.7-0.8        | 25  | 0.74      | 0.96     | 0.22  |
+| 0.8-0.9        | 9   | 0.83      | 0.89     | 0.06  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 65.3%    | 91.8%             |
-| ≥0.60     | 35.7%    | 96.3%             |
+| ≥0.50     | 65.3%    | 87.2%             |
+| ≥0.60     | 35.7%    | 91.6%             |
 | ≥0.70     | 11.3%    | 94.1%             |
 | ≥0.80     | 3.0%     | 88.9%             |
 | ≥0.90     | 0.0%     | n/a               |
@@ -329,25 +322,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 0.67      | 1.00   | 0.80       |
-| data_persistence     | 56             | 1.00      | 0.30   | 0.47       |
-| external_integration | 25             | 1.00      | 0.60   | 0.75       |
-| observability        | 35             | 0.81      | 0.37   | 0.51       |
-| user_interface       | 29             | 0.76      | 0.55   | 0.64       |
+| data_persistence     | 53             | 1.00      | 0.32   | 0.49       |
+| external_integration | 24             | 1.00      | 0.63   | 0.77       |
+| observability        | 34             | 0.69      | 0.32   | 0.44       |
+| user_interface       | 31             | 0.81      | 0.55   | 0.65       |
 
 ### Sample layer disagreements
 
 | symbol                                                               | gold                            | predicted (conf)               | gold rationale                                                                                                                                                   |
 | -------------------------------------------------------------------- | ------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Function src.commands.relationship.getRelationshipConstraints        | application/applicationfunction | none/- (0.37)                  | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
-| Interface src.core.virtual-projection.ModelDiff                      | application/dataobject          | data-model/objectschema (0.51) | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
-| Interface src.core.stats-collector.ValidationInfo                    | application/dataobject          | data-model/objectschema (0.36) | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Module src.integrations.hash-utils                                   | application/applicationfunction | none/- (0.61)                  | Utility module that computes SHA256 file and directory hashes for change detection of integration files. It reads files from disk, which counts as data persiste |
-| Interface src.core.spec-loader.CompiledBase                          | data-model/objectschema         | application/dataobject (0.33)  | A small structural type describing the shape of a compiled spec bundle: version, schemas and predicates. It is a data-shape definition used internally by the sp |
-| Method src.core.spec-data-service.SpecDataService.getValidPredicates | application/applicationfunction | none/- (0.42)                  | Small query method on SpecDataService that derives the unique relationship predicates valid between two spec node types using in-memory loader data. It is inter |
-| Interface src.validators.validation-formatter.ValidationStats        | none/-                          | data-model/- (0.31)            | A small internal stats shape that the validation formatter uses to summarise element and relationship counts for output. It is a local helper type with no calle |
-| Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface configuring the staging-area commit operation (force, validate, dryRun). It is a passive parameter shape that matters only within the  |
-| Function src.commands.reports.hasLayerReports                        | application/applicationfunction | none/- (0.47)                  | Small helper that reads the reports directory on disk to check for existing markdown layer reports; used only by the upgrade command. It is a minor internal fun |
-| Interface src.core.virtual-projection.ProjectedModel                 | application/dataobject          | data-model/objectschema (0.40) | Interface defining the shape of a virtual projection of the architecture model (manifest, layers, relationships) with staged changes applied. It is an in-memory |
+| Function src.commands.relationship.getRelationshipConstraints        | application/applicationfunction | none/- (0.37)                  | Small exported helper inside the relationship command module. It looks up the catalog entry for a source-predicate-destination triple and returns that relations |
+| Interface src.core.virtual-projection.ModelDiff                      | application/dataobject          | data-model/objectschema (0.51) | ModelDiff is a passive, exported data structure. It holds the additions, modifications and deletions computed when a changeset is projected onto the model. It h |
+| Interface src.core.stats-collector.ValidationInfo                    | application/dataobject          | data-model/objectschema (0.36) | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Module src.integrations.hash-utils                                   | application/applicationfunction | none/- (0.61)                  | Utility module providing SHA256 file and directory hashing to detect changes in installed integration files. It is a small internal helper capability that reads |
+| Method src.core.spec-data-service.SpecDataService.getValidPredicates | application/applicationfunction | none/- (0.42)                  | A public method on SpecDataService that looks up which relationship predicates are valid between two spec node types. This is the lookup the CLI uses to validat |
+| Interface src.core.relationship-registry.RelationshipTypeMetadata    | application/dataobject          | data-model/objectschema (0.68) | A passive TypeScript interface that holds relationship-type metadata (predicate, inverse, category) for the relationship registry. It has no behaviour and no ca |
+| Interface src.validators.validation-formatter.ValidationStats        | none/-                          | data-model/- (0.31)            | A small internal type holding summary counts for the validation formatter's output. It has no callers and no behaviour, and sits below the granularity a maintai |
+| Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface holding three boolean flags (force, validate, dryRun) for the staging-area commit operation. It is a passive data structure with no be |
+| Interface src.commands.visualize.VisualizeOptions                    | application/dataobject          | none/- (0.37)                  | A plain options interface holding the CLI flags for the visualize command (port, auth token, browser toggle). It is a passive data structure with no behaviour o |
+| Interface src.core.virtual-projection.ProjectedModel                 | application/dataobject          | data-model/objectschema (0.40) | A passive TypeScript interface holding the state of a virtual projected model (manifest, layers, relationships) produced when changesets are applied over the ba |
 
 ## clef@enriched-v1-kind-charter
 
@@ -355,28 +348,26 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 8.6%   | 16          |
-| none        | 82     | 100.0% | 274         |
-| data-model  | 29     | 6.9%   | 5           |
-| security    | 5      | 20.0%  | 2           |
-| apm         | 5      | 60.0%  | 3           |
+| application | 191    | 7.9%   | 16          |
+| none        | 90     | 100.0% | 274         |
+| data-model  | 8      | 25.0%  | 5           |
+| security    | 4      | 25.0%  | 2           |
+| apm         | 4      | 75.0%  | 3           |
 | testing     | 2      | 0.0%   | 0           |
-| api         | 1      | 0.0%   | 0           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 0.0%   | 0           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 157   |
-| data-model → none        | 25    |
-| security → none          | 4     |
+| application → none       | 174   |
+| data-model → none        | 4     |
+| security → none          | 3     |
 | application → data-model | 2     |
 | testing → none           | 2     |
-| apm → none               | 2     |
 | data-model → security    | 1     |
 | data-model → application | 1     |
+| technology → data-model  | 1     |
 
 ### Calibration of layer confidence
 
@@ -385,19 +376,19 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | 0.3-0.4        | 8   | 0.36      | 0.25     | -0.11 |
 | 0.4-0.5        | 44  | 0.45      | 0.30     | -0.16 |
 | 0.5-0.6        | 42  | 0.56      | 0.10     | -0.46 |
-| 0.6-0.7        | 60  | 0.65      | 0.05     | -0.60 |
-| 0.7-0.8        | 65  | 0.76      | 0.25     | -0.51 |
-| 0.8-0.9        | 71  | 0.85      | 0.77     | -0.07 |
+| 0.6-0.7        | 60  | 0.65      | 0.07     | -0.58 |
+| 0.7-0.8        | 65  | 0.76      | 0.31     | -0.45 |
+| 0.8-0.9        | 71  | 0.85      | 0.82     | -0.03 |
 | 0.9-1.0        | 10  | 0.91      | 1.00     | 0.09  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 82.7%    | 35.5%             |
-| ≥0.60     | 68.7%    | 40.8%             |
-| ≥0.70     | 48.7%    | 55.5%             |
-| ≥0.80     | 27.0%    | 80.2%             |
+| ≥0.50     | 82.7%    | 38.7%             |
+| ≥0.60     | 68.7%    | 44.7%             |
+| ≥0.70     | 48.7%    | 60.3%             |
+| ≥0.80     | 27.0%    | 84.0%             |
 | ≥0.90     | 3.3%     | 100.0%            |
 | ≥0.95     | 0.0%     | n/a               |
 
@@ -407,25 +398,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 1.00      | 1.00   | 1.00       |
-| data_persistence     | 56             | 1.00      | 0.23   | 0.38       |
-| external_integration | 25             | 1.00      | 0.60   | 0.75       |
-| observability        | 35             | 0.81      | 0.37   | 0.51       |
-| user_interface       | 29             | 0.83      | 0.66   | 0.73       |
+| data_persistence     | 53             | 1.00      | 0.25   | 0.39       |
+| external_integration | 24             | 1.00      | 0.63   | 0.77       |
+| observability        | 34             | 0.75      | 0.35   | 0.48       |
+| user_interface       | 31             | 0.87      | 0.65   | 0.74       |
 
 ### Sample layer disagreements
 
 | symbol                                                          | gold                             | predicted (conf) | gold rationale                                                                                                                                                   |
 | --------------------------------------------------------------- | -------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.77)    | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
-| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.58)    | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
-| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.62)    | A pluggable Exporter implementation that serializes the architecture model to GraphML. It is one of several format exporters used by the export command and MCP  |
-| Module src.schemas.bundled.testing                              | data-model/jsonschema            | none/- (0.42)    | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
-| Interface src.types.BackupManifest                              | data-model/objectschema          | none/- (0.40)    | An exported type definition describing the shape of a backup manifest: a list of backed-up files plus a creation timestamp. It is a domain record schema, so it  |
-| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.68)    | A static configuration module holding per-layer relationship templates (expected source/destination/predicate patterns) that the audit gap analysis uses for sta |
-| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.72)    | GapAnalyzer is a domain analysis class used by AuditOrchestrator. It compares layer relationship templates against existing relationships to find missing ones a |
-| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.64)    | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.73)    | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
-| Interface src.core.spec-loader.CompiledBase                     | data-model/objectschema          | none/- (0.62)    | A small structural type describing the shape of a compiled spec bundle: version, schemas and predicates. It is a data-shape definition used internally by the sp |
+| Function src.commands.relationship.getRelationshipConstraints   | application/applicationfunction  | none/- (0.77)    | Small exported helper inside the relationship command module. It looks up the catalog entry for a source-predicate-destination triple and returns that relations |
+| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.58)    | ModelDiff is a passive, exported data structure. It holds the additions, modifications and deletions computed when a changeset is projected onto the model. It h |
+| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.62)    | A pluggable Exporter implementation that serializes the model to GraphML. It is a cohesive, replaceable unit used by the export command and the MCP export tool. |
+| Module src.schemas.bundled.testing                              | data-model/jsonschema            | none/- (0.42)    | This is the bundled JSON Schema (draft-07) for the testing layer of the specification itself. It defines node schemas such as contextvariation and coverageexclu |
+| Interface src.types.BackupManifest                              | data-model/objectschema          | none/- (0.40)    | An exported type definition describing the shape of a backup manifest (a list of files plus a timestamp). It is a domain data structure with no behaviour, so it |
+| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.68)    | A static configuration module declaring the LayerTemplate interface and per-layer expected relationship patterns, used as reference data for audit gap analysis. |
+| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.72)    | GapAnalyzer is a cohesive analysis class within the relationship audit subsystem. The AuditOrchestrator instantiates it, and it compares layer templates against |
+| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.64)    | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.73)    | BFS traversal over the in-memory graph model, optionally filtered by predicate and bounded by depth. It is a notable internal capability of the GraphModel compo |
+| Interface src.core.spec-loader.CompiledBase                     | application/dataobject           | none/- (0.62)    | A small TypeScript interface that only describes the shape of compiled spec data (version, schemas, predicates) used by the spec loader. As a passive state carr |
 
 ## clef-flash
 
@@ -433,14 +424,12 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 51.1%  | 100         |
-| none        | 82     | 92.7%  | 169         |
-| data-model  | 29     | 51.7%  | 23          |
-| security    | 5      | 20.0%  | 2           |
-| apm         | 5      | 80.0%  | 4           |
+| application | 191    | 47.1%  | 100         |
+| none        | 90     | 91.1%  | 169         |
+| data-model  | 8      | 50.0%  | 23          |
+| security    | 4      | 25.0%  | 2           |
+| apm         | 4      | 100.0% | 4           |
 | testing     | 2      | 0.0%   | 1           |
-| api         | 1      | 0.0%   | 0           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 0.0%   | 0           |
 | product     | 0      | n/a    | 1           |
 
@@ -448,24 +437,24 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 78    |
-| data-model → none        | 10    |
-| application → data-model | 7     |
+| application → none       | 84    |
+| application → data-model | 17    |
 | none → application       | 6     |
-| security → none          | 2     |
+| none → data-model        | 2     |
 | security → application   | 2     |
 | testing → none           | 2     |
 | data-model → testing     | 1     |
+| security → none          | 1     |
 
 ### Calibration of layer confidence
 
 | confidence bin | n   | mean conf | accuracy | gap  |
 | -------------- | --- | --------- | -------- | ---- |
 | 0.2-0.3        | 21  | 0.28      | 0.29     | 0.01 |
-| 0.3-0.4        | 113 | 0.35      | 0.49     | 0.13 |
-| 0.4-0.5        | 88  | 0.44      | 0.69     | 0.25 |
+| 0.3-0.4        | 113 | 0.35      | 0.48     | 0.12 |
+| 0.4-0.5        | 88  | 0.44      | 0.65     | 0.20 |
 | 0.5-0.6        | 49  | 0.53      | 0.80     | 0.26 |
-| 0.6-0.7        | 22  | 0.64      | 0.77     | 0.13 |
+| 0.6-0.7        | 22  | 0.64      | 0.82     | 0.18 |
 | 0.7-0.8        | 6   | 0.75      | 1.00     | 0.25 |
 | 0.8-0.9        | 1   | 0.80      | 1.00     | 0.20 |
 
@@ -473,8 +462,8 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 26.0%    | 80.8%             |
-| ≥0.60     | 9.7%     | 82.8%             |
+| ≥0.50     | 26.0%    | 82.1%             |
+| ≥0.60     | 9.7%     | 86.2%             |
 | ≥0.70     | 2.3%     | 100.0%            |
 | ≥0.80     | 0.3%     | 100.0%            |
 | ≥0.90     | 0.0%     | n/a               |
@@ -486,25 +475,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 0.50   | 0.67       |
 | authorization        | 2              | n/a       | 0.00   | n/a        |
-| data_persistence     | 56             | 1.00      | 0.23   | 0.38       |
-| external_integration | 25             | 1.00      | 0.36   | 0.53       |
-| observability        | 35             | 0.82      | 0.26   | 0.39       |
-| user_interface       | 29             | 0.64      | 0.24   | 0.35       |
+| data_persistence     | 53             | 1.00      | 0.25   | 0.39       |
+| external_integration | 24             | 0.89      | 0.33   | 0.48       |
+| observability        | 34             | 0.64      | 0.21   | 0.31       |
+| user_interface       | 31             | 0.73      | 0.26   | 0.38       |
 
 ### Sample layer disagreements
 
 | symbol                                                          | gold                             | predicted (conf)                       | gold rationale                                                                                                                                                   |
 | --------------------------------------------------------------- | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.32)                          | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
-| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.33)                          | A pluggable Exporter implementation that serializes the architecture model to GraphML. It is one of several format exporters used by the export command and MCP  |
-| Module src.schemas.bundled.testing                              | data-model/jsonschema            | testing/- (0.63)                       | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
-| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.43)                          | A static configuration module holding per-layer relationship templates (expected source/destination/predicate patterns) that the audit gap analysis uses for sta |
-| Function src.integrations.hash-utils.scanDir                    | none/-                           | application/applicationfunction (0.37) | Nested recursive helper inside computeDirectoryHashes that walks a directory and hashes files. It is an implementation detail of a hashing utility, not an archi |
-| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.38)                          | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.41)                          | GapAnalyzer is a domain analysis class used by AuditOrchestrator. It compares layer relationship templates against existing relationships to find missing ones a |
-| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.35)                          | A BFS traversal over the in-memory graph model. It is a notable internal capability of the core GraphModel component, exposed upward through Model.traverse, but |
-| Class src.core.relationship-catalog.RelationshipCatalog         | application/applicationcomponent | none/- (0.29)                          | Core component that loads relationship predicates and per-layer relationship schemas from bundled JSON files and exposes a catalog of relationship types. It is  |
-| Module src.integrations.hash-utils                              | application/applicationfunction  | none/- (0.55)                          | Utility module that computes SHA256 file and directory hashes for change detection of integration files. It reads files from disk, which counts as data persiste |
+| Interface src.core.virtual-projection.ModelDiff                 | application/dataobject           | none/- (0.32)                          | ModelDiff is a passive, exported data structure. It holds the additions, modifications and deletions computed when a changeset is projected onto the model. It h |
+| Class src.export.graphml-exporter.GraphMLExporter               | application/applicationcomponent | none/- (0.33)                          | A pluggable Exporter implementation that serializes the model to GraphML. It is a cohesive, replaceable unit used by the export command and the MCP export tool. |
+| Module src.schemas.bundled.testing                              | data-model/jsonschema            | testing/- (0.63)                       | This is the bundled JSON Schema (draft-07) for the testing layer of the specification itself. It defines node schemas such as contextvariation and coverageexclu |
+| Module src.audit.relationships.analysis.layer-templates         | application/dataobject           | none/- (0.43)                          | A static configuration module declaring the LayerTemplate interface and per-layer expected relationship patterns, used as reference data for audit gap analysis. |
+| Function src.integrations.hash-utils.scanDir                    | none/-                           | application/applicationfunction (0.37) | A nested recursive helper inside computeDirectoryHashes that walks a directory and hashes the files in it. It is a private implementation detail of the hashing  |
+| Interface src.core.stats-collector.ValidationInfo               | application/dataobject           | none/- (0.38)                          | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Class src.audit.relationships.analysis.gap-analyzer.GapAnalyzer | application/applicationcomponent | none/- (0.41)                          | GapAnalyzer is a cohesive analysis class within the relationship audit subsystem. The AuditOrchestrator instantiates it, and it compares layer templates against |
+| Method src.core.graph-model.GraphModel.traverse                 | application/applicationfunction  | none/- (0.35)                          | BFS traversal over the in-memory graph model, optionally filtered by predicate and bounded by depth. It is a notable internal capability of the GraphModel compo |
+| Class src.core.relationship-catalog.RelationshipCatalog         | application/applicationcomponent | none/- (0.29)                          | Core class that loads the predicate and relationship schema catalog from bundled JSON files on disk and exposes relationship type lookups. It is used by CLI com |
+| Module src.integrations.hash-utils                              | application/applicationfunction  | none/- (0.55)                          | Utility module providing SHA256 file and directory hashing to detect changes in installed integration files. It is a small internal helper capability that reads |
 
 ## clef@enriched-v1
 
@@ -512,47 +501,46 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 76.4%  | 138         |
-| none        | 82     | 92.7%  | 99          |
-| data-model  | 29     | 89.7%  | 50          |
-| security    | 5      | 80.0%  | 5           |
-| apm         | 5      | 80.0%  | 6           |
+| application | 191    | 70.7%  | 138         |
+| none        | 90     | 90.0%  | 99          |
+| data-model  | 8      | 87.5%  | 50          |
+| security    | 4      | 100.0% | 5           |
+| apm         | 4      | 100.0% | 6           |
 | testing     | 2      | 50.0%  | 1           |
-| api         | 1      | 0.0%   | 1           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 0.0%   | 0           |
+| api         | 0      | n/a    | 1           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| application → none       | 22    |
-| application → data-model | 19    |
-| data-model → application | 2     |
-| none → data-model        | 2     |
+| application → data-model | 38    |
+| application → none       | 18    |
+| none → data-model        | 4     |
 | none → apm               | 2     |
+| none → application       | 2     |
 | data-model → security    | 1     |
-| api → data-model         | 1     |
-| data-store → application | 1     |
+| none → api               | 1     |
+| technology → data-model  | 1     |
 
 ### Calibration of layer confidence
 
-| confidence bin | n   | mean conf | accuracy | gap  |
-| -------------- | --- | --------- | -------- | ---- |
-| 0.2-0.3        | 3   | 0.28      | 0.33     | 0.06 |
-| 0.3-0.4        | 36  | 0.36      | 0.44     | 0.08 |
-| 0.4-0.5        | 65  | 0.45      | 0.72     | 0.27 |
-| 0.5-0.6        | 89  | 0.55      | 0.87     | 0.32 |
-| 0.6-0.7        | 73  | 0.66      | 0.97     | 0.31 |
-| 0.7-0.8        | 25  | 0.74      | 0.96     | 0.22 |
-| 0.8-0.9        | 9   | 0.83      | 0.89     | 0.06 |
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 3   | 0.28      | 0.00     | -0.28 |
+| 0.3-0.4        | 36  | 0.36      | 0.39     | 0.03  |
+| 0.4-0.5        | 65  | 0.45      | 0.72     | 0.27  |
+| 0.5-0.6        | 89  | 0.55      | 0.82     | 0.27  |
+| 0.6-0.7        | 73  | 0.66      | 0.90     | 0.25  |
+| 0.7-0.8        | 25  | 0.74      | 0.96     | 0.22  |
+| 0.8-0.9        | 9   | 0.83      | 0.89     | 0.06  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 65.3%    | 91.8%             |
-| ≥0.60     | 35.7%    | 96.3%             |
+| ≥0.50     | 65.3%    | 87.2%             |
+| ≥0.60     | 35.7%    | 91.6%             |
 | ≥0.70     | 11.3%    | 94.1%             |
 | ≥0.80     | 3.0%     | 88.9%             |
 | ≥0.90     | 0.0%     | n/a               |
@@ -564,25 +552,25 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 0.67      | 1.00   | 0.80       |
-| data_persistence     | 56             | 1.00      | 0.30   | 0.47       |
-| external_integration | 25             | 1.00      | 0.60   | 0.75       |
-| observability        | 35             | 0.81      | 0.37   | 0.51       |
-| user_interface       | 29             | 0.76      | 0.55   | 0.64       |
+| data_persistence     | 53             | 1.00      | 0.32   | 0.49       |
+| external_integration | 24             | 1.00      | 0.63   | 0.77       |
+| observability        | 34             | 0.69      | 0.32   | 0.44       |
+| user_interface       | 31             | 0.81      | 0.55   | 0.65       |
 
 ### Sample layer disagreements
 
 | symbol                                                               | gold                            | predicted (conf)               | gold rationale                                                                                                                                                   |
 | -------------------------------------------------------------------- | ------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Interface src.core.virtual-projection.ModelDiff                      | application/dataobject          | data-model/objectschema (0.51) | ModelDiff is an exported TypeScript interface that describes the computed difference between a base model and a virtual projection: additions, modifications and |
-| Function src.commands.relationship.getRelationshipConstraints        | application/applicationfunction | none/- (0.37)                  | A small lookup helper in the relationship CLI command module. It queries the relationship catalog for the cardinality and strength constraints of a source/predi |
-| Interface src.core.stats-collector.ValidationInfo                    | application/dataobject          | data-model/objectschema (0.36) | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Module src.integrations.hash-utils                                   | application/applicationfunction | none/- (0.61)                  | Utility module that computes SHA256 file and directory hashes for change detection of integration files. It reads files from disk, which counts as data persiste |
-| Method src.core.spec-data-service.SpecDataService.getValidPredicates | application/applicationfunction | none/- (0.42)                  | Small query method on SpecDataService that derives the unique relationship predicates valid between two spec node types using in-memory loader data. It is inter |
-| Interface src.core.spec-loader.CompiledBase                          | data-model/objectschema         | application/dataobject (0.33)  | A small structural type describing the shape of a compiled spec bundle: version, schemas and predicates. It is a data-shape definition used internally by the sp |
-| Interface src.validators.validation-formatter.ValidationStats        | none/-                          | data-model/- (0.31)            | A small internal stats shape that the validation formatter uses to summarise element and relationship counts for output. It is a local helper type with no calle |
-| Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface configuring the staging-area commit operation (force, validate, dryRun). It is a passive parameter shape that matters only within the  |
-| Function src.commands.reports.hasLayerReports                        | application/applicationfunction | none/- (0.47)                  | Small helper that reads the reports directory on disk to check for existing markdown layer reports; used only by the upgrade command. It is a minor internal fun |
-| Module src.schemas.bundled.security                                  | data-model/jsonschema           | security/securitymodel (0.39)  | Bundled JSON Schema (draft-07) document defining the node schemas for the security layer of the Documentation Robotics spec. It is a canonical data contract use |
+| Interface src.core.virtual-projection.ModelDiff                      | application/dataobject          | data-model/objectschema (0.51) | ModelDiff is a passive, exported data structure. It holds the additions, modifications and deletions computed when a changeset is projected onto the model. It h |
+| Function src.commands.relationship.getRelationshipConstraints        | application/applicationfunction | none/- (0.37)                  | Small exported helper inside the relationship command module. It looks up the catalog entry for a source-predicate-destination triple and returns that relations |
+| Interface src.core.stats-collector.ValidationInfo                    | application/dataobject          | data-model/objectschema (0.36) | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Module src.integrations.hash-utils                                   | application/applicationfunction | none/- (0.61)                  | Utility module providing SHA256 file and directory hashing to detect changes in installed integration files. It is a small internal helper capability that reads |
+| Method src.core.spec-data-service.SpecDataService.getValidPredicates | application/applicationfunction | none/- (0.42)                  | A public method on SpecDataService that looks up which relationship predicates are valid between two spec node types. This is the lookup the CLI uses to validat |
+| Interface src.core.relationship-registry.RelationshipTypeMetadata    | application/dataobject          | data-model/objectschema (0.68) | A passive TypeScript interface that holds relationship-type metadata (predicate, inverse, category) for the relationship registry. It has no behaviour and no ca |
+| Interface src.validators.validation-formatter.ValidationStats        | none/-                          | data-model/- (0.31)            | A small internal type holding summary counts for the validation formatter's output. It has no callers and no behaviour, and sits below the granularity a maintai |
+| Interface src.core.staging-area.CommitOptions                        | application/dataobject          | none/- (0.35)                  | A small options interface holding three boolean flags (force, validate, dryRun) for the staging-area commit operation. It is a passive data structure with no be |
+| Interface src.commands.visualize.VisualizeOptions                    | application/dataobject          | none/- (0.37)                  | A plain options interface holding the CLI flags for the visualize command (port, auth token, browser toggle). It is a passive data structure with no behaviour o |
+| Module src.schemas.bundled.security                                  | data-model/jsonschema           | security/securitymodel (0.39)  | A bundled JSON Schema document that defines the node schemas for the spec's security layer, covering its node types and their attributes. In this codebase it is |
 
 ## claude-sonnet
 
@@ -590,48 +578,47 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 
 | layer       | gold n | recall | predicted n |
 | ----------- | ------ | ------ | ----------- |
-| application | 174    | 95.4%  | 216         |
-| none        | 82     | 53.7%  | 50          |
-| data-model  | 29     | 55.2%  | 21          |
-| security    | 5      | 80.0%  | 4           |
-| apm         | 5      | 80.0%  | 5           |
+| application | 191    | 90.6%  | 216         |
+| none        | 90     | 51.1%  | 50          |
+| data-model  | 8      | 62.5%  | 21          |
+| security    | 4      | 100.0% | 4           |
+| apm         | 4      | 100.0% | 5           |
 | testing     | 2      | 0.0%   | 0           |
-| api         | 1      | 0.0%   | 3           |
-| data-store  | 1      | 0.0%   | 0           |
 | technology  | 1      | 100.0% | 1           |
+| api         | 0      | n/a    | 3           |
 
 ### Top confusions (layer)
 
 | gold → predicted         | count |
 | ------------------------ | ----- |
-| none → application       | 35    |
-| data-model → application | 9     |
-| data-model → none        | 4     |
-| application → data-model | 4     |
+| none → application       | 41    |
+| application → data-model | 15    |
+| data-model → none        | 3     |
 | application → api        | 2     |
-| application → none       | 2     |
 | testing → application    | 2     |
 | none → apm               | 1     |
+| none → data-model        | 1     |
+| none → api               | 1     |
 
 ### Calibration of layer confidence
 
-| confidence bin | n   | mean conf | accuracy | gap  |
-| -------------- | --- | --------- | -------- | ---- |
-| 0.4-0.5        | 5   | 0.40      | 0.60     | 0.20 |
-| 0.5-0.6        | 24  | 0.51      | 0.58     | 0.07 |
-| 0.6-0.7        | 91  | 0.60      | 0.65     | 0.05 |
-| 0.7-0.8        | 23  | 0.71      | 0.78     | 0.08 |
-| 0.8-0.9        | 146 | 0.82      | 0.90     | 0.08 |
-| 0.9-1.0        | 11  | 0.90      | 0.91     | 0.01 |
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.4-0.5        | 5   | 0.40      | 0.40     | 0.00  |
+| 0.5-0.6        | 24  | 0.51      | 0.17     | -0.34 |
+| 0.6-0.7        | 91  | 0.60      | 0.75     | 0.15  |
+| 0.7-0.8        | 23  | 0.71      | 0.83     | 0.12  |
+| 0.8-0.9        | 146 | 0.82      | 0.89     | 0.07  |
+| 0.9-1.0        | 11  | 0.90      | 0.91     | 0.01  |
 
 ### Threshold sweep (auto-accept layer when confidence ≥ t)
 
 | threshold | coverage | precision (layer) |
 | --------- | -------- | ----------------- |
-| ≥0.50     | 98.3%    | 78.6%             |
-| ≥0.60     | 90.3%    | 80.4%             |
+| ≥0.50     | 98.3%    | 78.3%             |
+| ≥0.60     | 90.3%    | 83.8%             |
 | ≥0.70     | 60.0%    | 88.3%             |
-| ≥0.80     | 52.3%    | 89.8%             |
+| ≥0.80     | 52.3%    | 89.2%             |
 | ≥0.90     | 3.7%     | 90.9%             |
 | ≥0.95     | 0.0%     | n/a               |
 
@@ -641,22 +628,22 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | -------------------- | -------------- | --------- | ------ | ---------- |
 | authentication       | 2              | 1.00      | 1.00   | 1.00       |
 | authorization        | 2              | 1.00      | 1.00   | 1.00       |
-| data_persistence     | 56             | 0.93      | 0.45   | 0.60       |
-| external_integration | 25             | 0.91      | 0.84   | 0.87       |
-| observability        | 35             | 0.89      | 0.23   | 0.36       |
-| user_interface       | 29             | 1.00      | 0.69   | 0.82       |
+| data_persistence     | 53             | 0.89      | 0.45   | 0.60       |
+| external_integration | 24             | 0.87      | 0.83   | 0.85       |
+| observability        | 34             | 0.89      | 0.24   | 0.37       |
+| user_interface       | 31             | 1.00      | 0.65   | 0.78       |
 
 ### Sample layer disagreements
 
-| symbol                                                                | gold                   | predicted (conf)                       | gold rationale                                                                                                                                                   |
-| --------------------------------------------------------------------- | ---------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Module src.schemas.bundled.testing                                    | data-model/jsonschema  | none/- (0.50)                          | A bundled JSON Schema document defining the node schemas for the testing layer in the Documentation Robotics spec. It is a canonical schema contract consumed by |
-| Method src.analyzers.cbm-analyzer.CbmAnalyzer.shapeRoute              | none/-                 | application/applicationfunction (0.80) | A data-shaping helper that normalizes a raw CBM graph node into a route record with defaults. It is called only by verify() and was extracted for testability. I |
-| Interface src.core.stats-collector.ValidationInfo                     | application/dataobject | data-model/objectschema (0.50)         | A small exported TypeScript interface that describes the validation summary within the stats collector's output (validity flag, timestamp, error and warning cou |
-| Method src.utils.errors.CLIError.format                               | none/-                 | application/applicationfunction (0.60) | Formatting method that builds a colored CLI error message string from the error's context and suggestions. It is a presentation helper on an error class, with n |
-| Interface src.validators.validation-formatter.ValidationStats         | none/-                 | application/dataobject (0.60)          | A small internal stats shape that the validation formatter uses to summarise element and relationship counts for output. It is a local helper type with no calle |
-| Interface src.commands.visualize.VisualizeOptions                     | none/-                 | application/dataobject (0.60)          | A CLI options bag interface for the visualize command. It is a plain parameter type that only shapes command input and holds no architectural behaviour of its o |
-| Module src.schemas.bundled.security                                   | data-model/jsonschema  | none/- (0.60)                          | Bundled JSON Schema (draft-07) document defining the node schemas for the security layer of the Documentation Robotics spec. It is a canonical data contract use |
-| Module src.schemas.bundled.application                                | data-model/jsonschema  | none/- (0.50)                          | A bundled JSON Schema document that defines the node schemas for the Application layer in the Documentation Robotics spec. It is a canonical schema contract con |
-| Function src.mcp.tools.shared.logToolError                            | none/-                 | apm/- (0.40)                           | Small helper that writes MCP tool failures to stderr for operator visibility. It does logging work, so observability applies, but it is a trivial internal utili |
-| Method src.core.virtual-projection.VirtualProjectionEngine.cloneLayer | none/-                 | application/applicationfunction (0.85) | Private helper that shallow-copies a Layer and its elements for read-only projection. It is an implementation detail of VirtualProjectionEngine, has a single ca |
+| symbol                                                            | gold                   | predicted (conf)                       | gold rationale                                                                                                                                                   |
+| ----------------------------------------------------------------- | ---------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Module src.schemas.bundled.testing                                | data-model/jsonschema  | none/- (0.50)                          | This is the bundled JSON Schema (draft-07) for the testing layer of the specification itself. It defines node schemas such as contextvariation and coverageexclu |
+| Method src.analyzers.cbm-analyzer.CbmAnalyzer.shapeRoute          | none/-                 | application/applicationfunction (0.80) | An @internal data-shaping helper that normalizes a raw CBM graph node into a route record with default values. It is extracted only for testability and has a si |
+| Interface src.core.stats-collector.ValidationInfo                 | application/dataobject | data-model/objectschema (0.50)         | A small exported TypeScript interface that holds validation summary state (validity flag, timestamp, error and warning counts) inside the stats collector. It is |
+| Interface src.core.spec-loader.CompiledBase                       | application/dataobject | data-model/objectschema (0.50)         | A small TypeScript interface that only describes the shape of compiled spec data (version, schemas, predicates) used by the spec loader. As a passive state carr |
+| Method src.utils.errors.CLIError.format                           | none/-                 | application/applicationfunction (0.60) | A formatting method that builds a colorized CLI error message string from the error's context and suggestions. It is a presentation helper on an error class, be |
+| Interface src.core.relationship-registry.RelationshipTypeMetadata | application/dataobject | data-model/objectschema (0.50)         | A passive TypeScript interface that holds relationship-type metadata (predicate, inverse, category) for the relationship registry. It has no behaviour and no ca |
+| Interface src.validators.validation-formatter.ValidationStats     | none/-                 | application/dataobject (0.60)          | A small internal type holding summary counts for the validation formatter's output. It has no callers and no behaviour, and sits below the granularity a maintai |
+| Function src.commands.reports.hasLayerReports                     | none/-                 | application/applicationfunction (0.85) | Small helper that checks whether markdown report files exist in the project's reports directory. It reads the filesystem directory listing and is used by the up |
+| Module src.schemas.bundled.security                               | data-model/jsonschema  | none/- (0.60)                          | A bundled JSON Schema document that defines the node schemas for the spec's security layer, covering its node types and their attributes. In this codebase it is |
+| Module src.schemas.bundled.application                            | data-model/jsonschema  | none/- (0.50)                          | A bundled JSON Schema document defining the node schemas for the Application Layer's nine element types (ArchiMate-derived). It is a schema contract the CLI val |

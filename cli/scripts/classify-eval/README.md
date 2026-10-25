@@ -84,3 +84,6 @@ against a placeholder description. Element-type criteria are the node-schema des
   and joins in memory.
 - Gold labels come from Claude, so "accuracy" measures agreement with a strong model that
   saw more context, not ground truth. Spot-check `report.md`'s disagreement table.
+- `gold.jsonl` is the charter-labelled set (Opus 5.5 with `spec/DESIGN_CHARTER.md` in context,
+  October 2026). The earlier set without the charter is kept as `gold@baseline.jsonl`;
+  `gold-diff.md` per corpus compares them, and `report.ts --gold baseline` scores against it.

@@ -1,10 +1,10 @@
-# Gold diff: fastapi, baseline vs charter
+# Gold diff: fastapi, baseline vs
 
 Cards labelled in both: 200 (A 200, B 200)
 Layer agreement: 190/200 (95.0%). Layer+type agreement: 182/200 (91.0%)
-Mean significance: baseline 1.34, charter 1.32
+Mean significance: baseline 1.34, 1.32
 
-## Layer changes (baseline -> charter)
+## Layer changes (baseline -> )
 
 | transition                | n   |
 | ------------------------- | --- |
@@ -27,7 +27,7 @@ Mean significance: baseline 1.34, charter 1.32
 
 ## Prediction files scored against each gold (layer acc / type acc)
 
-| backend          | vs baseline   | vs charter    |
+| backend          | vs baseline   | vs            |
 | ---------------- | ------------- | ------------- |
 | claude-haiku     | 72.0% / 63.5% | 72.0% / 63.0% |
 | claude-sonnet    | 71.5% / 62.0% | 72.5% / 60.5% |
@@ -37,7 +37,7 @@ Mean significance: baseline 1.34, charter 1.32
 
 ## Sample of relabelled symbols
 
-| symbol                                                                   | baseline                        | charter                | charter rationale                                                                                                                                      |
+| symbol                                                                   | baseline                        |                        | rationale                                                                                                                                              |
 | ------------------------------------------------------------------------ | ------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Method frontend.src.client.sdk.gen.LoginService.loginAccessToken         | none/-                          | api/operation          | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend  |
 | Method frontend.src.client.sdk.gen.ItemsService.createItem               | none/-                          | api/operation          | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generat |

@@ -118,14 +118,15 @@ pass on most commits).
 
 ## Phase 0 results (2026-10-24)
 
-Three corpora, gold labels from Opus 5.5 (high effort, full card context), classifiers see a
-40-line state card. Layer accuracy / end-to-end type accuracy against gold:
+Three corpora, gold labels from Opus 5.5 (high effort, full card context, with the design
+charter in context since 2026-10-26; the pre-charter labels are kept as `gold@baseline`),
+classifiers see a 40-line state card. Layer accuracy / end-to-end type accuracy against gold:
 
 | corpus    | cards | clef          | clef-flash    | claude-sonnet | claude-haiku  |
 | --------- | ----- | ------------- | ------------- | ------------- | ------------- |
-| petclinic | 106   | 84.0% / 73.6% | 65.1% / 45.3% | 84.0% / 82.1% | 59.4% / 52.8% |
-| fastapi   | 200   | 78.5% / 69.5% | 78.5% / 59.5% | 71.5% / 62.0% | 72.0% / 63.5% |
-| dr-cli    | 300   | 81.3% / 57.3% | 61.7% / 50.3% | 78.3% / 68.3% | 60.3% / 49.3% |
+| petclinic | 106   | 86.8% / 78.3% | 69.8% / 50.9% | 84.0% / 81.1% | 59.4% / 51.9% |
+| fastapi   | 200   | 76.5% / 67.5% | 78.5% / 60.5% | 72.5% / 60.5% | 72.0% / 63.0% |
+| dr-cli    | 300   | 77.3% / 53.0% | 60.3% / 46.7% | 77.7% / 66.7% | 59.0% / 50.7% |
 
 Cost and latency per card: Clef about $0.001 and 650-700 ms median; Sonnet about $0.008 and
 1.6 s; Haiku about $0.0005 and 1.6 s; Clef-flash about $0.0003 and 1.0-1.2 s.
@@ -133,31 +134,32 @@ Cost and latency per card: Clef about $0.001 and 650-700 ms median; Sonnet about
 What the numbers say:
 
 - **Zero-shot Clef is at least as accurate as Sonnet on layer choice on all three corpora**
-  (84.0 vs 84.0, 78.5 vs 71.5, 81.3 vs 78.3), at roughly a tenth of the cost and 2.4x the
+  (86.8 vs 84.0, 76.5 vs 72.5, 77.3 vs 77.7), at roughly a tenth of the cost and 2.4x the
   speed, with nothing but the spec's layer descriptions as criteria. Sonnet wins on end-to-end
-  type accuracy on two of three (82.1 vs 73.6 on petclinic, 68.3 vs 57.3 on dr-cli).
+  type accuracy on two of three (81.1 vs 78.3 on petclinic, 66.7 vs 53.0 on dr-cli); Clef
+  wins it on fastapi (67.5 vs 60.5).
 - **Clef's probabilities are underconfident but monotonic**, which is what a cascade needs:
-  a layer threshold of 0.60 gives 96-97% precision on 36-37% of cards on every corpus, and
-  0.50 gives about 92% on 65%. Sonnet's self-reported confidence is better calibrated on
+  a layer threshold of 0.60 gives 92-97% precision on 36-41% of cards on every corpus, and
+  0.50 gives 87-96% on about 65%. Sonnet's self-reported confidence is better calibrated on
   average (ECE 0.07-0.14) but discriminates less: on dr-cli precision only climbs from 79% at
   0.50 to 90% at 0.80, so there is no clean auto-accept band. Haiku's confidence is not usable
   as a gate.
 - **Type selection is the weak link.** Given the correct layer, Clef picks the right element
-  type 88% of the time on petclinic and fastapi but only 70% on dr-cli, where almost everything
-  is `application` and the choice is among applicationfunction / applicationcomponent /
-  applicationservice / dataobject (Sonnet manages 87% there). Those criteria are the node-schema
+  type 90% of the time on petclinic and 88% on fastapi but only 69% on dr-cli, where almost
+  everything is `application` and the choice is among applicationfunction /
+  applicationcomponent / applicationservice / dataobject (Sonnet manages 86% there). Those criteria are the node-schema
   descriptions, which are exactly the thin definitions Direction A is meant to fix.
   Type-given-layer accuracy is now the measurable target for the enrichment pass.
 - **Systematic misses.** Clef recalled zero `technology` symbols on all three corpora
   (technology elements come from manifests and Dockerfiles, not code symbols, so symbol
   classification is the wrong extraction path for that layer). On dr-cli it sends borderline
   application code to `none` (22) or `data-model` (19); on fastapi it labels trivial UI helpers
-  as `ux` (16). Sonnet errs the other way: it under-uses `none` (40% recall on fastapi, 54% on
-  dr-cli, 78% on petclinic) and over-assigns `application`, `api` and `ux`. Haiku swings the
+  as `ux` (19). Sonnet errs the other way: it under-uses `none` (40% recall on fastapi, 51% on
+  dr-cli, 73% on petclinic) and over-assigns `application`, `api` and `ux`. Haiku swings the
   opposite way on dr-cli, sending 55 application symbols to `none`.
-- **"none" is a large class**: 27-43% of sampled symbols per corpus are not architecturally
+- **"none" is a large class**: 30-48% of sampled symbols per corpus are not architecturally
   meaningful on their own. The significance score agrees with gold within one level on
-  91-97% of cards for Clef.
+  88-95% of cards for Clef.
 - **Clef-flash is not a candidate on its own** (weaker layer accuracy except on fastapi, worse
   calibration); it may still serve as a cheap first gate once fine-tuned.
 
@@ -183,22 +185,25 @@ rebuilt. Clef was rerun with the enriched criteria (`clef@enriched-v1`):
 
 | corpus    | type-given-layer before | after enrichment | after enrichment + kind narrowing |
 | --------- | ----------------------- | ---------------- | --------------------------------- |
-| dr-cli    | 70.5%                   | 71.3%            | 74.6%                             |
-| fastapi   | 88.5%                   | 88.5%            | n/a                               |
-| petclinic | 87.6%                   | 86.5%            | n/a                               |
+| dr-cli    | 68.5%                   | 78.9%            | 82.3%                             |
+| fastapi   | 88.2%                   | 88.2%            | n/a                               |
+| petclinic | 90.2%                   | 89.1%            | n/a                               |
 
-Layer accuracy was unchanged (layer criteria did not change). The definitions alone did not
-move the target metric. The confusion matrix explains why: before, Clef called 28 of 48
-classes `applicationfunction`; after, it called 9 of 18 methods `applicationcomponent`. The
-boundary moved, it did not sharpen. The gold labels themselves are strongly driven by symbol
-kind (classes are components 37/50, methods are functions 27/29, interfaces are data objects
-25/27), Sonnet uses that signal (80-100% per kind) and Clef does not, and a plain
-kind-to-type rule scores 71%, the same as Clef.
+Layer accuracy was unchanged (layer criteria did not change). Numbers above are against the
+charter-labelled gold. Against the original gold the enriched definitions had looked useless
+(70.5% to 71.3% on dr-cli): Clef had started calling classes components and methods functions,
+which the old labels, with 20 TypeScript interfaces filed under data-model.objectschema,
+disagreed with. The charter-labelled gold files those interfaces as application.dataobject, as
+the enriched definitions do, and the same predictions score 68.5% to 78.9%, 82.3% with kind
+narrowing. The gold labels are strongly driven by symbol kind (classes are components, methods
+are functions, interfaces are data objects), Sonnet uses that signal (80-100% per kind), and
+Clef did not until the candidate set was narrowed by kind.
 
-**Finding:** for element-type choice the limiting factor is not definition quality but the
+**Finding:** two levers matter for element-type choice: definitions that state the boundary
+between siblings (worth about 10 points once the gold is consistent with the charter), and the
 classifier's use of structural facts the card already states. A Tier-0 narrowing of the
 candidate set by symbol kind (`classify.ts --kind-narrow`, map in `backends/clef.ts`) is worth
-+4 points; the next steps are making the kind rule part of the question framing for every
+another 3-4 points; the next steps are making the kind rule part of the question framing for every
 layer, and treating `Module` separately (gold splits modules across five types). Richer
 definitions remain valuable for the spec itself and for Claude-tier reasoning, and the
 proposal `notes` surfaced real spec issues: `applicationcomponent.type` conflates ownership
@@ -250,8 +255,8 @@ classification; the Phase 0 gold stands. The relabelling did settle one boundary
 found: with the charter, Opus moved 20 TypeScript interfaces on dr-cli from
 `data-model.objectschema` to `application.dataobject` (in-code data structures are application
 data objects; published schemas are data-model), which is the precedence rule claim
-`application.dataobject#4` asked for. Against the charter gold, Clef's end-to-end type accuracy
-on dr-cli rises from 57.3% to 63.7% with kind narrowing, and on petclinic from 73.6% to 78.3%. For triage
+`application.dataobject#4` asked for. The charter-labelled set is the reference gold from 2026-10-26 (`gold.jsonl`; the
+pre-charter labels are `gold@baseline.jsonl`); all tables in this document use it. For triage
 the summary is the better choice: it matches evidence-only accuracy, raises mean probability on
 the gold answer for Clef and Sonnet, and costs a fifth more than no charter, where the full text
 cost one claim of accuracy. `--charter short` is now the triage default.

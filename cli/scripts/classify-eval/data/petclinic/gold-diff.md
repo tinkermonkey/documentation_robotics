@@ -1,10 +1,10 @@
-# Gold diff: petclinic, baseline vs charter
+# Gold diff: petclinic, baseline vs
 
 Cards labelled in both: 106 (A 106, B 106)
 Layer agreement: 95/106 (89.6%). Layer+type agreement: 92/106 (86.8%)
-Mean significance: baseline 1.41, charter 1.33
+Mean significance: baseline 1.41, 1.33
 
-## Layer changes (baseline -> charter)
+## Layer changes (baseline -> )
 
 | transition                | n   |
 | ------------------------- | --- |
@@ -26,7 +26,7 @@ Mean significance: baseline 1.41, charter 1.33
 
 ## Prediction files scored against each gold (layer acc / type acc)
 
-| backend          | vs baseline   | vs charter    |
+| backend          | vs baseline   | vs            |
 | ---------------- | ------------- | ------------- |
 | claude-haiku     | 59.4% / 52.8% | 59.4% / 51.9% |
 | claude-sonnet    | 84.0% / 82.1% | 84.0% / 81.1% |
@@ -36,7 +36,7 @@ Mean significance: baseline 1.41, charter 1.33
 
 ## Sample of relabelled symbols
 
-| symbol                                                                                            | baseline                         | charter                          | charter rationale                                                                                                                                      |
+| symbol                                                                                            | baseline                         |                                  | rationale                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Class src.main.java.org.springframework.samples.petclinic.system.CrashController                  | api/operation                    | application/applicationinterface | A Spring MVC controller exposing a single demo endpoint (/oups) that throws an exception to showcase error-page handling. It is a mounted controller a |
 | Method src.main.java.org.springframework.samples.petclinic.system.WebConfiguration.localeResolver | technology/artifact              | none/-                           | A Spring @Bean factory method that configures a session-based locale resolver defaulting to English. It is framework wiring boilerplate for i18n, not  |
