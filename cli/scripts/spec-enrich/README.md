@@ -62,6 +62,26 @@ Relationship schemas:
 `spec/dist` (previously relationships compiled to flat data with no description at all). AJV in
 the CLI runs with `strict: false`, so the `x-dr-*` keywords on node schemas are tolerated.
 
+## Triage loop (maintainer notes -> decisions)
+
+Every proposal carries free-text `notes`. The triage loop turns them into decisions and is
+meant to be re-run as models change:
+
+```
+split-notes.ts      Claude splits each compound note into atomic claims  -> data/triage/claims.jsonl
+triage.ts           a backend decides validity / category / severity / fix scope per claim
+                    (clef, clef-flash, claude-haiku, claude-sonnet, claude-opus; --evidence adds a
+                    deterministic fact pack; --tag keeps configurations apart)  -> decisions-<backend>[@tag].jsonl
+triage-report.ts    per-layer tables for one configuration                     -> report-<backend>.md
+triage-bench.ts     scores every configuration against human gold              <- bench-gold.jsonl
+```
+
+`bench-gold.jsonl` holds adjudicated claims (validity, category, severity, fix scope, rationale);
+add to it as you review layers, and re-run `triage-bench.ts` to see how each backend tracks you.
+`--evidence` appends, per claim, how every type in the layer declares a named attribute and the
+exact relationship schemas between the named types; on the first ten adjudicated claims it took
+Clef from 40% to 70% validity agreement at the same cost.
+
 ## Governance
 
 Proposals are reviewed per layer and land as spec PRs with a changelog entry. The `notes`

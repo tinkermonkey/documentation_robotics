@@ -14,12 +14,12 @@ export const CLEF_MODELS: Record<string, { id: string; model: string; inputPerM:
   "clef-flash": { id: "@cf/cloudflare/clef-flash", model: "clef-flash", inputPerM: 0.09 },
 };
 
-type Question =
+export type Question =
   | { type: "choice"; instructions: string; criteria: Record<string, string> }
   | { type: "score"; instructions: string; criteria: string[] }
   | { type: "noul"; instructions: string };
 
-interface ClefAnswer {
+export interface ClefAnswer {
   type?: string;
   choice?: string;
   answer?: string;
@@ -42,7 +42,7 @@ interface ClefResponse {
   usage?: { input_tokens?: number; output_tokens?: number };
 }
 
-async function callClef(backend: string, state: string, questions: Record<string, Question>): Promise<{ answers: Record<string, ClefAnswer>; usage: { input_tokens: number; output_tokens: number }; raw: unknown }> {
+export async function callClef(backend: string, state: string, questions: Record<string, Question>): Promise<{ answers: Record<string, ClefAnswer>; usage: { input_tokens: number; output_tokens: number }; raw: unknown }> {
   loadDotEnv();
   const account = requireEnv("CLOUDFLARE_ACCOUNT_ID", "Add it to the repo .env (Cloudflare dashboard -> account id).");
   const token = requireEnv("CLOUDFLARE_API_TOKEN", "Create a token with the 'Workers AI' template and add it to the repo .env.");
@@ -69,7 +69,7 @@ async function callClef(backend: string, state: string, questions: Record<string
   throw lastErr instanceof Error ? lastErr : new Error("Clef request failed");
 }
 
-function choiceOf(a: ClefAnswer | undefined): { choice: string | null; probabilities: Record<string, number>; confidence: number | null } {
+export function choiceOf(a: ClefAnswer | undefined): { choice: string | null; probabilities: Record<string, number>; confidence: number | null } {
   if (!a) return { choice: null, probabilities: {}, confidence: null };
   const probs = a.probabilities && !Array.isArray(a.probabilities) ? a.probabilities : {};
   let choice = typeof a.choice === "string" ? a.choice : typeof a.answer === "string" ? a.answer : typeof a.value === "string" ? a.value : null;
@@ -77,7 +77,7 @@ function choiceOf(a: ClefAnswer | undefined): { choice: string | null; probabili
   return { choice, probabilities: probs, confidence: typeof a.confidence === "number" ? a.confidence : null };
 }
 
-function noulOf(a: ClefAnswer | undefined): number {
+export function noulOf(a: ClefAnswer | undefined): number {
   if (!a) return NaN;
   for (const k of ["noul", "probability", "value", "score"]) {
     const v = a[k];
@@ -86,7 +86,7 @@ function noulOf(a: ClefAnswer | undefined): number {
   return NaN;
 }
 
-function scoreOf(a: ClefAnswer | undefined, levels: number): { score: number; probabilities: number[] | null } {
+export function scoreOf(a: ClefAnswer | undefined, levels: number): { score: number; probabilities: number[] | null } {
   if (!a) return { score: NaN, probabilities: null };
   const dist = Array.isArray(a.probabilities) ? a.probabilities : Array.isArray(a.distribution) ? a.distribution : null;
   let score = typeof a.score === "number" ? a.score : typeof a.value === "number" ? a.value : NaN;

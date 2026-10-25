@@ -206,6 +206,30 @@ with style, `applicationprocess` has no attributes for trigger/steps/outcome,
 `applicationinterface.protocol` mixes protocols with styles, and `applicationinterface
 depends-on applicationservice` duplicates `serves`.
 
+**Triage of the maintainer notes (2026-10-25).** The 376 notes split into 1,462 atomic claims
+(`split-notes.ts`, Sonnet, about $3). Each claim is decided by a backend (`triage.ts`): validity
+(real defect / works as designed / judgment call / out of scope), category, severity, fix scope,
+and two yes/no questions. A ten-claim benchmark with hand-verified gold (`bench-gold.jsonl`,
+drafted by Claude, pending the user's review) compares configurations:
+
+| configuration          | validity agreement | category | cost / claim |
+| ---------------------- | ------------------ | -------- | ------------ |
+| clef                   | 40%                | 90%      | $0.0005      |
+| clef + evidence pack   | 70%                | 80%      | $0.0005      |
+| claude-haiku           | 30%                | 100%     | $0.0002      |
+| claude-sonnet          | 70%                | 80%      | $0.0049      |
+| claude-sonnet + evid.  | 70%                | 90%      | $0.0053      |
+| claude-opus + evidence | 80%                | 90%      | $0.0138      |
+
+Categorising a claim is easy for every backend; deciding whether it is true is not, because
+the answer lives in facts the state did not show (how siblings declare an attribute, the exact
+relationships between two types). A deterministic evidence pack built from the schema sources
+closed most of that gap for Clef at no extra cost, and is the pattern to keep: give the decision
+model the facts, let it decide. Across all 1,462 claims, Clef with evidence flags 593 as real
+defects (250 with severity 2 or above), 685 as judgment calls, 178 as working as designed. One
+split claim ("self-relationship listed twice") was an artifact of the proposer prompt listing
+outgoing and incoming relationships separately; the benchmark includes it.
+
 **Proposals complete (2026-10-25):** definitions for all 192 node types and descriptions
 for all 1,611 relationships are in `cli/scripts/spec-enrich/data/proposals/` as reviewable
 files (about $5 via the Batch API), not yet applied beyond the application layer. Every type
