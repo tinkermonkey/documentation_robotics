@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.experiencestate",
+  "previous_description": "Distinct state that the experience can be in (works across all channels)",
+  "definition": "A named, mutually exclusive condition of a user experience's state machine (e.g. idle, loading, editing, submitted, error) that fixes which components are enabled, disabled or hidden while it is active and owns the entry/exit actions and outgoing transitions for that condition. It is a node in the machine, not a screen, route or event.",
+  "distinguish_from": [
+    {
+      "type": "ux.statepattern",
+      "when": "the thing is a reusable template made of several named states and their transitions (e.g. 'wizard', 'optimistic-update'), rather than one state within a machine"
+    },
+    {
+      "type": "ux.statetransition",
+      "when": "the thing is the event-driven edge that moves the experience from one state to another, with a trigger, guard and destination"
+    },
+    {
+      "type": "ux.view",
+      "when": "the thing is a routable screen, modal or panel with its own URL or display mode; a state is a condition within or across views, not the container being shown"
+    },
+    {
+      "type": "ux.stateaction",
+      "when": "the thing is a side effect (focus, scroll, dispatch, navigate) executed on entering, exiting or transitioning out of a state, not the state itself"
+    }
+  ],
+  "standard_reference": "W3C SCXML 1.0 §3.3 <state> element (no direct HTML 5.3 equivalent; component effects map to ARIA aria-disabled/aria-hidden)",
+  "code_evidence": [
+    "a key under 'states' in an XState/Robot/Zag machine config (e.g. states: { loading: { entry: ..., on: { SUCCESS: 'done' } } }) or a state class in a State-pattern implementation",
+    "a member of a status union or enum (e.g. type Status = 'idle' | 'loading' | 'error') held in useState, useReducer, a Redux/Pinia store or component data and switched on in render logic",
+    "conditional rendering or prop toggles keyed on that status value, such as `if (status === 'error') return <ErrorPanel/>` or `disabled={status === 'submitting'}` or `hidden={state.matches('editing')}`"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what condition this state represents and what the user sees or can do while it is active; set it whenever the state name alone does not make the condition clear."
+    }
+  ],
+  "notes": "channel duplicates UXSpec.experience with a different enum (web/mobile vs visual). No final/terminal flag or parent-state attribute for hierarchical statecharts. Outgoing associated-with, governs and renders to ux.view overlap; pick one. 'specializes' to statepattern is semantically wrong (state is a member, not a subtype); chartseries 'uses' experiencestate looks spurious.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.252Z"
+}

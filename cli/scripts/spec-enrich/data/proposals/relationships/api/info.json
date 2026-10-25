@@ -1,0 +1,26 @@
+{
+  "source": "api.info",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.067Z",
+  "relationships": [
+    {
+      "id": "api.info.aggregates.api.contact",
+      "previous_description": "Defines relationship: api.info aggregates api.contact",
+      "description": "The API's metadata block includes the contact record naming the person or team responsible for maintaining the API contract, while that contact identity can exist and be reused independently of any one document's metadata.",
+      "evidence": "The OpenAPI file's info section contains a nested contact object with name, email or url fields (e.g. info.contact.email in openapi.yaml)."
+    },
+    {
+      "id": "api.info.aggregates.api.license",
+      "previous_description": "Defines relationship: api.info aggregates api.license",
+      "description": "The API's metadata block includes the license declaration that states the legal terms under which consumers may use the API contract.",
+      "evidence": "The OpenAPI file's info section contains a nested license object with a name and optional url (e.g. info.license.name: Apache 2.0 in openapi.yaml)."
+    },
+    {
+      "id": "api.info.associated-with.api.openapidocument",
+      "previous_description": "Defines relationship: api.info associated-with api.openapidocument",
+      "description": "The metadata block carries the title, version and description that identify the single API surface described by the enclosing OpenAPI document.",
+      "evidence": "The root of the openapi.yaml/json file (or generated spec endpoint) contains the required top-level info field holding this title and version."
+    }
+  ],
+  "notes": "Info→OpenAPIDocument as associated-with is weak: Info cannot exist without its document (exactly one per document), so the inverse OpenAPIDocument composes Info is the accurate structural relation. Contact and License are also nested and document-bound, so composes may fit better than aggregates unless shared contacts or licenses are intended."
+}

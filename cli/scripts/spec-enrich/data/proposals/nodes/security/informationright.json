@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "security.informationright",
+  "previous_description": "A granular access grant specifying which operations a named actor may perform on an InformationEntity, subject to a qualifying constraint expression. Implements attribute-based access control (ABAC) at the information asset level, per NIST SP 800-162 (ABAC Guide) and NIST SP 800-53 AC-3(14).",
+  "definition": "An access grant that authorizes one specific actor to perform a listed set of operations on a single InformationEntity. The grant applies only while an attribute-based constraint expression evaluates to true at decision time. It differs from a role-assigned Permission because it names the grantee directly and carries its own qualifying condition.",
+  "distinguish_from": [
+    {
+      "type": "security.permission",
+      "when": "the grant is a reusable resource+action entitlement assigned to Roles rather than to a named actor, and has no per-grant constraint expression"
+    },
+    {
+      "type": "security.delegation",
+      "when": "authority is transferred from one actor (delegator) to another (delegatee), possibly time-bounded, rather than granted directly on an information asset"
+    },
+    {
+      "type": "security.needtoknow",
+      "when": "access is gated by the actor declaring a purpose or justification rather than by an attribute-based boolean constraint"
+    },
+    {
+      "type": "security.accesscondition",
+      "when": "the element is only the field/operator/value predicate itself, not the grant binding an actor and operations to an information asset"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 Rev.5 AC-3(13) Attribute-Based Access Control; NIST SP 800-162 ABAC policy; STS-ml authorisation",
+  "code_evidence": [
+    "An ABAC policy line naming a concrete subject, data asset, actions and condition, e.g. Casbin `p, billing-svc, customer_pii, read, r.sub.region == r.obj.region`",
+    "A cloud IAM or KMS policy statement whose Principal is a specific user or service, whose Resource is a named data store or dataset, and which has an Action list and a Condition block",
+    "An OPA/Rego or Cedar `permit` rule keyed on a specific principal id and data category, with a `when`/`if` clause comparing subject attributes to resource attributes"
+  ],
+  "attribute_descriptions": [],
+  "notes": "AC-3(14) is 'Individual Access' in Rev.5; ABAC is AC-3(13), so the definition should be corrected. The operations array has no enum; reuse the ResourceOperation enum. The accesses and governs edges to informationentity, plus the reverse governs edge, are redundant. The actor and constraint strings duplicate the assigned-to and constrained-by relationships.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.263Z"
+}

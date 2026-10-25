@@ -1,0 +1,104 @@
+{
+  "source": "data-model.objectschema",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.086Z",
+  "relationships": [
+    {
+      "id": "data-model.objectschema.aggregates.data-model.schemaproperty",
+      "previous_description": "Defines relationship: data-model.objectschema aggregates data-model.schemaproperty",
+      "description": "The object schema declares the named field as one of the entries under its properties keyword, so each field contributes to the shape of the record the schema constrains.",
+      "evidence": "The JSON Schema document lists the property name under the object's 'properties' map, or the corresponding entity class or DTO declares a field of that name."
+    },
+    {
+      "id": "data-model.objectschema.depends-on.technology.systemsoftware",
+      "previous_description": "Defines relationship: data-model.objectschema depends-on technology.systemsoftware",
+      "description": "The structured record relies on a specific platform product, such as a database engine or runtime whose type system, extensions or serialization it assumes, in order to be stored, validated or executed as defined.",
+      "evidence": "The schema or ORM model uses engine-specific types, dialect annotations or vendor extensions (e.g. a PostgreSQL jsonb column type, a Mongo ObjectId format), and the deployment configuration pins that product and version."
+    },
+    {
+      "id": "data-model.objectschema.extends.data-model.objectschema",
+      "previous_description": "Defines relationship: data-model.objectschema extends data-model.objectschema",
+      "description": "The derived object schema inherits all properties and required-field rules of the base schema and adds or narrows its own, as a subclass record or DTO does from its parent type.",
+      "evidence": "The schema uses allOf with a $ref to the base schema, or the entity class or interface declares 'extends' or inheritance from the base type."
+    },
+    {
+      "id": "data-model.objectschema.maps-to.data-store.collection",
+      "previous_description": "Defines relationship: data-model.objectschema maps-to data-store.collection",
+      "description": "Instances of the record are persisted as rows or documents in the physical container, with the schema's properties corresponding to its columns or document fields.",
+      "evidence": "The ORM entity is annotated with the table or collection name (e.g. @Table, __tablename__, a Mongoose model name), or a migration creates the table with columns matching the schema's properties."
+    },
+    {
+      "id": "data-model.objectschema.maps-to.api.requestbody",
+      "previous_description": "Defines relationship: data-model.objectschema maps-to api.requestbody",
+      "description": "The object schema defines the payload structure a client must send in the body of the API operation's request.",
+      "evidence": "The OpenAPI requestBody content entry contains a $ref to the schema under components/schemas, or the controller method parameter annotated as the request body is typed with the DTO."
+    },
+    {
+      "id": "data-model.objectschema.maps-to.api.response",
+      "previous_description": "Defines relationship: data-model.objectschema maps-to api.response",
+      "description": "The object schema defines the body structure the API returns to the client for this status-code outcome of the operation.",
+      "evidence": "The OpenAPI response content map contains a schema $ref to the object schema, or the handler's declared return type or response annotation for that status code is the DTO."
+    },
+    {
+      "id": "data-model.objectschema.realizes.business.businessobject",
+      "previous_description": "Defines relationship: data-model.objectschema realizes business.businessobject",
+      "description": "The object schema is the concrete technical definition of the information that the business concept, such as Order or Invoice, represents in the system.",
+      "evidence": "The schema's title, description or x-business-object annotation names the business concept, and the data dictionary or domain glossary links the entity to that business object."
+    },
+    {
+      "id": "data-model.objectschema.realizes.application.dataobject",
+      "previous_description": "Defines relationship: data-model.objectschema realizes application.dataobject",
+      "description": "The object schema is the formal, language-neutral specification of the fields that the code-level data structure holds.",
+      "evidence": "The class, record or interface is generated from the schema by a codegen tool, or is validated against it, with field names and types matching one-to-one."
+    },
+    {
+      "id": "data-model.objectschema.realizes.motivation.goal",
+      "previous_description": "Defines relationship: data-model.objectschema realizes motivation.goal",
+      "description": "The data structure is claimed as a concrete means of achieving a stakeholder end state, such as unified customer data or regulatory transparency.",
+      "evidence": "An architecture decision record or schema annotation explicitly cites the goal as the rationale for introducing or shaping the schema."
+    },
+    {
+      "id": "data-model.objectschema.references.business.businessfunction",
+      "previous_description": "Defines relationship: data-model.objectschema references business.businessfunction",
+      "description": "The record type is annotated as belonging to or being used within the business competency area, such as Accounting or Claims Handling, without depending on it functionally.",
+      "evidence": "The schema's description, tags or x-business-function extension, or the domain-module packaging of the entity, names the business function."
+    },
+    {
+      "id": "data-model.objectschema.references.business.businessprocess",
+      "previous_description": "Defines relationship: data-model.objectschema references business.businessprocess",
+      "description": "The record type is documented as information created, consumed or transitioned by the business process, such as a claim record moving through claims adjudication.",
+      "evidence": "The schema's annotations or process documentation (BPMN data objects, process specs) cite the schema as an input, output or state of that process."
+    },
+    {
+      "id": "data-model.objectschema.references.security.secureresource",
+      "previous_description": "Defines relationship: data-model.objectschema references security.secureresource",
+      "description": "The record type identifies the protected resource whose access rules govern who may read or modify its instances and fields.",
+      "evidence": "The security policy or access-control configuration names the entity or schema as a resource, or the schema carries an extension pointing to the resource's identifier."
+    },
+    {
+      "id": "data-model.objectschema.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: data-model.objectschema satisfies motivation.requirement",
+      "description": "The schema's declared properties, required fields or value restrictions implement a verifiable statement of need, such as mandatory capture of a customer's consent date.",
+      "evidence": "A traceability matrix or schema annotation links the schema to the requirement ID, and validation tests confirm the required field or constraint exists."
+    },
+    {
+      "id": "data-model.objectschema.satisfies.security.securityconstraints",
+      "previous_description": "Defines relationship: data-model.objectschema satisfies security.securityconstraints",
+      "description": "The schema's structure, such as separate approver and requester fields or purpose attributes, provides the data needed to honor the duty and need-to-know constraints of the security model.",
+      "evidence": "The security model's separation-of-duty or need-to-know rules reference fields defined in the schema, and the schema documentation cites those constraints."
+    },
+    {
+      "id": "data-model.objectschema.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: data-model.objectschema serves application.applicationcomponent",
+      "description": "The schema provides the component with a validated, shared data contract for the records it stores, receives or emits.",
+      "evidence": "The component's code imports the generated type or loads the schema for validation, or its module manifest lists the schema as a used model."
+    },
+    {
+      "id": "data-model.objectschema.serves.application.applicationfunction",
+      "previous_description": "Defines relationship: data-model.objectschema serves application.applicationfunction",
+      "description": "The schema supplies the data structure that the automated function reads, validates or produces while performing its work.",
+      "evidence": "The function's implementation takes or returns the schema's type or invokes a validator against the schema."
+    }
+  ],
+  "notes": "ObjectSchema realizes Goal is dubious; data structures rarely realize goals directly—supports would fit better. Realizes BusinessObject and realizes DataObject partially overlap with each other. Satisfies SecurityConstraints is weak since the container holds procedural rules. Serves ApplicationComponent and serves ApplicationFunction are redundant with the inverse of the component's uses or accesses relationship."
+}

@@ -1,0 +1,29 @@
+{
+  "spec_node_id": "product.userworkflow",
+  "previous_description": "A sequence of user-facing steps through the product to accomplish a goal",
+  "definition": "An ordered, end-to-end journey of user-facing steps that a persona performs through the product to reach one goal, described from the user's point of view and independent of screens, routes or code. It is composed of WorkflowSteps and spans the features those steps exercise.",
+  "distinguish_from": [
+    {
+      "type": "product.workflowstep",
+      "when": "the element is a single action or experience at one position in a journey, not the whole sequence from trigger to goal"
+    },
+    {
+      "type": "product.feature",
+      "when": "the element is a unit of functionality the user can switch on, buy or ship, rather than the ordered path a user takes to reach a goal"
+    },
+    {
+      "type": "product.capability",
+      "when": "the element names an ability the product has (e.g. 'password recovery') with no ordering of user actions"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 Strategy Extension, Value Stream (closest analogue), plus the product-management user journey / user story map",
+  "code_evidence": [
+    "an end-to-end test spec (Playwright, Cypress, Selenium) named after a user goal, such as 'checkout.e2e.ts', that drives a user across several pages in order",
+    "an analytics funnel definition (Amplitude, Mixpanel, GA4 config) listing ordered events from a start event to a goal event",
+    "a Gherkin .feature file or docs/user-journeys page describing numbered Given/When/Then steps a named user type takes to accomplish a goal"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The 'composes product.feature' relationship is questionable: a workflow exercises features through its steps and does not own them, so 'uses' or routing via workflowstep fits better. The complexity enum has no decision criteria; consider guidance by step count or branching. There is no attribute for the goal or trigger, so add 'goal' and 'trigger'.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.252Z"
+}

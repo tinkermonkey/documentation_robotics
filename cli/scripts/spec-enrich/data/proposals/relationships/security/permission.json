@@ -1,0 +1,14 @@
+{
+  "source": "security.permission",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.076Z",
+  "relationships": [
+    {
+      "id": "security.permission.authorizes.security.resourceoperation",
+      "previous_description": "Defines relationship: security.permission authorizes security.resourceoperation",
+      "description": "The permission is the grant that, once held by a principal through a role, allows the authorization layer to approve invocation of that specific action on its secure resource, supplying the permission side of the subject-verb-object access decision.",
+      "evidence": "The security policy or authorization configuration (e.g. a permissions manifest, OPA/Casbin policy, or Spring Security @PreAuthorize expression) maps the permission's action-and-resource identifier to the operation declared on the secure resource, so the enforcement point checks that permission before allowing the operation."
+    }
+  ],
+  "notes": ""
+}

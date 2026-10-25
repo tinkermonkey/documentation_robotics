@@ -1,0 +1,56 @@
+{
+  "source": "api.response",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.097Z",
+  "relationships": [
+    {
+      "id": "api.response.aggregates.api.header",
+      "previous_description": "Defines relationship: api.response aggregates api.header",
+      "description": "The response groups a reusable header declaration, typically one registered under components/headers and pulled in by $ref, as one of the headers it returns, while that header remains independently defined and shareable across other responses.",
+      "evidence": "The response's headers map contains an entry whose value is a $ref to '#/components/headers/<name>' (e.g. X-RateLimit-Remaining) in the OpenAPI document."
+    },
+    {
+      "id": "api.response.aggregates.api.mediatype",
+      "previous_description": "Defines relationship: api.response aggregates api.mediatype",
+      "description": "The response lists a media type entry among the payload formats it can return, where that entry's definition (often built from shared schemas and examples) is treated as a separable part of the response rather than owned by it alone.",
+      "evidence": "The response's content map has a key such as 'application/json' whose media type object is reused or shared with other responses or request bodies in the OpenAPI document."
+    },
+    {
+      "id": "api.response.aggregates.api.schema",
+      "previous_description": "Defines relationship: api.response aggregates api.schema",
+      "description": "The response includes a schema as the shape of one of its returned bodies or header values, with the schema itself, usually a named components/schemas entry, existing independently and reused elsewhere in the API.",
+      "evidence": "Under the response's content.<mime>.schema (or headers.<name>.schema) the OpenAPI document places a $ref to '#/components/schemas/<Name>' that is also referenced by other operations."
+    },
+    {
+      "id": "api.response.composes.api.header",
+      "previous_description": "Defines relationship: api.response composes api.header",
+      "description": "The response owns an inline header declaration that describes a header returned only with this status-code outcome, so the header definition has no existence outside this response.",
+      "evidence": "The response's headers map contains an inline header object (with its own schema and description, no $ref) such as 'Location' under responses.201.headers in the OpenAPI document."
+    },
+    {
+      "id": "api.response.composes.api.link",
+      "previous_description": "Defines relationship: api.response composes api.link",
+      "description": "The response owns a link that declares, for this particular outcome, how values from the response can be fed into a follow-on operation, so the link is meaningful only in the context of that response.",
+      "evidence": "The response object contains a links map with an entry naming an operationId or operationRef and a parameters mapping using runtime expressions such as '$response.body#/id'."
+    },
+    {
+      "id": "api.response.composes.api.mediatype",
+      "previous_description": "Defines relationship: api.response composes api.mediatype",
+      "description": "The response owns an inline media type entry that fixes the schema, examples and encoding of the body it returns in one MIME format, and that entry exists only as part of this response's content map.",
+      "evidence": "The response's content map has a key such as 'application/json' with an inline media type object (schema, examples) defined directly under responses.<code>.content in the OpenAPI document."
+    },
+    {
+      "id": "api.response.references.api.example",
+      "previous_description": "Defines relationship: api.response references api.example",
+      "description": "The response points to a sample value that illustrates what a body or header returned for this status code looks like, without that example constraining the response's structure.",
+      "evidence": "Under the response's content.<mime>.examples or headers.<name>.examples the OpenAPI document holds a $ref to '#/components/examples/<name>' or an externalValue URL."
+    },
+    {
+      "id": "api.response.references.api.schema",
+      "previous_description": "Defines relationship: api.response references api.schema",
+      "description": "The response points to a named schema that documents the shape of its returned payload, as a lookup pointer to a shared definition rather than an ownership or structural containment.",
+      "evidence": "The response, directly or through its media type, carries a $ref string such as '#/components/schemas/ErrorResponse' resolving to a components/schemas entry in the OpenAPI document."
+    }
+  ],
+  "notes": "Header and mediatype each have both aggregates and composes; distinguish as $ref-reused versus inline or drop one. aggregates and references to api.schema overlap; both are also indirect, since OAS 3.0 responses reach schemas and examples only through media types or headers, making these transitive shortcuts of mediatype/header relationships."
+}

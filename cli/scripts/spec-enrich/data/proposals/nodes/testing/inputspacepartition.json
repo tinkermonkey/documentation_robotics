@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "testing.inputspacepartition",
+  "previous_description": "Partitioning of an input dimension into testable equivalence classes, where each class groups values expected to behave identically under test. Enables systematic, structured coverage analysis per IEEE 829-2008 equivalence partitioning guidance by ensuring distinct behavioral categories are explicitly identified before test case selection.",
+  "definition": "A test-design artifact that divides the domain of a single input field (an API parameter, schema property, or stored collection attribute) into a named set of equivalence classes (PartitionValues), each grouping values expected to produce the same behaviour under test. It also states whether that field must be present in test inputs.",
+  "distinguish_from": [
+    {
+      "type": "testing.partitionvalue",
+      "when": "the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field"
+    },
+    {
+      "type": "testing.inputpartitionselection",
+      "when": "the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves"
+    },
+    {
+      "type": "testing.targetinputfield",
+      "when": "the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes"
+    },
+    {
+      "type": "testing.partitiondependency",
+      "when": "the element expresses a constraint linking a class in one field's partition to the allowed classes of another field"
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Level Test Design Specification (test approach refinements / features to be tested); equivalence partitioning technique as defined in ISO/IEC/IEEE 29119-4 §5.2.1",
+  "code_evidence": [
+    "a parametrized test table (e.g. pytest.mark.parametrize, JUnit @ParameterizedTest with @MethodSource, Jest test.each) for one input field whose cases carry class ids such as 'valid', 'empty', 'too_long', 'negative'",
+    "a test-data module, enum or factory that enumerates named valid/invalid/boundary value groups for a single request parameter or schema property (e.g. EMAIL_CASES = {valid: [...], malformed: [...], null: [...]})",
+    "a property-based generator per field built from named sub-strategies (e.g. hypothesis st.one_of(valid_emails(), malformed_emails())), or a test-design document table listing equivalence classes per parameter"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of the input dimension being partitioned and the basis on which its equivalence classes were derived (e.g. specification rule, data type limits); set whenever the partitioning rationale is not obvious from the field name."
+    },
+    {
+      "name": "fieldRef",
+      "description": "Cross-layer ID of the input field this partition divides, typically an api.parameter, data-model.schemaproperty, data-model.jsonschema or data-store.collection element; always set to the single field whose value domain is being partitioned."
+    }
+  ],
+  "notes": "presenceRule describes the field, not the partition, and overlaps TargetInputField.relevance with a different enum; 'mutually-exclusive' needs a counterpart field reference. fieldRef duplicates TargetInputField.fieldRef. Relationships list both inputspacepartition composes partitionvalue and partitionvalue composes inputspacepartition; pick one direction. environmentfactor composes inputspacepartition looks erroneous.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.249Z"
+}

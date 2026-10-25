@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "business.product",
+  "previous_description": "A passive structure element representing a coherent collection of BusinessServices and Contracts offered to customers or markets. The product encapsulates the value proposition delivered to end users or business partners.",
+  "definition": "A composite element that bundles a named offering of one or more BusinessServices, optionally with application or technology services and business objects, together with the Contract that governs it, and that is offered as a whole to customers or markets. It is identified by what is sold or subscribed to, not by any single behavior or document within it.",
+  "distinguish_from": [
+    {
+      "type": "business.businessservice",
+      "when": "the element is a single externally visible unit of business behavior rather than a named, packaged offering combining several services with terms."
+    },
+    {
+      "type": "business.contract",
+      "when": "the element is the agreement itself (terms, obligations, SLA, rights) rather than the offering those terms are attached to."
+    },
+    {
+      "type": "business.businessobject",
+      "when": "the element is information the business manipulates, such as a catalog entity or a 'Product' record or class in an e-commerce domain model describing goods for sale, rather than the offering bundle itself."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.5.1 Product",
+  "code_evidence": [
+    "A plan, tier or SKU definition (e.g. a PLANS constant, Stripe product/price IDs, a billing config listing 'Basic/Pro/Enterprise') that enumerates which capabilities or services each offering includes.",
+    "An entitlements or feature-gating map keyed by subscription plan or edition, deciding which services a customer may use based on what they purchased.",
+    "Pricing-page content, product sheets or onboarding docs that present a named offering together with links to its terms of service, SLA or license agreement."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the offering: its name as marketed, target customers or market, included services, and governing terms. Set it whenever the element is created so reviewers can tell this bundle apart from others."
+    }
+  ],
+  "notes": "The current definition misclassifies Product as passive structure; in ArchiMate 3.2 it is a composite element. Relationships cover only business services and contracts. ArchiMate also lets products aggregate application and technology services, business objects and data objects. No attributes exist for target market, pricing model or lifecycle status. Classifiers will confuse e-commerce 'Product' entity classes with this type.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.199Z"
+}

@@ -1,0 +1,38 @@
+{
+  "source": "technology.technologyprocess",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.052Z",
+  "relationships": [
+    {
+      "id": "technology.technologyprocess.composes.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyprocess composes technology.technologyprocess",
+      "description": "The enclosing technology process, such as a full deployment pipeline, is built from the sub-process, such as a build or smoke-test stage, which exists only as a step within that larger automated sequence.",
+      "evidence": "The parent pipeline definition (e.g. a GitHub Actions workflow or Jenkinsfile) declares the child stage, job or reusable workflow inline as one of its ordered steps."
+    },
+    {
+      "id": "technology.technologyprocess.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyprocess realizes technology.technologyservice",
+      "description": "The automated infrastructure sequence is the behavior that actually delivers the externally visible capability, as when a nightly backup job delivers the backup service that consumers rely on.",
+      "evidence": "Service documentation or a runbook names the scheduled job, pipeline or workflow as the mechanism that delivers the service, e.g. a CronJob manifest labeled with the backup service it implements."
+    },
+    {
+      "id": "technology.technologyprocess.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.technologyprocess triggers technology.technologyevent",
+      "description": "Running or finishing the technology process produces the discrete infrastructure state change, such as a rollout sequence emitting a 'deployment completed' or 'certificate renewed' event.",
+      "evidence": "The pipeline or job emits a webhook, CloudEvent, Kubernetes event or notification on a defined step or completion, as seen in its configuration or the event bus subscriptions that listen for it."
+    },
+    {
+      "id": "technology.technologyprocess.uses.technology.path",
+      "previous_description": "Defines relationship: technology.technologyprocess uses technology.path",
+      "description": "The technology process sends its data over the logical communication link between specific nodes, as when a replication or backup job transfers data across the VPN tunnel or connection between source and target hosts.",
+      "evidence": "Job configuration or network policy shows the process reaching its target over a specific declared route, tunnel or connection, e.g. a backup script targeting a host reachable only through a configured VPN or peering link."
+    },
+    {
+      "id": "technology.technologyprocess.uses.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.technologyprocess uses technology.technologyinterface",
+      "description": "The technology process carries out its steps by calling the concrete protocol endpoint of a node or system software, such as a deployment pipeline calling the Kubernetes API server or a container registry endpoint.",
+      "evidence": "The pipeline or script configuration references the endpoint URL, port or socket, e.g. a kubeconfig server address, registry URL or database connection string used by the job's steps."
+    }
+  ],
+  "notes": ""
+}

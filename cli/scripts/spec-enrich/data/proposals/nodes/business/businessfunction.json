@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businessfunction",
+  "previous_description": "A behavior element that groups behavior based on required capabilities, skills, or resources (e.g., HR management, financial reporting). Unlike BusinessProcess, it is not goal-oriented but competency-oriented.",
+  "definition": "A business behavior element that groups ongoing internal behavior by the competency, skill, knowledge or resource it requires (e.g. Accounting, Claims Handling, Procurement), performed by a BusinessRole or BusinessActor, with no defined start, end or ordered sequence of steps.",
+  "distinguish_from": [
+    {
+      "type": "business.businessprocess",
+      "when": "the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence."
+    },
+    {
+      "type": "business.businessservice",
+      "when": "the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it."
+    },
+    {
+      "type": "business.businessinteraction",
+      "when": "the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor."
+    },
+    {
+      "type": "business.businessrole",
+      "when": "the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting')."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.3.2 Business Function",
+  "code_evidence": [
+    "top-level packages, modules or bounded contexts named after organizational competency areas (e.g. billing/, hr/, accounting/, procurement/) that own many related workflows rather than a single one",
+    "CODEOWNERS, team-ownership or service-catalog entries mapping a department or functional team to a group of modules, or permission scopes/menu sections grouped by functional area (e.g. 'finance:*', a 'Human Resources' navigation section)",
+    "architecture docs, capability or function maps, or ADRs listing functional areas of the business (e.g. a 'Business Functions' table or level-1 functional decomposition) referenced by code comments or module READMEs"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the competency area this function covers, its scope boundaries and the roles that perform it; set whenever the name alone does not make the grouped behavior unambiguous."
+    }
+  ],
+  "notes": "BusinessInteraction's definition says functions are 'performed by an actor' while this layer's relationships use roles; align wording. 'realizes motivation.goal' contradicts 'not goal-oriented'; ArchiMate core elements realize requirements and influence goals. 'serves businessrole' is unusual for a function. The capability-vs-function boundary with product.capability needs explicit guidance.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.226Z"
+}

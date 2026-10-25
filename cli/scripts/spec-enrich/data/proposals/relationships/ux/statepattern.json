@@ -1,0 +1,38 @@
+{
+  "source": "ux.statepattern",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.098Z",
+  "relationships": [
+    {
+      "id": "ux.statepattern.aggregates.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.statepattern aggregates ux.experiencestate",
+      "description": "The reusable state pattern groups a set of experience states as the nodes of its recurring interaction flow, while each state remains a definable condition that could also appear in other patterns or machines.",
+      "evidence": "The pattern definition file (e.g. an XState machine config or pattern YAML) lists the experience state identifiers under its states collection by reference rather than defining them inline."
+    },
+    {
+      "id": "ux.statepattern.governs.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.statepattern governs ux.experiencestate",
+      "description": "The state pattern imposes the allowed transitions, ordering and entry rules that an experience state must obey when it participates in that interaction flow, such as a wizard step only being reachable from the previous step.",
+      "evidence": "The pattern's transition table or guard rules name the experience state and restrict which events may enter or leave it, and validation tooling rejects state definitions that violate those rules."
+    },
+    {
+      "id": "ux.statepattern.specializes.ux.statepattern",
+      "previous_description": "Defines relationship: ux.statepattern specializes ux.statepattern",
+      "description": "The child state pattern is a refined variant of a more general parent pattern, inheriting its states and transitions while adding or narrowing them, as when a multi-step checkout wizard refines a generic wizard pattern.",
+      "evidence": "The pattern definition declares the parent pattern in an extends/base field, or the machine config is built by spreading or merging the parent machine's config and overriding specific states."
+    },
+    {
+      "id": "ux.statepattern.uses.ux.stateactiontemplate",
+      "previous_description": "Defines relationship: ux.statepattern uses ux.stateactiontemplate",
+      "description": "The state pattern draws on a reusable action template to define the side effects, such as fetching data or resetting a form, that its states perform on entry, exit or transition.",
+      "evidence": "The pattern's states or transitions reference the action template by name in their entry, exit or actions lists, supplying parameter values that match the template's declared inputs."
+    },
+    {
+      "id": "ux.statepattern.uses.ux.transitiontemplate",
+      "previous_description": "Defines relationship: ux.statepattern uses ux.transitiontemplate",
+      "description": "The state pattern adopts a shared motion template to define how the UI animates when it moves between its states, such as a slide between wizard steps or a fade from loading to success.",
+      "evidence": "The pattern definition or its transition entries reference the transition template's identifier in an animation or motion field, and rendered components apply the template's duration and easing when the pattern changes state."
+    }
+  ],
+  "notes": "Aggregates and governs on the same pattern-to-state pair overlap: membership plus rule-setting may be acceptable, but governs is a motivation-layer influence predicate and fits poorly for UX structure. Consider composes if states are defined inline in the pattern. Also, TransitionTemplate names an animation, which risks confusion with state-machine transitions."
+}

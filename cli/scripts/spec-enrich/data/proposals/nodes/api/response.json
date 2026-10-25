@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "api.response",
+  "previous_description": "Defines a single HTTP response returned by an operation, including its description, body content (keyed by MIME type), response headers, and optional hypermedia links. The 'content' field may be omitted entirely for responses with no body (e.g., 204 No Content). Header map keys are case-insensitive per the HTTP specification.",
+  "definition": "An OpenAPI description object specifying one possible HTTP outcome of an operation for a single status code (or 'default'). It carries a required description and, optionally, response headers, a body content map keyed by MIME type, and links to follow-on operations.",
+  "distinguish_from": [
+    {
+      "type": "api.responses",
+      "when": "the element is the whole status-code-to-response map for an operation rather than a single outcome under one status code"
+    },
+    {
+      "type": "api.mediatype",
+      "when": "the element describes the schema, examples and encoding for one MIME type entry (e.g. application/json) inside a response's content map"
+    },
+    {
+      "type": "api.schema",
+      "when": "the element defines only the data shape of a response body, independent of status code, headers or description"
+    },
+    {
+      "type": "api.header",
+      "when": "the element defines one individual response header rather than the response that contains it"
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Response Object",
+  "code_evidence": [
+    "an @ApiResponse(responseCode=\"404\", description=...) annotation in springdoc/Swagger, or a NestJS @ApiOkResponse/@ApiNotFoundResponse decorator on a controller method",
+    "an entry under a status-code key such as '200': or 'default': beneath an operation's 'responses' map, or under 'components/responses', in an openapi.yaml/json file",
+    "a FastAPI route declaring responses={404: {\"description\": ..., \"model\": ...}}, or a handler returning a fixed status code with a documented body or headers"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Required human-readable explanation of what this outcome means (e.g. 'User not found'); CommonMark is permitted. Set it for every response, including those with no body."
+    }
+  ],
+  "notes": "No attribute holds the HTTP status code, which is only the map key in api.responses; consider a statusCode attribute. Relationships to api.header and api.mediatype appear as both aggregates and composes, which is redundant. 'api.mediatype --serves--> api.response' reverses the natural direction. Also, api.responses wrongly says 2XX ranges are unsupported; OpenAPI 3.0 allows 1XX–5XX.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.260Z"
+}

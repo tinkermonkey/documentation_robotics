@@ -1,0 +1,104 @@
+{
+  "source": "data-store.collection",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.087Z",
+  "relationships": [
+    {
+      "id": "data-store.collection.composes.data-store.collection",
+      "previous_description": "Defines relationship: data-store.collection composes data-store.collection",
+      "description": "The parent container physically owns a child container that exists only within it, such as a partition, hypertable chunk, or Firestore subcollection, and that child is dropped when the parent is dropped.",
+      "evidence": "DDL such as CREATE TABLE ... PARTITION OF parent, TimescaleDB chunk metadata, or a subcollection path nested under the parent document collection."
+    },
+    {
+      "id": "data-store.collection.composes.data-store.eventhandler",
+      "previous_description": "Defines relationship: data-store.collection composes data-store.eventhandler",
+      "description": "The collection owns the trigger, change-stream subscription, or watcher registered against it, and that handler is removed when the collection is dropped.",
+      "evidence": "A CREATE TRIGGER ... ON <table> statement, a change-stream watch() call scoped to the collection, or a CDC connector config naming the table."
+    },
+    {
+      "id": "data-store.collection.composes.data-store.field",
+      "previous_description": "Defines relationship: data-store.collection composes data-store.field",
+      "description": "The collection's physical structure is made up of the column, document path, or property, which holds a stored value for each record and has no existence outside that collection.",
+      "evidence": "The column appears in the table's CREATE TABLE or ALTER TABLE ADD COLUMN DDL, a document JSON schema, or a search-index mapping."
+    },
+    {
+      "id": "data-store.collection.composes.data-store.index",
+      "previous_description": "Defines relationship: data-store.collection composes data-store.index",
+      "description": "The engine maintains the index as a lookup structure over this collection's records, and the index is dropped along with the collection.",
+      "evidence": "A CREATE INDEX ... ON <table> statement, a createIndex call on the collection, or an index definition in the collection's mapping or migration file."
+    },
+    {
+      "id": "data-store.collection.composes.data-store.namespace",
+      "previous_description": "Defines relationship: data-store.collection composes data-store.namespace",
+      "description": "As modeled, the collection contains the schema, keyspace, or named graph, which would make the namespace a part that cannot exist without the collection.",
+      "evidence": "A catalog entry or DDL showing the namespace created inside and dependent on the table, which real engines do not normally support."
+    },
+    {
+      "id": "data-store.collection.composes.data-store.validationrule",
+      "previous_description": "Defines relationship: data-store.collection composes data-store.validationrule",
+      "description": "The collection carries the engine-enforced constraint, such as a CHECK, NOT NULL, UNIQUE, or $jsonSchema validator, which restricts writes to it and exists only as part of its definition.",
+      "evidence": "A CONSTRAINT clause in the table DDL, an ALTER TABLE ADD CONSTRAINT migration, or a collMod/createCollection validator option on the collection."
+    },
+    {
+      "id": "data-store.collection.implements.security.secureresource",
+      "previous_description": "Defines relationship: data-store.collection implements security.secureresource",
+      "description": "The physical table or collection is the concrete data object that the access-control model's protected resource stands for, so authorization decisions about the resource apply to its records.",
+      "evidence": "GRANT statements, row-level security policies, or IAM resource ARNs that name the table, linked to the resource entry in the authorization model."
+    },
+    {
+      "id": "data-store.collection.maps-to.api.requestbody",
+      "previous_description": "Defines relationship: data-store.collection maps-to api.requestbody",
+      "description": "Fields of the payload a client submits to an operation are persisted into this collection's columns or document fields.",
+      "evidence": "An ORM entity or DTO-to-entity mapper that converts the request payload class into a row of the table, or a handler that inserts the parsed body into the collection."
+    },
+    {
+      "id": "data-store.collection.realizes.business.businessobject",
+      "previous_description": "Defines relationship: data-store.collection realizes business.businessobject",
+      "description": "The collection is the persistent store in which instances of the business concept, such as Orders or Claims, are recorded across their lifecycle.",
+      "evidence": "A data dictionary or ORM entity annotated with the table name that documents it as the system of record for the business entity."
+    },
+    {
+      "id": "data-store.collection.realizes.api.schema",
+      "previous_description": "Defines relationship: data-store.collection realizes api.schema",
+      "description": "The collection's record structure is the stored form of the API data shape, so the schema's properties correspond to the collection's persisted fields.",
+      "evidence": "OpenAPI components/schemas generated from, or annotated with, the ORM entity that maps to the table, or a model class shared by the schema and the table mapping."
+    },
+    {
+      "id": "data-store.collection.references.data-store.collection",
+      "previous_description": "Defines relationship: data-store.collection references data-store.collection",
+      "description": "Records in one collection hold keys or identifiers that point to records in another collection, without the referencing collection depending on it to function.",
+      "evidence": "A FOREIGN KEY ... REFERENCES clause, an ObjectId/DBRef field naming the other collection, or a graph edge type whose endpoints are the other node label."
+    },
+    {
+      "id": "data-store.collection.satisfies.security.dataclassification",
+      "previous_description": "Defines relationship: data-store.collection satisfies security.dataclassification",
+      "description": "The collection meets the handling obligations of the sensitivity tier assigned to its data, such as encryption at rest or restricted access.",
+      "evidence": "Storage configuration enabling encryption or masking on the table, together with a data catalog tag assigning the classification label to it."
+    },
+    {
+      "id": "data-store.collection.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: data-store.collection satisfies motivation.requirement",
+      "description": "The collection's structure, retention, or storage characteristics fulfill a stated need, such as keeping an audit history or storing a required data attribute.",
+      "evidence": "A requirement ID referenced in the migration, schema comment, or design doc that introduces the table, plus a test or acceptance check verifying it."
+    },
+    {
+      "id": "data-store.collection.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: data-store.collection serves application.applicationcomponent",
+      "description": "The collection provides persistent storage and retrieval of records that the application component reads and writes to carry out its responsibilities.",
+      "evidence": "A repository, DAO, or ORM model inside the component's codebase that queries or writes the table, or the component's datasource configuration listing it."
+    },
+    {
+      "id": "data-store.collection.serves.application.applicationservice",
+      "previous_description": "Defines relationship: data-store.collection serves application.applicationservice",
+      "description": "The collection supplies the stored data that the application service's operations read and modify to deliver their offered behavior.",
+      "evidence": "The service implementation's methods invoke repository queries against the table, as shown in code or in service-to-data traceability documentation."
+    },
+    {
+      "id": "data-store.collection.serves.api.operation",
+      "previous_description": "Defines relationship: data-store.collection serves api.operation",
+      "description": "The collection is the data source from which the API operation's handler retrieves or persists records to fulfill requests on that method and path.",
+      "evidence": "The route handler or controller action bound to the method-path pair issues queries or writes against the table, directly or through a repository."
+    }
+  ],
+  "notes": "composes namespace is inverted: namespaces contain collections. Collection-composes-collection is valid only for partitions or subcollections. maps-to requestbody overlaps realizes schema, since request bodies are expressed through schemas. implements secureresource could equally be realizes. serves applicationcomponent and serves applicationservice partly duplicate each other."
+}

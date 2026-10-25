@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "api.mediatype",
+  "previous_description": "Describes the schema, examples, and encoding for a specific MIME type within a request body or response content map. Keyed by media type string (e.g., application/json).",
+  "definition": "An entry in the 'content' map of a request body, response, or content-style parameter, keyed by one MIME type or media range (e.g. application/json, text/*), that binds the payload schema, examples, and (for multipart or form-urlencoded bodies) per-property encoding used when the payload has that type.",
+  "distinguish_from": [
+    {
+      "type": "api.schema",
+      "when": "the element is the data-shape definition itself (type, properties, items), independent of which MIME type carries it."
+    },
+    {
+      "type": "api.encoding",
+      "when": "the element describes serialization of a single property within a multipart or form-urlencoded body rather than the whole payload for a MIME type."
+    },
+    {
+      "type": "api.requestbody",
+      "when": "the element is the container holding the description, the required flag and the full content map across all MIME types for an operation's input."
+    },
+    {
+      "type": "api.response",
+      "when": "the element is an outcome for a status code, with its description, headers and links, rather than one MIME-typed representation within it."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Media Type Object",
+  "code_evidence": [
+    "An OpenAPI YAML/JSON 'content:' block under a requestBody or response with a key such as 'application/json' or 'multipart/form-data' carrying 'schema:' and 'example(s):'.",
+    "A framework annotation declaring a produced or consumed MIME type with a payload schema, e.g. Spring @Content(mediaType=\"application/json\", schema=@Schema(...)) or @Produces/@Consumes on a JAX-RS resource method.",
+    "FastAPI/NestJS response declarations naming a MIME type with a model, e.g. responses={200: {\"content\": {\"image/png\": {}}}} or @ApiProduces('text/csv') paired with @ApiResponse({type: Dto})."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "contentType",
+      "description": "The media type or media range string that keys this entry in the parent content map, per RFC 6838 (e.g. 'application/json', 'text/*', 'application/vnd.acme+json'); always set it, and keep it unique within the parent's content map."
+    }
+  ],
+  "notes": "The 'examples' map is referenced in the 'example' description but is not modelled as an attribute; add it or rely on the api.example relationships. 'example' is typed string but OpenAPI allows any value. Duplicate relationship pairs, aggregates and composes toward encoding, also aggregates and references toward example and schema, are ambiguous. The associated-with relationship to api.header has no OpenAPI basis, since headers belong to Encoding or Response.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.239Z"
+}

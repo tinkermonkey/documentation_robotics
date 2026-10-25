@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "security.authenticationconfig",
+  "previous_description": "Specifies how principals are verified before accessing protected resources, including the identity provider, multi-factor requirements, session lifetime, and credential policy references. Scoped per application or service. Maps to NIST SP 800-53 IA-2, IA-5, and IA-11.",
+  "definition": "A configuration element that fixes, for one application or service, the mechanism by which principals prove their identity: the authentication protocol or identity provider, whether a second factor is required, how long an authenticated session remains valid, and which credential policy applies. It describes identity verification only, not what an authenticated principal may do afterwards.",
+  "distinguish_from": [
+    {
+      "type": "security.passwordpolicy",
+      "when": "the element only specifies credential complexity, rotation, reuse or lockout rules rather than the provider, MFA and session settings of the login mechanism."
+    },
+    {
+      "type": "security.actor",
+      "when": "the element is the principal being authenticated (user, service account, external system) rather than the mechanism that verifies it."
+    },
+    {
+      "type": "security.securitypolicy",
+      "when": "the element is a prioritized set of rules deciding access to targeted resources after identity is established, rather than how identity is established."
+    },
+    {
+      "type": "security.permission",
+      "when": "the code checks whether an already-identified principal may perform an action on a resource (authorization) rather than verifying who the principal is."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 IA-2 (Identification and Authentication), IA-5 (Authenticator Management), IA-11 (Re-authentication)",
+  "code_evidence": [
+    "Authentication middleware or framework setup, e.g. passport.use(new OIDCStrategy(...)), Spring Security oauth2Login()/saml2Login(), or NextAuth providers array, with issuer, client ID and callback URLs.",
+    "Configuration files or environment variables declaring identity-provider settings such as OIDC_ISSUER_URL, SAML metadata URL, LDAP bind DN, or JWT issuer/audience and signing keys.",
+    "Session or token lifetime settings alongside MFA enforcement, e.g. SESSION_MAX_AGE, JWT expiresIn, refresh-token TTL, or an 'mfa: required' / TOTP or WebAuthn enrollment flag in auth config."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "sessionTimeout",
+      "description": "Maximum lifetime of an authenticated session in seconds before the principal must re-authenticate (IA-11). Set it from the configured session max-age or access-token expiry."
+    },
+    {
+      "name": "mfaRequired",
+      "description": "True when principals must present a second authentication factor (TOTP, WebAuthn, SMS, push) in addition to the primary credential (IA-2(1)/(2)). Set it false or omit it when MFA is optional or absent."
+    },
+    {
+      "name": "passwordPolicy",
+      "description": "Identifier of the security.passwordpolicy node governing credentials for this configuration. Set it only when the provider uses locally managed passwords, typically provider 'local' or 'ldap'."
+    }
+  ],
+  "notes": "Two edges, 'references' and 'uses', both point to passwordpolicy, and passwordpolicy also 'constrains' this type; keep one. securitymodel has both 'aggregates' and 'composes' edges to this type. The provider enum lacks jwt/api-key/mtls/kerberos. verificationLevel uses IAL but omits AAL (SP 800-63B), which fits authentication better. The unit of sessionTimeout is unspecified.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.202Z"
+}

@@ -1,0 +1,14 @@
+{
+  "source": "ux.uxapplication",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.054Z",
+  "relationships": [
+    {
+      "id": "ux.uxapplication.aggregates.ux.uxspec",
+      "previous_description": "Defines relationship: ux.uxapplication aggregates ux.uxspec",
+      "description": "The front-end application root gathers a UX specification as one of the experiences it ships on its delivery channel, so the specification inherits the application's theme, design system and default locale while remaining a separately defined artifact that could be reused by another application.",
+      "evidence": "The app's root manifest, router or module registry (for example, the SPA's top-level route table, a mobile app's navigation graph, or a voice skill's intent manifest) imports or registers the views and routes defined by the UX specification, and the spec file lists that application as its host."
+    }
+  ],
+  "notes": ""
+}

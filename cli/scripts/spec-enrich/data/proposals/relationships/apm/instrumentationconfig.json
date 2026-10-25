@@ -1,0 +1,50 @@
+{
+  "source": "apm.instrumentationconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.062Z",
+  "relationships": [
+    {
+      "id": "apm.instrumentationconfig.monitors.application.applicationcomponent",
+      "previous_description": "Defines relationship: apm.instrumentationconfig monitors application.applicationcomponent",
+      "description": "The instrumentation entry switches on telemetry capture for the libraries or code paths inside a service or module, so the component's requests, calls and errors become observable as spans, metrics and logs.",
+      "evidence": "The component's SDK bootstrap registers the auto-instrumentation plugin (e.g. a NodeSDK instrumentations array or a Java agent config), or its source obtains a Tracer and wraps its own methods in manual spans."
+    },
+    {
+      "id": "apm.instrumentationconfig.monitors.navigation.route",
+      "previous_description": "Defines relationship: apm.instrumentationconfig monitors navigation.route",
+      "description": "The instrumentation entry captures telemetry for a client-side router entry, recording route changes, render or lazy-load timing and errors when the browser location matches that path pattern.",
+      "evidence": "The front-end telemetry bootstrap registers a router or document-load instrumentation (e.g. a browser auto-instrumentation plugin or a router navigation hook calling tracer.startSpan) that tags spans with the route's path pattern."
+    },
+    {
+      "id": "apm.instrumentationconfig.monitors.technology.systemsoftware",
+      "previous_description": "Defines relationship: apm.instrumentationconfig monitors technology.systemsoftware",
+      "description": "The instrumentation entry traces the application's interactions with a third-party platform product such as a database engine, message broker or cache server, exposing query, publish or cache-call latency and failures.",
+      "evidence": "The SDK configuration enables the client-library instrumentation for that product (e.g. pg, redis, kafka or JDBC instrumentation), and emitted spans carry db.system or messaging.system attributes naming it."
+    },
+    {
+      "id": "apm.instrumentationconfig.references.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.instrumentationconfig references apm.exporterconfig",
+      "description": "The instrumentation entry points to the exporter configuration through which the telemetry it enables is expected to leave the process, without itself defining endpoint or protocol.",
+      "evidence": "The instrumentation entry in the telemetry configuration file or bootstrap code names the exporter by identifier, or both are wired into the same TracerProvider or MeterProvider setup."
+    },
+    {
+      "id": "apm.instrumentationconfig.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: apm.instrumentationconfig satisfies motivation.constraint",
+      "description": "The choice of which libraries are instrumented and how complies with a recorded restriction, such as a mandate to use OpenTelemetry, a ban on capturing request bodies, or a ceiling on instrumentation overhead.",
+      "evidence": "An architecture decision record or policy states the restriction and the instrumentation config visibly conforms to it, e.g. using only OTel instrumentations or disabling payload capture options it forbids."
+    },
+    {
+      "id": "apm.instrumentationconfig.serves.apm.instrumentationscope",
+      "previous_description": "Defines relationship: apm.instrumentationconfig serves apm.instrumentationscope",
+      "description": "The instrumentation entry supplies the named producer identity under which the enabled library or manual code obtains its Tracer, Meter or Logger, so emitted signals are tagged with that scope.",
+      "evidence": "The instrumentation plugin's constructor or the manual site calls getTracer/getMeter/getLogger with the scope name and version, which appears as otel.scope.name on exported data."
+    },
+    {
+      "id": "apm.instrumentationconfig.serves.apm.resource",
+      "previous_description": "Defines relationship: apm.instrumentationconfig serves apm.resource",
+      "description": "The telemetry captured by the instrumentation entry is emitted through providers that attach the process's resource attributes, making the instrumentation a contributor of signals attributed to that service, host or container identity.",
+      "evidence": "The same SDK bootstrap that registers the instrumentation constructs the Resource (via OTEL_RESOURCE_ATTRIBUTES, resource detectors or code) and passes it to the provider the instrumentation uses."
+    }
+  ],
+  "notes": "references exporterconfig conflicts with the source definition excluding where telemetry is sent; the link is indirect via providers. serves resource is weak: the Resource is per-process and attached by providers, not served by an instrumentation entry. serves instrumentationscope is closer to 'uses' or 'generates' than serving."
+}

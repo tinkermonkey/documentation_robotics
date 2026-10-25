@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.statepattern",
+  "previous_description": "Reusable state machine template for common UX interaction flows, composed of named ExperienceStates and transitions. Canonical examples: 'wizard' — multi-step form with back/next/submit transitions; 'optimistic-update' — loading → success/error with retry; 'tab-panel' — N peer states with tab-driven transitions; 'authenticated-route' — unauthenticated → redirect/login → authenticated.",
+  "definition": "A reusable, named state machine definition: an ordered set of ExperienceStates and the transitions between them that encodes a recurring interaction flow (e.g. wizard, loading/success/error, tab panel, auth gate). It is not bound to any single View or component and is meant to be applied by several of them.",
+  "distinguish_from": [
+    {
+      "type": "ux.experiencestate",
+      "when": "the symbol represents one state node (e.g. 'loading' or 'step-2') rather than the whole reusable machine that contains it"
+    },
+    {
+      "type": "ux.statetransition",
+      "when": "the symbol is a single trigger→destination edge with an optional guard, not a complete set of states"
+    },
+    {
+      "type": "ux.actionpattern",
+      "when": "the reusable thing is one trigger-plus-feedback interaction (e.g. confirm-and-delete) with no states of its own"
+    },
+    {
+      "type": "ux.uxspec",
+      "when": "the states are the top-level, one-off state machine of a single experience rather than a template reused across experiences"
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "A state machine factory or definition (e.g. XState createMachine, a createWizardMachine(steps) function) exported from a shared module and imported by multiple views or components",
+    "A generic hook or store (e.g. useAsync, useWizard, useTabs) exposing a finite status union such as 'idle' | 'loading' | 'success' | 'error' plus transition functions (next, back, retry), reused across features",
+    "A shared reducer typed with a discriminated union of states, or a design-system doc page describing the flow and its states (e.g. 'Optimistic update pattern')"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "A plain-text summary of the flow the pattern encodes: its states, the main transitions and the situations it fits. Set it whenever the pattern name alone does not make its behaviour clear."
+    }
+  ],
+  "notes": "HTML 5.3 has no state-machine concept; W3C SCXML would be a better reference. The initial state is marked twice, by 'states' ordering and by ExperienceState.initial, so the two can conflict. There is no 'parameters' attribute, though patterns like tab-panel need N. The 'form' and 'multi-step' categories overlap. ExperienceState→specializes→StatePattern is semantically odd. The self-specializes relationship is listed twice.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

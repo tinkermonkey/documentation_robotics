@@ -1,0 +1,140 @@
+{
+  "source": "technology.systemsoftware",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.088Z",
+  "relationships": [
+    {
+      "id": "technology.systemsoftware.accesses.technology.artifact",
+      "previous_description": "Defines relationship: technology.systemsoftware accesses technology.artifact",
+      "description": "The installed platform software reads or writes the file, image, script or configuration document at runtime, as when a database engine loads its config file or a container runtime pulls and unpacks an image.",
+      "evidence": "The software's startup command, service unit or mounted volume references the artifact's path, or its logs show it loading or writing that file or image digest."
+    },
+    {
+      "id": "technology.systemsoftware.assigned-to.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.systemsoftware assigned-to technology.technologyfunction",
+      "description": "The platform product is the active element that carries out the ongoing infrastructure behavior, such as a PostgreSQL instance performing streaming replication or an NGINX process performing load balancing.",
+      "evidence": "The product's configuration enables the feature that embodies the function, for example replication settings in postgresql.conf or an upstream block in nginx.conf."
+    },
+    {
+      "id": "technology.systemsoftware.composes.technology.artifact",
+      "previous_description": "Defines relationship: technology.systemsoftware composes technology.artifact",
+      "description": "The artifact is an integral constituent of this specific software installation, such as its binaries, bundled plugins or instance-specific configuration, and has no purpose outside it.",
+      "evidence": "The installation manifest, package file list or Dockerfile layer shows the artifact being installed into the software's own directory tree as part of that product's distribution."
+    },
+    {
+      "id": "technology.systemsoftware.depends-on.technology.device",
+      "previous_description": "Defines relationship: technology.systemsoftware depends-on technology.device",
+      "description": "The software cannot run without the physical hardware it is installed on or that it drives, such as an operating system on a bare-metal server or a storage engine on a specific disk array.",
+      "evidence": "The hardware inventory, provisioning playbook or CMDB record lists the software as installed on that device's serial or asset tag, or its configuration binds to the device's disks or interfaces."
+    },
+    {
+      "id": "technology.systemsoftware.depends-on.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.systemsoftware depends-on technology.systemsoftware",
+      "description": "The dependent platform software requires the other product to be installed and running in order to function, such as a language runtime needing an operating system or a broker needing a coordination service.",
+      "evidence": "A package dependency declaration, base image in a Dockerfile, or the software's configuration pointing to the other product's endpoint shows the required prerequisite."
+    },
+    {
+      "id": "technology.systemsoftware.implements.security.countermeasure",
+      "previous_description": "Defines relationship: technology.systemsoftware implements security.countermeasure",
+      "description": "The platform product is the concrete mechanism that puts the recorded security control into effect, such as a web application firewall enforcing input filtering or a database engine providing encryption at rest.",
+      "evidence": "The product's configuration enables the control's settings (e.g. TLS enforcement, WAF rule set, encryption keys) and the threat model lists this product as the countermeasure's implementation."
+    },
+    {
+      "id": "technology.systemsoftware.implements.motivation.principle",
+      "previous_description": "Defines relationship: technology.systemsoftware implements motivation.principle",
+      "description": "The choice and configuration of the platform product embody a general architectural principle, such as using a managed open-source database to honor a 'prefer open standards' principle.",
+      "evidence": "An architecture decision record or technology radar entry cites the principle as the rationale for selecting or configuring this product."
+    },
+    {
+      "id": "technology.systemsoftware.mitigates.security.threat",
+      "previous_description": "Defines relationship: technology.systemsoftware mitigates security.threat",
+      "description": "The platform product reduces the likelihood or impact of the modeled attack, as when a reverse proxy's rate limiting blunts credential stuffing or an OS hardening profile limits privilege escalation.",
+      "evidence": "The threat model entry names the product as a mitigating element and its configuration contains the protective setting addressing that attack technique."
+    },
+    {
+      "id": "technology.systemsoftware.provides.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.systemsoftware provides technology.technologyinterface",
+      "description": "The platform product opens the concrete access point, such as a listening port, socket or broker listener, through which consumers reach its capabilities.",
+      "evidence": "The product's configuration declares the listener (e.g. port 5432 in postgresql.conf or listeners in Kafka server.properties) and a container or service definition exposes that port."
+    },
+    {
+      "id": "technology.systemsoftware.realizes.application.applicationservice",
+      "previous_description": "Defines relationship: technology.systemsoftware realizes application.applicationservice",
+      "description": "The off-the-shelf product directly delivers the externally visible application behavior without custom code, as when a search engine product is the realization of a 'Product Search' application service.",
+      "evidence": "The service catalog or architecture documentation maps the application service to this product, and consumers' API calls are routed straight to the product's endpoints."
+    },
+    {
+      "id": "technology.systemsoftware.realizes.business.businessservice",
+      "previous_description": "Defines relationship: technology.systemsoftware realizes business.businessservice",
+      "description": "The platform product is the means by which a business-facing service is actually delivered, such as a hosted email server realizing a 'Customer Correspondence' business service.",
+      "evidence": "Business service documentation or a service catalog entry lists the product as the delivering technology, with no intermediate application component in between."
+    },
+    {
+      "id": "technology.systemsoftware.realizes.motivation.goal",
+      "previous_description": "Defines relationship: technology.systemsoftware realizes motivation.goal",
+      "description": "Adopting and operating the platform product brings about the stakeholders' intended end state, such as a clustered database realizing a goal of higher availability.",
+      "evidence": "A roadmap, business case or decision record states that introducing this product is the means of achieving the named goal."
+    },
+    {
+      "id": "technology.systemsoftware.realizes.security.securitypolicy",
+      "previous_description": "Defines relationship: technology.systemsoftware realizes security.securitypolicy",
+      "description": "The platform product evaluates and enforces the policy's ordered rules to reach access decisions, such as an authorization server or API gateway executing a named access-control policy.",
+      "evidence": "The product's policy configuration (e.g. OPA bundle, gateway policy file, database role grants) contains the rules of the named policy in its defined priority order."
+    },
+    {
+      "id": "technology.systemsoftware.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.systemsoftware realizes technology.technologyservice",
+      "description": "The platform product is what actually delivers the infrastructure capability consumers rely on, such as Redis realizing the caching service or RabbitMQ realizing the messaging service.",
+      "evidence": "Infrastructure-as-code or the platform service catalog provisions this product as the backing implementation of the named technology service."
+    },
+    {
+      "id": "technology.systemsoftware.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: technology.systemsoftware satisfies motivation.constraint",
+      "description": "The selected product and version stays within a mandated restriction, such as an approved-technology list, a licensing limit or a data-residency rule.",
+      "evidence": "The product appears on the approved technology list or its deployment region and license terms recorded in configuration match those required by the constraint's decision record."
+    },
+    {
+      "id": "technology.systemsoftware.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: technology.systemsoftware satisfies motivation.requirement",
+      "description": "The platform product as configured delivers the verifiable property the requirement demands, such as a database engine providing point-in-time recovery or a broker guaranteeing at-least-once delivery.",
+      "evidence": "A requirements traceability matrix links the requirement to this product, and its configuration or acceptance test results demonstrate the required behavior."
+    },
+    {
+      "id": "technology.systemsoftware.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: technology.systemsoftware serves application.applicationcomponent",
+      "description": "The platform product provides hosting, runtime, storage or messaging capability that the application component relies on, such as the JVM running a service or PostgreSQL storing its data.",
+      "evidence": "The component's Dockerfile base image, connection string, dependency manifest or deployment descriptor references the product or its endpoint."
+    },
+    {
+      "id": "technology.systemsoftware.serves.business.businessprocess",
+      "previous_description": "Defines relationship: technology.systemsoftware serves business.businessprocess",
+      "description": "The platform product directly supports execution of the business activities, such as a workflow engine product or document management server used throughout a claims-handling process.",
+      "evidence": "Process documentation or BPMN deployment metadata shows the process running on, or its steps relying on, this product."
+    },
+    {
+      "id": "technology.systemsoftware.serves.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.systemsoftware serves technology.technologyfunction",
+      "description": "The platform product supplies capability that another infrastructure function relies on, such as a time-sync daemon serving the log rotation function or a key store serving a replication function.",
+      "evidence": "The function's configuration or scripts invoke the product's commands, sockets or APIs to perform their work."
+    },
+    {
+      "id": "technology.systemsoftware.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.systemsoftware triggers technology.technologyevent",
+      "description": "The platform product's behavior causes the discrete infrastructure state change, such as a database engine emitting a failover event or a container runtime signalling a container exit.",
+      "evidence": "The product's logs, event stream or alerting configuration shows it emitting the named event (e.g. a Kubernetes event, systemd notification or replication failover hook)."
+    },
+    {
+      "id": "technology.systemsoftware.uses.technology.communicationnetwork",
+      "previous_description": "Defines relationship: technology.systemsoftware uses technology.communicationnetwork",
+      "description": "The platform product sends and receives its traffic over the network, such as a database cluster attached to a private VPC subnet or a broker reachable over a corporate LAN.",
+      "evidence": "The product's bind address, host network interface or infrastructure-as-code declaration places it in the network's address range or subnet."
+    },
+    {
+      "id": "technology.systemsoftware.uses.technology.path",
+      "previous_description": "Defines relationship: technology.systemsoftware uses technology.path",
+      "description": "The platform product communicates with a specific peer over the logical link, such as a database replica streaming WAL over a dedicated replication connection or a broker bridging to a remote site through a VPN tunnel.",
+      "evidence": "The product's configuration names the remote peer endpoint of the path (e.g. primary_conninfo, shovel or federation upstream URI, tunnel interface)."
+    }
+  ],
+  "notes": "composes artifact is questionable: artifacts normally realize system software (ArchiMate), and overlaps accesses. realizes business service and realizes goal skip layers; goal is better served by supports. implements principle should likely be governed-by-principles. serves vs assigned-to technologyfunction may confuse modelers. implements countermeasure and mitigates threat largely duplicate each other."
+}

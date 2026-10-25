@@ -1,0 +1,20 @@
+{
+  "source": "api.example",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.077Z",
+  "relationships": [
+    {
+      "id": "api.example.associated-with.api.operation",
+      "previous_description": "Defines relationship: api.example associated-with api.operation",
+      "description": "The sample value illustrates a concrete request or response payload, parameter value or header value exchanged when calling this specific HTTP method-path interaction.",
+      "evidence": "The OpenAPI document places the example (inline or via $ref to components/examples) inside an examples map of a parameter, request body or response media type nested under that operation's path and method."
+    },
+    {
+      "id": "api.example.references.api.schema",
+      "previous_description": "Defines relationship: api.example references api.schema",
+      "description": "The sample value is an illustrative instance of the data shape defined by the schema, conforming to its type and structure without itself defining or constraining them.",
+      "evidence": "The example sits in the same media type, parameter or header object whose schema property defines (inline or via $ref to components/schemas) the shape, and its value validates against that schema."
+    }
+  ],
+  "notes": "In OpenAPI 3.0 an Example Object never points to a Schema; it is only co-located with one. 'references' is therefore an inferred link, not a pointer. 'associated-with' to operation is indirect, since it goes through a parameter, header or media type. A path via those elements may make both relationships redundant."
+}

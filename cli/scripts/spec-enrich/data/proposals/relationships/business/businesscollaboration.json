@@ -1,0 +1,26 @@
+{
+  "source": "business.businesscollaboration",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.055Z",
+  "relationships": [
+    {
+      "id": "business.businesscollaboration.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businesscollaboration accesses business.businessobject",
+      "description": "The collaborating roles jointly read, create or update the business object, such as a shared deal file or contract draft, while carrying out their collective work.",
+      "evidence": "A process or RACI document for the joint activity lists the business object as an input or output handled by the collaboration, or a shared workspace or record shows edits by each participating role."
+    },
+    {
+      "id": "business.businesscollaboration.composes.business.businessrole",
+      "previous_description": "Defines relationship: business.businesscollaboration composes business.businessrole",
+      "description": "The business role is one of the participants whose joint membership makes up the collaboration, which dissolves if fewer than two such roles remain.",
+      "evidence": "A governance charter, committee terms of reference or org model lists the role as a named member of the collaboration."
+    },
+    {
+      "id": "business.businesscollaboration.performs.business.businessinteraction",
+      "previous_description": "Defines relationship: business.businesscollaboration performs business.businessinteraction",
+      "description": "The collaboration is the joint actor that carries out the business interaction, with its member roles contributing parts that none could complete alone.",
+      "evidence": "A process model or swimlane diagram assigns the interaction, such as joint deal approval, to the collaboration's pooled lane or to its named committee, and meeting minutes or sign-off records show its members completed it."
+    }
+  ],
+  "notes": "The composes relationship to BusinessRole conflicts with ArchiMate semantics. Roles exist independently of any collaboration, so this is aggregation, not composition. The accesses relationship to BusinessObject is a derived shortcut. In ArchiMate, the access normally belongs to the BusinessInteraction the collaboration performs, not to the active structure itself."
+}

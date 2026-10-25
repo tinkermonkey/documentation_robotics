@@ -1,0 +1,26 @@
+{
+  "source": "data-store.validationrule",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "data-store.validationrule.aggregates.data-store.field",
+      "previous_description": "Defines relationship: data-store.validationrule aggregates data-store.field",
+      "description": "The engine-enforced integrity constraint groups the fields it constrains (e.g. the columns of a composite unique key or CHECK expression) without owning them, so each field persists if the rule is dropped.",
+      "evidence": "The DDL or collection validator (a CHECK, UNIQUE, PRIMARY KEY or FOREIGN KEY clause, or a $jsonSchema 'required'/'properties' entry) names the field in its column list or expression."
+    },
+    {
+      "id": "data-store.validationrule.cascades-to.data-store.collection",
+      "previous_description": "Defines relationship: data-store.validationrule cascades-to data-store.collection",
+      "description": "A referential constraint propagates a delete or update on the parent record into the dependent collection, so the engine removes, nulls or rewrites the referencing records there.",
+      "evidence": "The foreign key definition in the schema migration declares ON DELETE CASCADE, SET NULL or ON UPDATE CASCADE and names the referencing table or edge collection as the dependent side."
+    },
+    {
+      "id": "data-store.validationrule.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: data-store.validationrule satisfies motivation.requirement",
+      "description": "The storage-level constraint is the mechanism that makes a stated data-integrity need hold, such as 'every order must reference an existing customer' or 'email addresses must be unique', so the need is met regardless of which application writes.",
+      "evidence": "A requirement ID appears in the migration comment, constraint name or traceability matrix linked to the constraint, and a test that attempts a violating write shows the engine rejecting it."
+    }
+  ],
+  "notes": "cascades-to fits only referential constraints with ON DELETE/UPDATE actions; CHECK, NOT NULL and unique rules never cascade, so this relationship should be limited to foreign-key rules. Satisfies overlaps with the governance predicate enforces-requirement; the spec should pick one predicate for constraint-to-requirement traceability."
+}

@@ -1,0 +1,50 @@
+{
+  "source": "apm.metricconfiguration",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.080Z",
+  "relationships": [
+    {
+      "id": "apm.metricconfiguration.aggregates.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.metricconfiguration aggregates apm.exporterconfig",
+      "description": "The process-wide metrics pipeline configuration groups the metric exporter settings that its periodic or pull reader uses to push or expose collected metrics, while each exporter configuration remains a separately defined, reusable destination binding.",
+      "evidence": "The MeterProvider builder registers a PeriodicExportingMetricReader (or pull reader) wrapping a MetricExporter built from a named exporter block, e.g. an OTEL_METRICS_EXPORTER/OTLP endpoint setting or a readers[].exporter entry in the declarative SDK config file."
+    },
+    {
+      "id": "apm.metricconfiguration.aggregates.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.metricconfiguration aggregates apm.metricinstrument",
+      "description": "The metrics SDK configuration encompasses the instruments created from Meters of its MeterProvider, applying its collection interval, cardinality limits and exemplar policy to each, while the instruments are defined independently in application or library code.",
+      "evidence": "Instruments created via meter.createCounter/histogramBuilder obtain their Meter from the MeterProvider that was built with this configuration's reader, cardinality limit and exemplar filter settings."
+    },
+    {
+      "id": "apm.metricconfiguration.depends-on.apm.resource",
+      "previous_description": "Defines relationship: apm.metricconfiguration depends-on apm.resource",
+      "description": "The metrics pipeline configuration requires the process's resource so that the MeterProvider it constructs can stamp every exported metric with the identity of the emitting service, host and process.",
+      "evidence": "The SdkMeterProvider builder call is passed a Resource via setResource(...) or the SDK's default resource from OTEL_RESOURCE_ATTRIBUTES and resource detectors at construction time."
+    },
+    {
+      "id": "apm.metricconfiguration.references.data-model.jsonschema",
+      "previous_description": "Defines relationship: apm.metricconfiguration references data-model.jsonschema",
+      "description": "The metrics configuration points to the JSON Schema document that defines the valid structure and value ranges for its interval, timeout, cardinality and exemplar settings, without depending on it at runtime.",
+      "evidence": "The configuration file declares a $schema or file_format pointing to the schema's $id (e.g. the OpenTelemetry declarative configuration schema), or a CI validation step checks the file against that schema."
+    },
+    {
+      "id": "apm.metricconfiguration.references.apm.traceconfiguration",
+      "previous_description": "Defines relationship: apm.metricconfiguration references apm.traceconfiguration",
+      "description": "The metrics configuration refers to the sibling tracing configuration of the same process, typically to align exemplar sampling with the trace sampler and share bootstrap conventions, without either owning the other.",
+      "evidence": "The SDK bootstrap or declarative config file defines meter_provider and tracer_provider sections side by side, with the metrics exemplar filter set to trace_based so it consults the sampled span context produced by the trace configuration."
+    },
+    {
+      "id": "apm.metricconfiguration.serves.apm.instrumentationconfig",
+      "previous_description": "Defines relationship: apm.metricconfiguration serves apm.instrumentationconfig",
+      "description": "The metrics pipeline configuration supplies the collection and export behavior used by each instrumented library or manual instrumentation site that records measurements through the global or injected MeterProvider.",
+      "evidence": "An auto-instrumentation plugin or manual instrumentation code obtains its Meter from GlobalOpenTelemetry/the injected MeterProvider that was registered with this metrics configuration at SDK bootstrap."
+    },
+    {
+      "id": "apm.metricconfiguration.serves.apm.resource",
+      "previous_description": "Defines relationship: apm.metricconfiguration serves apm.resource",
+      "description": "The metrics configuration is claimed to make its pipeline available to the process resource, i.e. carry the resource's identifying attributes out on every collected and exported metric.",
+      "evidence": "Exported metric batches from the configured MeterProvider carry the Resource's attributes (e.g. service.name, host.name) in the OTLP ResourceMetrics envelope."
+    }
+  ],
+  "notes": "serves.apm.resource is semantically inverted and redundant with depends-on.apm.resource: the resource is a passive identity input consumed by the MeterProvider, not a consumer served by it; drop it. aggregates.apm.metricinstrument conflicts with the source definition ('not any individual instrument'); a governs/applies-style predicate would fit better than aggregation."
+}

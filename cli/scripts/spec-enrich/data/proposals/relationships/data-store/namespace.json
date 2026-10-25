@@ -1,0 +1,50 @@
+{
+  "source": "data-store.namespace",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.058Z",
+  "relationships": [
+    {
+      "id": "data-store.namespace.composes.data-store.collection",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.collection",
+      "description": "The namespace is the owning logical container for the collection: the collection's name is scoped within it, and dropping the namespace drops the collection with it.",
+      "evidence": "DDL such as CREATE TABLE sales.orders or a keyspace-qualified CREATE TABLE, or a MongoDB database listing, shows the collection declared under the namespace's qualified name, and the namespace's cascade drop removes it."
+    },
+    {
+      "id": "data-store.namespace.composes.data-store.field",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.field",
+      "description": "The namespace contains the field only indirectly, because the field is declared on a collection that lives in the namespace and cannot outlive the namespace's removal.",
+      "evidence": "The information_schema.columns or equivalent catalog lists the field with a table_schema or keyspace value equal to the namespace, through its parent collection's definition."
+    },
+    {
+      "id": "data-store.namespace.composes.data-store.index",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.index",
+      "description": "The namespace scopes the index's name and owns it as a schema object, so the index exists only while the namespace and its indexed collection or view exist.",
+      "evidence": "A schema-qualified CREATE INDEX statement, or a pg_indexes or system catalog entry whose schema column names the namespace, records the index as belonging to it."
+    },
+    {
+      "id": "data-store.namespace.composes.data-store.namespace",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.namespace",
+      "description": "The parent namespace contains the child namespace as a nested scope, so the child's objects are addressed through the parent's qualified name and are removed when the parent is dropped.",
+      "evidence": "The engine's catalog or DDL shows the child created under the parent's qualified name, for example a catalog.schema hierarchy or a hierarchical key-prefix convention documented in the data model."
+    },
+    {
+      "id": "data-store.namespace.composes.storedlogic",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.storedlogic",
+      "description": "The namespace is where the stored logic is deployed and name-scoped, so the function, procedure or script is invoked through the namespace's qualified name and is removed with it.",
+      "evidence": "A schema-qualified CREATE FUNCTION or CREATE PROCEDURE in a migration, or a keyspace-scoped UDF, Redis function library or ingest pipeline registration, places the logic in the namespace."
+    },
+    {
+      "id": "data-store.namespace.composes.data-store.validationrule",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.validationrule",
+      "description": "The namespace owns the engine-enforced integrity constraint as a named schema object, so the constraint is scoped by and cannot survive the namespace.",
+      "evidence": "Schema-qualified constraint DDL, such as ALTER TABLE sales.orders ADD CONSTRAINT or CREATE DOMAIN in the namespace, or an information_schema.table_constraints entry whose constraint_schema is the namespace, records it."
+    },
+    {
+      "id": "data-store.namespace.composes.data-store.view",
+      "previous_description": "Defines relationship: data-store.namespace composes data-store.view",
+      "description": "The namespace is the container in which the derived view is registered and name-scoped, and the view is dropped together with the namespace.",
+      "evidence": "A schema-qualified CREATE VIEW or CREATE MATERIALIZED VIEW statement, or a catalog view-listing entry for the namespace, shows the view defined within it."
+    }
+  ],
+  "notes": "Composing field is redundant and transitive: fields belong to collections, which already compose them. Index and validationrule composition partly overlaps collection-level ownership. Namespace-composes-namespace conflicts with the 'inside a single database instance' definition unless the engine has nested hierarchies (catalog.schema). Composing storedlogic lacks the data-store. prefix in its id."
+}

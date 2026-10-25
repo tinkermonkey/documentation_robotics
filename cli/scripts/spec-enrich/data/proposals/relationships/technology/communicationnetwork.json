@@ -1,0 +1,62 @@
+{
+  "source": "technology.communicationnetwork",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.080Z",
+  "relationships": [
+    {
+      "id": "technology.communicationnetwork.aggregates.technology.communicationnetwork",
+      "previous_description": "Defines relationship: technology.communicationnetwork aggregates technology.communicationnetwork",
+      "description": "A broader network, such as a VPC or corporate WAN, groups narrower networks such as subnets, VLANs or peered segments, which remain independently definable and can be detached or re-homed.",
+      "evidence": "A Terraform subnet resource whose vpc_id references the parent VPC, or a network design document showing the child CIDR range nested within the parent's address space."
+    },
+    {
+      "id": "technology.communicationnetwork.aggregates.technology.path",
+      "previous_description": "Defines relationship: technology.communicationnetwork aggregates technology.path",
+      "description": "The network contains the logical links between specific endpoints, such as a service-to-database connection or a site-to-site tunnel, that are routed across its infrastructure, while each link could still be carried over a different network.",
+      "evidence": "A VPN connection or route-table entry declared against the network's gateway, or connection configuration whose endpoint addresses both resolve inside the network's address space."
+    },
+    {
+      "id": "technology.communicationnetwork.assigned-to.technology.technologycollaboration",
+      "previous_description": "Defines relationship: technology.communicationnetwork assigned-to technology.technologycollaboration",
+      "description": "The network is dedicated as the interconnect over which the members of a peer ensemble, such as a database replica set, consensus cluster or service mesh, coordinate and exchange state.",
+      "evidence": "Cluster or mesh configuration that binds peer replication or gossip traffic to that network, such as a dedicated replication subnet, a Docker network shared only by the members, or a mesh's overlay network definition."
+    },
+    {
+      "id": "technology.communicationnetwork.associated-with.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.communicationnetwork associated-with technology.systemsoftware",
+      "description": "The network is related to platform software that defines, operates or is bound to it, such as a CNI plugin, VPN daemon, DNS server or broker listening on that network's addresses.",
+      "evidence": "System software configuration that references the network, such as a Calico or Flannel config declaring the pod CIDR, or a broker or database listener bound to an address within the subnet."
+    },
+    {
+      "id": "technology.communicationnetwork.connects.technology.node",
+      "previous_description": "Defines relationship: technology.communicationnetwork connects technology.node",
+      "description": "The hosting node is attached to the network as a member and receives an address in its address space, allowing it to reach other attached hosts.",
+      "evidence": "A Terraform instance or node pool that sets subnet_id or a network interface in the network, a docker-compose service listing the network under networks, or a Kubernetes cluster provisioned into the VPC subnets."
+    },
+    {
+      "id": "technology.communicationnetwork.provides.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.communicationnetwork provides technology.technologyinterface",
+      "description": "The network makes available a network-level access point, such as a gateway, load-balancer listener or private endpoint, through which services on attached hosts can be reached.",
+      "evidence": "A Terraform VPC endpoint, NAT or internet gateway, or load-balancer listener declared within the network with a concrete address and port."
+    },
+    {
+      "id": "technology.communicationnetwork.serves.technology.device",
+      "previous_description": "Defines relationship: technology.communicationnetwork serves technology.device",
+      "description": "The network delivers addressing, routing and transport to the physical hardware plugged into it, such as servers, routers, workstations or embedded boards on a LAN.",
+      "evidence": "Switch port or VLAN assignment for the device's NIC, a DHCP lease or static IP in the network's range, or a CMDB record linking the device to the LAN."
+    },
+    {
+      "id": "technology.communicationnetwork.serves.technology.node",
+      "previous_description": "Defines relationship: technology.communicationnetwork serves technology.node",
+      "description": "The network supplies the data transport and reachability that the node relies on to exchange traffic with other hosts and external clients.",
+      "evidence": "Route tables, security groups or firewall rules scoped to the network that permit the node's traffic, together with the node's network interface residing in that network."
+    },
+    {
+      "id": "technology.communicationnetwork.supports.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.communicationnetwork supports technology.technologyservice",
+      "description": "The network's transport and reachability enable an infrastructure capability, such as a managed database, messaging, DNS or monitoring service, to be delivered to its consumers.",
+      "evidence": "The service is provisioned into the network, for example an RDS subnet group or Redis subnet referencing the network's subnets, or a private endpoint and DNS zone for the service attached to the VPC."
+    }
+  ],
+  "notes": "connects→node and serves→node largely overlap; consider keeping one. assigned-to→TechnologyCollaboration misuses Assignment (active-to-behavior/role); collaboration is active structure, so aggregation or association fits better. provides→TechnologyInterface conflicts with the interface definition (located on nodes, devices or system software). associated-with→SystemSoftware is too vague to be useful."
+}

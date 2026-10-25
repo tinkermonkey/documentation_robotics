@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "apm.traceconfiguration",
+  "previous_description": "OTel TracerProvider configuration covering sampler selection, context propagation formats, and span processor pipeline. Service identity attributes (serviceName, serviceVersion, deploymentEnvironment) are OTel Resource semantic conventions and belong on the Resource node.",
+  "definition": "A tracing-SDK configuration, one per TracerProvider (usually one per service process), that fixes the sampler and its ratio, the context propagation formats injected into and extracted from carriers, and the span processors and exporters the provider forwards finished spans to.",
+  "distinguish_from": [
+    {
+      "type": "apm.resource",
+      "when": "the symbol only sets service identity attributes such as service.name, service.version or deployment.environment that are merged into all signals."
+    },
+    {
+      "type": "apm.exporterconfig",
+      "when": "the symbol defines a single export destination (endpoint, protocol, auth, compression) rather than the provider-level sampling and propagation setup that uses it."
+    },
+    {
+      "type": "apm.instrumentationconfig",
+      "when": "the symbol selects or enables instrumentation libraries or manual tracer calls rather than configuring the provider those instrumentations emit into."
+    },
+    {
+      "type": "apm.metricconfiguration",
+      "when": "the symbol configures a MeterProvider (export interval, cardinality, exemplars) rather than a TracerProvider."
+    }
+  ],
+  "standard_reference": "OpenTelemetry Specification – Tracing SDK: TracerProvider configuration (Sampler, SpanProcessor, SpanExporter) and Context/Propagators API (TextMapPropagator)",
+  "code_evidence": [
+    "Construction of a NodeTracerProvider, SdkTracerProvider or TracerProvider with a sampler argument such as ParentBased(TraceIdRatioBased(0.1)) or ALWAYS_ON",
+    "Calls such as addSpanProcessor(new BatchSpanProcessor(exporter)) or setGlobalTextMapPropagator(new CompositePropagator([W3CTraceContextPropagator, W3CBaggagePropagator]))",
+    "Environment variables OTEL_TRACES_SAMPLER, OTEL_TRACES_SAMPLER_ARG or OTEL_PROPAGATORS in deployment manifests, or a tracer_provider section in an OTel Collector/SDK declarative config YAML"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The span processor pipeline is in the definition but has no attribute; add processor type (simple|batch), batch size and schedule delay, plus span limits. propagators should be an enum (tracecontext, baggage, b3, b3multi, jaeger, xray). The aggregates→span, aggregates→metricinstrument and span composes→traceconfiguration relationships confuse configuration with emitted instances and should be reviewed.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

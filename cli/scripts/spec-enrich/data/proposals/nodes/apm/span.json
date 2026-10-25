@@ -1,0 +1,70 @@
+{
+  "spec_node_id": "apm.span",
+  "previous_description": "A named, timed unit of work in a distributed trace, as defined by the OpenTelemetry Trace Data Model. Each span is identified by a traceId+spanId pair, carries optional parent linkage (parentSpanId) for hierarchical trace composition, and is classified by SpanKind (SERVER, CLIENT, INTERNAL, PRODUCER, CONSUMER) indicating its role in the calling topology. The startTimeUnixNano and endTimeUnixNano bound the operation's timing window; statusCode (UNSET, OK, ERROR) is the canonical success/failure signal per OTel semantic conventions. Spans are produced via the OTel Tracer API, processed by SpanProcessors, and exported via SpanExporters.",
+  "definition": "A named, timed operation instrumented through the OpenTelemetry Tracer API, or emitted by an instrumentation library, that records one unit of work in a distributed trace with a SpanKind, start and end bounds, a status and attributes. The model element is the span as defined at a code location (name, kind, attributes), not one runtime occurrence.",
+  "distinguish_from": [
+    {
+      "type": "apm.spanevent",
+      "when": "the code records a point-in-time annotation inside an already-open span (span.addEvent, span.recordException) rather than opening and ending a new timed operation"
+    },
+    {
+      "type": "apm.spanlink",
+      "when": "the code attaches a non-parent causal reference to a span in another trace or batch (links passed at span start, Link objects) rather than defining the operation itself"
+    },
+    {
+      "type": "apm.traceconfiguration",
+      "when": "the symbol builds or configures the TracerProvider (sampler, propagators, span processors) rather than starting spans for a specific operation"
+    },
+    {
+      "type": "apm.instrumentationconfig",
+      "when": "the symbol only enables or registers an instrumentation library or plugin that produces spans, without itself naming a particular span"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Specification 1.x, Tracing API §Span and Trace Data Model (OTLP trace.proto Span message)",
+  "code_evidence": [
+    "a call such as tracer.startSpan('name'), tracer.startActiveSpan(...) or `with tracer.start_as_current_span(\"name\")` wrapping a block of application logic, followed by span.end()",
+    "a method annotated or decorated for tracing (e.g., @WithSpan, @Traced, @tracer.wrap) whose span name and SpanKind are set in the annotation or decorator",
+    "calls on a span handle such as span.setAttribute('http.route', ...), span.setStatus({code: ERROR}) or span.updateName(...) that set the span's attributes and status"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "traceId",
+      "description": "The 16-byte trace identifier shared by all spans in a trace, written as 32 lowercase hex characters; set it only when modelling a captured span instance, otherwise leave it empty."
+    },
+    {
+      "name": "spanId",
+      "description": "The 8-byte identifier unique to this span within its trace, written as 16 lowercase hex characters; populate it from captured telemetry, not for design-time definitions."
+    },
+    {
+      "name": "traceState",
+      "description": "The W3C tracestate header value carrying vendor-specific key=value pairs propagated with the span context; use an empty string when no vendor state is propagated."
+    },
+    {
+      "name": "parentSpanId",
+      "description": "The spanId (16 hex characters) of the parent span in the same trace; use an empty string for a root span."
+    },
+    {
+      "name": "startTimeUnixNano",
+      "description": "The time the operation started, in nanoseconds since the Unix epoch, encoded as a decimal string of a uint64."
+    },
+    {
+      "name": "endTimeUnixNano",
+      "description": "The time the operation ended, in nanoseconds since the Unix epoch, encoded as a decimal string of a uint64; it must be greater than or equal to startTimeUnixNano."
+    },
+    {
+      "name": "droppedAttributesCount",
+      "description": "The number of attributes the SDK discarded because of attribute count or length limits; set it to 0 when none were dropped."
+    },
+    {
+      "name": "droppedEventsCount",
+      "description": "The number of span events the SDK discarded because of the per-span event limit, as a non-negative integer; set it to 0 when none were dropped."
+    },
+    {
+      "name": "droppedLinksCount",
+      "description": "The number of span links the SDK discarded because of the per-span link limit, as a non-negative integer; set it to 0 when none were dropped."
+    }
+  ],
+  "notes": "Runtime-instance fields (traceId, spanId, parentSpanId, traceState, timestamps, dropped counts) are required, but design-time span definitions extracted from code cannot supply them; make them optional. parentSpanId cannot be required for root spans. droppedEventsCount and droppedLinksCount should be integers, not strings. The span 'composes' traceconfiguration and metricinstrument relationships look inverted.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.249Z"
+}

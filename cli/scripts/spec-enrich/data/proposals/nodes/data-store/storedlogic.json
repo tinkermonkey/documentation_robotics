@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "data-store.storedlogic",
+  "previous_description": "Stored computation logic that executes within the data store engine. Paradigm-neutral: covers SQL functions and procedures, MongoDB aggregation pipelines, Redis Lua scripts, Cassandra UDFs, Neo4j stored procedures, Elasticsearch ingest pipelines, time-series continuous queries, and DynamoDB Lambda triggers.",
+  "definition": "A named unit of executable logic that is deployed into and executed by the data store engine itself, such as an SQL function, procedure or package, a Redis Lua script or function, a Cassandra UDF/UDA, a Neo4j procedure, an Elasticsearch ingest pipeline or Painless script, or a scheduled time-series task. It is invoked by name, by an event handler, or on a schedule, rather than shipped as a query text by application code.",
+  "distinguish_from": [
+    {
+      "type": "data-store.eventhandler",
+      "when": "the element is the binding that fires on a data-change event (CREATE TRIGGER, a change-stream subscription, a keyspace notification listener), not the routine body that the binding calls"
+    },
+    {
+      "type": "data-store.view",
+      "when": "the stored query is exposed as a readable derived collection (CREATE VIEW, a materialized view, a continuous aggregate, a search alias) that clients select from, rather than a routine they invoke"
+    },
+    {
+      "type": "data-store.accesspattern",
+      "when": "the query or aggregation pipeline is built and sent ad hoc by repository/DAO code on each call and is never registered in the engine"
+    },
+    {
+      "type": "data-store.validationrule",
+      "when": "the integrity check is a declarative constraint (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator, strict mapping) rather than procedural code"
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 SQL-invoked routines (CREATE FUNCTION / CREATE PROCEDURE) and ISO/IEC 9075-4 SQL/PSM (Persistent Stored Modules)",
+  "code_evidence": [
+    "A migration or schema file containing CREATE [OR REPLACE] FUNCTION, CREATE PROCEDURE or CREATE PACKAGE with a LANGUAGE clause (plpgsql, tsql, java) and a routine body, e.g. a $$-delimited block",
+    "A .lua script file loaded with SCRIPT LOAD and called via EVALSHA, or registered with redis.register_function / ioredis defineCommand",
+    "Application code calling a routine by name (JDBC CallableStatement '{call ...}', Python cursor.callproc, Spring @Procedure, Npgsql CommandType.StoredProcedure), or engine config such as PUT _ingest/pipeline/<name> or an InfluxDB task with 'option task = {every: ...}'"
+  ],
+  "attribute_descriptions": [],
+  "notes": "LAMBDA and language EXTERNAL contradict 'executes within the engine'. DynamoDB Lambda triggers are better modelled as an eventhandler bound to external application code. CONTINUOUS_QUERY overlaps view CONTINUOUS_AGGREGATE and retentionpolicy DOWNSAMPLE. PROCEDURE and STORED_PROCEDURE duplicate each other. A parameters/signature attribute is missing. The 'migrates' relationship to collection is unclear.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.256Z"
+}

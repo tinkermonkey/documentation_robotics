@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "data-model.schemadefinition",
+  "previous_description": "A reusable JSON Schema definition declared under the 'definitions' keyword and referenced via '$ref: #/definitions/{name}'. Enables DRY schema design and consistent type definitions across entities.",
+  "definition": "A named, reusable subschema declared under a JSON Schema document's 'definitions' keyword and addressable as '$ref: #/definitions/{name}'. It describes one domain data type, such as an entity, value object, DTO or enumeration, that other schemas or properties reuse by name rather than declaring inline.",
+  "distinguish_from": [
+    {
+      "type": "data-model.objectschema",
+      "when": "you are modelling the structural constraints of an object (its properties, required list, additionalProperties) rather than the named, reusable type entry that carries them"
+    },
+    {
+      "type": "data-model.schemaproperty",
+      "when": "the schema is a single field declared inline within a parent schema's properties and is not reused by name elsewhere"
+    },
+    {
+      "type": "data-model.jsonschema",
+      "when": "the element is the root schema document with its own $schema and $id, not an entry within its definitions"
+    },
+    {
+      "type": "data-model.reference",
+      "when": "the element is only the $ref pointer that points at a definition, not the definition itself"
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 (draft-handrews-json-schema-validation-01) §9 Schema Re-Use With \"definitions\"",
+  "code_evidence": [
+    "an entry under \"definitions\" (or \"$defs\", or OpenAPI \"components.schemas\") in a .schema.json or spec file that is targeted by one or more \"$ref\": \"#/definitions/...\" pointers",
+    "an exported entity, DTO or record class, a TypeScript interface or type alias, or a Pydantic/zod model that other types import and use as a field type",
+    "an exported enum type (e.g. a Java enum, TypeScript enum or Python Enum subclass) whose values represent a fixed domain vocabulary used by several models"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "title",
+      "description": "Human-readable name of the definition, normally matching its key under 'definitions' or the source class or type name (e.g. 'CustomerAddress'). Always set it, because it is the label other elements use to identify the reusable type."
+    }
+  ],
+  "notes": "Object-typed definitions have no properties or required attributes, so they must defer structure to objectschema. The spec does not say whether that is via composes or aggregates. No attribute holds the definitions key, which is the actual $ref target; title is only an annotation. The enum attribute is an array here but a string on schemaproperty. Draft 2019+ '$defs' is not mentioned.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.247Z"
+}

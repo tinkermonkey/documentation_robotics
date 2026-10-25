@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "testing.inputpartitionselection",
+  "previous_description": "A specification of which values from an InputSpacePartition must be exercised within a CoverageRequirement, supporting selective coverage of equivalence classes per IEEE 829-2008 test design specification. When coverAllCategories is true, all partition values are included except those in excludeValues; otherwise, only the values listed in coverValues are included.",
+  "definition": "A coverage-scope rule within a CoverageRequirement that names exactly one InputSpacePartition and declares which of its PartitionValues must be exercised. The rule takes one of two forms: an explicit include list, or all values minus an exclude list. It selects equivalence classes and never binds concrete test data.",
+  "distinguish_from": [
+    {
+      "type": "testing.inputselection",
+      "when": "a single partition value is bound to a concrete test datum for one specific TestCaseSketch, rather than a set of classes being declared in scope for a requirement."
+    },
+    {
+      "type": "testing.partitionvalue",
+      "when": "you are defining the equivalence class itself (its label, constraint and representative value), not choosing which classes to cover."
+    },
+    {
+      "type": "testing.partitiondependency",
+      "when": "the inclusion or exclusion of values in one field is conditional on a value chosen in another field."
+    },
+    {
+      "type": "testing.coveragerequirement",
+      "when": "you are stating the overall criterion (pairwise, boundary-values, MC/DC) and priority, rather than the per-partition value subset it draws on."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Level Test Design Specification (Clause 10), approach refinements: selection of equivalence classes to be exercised",
+  "code_evidence": [
+    "A combinatorial test model file (e.g. a PICT .txt or ACTS model) that lists one parameter with only a subset of its defined value classes.",
+    "A test-design YAML/JSON block keyed by an input field or partition name, with include/exclude lists or an 'all: true, except: [...]' form.",
+    "A parametrized test (pytest.mark.parametrize, it.each, @EnumSource(mode = EXCLUDE)) iterating over one field's enum or equivalence classes, with specific classes deliberately omitted or excluded."
+  ],
+  "attribute_descriptions": [],
+  "notes": "coverValues and excludeValues are required comma-separated strings, although each is ignored in one mode; they should be optional arrays. They also duplicate the aggregates→partitionvalue relationship. Aggregating contextvariation belongs on CoverageRequirement, not here. Three composing parents make ownership ambiguous. The TestCaseSketch.inputSelections attribute points here, which invites confusion with InputSelection.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.200Z"
+}

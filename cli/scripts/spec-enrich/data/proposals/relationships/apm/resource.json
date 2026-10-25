@@ -1,0 +1,56 @@
+{
+  "source": "apm.resource",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.074Z",
+  "relationships": [
+    {
+      "id": "apm.resource.aggregates.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.resource aggregates apm.exporterconfig",
+      "description": "The exporter configurations wired into the process's tracer, meter and logger providers are grouped under the resource that identifies that process, so every export destination is attributable to one telemetry-producing entity.",
+      "evidence": "The SDK bootstrap code or OTEL_* environment configuration builds a TracerProvider/MeterProvider/LoggerProvider with both setResource(resource) and the exporter (e.g. OTLPSpanExporter endpoint) registered on the same provider."
+    },
+    {
+      "id": "apm.resource.aggregates.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.resource aggregates apm.metricinstrument",
+      "description": "Each metric instrument created from a Meter of the process's MeterProvider emits its measurements stamped with this resource, so the resource groups all instruments that the identified service or process defines.",
+      "evidence": "The instrument is created via meter.createCounter/histogramBuilder on a Meter obtained from a MeterProvider configured with this resource, and exported metric data shows the resource attributes (e.g. service.name) on that instrument's series."
+    },
+    {
+      "id": "apm.resource.aggregates.apm.span",
+      "previous_description": "Defines relationship: apm.resource aggregates apm.span",
+      "description": "Each span defined in the process's code or instrumentation libraries is emitted under this resource, so the resource groups all span definitions produced by the identified service or process.",
+      "evidence": "The span is started from a Tracer obtained from a TracerProvider configured with this resource, and exported trace data shows the span name carrying the resource's service.name and related attributes."
+    },
+    {
+      "id": "apm.resource.maps-to.application.applicationcomponent",
+      "previous_description": "Defines relationship: apm.resource maps-to application.applicationcomponent",
+      "description": "The resource's service identity attributes correspond to the application component whose deployed process produces the telemetry, linking observability data back to the architectural building block.",
+      "evidence": "The service.name (and service.namespace/service.version) set in code, OTEL_SERVICE_NAME or OTEL_RESOURCE_ATTRIBUTES matches the name of the component's deployable module, package or service manifest."
+    },
+    {
+      "id": "apm.resource.monitors.technology.node",
+      "previous_description": "Defines relationship: apm.resource monitors technology.node",
+      "description": "The resource carries host, container, Kubernetes or cloud-instance attributes that identify the node on which the instrumented process runs, making that node the observed host for all emitted telemetry.",
+      "evidence": "A host, container, k8s or cloud resource detector is enabled, or attributes such as host.name, k8s.pod.name or cloud.resource_id are set, whose values identify the VM, pod or server declared in the deployment or Terraform configuration."
+    },
+    {
+      "id": "apm.resource.monitors.technology.systemsoftware",
+      "previous_description": "Defines relationship: apm.resource monitors technology.systemsoftware",
+      "description": "The resource carries runtime, operating-system or process attributes that identify the platform software hosting the instrumented process, making that software the observed execution environment for the telemetry.",
+      "evidence": "Process, OS or runtime resource detectors populate attributes such as process.runtime.name/version, os.type or container.runtime that match the runtime, OS or container engine declared in the Dockerfile or infrastructure configuration."
+    },
+    {
+      "id": "apm.resource.references.security.secureresource",
+      "previous_description": "Defines relationship: apm.resource references security.secureresource",
+      "description": "The resource's identity attributes name the service or API that the access control model protects, so telemetry from that process can be correlated with the protected object without any functional dependency.",
+      "evidence": "The resource's service.name or similar attribute value equals the identifier of the API or service declared as a protected resource in the authorization policy or security model configuration."
+    },
+    {
+      "id": "apm.resource.serves.business.businessprocess",
+      "previous_description": "Defines relationship: apm.resource serves business.businessprocess",
+      "description": "The telemetry identity supplied by the resource lets operators attribute observability data to the business process that the instrumented service supports, enabling business-level monitoring of that process.",
+      "evidence": "Resource attributes (e.g. a custom business.process or service.namespace attribute) or dashboard/SLO documentation explicitly tie the resource's service.name to the named business process."
+    }
+  ],
+  "notes": "monitors (Node, SystemSoftware) is wrong: a Resource passively identifies its host/runtime rather than observing it; references or associated-with fits. serves BusinessProcess is dubious for an attribute set. aggregates ExporterConfig is questionable since exporters belong to providers, not the Resource. references SecureResource is weak and overlaps maps-to ApplicationComponent."
+}

@@ -1,0 +1,56 @@
+{
+  "source": "api.server",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.084Z",
+  "relationships": [
+    {
+      "id": "api.server.aggregates.api.servervariable",
+      "previous_description": "Defines relationship: api.server aggregates api.servervariable",
+      "description": "The server's URL template groups the substitution rules that resolve each of its {placeholder} tokens, so a concrete request URL is formed by filling the template with each variable's default or chosen enum value.",
+      "evidence": "The OpenAPI document's server entry contains a 'variables' map whose keys match the {placeholder} tokens appearing in that server's 'url' string."
+    },
+    {
+      "id": "api.server.associated-with.api.ratelimit",
+      "previous_description": "Defines relationship: api.server associated-with api.ratelimit",
+      "description": "The throttling policy applies to traffic sent to this base URL, capping how many requests a consumer may make against that network location within the policy's time window.",
+      "evidence": "The rate-limit declaration, for example an x-rate-limit extension or gateway plan, is attached to the server entry or names its URL as its scope, or gateway configuration binds the limit to that host."
+    },
+    {
+      "id": "api.server.depends-on.technology.node",
+      "previous_description": "Defines relationship: api.server depends-on technology.node",
+      "description": "The base URL is reachable only while the host, VM, container or cluster behind that network location is running, so the node is the deployment target that answers requests sent to the server.",
+      "evidence": "DNS records, load-balancer or ingress configuration, or Terraform/Kubernetes manifests map the server URL's hostname and port to the node's address or service endpoint."
+    },
+    {
+      "id": "api.server.references.api.securityscheme",
+      "previous_description": "Defines relationship: api.server references api.securityscheme",
+      "description": "The server entry points to the credential mechanism that clients must use when calling operations at this base URL, such as an OAuth flow whose token endpoint is hosted on that location.",
+      "evidence": "A server-level extension or the security scheme's tokenUrl, authorizationUrl or openIdConnectUrl shares the server's host, or documentation states that this base URL requires the named scheme."
+    },
+    {
+      "id": "api.server.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: api.server satisfies security.securitypolicy",
+      "description": "The base URL's configuration, such as an HTTPS-only scheme, an approved domain or an internal-only host, meets the requirements of an access-control policy that governs which endpoints may be exposed and how.",
+      "evidence": "A policy-as-code check or security review record evaluates the server URL and passes it against the policy, for example a lint rule requiring https servers on approved domains."
+    },
+    {
+      "id": "api.server.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: api.server serves application.applicationcomponent",
+      "description": "The base URL is the network entry point through which the application component's API is reached, so the server carries callers' requests to the component that handles them.",
+      "evidence": "Gateway routes, ingress rules or service-discovery entries forward traffic for the server URL to the component's deployment, and the component's OpenAPI document lists that URL in its servers array."
+    },
+    {
+      "id": "api.server.serves.api.pathitem",
+      "previous_description": "Defines relationship: api.server serves api.pathitem",
+      "description": "The server supplies the base URL that the path item's template is appended to, which determines where the path's operations are actually invoked.",
+      "evidence": "The server is declared in the document-level servers array that the path item inherits, or it is declared in that path item's own 'servers' override."
+    },
+    {
+      "id": "api.server.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: api.server uses technology.systemsoftware",
+      "description": "Requests to the base URL are terminated and handled by platform software, such as a web server, reverse proxy, API gateway or language runtime, listening at that network location.",
+      "evidence": "Nginx, Envoy or gateway configuration declares a listener or virtual host for the server URL's host and port, or the container image running at that address bundles the named runtime."
+    }
+  ],
+  "notes": "aggregates→servervariable should be composes: variables have no existence outside their server. references→securityscheme is not an OpenAPI construct, because security requirements attach to root or operations, not servers. satisfies→securitypolicy is weak for a URL declaration. serves→applicationcomponent has inverted direction: the component is exposed via the server. serves→pathitem overlaps with plain structural scoping."
+}

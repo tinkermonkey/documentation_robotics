@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "ux.componentinstance",
+  "previous_description": "Instance of a LibraryComponent with application-specific configuration",
+  "definition": "A single concrete occurrence of a library component placed inside a specific View, SubView or LibrarySubView, carrying the prop values and render position that configure that one usage. It is identified by its reference to exactly one ux.librarycomponent definition, not by declaring props, slots or events of its own.",
+  "distinguish_from": [
+    {
+      "type": "ux.librarycomponent",
+      "when": "the symbol defines the reusable component itself (its prop schema, slots, events, implementation) rather than one configured use of it on a screen"
+    },
+    {
+      "type": "ux.componentreference",
+      "when": "the element only declares which component fills a named slot of a parent component (a slot or children placeholder), without its own configured props or render order"
+    },
+    {
+      "type": "ux.actioncomponent",
+      "when": "the element's identity is an interactive trigger (button, link, menu, voice command) modelled by its action semantics rather than as a configured usage of a library component"
+    },
+    {
+      "type": "ux.subview",
+      "when": "the element is a non-routable fragment grouping several components within a View, rather than a single component usage"
+    }
+  ],
+  "standard_reference": "HTML 5.3 §4.13 Custom elements: an element occurrence in the document tree created from a custom element definition, with attributes set per usage",
+  "code_evidence": [
+    "a JSX/TSX, Vue or Angular template tag for an imported design-system component (e.g. <DataTable columns={cols} pageSize={20} />) inside a page or screen component",
+    "a declarative layout or page-config entry such as { \"component\": \"Chart\", \"props\": { ... } } in a low-code, CMS or server-driven-UI JSON/YAML file",
+    "a component tag inside a parent's render list whose position or explicit order key determines where it appears among sibling components on the screen"
+  ],
+  "attribute_descriptions": [],
+  "notes": "Both implements and realizes point to ux.librarycomponent, and renders→librarycomponent duplicates ref; keep one. ref is optional although the definition depends on it, so consider making it required. There is no slot or variant attribute, unlike ComponentReference. Buttons that are library components blur the boundary with ActionComponent. Add a name/label so instances of the same component can be told apart.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.247Z"
+}

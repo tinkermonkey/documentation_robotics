@@ -1,0 +1,44 @@
+{
+  "source": "security.authenticationconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.068Z",
+  "relationships": [
+    {
+      "id": "security.authenticationconfig.authenticates.security.actor",
+      "previous_description": "Defines relationship: security.authenticationconfig authenticates security.actor",
+      "description": "The authentication configuration defines the protocol, identity provider and factor requirements by which this principal must prove its identity before it is admitted to the application or service.",
+      "evidence": "The application's auth settings (e.g. an OIDC client or SAML service-provider configuration) list the actor's user pool, service-account realm or client credentials as an accepted identity source."
+    },
+    {
+      "id": "security.authenticationconfig.constrained-by.security.securitypolicy",
+      "previous_description": "Defines relationship: security.authenticationconfig constrained-by security.securitypolicy",
+      "description": "The security policy sets the limits within which the authentication configuration may operate, for example mandating MFA, maximum session lifetimes or approved identity providers for the targets it governs.",
+      "evidence": "A policy document or policy-as-code rule (e.g. an OPA/Rego check or an organizational security baseline) states session, factor or provider requirements that the authentication settings are validated against."
+    },
+    {
+      "id": "security.authenticationconfig.depends-on.security.auditconfig",
+      "previous_description": "Defines relationship: security.authenticationconfig depends-on security.auditconfig",
+      "description": "The authentication configuration relies on the audit configuration to record login successes, failures, lockouts and session events, without which identity verification would be unaccountable.",
+      "evidence": "The audit configuration's event list includes authentication events (login, logout, MFA challenge, lockout) emitted by the authentication module, and deployment or compliance checks require the audit config to be enabled before auth is turned on."
+    },
+    {
+      "id": "security.authenticationconfig.protects.security.secureresource",
+      "previous_description": "Defines relationship: security.authenticationconfig protects security.secureresource",
+      "description": "The authentication configuration guards the protected resource by ensuring that only principals who have verified their identity through the configured mechanism can reach it at all.",
+      "evidence": "The resource's route, gateway or middleware configuration attaches the authentication scheme (e.g. an API gateway authorizer, Spring Security filter chain or ingress auth annotation) to the resource's endpoints."
+    },
+    {
+      "id": "security.authenticationconfig.references.security.passwordpolicy",
+      "previous_description": "Defines relationship: security.authenticationconfig references security.passwordpolicy",
+      "description": "The authentication configuration names the password policy that governs memorized secrets accepted by its authenticator, identifying which credential rule set is in force.",
+      "evidence": "The authentication configuration file contains a credential-policy field or identifier that points to the password policy by name or ID."
+    },
+    {
+      "id": "security.authenticationconfig.uses.security.passwordpolicy",
+      "previous_description": "Defines relationship: security.authenticationconfig uses security.passwordpolicy",
+      "description": "The authentication configuration applies the password policy's length, complexity, history, expiry and lockout rules when validating passwords and handling failed login attempts.",
+      "evidence": "The identity provider or authentication service loads the password policy's settings at runtime and enforces them during credential setup, change and login, as shown by its validation code or realm configuration."
+    }
+  ],
+  "notes": "The references and uses relationships to PasswordPolicy are redundant: an authentication config that names its credential policy also applies it, so uses subsumes references. Keep one, preferably uses. depends-on AuditConfig is questionable. Authentication usually emits events to audit rather than requiring audit in order to function."
+}

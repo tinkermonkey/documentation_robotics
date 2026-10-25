@@ -1,0 +1,62 @@
+{
+  "source": "testing.targetinputfield",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.085Z",
+  "relationships": [
+    {
+      "id": "testing.targetinputfield.aggregates.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.targetinputfield aggregates testing.partitionvalue",
+      "description": "The target input field gathers the equivalence and boundary classes that apply to its bound field for this coverage target, while each partition value remains owned by its InputSpacePartition and exists independently of the binding.",
+      "evidence": "The test coverage model YAML lists partition value IDs under the target input field entry, and each of those IDs is also declared under the partition's values."
+    },
+    {
+      "id": "testing.targetinputfield.constrained-by.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.targetinputfield constrained-by testing.coveragerequirement",
+      "description": "The coverage requirement attached to the same coverage target limits how this input field's equivalence classes must be combined and exercised, for example boundary-values or pairwise across the field.",
+      "evidence": "A coverage requirement on the same TestCoverageTarget names this input field, or its partition, among the dimensions its criterion must cover."
+    },
+    {
+      "id": "testing.targetinputfield.depends-on.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.targetinputfield depends-on testing.contextvariation",
+      "description": "Whether the input field must be exercised, and how its partitioning applies, depends on a named execution context, such as a field that is only relevant under security or load testing conditions.",
+      "evidence": "The target input field entry references a context variation ID that gates its applicability, declared on the same TestCoverageTarget."
+    },
+    {
+      "id": "testing.targetinputfield.flows-to.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.targetinputfield flows-to testing.inputpartitionselection",
+      "description": "The field-to-partition binding feeds into an input partition selection rule, which then picks which of that field's equivalence classes a coverage requirement must exercise.",
+      "evidence": "An InputPartitionSelection within the target's coverage requirement names the same InputSpacePartition that this target input field binds."
+    },
+    {
+      "id": "testing.targetinputfield.maps-to.ux.actioncomponent",
+      "previous_description": "Defines relationship: testing.targetinputfield maps-to ux.actioncomponent",
+      "description": "The tested input field corresponds to a user-operable control in the UI, so values chosen for the field are supplied by activating that control, such as a menu option or button selection.",
+      "evidence": "The UX spec's action component declares the same field or parameter it submits, and the target input field points to that component's ID."
+    },
+    {
+      "id": "testing.targetinputfield.references.testing.inputspacepartition",
+      "previous_description": "Defines relationship: testing.targetinputfield references testing.inputspacepartition",
+      "description": "The target input field names the InputSpacePartition that divides its field's domain into the equivalence classes used when designing tests for the target.",
+      "evidence": "The target input field entry carries a partition ID that resolves to an InputSpacePartition declared in the testing model."
+    },
+    {
+      "id": "testing.targetinputfield.references.api.parameter",
+      "previous_description": "Defines relationship: testing.targetinputfield references api.parameter",
+      "description": "When the coverage target is an API operation, the target input field identifies the specific path, query, header or cookie parameter whose values are being partitioned for testing.",
+      "evidence": "The target input field's field reference resolves to an OpenAPI parameter (name, in) declared on the operation that the coverage target names."
+    },
+    {
+      "id": "testing.targetinputfield.references.data-model.schemaproperty",
+      "previous_description": "Defines relationship: testing.targetinputfield references data-model.schemaproperty",
+      "description": "When the tested artifact takes structured data, the target input field identifies the schema property, such as an entity attribute or DTO field, whose value domain is partitioned for testing.",
+      "evidence": "The target input field's field reference is a JSON pointer to an entry under an ObjectSchema's 'properties' in the data model."
+    },
+    {
+      "id": "testing.targetinputfield.references.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.targetinputfield references testing.testcoveragetarget",
+      "description": "The target input field belongs to one coverage target and records that this field of the target's artifact is a test input dimension, including whether it must appear in test inputs.",
+      "evidence": "The target input field is nested under, or keyed by, the TestCoverageTarget ID in the TestCoverageModel definition."
+    }
+  ],
+  "notes": "The maps-to to ux.actioncomponent looks wrong: input fields correspond to UI input components, not action controls, and maps-to is a data schema predicate. The aggregates link to partitionvalue duplicates what the references link to inputspacepartition already reaches. references to testcoveragetarget understates what is really composition."
+}

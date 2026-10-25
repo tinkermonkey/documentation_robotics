@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "navigation.navigationgraph",
+  "previous_description": "Root container for an application's complete routing structure, composing all Route, NavigationTransition, and NavigationGuard nodes into a unified navigation model.",
+  "definition": "A root container representing one application's complete router configuration, the single top-level route table or router instance whose scope covers every Route, NavigationTransition, NavigationGuard, NavigationFlow and BreadcrumbConfig reachable in that application. Exactly one exists per independently bootstrapped router, as opposed to a subset, journey or single entry.",
+  "distinguish_from": [
+    {
+      "type": "navigation.navigationflow",
+      "when": "the symbol describes an ordered, goal-directed subset of routes, such as a wizard or checkout, rather than the whole route table of the application."
+    },
+    {
+      "type": "navigation.route",
+      "when": "the symbol is a single path entry, including a parent route with nested children or a lazily loaded child route module, rather than the root router configuration."
+    },
+    {
+      "type": "navigation.breadcrumbconfig",
+      "when": "the symbol only configures breadcrumb trail rendering for a navigation scope rather than defining the routes themselves."
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: root router configuration / route table (e.g., Vue Router createRouter instance, Angular RouterModule.forRoot, React Router createBrowserRouter)",
+  "code_evidence": [
+    "A root router bootstrap call that receives the full routes array, such as createRouter({ history, routes }), RouterModule.forRoot(routes), createBrowserRouter([...]) or provideRouter(routes), which is mounted once on the app instance.",
+    "A top-level routing file, such as router/index.ts, app-routing.module.ts or routes.tsx, that imports and assembles all feature route modules and registers global guards like router.beforeEach.",
+    "The root directory of a file-system routing convention, such as Next.js app/ or pages/, Nuxt pages/ or SvelteKit src/routes, treated as one application's complete route tree."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Version identifier of this navigation model, such as a semver string matching the application release or route-table revision it reflects. Set it whenever the graph is extracted or published, so that changes to the routing structure can be tracked over time."
+    },
+    {
+      "name": "description",
+      "description": "Free-text summary of the graph's scope: which application or router instance it covers and any notable boundaries, such as excluded micro-frontends or admin sub-apps. Set it when the scope is not obvious from the application reference."
+    }
+  ],
+  "notes": "Both 'aggregates' and 'composes' relationships exist to Route and NavigationTransition, which is redundant; choose one. The meaning of 'version' is ambiguous: model revision or router library version. The router library belongs in the technology.systemsoftware link. Define the cardinality rule for micro-frontends or multiple router instances. Consider adding a 'routerFramework' or 'historyMode' attribute.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.223Z"
+}

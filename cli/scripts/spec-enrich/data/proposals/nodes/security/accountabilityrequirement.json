@@ -1,0 +1,54 @@
+{
+  "spec_node_id": "security.accountabilityrequirement",
+  "previous_description": "Expresses who is obligated to provide evidence that a specific action occurred and under what conditions that evidence can be challenged. Distinct from AuditConfig, which defines what events are captured — this node defines the obligation to prove an action took place. Implements NIST SP 800-53 AU-10 non-repudiation.",
+  "definition": "A security obligation stating that the performance of one named action on one named resource must be provably attributable to the actor who performed it. It records whether non-repudiation is mandatory, the purpose that justifies the obligation, and whether the resulting proof may be disputed.",
+  "distinguish_from": [
+    {
+      "type": "security.auditconfig",
+      "when": "the element specifies which events are logged, at what verbosity, and with which fields sanitized, rather than the obligation to prove that a particular action happened."
+    },
+    {
+      "type": "security.evidence",
+      "when": "the element is the concrete proof artifact itself (a signature, hash, timestamp or audit-trail entry), not the requirement that such proof exist."
+    },
+    {
+      "type": "security.needtoknow",
+      "when": "the declared purpose is a precondition an actor must state before being granted access, rather than a justification attached to proving an action after it occurs."
+    },
+    {
+      "type": "security.retentionpolicy",
+      "when": "the concern is how long the proof or logs are kept and how they are disposed of."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AU-10 Non-repudiation",
+  "code_evidence": [
+    "A sensitive operation, such as payment approval, contract acceptance or record deletion, that signs a payload with the acting user's key or a server HSM and persists the signer ID, signature and timestamp alongside the record.",
+    "An append-only or write-once audit table, ledger, or hash-chained log that the code requires for a specific action-resource pair, often with a mandatory 'reason' or 'justification' field captured from the user.",
+    "Compliance or control-mapping documentation (SSP, control matrix, ADR) that cites AU-10 or 'non-repudiation' for a named action, or a dispute/chargeback workflow that retrieves the stored proof of that action."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "action",
+      "description": "The operation whose occurrence must be provable, named as a verb or operation identifier (e.g. 'approve-payment', 'delete'), ideally matching a ResourceOperation's operation value."
+    },
+    {
+      "name": "resource",
+      "description": "Identifier of the secured resource or information entity on which the action is performed, matching a SecureResource resource name or InformationEntity name."
+    },
+    {
+      "name": "nonRepudiation",
+      "description": "True when the actor must be unable to deny having performed the action, requiring strong or cryptographic evidence such as a digital signature. False when attributable logging alone suffices."
+    },
+    {
+      "name": "purposeDeclaration",
+      "description": "A free-text statement of the business, legal or regulatory reason the action must be provable (e.g. 'SOX approval trail', 'GDPR consent record'). Set it from the governing requirement."
+    },
+    {
+      "name": "challengeable",
+      "description": "True when the acting party or a third party may formally dispute the recorded proof through a defined process. False when the evidence is treated as final once recorded."
+    }
+  ],
+  "notes": "No attribute identifies the obligated actor despite the definition saying 'who'; this relies on the constrains→actor relationship. nonRepudiation=false weakens the type's AU-10 anchor; consider a required evidence-strength enum instead. purposeDeclaration overlaps NeedToKnow.objective. 'Under what conditions evidence can be challenged' is reduced to a boolean, so challenge conditions cannot be recorded.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "ux.librarysubview",
+  "previous_description": "Reusable, non-routable grouping of components intended to be composed into Views or other SubViews. Unlike View, LibrarySubView has no route and cannot be navigated to directly. It exists purely as a reusable composition unit, analogous to an HTML template element.",
+  "definition": "A reusable, non-routable composition of configured component instances, published in a UX library and embedded by reference into multiple Views or SubViews. It is distinguished from a SubView by being the shared definition rather than its placement in a particular parent, and from a LibraryComponent by being an assembly of existing components rather than a primitive with its own prop, slot and event contract.",
+  "distinguish_from": [
+    {
+      "type": "ux.subview",
+      "when": "the fragment is a specific placement inside one parent View (with an order), either referencing a library sub-view via 'ref' or defined inline and not reused elsewhere."
+    },
+    {
+      "type": "ux.librarycomponent",
+      "when": "the unit is a single primitive or widget with its own declared props, slots and events, rather than an arrangement of several already-configured component instances."
+    },
+    {
+      "type": "ux.view",
+      "when": "the grouping is reachable by a route or URL, or is opened as a page, modal, dialog or drawer in its own right."
+    },
+    {
+      "type": "ux.statepattern",
+      "when": "what is being reused is a sequence of states and transitions (wizard, optimistic update) rather than a visual arrangement of components."
+    }
+  ],
+  "standard_reference": "HTML 5.3 §4.12.3 The template element",
+  "code_evidence": [
+    "A component file in a shared or design-system package (e.g. src/shared/sections/, packages/ui/patterns/) that renders a fixed arrangement of several other library components, has no route registration and is imported by two or more page components.",
+    "A Storybook story grouped under a 'Patterns', 'Sections' or 'Compositions' heading, as opposed to 'Components', that renders a multi-component block such as a FiltersWithTable or AddressFormSection.",
+    "A reusable template partial (e.g. Angular ng-template, Django {% include %} partial, Rails shared partial, Blade @include, or HTML <template> element) that contains several component tags and is included from multiple page templates."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "title",
+      "description": "Human-readable display name of the reusable sub-view as shown in library catalogues or Storybook (e.g. 'Address Form Section'); set it whenever the sub-view is published in a UXLibrary."
+    },
+    {
+      "name": "description",
+      "description": "Plain-text summary of the sub-view's purpose, its contained components and its intended embedding contexts; set it to help consumers choose between similar library sub-views."
+    }
+  ],
+  "notes": "Both 'aggregates' and 'composes' to componentinstance are redundant; keep one. Likewise subview 'realizes' vs 'uses' librarysubview, and uxlibrary 'aggregates' vs 'provides'. There are no layout, dataConfig or slot/parameter attributes, so consumers cannot override instance props when embedding. The category is free text, whereas sibling categories are enums.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

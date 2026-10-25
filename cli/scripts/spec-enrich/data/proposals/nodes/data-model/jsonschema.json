@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "data-model.jsonschema",
+  "previous_description": "The root JSON Schema document, identified by $schema (dialect URI) and $id (base URI for $ref resolution), containing type constraints, annotations, and reusable definitions.",
+  "definition": "A top-level schema document that is the unit of identity and $ref resolution in the data model: it declares a dialect via $schema and a base URI via $id, and contains the root type constraint plus any named subschemas under definitions. Only the outermost schema of a file or registered document qualifies; nested subschemas do not.",
+  "distinguish_from": [
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the schema is a named, reusable subschema nested under a document's definitions keyword rather than the document itself"
+    },
+    {
+      "type": "data-model.objectschema",
+      "when": "you are modelling the object-level constraints (properties, required, additionalProperties) of a schema rather than the document that carries $schema/$id"
+    },
+    {
+      "type": "data-model.reference",
+      "when": "the element is only a $ref pointer to another schema, not a self-contained document with its own $id"
+    },
+    {
+      "type": "data-model.schemacomposition",
+      "when": "the element combines subschemas with allOf/anyOf/oneOf/not rather than being an identified root document"
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 (draft-handrews-json-schema-01) §7 Root Schema and Subschemas, §8.1.1 $schema, §8.2 $id",
+  "code_evidence": [
+    "a *.schema.json or *.json file whose top-level object contains \"$schema\": \"http://json-schema.org/draft-07/schema#\" and an \"$id\" URI",
+    "a schema registered with a validator by URI, e.g. ajv.addSchema(schema, 'https://example.com/order.json') or compile() called on a loaded file",
+    "a build step or decorator that emits a whole schema document per model, e.g. pydantic Model.model_json_schema() or zod-to-json-schema output written to a schemas/ directory"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "$schema",
+      "description": "URI of the JSON Schema dialect/meta-schema the document conforms to (e.g. 'http://json-schema.org/draft-07/schema#'); set on every root document so validators apply Draft 7 semantics."
+    },
+    {
+      "name": "$id",
+      "description": "Absolute URI that identifies the document and serves as the base URI for resolving relative $ref values (e.g. 'https://example.com/schemas/order.json'); set to a stable, unique URI per document."
+    },
+    {
+      "name": "title",
+      "description": "Short human-readable name for the schema document, typically the domain entity it describes (e.g. 'Order'); set when the document needs a display label in tooling or generated docs."
+    }
+  ],
+  "notes": "type is marked required, but Draft 7 root documents may omit type (e.g. root of pure definitions or a composition); consider making it optional. Missing description attribute, unlike siblings. Relationships to motivation.goal and business.businessservice look overreaching for a schema document. Overlap with api.schema via realizes should be clarified.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.232Z"
+}

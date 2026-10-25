@@ -1,0 +1,50 @@
+{
+  "source": "motivation.outcome",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.082Z",
+  "relationships": [
+    {
+      "id": "motivation.outcome.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.outcome associated-with motivation.constraint",
+      "description": "The measurable end result is linked to a restriction on the solution space, such as a deadline or budget ceiling, that bounds how or by when the result may be achieved.",
+      "evidence": "An outcome statement or decision record names the constraint explicitly, e.g. an OKR whose target date or cost cap cites the contractual deadline or budget policy."
+    },
+    {
+      "id": "motivation.outcome.associated-with.motivation.driver",
+      "previous_description": "Defines relationship: motivation.outcome associated-with motivation.driver",
+      "description": "The measurable end result is linked to the condition or pressure, such as a new regulation or rising cost, that motivated setting it.",
+      "evidence": "The outcome's documentation or strategy deck cites the driver as its rationale, e.g. 'reduce hosting cost 20% by Q4' referencing the 'rising cloud spend' driver entry."
+    },
+    {
+      "id": "motivation.outcome.associated-with.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.outcome associated-with motivation.outcome",
+      "description": "One measurable end result is related to another, for example as a prerequisite, sibling key result or complementary target under the same objective.",
+      "evidence": "An OKR sheet or roadmap lists both key results under the same objective or states that one result's attainment depends on or accompanies the other."
+    },
+    {
+      "id": "motivation.outcome.associated-with.motivation.stakeholder",
+      "previous_description": "Defines relationship: motivation.outcome associated-with motivation.stakeholder",
+      "description": "The measurable end result is linked to the party whose interests it serves or who is accountable for tracking whether it is reached.",
+      "evidence": "The outcome record names the stakeholder as owner or beneficiary, e.g. a KPI dashboard or OKR entry listing the product team or regulator role."
+    },
+    {
+      "id": "motivation.outcome.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.outcome influence motivation.goal",
+      "description": "Achieving or missing the measurable end result positively or negatively affects progress toward the broader qualitative goal without fully realizing it.",
+      "evidence": "Planning documents record a contribution or trade-off, e.g. a goal-tree annotation marking the outcome as '+' or '−' toward the goal."
+    },
+    {
+      "id": "motivation.outcome.realizes.motivation.goal",
+      "previous_description": "Defines relationship: motivation.outcome realizes motivation.goal",
+      "description": "The measurable end result is the concrete, checkable state whose attainment demonstrates that the qualitative goal has been reached.",
+      "evidence": "An OKR or goal-refinement document lists the outcome as a key result of the goal, with its target value defining success for that goal."
+    },
+    {
+      "id": "motivation.outcome.realizes.motivation.value",
+      "previous_description": "Defines relationship: motivation.outcome realizes motivation.value",
+      "description": "Reaching the measurable end result is what actually delivers the benefit that stakeholders perceive as worthwhile.",
+      "evidence": "A business case or value map states that the outcome's target, e.g. 'checkout under 2 minutes', produces the stated stakeholder value, e.g. 'saves customers ten minutes per order'."
+    }
+  ],
+  "notes": "influence and realizes toward motivation.goal overlap; modelers should pick realizes for full attainment and influence for partial contribution. The associated-with links to constraint and driver are weak; constrained-by toward constraint and a driver→outcome influence would be more precise."
+}

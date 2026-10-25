@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "apm.metricconfiguration",
+  "previous_description": "OTel MeterProvider-level (global) metrics SDK configuration, covering export intervals, cardinality limits, and exemplar filtering. Distinct from per-meter configuration in MeterConfig.",
+  "definition": "A process-wide OpenTelemetry metrics SDK configuration, applied once at MeterProvider construction, that sets how all metric instruments are collected and exported: the periodic reader's export interval and timeout, per-instrument cardinality limits, and exemplar filtering and reservoir sizing. It configures the metrics pipeline itself, not any individual instrument or export destination.",
+  "distinguish_from": [
+    {
+      "type": "apm.metricinstrument",
+      "when": "the symbol defines one named measurement (a Counter, Histogram, Gauge, etc. created via meter.createX) with its own unit and description rather than global collection behaviour."
+    },
+    {
+      "type": "apm.exporterconfig",
+      "when": "the code specifies where metrics are sent (OTLP or Prometheus endpoint, protocol, authentication, compression) rather than how often and how much is collected."
+    },
+    {
+      "type": "apm.traceconfiguration",
+      "when": "the setup configures a TracerProvider (sampler, propagators, span processors) rather than a MeterProvider and its metric readers."
+    },
+    {
+      "type": "apm.instrumentationconfig",
+      "when": "the code enables or disables auto/manual instrumentation libraries that emit metrics, rather than configuring the SDK pipeline that collects them."
+    }
+  ],
+  "standard_reference": "OpenTelemetry Metrics SDK Specification: MeterProvider configuration, PeriodicExportingMetricReader, Exemplar Filter and Cardinality Limits",
+  "code_evidence": [
+    "Construction of an SDK MeterProvider (e.g. new MeterProvider({ readers: [...], views: [...] }), SdkMeterProvider.builder(), metrics.set_meter_provider(...)) in service bootstrap code",
+    "A PeriodicExportingMetricReader or equivalent instantiated with exportIntervalMillis/exportTimeoutMillis options, or env vars OTEL_METRIC_EXPORT_INTERVAL, OTEL_METRIC_EXPORT_TIMEOUT, OTEL_METRICS_EXEMPLAR_FILTER in deployment manifests",
+    "A meter_provider section in an OTel declarative configuration YAML file setting readers, cardinality_limits, or exemplar_filter"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "serviceName",
+      "description": "Logical service name (matching the Resource service.name) identifying which service's MeterProvider this configuration belongs to; set it so the configuration can be correlated with the service's Resource."
+    },
+    {
+      "name": "exportIntervalMillis",
+      "description": "Interval in milliseconds between successive collections and exports by the periodic metric reader (OTel default 60000); set it when the code or OTEL_METRIC_EXPORT_INTERVAL overrides the default."
+    }
+  ],
+  "notes": "serviceName duplicates Resource service.name, inconsistent with TraceConfiguration which moved service identity to Resource. Definition cites 'MeterConfig', which does not exist in this layer. Export interval/timeout are reader properties, not MeterProvider ones. No attributes for views, aggregation temporality, or reader type. 'serves apm.resource' relationship direction looks inverted.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

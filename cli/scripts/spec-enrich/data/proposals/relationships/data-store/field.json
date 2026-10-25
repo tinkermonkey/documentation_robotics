@@ -1,0 +1,50 @@
+{
+  "source": "data-store.field",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.056Z",
+  "relationships": [
+    {
+      "id": "data-store.field.composes.data-store.field",
+      "previous_description": "Defines relationship: data-store.field composes data-store.field",
+      "description": "A structured parent field (a nested document object, composite or struct column, or object mapping) is made up of subfields that are only addressable and stored as part of that parent.",
+      "evidence": "The collection schema declares the subfield inside the parent's definition, such as properties under an Elasticsearch object or nested mapping, a nested JSON Schema object in a MongoDB validator, or an attribute of a SQL composite type used as the column type."
+    },
+    {
+      "id": "data-store.field.maps-to.api.parameter",
+      "previous_description": "Defines relationship: data-store.field maps-to api.parameter",
+      "description": "The persisted field is the storage counterpart of an API path, query, header or cookie parameter, so the parameter's value is used to look up, filter or populate that field.",
+      "evidence": "Handler or repository code binds the parameter (for example an @PathVariable or query argument) directly into a WHERE clause, filter or ORM attribute for the column, or a documented mapping table pairs the OpenAPI parameter with the column."
+    },
+    {
+      "id": "data-store.field.requires.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: data-store.field requires security.fieldaccesscontrol",
+      "description": "Because the field holds sensitive values, its values must not leave the store or API in clear text to unauthorized principals unless the named masking, redaction, hashing, tokenization or truncation rule is applied.",
+      "evidence": "A masking or field-level security policy names this column or path, for example a SQL Server dynamic data masking clause, a Snowflake or Postgres masking policy attached to the column, or a serializer or GraphQL field rule keyed to the attribute."
+    },
+    {
+      "id": "data-store.field.satisfies.security.dataclassification",
+      "previous_description": "Defines relationship: data-store.field satisfies security.dataclassification",
+      "description": "The field carries the classification tier's label and its storage meets the tier's minimum handling obligations, such as encryption at rest or column-level encryption.",
+      "evidence": "Column metadata, such as a tag, comment or data-catalog entry, assigns the classification label, and the schema or store configuration shows the required control on that field, for example Always Encrypted, pgcrypto or a KMS-encrypted attribute."
+    },
+    {
+      "id": "data-store.field.triggers.data-store.eventhandler",
+      "previous_description": "Defines relationship: data-store.field triggers data-store.eventhandler",
+      "description": "A change to this specific field's value is the data event that activates the registered handler, so writes that leave the field untouched do not fire it.",
+      "evidence": "The handler declaration filters on the field, for example CREATE TRIGGER ... AFTER UPDATE OF <column>, a change-stream $match on updateDescription.updatedFields.<path>, or an alert or watcher rule whose condition references the field."
+    },
+    {
+      "id": "data-store.field.triggers.data-store.storedlogic",
+      "previous_description": "Defines relationship: data-store.field triggers data-store.storedlogic",
+      "description": "Writing or reading the field directly causes the engine to execute the named stored logic, for example a function computing a generated column or default value, or an ingest pipeline bound to the field's mapping.",
+      "evidence": "The field definition invokes the logic by name, for example GENERATED ALWAYS AS (fn(...)), DEFAULT fn(), or an Elasticsearch index default_pipeline that processes the field."
+    },
+    {
+      "id": "data-store.field.triggers.data-store.validationrule",
+      "previous_description": "Defines relationship: data-store.field triggers data-store.validationrule",
+      "description": "Any write that produces or changes a value in this field causes the storage engine to evaluate the integrity constraint, rejecting the write if the value violates it.",
+      "evidence": "The schema declares a constraint referencing the field, such as a CHECK, NOT NULL, UNIQUE or FOREIGN KEY clause on the column, or a $jsonSchema validator rule for the document path."
+    }
+  ],
+  "notes": "field triggers validationrule is better modelled as constrained-by, because declarative constraints restrict values rather than being initiated by them. field triggers storedlogic partly duplicates the path through eventhandler, which per its definition is the activation wiring that invokes stored logic. satisfies dataclassification conflates labelling a field with complying with the tier; a classified-as predicate would be clearer."
+}

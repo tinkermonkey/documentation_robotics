@@ -1,0 +1,54 @@
+{
+  "spec_node_id": "ux.tablecolumn",
+  "previous_description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+  "definition": "A declarative configuration entry for one column of a tabular data component, binding a header label to a single field of each row record and specifying that column's width, alignment, cell rendering type, default sort direction and filter operation. It describes column structure, not a rendered component, and exists only as part of a table-type ComponentInstance or LibraryComponent.",
+  "distinguish_from": [
+    {
+      "type": "ux.chartseries",
+      "when": "the field binding drives a plotted data series (line, bar, pie) in a chart rather than a column of cells in a table."
+    },
+    {
+      "type": "ux.componentinstance",
+      "when": "the symbol is the table itself or a component rendered inside a cell (e.g. a badge or action menu), rather than the column definition that hosts it."
+    },
+    {
+      "type": "ux.dataconfig",
+      "when": "the configuration describes where the table's row data comes from (API, state, static) and how it is selected, not how one field is displayed as a column."
+    },
+    {
+      "type": "ux.actioncomponent",
+      "when": "the element is an interactive control (button, link, icon-button) placed in an actions column, rather than the column definition containing it."
+    }
+  ],
+  "standard_reference": "HTML 5.3 §4.9 Tabular data: th element (column header cell) with col/colgroup elements",
+  "code_evidence": [
+    "An object literal in a columns array passed to a table/grid component, e.g. { header: 'Name', accessorKey: 'name', size: 200 } for TanStack Table or { field: 'price', headerName: 'Price', width: 120 } for MUI DataGrid/AG Grid columnDefs.",
+    "A declarative column child element in a template, such as <el-table-column prop=\"date\" label=\"Date\" sortable>, <mat-header-cell *matHeaderCellDef> paired with matColumnDef=\"status\", or <Column field=\"code\" header=\"Code\"> in PrimeReact.",
+    "A column definition carrying cell rendering or sort/filter options, e.g. a cellRenderer/render function returning a badge, sortable: true with sortingOrder, or filter: 'agNumberColumnFilter' on a single field."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "header",
+      "description": "User-visible text rendered in the column's header cell (the th content), e.g. 'Order Date'; set for every column, using an empty string or accessible label for icon-only or actions columns."
+    },
+    {
+      "name": "field",
+      "description": "Key or dot-notation path of the property in each row record whose value populates this column's cells (e.g. 'customer.name'); set for every column and formalize via maps-to relationships to data-model or data-store fields."
+    },
+    {
+      "name": "width",
+      "description": "Preferred column width as a CSS length or percentage (e.g. '160px', '20%', 'auto'); set when the column should not size automatically from content."
+    },
+    {
+      "name": "minWidth",
+      "description": "Minimum CSS width the column may shrink to during resizing or responsive layout (e.g. '80px'); set when content would become unreadable below a threshold."
+    },
+    {
+      "name": "maxWidth",
+      "description": "Maximum CSS width the column may grow to during resizing or flexible layout (e.g. '400px'); set to stop long text columns from dominating the table."
+    }
+  ],
+  "notes": "No boolean 'sortable' or 'filterable'/'resizable'/'hidden' attributes exist; defaultSortDirection 'none' conflates not-sortable with unsorted. filterType enum mixes operators (equals, range) with widget kinds (multiselect, boolean). 'HTML 5.3 form input filter patterns' is not a real standard clause. The renders→componentinstance relationship overlaps displayType for custom cell renderers; clarify precedence.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

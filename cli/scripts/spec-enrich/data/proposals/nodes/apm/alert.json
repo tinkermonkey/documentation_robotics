@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "apm.alert",
+  "previous_description": "A named alerting rule that evaluates a condition against observed signals (metrics, traces, logs) on a schedule and fires a notification when the condition is met. Represents the alert definition in the monitoring backend (e.g., Prometheus alertmanager, Grafana alerting, Datadog monitors), not an individual alert event.",
+  "definition": "A declarative rule configured in a monitoring backend that evaluates a threshold or query expression over telemetry (metrics, spans, logs) at a recurring interval and sends a notification to one or more destinations when the expression holds. It is the persisted rule definition, not a single firing or incident instance.",
+  "distinguish_from": [
+    {
+      "type": "apm.dashboard",
+      "when": "the artifact only visualizes signals in panels and has no triggering condition or notification routing of its own"
+    },
+    {
+      "type": "apm.metricinstrument",
+      "when": "the symbol defines the measured quantity itself (a Counter, Histogram or Gauge created via a Meter) rather than a rule that evaluates that quantity"
+    },
+    {
+      "type": "apm.logrecord",
+      "when": "the thing is a single emitted event or log entry, including a record of an alert having fired, rather than the standing rule that decides when to fire"
+    },
+    {
+      "type": "apm.logconfiguration",
+      "when": "the severity threshold only filters which log records the SDK emits, rather than triggering a notification when a condition over signals is met"
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "A Prometheus rules YAML file with a groups[].rules[] entry that has an 'alert:' name, an 'expr:' PromQL condition, an optional 'for:' duration and a 'labels.severity' value",
+    "An infrastructure-as-code resource such as Terraform 'datadog_monitor', 'grafana_rule_group', 'newrelic_alert_condition' or 'aws_cloudwatch_metric_alarm' (or CloudFormation AWS::CloudWatch::Alarm) that declares a query or threshold and notification targets",
+    "An Alertmanager or Grafana contact-point/route configuration, or a monitor JSON export, that binds a named rule to Slack, PagerDuty or email receivers"
+  ],
+  "attribute_descriptions": [],
+  "notes": "OpenTelemetry defines no alerting concept, so this type has no standard anchor. Missing attributes: pending/'for' duration, labels, runbookUrl and the hosting tool (dashboard has 'tool'). There is no SLO type even though the layer scope mentions SLOs, so burn-rate alerts lack a target. The 'dashboard monitors alert' relationship is semantically odd; 'displays' would fit better.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.263Z"
+}

@@ -1,0 +1,80 @@
+{
+  "source": "data-store.accesspattern",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "data-store.accesspattern.accesses.data-store.collection",
+      "previous_description": "Defines relationship: data-store.accesspattern accesses data-store.collection",
+      "description": "The access pattern is a named read or write request that application code issues against this collection as its single target container.",
+      "evidence": "The repository or DAO method implementing the pattern issues a query, get, put or scan naming this table, collection or bucket, or the data-model design document lists the pattern under this collection."
+    },
+    {
+      "id": "data-store.accesspattern.aggregates.data-store.collection",
+      "previous_description": "Defines relationship: data-store.accesspattern aggregates data-store.collection",
+      "description": "The access pattern groups the collection as a constituent part of its request scope, with the collection existing independently of any pattern that touches it.",
+      "evidence": "The data-model design document lists the collection inside the access pattern's definition block, for example a single-table design entry naming the table and its item types."
+    },
+    {
+      "id": "data-store.accesspattern.aggregates.data-store.field",
+      "previous_description": "Defines relationship: data-store.accesspattern aggregates data-store.field",
+      "description": "The access pattern bundles the fields that make up its key condition, sort condition, filter condition and projection, each of which remains part of the collection's schema independently of the pattern.",
+      "evidence": "The query text or design entry for the pattern names these columns or attributes in its WHERE, KeyConditionExpression, FilterExpression, ORDER BY or projection clauses."
+    },
+    {
+      "id": "data-store.accesspattern.aggregates.data-store.index",
+      "previous_description": "Defines relationship: data-store.accesspattern aggregates data-store.index",
+      "description": "The access pattern includes the index as a declared part of its design, recording which lookup structure was provisioned specifically to support the request shape.",
+      "evidence": "The data-model design document or schema migration comment pairs the pattern with the index (e.g. a GSI defined 'for pattern GetOrdersByCustomer')."
+    },
+    {
+      "id": "data-store.accesspattern.maps-to.api.operation",
+      "previous_description": "Defines relationship: data-store.accesspattern maps-to api.operation",
+      "description": "The access pattern is the persistence request that backs this HTTP method-path operation, translating the endpoint's parameters into the store's key and filter conditions.",
+      "evidence": "The route handler or controller action for the method-path pair calls the repository method that executes the pattern's query, passing path or query parameters as key values."
+    },
+    {
+      "id": "data-store.accesspattern.satisfies.security.accesscondition",
+      "previous_description": "Defines relationship: data-store.accesspattern satisfies security.accesscondition",
+      "description": "The access pattern embeds the authorization predicate in its key or filter condition so that every record it returns or writes already meets the condition (e.g. tenant or owner scoping).",
+      "evidence": "The query includes a filter such as tenant_id = :claims.tenant or owner_id = :subject matching the attribute and operator declared in the access condition, or a row-level security policy binds it."
+    },
+    {
+      "id": "data-store.accesspattern.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: data-store.accesspattern satisfies motivation.requirement",
+      "description": "The access pattern is the concrete data retrieval or mutation shape designed to meet a stated functional or performance requirement, such as looking up orders by customer within a latency budget.",
+      "evidence": "The data-model design document or code comment cites the requirement identifier next to the pattern, or an acceptance test for the requirement exercises the pattern's query."
+    },
+    {
+      "id": "data-store.accesspattern.serves.application.applicationfunction",
+      "previous_description": "Defines relationship: data-store.accesspattern serves application.applicationfunction",
+      "description": "The access pattern supplies the read or write capability that the application function relies on to carry out its automated behavior.",
+      "evidence": "The application function's implementing module invokes the repository method or query builder call that realizes the access pattern."
+    },
+    {
+      "id": "data-store.accesspattern.serves.business.businessfunction",
+      "previous_description": "Defines relationship: data-store.accesspattern serves business.businessfunction",
+      "description": "The access pattern provides the data retrieval or update that underpins a business competency, such as fetching open claims for Claims Handling.",
+      "evidence": "Architecture or data-model documentation traces the pattern to the business function, typically via the application function or use case that the business function depends on."
+    },
+    {
+      "id": "data-store.accesspattern.triggers.data-store.eventhandler",
+      "previous_description": "Defines relationship: data-store.accesspattern triggers data-store.eventhandler",
+      "description": "Executing the access pattern's write produces the data-change event on the collection that activates the event handler's registered binding.",
+      "evidence": "The pattern's INSERT, UPDATE, DELETE or put targets the collection and event type declared by the SQL trigger, change-stream subscription, CDC connector or keyspace notification configuration."
+    },
+    {
+      "id": "data-store.accesspattern.triggers.data-store.storedlogic",
+      "previous_description": "Defines relationship: data-store.accesspattern triggers data-store.storedlogic",
+      "description": "The access pattern initiates execution of the stored logic inside the engine, by calling a procedure, function or script by name as part of its request.",
+      "evidence": "The application's query text contains CALL, SELECT fn(), EVALSHA or FCALL, or an ingest pipeline parameter naming the deployed stored routine."
+    },
+    {
+      "id": "data-store.accesspattern.uses.data-store.index",
+      "previous_description": "Defines relationship: data-store.accesspattern uses data-store.index",
+      "description": "The access pattern relies on the index to locate matching entries by its key or sort condition instead of scanning the whole collection.",
+      "evidence": "The query specifies IndexName or an index hint, or the EXPLAIN plan for the pattern's query shows an index scan on this index's key fields."
+    }
+  ],
+  "notes": "aggregates→collection duplicates accesses and misuses whole-part semantics; a pattern targets, not contains, a collection. aggregates→index overlaps uses→index; uses is correct. aggregates→field is better expressed as references. satisfies→accesscondition is odd: conditions are evaluated by policy checks, not realized by queries. serves→businessfunction skips the application layer."
+}

@@ -1,0 +1,38 @@
+{
+  "source": "apm.alert",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.075Z",
+  "relationships": [
+    {
+      "id": "apm.alert.monitors.apm.logrecord",
+      "previous_description": "Defines relationship: apm.alert monitors apm.logrecord",
+      "description": "The alert rule queries occurrences of a specific log event (by message template, event name or severity) and notifies its destinations when their count or content crosses the configured condition.",
+      "evidence": "The alert definition in the monitoring backend (e.g. a Loki/Datadog log monitor or Terraform alert resource) contains a log query filtering on the log record's event name, message template or severity attributes."
+    },
+    {
+      "id": "apm.alert.monitors.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.alert monitors apm.metricinstrument",
+      "description": "The alert rule evaluates a threshold expression over the time series produced by the metric instrument and fires when the measured quantity breaches it.",
+      "evidence": "The alert's query expression (e.g. a PromQL rule in a Prometheus rules file or a Grafana alert JSON) references the metric name and unit exported by the instrument created in code via the Meter API."
+    },
+    {
+      "id": "apm.alert.monitors.api.operation",
+      "previous_description": "Defines relationship: apm.alert monitors api.operation",
+      "description": "The alert rule watches the health of one HTTP method-path interaction, such as its error rate or latency, so that degradation of that endpoint triggers a notification.",
+      "evidence": "The alert query filters telemetry on the operation's http.request.method and http.route (or operationId) labels matching the method and path template declared in the OpenAPI document."
+    },
+    {
+      "id": "apm.alert.monitors.api.ratelimit",
+      "previous_description": "Defines relationship: apm.alert monitors api.ratelimit",
+      "description": "The alert rule tracks how close consumers come to, or how often they exceed, the throttling cap defined by the rate-limit policy and notifies when rejections or utilization pass a threshold.",
+      "evidence": "The alert expression queries a throttling metric or 429-response count labelled with the rate-limit policy name or counting key configured in the gateway or API specification."
+    },
+    {
+      "id": "apm.alert.monitors.apm.span",
+      "previous_description": "Defines relationship: apm.alert monitors apm.span",
+      "description": "The alert rule evaluates duration, error status or throughput of spans with a given name and kind and fires when that unit of work becomes slow or failing.",
+      "evidence": "The alert definition (e.g. a trace-based monitor or span-metrics PromQL rule) filters on the span name and attributes set by the tracer.startSpan call at the instrumented code location."
+    }
+  ],
+  "notes": "apm.alert.monitors.api.operation and apm.alert.monitors.api.ratelimit are indirect: alerts actually evaluate telemetry (spans, metrics, logs) describing these API elements, so they may be redundant with span/metric monitoring plus span-to-operation traceability. Consider whether 'evaluates' fits better than 'monitors' for rule-over-telemetry semantics."
+}

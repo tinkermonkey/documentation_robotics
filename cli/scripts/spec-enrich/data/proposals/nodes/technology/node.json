@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.node",
+  "previous_description": "A computational or physical resource that hosts, manipulates, or interacts with other computational or physical resources, such as a server cluster, virtual machine host, or container runtime.",
+  "definition": "A computational resource, physical or virtualized, that acts as a deployment target on which system software runs and artifacts are deployed for execution, such as a virtual machine, a running container instance, a Kubernetes cluster, or a provisioned server host. It is identified by being the place where something is hosted, not by its hardware form or by the platform software installed on it.",
+  "distinguish_from": [
+    {
+      "type": "technology.device",
+      "when": "the element is a specific piece of physical hardware (server chassis, workstation, phone, IoT sensor, storage appliance) described by its hardware form rather than by its role as a hosting environment"
+    },
+    {
+      "type": "technology.systemsoftware",
+      "when": "the element is the platform software itself (operating system, container runtime such as containerd or Docker Engine, DBMS, message broker) rather than the machine or instance it runs on"
+    },
+    {
+      "type": "technology.technologycollaboration",
+      "when": "the element is an aggregate of separately modelled nodes or devices that jointly perform behaviour (a replica set, a cache cluster, a service mesh) and each member is modelled in its own right"
+    },
+    {
+      "type": "technology.artifact",
+      "when": "the element is the deployable package or image (container image, JAR, Helm chart, VM image) rather than the running instance or host that executes it"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.2.1 Node",
+  "code_evidence": [
+    "Infrastructure-as-code resources that provision compute, such as Terraform aws_instance, google_compute_instance, azurerm_linux_virtual_machine, or aws_eks_cluster blocks",
+    "A services entry in docker-compose.yml, or a Kubernetes Pod/Deployment/StatefulSet spec, that names the container instance on which an image is run",
+    "A deployment target listed in an Ansible inventory, Helm/kubectl context, or CI deploy step (hostnames, cluster names, environment hosts) to which build outputs are shipped"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the node: what it hosts, its environment (e.g. production, staging), and notable sizing or provisioning details. Set it whenever the name and nodeType alone do not identify the host's purpose."
+    }
+  ],
+  "notes": "nodeType values physical-server and bare-metal are redundant, and both overlap device (deviceType server). kubernetes-cluster and the 'server cluster' example overlap technologycollaboration. The 'container runtime' example belongs to systemsoftware and should be removed. The enum lacks managed or serverless platforms (e.g. Lambda, App Service), so these have no fitting value.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.238Z"
+}

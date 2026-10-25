@@ -1,0 +1,50 @@
+{
+  "source": "api.requestbody",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.079Z",
+  "relationships": [
+    {
+      "id": "api.requestbody.aggregates.api.example",
+      "previous_description": "Defines relationship: api.requestbody aggregates api.example",
+      "description": "The request body groups sample payloads that show clients what a valid submission to the operation looks like, while those examples can also be defined once under components.examples and reused elsewhere.",
+      "evidence": "The OpenAPI document's requestBody content entry lists an examples map whose entries are inline or $ref to components/examples/{name}."
+    },
+    {
+      "id": "api.requestbody.aggregates.api.mediatype",
+      "previous_description": "Defines relationship: api.requestbody aggregates api.mediatype",
+      "description": "The request body collects the media-type entries a client may choose from when sending the payload, such as JSON and multipart variants of the same submission.",
+      "evidence": "The operation's requestBody.content map in the OpenAPI spec contains keys such as application/json or multipart/form-data, each holding a MediaType object."
+    },
+    {
+      "id": "api.requestbody.associated-with.api.encoding",
+      "previous_description": "Defines relationship: api.requestbody associated-with api.encoding",
+      "description": "The request body is related to the per-property serialization rules that determine how its fields are written as multipart parts or form-urlencoded pairs.",
+      "evidence": "Under requestBody.content['multipart/form-data' or 'application/x-www-form-urlencoded'], an encoding map names properties of the body schema and sets their contentType, headers or style."
+    },
+    {
+      "id": "api.requestbody.composes.api.mediatype",
+      "previous_description": "Defines relationship: api.requestbody composes api.mediatype",
+      "description": "Each media-type entry exists only as a keyed member of this request body's content map and has no independent identity outside the payload it describes.",
+      "evidence": "The MediaType object is declared inline under the requestBody's content key, and cannot be $ref-reused on its own in OpenAPI 3.0."
+    },
+    {
+      "id": "api.requestbody.maps-to.business.businessobject",
+      "previous_description": "Defines relationship: api.requestbody maps-to business.businessobject",
+      "description": "The request payload is the API-level representation of a business concept, such as an Order or Claim, that the client submits to be created or updated.",
+      "evidence": "The request body's schema is named after the business entity, and the handler deserializes it into the domain class, or an architecture mapping document ties the schema to the business object."
+    },
+    {
+      "id": "api.requestbody.references.api.schema",
+      "previous_description": "Defines relationship: api.requestbody references api.schema",
+      "description": "The request body points to the data-shape definition that constrains the structure and types of the payload the client must send.",
+      "evidence": "The requestBody.content.{mime}.schema field contains a $ref to #/components/schemas/{Name} or an inline Schema Object."
+    },
+    {
+      "id": "api.requestbody.serves.api.operation",
+      "previous_description": "Defines relationship: api.requestbody serves api.operation",
+      "description": "The request body supplies the payload contract that the operation accepts as input for its body-bearing HTTP method.",
+      "evidence": "The path item's post/put/patch operation declares a requestBody inline or by $ref to components/requestBodies, and the matching controller action binds a @RequestBody or similar parameter."
+    }
+  ],
+  "notes": "aggregates and composes to MediaType are redundant and conflicting; composes is correct, since media types live only inside content. The relationships to Example, Encoding and Schema are indirect: they hang off MediaType, not RequestBody. serves Operation is odd; Operation composes/aggregates RequestBody would better express that the body is part of the operation contract."
+}

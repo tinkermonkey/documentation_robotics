@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.systemsoftware",
+  "previous_description": "Software that provides or contributes to an environment for storing, executing, and using other software or data deployed within it, such as an operating system, container runtime, database engine, or middleware platform.",
+  "definition": "A third-party or platform software product, such as an operating system, language runtime, database engine, message broker, cache server or container runtime, that is installed or run on a node or device to host, execute or store other software and data. It is configured and versioned by the team, but its code is not written by them.",
+  "distinguish_from": [
+    {
+      "type": "technology.node",
+      "when": "the element is the computational host itself (VM, container instance, Kubernetes cluster) that runs software, rather than the software product running on it"
+    },
+    {
+      "type": "technology.artifact",
+      "when": "the element is the deployable file or package (a container image tag, installer, binary, config file) rather than the running platform software it delivers"
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the element is the capability consumed through an interface (e.g. a managed database or queueing offered by a cloud provider) rather than the specific software product that provides it"
+    },
+    {
+      "type": "technology.device",
+      "when": "the element is physical hardware rather than software installed on it"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.2.3 System Software",
+  "code_evidence": [
+    "A docker-compose service or Kubernetes container spec whose image is a vendor platform product, e.g. image: postgres:15, redis:7-alpine, rabbitmq:3-management, nginx:1.25",
+    "A runtime or OS pin such as a Dockerfile 'FROM node:20-alpine' or 'FROM ubuntu:22.04', an .nvmrc/.python-version file, or an 'engines' field in package.json",
+    "A connection URL, driver dependency or Helm chart dependency naming an engine, e.g. DATABASE_URL=postgres://..., spring.kafka.bootstrap-servers, or a bitnami/kafka chart in Chart.yaml"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the software product: its name, version or edition, and its role in the deployment. Set it whenever the product, version or notable configuration choices (e.g. clustering mode, persistence settings) are not evident from the element name."
+    }
+  ],
+  "notes": "The softwareType enum lacks language-runtime (JVM, Node.js, CPython), web-server/reverse-proxy (nginx) and application-server, although the layer description lists frameworks and runtimes. Frameworks have no home type. The cache and dbms values overlap for Redis. TechnologyService serviceType values database, cache and messaging duplicate this enum, which blurs the product-versus-capability boundary.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.243Z"
+}

@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "api.parameter",
+  "previous_description": "Defines an input to an API operation by location, name, and schema. Parameters can appear in four locations: 'path' (always required, name must match the {placeholder} in the path template), 'query' (case-sensitive name, appended to the URL), 'header' (case-insensitive name), and 'cookie'. The 'schema' and 'content' attributes are mutually exclusive; 'content' requires exactly one map entry.",
+  "definition": "A named input to an API operation or path item that is carried outside the request body, in the URL path, the query string, a request header or a cookie. It is identified by the pair (name, in) and constrained by either a schema or a single-entry content map.",
+  "distinguish_from": [
+    {
+      "type": "api.requestbody",
+      "when": "the input is carried in the HTTP message body, including form fields of application/x-www-form-urlencoded or multipart/form-data payloads."
+    },
+    {
+      "type": "api.header",
+      "when": "the header describes a response header, or a multipart part header under an Encoding, where the name comes from a map key and no 'in' location is given."
+    },
+    {
+      "type": "api.servervariable",
+      "when": "the {placeholder} is substituted in a Server URL (host, base path, tenant) rather than in a Paths key template."
+    },
+    {
+      "type": "api.schema",
+      "when": "you are modelling the data type or constraints of the value itself rather than the named input slot that carries it."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Parameter Object",
+  "code_evidence": [
+    "Framework parameter bindings on handler arguments, such as Spring @PathVariable/@RequestParam/@RequestHeader/@CookieValue, FastAPI Path()/Query()/Header()/Cookie(), or ASP.NET [FromRoute]/[FromQuery]/[FromHeader].",
+    "Handler code reading req.params.<name>, req.query.<name>, req.get('<Header>') or req.cookies.<name> in an Express/Koa-style route registered on a router.",
+    "An entry under a 'parameters:' list in an OpenAPI YAML/JSON file, at operation, path-item or components level, containing 'name:' and 'in: path|query|header|cookie'."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Human-readable explanation of the parameter's meaning and accepted values, in CommonMark; set it whenever the name alone does not convey semantics or units."
+    },
+    {
+      "name": "required",
+      "description": "Whether the client must supply the parameter. It must be true when in is 'path' and defaults to false otherwise; set it to true for mandatory query, header or cookie inputs."
+    },
+    {
+      "name": "deprecated",
+      "description": "Marks the parameter as scheduled for removal so that consumers stop sending it. Defaults to false; set it to true when the handler still accepts the parameter but it is slated for removal."
+    },
+    {
+      "name": "allowEmptyValue",
+      "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when style is set, and is discouraged in OpenAPI 3.0.3."
+    }
+  ],
+  "notes": "The required OpenAPI 'name' field is missing, yet (name, in) forms the parameter's identity. The outgoing 'references' relationships to api.tag and api.operation look wrong: parameters do not reference tags, and operation→parameter already exists as an aggregates relationship. Also, 'example: any' sits uneasily beside the api.example relationship.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.251Z"
+}

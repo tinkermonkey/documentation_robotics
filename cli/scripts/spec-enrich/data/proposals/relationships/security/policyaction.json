@@ -1,0 +1,44 @@
+{
+  "source": "security.policyaction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.062Z",
+  "relationships": [
+    {
+      "id": "security.policyaction.enforces-requirement.security.policyrule",
+      "previous_description": "Defines relationship: security.policyaction enforces-requirement security.policyrule",
+      "description": "The policy action is the obligation step the enforcement point executes to carry out what a matched policy rule demands, turning the rule's decision into a concrete block, redirect, mask or notification.",
+      "evidence": "The policy definition (e.g. an XACML/OPA/WAF rule file) lists this action as an obligation or action block of the rule, and the enforcement point's handler for that action type runs when the rule matches."
+    },
+    {
+      "id": "security.policyaction.governs.security.permission",
+      "previous_description": "Defines relationship: security.policyaction governs security.permission",
+      "description": "The policy action sets the operational rules for how a permission is applied at runtime, for example masking fields or challenging the caller whenever that permission is exercised under the matched condition.",
+      "evidence": "The policy configuration attaches the action to the permission's action/resource pair, and middleware applies the action's configuration (mask, step-up challenge) whenever that permission is checked."
+    },
+    {
+      "id": "security.policyaction.mandates.security.countermeasure",
+      "previous_description": "Defines relationship: security.policyaction mandates security.countermeasure",
+      "description": "The policy action compels the operation of a recorded countermeasure, so that each time it fires, the mitigation control (e.g. account lockout, quarantine) is invoked rather than left optional.",
+      "evidence": "The action's configuration names the control (e.g. a rate-limit or lockout service) as a required step, and the threat model's countermeasure entry cites the policy action as its enforcing mechanism."
+    },
+    {
+      "id": "security.policyaction.mitigates.security.threat",
+      "previous_description": "Defines relationship: security.policyaction mitigates security.threat",
+      "description": "The policy action's response, such as blocking a request or quarantining a payload, directly reduces the likelihood or impact of a modelled threat against the protected asset.",
+      "evidence": "The threat model entry lists the policy action (e.g. a WAF block rule for SQL injection) as a mitigation, and the action's configuration targets the threat's attack pattern."
+    },
+    {
+      "id": "security.policyaction.requires.security.countermeasure",
+      "previous_description": "Defines relationship: security.policyaction requires security.countermeasure",
+      "description": "The policy action can only execute correctly if the referenced countermeasure is deployed, for example a redirect-to-MFA action depending on an implemented multi-factor control.",
+      "evidence": "The action's configuration references a control endpoint or component (e.g. an MFA provider or quarantine store) whose deployment is declared in infrastructure, and the action fails or is disabled without it."
+    },
+    {
+      "id": "security.policyaction.triggers.security.auditconfig",
+      "previous_description": "Defines relationship: security.policyaction triggers security.auditconfig",
+      "description": "When the policy action fires, it initiates the audit logging defined by the audit configuration so the block, mask or notification is recorded in the audit trail with the configured verbosity and sanitization.",
+      "evidence": "The action's handler emits an audit event whose type is listed in the audit configuration's captured events, or the action declares a notify/log obligation pointing to that audit configuration."
+    }
+  ],
+  "notes": "mandates and requires toward Countermeasure overlap heavily; consider keeping one. governs→Permission is questionable: a PolicyAction is an obligation executed after a decision, not a rule-giver over grants. enforces-requirement→PolicyRule inverts the usual model where the rule contains/triggers the action; composed-of or triggered-by may fit better. mitigates→Threat partially duplicates the Countermeasure path."
+}

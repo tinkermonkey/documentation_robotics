@@ -1,0 +1,32 @@
+{
+  "source": "ux.statetransition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.082Z",
+  "relationships": [
+    {
+      "id": "ux.statetransition.associated-with.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.statetransition associated-with ux.actioncomponent",
+      "description": "The transition is fired by the UI event that this action control emits, linking the button, link or menu entry the user activates to the state change it causes.",
+      "evidence": "The state machine definition names the transition's event (e.g. 'SUBMIT') and the component's onClick handler sends that same event, as in an XState send('SUBMIT') call bound to the button."
+    },
+    {
+      "id": "ux.statetransition.navigates-to.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.statetransition navigates-to ux.experiencestate",
+      "description": "When the transition fires, the experience leaves its owning state and becomes the destination state, which then governs which components are enabled, disabled or hidden.",
+      "evidence": "The transition entry in the machine config declares a target, e.g. on: { SUBMIT: { target: 'submitted' } }, and that target names a state defined in the same machine."
+    },
+    {
+      "id": "ux.statetransition.triggers.ux.stateaction",
+      "previous_description": "Defines relationship: ux.statetransition triggers ux.stateaction",
+      "description": "Firing the transition runs this side-effect action, such as submit, validate or dispatch, as part of its ordered on-transition action list.",
+      "evidence": "The transition's actions array in the machine config lists the action by name, e.g. actions: ['validateForm', 'submitOrder'], and that name resolves to an implementation in the machine's actions options."
+    },
+    {
+      "id": "ux.statetransition.uses.ux.transitiontemplate",
+      "previous_description": "Defines relationship: ux.statetransition uses ux.transitiontemplate",
+      "description": "The transition borrows this shared motion definition to animate the UI's change from the source state to the destination state, taking its animation type, duration and easing from the template.",
+      "evidence": "The transition's spec or component code references the template by identifier, e.g. transition: 'fadeSlide', and the referenced definition lives in a shared motion or animation config module."
+    }
+  ],
+  "notes": "navigates-to is a questionable predicate here: it is catalogued as UI navigation between screens or routes, while ExperienceState is explicitly not a screen or route. A dedicated 'targets-state' predicate, or flows-to, would fit better. associated-with to ActionComponent is vague; 'triggered-by' would express the event-source role more precisely."
+}

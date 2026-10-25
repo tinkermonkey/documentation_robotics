@@ -1,0 +1,44 @@
+{
+  "source": "product.capability",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.060Z",
+  "relationships": [
+    {
+      "id": "product.capability.aggregates.product.capability",
+      "previous_description": "Defines relationship: product.capability aggregates product.capability",
+      "description": "A broad product capability groups narrower sub-capabilities, such as 'Payments' containing 'Refund handling', where each sub-capability remains a meaningful ability that could be regrouped under another parent.",
+      "evidence": "The product capability map or roadmap document lists the sub-capability nested under the parent capability, with its own identifier that is also referenced elsewhere."
+    },
+    {
+      "id": "product.capability.depends-on.product.capability",
+      "previous_description": "Defines relationship: product.capability depends-on product.capability",
+      "description": "One product capability can only work if another capability is also present, as when 'Order checkout' cannot function without 'Payment processing'.",
+      "evidence": "Architecture or roadmap documentation records the prerequisite, or the features realizing the dependent capability call APIs or services that realize the other capability."
+    },
+    {
+      "id": "product.capability.fulfills.motivation.requirement",
+      "previous_description": "Defines relationship: product.capability fulfills motivation.requirement",
+      "description": "The product ability is how the product meets the stated need, so that having the capability satisfies the requirement's shall-statement and its acceptance criteria.",
+      "evidence": "A requirements traceability matrix or issue tracker links the requirement ID to the capability, and the acceptance tests for that requirement exercise the features that realize the capability."
+    },
+    {
+      "id": "product.capability.realizes.business.businessfunction",
+      "previous_description": "Defines relationship: product.capability realizes business.businessfunction",
+      "description": "The product capability is the product-side ability that makes an ongoing business function, such as Claims Handling or Accounting, concrete and executable.",
+      "evidence": "The business capability model or product architecture document maps the product capability to the business function, and the roles that perform that function are the documented users of the capability."
+    },
+    {
+      "id": "product.capability.scheduled-for.product.milestone",
+      "previous_description": "Defines relationship: product.capability scheduled-for product.milestone",
+      "description": "The capability is assigned to a release, version or roadmap phase as part of that milestone's planned scope and is targeted for delivery by its date.",
+      "evidence": "The roadmap tool or release plan lists the capability, or its epic, under the milestone or fix-version along with the milestone's target date."
+    },
+    {
+      "id": "product.capability.supports.motivation.goal",
+      "previous_description": "Defines relationship: product.capability supports motivation.goal",
+      "description": "Having the capability moves the product and its stakeholders toward the intended end state described by the goal, without being the goal's sole or measurable fulfillment.",
+      "evidence": "Strategy or OKR documentation cites the capability as a contributor to the goal, or the product brief for the capability states the goal as its rationale."
+    }
+  ],
+  "notes": "fulfills→requirement partially overlaps with the traceability predicate satisfies/fulfills-requirements; choose one convention. aggregates on capability-to-capability could be confused with composes; aggregation is right only if sub-capabilities can be shared or regrouped."
+}

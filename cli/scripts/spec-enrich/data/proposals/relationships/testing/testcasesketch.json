@@ -1,0 +1,254 @@
+{
+  "source": "testing.testcasesketch",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:45:07.312Z",
+  "relationships": [
+    {
+      "id": "testing.testcasesketch.accesses.data-store.collection",
+      "previous_description": "Defines relationship: testing.testcasesketch accesses data-store.collection",
+      "description": "The test case seeds fixture records into, or reads records back from, a persistent table or collection to arrange its scenario or assert the stored effect of the behaviour under test.",
+      "evidence": "The implementing test's fixture or assertion code inserts into or queries the named table or collection, for example through SQL, a repository call or a seeding script that the test invokes."
+    },
+    {
+      "id": "testing.testcasesketch.accesses.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.testcasesketch accesses testing.inputpartitionselection",
+      "description": "The test case design consults the coverage-scope rule for an input field to find out which partition values it is permitted or obliged to choose.",
+      "evidence": "In the coverage model, every partition value the sketch picks for that field appears in the selection rule's include list, or is absent from its exclude list."
+    },
+    {
+      "id": "testing.testcasesketch.accesses.testing.inputselection",
+      "previous_description": "Defines relationship: testing.testcasesketch accesses testing.inputselection",
+      "description": "The test case reads the concrete datum bound in one of its input selections and submits that value for the corresponding input field when it runs.",
+      "evidence": "The parameterized row or argument list of the implementing test function contains exactly the datum recorded in the input selection."
+    },
+    {
+      "id": "testing.testcasesketch.accesses.api.requestbody",
+      "previous_description": "Defines relationship: testing.testcasesketch accesses api.requestbody",
+      "description": "The test case builds the request payload described by an operation's request body and sends it, populated with its chosen input data.",
+      "evidence": "The test code constructs a JSON or multipart payload with the media type and fields declared in the OpenAPI requestBody and sends it in the operation's HTTP call."
+    },
+    {
+      "id": "testing.testcasesketch.accesses.data-store.view",
+      "previous_description": "Defines relationship: testing.testcasesketch accesses data-store.view",
+      "description": "The test case reads derived records from a database view to confirm that the exercised behaviour produced the expected aggregated or projected data.",
+      "evidence": "An assertion in the implementing test selects from the named view, or refreshes the materialized view and then queries it."
+    },
+    {
+      "id": "testing.testcasesketch.composes.testing.inputselection",
+      "previous_description": "Defines relationship: testing.testcasesketch composes testing.inputselection",
+      "description": "The test case design is the owning whole of its input selections, and each selection exists only as one binding within that single test case.",
+      "evidence": "The coverage model file nests the input selections under the sketch's entry, and deleting the sketch removes them because no other sketch refers to them."
+    },
+    {
+      "id": "testing.testcasesketch.constrained-by.motivation.constraint",
+      "previous_description": "Defines relationship: testing.testcasesketch constrained-by motivation.constraint",
+      "description": "The design of the test case is restricted by a solution-space constraint, such as a ban on production personal data, a mandated test tool or a jurisdictional limit, which narrows how its data and context can be chosen.",
+      "evidence": "The sketch, or the decision record it cites, references the constraint, and the sketch visibly complies with it, for example by using synthetic data or the mandated framework."
+    },
+    {
+      "id": "testing.testcasesketch.depends-on.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.testcasesketch depends-on testing.contextvariation",
+      "description": "The test case can only be designed and run meaningfully under the named execution context, such as a load, security or smoke condition with its fixed environment factors.",
+      "evidence": "The sketch's context field holds the context variation's identifier, and the implementing test is tagged for, or placed in, the suite whose environment configuration realizes that context."
+    },
+    {
+      "id": "testing.testcasesketch.depends-on.testing.inputspacepartition",
+      "previous_description": "Defines relationship: testing.testcasesketch depends-on testing.inputspacepartition",
+      "description": "The test case's choice for an input field is meaningful only in terms of the equivalence classes that the field's partition defines, so changing the partition invalidates that choice.",
+      "evidence": "Each partition value chosen in the sketch's input selections belongs to the referenced input space partition in the coverage model."
+    },
+    {
+      "id": "testing.testcasesketch.depends-on.testing.outcomecategory",
+      "previous_description": "Defines relationship: testing.testcasesketch depends-on testing.outcomecategory",
+      "description": "The test case's expected result is defined by an outcome category, such as validation error or not-found, which determines the class of result its assertions check for.",
+      "evidence": "The sketch's expected-outcome field points to the category, and the implementing test asserts the matching result class, for example HTTP 422 for a validation error."
+    },
+    {
+      "id": "testing.testcasesketch.depends-on.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.testcasesketch depends-on testing.testcasesketch",
+      "description": "The test case requires another test case to have run first, or reuses the state that the other case establishes, for example an update case that relies on a create case.",
+      "evidence": "A test-framework dependency declaration, such as pytest-dependency or TestNG dependsOnMethods, or a shared fixture produced by the other test links the two implementations."
+    },
+    {
+      "id": "testing.testcasesketch.fulfills-requirements.motivation.requirement",
+      "previous_description": "Defines relationship: testing.testcasesketch fulfills-requirements motivation.requirement",
+      "description": "The test case is the verification artifact whose passing execution provides evidence that a shall-statement's acceptance criterion is met.",
+      "evidence": "The implementing test carries the requirement identifier in an annotation, tag or traceability matrix entry, and its assertions mirror the requirement's acceptance criteria."
+    },
+    {
+      "id": "testing.testcasesketch.references.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.testcasesketch references testing.coveragerequirement",
+      "description": "The test case identifies the coverage requirement it was designed to exercise, which places it within that criterion's combination space.",
+      "evidence": "The sketch entry in the coverage model has a coverageRequirement field holding the requirement's identifier."
+    },
+    {
+      "id": "testing.testcasesketch.references.apm.logconfiguration",
+      "previous_description": "Defines relationship: testing.testcasesketch references apm.logconfiguration",
+      "description": "The test case points to the logging pipeline configuration whose exporters and minimum severity it relies on to capture log records for diagnosis or log-based assertions.",
+      "evidence": "The test setup loads or overrides the named LoggerProvider or logging root configuration (for example a test logback.xml or an in-memory log exporter) that the sketch cites."
+    },
+    {
+      "id": "testing.testcasesketch.references.apm.span",
+      "previous_description": "Defines relationship: testing.testcasesketch references apm.span",
+      "description": "The test case names an instrumented span so that it can correlate its execution with the traced unit of work or assert that the span is emitted.",
+      "evidence": "The implementing test uses an in-memory span exporter and looks up, or asserts on, a span with the referenced name and kind."
+    },
+    {
+      "id": "testing.testcasesketch.references.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.testcasesketch references testing.testcoveragetarget",
+      "description": "The test case is anchored to the in-scope production artifact whose behaviour it is designed to exercise.",
+      "evidence": "The sketch is nested under, or carries the identifier of, that test coverage target in the coverage model file."
+    },
+    {
+      "id": "testing.testcasesketch.requires.technology.systemsoftware",
+      "previous_description": "Defines relationship: testing.testcasesketch requires technology.systemsoftware",
+      "description": "The test case can only run when a specific platform product, such as a database engine, message broker or language runtime, is available in its execution environment.",
+      "evidence": "A Testcontainers declaration, docker-compose test service or CI job image in the test setup provisions that engine or runtime at a specific version."
+    },
+    {
+      "id": "testing.testcasesketch.supports-goals.motivation.goal",
+      "previous_description": "Defines relationship: testing.testcasesketch supports-goals motivation.goal",
+      "description": "The test case contributes verification evidence toward a stakeholder goal, such as reliable checkout or regulatory confidence, by guarding behaviour that the goal depends on.",
+      "evidence": "A traceability matrix or a test-plan document links the sketch, or the suite it belongs to, to the goal identifier."
+    },
+    {
+      "id": "testing.testcasesketch.tests.ux.actioncomponent",
+      "previous_description": "Defines relationship: testing.testcasesketch tests ux.actioncomponent",
+      "description": "The test case activates a user-operable control and checks that it starts the expected operation, navigation or state change.",
+      "evidence": "A UI test (Playwright, Cypress or Testing Library) clicks or triggers the control through its selector or test id and asserts the resulting effect."
+    },
+    {
+      "id": "testing.testcasesketch.tests.application.applicationfunction",
+      "previous_description": "Defines relationship: testing.testcasesketch tests application.applicationfunction",
+      "description": "The test case exercises an internal unit of automated behaviour within one component and checks its result for the chosen inputs.",
+      "evidence": "A unit or integration test directly invokes the module, class or method that implements the function and asserts on its output or side effects."
+    },
+    {
+      "id": "testing.testcasesketch.tests.application.applicationinterface",
+      "previous_description": "Defines relationship: testing.testcasesketch tests application.applicationinterface",
+      "description": "The test case reaches the component through a specific access channel, such as a mounted controller, gRPC binding or message listener, to verify that the channel accepts and routes requests correctly.",
+      "evidence": "The test drives that channel directly, for example with supertest against the mounted router, a gRPC stub against the server binding or a message published to the listener's queue."
+    },
+    {
+      "id": "testing.testcasesketch.tests.application.applicationservice",
+      "previous_description": "Defines relationship: testing.testcasesketch tests application.applicationservice",
+      "description": "The test case verifies that one of the operations an application service offers to its consumers behaves as specified.",
+      "evidence": "The test calls the service's operation through its public facade or client and asserts the returned result or the state change."
+    },
+    {
+      "id": "testing.testcasesketch.tests.business.businessprocess",
+      "previous_description": "Defines relationship: testing.testcasesketch tests business.businessprocess",
+      "description": "The test case runs a business process end to end, from its triggering event to its end state, and checks that the expected business result is produced.",
+      "evidence": "A BDD scenario or end-to-end test has steps that mirror the process activities and asserts the final business object or the fulfilled request."
+    },
+    {
+      "id": "testing.testcasesketch.tests.business.businessservice",
+      "previous_description": "Defines relationship: testing.testcasesketch tests business.businessservice",
+      "description": "The test case acts as an acceptance check that the business service delivers the expected outcome to its consumer.",
+      "evidence": "An acceptance scenario tagged with the business service name asserts the value delivered to the customer, such as a claim being registered or an order being confirmed."
+    },
+    {
+      "id": "testing.testcasesketch.tests.security.countermeasure",
+      "previous_description": "Defines relationship: testing.testcasesketch tests security.countermeasure",
+      "description": "The test case attempts the behaviour that a security control is meant to stop and checks that the control blocks or limits it.",
+      "evidence": "A security test tagged with the countermeasure id sends, for example, brute-force or over-limit requests and asserts the rejection, such as HTTP 429 or a lockout."
+    },
+    {
+      "id": "testing.testcasesketch.tests.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.testcasesketch tests testing.coveragerequirement",
+      "description": "The test case exercises one combination within the coverage criterion that the requirement defines, and so counts toward that criterion.",
+      "evidence": "Coverage-analysis tooling counts the sketch's combination of input, context and outcome toward the requirement's pairwise, boundary-value or MC/DC tally."
+    },
+    {
+      "id": "testing.testcasesketch.tests.product.feature",
+      "previous_description": "Defines relationship: testing.testcasesketch tests product.feature",
+      "description": "The test case verifies a piece of product functionality that a user can perceive, as the persona would use it.",
+      "evidence": "An end-to-end or acceptance test is tagged with the feature identifier or ticket, or lives in that feature's test folder, and drives the feature through its user-facing entry point."
+    },
+    {
+      "id": "testing.testcasesketch.tests.ux.librarycomponent",
+      "previous_description": "Defines relationship: testing.testcasesketch tests ux.librarycomponent",
+      "description": "The test case mounts a reusable UI component type with a chosen property set and checks its rendered slots and emitted events.",
+      "evidence": "A component test or a Storybook interaction test mounts the library component with specific props and asserts its rendered output and its events."
+    },
+    {
+      "id": "testing.testcasesketch.tests.apm.metricinstrument",
+      "previous_description": "Defines relationship: testing.testcasesketch tests apm.metricinstrument",
+      "description": "The test case checks that a metric instrument records the expected measurements, with the correct kind, unit and attributes, when the exercised behaviour runs.",
+      "evidence": "The test registers an in-memory metric reader and asserts the recorded value for the instrument's name, for example a counter that increments by one."
+    },
+    {
+      "id": "testing.testcasesketch.tests.navigation.navigationflow",
+      "previous_description": "Defines relationship: testing.testcasesketch tests navigation.navigationflow",
+      "description": "The test case walks a multi-step user journey from its first step to its final step and checks that the imposed traversal order is enforced.",
+      "evidence": "An end-to-end test navigates through the flow's routes in sequence, asserting each step's URL and that skipping a step is prevented."
+    },
+    {
+      "id": "testing.testcasesketch.tests.navigation.navigationguard",
+      "previous_description": "Defines relationship: testing.testcasesketch tests navigation.navigationguard",
+      "description": "The test case attempts a navigation under a specific condition and checks that the router guard allows it, or denies it with the expected action.",
+      "evidence": "A router test sets the guard condition, for example an unauthenticated state, navigates to the protected route and asserts the redirect or the cancelled navigation."
+    },
+    {
+      "id": "testing.testcasesketch.tests.api.operation",
+      "previous_description": "Defines relationship: testing.testcasesketch tests api.operation",
+      "description": "The test case sends a request to one HTTP method and path pair and verifies that the operation handles its chosen inputs as the contract specifies.",
+      "evidence": "The test issues the HTTP call, for example POST /orders, or references the operationId in a contract test, and asserts the status and body."
+    },
+    {
+      "id": "testing.testcasesketch.tests.navigation.route",
+      "previous_description": "Defines relationship: testing.testcasesketch tests navigation.route",
+      "description": "The test case visits a client-side URL pattern with chosen parameters and checks that the router renders, lazy-loads or forwards to the correct view.",
+      "evidence": "The test calls router.push or visits the path (for example /users/42) and asserts that the mapped component is rendered."
+    },
+    {
+      "id": "testing.testcasesketch.tests.data-model.schemadefinition",
+      "previous_description": "Defines relationship: testing.testcasesketch tests data-model.schemadefinition",
+      "description": "The test case checks that a reusable schema definition accepts conforming instances and rejects non-conforming ones for its chosen partition values.",
+      "evidence": "The test runs a JSON Schema validator such as ajv against #/definitions/{name} with valid and invalid sample payloads and asserts the outcomes."
+    },
+    {
+      "id": "testing.testcasesketch.tests.security.threat",
+      "previous_description": "Defines relationship: testing.testcasesketch tests security.threat",
+      "description": "The test case simulates the attack technique that a threat-model entry names, in order to check that the system resists it.",
+      "evidence": "A security test tagged with the threat id sends the attack payload, for example a SQL injection string, and asserts that it has no effect or is rejected."
+    },
+    {
+      "id": "testing.testcasesketch.tests.data-store.validationrule",
+      "previous_description": "Defines relationship: testing.testcasesketch tests data-store.validationrule",
+      "description": "The test case attempts a write that violates, or that satisfies, an engine-enforced integrity constraint and checks that the storage engine rejects or accepts it accordingly.",
+      "evidence": "An integration test against a real database performs a duplicate, null or orphaned write and asserts an error naming that constraint."
+    },
+    {
+      "id": "testing.testcasesketch.tests.ux.view",
+      "previous_description": "Defines relationship: testing.testcasesketch tests ux.view",
+      "description": "The test case opens a page, screen or dialog and checks that it displays the correct content and behaves correctly for the chosen inputs and context.",
+      "evidence": "An end-to-end or component test opens the view through its route or trigger and asserts on its visible elements."
+    },
+    {
+      "id": "testing.testcasesketch.validates.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.testcasesketch validates testing.coveragerequirement",
+      "description": "A passing run of the test case is evidence that its share of the coverage requirement's criterion has actually been satisfied.",
+      "evidence": "The coverage report marks the requirement's combination as covered by the passing test that the sketch is linked to."
+    },
+    {
+      "id": "testing.testcasesketch.validates.api.response",
+      "previous_description": "Defines relationship: testing.testcasesketch validates api.response",
+      "description": "The test case confirms that the actual HTTP response matches the documented response for its status code, including headers and body schema.",
+      "evidence": "The test asserts the status code and validates the body against the response schema, for example with jest-openapi toSatisfyApiSpec or a schemathesis check."
+    },
+    {
+      "id": "testing.testcasesketch.validates.security.securitypolicy",
+      "previous_description": "Defines relationship: testing.testcasesketch validates security.securitypolicy",
+      "description": "The test case confirms that the access-control policy produces the expected permit or deny decision for its chosen subject, resource and action.",
+      "evidence": "A policy test, such as an OPA test or an XACML test request, or an authorization integration test, asserts the decision for that policy's target."
+    },
+    {
+      "id": "testing.testcasesketch.validates.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.testcasesketch validates testing.testcoveragetarget",
+      "description": "A passing run of the test case contributes evidence that the in-scope production artifact behaves as required.",
+      "evidence": "Test-run results for the linked test are attributed to the target in the coverage model's verification report."
+    }
+  ],
+  "notes": "tests, validates and references to CoverageRequirement overlap; keep references plus validates. references and validates TestCoverageTarget also overlap. accesses InputSelection duplicates composes. accesses InputPartitionSelection is a design lookup, better expressed as references. fulfills-requirements mislabels verification as realization; prefer validates. references LogConfiguration and supports-goals are weak links."
+}

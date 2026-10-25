@@ -1,0 +1,170 @@
+{
+  "source": "testing.coveragerequirement",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.073Z",
+  "relationships": [
+    {
+      "id": "testing.coveragerequirement.accesses.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.coveragerequirement accesses testing.inputpartitionselection",
+      "description": "The coverage requirement reads its input partition selection to learn which partition values of one partitioned field the criterion must be applied across.",
+      "evidence": "The requirement entry in the test coverage model YAML lists an input partition selection, and the coverage-checking tooling reads its include or exclude list when evaluating the criterion."
+    },
+    {
+      "id": "testing.coveragerequirement.accesses.testing.inputselection",
+      "previous_description": "Defines relationship: testing.coveragerequirement accesses testing.inputselection",
+      "description": "The coverage requirement inspects the concrete input selections recorded in test case sketches to decide whether the chosen equivalence classes satisfy its criterion.",
+      "evidence": "A coverage evaluation script iterates over sketches' input selections and matches their partition values against the requirement's selected partitions."
+    },
+    {
+      "id": "testing.coveragerequirement.aggregates.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.coveragerequirement aggregates testing.contextvariation",
+      "description": "The coverage requirement groups a set of independently defined context variations, such as smoke or security runs, under which its criterion must be satisfied.",
+      "evidence": "The requirement definition lists context-variation IDs that are also declared elsewhere on the target and reused by other requirements."
+    },
+    {
+      "id": "testing.coveragerequirement.aggregates.testing.coverageexclusion",
+      "previous_description": "Defines relationship: testing.coveragerequirement aggregates testing.coverageexclusion",
+      "description": "The coverage requirement collects the signed-off exclusion decisions that carve specific items out of the coverage it demands.",
+      "evidence": "The requirement record lists coverage-exclusion entries, each with rationale, risk acceptance and approver, that point back to the requirement or to parts of its scope."
+    },
+    {
+      "id": "testing.coveragerequirement.aggregates.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.coveragerequirement aggregates testing.partitionvalue",
+      "description": "The coverage requirement gathers the partition values it must exercise, which remain owned by their input space partitions and can be reused by other requirements.",
+      "evidence": "The requirement's partition selections enumerate partition-value IDs defined under an input space partition elsewhere in the coverage model."
+    },
+    {
+      "id": "testing.coveragerequirement.composes.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.coveragerequirement composes testing.inputpartitionselection",
+      "description": "Each input partition selection exists only as a part of its owning coverage requirement, scoping which values of one partition that requirement must exercise.",
+      "evidence": "The input partition selection is nested inline under the coverage requirement in the coverage model file and has no identifier or meaning outside it."
+    },
+    {
+      "id": "testing.coveragerequirement.composes.testing.outcomecategory",
+      "previous_description": "Defines relationship: testing.coveragerequirement composes testing.outcomecategory",
+      "description": "The coverage requirement contains the outcome categories, such as validation error or timeout, that its criterion obliges test cases to produce.",
+      "evidence": "The outcome categories are declared nested inside the requirement entry of the coverage model rather than referenced by ID."
+    },
+    {
+      "id": "testing.coveragerequirement.composes.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.coveragerequirement composes testing.testcoveragetarget",
+      "description": "The coverage requirement is bound into the test coverage target it governs, forming part of that target's test design.",
+      "evidence": "The coverage model nests the requirement under exactly one test coverage target entry, and deleting the target removes the requirement."
+    },
+    {
+      "id": "testing.coveragerequirement.constrained-by.motivation.constraint",
+      "previous_description": "Defines relationship: testing.coveragerequirement constrained-by motivation.constraint",
+      "description": "The coverage requirement's chosen criterion or scope is limited by a solution-space restriction such as a testing budget, deadline or mandated test standard.",
+      "evidence": "The requirement's rationale field or an ADR cites a constraint ID, e.g. a contractual MC/DC mandate or a time-boxed regression window."
+    },
+    {
+      "id": "testing.coveragerequirement.covers.application.applicationfunction",
+      "previous_description": "Defines relationship: testing.coveragerequirement covers application.applicationfunction",
+      "description": "The coverage requirement defines the coverage criterion that tests of an internal application function must meet.",
+      "evidence": "The requirement's target maps to a service-layer function, and the parameterized tests implementing its sketches invoke that function directly."
+    },
+    {
+      "id": "testing.coveragerequirement.covers.ux.experiencestate",
+      "previous_description": "Defines relationship: testing.coveragerequirement covers ux.experiencestate",
+      "description": "The coverage requirement obliges tests to drive the user experience into a particular state-machine state and verify its enabled, disabled and hidden components.",
+      "evidence": "UI tests generated from the requirement assert the state machine's current state (e.g. 'error' or 'loading') via the XState or store snapshot."
+    },
+    {
+      "id": "testing.coveragerequirement.covers.navigation.navigationguard",
+      "previous_description": "Defines relationship: testing.coveragerequirement covers navigation.navigationguard",
+      "description": "The coverage requirement demands that the router guard's allow and deny branches be exercised across the selected conditions.",
+      "evidence": "Router tests tied to the requirement mount the guard's route and assert both proceed and redirect outcomes of the registered beforeEach or canActivate hook."
+    },
+    {
+      "id": "testing.coveragerequirement.covers.data-model.schemaproperty",
+      "previous_description": "Defines relationship: testing.coveragerequirement covers data-model.schemaproperty",
+      "description": "The coverage requirement prescribes which value classes of a schema property, such as boundaries of its format or enum, must be tested.",
+      "evidence": "The requirement's partition selection references a partition whose input field points to the JSON Schema property path, e.g. #/properties/amount."
+    },
+    {
+      "id": "testing.coveragerequirement.depends-on.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.coveragerequirement depends-on testing.contextvariation",
+      "description": "The coverage requirement cannot be evaluated without the context variations that define the execution conditions its criterion spans.",
+      "evidence": "Coverage tooling fails or reports the requirement as unevaluable when a referenced context-variation ID is missing from the target."
+    },
+    {
+      "id": "testing.coveragerequirement.depends-on.testing.inputspacepartition",
+      "previous_description": "Defines relationship: testing.coveragerequirement depends-on testing.inputspacepartition",
+      "description": "The coverage requirement relies on an input space partition to supply the equivalence classes over which its combinatorial criterion is computed.",
+      "evidence": "The requirement's partition selection names the input space partition ID, and pairwise or boundary generators load that partition's values."
+    },
+    {
+      "id": "testing.coveragerequirement.depends-on.testing.outcomecategory",
+      "previous_description": "Defines relationship: testing.coveragerequirement depends-on testing.outcomecategory",
+      "description": "The coverage requirement needs the target's outcome categories defined in order to state which result classes its tests must reach.",
+      "evidence": "The requirement lists outcome-category IDs declared on the target, and validation rejects the model if they are undefined."
+    },
+    {
+      "id": "testing.coveragerequirement.flows-to.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coveragerequirement flows-to testing.coveragerequirement",
+      "description": "One coverage requirement feeds into a subsequent, stricter requirement, e.g. boundary-value coverage that must be satisfied before pairwise coverage is pursued.",
+      "evidence": "The coverage model or test plan orders requirements so that one's output combinations are the input set of the next."
+    },
+    {
+      "id": "testing.coveragerequirement.flows-to.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.coveragerequirement flows-to testing.testcasesketch",
+      "description": "The coverage requirement's criterion is passed on to drive the design of test case sketches that each exercise one combination it requires.",
+      "evidence": "Each sketch in the coverage model carries a requirement ID, and generated sketch sets trace to the requirement's combinations."
+    },
+    {
+      "id": "testing.coveragerequirement.fulfills-requirements.motivation.requirement",
+      "previous_description": "Defines relationship: testing.coveragerequirement fulfills-requirements motivation.requirement",
+      "description": "The coverage requirement operationalizes a stated verification or quality requirement, such as 'all payment validation boundaries shall be tested'.",
+      "evidence": "The coverage requirement's trace field cites the requirement ID from the requirements document or issue tracker."
+    },
+    {
+      "id": "testing.coveragerequirement.references.business.businessfunction",
+      "previous_description": "Defines relationship: testing.coveragerequirement references business.businessfunction",
+      "description": "The coverage requirement names the business function whose behaviour its tests ultimately protect, for traceability and prioritization.",
+      "evidence": "The requirement record includes a business-function tag such as 'Claims Handling' used in coverage reports."
+    },
+    {
+      "id": "testing.coveragerequirement.references.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coveragerequirement references testing.coveragerequirement",
+      "description": "The coverage requirement points to another coverage requirement it refines, supersedes or shares scope with.",
+      "evidence": "The requirement entry carries a refines or supersedes field holding another requirement's ID."
+    },
+    {
+      "id": "testing.coveragerequirement.references.apm.metricinstrument",
+      "previous_description": "Defines relationship: testing.coveragerequirement references apm.metricinstrument",
+      "description": "The coverage requirement names a metric instrument whose emitted measurements tests must observe, for example asserting a timeout counter increments.",
+      "evidence": "The requirement or its sketches cite the instrument name, e.g. 'http.server.request.duration', and tests use an in-memory metric reader to check it."
+    },
+    {
+      "id": "testing.coveragerequirement.references.api.operation",
+      "previous_description": "Defines relationship: testing.coveragerequirement references api.operation",
+      "description": "The coverage requirement identifies the HTTP method-path operation whose parameters and responses its criterion applies to.",
+      "evidence": "The requirement's target or partitions cite the OpenAPI operationId, and its partitioned fields map to that operation's parameters."
+    },
+    {
+      "id": "testing.coveragerequirement.references.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.coveragerequirement references testing.partitionvalue",
+      "description": "The coverage requirement points to specific partition values, such as a boundary class, that its criterion explicitly includes or excludes.",
+      "evidence": "The requirement's include or exclude list contains partition-value IDs defined under an input space partition."
+    },
+    {
+      "id": "testing.coveragerequirement.references.security.securitypolicy",
+      "previous_description": "Defines relationship: testing.coveragerequirement references security.securitypolicy",
+      "description": "The coverage requirement names the security policy whose permit and deny decisions its authorization-error tests must exercise.",
+      "evidence": "The requirement cites the XACML or OPA policy ID, and its sketches target the authorization-error outcome for that policy's rules."
+    },
+    {
+      "id": "testing.coveragerequirement.references.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.coveragerequirement references testing.testcoveragetarget",
+      "description": "The coverage requirement identifies the single test coverage target whose test cases must satisfy its criterion.",
+      "evidence": "The requirement entry holds a target ID field matching one test coverage target in the coverage model."
+    },
+    {
+      "id": "testing.coveragerequirement.supports-goals.motivation.goal",
+      "previous_description": "Defines relationship: testing.coveragerequirement supports-goals motivation.goal",
+      "description": "The coverage requirement contributes to a stakeholder goal such as reducing production defects or achieving regulatory confidence.",
+      "evidence": "The test strategy document or requirement rationale links the requirement to the goal ID it advances."
+    }
+  ],
+  "notes": "Duplicates: accesses/composes InputPartitionSelection; aggregates/depends-on ContextVariation; composes/depends-on OutcomeCategory; aggregates/references PartitionValue; composes/references TestCoverageTarget. Composes TestCoverageTarget and aggregates CoverageExclusion are inverted (target owns requirement; exclusion references requirement). Accessing InputSelection crosses into test-case data. OutcomeCategories belong to the target, not the requirement."
+}

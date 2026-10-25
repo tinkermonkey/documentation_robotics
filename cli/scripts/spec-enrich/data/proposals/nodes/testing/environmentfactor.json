@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "testing.environmentfactor",
+  "previous_description": "A specific environmental variable (OS version, network latency, locale setting, hardware configuration, dependency version) documented as affecting test behavior. Used to parameterize ContextVariation instances with concrete environmental constraints per IEEE 829-2008 environmental needs specification.",
+  "definition": "A single named environmental condition of a test run (operating system, network characteristic, locale, hardware configuration or dependency version) pinned to a concrete value or constraint and recorded because it changes how tests behave. It describes one factor of the execution environment, not the test type that bundles factors together nor any input supplied to the system under test.",
+  "distinguish_from": [
+    {
+      "type": "testing.contextvariation",
+      "when": "the thing being modelled is a named test context (functional, load, security, regression, smoke, exploratory) that groups several environmental constraints, rather than one variable with one value."
+    },
+    {
+      "type": "testing.partitionvalue",
+      "when": "the value is an equivalence class of an input field passed to the system under test (request parameter, form field, data property), not a property of the runtime environment."
+    },
+    {
+      "type": "testing.inputspacepartition",
+      "when": "an input dimension is being divided into equivalence classes. Do this even if that dimension is a locale or OS selector. A single fixed environmental setting is not a partition."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Test Design Specification / Test Plan §'Environmental needs' (hardware, software, communications and tool characteristics of the test environment)",
+  "code_evidence": [
+    "A CI matrix entry pinning an environment axis, such as a GitHub Actions `strategy.matrix` with `os: [ubuntu-22.04, windows-2022]` or `node-version: [18.x, 20.x]`, or a tox/nox env list over Python versions.",
+    "Test setup that forces an environmental condition, such as setting `TZ`/`LANG`/`LC_ALL` environment variables, network-throttling or latency-injection config (toxiproxy, tc netem, Playwright `emulateNetworkConditions`), or a docker-compose test service pinned to a specific image tag.",
+    "Conditional test guards keyed on the environment, such as `@pytest.mark.skipif(sys.platform == 'win32')`, Jest `testEnvironment`, or an engines/`.nvmrc`/`.tool-versions` file referenced by test configuration."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what this environmental factor is and why it is pinned for testing, for example 'Server-side timezone forced to UTC to make date-boundary tests deterministic'. Set it whenever the factorType and value alone do not make the factor's purpose clear."
+    }
+  ],
+  "notes": "The factorType enum lacks common categories such as timezone, browser/runtime, container/cloud region and configuration flags; consider adding 'timezone', 'browser' and 'other'. The relationships 'composes → inputspacepartition' and 'flows-to → coveragesummary' look semantically doubtful for an environmental variable. ContextVariation.environmentFactors duplicates the references edge. Consider whether value versus expectedRange should be single-valued.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

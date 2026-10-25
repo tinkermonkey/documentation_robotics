@@ -1,0 +1,32 @@
+{
+  "source": "business.businessactor",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.047Z",
+  "relationships": [
+    {
+      "id": "business.businessactor.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businessactor accesses business.businessobject",
+      "description": "The person, team or organization directly creates, reads, updates or deletes the business information unit, such as a sales department maintaining Order records or a supplier submitting Invoices.",
+      "evidence": "A process description, RACI matrix or access-control policy names the actor (e.g. a department or external party) as the one who creates or edits the named business object, or system audit logs attribute CRUD operations on that object to the actor's user group."
+    },
+    {
+      "id": "business.businessactor.accesses.business.contract",
+      "previous_description": "Defines relationship: business.businessactor accesses business.contract",
+      "description": "The organizational party reads, negotiates, signs or amends the agreement that sets the obligations and terms governing a service or product, as when a customer organization consults its SLA or a procurement team updates supplier pricing terms.",
+      "evidence": "The contract document or contract-management system record lists the actor as a signatory, party or authorized editor, or workflow logs show the actor reviewing or amending that contract."
+    },
+    {
+      "id": "business.businessactor.assigned-to.business.businessrole",
+      "previous_description": "Defines relationship: business.businessactor assigned-to business.businessrole",
+      "description": "The named person, team or external organization fills the responsibility position and is thereby expected to carry out the behavior assigned to that role, for example the Claims Department occupying the Claims Adjuster role.",
+      "evidence": "An org chart, role-assignment register, HR system entry or identity-provider group membership maps the specific actor to the named role."
+    },
+    {
+      "id": "business.businessactor.serves.motivation.stakeholder",
+      "previous_description": "Defines relationship: business.businessactor serves motivation.stakeholder",
+      "description": "The organizational entity provides its work or capabilities for the benefit of the party whose interests and concerns the architecture must address, such as a customer-support team serving the Customers stakeholder group.",
+      "evidence": "A stakeholder map, service charter or operating-model document states that the actor delivers work or services on behalf of the named stakeholder, and the stakeholder's concerns are cited as the actor's mandate."
+    }
+  ],
+  "notes": "ArchiMate permits access only from behavior (or derived via roles), so actor-accesses links are shortcuts. Contract is a BusinessObject specialization, making accesses-contract largely redundant with accesses-businessobject. Actor-serves-Stakeholder is semantically weak: Stakeholder is a motivation element, ArchiMate allows only association here, and an actor often simply is the stakeholder."
+}

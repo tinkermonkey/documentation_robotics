@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "security.auditconfig",
+  "previous_description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
+  "definition": "A logging configuration that determines which security-relevant events on protected resources or operations are written to an audit trail, at what verbosity, and which request elements (payload, headers) are captured or sanitized before recording. It covers audit record generation and content only. How long records are kept and how they are disposed of belong to RetentionPolicy.",
+  "distinguish_from": [
+    {
+      "type": "security.retentionpolicy",
+      "when": "the code or config specifies how long audit or access records are kept, where they are archived, or how they are securely deleted, rather than what is captured."
+    },
+    {
+      "type": "security.accountabilityrequirement",
+      "when": "the artifact states an obligation that a party must be able to prove an action occurred (non-repudiation, challengeability), independent of the logging mechanism."
+    },
+    {
+      "type": "security.evidence",
+      "when": "the symbol is a produced artifact, such as a log entry, signature, hash or timestamp, rather than the configuration that causes such artifacts to be generated."
+    },
+    {
+      "type": "security.policyaction",
+      "when": "logging is a one-off enforcement response (type 'log' or 'alert') fired by a specific policy rule match, rather than a standing capture configuration for a resource or operation."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AU-2 Event Logging, AU-3 Content of Audit Records, AU-12 Audit Record Generation",
+  "code_evidence": [
+    "Audit middleware, interceptor or filter registered on a router or service, configured with options such as level, includeBody/includeHeaders and a redact or mask field list.",
+    "Decorators or annotations such as @Audited, @Auditable or auditlog.register(Model) attached to handlers or entities, optionally with parameters controlling captured detail.",
+    "A configuration block named audit/auditLog (YAML, JSON, env vars) with keys like enabled, level, logRequestBody and sensitiveFields, distinct from general application logging settings."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "enabled",
+      "description": "Whether audit capture is active for the governed resources or operations; set false to model a defined but switched-off audit configuration (defaults to true when omitted)."
+    },
+    {
+      "name": "includePayload",
+      "description": "Whether request and response bodies are recorded in audit entries; set true only when forensic needs justify capturing body content, after applying sanitizeFields."
+    },
+    {
+      "name": "includeHeaders",
+      "description": "Whether HTTP or message headers are recorded in audit entries; set true when headers such as client IP, user agent or correlation IDs are needed, with credentials redacted via sanitizeFields."
+    },
+    {
+      "name": "sanitizeFields",
+      "description": "Comma-separated list of field names or JSON paths (e.g. 'password,authorization,card.number') whose values are redacted or masked before an audit entry is written; use an empty string when nothing is sanitized."
+    }
+  ],
+  "notes": "The current definition mentions retention periods and storage destinations, which overlap RetentionPolicy; remove them. The 'what events' wording has no attribute (add eventTypes/events array). level 'none' duplicates enabled=false. sanitizeFields should be an array and arguably optional. The source object here conflicts in meaning with Evidence's source string.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

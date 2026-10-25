@@ -1,0 +1,170 @@
+{
+  "source": "testing.testcoveragetarget",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.080Z",
+  "relationships": [
+    {
+      "id": "testing.testcoveragetarget.aggregates.contextvariation",
+      "previous_description": "Defines relationship: testing.testcoveragetarget aggregates testing.contextvariation",
+      "description": "The coverage target groups the named execution contexts (functional, load, security and so on) under which its artifact must be exercised, and those context variations remain reusable across other targets.",
+      "evidence": "The TestCoverageModel file lists context-variation IDs under the target's contexts or variations key, and the same IDs are defined at model level and referenced by other targets."
+    },
+    {
+      "id": "testing.testcoveragetarget.composes.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.testcoveragetarget composes testing.coveragerequirement",
+      "description": "The coverage target owns the coverage criteria, such as boundary-values, pairwise or MC/DC, that its test cases must satisfy, and each criterion has no meaning once the target is removed.",
+      "evidence": "The coverage-model YAML or JSON nests the coverage requirement entry, with its criterion field, directly inside the target's requirements block."
+    },
+    {
+      "id": "testing.testcoveragetarget.composes.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.testcoveragetarget composes testing.inputpartitionselection",
+      "description": "The coverage target contains the partition-selection rules that state which equivalence classes of its input partitions must be exercised, and those rules exist only within the scope of this target.",
+      "evidence": "The include or exclude partition-value lists appear nested beneath the target's entry in the coverage model, usually inside one of its coverage requirements."
+    },
+    {
+      "id": "testing.testcoveragetarget.composes.testing.outcomecategory",
+      "previous_description": "Defines relationship: testing.testcoveragetarget composes testing.outcomecategory",
+      "description": "The coverage target defines the result classes its artifact can produce (success, validation error, not-found, timeout and so on), which test cases must exercise and under which test sketches are grouped.",
+      "evidence": "The target's outcomes list in the coverage model enumerates the categories, often mirroring the response codes or exception types declared by the artifact under test."
+    },
+    {
+      "id": "testing.testcoveragetarget.composes.testing.targetinputfield",
+      "previous_description": "Defines relationship: testing.testcoveragetarget composes testing.targetinputfield",
+      "description": "The coverage target owns the bindings that tie each input of its artifact (an API parameter, model property or form input) to the partition used to split that input into equivalence classes.",
+      "evidence": "The target's inputs block in the coverage model names each field with a partition reference and a required flag, and the field names match the parameters of the API operation or UI form under test."
+    },
+    {
+      "id": "testing.testcoveragetarget.composes.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.testcoveragetarget composes testing.testcoveragetarget",
+      "description": "A broad coverage target, such as a whole business workflow, is broken down into narrower sub-targets, such as its individual steps or operations, that are scoped only as parts of the parent.",
+      "evidence": "The coverage model nests child target entries under a parent target's children or subtargets key."
+    },
+    {
+      "id": "testing.testcoveragetarget.covers.application.applicationservice",
+      "previous_description": "Defines relationship: testing.testcoveragetarget covers application.applicationservice",
+      "description": "The coverage target places the operations of an application service in test scope, so that the service's externally visible behaviour is what the target's test cases must verify.",
+      "evidence": "The target entry references the service by ID or name, and the test cases derived from it call that service's public interface."
+    },
+    {
+      "id": "testing.testcoveragetarget.covers.product.feature",
+      "previous_description": "Defines relationship: testing.testcoveragetarget covers product.feature",
+      "description": "The coverage target brings a user-perceivable product feature into test scope, so that its tests confirm the feature behaves as personas expect.",
+      "evidence": "The target's metadata carries the feature key or ticket ID, and acceptance or end-to-end tests tagged with that feature are generated from the target."
+    },
+    {
+      "id": "testing.testcoveragetarget.covers.data-model.objectschema",
+      "previous_description": "Defines relationship: testing.testcoveragetarget covers data-model.objectschema",
+      "description": "The coverage target includes a structured domain schema in test scope, so that its properties, required fields and additional-property rules are exercised by the target's tests.",
+      "evidence": "The target references the JSON Schema or DTO class, and its input fields map to that schema's declared properties in schema-validation tests."
+    },
+    {
+      "id": "testing.testcoveragetarget.covers.ux.subview",
+      "previous_description": "Defines relationship: testing.testcoveragetarget covers ux.subview",
+      "description": "The coverage target scopes a non-routable region of a page for testing, so that component-level tests verify the region's grouped components in isolation or within their parent view.",
+      "evidence": "A component or Storybook interaction test, linked from the target, mounts the sub-view's component and asserts on its rendered elements."
+    },
+    {
+      "id": "testing.testcoveragetarget.covers.ux.view",
+      "previous_description": "Defines relationship: testing.testcoveragetarget covers ux.view",
+      "description": "The coverage target makes a complete UI page, screen or dialog the subject of verification, and its inputs and outcomes describe that surface's interactions.",
+      "evidence": "A Playwright or Cypress spec, traced to the target, opens the view and asserts on its states, and the target references the view's identifier."
+    },
+    {
+      "id": "testing.testcoveragetarget.flows-to.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.testcoveragetarget flows-to testing.coveragerequirement",
+      "description": "The target's input fields, contexts and outcome categories feed into a coverage requirement, which combines them according to its criterion to determine what must be exercised.",
+      "evidence": "A coverage-generation tool reads the target's partitions and outcomes and writes them into the requirement's selection set, as shown in the tool's configuration or output."
+    },
+    {
+      "id": "testing.testcoveragetarget.flows-to.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.testcoveragetarget flows-to testing.testcasesketch",
+      "description": "The target's partitions, contexts and outcomes are carried forward into test case sketches, each of which combines one selection per partition into a concrete test design for the target.",
+      "evidence": "The generated sketch entries carry the target ID and draw their values from the target's partitions, for example as rows of a parameterized test table produced from the model."
+    },
+    {
+      "id": "testing.testcoveragetarget.fulfills-requirements.motivation.requirement",
+      "previous_description": "Defines relationship: testing.testcoveragetarget fulfills-requirements motivation.requirement",
+      "description": "Scoping the target for test is claimed to demonstrate that a stated verifiable requirement is met, by tying the requirement's acceptance criteria to the target's outcomes.",
+      "evidence": "The target lists the requirement ID in a traceability field, and a requirements-traceability matrix maps that requirement to the target's passing tests."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.business.businessprocess",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references business.businessprocess",
+      "description": "The coverage target points to the business process whose flow gives context to the target, such as the workflow whose steps an end-to-end scenario follows, without verifying the process model itself.",
+      "evidence": "The target's metadata names the process ID or BPMN diagram, and scenario tests follow that process's sequence of steps."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.apm.metricinstrument",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references apm.metricinstrument",
+      "description": "The coverage target names a metric instrument whose recorded measurements serve as an observable signal for its outcomes, for example a load-test latency histogram or an error counter.",
+      "evidence": "The target or its load-test configuration cites the instrument name, such as http.server.duration, as an assertion source or threshold."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.technology.node",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references technology.node",
+      "description": "The coverage target identifies the host, container or cluster on which the artifact under test is deployed and against which its tests run.",
+      "evidence": "The target's environment settings, or the CI test job, name the cluster, VM or container host as the test endpoint."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.navigation.route",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references navigation.route",
+      "description": "The coverage target records the client-side route through which testers reach the view under test, without testing the route table itself.",
+      "evidence": "The target cites the route path pattern, and the end-to-end tests derived from it navigate to that URL to begin each scenario."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.security.secureresource",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references security.secureresource",
+      "description": "The coverage target identifies the protected resource whose authorization rules shape its authorization-error outcomes and its security context variations.",
+      "evidence": "The target links to the resource ID in the access-control model, and its security test cases call that resource's operations with permitted and denied subjects."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.technology.systemsoftware",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references technology.systemsoftware",
+      "description": "The coverage target names the platform software, such as a database engine, broker or runtime version, that the artifact depends on and that its test environment must provide.",
+      "evidence": "The target's environment factors or the test docker-compose or Testcontainers setup pin that product and version."
+    },
+    {
+      "id": "testing.testcoveragetarget.references.technology.technologyservice",
+      "previous_description": "Defines relationship: testing.testcoveragetarget references technology.technologyservice",
+      "description": "The coverage target notes an infrastructure capability, such as messaging, storage or identity, that the artifact relies on and that its tests must provision or stub.",
+      "evidence": "The target lists the technology service as a dependency, and test fixtures configure a real or mocked instance of it."
+    },
+    {
+      "id": "testing.testcoveragetarget.supports-goals.motivation.goal",
+      "previous_description": "Defines relationship: testing.testcoveragetarget supports-goals motivation.goal",
+      "description": "Verifying the target is claimed to contribute to a stakeholder goal, such as reliability or regulatory confidence, by reducing the risk that the goal is undermined.",
+      "evidence": "The target's traceability metadata cites the goal ID, and quality or test-strategy documentation links the target to that goal."
+    },
+    {
+      "id": "testing.testcoveragetarget.tests.application.applicationcomponent",
+      "previous_description": "Defines relationship: testing.testcoveragetarget tests application.applicationcomponent",
+      "description": "The coverage target makes an application component the subject under test, so that its tests verify the component's behaviour through its interfaces.",
+      "evidence": "Unit or integration test classes linked to the target instantiate or inject the component's class or module and assert on its results."
+    },
+    {
+      "id": "testing.testcoveragetarget.tests.data-store.collection",
+      "previous_description": "Defines relationship: testing.testcoveragetarget tests data-store.collection",
+      "description": "The coverage target verifies the behaviour of a persistent table, collection or index, such as its constraints, its write and read semantics, or the effects of a migration on its records.",
+      "evidence": "Database tests linked to the target insert and query rows in the named table or collection and assert on the results or on constraint violations."
+    },
+    {
+      "id": "testing.testcoveragetarget.tests.api.operation",
+      "previous_description": "Defines relationship: testing.testcoveragetarget tests api.operation",
+      "description": "The coverage target makes one HTTP method-path operation the subject under test, with the operation's parameters as the target's inputs and its responses as the target's outcome categories.",
+      "evidence": "API tests linked to the target send requests to that method and path, and the target's input fields correspond to the parameters in the OpenAPI operation."
+    },
+    {
+      "id": "testing.testcoveragetarget.tests.data-store.storedlogic",
+      "previous_description": "Defines relationship: testing.testcoveragetarget tests data-store.storedlogic",
+      "description": "The coverage target verifies a procedure, function, script or pipeline that runs inside the data store, by exercising it with partitioned arguments and checking its results.",
+      "evidence": "pgTAP, tSQLt or script-level tests linked to the target invoke the stored routine by name and assert on its return values or side effects."
+    },
+    {
+      "id": "testing.testcoveragetarget.tests.data-store.view",
+      "previous_description": "Defines relationship: testing.testcoveragetarget tests data-store.view",
+      "description": "The coverage target verifies that a derived database view, or a materialized view, produces the correct rows from its source collections.",
+      "evidence": "Database tests linked to the target seed the source tables, query or refresh the named view, and compare its output with the expected rows."
+    }
+  ],
+  "notes": "Composing InputPartitionSelection conflicts with its definition as part of a CoverageRequirement. The flows-to CoverageRequirement edge duplicates the composes edge. The covers and tests edges overlap; pick one. The fulfills-requirements and supports-goals edges are dubious because a test target verifies requirements rather than fulfilling them, so validates fits better. Self-composition needs a defined meaning."
+}

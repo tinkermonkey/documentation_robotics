@@ -1,0 +1,50 @@
+{
+  "source": "security.securityconstraints",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.053Z",
+  "relationships": [
+    {
+      "id": "security.securityconstraints.aggregates.security.bindingofduty",
+      "previous_description": "Defines relationship: security.securityconstraints aggregates security.bindingofduty",
+      "description": "The application's security-constraints container lists a binding-of-duty rule among the workflow constraints it groups, while that rule remains a separately defined constraint that could be reused or referenced elsewhere.",
+      "evidence": "The security model's constraints section (e.g. a securityConstraints block in the security YAML/JSON) contains a bindingOfDuty entry or a reference to the rule's id."
+    },
+    {
+      "id": "security.securityconstraints.aggregates.security.needtoknow",
+      "previous_description": "Defines relationship: security.securityconstraints aggregates security.needtoknow",
+      "description": "The security-constraints container includes a need-to-know rule as one of the purpose-based access restrictions applied across the application, while the rule keeps its own identity and resource scope.",
+      "evidence": "The constraints block of the security model contains a needToKnow entry, or references one by id, naming the protected resource, the required purpose and any justification flag."
+    },
+    {
+      "id": "security.securityconstraints.aggregates.security.separationofduty",
+      "previous_description": "Defines relationship: security.securityconstraints aggregates security.separationofduty",
+      "description": "The security-constraints container groups a separation-of-duty rule, static or dynamic, as one of the conflict-of-interest restrictions the application applies to its workflows.",
+      "evidence": "The constraints block of the security model contains a separationOfDuty entry, or references one by id, listing the mutually exclusive roles or workflow steps."
+    },
+    {
+      "id": "security.securityconstraints.constrains.security.role",
+      "previous_description": "Defines relationship: security.securityconstraints constrains security.role",
+      "description": "The duty and purpose rules held in the constraints container restrict how a role may be assigned or exercised, for example by barring one actor from holding both a requester role and an approver role.",
+      "evidence": "A separation-of-duty or binding-of-duty entry in the constraints block names the role's id among its conflicting or bound roles, and role-assignment code rejects assignments that violate the rule."
+    },
+    {
+      "id": "security.securityconstraints.enforces.security.securitypolicy",
+      "previous_description": "Defines relationship: security.securityconstraints enforces security.securitypolicy",
+      "description": "The workflow-level duty and purpose rules are applied as additional runtime checks alongside a security policy's decisions, so that an access the policy permits is still refused when it breaks a duty constraint.",
+      "evidence": "The authorization middleware or policy decision point evaluates the constraint set together with the named policy, and tests show a policy-permitted request denied because of a separation-of-duty violation."
+    },
+    {
+      "id": "security.securityconstraints.governs.security.securitypolicy",
+      "previous_description": "Defines relationship: security.securityconstraints governs security.securitypolicy",
+      "description": "The constraint set sets rules that a security policy's rules must respect, so the policy cannot grant combinations of access that the duty or need-to-know rules forbid.",
+      "evidence": "Policy documentation or a policy linter references the constraints container and rejects any policy rule granting conflicting permissions to the same subject."
+    },
+    {
+      "id": "security.securityconstraints.implements.motivation.constraint",
+      "previous_description": "Defines relationship: security.securityconstraints implements motivation.constraint",
+      "description": "The security-constraints container is the concrete security-layer form of a stated business or regulatory restriction, such as a four-eyes approval mandate, recorded in the motivation layer.",
+      "evidence": "A traceability link or annotation on the constraints container cites the motivation constraint's id, and the cited decision record or regulation text describes the same duty-separation or need-to-know requirement."
+    }
+  ],
+  "notes": "The enforces and governs links to SecurityPolicy overlap, and both conflict with the source definition, which says the container has no decision logic. Constraints on roles come from the aggregated rules, not from the container itself. Implementing a motivation Constraint would read more naturally as realizes. Consider keeping only governs, or moving these links onto the individual duty rules."
+}

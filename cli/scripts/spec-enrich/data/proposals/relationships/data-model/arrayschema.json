@@ -1,0 +1,44 @@
+{
+  "source": "data-model.arrayschema",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.068Z",
+  "relationships": [
+    {
+      "id": "data-model.arrayschema.aggregates.data-model.numericschema",
+      "previous_description": "Defines relationship: data-model.arrayschema aggregates data-model.numericschema",
+      "description": "The array schema uses a numeric schema as its items (or contains) subschema, so every element of the list must be a number satisfying that schema's bounds or multipleOf step, while the numeric schema remains independently reusable.",
+      "evidence": "The array schema's 'items' or 'contains' keyword holds a subschema of type 'number' or 'integer' with minimum, maximum, exclusiveMinimum, exclusiveMaximum or multipleOf, e.g. a List<Integer> field annotated with @Min/@Max."
+    },
+    {
+      "id": "data-model.arrayschema.aggregates.data-model.objectschema",
+      "previous_description": "Defines relationship: data-model.arrayschema aggregates data-model.objectschema",
+      "description": "The array schema declares an inline object schema as the shape of its elements, so the list is a collection of structured records, each validated against that object's properties and required keys.",
+      "evidence": "The array schema's 'items' keyword contains an inline subschema with type 'object' and 'properties', corresponding in code to a field typed List<OrderLine> whose element class is defined as a nested record or DTO."
+    },
+    {
+      "id": "data-model.arrayschema.aggregates.data-model.reference",
+      "previous_description": "Defines relationship: data-model.arrayschema aggregates data-model.reference",
+      "description": "The array schema delegates validation of its elements to a $ref pointer, so each list element must conform to a type declared elsewhere rather than one declared inline.",
+      "evidence": "The array schema's 'items' (or 'contains') value is an object whose only keyword is '$ref', e.g. \"items\": {\"$ref\": \"#/definitions/Address\"}."
+    },
+    {
+      "id": "data-model.arrayschema.aggregates.data-model.schemadefinition",
+      "previous_description": "Defines relationship: data-model.arrayschema aggregates data-model.schemadefinition",
+      "description": "The array schema is a collection of instances of a named, reusable domain type declared under 'definitions', so the list's element type is that shared entity, value object or enumeration.",
+      "evidence": "The array schema's 'items' $ref resolves to an entry under the document's 'definitions' keyword, e.g. '#/definitions/Customer', matching a field typed as a collection of that named class."
+    },
+    {
+      "id": "data-model.arrayschema.aggregates.data-model.stringschema",
+      "previous_description": "Defines relationship: data-model.arrayschema aggregates data-model.stringschema",
+      "description": "The array schema uses a constrained string schema as its element schema, so every list entry must be a string meeting the declared length, pattern or format rules.",
+      "evidence": "The array schema's 'items' keyword holds a subschema with type 'string' plus minLength, maxLength, pattern or format, e.g. a tags array whose items have \"pattern\": \"^[a-z-]+$\"."
+    },
+    {
+      "id": "data-model.arrayschema.maps-to.api.response",
+      "previous_description": "Defines relationship: data-model.arrayschema maps-to api.response",
+      "description": "The array schema defines the payload structure of an API response whose body is a list, so the HTTP outcome for that status code returns a JSON array of elements shaped by this schema.",
+      "evidence": "The OpenAPI response's content map (e.g. 'application/json') has a schema of type 'array' or a $ref resolving to this array schema, as for a list endpoint returning 200 with an array of resources."
+    }
+  ],
+  "notes": "The aggregates edges to Reference and SchemaDefinition overlap: an items $ref is a Reference that resolves to a SchemaDefinition, so both edges may be recorded for one link. Consider modelling ArraySchema→Reference and Reference→SchemaDefinition instead. maps-to is a data-layer predicate; describing a response body may better fit a 'references' or 'used-by' relation."
+}

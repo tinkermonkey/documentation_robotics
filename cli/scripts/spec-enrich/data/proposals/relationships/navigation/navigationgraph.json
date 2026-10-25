@@ -1,0 +1,56 @@
+{
+  "source": "navigation.navigationgraph",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.085Z",
+  "relationships": [
+    {
+      "id": "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig",
+      "previous_description": "Defines relationship: navigation.navigationgraph aggregates navigation.breadcrumbconfig",
+      "description": "The application's router configuration groups the breadcrumb configuration that derives the location trail for its routes, while that configuration remains a separately defined object that could be shared or reused.",
+      "evidence": "The root router setup imports or registers a breadcrumb configuration object, such as a breadcrumb provider or a shared breadcrumb options module, that is defined outside the route table file."
+    },
+    {
+      "id": "navigation.navigationgraph.aggregates.navigation.navigationflow",
+      "previous_description": "Defines relationship: navigation.navigationgraph aggregates navigation.navigationflow",
+      "description": "The application's complete route table includes each named multi-step journey, such as checkout or onboarding, as a grouping of its routes, while the flow definition stays an independently defined unit.",
+      "evidence": "A flow or wizard definition module, such as a checkout step list or a nested router with ordered child steps, is imported into and mounted within the application's root router configuration."
+    },
+    {
+      "id": "navigation.navigationgraph.aggregates.navigation.navigationguard",
+      "previous_description": "Defines relationship: navigation.navigationgraph aggregates navigation.navigationguard",
+      "description": "The application router collects the interceptor hooks registered against it (global, per-route or per-flow), and each guard remains a standalone function or class that could also be attached elsewhere.",
+      "evidence": "The router instance registers the guard, for example via router.beforeEach(authGuard) or canActivate: [AuthGuard] entries that reference guard classes defined in separate files."
+    },
+    {
+      "id": "navigation.navigationgraph.aggregates.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.navigationgraph aggregates navigation.navigationtransition",
+      "description": "The application's router configuration gathers every permitted route-to-route move, such as links, redirects and programmatic navigations, into its overall navigation graph.",
+      "evidence": "Redirect entries in the route table, router.navigate/push calls, and link components that target routes declared in the same router instance enumerate the edges between its routes."
+    },
+    {
+      "id": "navigation.navigationgraph.aggregates.navigation.route",
+      "previous_description": "Defines relationship: navigation.navigationgraph aggregates navigation.route",
+      "description": "The application's top-level router holds each route entry in its table, where routes may be defined in separate feature modules and merged into the graph.",
+      "evidence": "Feature-module route arrays, such as imported child routes or loadChildren modules, are spread or mounted into the root createRouter/RouterModule.forRoot route list."
+    },
+    {
+      "id": "navigation.navigationgraph.composes.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.navigationgraph composes navigation.navigationtransition",
+      "description": "Each permitted route change exists only within the application's router configuration that defines both its source and destination routes, so it has no meaning outside that graph.",
+      "evidence": "The redirect or navigation edge is declared inline in the root router's route table, for example a redirectTo or redirect property, and is removed when that router configuration is removed."
+    },
+    {
+      "id": "navigation.navigationgraph.composes.navigation.route",
+      "previous_description": "Defines relationship: navigation.navigationgraph composes navigation.route",
+      "description": "Each route entry is an integral part of the application's single router configuration and ceases to exist as a matchable path when that router instance is torn down.",
+      "evidence": "The route object literal is declared directly in the routes array passed to the application's createRouter, RouterModule.forRoot, or createBrowserRouter call."
+    },
+    {
+      "id": "navigation.navigationgraph.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: navigation.navigationgraph uses technology.systemsoftware",
+      "description": "The application's router configuration relies on platform software, such as the browser runtime, the JavaScript engine, or the web server that serves history-mode fallbacks, to resolve URLs and execute navigation.",
+      "evidence": "The package manifest pins the router library and runtime version, or the web server/CDN configuration (e.g. nginx try_files to index.html) supports the router's history mode."
+    }
+  ],
+  "notes": "Aggregates and composes are both defined for Route and NavigationTransition, which gives contradictory lifecycle semantics for the same pair; keep one per pair, preferably composes for Route and NavigationTransition. The uses→SystemSoftware relationship is weak, because a front-end route table depends mainly on a router library or the browser rather than on host system software."
+}

@@ -1,0 +1,25 @@
+{
+  "spec_node_id": "product.persona",
+  "previous_description": "A user archetype representing a class of users with shared goals, behaviors, and pain points",
+  "definition": "A named, fictional archetype of a class of the product's actual or intended users, characterised by shared goals, behaviours, proficiency and pain points, against which features and workflows are designed. It describes who the user is, not what they do in the product or what access they are granted.",
+  "distinguish_from": [
+    {
+      "type": "product.userworkflow",
+      "when": "the artefact describes a goal-directed journey the user takes through the product rather than the characteristics of the user taking it"
+    },
+    {
+      "type": "product.workflowstep",
+      "when": "the artefact is a single action or experience a user has at one point in a journey, even if phrased as 'the admin does X'"
+    }
+  ],
+  "standard_reference": "Product Management Practice: Persona (Cooper, goal-directed design); no direct ArchiMate 3.2 equivalent, nearest are Stakeholder (§6.2.1) and Business Role (§8.2.2)",
+  "code_evidence": [
+    "persona documents in the repository (e.g. docs/personas/*.md or a product brief) naming an archetype with goals, frustrations and skill level",
+    "user stories or acceptance criteria in issues or BDD feature files phrased 'As a <named user type>, I want ...' that recur across many stories",
+    "a user-segment or user-type discriminator (e.g. onboarding question 'I am a developer / designer', analytics segment definitions, feature-flag targeting rules) that tailors UI or content per user class rather than granting permissions"
+  ],
+  "attribute_descriptions": [],
+  "notes": "category enum mixes importance (primary/secondary) with Cooper's served/negative kinds; 'by importance' misdescribes it. Definition cites goals and pain points but no attributes capture them. Boundary with business.businessrole is fuzzy: auth roles (admin, editor) are roles, not personas. 'persona serves businessrole' direction seems inverted; consider 'aggregates' or 'associated with'.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.258Z"
+}

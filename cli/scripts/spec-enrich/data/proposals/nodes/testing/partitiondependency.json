@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.partitiondependency",
+  "previous_description": "A constraint specifying how selection of a partition value in one field affects valid or available partition values in another field, enabling combinatorial test design to avoid invalid input combinations per IEEE 829-2008 test design specification.",
+  "definition": "A cross-field constraint in combinatorial test design stating that when a specific partition value (the trigger) is selected in one InputSpacePartition, the availability of named partition values in another input field is excluded, required, restricted, or re-ranged, so that generated combinations omit invalid inputs.",
+  "distinguish_from": [
+    {
+      "type": "testing.partitionvalue",
+      "when": "the condition bounds a single field's own equivalence class (its constraintExpression) and does not depend on the value chosen for any other field."
+    },
+    {
+      "type": "testing.inputpartitionselection",
+      "when": "the restriction is a per-CoverageRequirement choice of which values of one partition to cover or exclude (coverValues/excludeValues), not a rule that applies whenever another field takes a given value."
+    },
+    {
+      "type": "testing.inputspacepartition",
+      "when": "you are describing the input dimension itself and its presenceRule (including a plain 'conditional' flag), rather than the specific trigger value and affected values that make it conditional."
+    },
+    {
+      "type": "testing.coverageexclusion",
+      "when": "a target or requirement is deliberately removed from coverage with an approver and accepted risk, rather than a combination being logically invalid."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Level Test Design Specification (test design refinements: feature/input combinations to be tested); conceptually the category-partition method's selector constraints (Ostrand & Balcer)",
+  "code_evidence": [
+    "A constraint line in a combinatorial test model file, e.g. a PICT/ACTS model containing 'IF [PaymentMethod] = \"invoice\" THEN [Country] IN {\"DE\",\"AT\"};'",
+    "A parametrized test generator (e.g. pytest_generate_tests, JUnit ArgumentsProvider, itertools.product filter) that drops or skips tuples when one parameter has a specific value and another has a listed value",
+    "A property-based test calling assume()/filter() that ties one generated argument's allowed values to another argument's value, e.g. 'assume(not (account_type == \"guest\" and role == \"admin\"))'"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of the business or technical reason the trigger value constrains the affected values (e.g. 'guest accounts cannot hold admin role'); set whenever the rule is not self-evident from effect and affectedValues."
+    }
+  ],
+  "notes": "No attribute identifies the dependent (affected) InputSpacePartition or field; affectedValues as bare labels is ambiguous when labels repeat across partitions — add affectedPartitionRef. 'modifies-range' is undefined and overlaps 'restricts-to'. The 'triggers' edge to coveragerequirement and 'constrained-by' to inputpartitionselection have unclear semantics/direction. dependsOnValue duplicates the triggers→partitionvalue edge.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

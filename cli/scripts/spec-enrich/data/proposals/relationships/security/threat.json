@@ -1,0 +1,80 @@
+{
+  "source": "security.threat",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.057Z",
+  "relationships": [
+    {
+      "id": "security.threat.accesses.security.secureresource",
+      "previous_description": "Defines relationship: security.threat accesses security.secureresource",
+      "description": "If the threat is realized, the attacker would read or modify the protected resource, such as dumping rows from a customer database or altering records through an API.",
+      "evidence": "The threat-model entry's STRIDE category (information disclosure or tampering) names the specific API, database or file whose contents the attack would read or change."
+    },
+    {
+      "id": "security.threat.aggregates.countermeasure",
+      "previous_description": "Defines relationship: security.threat aggregates security.countermeasure",
+      "description": "The threat entry collects the countermeasures recorded against it as its mitigation set, and each control can also exist on its own and be shared with other threats.",
+      "evidence": "The threat-model document or risk register lists countermeasure IDs under the threat's mitigations section, and the same control IDs appear under other threats."
+    },
+    {
+      "id": "security.threat.constrains.security.accesscondition",
+      "previous_description": "Defines relationship: security.threat constrains security.accesscondition",
+      "description": "The threat justifies a restrictive access predicate, such as requiring an MFA claim or a trusted IP range, that narrows when requests are allowed.",
+      "evidence": "The access condition's rationale field or the policy source comment cites the threat ID as the reason the attribute check exists."
+    },
+    {
+      "id": "security.threat.influence.security.dataclassification",
+      "previous_description": "Defines relationship: security.threat influence security.dataclassification",
+      "description": "The threat's likelihood and impact inform the classification tier assigned to data and the minimum protection obligations, such as encryption, attached to that tier.",
+      "evidence": "The data classification standard cites the threat's risk rating as justification for the tier's handling rules, for example mandatory encryption at rest."
+    },
+    {
+      "id": "security.threat.influence.security.securitypolicy",
+      "previous_description": "Defines relationship: security.threat influence security.securitypolicy",
+      "description": "The threat shapes which rules a security policy contains and how it is prioritized, so that access decisions for the affected target category counter the attack.",
+      "evidence": "The policy definition file, its change record or the threat model's linked-controls column references the threat ID as the driver of specific rules or of the policy's priority."
+    },
+    {
+      "id": "security.threat.maps-to.motivation.requirement",
+      "previous_description": "Defines relationship: security.threat maps-to motivation.requirement",
+      "description": "The threat is traced to the security requirement that states the verifiable 'shall' property the system must meet so that the threat is addressed.",
+      "evidence": "A requirements traceability matrix row or requirement metadata links the requirement ID to the threat ID it was derived from."
+    },
+    {
+      "id": "security.threat.realizes.motivation.driver",
+      "previous_description": "Defines relationship: security.threat realizes motivation.driver",
+      "description": "The documented threat is a concrete instance of the security-risk condition named by the driver, for example 'rising credential-theft attacks', that prompts the organization to set security goals.",
+      "evidence": "The driver's description in the motivation model cites specific threat-model entries as the evidence that substantiates the condition."
+    },
+    {
+      "id": "security.threat.targets.business.businessprocess",
+      "previous_description": "Defines relationship: security.threat targets business.businessprocess",
+      "description": "The attack is aimed at disrupting, abusing or defrauding the business process, such as invoice fraud inserted into a payment-approval process.",
+      "evidence": "The threat entry's affected-asset or impact field names the business process, or the process documentation lists the threat in its risk section."
+    },
+    {
+      "id": "security.threat.targets.business.businessservice",
+      "previous_description": "Defines relationship: security.threat targets business.businessservice",
+      "description": "The attack is aimed at degrading or compromising the externally offered business service, such as a denial-of-service attack against Order Delivery.",
+      "evidence": "The threat's impact statement or business impact assessment names the business service whose availability or integrity would be lost."
+    },
+    {
+      "id": "security.threat.targets.security.informationentity",
+      "previous_description": "Defines relationship: security.threat targets security.informationentity",
+      "description": "The attack seeks to disclose, tamper with or destroy that category of information, such as exfiltration of payment card data.",
+      "evidence": "The threat-model entry's asset field or data-flow diagram annotation identifies the information category, for example PII or cardholder data, as what the attacker is after."
+    },
+    {
+      "id": "security.threat.targets.security.secureresource",
+      "previous_description": "Defines relationship: security.threat targets security.secureresource",
+      "description": "The protected resource is the attack surface the threat is directed at, such as a SQL injection against a customer-search API.",
+      "evidence": "The threat-model data-flow diagram element or the threat's target field names the specific API, database, file or UI area."
+    },
+    {
+      "id": "security.threat.triggers.security.auditconfig",
+      "previous_description": "Defines relationship: security.threat triggers security.auditconfig",
+      "description": "Identifying the threat prompts an audit configuration that records the security events indicating the attack, such as logging failed logins to detect credential stuffing.",
+      "evidence": "The audit configuration's event list or a detection requirement is annotated with the threat ID whose indicators it captures."
+    }
+  ],
+  "notes": "accesses secureresource duplicates targets secureresource. aggregates countermeasure inverts the natural 'countermeasure mitigates threat' and is not whole-part. maps-to is a data-schema predicate misused for traceability. realizes driver is semantically wrong; influence or associated-with fits better. triggers auditconfig and constrains accesscondition describe design motivation, not runtime triggering or constraint; influence fits better."
+}

@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "product.capability",
+  "previous_description": "An ability the product possesses, independent of how it's implemented",
+  "definition": "An implementation-independent ability the product has or is intended to have, stated as what the product can do (e.g. 'Payment processing', 'Full-text search') rather than as a deliverable unit or a user journey, and realized by one or more features, application components or technology services.",
+  "distinguish_from": [
+    {
+      "type": "product.feature",
+      "when": "the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing')"
+    },
+    {
+      "type": "product.userworkflow",
+      "when": "the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order"
+    },
+    {
+      "type": "product.workflowstep",
+      "when": "the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on"
+    },
+    {
+      "type": "product.milestone",
+      "when": "the element is a dated delivery target that groups capabilities or features rather than an ability itself"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §7.3.2 Capability (Strategy Elements)",
+  "code_evidence": [
+    "a product capability map, roadmap or README section headed 'Capabilities' listing abilities such as 'Search', 'Billing', 'Notifications' that are realized by several features",
+    "a top-level domain module, bounded context or service named for a business ability (e.g. billing/, search/, identity/) whose submodules implement several distinct user-facing features",
+    "a declared capability set in a manifest or handshake (e.g. a 'capabilities' object in a plugin manifest or protocol initialization response) enumerating abilities the system offers independent of specific UI entry points"
+  ],
+  "attribute_descriptions": [],
+  "notes": "Outgoing 'realizes business.businessfunction' inverts ArchiMate, where behaviour realizes capability; consider 'serves' or 'associated-with'. Feature has both 'realizes' and 'uses' toward capability without a stated distinction. A granularity or level attribute (e.g. L1/L2) would help capability hierarchies built via 'aggregates'. Status enum duplicates feature's, blurring lifecycle versus delivery.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.256Z"
+}

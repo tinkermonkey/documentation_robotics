@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.communicationnetwork",
+  "previous_description": "A set of structures that connects nodes for the purpose of transmission, routing, and reception of data, such as a LAN, WAN, or VPN.",
+  "definition": "A technology active structure element representing a physical or virtual network infrastructure, such as a LAN, VPC, subnet, overlay, VPN or the public internet, that carries, routes and delivers data among any number of attached nodes and devices. It is identified by an address space or network membership rather than by a specific pair of endpoints.",
+  "distinguish_from": [
+    {
+      "type": "technology.path",
+      "when": "the element is a logical communication channel between specific named nodes (e.g. service A calls database B over TCP) rather than the shared network infrastructure the traffic travels over."
+    },
+    {
+      "type": "technology.device",
+      "when": "the element is a physical network appliance such as a router, switch or firewall box (deviceType network-device) rather than the network it forms or joins."
+    },
+    {
+      "type": "technology.node",
+      "when": "the element is a computational resource that hosts software, such as a VM, container or cluster attached to the network, rather than the network itself."
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the element is a consumable networking capability offered through an interface, such as managed DNS, a load-balancing service or a CDN, rather than the connectivity fabric."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.2.7 Communication Network",
+  "code_evidence": [
+    "An infrastructure-as-code resource that declares a network or address space, such as Terraform aws_vpc, aws_subnet, google_compute_network or azurerm_virtual_network, with a cidr_block or address_prefixes value.",
+    "A top-level `networks:` entry in a docker-compose file, or a `docker network create` command, that services attach to by name.",
+    "A VPN or overlay configuration such as a WireGuard [Interface]/[Peer] file, an OpenVPN .conf, or a CNI plugin config (Calico, Flannel) that defines a network range shared by multiple hosts."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the network's purpose, scope and address range (e.g. 'private VPC 10.0.0.0/16 for production workloads'); set it whenever the name alone does not convey which hosts attach to the network or what traffic it carries."
+    }
+  ],
+  "notes": "networkType mixes orthogonal axes: scope (lan/wan), technology (vpn/wireless) and ownership (internet/intranet). Cloud VPCs, subnets and container overlay networks fit no value cleanly; consider adding 'virtual'/'overlay' or splitting into scope and medium. There is no attribute for address space (CIDR). Duplicate self-aggregation relationship listed. TechnologyService serviceType lacks a 'network' value.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.208Z"
+}

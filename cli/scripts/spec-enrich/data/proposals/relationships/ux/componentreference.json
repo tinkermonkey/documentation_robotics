@@ -1,0 +1,44 @@
+{
+  "source": "ux.componentreference",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.087Z",
+  "relationships": [
+    {
+      "id": "ux.componentreference.implements.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.componentreference implements ux.librarycomponent",
+      "description": "The slot-filling declaration is claimed to be a concrete realization of the reusable component definition it points at, although it only names that definition as slot content rather than providing an implementation of it.",
+      "evidence": "The component reference's specNodeId resolves to the library component's id and the parent's slot entry lists that library component as its content."
+    },
+    {
+      "id": "ux.componentreference.renders.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.componentreference renders ux.actioncomponent",
+      "description": "The slot-filling declaration places a specific user-operable control, such as a button or menu entry, into the named slot of its parent component so that control appears there at runtime.",
+      "evidence": "The component reference's specNodeId resolves to the action component, and the parent's rendered markup shows that control inside the named slot, for example a <slot name=\"actions\"> filled with that button."
+    },
+    {
+      "id": "ux.componentreference.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.componentreference renders ux.componentinstance",
+      "description": "The slot-filling declaration names an already-configured component occurrence, with its own prop values, as the content to place into the parent's named slot.",
+      "evidence": "The component reference's specNodeId equals the component instance's id, and the parent template passes that configured instance as the children or slot prop for the named slot."
+    },
+    {
+      "id": "ux.componentreference.renders.ux.componentreference",
+      "previous_description": "Defines relationship: ux.componentreference renders ux.componentreference",
+      "description": "One slot-filling declaration delegates its slot content to another slot-filling declaration, producing nested slot composition in which the inner reference's target ends up rendered in the outer parent's slot.",
+      "evidence": "The outer component reference's specNodeId resolves to another componentreference node, and the rendered output shows the inner reference's target inside the outer parent's slot."
+    },
+    {
+      "id": "ux.componentreference.renders.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.componentreference renders ux.librarycomponent",
+      "description": "The slot-filling declaration names a reusable component definition to be instantiated with default configuration in the parent's named slot.",
+      "evidence": "The component reference's specNodeId resolves to the library component's id, and the parent's slot is filled with a default-prop instantiation of that component, for example <Slot name=\"header\"><LibraryCard/></Slot>."
+    },
+    {
+      "id": "ux.componentreference.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.componentreference uses ux.layoutconfig",
+      "description": "The slot-filling declaration applies a set of container arrangement rules, such as grid tracks, spacing or alignment, to position the content it places within the parent's slot.",
+      "evidence": "The component reference declares a layoutConfig id that matches the layout config, and the slot wrapper in the rendered output carries that config's CSS grid or flex properties."
+    }
+  ],
+  "notes": "implements→librarycomponent overlaps renders→librarycomponent. A reference only points at a definition and does not realize it, so implements looks semantically wrong. Self-referential renders allows indirection chains of unclear value. renders→actioncomponent may be redundant if action components are library components or instances. uses→layoutconfig would fit better as applies."
+}

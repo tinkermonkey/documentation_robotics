@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "data-store.database",
+  "previous_description": "A database instance representing a top-level data store deployment. Paradigm-neutral: covers relational databases, document stores, key-value stores, wide-column stores, vector databases, time-series databases, graph databases, search engines, and multi-model systems.",
+  "definition": "A named, independently addressable data store deployment, typically a database or catalog on a specific engine reached through its own connection endpoint or connection string, that contains namespaces and collections. It is the outermost persistence boundary an application connects to, regardless of paradigm.",
+  "distinguish_from": [
+    {
+      "type": "data-store.namespace",
+      "when": "the element is a logical grouping inside a connected deployment. Examples include a PostgreSQL schema, a Cassandra keyspace, a Redis key prefix, or a MongoDB 'database' selected on an already-open client connection."
+    },
+    {
+      "type": "data-store.collection",
+      "when": "the element is a single container of records, such as a table, a DynamoDB table, an Elasticsearch index, or a vector collection, rather than the deployment that hosts it."
+    },
+    {
+      "type": "data-store.view",
+      "when": "the element is a derived or virtual container defined by a query over existing collections, not a separately deployed store."
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-1 SQL-environment: catalog (a named collection of SQL-schemas managed by an SQL-server), generalised to non-relational engines",
+  "code_evidence": [
+    "A connection URL or DSN in configuration or environment variables naming an engine, host and database, e.g. DATABASE_URL=postgres://db:5432/orders, MONGO_URI or spring.datasource.url.",
+    "An infrastructure declaration provisioning a store, e.g. a docker-compose service using a postgres/mongo/redis image with POSTGRES_DB, or a Terraform aws_db_instance, aws_dynamodb_table group or google_sql_database resource.",
+    "An ORM or driver datasource block registering a named connection, e.g. a Prisma 'datasource db' with a provider, Django DATABASES['default'], or SQLAlchemy create_engine()/Mongoose connect() invoked at application startup."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Release version of the database engine in the vendor's own format (e.g. '15.4', '7.0', '8.0.35'); set it when it is pinned in an image tag, provider config or migration baseline."
+    },
+    {
+      "name": "charset",
+      "description": "Default character encoding for text stored in this database (e.g. 'UTF8', 'utf8mb4', 'LATIN1'); set it when it is declared at creation time, mainly for relational engines."
+    },
+    {
+      "name": "collation",
+      "description": "Default collation governing string comparison and sort order (e.g. 'en_US.UTF-8', 'utf8mb4_unicode_ci', 'C'); set it when it is explicitly configured at database creation."
+    }
+  ],
+  "notes": "The boundary between server instance and logical database is unclear: one PostgreSQL server can host many databases. Consider adding an endpoint or host attribute. The composes edges to field, index and validationrule bypass collection and duplicate containment. MongoDB's 'database' maps to namespace, which conflicts with its name. deploymentModel overlaps technology.node topology.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.203Z"
+}

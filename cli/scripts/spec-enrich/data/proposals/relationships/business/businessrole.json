@@ -1,0 +1,80 @@
+{
+  "source": "business.businessrole",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.064Z",
+  "relationships": [
+    {
+      "id": "business.businessrole.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businessrole accesses business.businessobject",
+      "description": "Whoever occupies the role creates, reads, updates or deletes the business object while carrying out the responsibilities the role defines, such as a Claims Adjuster updating a Claim.",
+      "evidence": "A RACI matrix, CRUD matrix or role-permission table in the operating procedures lists the role with create/read/update rights on that business object."
+    },
+    {
+      "id": "business.businessrole.accesses.business.contract",
+      "previous_description": "Defines relationship: business.businessrole accesses business.contract",
+      "description": "The role consults or maintains the contract's terms as part of its responsibilities, as when an Account Manager reviews SLA levels or an Approver signs off the pricing terms.",
+      "evidence": "Contract management procedures or a document-access policy name the role as reader, editor or signatory of that contract or contract type."
+    },
+    {
+      "id": "business.businessrole.assigned-to.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessrole assigned-to business.businessfunction",
+      "description": "The role is the responsibility position accountable for carrying out the ongoing competency grouped by the business function, such as the Accountant role being assigned to Accounting.",
+      "evidence": "A capability or function map, job description or organizational responsibility chart lists the role as owner or executor of the named business function."
+    },
+    {
+      "id": "business.businessrole.assigned-to.business.businessinteraction",
+      "previous_description": "Defines relationship: business.businessrole assigned-to business.businessinteraction",
+      "description": "The role is one of the participants that must jointly perform the collective business interaction, such as the Buyer role taking part in Negotiate Terms alongside the Seller role.",
+      "evidence": "A collaboration diagram, swimlane or meeting/procedure charter names the role as a required participant in that joint activity."
+    },
+    {
+      "id": "business.businessrole.assigned-to.business.businessinterface",
+      "previous_description": "Defines relationship: business.businessrole assigned-to business.businessinterface",
+      "description": "The role staffs or operates the business interface, so the channel such as a call centre or branch counter is the access point through which this role delivers its services.",
+      "evidence": "Channel operating procedures or staffing rosters state that the role mans or answers through that branch, portal, call centre or mailroom."
+    },
+    {
+      "id": "business.businessrole.assigned-to.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessrole assigned-to business.businessprocess",
+      "description": "The role is the responsibility position to which execution of the business process, or its activities, is allocated, such as the Claims Handler role being assigned to Handle Claim.",
+      "evidence": "A BPMN model shows the process or its tasks in the role's lane, or a process definition document names the role as process performer."
+    },
+    {
+      "id": "business.businessrole.composes.business.businessrole",
+      "previous_description": "Defines relationship: business.businessrole composes business.businessrole",
+      "description": "The composite role is built from the component sub-role, which exists only as part of it, such as a Claims Team Lead role that includes a Claims Approver sub-role.",
+      "evidence": "A role catalogue or job architecture document defines the sub-role exclusively as a constituent responsibility within the parent role."
+    },
+    {
+      "id": "business.businessrole.performs.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessrole performs business.businessfunction",
+      "description": "Whoever fills the role actually executes the ongoing work of the business function as part of their day-to-day responsibilities.",
+      "evidence": "Job descriptions or a functional responsibility matrix list the business function's activities among the duties carried out by the role."
+    },
+    {
+      "id": "business.businessrole.performs.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessrole performs business.businessprocess",
+      "description": "Whoever fills the role carries out the ordered activities of the business process from its trigger to its result.",
+      "evidence": "Process documentation or a workflow engine task-assignment configuration routes the process's tasks to the role or its candidate group."
+    },
+    {
+      "id": "business.businessrole.serves.business.businessactor",
+      "previous_description": "Defines relationship: business.businessrole serves business.businessactor",
+      "description": "The role delivers its responsibilities for the benefit of the business actor, such as a Customer Service Agent role serving a specific customer organization or department.",
+      "evidence": "A service catalogue, support agreement or organizational chart states that the role provides support or services to that named person, team or organization."
+    },
+    {
+      "id": "business.businessrole.serves.motivation.stakeholder",
+      "previous_description": "Defines relationship: business.businessrole serves motivation.stakeholder",
+      "description": "The role exists to address the interests or concerns of the stakeholder, such as a Compliance Officer role serving the Regulator stakeholder.",
+      "evidence": "A stakeholder map, role charter or stakeholder-engagement plan names the role as responsible for meeting that stakeholder's concerns."
+    },
+    {
+      "id": "business.businessrole.triggers.business.businessevent",
+      "previous_description": "Defines relationship: business.businessrole triggers business.businessevent",
+      "description": "An action taken by whoever fills the role causes the business event to occur, such as the Approver role triggering Contract Signed.",
+      "evidence": "A BPMN model or procedure document shows the role's decision or action producing the named event, or an audit log records the event attributed to that role."
+    }
+  ],
+  "notes": "assigned-to and performs from BusinessRole to BusinessFunction and BusinessProcess are redundant; ArchiMate expresses both via Assignment. BusinessRole assigned-to BusinessInterface inverts ArchiMate (interface is assigned to role, or role composes interface). BusinessRole serves Stakeholder mixes layers loosely; association is likelier. Role triggers BusinessEvent is non-standard in ArchiMate."
+}

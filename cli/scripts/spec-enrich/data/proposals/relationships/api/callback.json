@@ -1,0 +1,20 @@
+{
+  "source": "api.callback",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.050Z",
+  "relationships": [
+    {
+      "id": "api.callback.aggregates.api.pathitem",
+      "previous_description": "Defines relationship: api.callback aggregates api.pathitem",
+      "description": "The callback groups one or more path items, each keyed by a runtime expression, that describe the request the API sends to the consumer-supplied URL and the responses it expects back; a path item can also be defined once under components and reused by several callbacks.",
+      "evidence": "In the OpenAPI document, the operation's 'callbacks' map contains an entry whose runtime-expression key (e.g. '{$request.body#/callbackUrl}') maps to an inline PathItem or a $ref to '#/components/pathItems/...'."
+    },
+    {
+      "id": "api.callback.uses.api.server",
+      "previous_description": "Defines relationship: api.callback uses api.server",
+      "description": "The outbound callback request is addressed against a declared base URL, so that the server entry supplies or overrides the network location to which the callback's path is resolved, rather than the URL coming only from the runtime expression.",
+      "evidence": "A 'servers' array is declared on the callback's PathItem or on its operations, and the callback's runtime expression or path is resolved relative to that server URL in the API description or in the webhook-dispatch configuration."
+    }
+  ],
+  "notes": "callback uses server is questionable: a callback's target URL normally comes from the runtime expression, not a declared server. Any servers override lives on the callback's PathItem or operation, so this link duplicates a pathitem-to-server relationship and is better derived transitively through aggregates pathitem."
+}

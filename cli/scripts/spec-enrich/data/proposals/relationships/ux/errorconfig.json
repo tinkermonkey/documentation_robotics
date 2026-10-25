@@ -1,0 +1,50 @@
+{
+  "source": "ux.errorconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.051Z",
+  "relationships": [
+    {
+      "id": "ux.errorconfig.associated-with.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.errorconfig associated-with ux.dataconfig",
+      "description": "The error configuration defines how failures of a particular data binding (a failed API fetch, an unavailable store or storage read) are shown to the user, pairing a binding with its failure presentation.",
+      "evidence": "The data binding declaration in the view or component spec carries an error block or errorConfig key, or the hook or query wrapper for that data source passes a specific error message or notification setting to the UI."
+    },
+    {
+      "id": "ux.errorconfig.governs.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.errorconfig governs ux.actioncomponent",
+      "description": "The error configuration decides how a failure from the operation started by a button, link or command is surfaced, including whether a toast appears, at what severity and with what message.",
+      "evidence": "The control's onClick or submit handler has a catch branch that calls the notification or toast utility with the message and severity declared in the error config, or the action component's spec references that error config by id."
+    },
+    {
+      "id": "ux.errorconfig.governs.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.errorconfig governs ux.componentinstance",
+      "description": "The error configuration sets how failures are displayed for one placed usage of a library component, overriding or supplying the error message and notification behaviour for that occurrence only.",
+      "evidence": "The component instance in the view's markup receives error-related props (such as errorMessage, fallbackMessage or showErrorToast) whose values match the error config, or the instance spec links to the error config."
+    },
+    {
+      "id": "ux.errorconfig.governs.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.errorconfig governs ux.experiencestate",
+      "description": "The error configuration determines what the user sees while the experience's state machine is in a failure state, supplying the notification, severity and message shown on entry to that state.",
+      "evidence": "The state machine definition (for example an XState config) has an error state whose entry action raises a notification using the configured message and severity, or the state spec names the error config."
+    },
+    {
+      "id": "ux.errorconfig.governs.ux.view",
+      "previous_description": "Defines relationship: ux.errorconfig governs ux.view",
+      "description": "The error configuration is the page- or screen-level policy for how failures within that surface are presented, providing default and fallback messages when nothing more specific applies.",
+      "evidence": "The view or route definition declares an error boundary, errorElement or error config entry that renders the configured message and notification, or the view spec references the error config by id."
+    },
+    {
+      "id": "ux.errorconfig.maps-to.api.response",
+      "previous_description": "Defines relationship: ux.errorconfig maps-to api.response",
+      "description": "The error configuration translates a specific HTTP error outcome of an API operation (such as 404, 409 or default) into the user-facing notification and message shown for it.",
+      "evidence": "A status-code-to-message map or interceptor in client code keys the configured message on the status code declared in the OpenAPI responses object for that operation."
+    },
+    {
+      "id": "ux.errorconfig.references.data-model.objectschema",
+      "previous_description": "Defines relationship: ux.errorconfig references data-model.objectschema",
+      "description": "The error configuration points to the structured error payload schema (such as a problem-details or error DTO) whose fields supply specific message text or codes for display.",
+      "evidence": "The error config's message template or field path names properties of the error object schema, or the client's error-handling type imports the generated interface for that schema."
+    }
+  ],
+  "notes": "The four governs relationships (actioncomponent, componentinstance, experiencestate, view) express a single attachment idea: error config applies to a UX element. 'applies' would fit the ux predicate family better than the motivation-layer 'governs'. maps-to is classed as schema/table mapping, so 'associated-with' or 'references' may suit the response link better."
+}

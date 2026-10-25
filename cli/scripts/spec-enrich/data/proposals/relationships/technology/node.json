@@ -1,0 +1,68 @@
+{
+  "source": "technology.node",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.086Z",
+  "relationships": [
+    {
+      "id": "technology.node.assigned-to.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.node assigned-to technology.technologyfunction",
+      "description": "The node is the compute host that carries out the ongoing infrastructure behavior, such as running health checks or rotating logs, on its own resources.",
+      "evidence": "A daemon, sidecar, cron job or agent configuration deployed to that specific host or cluster (e.g. a logrotate config, a DaemonSet or a load-balancer process) implements the function there."
+    },
+    {
+      "id": "technology.node.composes.technology.artifact",
+      "previous_description": "Defines relationship: technology.node composes technology.artifact",
+      "description": "The artifact, such as an image layer, script or config file, is an integral part of the node's definition and exists only as part of provisioning that host.",
+      "evidence": "The node's own image definition, cloud-init, AMI build or Terraform module embeds the file (e.g. user_data, a baked-in config) rather than deploying it separately."
+    },
+    {
+      "id": "technology.node.composes.technology.device",
+      "previous_description": "Defines relationship: technology.node composes technology.device",
+      "description": "The physical hardware unit is a constituent part of the node and is dedicated to forming that host or cluster.",
+      "evidence": "A hardware inventory, CMDB record or bare-metal provisioning config (e.g. MAAS, Ironic) lists the server chassis or storage array as a member of that node or cluster."
+    },
+    {
+      "id": "technology.node.composes.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.node composes technology.systemsoftware",
+      "description": "The operating system, runtime or engine is installed as an inseparable part of the node's build and is provisioned and retired together with that host.",
+      "evidence": "The node's base image, Dockerfile FROM line, Ansible role or Terraform/Packer template installs the specific OS, runtime or engine version on that host."
+    },
+    {
+      "id": "technology.node.composes.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.node composes technology.technologyinterface",
+      "description": "The listening port, socket or endpoint URL belongs to the node and ceases to exist when the node is torn down.",
+      "evidence": "The node's security group, Kubernetes Service/Ingress, container port mapping or firewall rule declares the port or endpoint exposed on that host."
+    },
+    {
+      "id": "technology.node.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.node realizes technology.technologyservice",
+      "description": "The node is the hosting resource whose compute, storage or networking capacity concretely delivers the infrastructure capability that consumers rely on.",
+      "evidence": "Infrastructure-as-code or a service catalog entry maps the capability (e.g. the managed cache or compute pool) to that specific VM, cluster or host as its backing resource."
+    },
+    {
+      "id": "technology.node.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: technology.node satisfies motivation.constraint",
+      "description": "The node's placement, platform or sizing complies with a stated restriction, such as a mandated cloud region, approved vendor or budget ceiling.",
+      "evidence": "The node's Terraform region, instance type or provider settings match the restriction recorded in an ADR or policy, and a compliance check or decision record cites that node."
+    },
+    {
+      "id": "technology.node.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: technology.node satisfies security.securitypolicy",
+      "description": "The node is configured so that the access-control decisions defined by the security policy hold for access to that host or the resources on it.",
+      "evidence": "The host's IAM role bindings, network policies, OPA/Gatekeeper constraints or hardening baseline implement the policy, and an audit or compliance scan reports the node as conformant."
+    },
+    {
+      "id": "technology.node.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: technology.node serves application.applicationcomponent",
+      "description": "The node provides the runtime environment, compute and network on which the application component is deployed and executes.",
+      "evidence": "A Kubernetes Deployment, Helm values, docker-compose service or deployment pipeline targets the component's build to that cluster, VM or host."
+    },
+    {
+      "id": "technology.node.serves.business.businessprocess",
+      "previous_description": "Defines relationship: technology.node serves business.businessprocess",
+      "description": "The node directly supports a business process by hosting the capability that process participants rely on to carry out its activities, such as a point-of-sale terminal host or a warehouse scanning server.",
+      "evidence": "Process documentation, a business continuity plan or a CMDB service mapping names the host as critical infrastructure for the specific business process."
+    }
+  ],
+  "notes": "Node serves BusinessProcess skips the application layer and is usually better expressed via ApplicationComponent or TechnologyService. Node composes Artifact overlaps with deployment (artifacts are typically assigned/deployed, not composed). Satisfies SecurityPolicy is questionable since an XACML policy is enforced by PEPs; 'enforces' or 'governed-by' may fit better."
+}

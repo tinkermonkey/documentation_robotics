@@ -1,0 +1,56 @@
+{
+  "source": "data-store.view",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.064Z",
+  "relationships": [
+    {
+      "id": "data-store.view.aggregates.data-store.collection",
+      "previous_description": "Defines relationship: data-store.view aggregates data-store.collection",
+      "description": "The view gathers one or more independently persisted base collections into a single readable result set, and those collections continue to exist and accept writes whether or not the view is defined.",
+      "evidence": "The view's DDL or pipeline definition (e.g. CREATE VIEW ... FROM orders JOIN customers, or a MongoDB $lookup/$unionWith) names the collections it combines."
+    },
+    {
+      "id": "data-store.view.aggregates.data-store.field",
+      "previous_description": "Defines relationship: data-store.view aggregates data-store.field",
+      "description": "The view exposes a projection of stored fields drawn from its source collections as its own output columns, while those fields remain owned by and persisted in the underlying collections.",
+      "evidence": "The view's SELECT list, $project stage or alias definition explicitly lists the source columns or document paths it surfaces."
+    },
+    {
+      "id": "data-store.view.composes.data-store.index",
+      "previous_description": "Defines relationship: data-store.view composes data-store.index",
+      "description": "The index is a lookup structure built over the view's precomputed contents (typically a materialized or indexed view) and is dropped when the view is dropped.",
+      "evidence": "A CREATE INDEX statement targets the materialized view by name, or the engine catalog (e.g. pg_indexes, sys.indexes) lists the index with the view as its parent object."
+    },
+    {
+      "id": "data-store.view.derives-from.data-store.collection",
+      "previous_description": "Defines relationship: data-store.view derives-from data-store.collection",
+      "description": "The view's contents are computed by its stored query or pipeline from the records held in the base collection, so changes to that collection change what the view returns.",
+      "evidence": "The view definition in the schema migration or engine catalog references the base table or collection in its FROM clause, pipeline source or alias target."
+    },
+    {
+      "id": "data-store.view.derives-from.data-store.view",
+      "previous_description": "Defines relationship: data-store.view derives-from data-store.view",
+      "description": "The view is layered on another view, computing its contents from that upstream view's derived result rather than directly from base collections.",
+      "evidence": "The view's definition query selects from another view by name, and the engine's dependency catalog (e.g. pg_depend, information_schema.view_table_usage) records the view-on-view dependency."
+    },
+    {
+      "id": "data-store.view.realizes.api.response",
+      "previous_description": "Defines relationship: data-store.view realizes api.response",
+      "description": "The view supplies the exact data shape that an API operation returns, so the response body schema is a direct serialization of the view's rows or documents.",
+      "evidence": "The handler for the operation reads from the view and returns its rows, and the OpenAPI response schema properties match the view's projected columns one-to-one."
+    },
+    {
+      "id": "data-store.view.serves.application.applicationservice",
+      "previous_description": "Defines relationship: data-store.view serves application.applicationservice",
+      "description": "The view provides a ready-made read model that the application service queries to fulfil its operations, such as reporting, search or dashboard lookups.",
+      "evidence": "The application service's repository or data-access code issues queries against the view name, or the ORM maps a read-only entity to the view."
+    },
+    {
+      "id": "data-store.view.serves.business.businessservice",
+      "previous_description": "Defines relationship: data-store.view serves business.businessservice",
+      "description": "The view furnishes the curated, derived data that a business service relies on to deliver its outcome, such as a consolidated customer or reporting dataset used by analysts.",
+      "evidence": "Business service documentation or a data catalog entry identifies the view as the authoritative dataset for that service, and BI reports or extracts supporting the service query it."
+    }
+  ],
+  "notes": "aggregates→collection largely duplicates derives-from→collection; derives-from is the accurate semantics. aggregates→field is odd since fields belong to persisted collections, not views. realizes→api.response and serves→businessservice skip intermediate application/API layers and are weak; serves→applicationservice is the more defensible link."
+}

@@ -1,0 +1,152 @@
+{
+  "source": "technology.technologyservice",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.081Z",
+  "relationships": [
+    {
+      "id": "technology.technologyservice.accesses.security.secureresource",
+      "previous_description": "Defines relationship: technology.technologyservice accesses security.secureresource",
+      "description": "The infrastructure capability reads from or writes to the protected resource, so its own service identity is a subject in that resource's authorization decisions.",
+      "evidence": "An IAM policy, database grant or access-control entry names the service's identity or role as permitted to perform operations on the protected API, bucket, table or stream."
+    },
+    {
+      "id": "technology.technologyservice.aggregates.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.technologyservice aggregates technology.technologyfunction",
+      "description": "The infrastructure capability groups ongoing automated behaviors, such as replication or health checking, that are part of what it offers but can be modeled and reused independently.",
+      "evidence": "The service's architecture documentation or platform configuration lists the function (e.g. a replication or health-check setting) as a component feature of that service offering."
+    },
+    {
+      "id": "technology.technologyservice.aggregates.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyservice aggregates technology.technologyprocess",
+      "description": "The infrastructure capability bundles automated step-by-step workflows, such as scheduled backups or certificate renewal, that are delivered as part of the service but exist as separately defined processes.",
+      "evidence": "The service's runbook, operator manifest or managed-service settings declare the pipeline, cron job or rollout workflow as part of that service's operation."
+    },
+    {
+      "id": "technology.technologyservice.associated-with.technology.technologycollaboration",
+      "previous_description": "Defines relationship: technology.technologyservice associated-with technology.technologycollaboration",
+      "description": "The infrastructure capability is related to a peer ensemble of nodes or system software, typically because the cluster jointly delivers or participates in the service.",
+      "evidence": "Cluster configuration such as a replica set, consensus membership list or mesh definition is documented or tagged as backing or belonging to the named service."
+    },
+    {
+      "id": "technology.technologyservice.consumes.technology.artifact",
+      "previous_description": "Defines relationship: technology.technologyservice consumes technology.artifact",
+      "description": "The infrastructure capability takes in a file, image, package or configuration document as input it needs to operate, such as a container image to run or a config file to load.",
+      "evidence": "The service's deployment or runtime configuration references the artifact by path, registry tag or hash as an input it pulls or reads."
+    },
+    {
+      "id": "technology.technologyservice.depends-on.technology.communicationnetwork",
+      "previous_description": "Defines relationship: technology.technologyservice depends-on technology.communicationnetwork",
+      "description": "The infrastructure capability can only be offered while the network carrying traffic to and from it is available, making that network a prerequisite for the service.",
+      "evidence": "Terraform or cloud configuration places the service's endpoints in the VPC, subnet or VPN, and connectivity to it is documented as required for the service to function."
+    },
+    {
+      "id": "technology.technologyservice.depends-on.technology.node",
+      "previous_description": "Defines relationship: technology.technologyservice depends-on technology.node",
+      "description": "The infrastructure capability requires the host, VM, container or cluster on which it executes, so losing that node degrades or stops the service.",
+      "evidence": "Deployment manifests or Terraform modules schedule the service's workloads onto the specific node or cluster, and availability documentation lists the node as a dependency."
+    },
+    {
+      "id": "technology.technologyservice.flows-to.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyservice flows-to technology.technologyservice",
+      "description": "Data or control produced by one infrastructure capability is passed on to another, such as a log collection service forwarding records to a storage or monitoring service.",
+      "evidence": "Pipeline or integration configuration (e.g. a log shipper sink, message bridge or export rule) routes output from the first service into the second."
+    },
+    {
+      "id": "technology.technologyservice.provides.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.technologyservice provides technology.technologyinterface",
+      "description": "The infrastructure capability is made available to consumers through the concrete endpoint, port or listener that it offers.",
+      "evidence": "Service configuration or a Kubernetes Service/listener definition declares the port, URL or socket as the access point for that service."
+    },
+    {
+      "id": "technology.technologyservice.realizes.business.businessservice",
+      "previous_description": "Defines relationship: technology.technologyservice realizes business.businessservice",
+      "description": "The infrastructure capability is the technical means by which the business-level service is actually delivered to its customers, as when a messaging service constitutes a notification business service.",
+      "evidence": "A service catalog or architecture document maps the business service offering directly to the technology service that delivers it, with no intervening application service."
+    },
+    {
+      "id": "technology.technologyservice.realizes.product.capability",
+      "previous_description": "Defines relationship: technology.technologyservice realizes product.capability",
+      "description": "The infrastructure capability provides the concrete implementation of a product ability, such as a search engine service realizing the 'Full-text search' capability.",
+      "evidence": "Product capability maps or ADRs name the technology service as the implementation behind the capability, and the product feature calls into that service."
+    },
+    {
+      "id": "technology.technologyservice.realizes.motivation.goal",
+      "previous_description": "Defines relationship: technology.technologyservice realizes motivation.goal",
+      "description": "The infrastructure capability brings about a stakeholder end state, such as a highly available storage service achieving the goal of reliable data retention.",
+      "evidence": "Architecture decision records or goal traceability matrices cite the technology service as the delivered means of achieving the stated goal."
+    },
+    {
+      "id": "technology.technologyservice.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: technology.technologyservice satisfies motivation.requirement",
+      "description": "The infrastructure capability meets a specific verifiable need, such as an encryption-at-rest or 99.9% availability requirement placed on the platform.",
+      "evidence": "Service configuration (e.g. encryption, replication or SLA settings) matches the requirement's acceptance criteria, and a traceability matrix links the requirement to the service."
+    },
+    {
+      "id": "technology.technologyservice.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: technology.technologyservice satisfies security.securitypolicy",
+      "description": "The infrastructure capability is configured so that its behavior conforms to the access-control decisions defined by the security policy's rules.",
+      "evidence": "Compliance scans or policy-as-code checks (e.g. OPA, AWS Config rules) evaluate the service's configuration against the policy and report it compliant."
+    },
+    {
+      "id": "technology.technologyservice.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: technology.technologyservice serves application.applicationcomponent",
+      "description": "The infrastructure capability supplies compute, storage, messaging or similar support that the application component relies on to run and do its work.",
+      "evidence": "The component's configuration or code holds connection strings, SDK clients or bindings to the service, such as a database URL or queue name."
+    },
+    {
+      "id": "technology.technologyservice.serves.application.applicationservice",
+      "previous_description": "Defines relationship: technology.technologyservice serves application.applicationservice",
+      "description": "The infrastructure capability supports the application service's operations, for example a cache service backing a product lookup service's responses.",
+      "evidence": "The application service's implementation calls the technology service via its client library or endpoint, as shown in code or dependency documentation."
+    },
+    {
+      "id": "technology.technologyservice.serves.business.businessfunction",
+      "previous_description": "Defines relationship: technology.technologyservice serves business.businessfunction",
+      "description": "The infrastructure capability directly supports an ongoing business competency, such as a document storage service used by the accounting function.",
+      "evidence": "Business capability or operating model documentation lists the technology service as a tool directly used by the business function's staff."
+    },
+    {
+      "id": "technology.technologyservice.serves.business.businessprocess",
+      "previous_description": "Defines relationship: technology.technologyservice serves business.businessprocess",
+      "description": "The infrastructure capability directly supports steps of a business process, such as a file transfer service used in a nightly settlement process.",
+      "evidence": "Process models or SOPs name the technology service as used in specific process activities, without an intermediate application."
+    },
+    {
+      "id": "technology.technologyservice.serves.business.businessservice",
+      "previous_description": "Defines relationship: technology.technologyservice serves business.businessservice",
+      "description": "The infrastructure capability supports the delivery of a business service offered to customers, such as an email delivery service underpinning order confirmation.",
+      "evidence": "A service dependency map or business impact analysis lists the technology service as supporting the business service's delivery."
+    },
+    {
+      "id": "technology.technologyservice.serves.motivation.stakeholder",
+      "previous_description": "Defines relationship: technology.technologyservice serves motivation.stakeholder",
+      "description": "The infrastructure capability is offered for the benefit of a stakeholder group whose concerns it addresses, such as a monitoring service serving the operations team.",
+      "evidence": "The service's catalog entry, SLA or charter names the stakeholder group as its intended audience or customer."
+    },
+    {
+      "id": "technology.technologyservice.serves.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.technologyservice serves technology.technologyinterface",
+      "description": "The infrastructure capability supports another access point, for instance a DNS or TLS termination service that a listener endpoint relies on to be reachable.",
+      "evidence": "The endpoint's configuration references the service, such as a listener using a certificate service or resolving through a DNS service."
+    },
+    {
+      "id": "technology.technologyservice.serves.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyservice serves technology.technologyservice",
+      "description": "One infrastructure capability supports another, as when an identity service authenticates calls for a storage service or a DNS service supports a load-balancing service.",
+      "evidence": "The dependent service's configuration names the supporting service, such as an auth provider setting, DNS resolver or KMS key reference."
+    },
+    {
+      "id": "technology.technologyservice.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.technologyservice triggers technology.technologyevent",
+      "description": "The infrastructure capability's operation causes a discrete infrastructure state change, such as a backup service emitting a 'backup completed' event or a monitoring service firing an alert.",
+      "evidence": "Service configuration defines event emission, notifications or alert rules, and event logs show events sourced from that service."
+    },
+    {
+      "id": "technology.technologyservice.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.technologyservice uses technology.systemsoftware",
+      "description": "The infrastructure capability relies on a database engine, broker, runtime or other platform product to carry out what it offers.",
+      "evidence": "Deployment manifests or provisioning scripts install or run the specific system software version (e.g. a PostgreSQL image or Kafka broker) to deliver the service."
+    }
+  ],
+  "notes": "realizes and serves to business.businessservice overlap; realizing a business service directly is unusual. provides/serves technologyinterface are inverted (interfaces normally serve or are assigned to services). aggregates function/process inverts ArchiMate, where functions/processes realize services. consumes artifact (passive) suits accesses. realizes goal and serves stakeholder are weak; prefer requirement/outcome."
+}

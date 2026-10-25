@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.threat",
+  "previous_description": "Represents an identified security threat with assessed likelihood and impact, targeting specific resources or controls. Linked to Countermeasures that reduce exposure. Supports NIST SP 800-53 RA-3 risk assessment and enables residual risk tracking.",
+  "definition": "A threat-model entry naming a potential adverse event or attack technique (e.g., credential stuffing, SQL injection, privilege escalation) against an identified asset, rated by likelihood and impact. It records what could go wrong and how badly. It does not record the control that prevents it or the principal who carries it out.",
+  "distinguish_from": [
+    {
+      "type": "security.countermeasure",
+      "when": "the item is the control, check or mitigation technique that reduces a threat's likelihood or impact, such as input sanitisation, CSRF tokens or a WAF rule, rather than the attack itself."
+    },
+    {
+      "type": "security.actor",
+      "when": "the item is the principal or adversary (human, service, external entity) whose identity and trust level are modelled, rather than the adverse event that principal might cause."
+    },
+    {
+      "type": "security.policyrule",
+      "when": "the item is an evaluable condition-plus-effect rule that permits or denies requests, even if it was written in response to a threat."
+    },
+    {
+      "type": "security.validationrule",
+      "when": "the item is a concrete pattern, range or length constraint on a field that blocks malicious input, rather than the injection or tampering risk it guards against."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 RA-3 Risk Assessment (threat events per NIST SP 800-30 Rev.1 Appendix E)",
+  "code_evidence": [
+    "A threat-model artefact checked into the repository that lists threat entries with likelihood/impact or risk ratings, such as an OWASP Threat Dragon JSON file, a Microsoft Threat Modeling Tool .tm7 file, or a threat-model.md with a STRIDE table.",
+    "Code comments, ADRs or security docs that cite CWE, CAPEC or OWASP Top 10 identifiers (e.g., '// guards against CWE-89 SQL injection') adjacent to the code they protect.",
+    "Security test cases or abuse-case specs named after attack scenarios (e.g., test_rejects_sql_injection, it('blocks replayed JWT')) that assert a specific attack fails."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text narrative of the threat scenario: attack vector, preconditions and the adverse outcome, optionally citing CWE/CAPEC/STRIDE identifiers; set whenever the name alone does not make the attack clear."
+    },
+    {
+      "name": "threatens",
+      "description": "Identifier or name of the primary asset the threat endangers, such as a SecureResource, InformationEntity, business service or process; set to the most critical target when several apply."
+    }
+  ],
+  "notes": "Likelihood/impact use low|moderate|high while criticality uses low|medium|high|critical; align the vocabularies or derive criticality. 'threatens' duplicates the 'targets' relationships. 'source' (code reference) collides with NIST 800-30 'threat source' (the adversary), which is missing, as is a threat category (e.g., STRIDE). The accesses, constrains and realizes-driver relationships look semantically dubious.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

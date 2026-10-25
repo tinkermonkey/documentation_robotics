@@ -1,0 +1,200 @@
+{
+  "source": "navigation.route",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.049Z",
+  "relationships": [
+    {
+      "id": "navigation.route.accesses.application.applicationinterface",
+      "previous_description": "Defines relationship: navigation.route accesses application.applicationinterface",
+      "description": "When the browser location matches this client-side route, its loader, guard or rendered view reaches a backend component through that application interface, such as a GraphQL endpoint or mounted controller, to read or change data.",
+      "evidence": "The route's loader, resolver or beforeEnter guard sends a request to the interface's endpoint URL or client binding, for example an Apollo client pointed at the /graphql endpoint."
+    },
+    {
+      "id": "navigation.route.accesses.data-store.collection",
+      "previous_description": "Defines relationship: navigation.route accesses data-store.collection",
+      "description": "Activating the route reads or writes records directly in a client-reachable persistent container, such as a Firestore collection or IndexedDB object store, to populate or save the routed screen.",
+      "evidence": "The route's loader or guard runs a client SDK call naming the collection, for example collection(db, 'orders') or an IndexedDB transaction on the 'orders' store."
+    },
+    {
+      "id": "navigation.route.accesses.data-model.objectschema",
+      "previous_description": "Defines relationship: navigation.route accesses data-model.objectschema",
+      "description": "The route reads or produces instances of the structured domain record: its loader data, route parameters or forwarded state are shaped by that object schema.",
+      "evidence": "The route's loader return type, typed params or navigation state is declared as the entity interface or DTO generated from the object schema."
+    },
+    {
+      "id": "navigation.route.accesses.api.operation",
+      "previous_description": "Defines relationship: navigation.route accesses api.operation",
+      "description": "Matching the route causes a call to one specific HTTP method-and-path operation, typically to fetch the data its view displays or to submit an action tied to the URL.",
+      "evidence": "The route's loader, resolver or data hook invokes fetch, or a generated client method, for that exact method and path, such as GET /orders/{orderId}."
+    },
+    {
+      "id": "navigation.route.accesses.security.secureresource",
+      "previous_description": "Defines relationship: navigation.route accesses security.secureresource",
+      "description": "The route opens a protected UI area or data object that is named in the access control model, so whether the user can enter the route depends on authorization decisions about that resource.",
+      "evidence": "The access control policy or guard code identifies the resource, for example 'admin-console', as the target checked when this route path is activated."
+    },
+    {
+      "id": "navigation.route.aggregates.navigation.route",
+      "previous_description": "Defines relationship: navigation.route aggregates navigation.route",
+      "description": "The parent route groups the child route as a nested entry under its path segment and outlet, while the child remains a standalone route definition that could be moved elsewhere in the route table.",
+      "evidence": "The parent route object's children array, or nested <Route> elements, includes the child route definition, often imported from a separate feature routes file."
+    },
+    {
+      "id": "navigation.route.associated-with.navigation.routemeta",
+      "previous_description": "Defines relationship: navigation.route associated-with navigation.routemeta",
+      "description": "The route is loosely linked to a metadata record that describes how it is rendered and which access hints apply, without ownership being implied.",
+      "evidence": "A shared meta object or meta registry entry is keyed by the route's name or path and referenced from that route's definition."
+    },
+    {
+      "id": "navigation.route.composes.navigation.routemeta",
+      "previous_description": "Defines relationship: navigation.route composes navigation.routemeta",
+      "description": "The route owns its metadata record as an inseparable part of its definition, and that layout, caching, breadcrumb and access-hint data has no meaning apart from the route.",
+      "evidence": "The route object declares an inline meta property, such as meta: { requiresAuth: true, breadcrumb: 'Orders' }, or Angular route data, within the route table entry."
+    },
+    {
+      "id": "navigation.route.depends-on.data-store.accesspattern",
+      "previous_description": "Defines relationship: navigation.route depends-on data-store.accesspattern",
+      "description": "The route can only load its view if a specific read or write request shape against a collection is available, such as a key-and-sort query keyed on the route parameter.",
+      "evidence": "The route's loader issues the named query, for example a DynamoDB Query with PK = USER#{userId}, built from the route's path parameters."
+    },
+    {
+      "id": "navigation.route.depends-on.application.applicationcomponent",
+      "previous_description": "Defines relationship: navigation.route depends-on application.applicationcomponent",
+      "description": "The route cannot match, guard or resolve correctly unless an application component, such as an auth service, store module or feature package, is present and working.",
+      "evidence": "The route's guard or resolver class injects the component or imports it, and route activation fails in tests when the component is absent."
+    },
+    {
+      "id": "navigation.route.depends-on.technology.technologyservice",
+      "previous_description": "Defines relationship: navigation.route depends-on technology.technologyservice",
+      "description": "The route relies on an infrastructure capability, such as static hosting with deep-link support or an identity provider, to be reachable and to work.",
+      "evidence": "The route's guard calls an identity provider SDK, or the hosting configuration declares the service that serves the route's path."
+    },
+    {
+      "id": "navigation.route.flows-to.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.route flows-to navigation.navigationtransition",
+      "description": "The route is the source end of the permitted route change, so navigation control leaves this route through that transition.",
+      "evidence": "The navigation map or transition definition lists this route as the 'from' route of the transition."
+    },
+    {
+      "id": "navigation.route.lazy-loads.application.applicationcomponent",
+      "previous_description": "Defines relationship: navigation.route lazy-loads application.applicationcomponent",
+      "description": "The route defers fetching and instantiating the feature module or component until the browser location first matches it, keeping that code out of the initial bundle.",
+      "evidence": "The route entry uses a dynamic import, such as loadChildren: () => import('./admin/admin.module') or component: () => import('./Admin.vue'), and the bundler emits a separate chunk."
+    },
+    {
+      "id": "navigation.route.maps-to.business.businessfunction",
+      "previous_description": "Defines relationship: navigation.route maps-to business.businessfunction",
+      "description": "The route's screen area corresponds to a business competency, for example /claims/* to Claims Handling, so the URL structure mirrors the organization's functional breakdown.",
+      "evidence": "The route's path prefix, feature folder or architecture documentation explicitly links the route to the named business function."
+    },
+    {
+      "id": "navigation.route.maps-to.api.pathitem",
+      "previous_description": "Defines relationship: navigation.route maps-to api.pathitem",
+      "description": "The client URL pattern corresponds to a backend API path template, so a route parameter like :userId lines up with the {userId} segment of the API path that supplies the route's data.",
+      "evidence": "The route path and the OpenAPI path template share a structure, and the route's loader passes its params directly into calls on that path."
+    },
+    {
+      "id": "navigation.route.maps-to.ux.view",
+      "previous_description": "Defines relationship: navigation.route maps-to ux.view",
+      "description": "The route identifies the top-level page, screen or dialog that the router displays when the URL matches.",
+      "evidence": "The route entry names the view as its component or element, for example { path: '/orders/:id', component: OrderDetailPage }."
+    },
+    {
+      "id": "navigation.route.navigates-to.navigation.route",
+      "previous_description": "Defines relationship: navigation.route navigates-to navigation.route",
+      "description": "The route sends the user on to another route, either by redirecting on match or because its view offers links or programmatic moves to the target route.",
+      "evidence": "The route declares redirect: '/login', or its view contains a router-link or router.push targeting the other route's name or path."
+    },
+    {
+      "id": "navigation.route.realizes.business.businessprocess",
+      "previous_description": "Defines relationship: navigation.route realizes business.businessprocess",
+      "description": "The route, typically one of a sequenced set such as /checkout/*, provides the user-facing implementation through which actors carry out the steps of the business process.",
+      "evidence": "The process model or feature documentation maps the process steps to these route paths, and the routed views implement those steps in order."
+    },
+    {
+      "id": "navigation.route.realizes.motivation.outcome",
+      "previous_description": "Defines relationship: navigation.route realizes motivation.outcome",
+      "description": "Delivering the route, for example a self-service page, is claimed to bring about a measurable intended end result such as fewer support calls.",
+      "evidence": "Product or OKR documentation links the route's release to the outcome, and analytics on the route's path report against the outcome's target metric."
+    },
+    {
+      "id": "navigation.route.references.data-model.schemadefinition",
+      "previous_description": "Defines relationship: navigation.route references data-model.schemadefinition",
+      "description": "The route names a reusable schema type, for example to type its parameters, query string or navigation state, without depending on it to function.",
+      "evidence": "The route's param validator or type annotation refers to the definition by name, such as $ref: '#/definitions/OrderId' or an import of the generated OrderId type."
+    },
+    {
+      "id": "navigation.route.requires.security.permission",
+      "previous_description": "Defines relationship: navigation.route requires security.permission",
+      "description": "Only principals holding the named action-on-resource grant may activate the route; the router's guard enforces this before rendering.",
+      "evidence": "The route's meta or data declares the permission, for example permissions: ['orders:read'], and a guard checks it against the user's granted permissions."
+    },
+    {
+      "id": "navigation.route.requires.api.securityscheme",
+      "previous_description": "Defines relationship: navigation.route requires api.securityscheme",
+      "description": "Before activating, the route needs the user to hold credentials of the declared mechanism, such as an OAuth 2.0 bearer token or an OIDC session, so that its data calls are authenticated.",
+      "evidence": "The route's guard checks for, or triggers acquisition of, the token defined by that scheme, for example an MSAL or OIDC login redirect when no access token is present."
+    },
+    {
+      "id": "navigation.route.resolves-with.application.applicationservice",
+      "previous_description": "Defines relationship: navigation.route resolves-with application.applicationservice",
+      "description": "The router completes navigation to this route only after the application service has supplied the data or decision needed to resolve it.",
+      "evidence": "The route declares a resolver or loader, for example resolve: { order: OrderResolver }, that calls the service's operation before the view is activated."
+    },
+    {
+      "id": "navigation.route.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: navigation.route satisfies motivation.requirement",
+      "description": "The route's existence and behaviour, such as a bookmarkable deep link or a protected admin entry, meet a verifiable requirement statement.",
+      "evidence": "A requirements trace matrix or acceptance test cites the requirement ID and exercises the route path to confirm the acceptance criteria."
+    },
+    {
+      "id": "navigation.route.serves.business.businessrole",
+      "previous_description": "Defines relationship: navigation.route serves business.businessrole",
+      "description": "The route provides a screen built for the people occupying a business role, such as an approver's queue, giving them an entry point for their responsibilities.",
+      "evidence": "The route's meta roles list, for example roles: ['approver'], or role-based menu configuration exposes the route to that role."
+    },
+    {
+      "id": "navigation.route.triggers.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.route triggers navigation.navigationtransition",
+      "description": "Matching or interacting with the route initiates the route change, for example through an on-enter redirect, a timeout or a programmatic push.",
+      "evidence": "The route's redirect property, beforeEnter guard calling next('/target') or a timer in its view starts the transition to the destination route."
+    },
+    {
+      "id": "navigation.route.uses.application.applicationservice",
+      "previous_description": "Defines relationship: navigation.route uses application.applicationservice",
+      "description": "The route's guards, loaders or lifecycle hooks call operations of the application service, for example checking login state or recording a page visit.",
+      "evidence": "The route's canActivate guard or loader contains a call such as authService.isLoggedIn() or analyticsService.track()."
+    },
+    {
+      "id": "navigation.route.uses.ux.errorconfig",
+      "previous_description": "Defines relationship: navigation.route uses ux.errorconfig",
+      "description": "When the route fails to load, guard or resolve, it shows the failure to the user according to the error display configuration: notification, severity and fallback message.",
+      "evidence": "The route entry declares an errorElement, an errorComponent or meta.errorConfig that references the configured messages and severity."
+    },
+    {
+      "id": "navigation.route.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: navigation.route uses ux.layoutconfig",
+      "description": "The route places its rendered view inside a container arrangement, such as a two-column grid or a full-width shell, chosen for that route.",
+      "evidence": "The route's meta.layout or wrapping layout route points to the layout config, for example meta: { layout: 'TwoColumnGrid' }."
+    },
+    {
+      "id": "navigation.route.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: navigation.route uses technology.systemsoftware",
+      "description": "The route is executed by platform software, such as the browser's JavaScript runtime or a Node.js server-side rendering runtime, that matches and renders it.",
+      "evidence": "The deployment or build configuration runs the route table under that runtime, for example a Node SSR server entry that imports the router's routes."
+    },
+    {
+      "id": "navigation.route.uses.technology.technologyfunction",
+      "previous_description": "Defines relationship: navigation.route uses technology.technologyfunction",
+      "description": "The route relies on an ongoing infrastructure behaviour, such as history-API fallback rewriting or edge caching, so that deep links to its path resolve to the single-page app.",
+      "evidence": "The web server or CDN configuration, for example nginx try_files $uri /index.html or a hosting rewrite rule, covers the route's path."
+    },
+    {
+      "id": "navigation.route.uses.data-store.view",
+      "previous_description": "Defines relationship: navigation.route uses data-store.view",
+      "description": "The route reads derived, query-defined data from a data store view, such as a materialized summary, to populate the routed screen.",
+      "evidence": "The route's loader queries the view by name through a client SDK or backend-as-a-service call, for example supabase.from('order_summaries')."
+    }
+  ],
+  "notes": "associated-with and composes RouteMeta are redundant; keep composes. flows-to and triggers NavigationTransition overlap. uses and resolves-with ApplicationService overlap. Direct links from a client route to data-store elements (Collection, View, AccessPattern) bypass the API layer and look dubious. realizes Outcome should be supports-goals or delivers-value. LayoutConfig is normally applied to the View, not the Route."
+}

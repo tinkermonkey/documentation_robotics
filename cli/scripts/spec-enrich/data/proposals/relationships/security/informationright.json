@@ -1,0 +1,38 @@
+{
+  "source": "security.informationright",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.052Z",
+  "relationships": [
+    {
+      "id": "security.informationright.accesses.security.informationentity",
+      "previous_description": "Defines relationship: security.informationright accesses security.informationentity",
+      "description": "The information right names the single information category (such as payment card data) on which its grantee may perform the listed read or modify operations.",
+      "evidence": "The right's declaration in the security model or policy file references the information entity's identifier as its target, alongside the list of permitted operations."
+    },
+    {
+      "id": "security.informationright.assigned-to.security.actor",
+      "previous_description": "Defines relationship: security.informationright assigned-to security.actor",
+      "description": "The information right is granted directly to this named principal, making that user population, service account or external party the sole holder of the listed operations.",
+      "evidence": "The grant record or policy entry lists the actor's identifier as its grantee or subject, for example a service account name in the subject field of the access rule."
+    },
+    {
+      "id": "security.informationright.constrained-by.security.accesscondition",
+      "previous_description": "Defines relationship: security.informationright constrained-by security.accesscondition",
+      "description": "The access condition is one attribute comparison that must evaluate true at decision time for the information right to take effect, and it supplies the denial message when it fails.",
+      "evidence": "The right's condition expression in the policy definition includes the access condition's attribute, operator and value, and the authorization engine evaluates it before granting access."
+    },
+    {
+      "id": "security.informationright.governs.security.informationentity",
+      "previous_description": "Defines relationship: security.informationright governs security.informationentity",
+      "description": "The information right sets the rules for who may handle the information category and which operations are permitted on it, so it acts as a usage rule for that category.",
+      "evidence": "The data governance catalog or classification register lists the right as an access rule attached to the information entity, next to its sensitivity classification."
+    },
+    {
+      "id": "security.informationright.implements.security.permission",
+      "previous_description": "Defines relationship: security.informationright implements security.permission",
+      "description": "The information right is a principal-specific, condition-qualified instance of the abstract action-on-resource permission and enforces it directly for one actor instead of through a role.",
+      "evidence": "The right's definition references the permission identifier, and its operations match that permission's action and scope, so enforcement points checking the permission also accept the right."
+    }
+  ],
+  "notes": "'governs' to InformationEntity largely duplicates 'accesses' to the same entity; both state that the right targets one information category. 'implements' Permission is questionable, because the spec defines InformationRight as distinct from a role-assigned Permission. 'realizes' or 'references' may fit better."
+}

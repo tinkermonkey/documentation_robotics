@@ -1,0 +1,68 @@
+{
+  "source": "security.policyrule",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.097Z",
+  "relationships": [
+    {
+      "id": "security.policyrule.authorizes.security.permission",
+      "previous_description": "Defines relationship: security.policyrule authorizes security.permission",
+      "description": "When its condition matches with a permit effect, the policy rule is the decision unit that grants the permission's action on its named resource at runtime for the requesting principal.",
+      "evidence": "A policy file (e.g. XACML, Rego or Cedar) contains a permit rule whose target or action and resource clause names the permission's action-resource pair, such as an allow rule for 'orders:write'."
+    },
+    {
+      "id": "security.policyrule.composes.security.securitypolicy",
+      "previous_description": "Defines relationship: security.policyrule composes security.securitypolicy",
+      "description": "The policy rule is one ordered member of the security policy's rule set and exists only as part of that policy, which combines its decision with those of sibling rules.",
+      "evidence": "The rule is declared inline within the policy definition's rules array or block, for example a Rule element nested inside an XACML Policy or a rule listed under a named policy in the policy configuration."
+    },
+    {
+      "id": "security.policyrule.generates.security.evidence",
+      "previous_description": "Defines relationship: security.policyrule generates security.evidence",
+      "description": "Each evaluation of the policy rule produces a proof artifact, such as a decision log record or audit entry, that later shows the access decision was made and attributes it to the requesting actor.",
+      "evidence": "Decision-logging configuration or rule code emits an audit record tagged with the rule identifier, for example OPA decision logs or a SIEM audit-trail entry that references the rule ID."
+    },
+    {
+      "id": "security.policyrule.governs.security.informationright",
+      "previous_description": "Defines relationship: security.policyrule governs security.informationright",
+      "description": "The policy rule sets the conditions under which an actor's information right over an information entity may actually be exercised, overriding or bounding that direct grant at decision time.",
+      "evidence": "The rule's condition or target references the information right's grantee and entity, and the authorization engine evaluates the rule whenever that information right is checked."
+    },
+    {
+      "id": "security.policyrule.mandates.security.countermeasure",
+      "previous_description": "Defines relationship: security.policyrule mandates security.countermeasure",
+      "description": "The policy rule makes a threat countermeasure compulsory by imposing the control, such as MFA step-up or rate limiting, as an outcome of the access decision it yields.",
+      "evidence": "The rule's obligation or effect configuration names the control, for example a deny-unless-MFA rule, and the countermeasure's threat-model entry cites that rule as its enforcing mechanism."
+    },
+    {
+      "id": "security.policyrule.protects.security.secureresource",
+      "previous_description": "Defines relationship: security.policyrule protects security.secureresource",
+      "description": "The policy rule guards the secure resource by deciding whether requests to perform operations on it are permitted or denied.",
+      "evidence": "The rule's target or resource matcher names the resource, such as an API path, table or bucket ARN, and the enforcement point for that resource consults the policy that contains the rule."
+    },
+    {
+      "id": "security.policyrule.requires.security.countermeasure",
+      "previous_description": "Defines relationship: security.policyrule requires security.countermeasure",
+      "description": "The policy rule can make a correct decision only if the countermeasure is already in place, for example when it relies on an authenticated identity or encrypted channel that the control provides.",
+      "evidence": "The rule's condition reads attributes that only the countermeasure supplies, such as an 'mfa_verified' claim or a TLS client-certificate field, and the design documentation lists the control as a precondition."
+    },
+    {
+      "id": "security.policyrule.triggers.security.policyaction",
+      "previous_description": "Defines relationship: security.policyrule triggers security.policyaction",
+      "description": "When its condition matches, the policy rule initiates the policy action as an obligation or advice that the enforcement point must carry out, such as blocking, masking or notifying.",
+      "evidence": "The rule definition carries an obligation or advice expression, or an on-match action list, that references the action's type and configuration, and enforcement-point code executes that handler."
+    },
+    {
+      "id": "security.policyrule.uses.security.accesscondition",
+      "previous_description": "Defines relationship: security.policyrule uses security.accesscondition",
+      "description": "The policy rule evaluates the access condition as one predicate term of its condition, comparing a single request-context attribute in order to decide whether its effect applies.",
+      "evidence": "The rule's condition expression contains the attribute-operator-value comparison defined by the access condition, such as 'subject.department == resource.owner_dept'."
+    },
+    {
+      "id": "security.policyrule.uses.security.condition",
+      "previous_description": "Defines relationship: security.policyrule uses security.condition",
+      "description": "The policy rule references a named, reusable condition expression to determine whether it applies to the current request.",
+      "evidence": "The rule's condition field references the named condition by identifier, for example a 'conditionRef' or an imported Rego function, rather than defining the expression inline."
+    }
+  ],
+  "notes": "mandates and requires to Countermeasure overlap; consider keeping only mandates. Uses AccessCondition and uses Condition are partly redundant because a Condition may itself compose AccessConditions. 'composes' to SecurityPolicy reads ambiguously, so confirm the direction is part-of-whole. 'governs' InformationRight is questionable, because InformationRight carries its own condition and is arguably independent of PolicyRule."
+}

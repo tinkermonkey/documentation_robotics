@@ -1,0 +1,62 @@
+{
+  "source": "api.mediatype",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.063Z",
+  "relationships": [
+    {
+      "id": "api.mediatype.aggregates.api.encoding",
+      "previous_description": "Defines relationship: api.mediatype aggregates api.encoding",
+      "description": "The media-type entry groups the per-property serialization rules that govern how each top-level schema property becomes a part of its multipart or form-urlencoded payload.",
+      "evidence": "The MediaType object under a requestBody's content map (e.g. multipart/form-data) has an `encoding` map whose keys match top-level property names of its schema."
+    },
+    {
+      "id": "api.mediatype.aggregates.api.example",
+      "previous_description": "Defines relationship: api.mediatype aggregates api.example",
+      "description": "The media-type entry collects named sample payloads in its `examples` map, each illustrating one concrete body sent or returned with that MIME type, and those samples may also be reused elsewhere.",
+      "evidence": "The MediaType object declares an `examples` map whose named entries are inline Example objects or $refs into components/examples."
+    },
+    {
+      "id": "api.mediatype.associated-with.api.header",
+      "previous_description": "Defines relationship: api.mediatype associated-with api.header",
+      "description": "The media-type entry is indirectly related to part-level header declarations that its encoding rules attach to individual multipart parts.",
+      "evidence": "An Encoding entry inside the MediaType's `encoding` map declares a `headers` map (e.g. X-Rate-Limit or Content-Disposition details) for a multipart part."
+    },
+    {
+      "id": "api.mediatype.composes.api.encoding",
+      "previous_description": "Defines relationship: api.mediatype composes api.encoding",
+      "description": "Each encoding rule exists only as an entry of this media type's `encoding` map, so the per-property serialization rule has no meaning outside the multipart or form body it shapes.",
+      "evidence": "The OpenAPI document nests an Encoding object directly under `content.<mime>.encoding.<propertyName>` with no components registry or $ref form available for it."
+    },
+    {
+      "id": "api.mediatype.composes.api.schema",
+      "previous_description": "Defines relationship: api.mediatype composes api.schema",
+      "description": "The media-type entry owns an inline schema that defines the shape of the payload carried with that MIME type, and that schema exists only within this content entry.",
+      "evidence": "The MediaType object's `schema` field contains an inline Schema object (type, properties, required) rather than a $ref."
+    },
+    {
+      "id": "api.mediatype.references.api.example",
+      "previous_description": "Defines relationship: api.mediatype references api.example",
+      "description": "The media-type entry points to a reusable sample payload registered in components so that the shared example illustrates this content type without being redefined.",
+      "evidence": "An entry in the MediaType's `examples` map is `$ref: '#/components/examples/<Name>'`."
+    },
+    {
+      "id": "api.mediatype.references.api.schema",
+      "previous_description": "Defines relationship: api.mediatype references api.schema",
+      "description": "The media-type entry takes its payload shape from a named, reusable schema defined in components rather than defining that shape inline.",
+      "evidence": "The MediaType object's `schema` field is `$ref: '#/components/schemas/<Name>'`."
+    },
+    {
+      "id": "api.mediatype.serves.api.requestbody",
+      "previous_description": "Defines relationship: api.mediatype serves api.requestbody",
+      "description": "The media-type entry supplies one acceptable MIME-type variant of the payload a client may send in an operation's request body.",
+      "evidence": "The RequestBody object's `content` map contains this MediaType keyed by a MIME type such as application/json or multipart/form-data."
+    },
+    {
+      "id": "api.mediatype.serves.api.response",
+      "previous_description": "Defines relationship: api.mediatype serves api.response",
+      "description": "The media-type entry supplies one MIME-type representation of the body returned for a given status code of an operation.",
+      "evidence": "The Response object's `content` map contains this MediaType keyed by a MIME type such as application/json."
+    }
+  ],
+  "notes": "aggregates and composes encoding are contradictory; Encoding cannot exist outside its MediaType, so keep composes only. associated-with header is indirect (via Encoding) and redundant. serves requestbody/response misstates structure: RequestBody and Response compose MediaType through their content map; use the inverse composed-of instead."
+}

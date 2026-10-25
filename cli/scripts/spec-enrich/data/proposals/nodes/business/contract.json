@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.contract",
+  "previous_description": "A passive structure element representing a formal or informal specification of an agreement between a service provider and consumer, defining obligations, rights, and terms. Often associated with a Product or BusinessService.",
+  "definition": "A business object that records an agreement between two or more parties, typically a service provider and a consumer, stating the obligations, rights, and terms (e.g., SLA levels, pricing, durations, penalties) that govern how a business service or product is delivered and used. It is information acted upon, not behavior or an actor.",
+  "distinguish_from": [
+    {
+      "type": "business.businessobject",
+      "when": "the information has business relevance but does not bind identified parties to obligations, rights, or terms (e.g., an invoice, order, or customer record)"
+    },
+    {
+      "type": "business.representation",
+      "when": "the element is the perceptible form of the agreement, such as the signed PDF, HTML terms page, or on-screen acceptance form, rather than the agreement's content"
+    },
+    {
+      "type": "business.product",
+      "when": "the element is the offered bundle of services and contracts sold to a market, rather than the terms attached to it"
+    },
+    {
+      "type": "business.businessevent",
+      "when": "the element is the state change of the agreement, such as a contract being signed, renewed, or terminated, rather than the agreement itself"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.3.2 Contract (specialization of Business Object)",
+  "code_evidence": [
+    "A domain class or schema named Agreement, Contract, Subscription, or ServiceLevelAgreement with fields such as parties, effectiveDate, expiryDate, termsVersion, and obligations or penalties",
+    "SLA or SLO configuration files that declare uptime, response-time, or support-tier commitments bound to a named customer plan or tier",
+    "Versioned terms-of-service, license, or data-processing-agreement documents in the repository, with code that records a user's acceptance of a specific terms version"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text explanation of the agreement: the parties, the services or product it covers, and its key obligations and terms. Set it whenever the element name alone does not identify which agreement is meant."
+    }
+  ],
+  "notes": "ArchiMate treats Contract as passive structure, so the outgoing serves, triggers, and accesses relationships are invalid. Passive elements are accessed; they do not act. Consider modelling Contract as a specialization of BusinessObject. It also lacks structured attributes (parties, effectiveDate, expiryDate, version) that would help classification.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

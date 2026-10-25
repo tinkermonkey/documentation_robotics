@@ -1,0 +1,32 @@
+{
+  "source": "ux.stateaction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.071Z",
+  "relationships": [
+    {
+      "id": "ux.stateaction.flows-to.ux.statetransition",
+      "previous_description": "Defines relationship: ux.stateaction flows-to ux.statetransition",
+      "description": "When the state action completes, its result or dispatched event passes control onward into the state transition, so the action's outcome becomes the input that moves the state machine along that edge.",
+      "evidence": "The action's definition in the state-machine config (e.g. an XState or Redux saga handler) dispatches or returns the named event that the transition listens for, so the transition fires as a direct consequence of the action."
+    },
+    {
+      "id": "ux.stateaction.specializes.ux.stateactiontemplate",
+      "previous_description": "Defines relationship: ux.stateaction specializes ux.stateactiontemplate",
+      "description": "The state action is a concrete, state-bound instance of the reusable action template: it inherits the template's operation kind and parameter signature and supplies concrete values for its parameters on a specific state or transition hook.",
+      "evidence": "The state action declaration references the template by id or name (e.g. a 'template' or 'extends' key, or a factory call to the template function) and supplies arguments matching the template's declared parameters."
+    },
+    {
+      "id": "ux.stateaction.triggers.api.operation",
+      "previous_description": "Defines relationship: ux.stateaction triggers api.operation",
+      "description": "Executing the state action in its lifecycle hook initiates a call to the API operation, so entering, exiting or traversing the bound state causes the corresponding HTTP method-path request to be sent.",
+      "evidence": "The on-enter/on-exit/on-transition handler for the action invokes a generated API client method, fetch or axios call whose HTTP method and URL path match the operation in the OpenAPI spec."
+    },
+    {
+      "id": "ux.stateaction.uses.ux.actionpattern",
+      "previous_description": "Defines relationship: ux.stateaction uses ux.actionpattern",
+      "description": "The state action follows the action pattern's prescribed feedback sequence, so the toast, modal or route change it produces as a side effect is the one defined once by the reusable interaction recipe.",
+      "evidence": "The state action's configuration or handler references the action pattern by name or imports its shared feedback helper (e.g. a common submit-with-toast utility) rather than defining its own feedback steps."
+    }
+  ],
+  "notes": "flows-to from StateAction to StateTransition inverts the documented containment (transitions own and run actions); if the intent is an action dispatching an event that fires a transition, 'triggers' fits better. 'specializes' to StateActionTemplate really describes instantiation with parameter values, not subtyping; 'realizes' or 'implements' would be more accurate."
+}

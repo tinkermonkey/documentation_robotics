@@ -1,0 +1,68 @@
+{
+  "source": "apm.logrecord",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.105Z",
+  "relationships": [
+    {
+      "id": "apm.logrecord.depends-on.apm.instrumentationscope",
+      "previous_description": "Defines relationship: apm.logrecord depends-on apm.instrumentationscope",
+      "description": "The log record is emitted through a Logger obtained under a specific instrumentation scope, and relies on that scope to stamp it with the name and version of the library or module that produced it.",
+      "evidence": "The log call site uses a Logger created via LoggerProvider.getLogger('scope-name', 'version'), or a logging bridge configured with that scope name, and exported records carry that InstrumentationScope."
+    },
+    {
+      "id": "apm.logrecord.depends-on.apm.resource",
+      "previous_description": "Defines relationship: apm.logrecord depends-on apm.resource",
+      "description": "The log record relies on the process-wide resource to identify the service, host or container that emitted it, because the SDK attaches that resource's attributes to every exported record.",
+      "evidence": "The LoggerProvider that emits the record is built with the Resource (e.g. Resource.create({'service.name': ...}) or OTEL_RESOURCE_ATTRIBUTES), and exported log records show those resource attributes."
+    },
+    {
+      "id": "apm.logrecord.flows-to.apm.logprocessor",
+      "previous_description": "Defines relationship: apm.logrecord flows-to apm.logprocessor",
+      "description": "Each emitted instance of the log record is handed to the log processor, which forwards, batches, filters, enriches or redacts it on its way to an exporter.",
+      "evidence": "The LoggerProvider serving the record's Logger registers the processor (addLogRecordProcessor(BatchLogRecordProcessor ...)), or a Collector logs pipeline lists the processor and receives these records."
+    },
+    {
+      "id": "apm.logrecord.monitors.application.applicationservice",
+      "previous_description": "Defines relationship: apm.logrecord monitors application.applicationservice",
+      "description": "The log record gives operators visibility into the application service's behavior, recording events, errors or outcomes of its operations as they execute.",
+      "evidence": "The logging call site sits inside the code implementing an operation of the application service, or the record carries an attribute such as service operation name identifying that service."
+    },
+    {
+      "id": "apm.logrecord.references.data-model.objectschema",
+      "previous_description": "Defines relationship: apm.logrecord references data-model.objectschema",
+      "description": "The log record's body or attributes carry fields drawn from a structured domain object, such as an entity identifier or a serialized DTO, whose shape is defined by the object schema.",
+      "evidence": "The log call passes an instance or fields of the class, model or DTO described by the object schema (e.g. logger.info('order created', {orderId: order.id})) into the record's body or attributes."
+    },
+    {
+      "id": "apm.logrecord.references.navigation.route",
+      "previous_description": "Defines relationship: apm.logrecord references navigation.route",
+      "description": "The log record identifies the client-side route that was active or being navigated to when it was emitted, for example by recording the route path or name as an attribute.",
+      "evidence": "Front-end logging code in a router guard or navigation hook emits the record with an attribute such as route path or name matching that route-table entry."
+    },
+    {
+      "id": "apm.logrecord.references.data-model.schemadefinition",
+      "previous_description": "Defines relationship: apm.logrecord references data-model.schemadefinition",
+      "description": "The log record's structured payload embeds or names a reusable domain type, so its attributes or body follow the shape of that schema definition.",
+      "evidence": "The log body schema or the logged object's type resolves to '$ref: #/definitions/{name}', or the call site serializes an instance of the type that definition describes."
+    },
+    {
+      "id": "apm.logrecord.references.apm.span",
+      "previous_description": "Defines relationship: apm.logrecord references apm.span",
+      "description": "The log record is correlated with the span active at its call site, carrying that span's trace and span identifiers so the event can be located within the trace.",
+      "evidence": "The log call executes within the code region where the span is started and current (e.g. inside tracer.startActiveSpan), and exported records carry the span's trace_id and span_id."
+    },
+    {
+      "id": "apm.logrecord.references.ux.view",
+      "previous_description": "Defines relationship: apm.logrecord references ux.view",
+      "description": "The log record names the UI view in which the logged event occurred, such as a page load failure or user action on that screen.",
+      "evidence": "The log call is located in the view's component code or lifecycle hooks, or the record includes a view or screen name attribute matching that view."
+    },
+    {
+      "id": "apm.logrecord.satisfies.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: apm.logrecord satisfies security.accountabilityrequirement",
+      "description": "The log record serves as the audit evidence that attributes the required action on the resource to the actor who performed it, fulfilling the accountability obligation.",
+      "evidence": "The log call is emitted where the named action is performed on the named resource and records the authenticated actor identity, action and resource, with retention or tamper-protection configured as the requirement demands."
+    }
+  ],
+  "notes": "The five 'references' relationships (objectschema, schemadefinition, route, view, span) are loosely typed; span correlation is a core OTel link that may merit a dedicated predicate. objectschema and schemadefinition references overlap heavily. monitors toward applicationservice is weak for a single log record, since logs record events rather than actively observing."
+}

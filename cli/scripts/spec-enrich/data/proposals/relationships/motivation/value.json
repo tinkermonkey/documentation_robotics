@@ -1,0 +1,44 @@
+{
+  "source": "motivation.value",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.062Z",
+  "relationships": [
+    {
+      "id": "motivation.value.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.value associated-with motivation.constraint",
+      "description": "The stated benefit is bounded or conditioned by a restriction on the solution space, such as a budget ceiling or mandated technology, that determines how far the value can be pursued.",
+      "evidence": "A decision record or value analysis document cites the constraint as limiting, or shaping, the way the stated stakeholder benefit can be delivered."
+    },
+    {
+      "id": "motivation.value.associated-with.motivation.driver",
+      "previous_description": "Defines relationship: motivation.value associated-with motivation.driver",
+      "description": "The stated benefit answers or relates to the external or internal force, such as market pressure or rising cost, that makes that benefit worth pursuing.",
+      "evidence": "A business case, strategy document or architecture decision record names the driver as the reason the stakeholder benefit matters."
+    },
+    {
+      "id": "motivation.value.associated-with.motivation.goal",
+      "previous_description": "Defines relationship: motivation.value associated-with motivation.goal",
+      "description": "The stakeholder benefit expresses the worth that reaching the intended end state would bring, which links the value to the goal it motivates or justifies.",
+      "evidence": "A goal model, strategy document or value map explicitly ties the stated benefit to the goal it justifies."
+    },
+    {
+      "id": "motivation.value.associated-with.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.value associated-with motivation.outcome",
+      "description": "The measurable end result is the checkable state through which the stakeholder benefit is realized or evidenced, such as an order-time target backing a 'saves customers time' value.",
+      "evidence": "An OKR sheet, benefits-realization plan or KPI dashboard definition maps the outcome's target metric to the stated stakeholder benefit."
+    },
+    {
+      "id": "motivation.value.associated-with.motivation.stakeholder",
+      "previous_description": "Defines relationship: motivation.value associated-with motivation.stakeholder",
+      "description": "The stakeholder is the party for whom the benefit holds worth, and from whose perspective the value is expressed.",
+      "evidence": "A stakeholder map, persona document or value proposition canvas names the stakeholder as the recipient of the stated benefit."
+    },
+    {
+      "id": "motivation.value.associated-with.motivation.value",
+      "previous_description": "Defines relationship: motivation.value associated-with motivation.value",
+      "description": "One stated benefit is related to another, for example as a component, complement or trade-off of it, within the same value model.",
+      "evidence": "A value map or business case groups, decomposes or contrasts the two benefits explicitly, for example listing one as contributing to the other."
+    }
+  ],
+  "notes": "Value-to-stakeholder is the only link ArchiMate expects here; the rest use generic associated-with, which hides meaning. Value-to-outcome would read better as outcome 'delivers' value. Value-to-goal would read better as 'supports'. Value-to-constraint is weak: constraints restrict the solution, not value. A self-association on value adds little unless it is meant as an aggregation."
+}

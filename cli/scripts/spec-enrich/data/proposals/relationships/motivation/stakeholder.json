@@ -1,0 +1,74 @@
+{
+  "source": "motivation.stakeholder",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.081Z",
+  "relationships": [
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.constraint",
+      "description": "The stakeholder is the party who imposed, owns, or is affected by the restriction on the solution space, such as the procurement office behind a budget ceiling or the regulator behind a jurisdiction rule.",
+      "evidence": "The architecture decision record, policy document, or requirement text stating the constraint names the stakeholder as its originator, approver, or affected party."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.driver",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.driver",
+      "description": "The stakeholder has a concern about, or is exposed to, the condition or force that prompts the organization to change, such as compliance officers facing a new regulation.",
+      "evidence": "A stakeholder analysis, concern matrix, or driver register lists the stakeholder against the driver as a concerned or affected party."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.goal",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.goal",
+      "description": "The stakeholder holds, sponsors, or has a stake in the end state the goal describes, so the goal can be traced back to that party's interests.",
+      "evidence": "A strategy document, OKR sheet, or goal register names the stakeholder as the sponsor or owner of the goal."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.outcome",
+      "description": "The stakeholder is the party who cares about, is accountable for, or benefits from reaching the measurable end result.",
+      "evidence": "A KPI dashboard, benefits register, or outcome definition lists the stakeholder as owner or beneficiary of the target value."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.principle",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.principle",
+      "description": "The stakeholder authored, endorses, or is bound by the normative principle within its scope, such as an architecture board that issued it.",
+      "evidence": "The principles catalogue or architecture governance charter records the stakeholder as the principle's owner, approver, or intended audience."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.requirement",
+      "description": "The stakeholder is the party whose need the requirement expresses or who must accept that it has been met.",
+      "evidence": "The requirement record (e.g. a Jira story or requirements spec entry) lists the stakeholder in its 'requested by', 'source', or acceptance sign-off field."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.stakeholder",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.stakeholder",
+      "description": "The two stakeholders are related parties, for example one group is part of, represents, or shares concerns with the other.",
+      "evidence": "An organization chart, RACI matrix, or stakeholder map shows a reporting, membership, or representation link between the two parties."
+    },
+    {
+      "id": "motivation.stakeholder.associated-with.motivation.value",
+      "previous_description": "Defines relationship: motivation.stakeholder associated-with motivation.value",
+      "description": "The stakeholder is the party for whom the stated worth or benefit holds, and from whose perspective the value is expressed.",
+      "evidence": "A value proposition canvas, business case, or value statement explicitly names the stakeholder as the recipient of the benefit."
+    },
+    {
+      "id": "motivation.stakeholder.influence.motivation.assessment",
+      "previous_description": "Defines relationship: motivation.stakeholder influence motivation.assessment",
+      "description": "The stakeholder's perspective, input, or priorities shape how a finding about the current state is judged, such as security leads raising the severity of an identified risk.",
+      "evidence": "Workshop minutes, review comments, or the assessment report record the stakeholder's input altering or determining the assessment's verdict or rating."
+    },
+    {
+      "id": "motivation.stakeholder.influence.motivation.driver",
+      "previous_description": "Defines relationship: motivation.stakeholder influence motivation.driver",
+      "description": "The stakeholder's actions or demands create or intensify the condition prompting change, such as a major customer pressing for a new integration channel.",
+      "evidence": "The driver register or strategy rationale cites the stakeholder's demands, complaints, or mandates as the source or amplifier of the driver."
+    },
+    {
+      "id": "motivation.stakeholder.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.stakeholder influence motivation.goal",
+      "description": "The stakeholder's interests shape the content, priority, or direction of the goal, for example a board steering a goal toward cost reduction.",
+      "evidence": "Steering committee minutes, goal-setting records, or revision history show the stakeholder proposing, reprioritizing, or amending the goal."
+    }
+  ],
+  "notes": "associated-with and influence to both driver and goal overlap; influence subsumes association when the stakeholder shapes the element, so the associated-with variants risk redundancy unless reserved for passive concern. Stakeholder associated-with constraint is weak; ArchiMate typically links stakeholders to drivers/goals, with constraints reached via requirements."
+}

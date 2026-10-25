@@ -1,0 +1,38 @@
+{
+  "source": "ux.uxlibrary",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.046Z",
+  "relationships": [
+    {
+      "id": "ux.uxlibrary.aggregates.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.uxlibrary aggregates ux.librarycomponent",
+      "description": "The UI library package groups the reusable component definition as one of its members, while the component definition can still be extracted, moved to another package or exist on its own.",
+      "evidence": "The component's source file sits inside the library package directory, or is listed in the package's component manifest or catalog."
+    },
+    {
+      "id": "ux.uxlibrary.aggregates.ux.librarysubview",
+      "previous_description": "Defines relationship: ux.uxlibrary aggregates ux.librarysubview",
+      "description": "The UI library package groups the shared sub-view composition as one of its members, while the sub-view definition keeps an identity that could be relocated to another package.",
+      "evidence": "The sub-view definition file is located within the library package source tree, or is enumerated in the library's catalog of sub-views."
+    },
+    {
+      "id": "ux.uxlibrary.provides.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.uxlibrary provides ux.librarycomponent",
+      "description": "The UI library publishes the component definition as part of its public export surface, so consuming applications and specs can import and instantiate it.",
+      "evidence": "The library's export index (e.g. index.ts or the package.json exports map) re-exports the component, and the component appears in the published package's API or Storybook docs."
+    },
+    {
+      "id": "ux.uxlibrary.provides.ux.librarysubview",
+      "previous_description": "Defines relationship: ux.uxlibrary provides ux.librarysubview",
+      "description": "The UI library publishes the sub-view composition as a public export, so Views and SubViews in consuming applications can embed it by reference.",
+      "evidence": "The library's export index or manifest lists the sub-view as a public entry, and consuming views import it from the versioned package name."
+    },
+    {
+      "id": "ux.uxlibrary.uses.ux.uxlibrary",
+      "previous_description": "Defines relationship: ux.uxlibrary uses ux.uxlibrary",
+      "description": "The dependent UI library builds on the base library's exported components, sub-views or patterns, so consumers must also install the base library at a compatible version.",
+      "evidence": "The dependent library's package manifest declares the base library as a dependency or peerDependency with a version range, and its source imports from that package name."
+    }
+  ],
+  "notes": "Aggregates and provides overlap for both destinations: membership and export usually coincide. Keep 'aggregates' only if it carries internal and unexported members; otherwise drop one. Also note the UXLibrary description mentions state and action patterns, but no relationships cover them."
+}

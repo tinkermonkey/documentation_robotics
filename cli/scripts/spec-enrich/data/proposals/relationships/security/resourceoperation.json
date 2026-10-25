@@ -1,0 +1,32 @@
+{
+  "source": "security.resourceoperation",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.081Z",
+  "relationships": [
+    {
+      "id": "security.resourceoperation.accesses.security.secureresource",
+      "previous_description": "Defines relationship: security.resourceoperation accesses security.secureresource",
+      "description": "The operation is the specific read or write action an authorized actor performs against the protected resource, so invoking it touches that resource's data or functionality.",
+      "evidence": "The security model lists the operation (e.g. 'export') under the resource's operations block, and the handler guarded by that operation's permission reads or mutates the API, table or file the resource names."
+    },
+    {
+      "id": "security.resourceoperation.constrained-by.security.accesscondition",
+      "previous_description": "Defines relationship: security.resourceoperation constrained-by security.accesscondition",
+      "description": "The access condition is one predicate term that must evaluate true on the request context before the authorization layer permits this operation, and its denial message is returned when it fails.",
+      "evidence": "The operation's conditions list in the security policy YAML/JSON references the condition (attribute, operator, value), and the policy engine evaluates it in the operation's authorization check."
+    },
+    {
+      "id": "security.resourceoperation.governs.security.secureresource",
+      "previous_description": "Defines relationship: security.resourceoperation governs security.secureresource",
+      "description": "The operation defines the rules for one permitted action on the resource, including its access conditions, rate limits and audit settings, and so dictates how that resource may be used through that action.",
+      "evidence": "The resource's definition declares the operation with its rate limit, conditions and audit settings, and the enforcement middleware for the resource's endpoints applies those settings per operation."
+    },
+    {
+      "id": "security.resourceoperation.triggers.security.auditconfig",
+      "previous_description": "Defines relationship: security.resourceoperation triggers security.auditconfig",
+      "description": "Each invocation of the operation causes an audit record to be written according to the referenced audit configuration's event selection, verbosity and payload/header sanitization rules.",
+      "evidence": "The operation's audit field references the audit config, and the logs show audit entries tagged with that operation name and formatted per that config's capture and sanitization settings."
+    }
+  ],
+  "notes": "accesses and governs between the same ResourceOperation→SecureResource pair overlap. The definition says the resource owns its operations, which suggests a composition (SecureResource composes ResourceOperation). Governs is only weakly justified, through the rate limits and conditions. Triggers→AuditConfig is semantically loose: the operation triggers audit events, not the configuration, so 'uses' or 'references' would fit better."
+}

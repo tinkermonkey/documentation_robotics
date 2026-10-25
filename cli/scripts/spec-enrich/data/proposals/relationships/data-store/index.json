@@ -1,0 +1,20 @@
+{
+  "source": "data-store.index",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.061Z",
+  "relationships": [
+    {
+      "id": "data-store.index.aggregates.data-store.field",
+      "previous_description": "Defines relationship: data-store.index aggregates data-store.field",
+      "description": "The index is keyed on this field as one of its key or included members, grouping existing fields of the collection into a lookup structure without owning them, so the field persists if the index is dropped.",
+      "evidence": "The index definition (e.g. a CREATE INDEX statement, MongoDB createIndex key document, DynamoDB GSI KeySchema, or search mapping) lists the field's name or path among its keyed or included fields."
+    },
+    {
+      "id": "data-store.index.optimizes.data-store.accesspattern",
+      "previous_description": "Defines relationship: data-store.index optimizes data-store.accesspattern",
+      "description": "The index lets the engine resolve this access pattern's key, sort or filter conditions by direct lookup or range scan instead of a full collection scan, making the request cheaper and faster.",
+      "evidence": "The index's leading key fields match the access pattern's key condition (and sort fields where applicable), as shown by a data-model design table mapping the pattern to the index or by a query plan (EXPLAIN) showing the index used for that query."
+    }
+  ],
+  "notes": ""
+}

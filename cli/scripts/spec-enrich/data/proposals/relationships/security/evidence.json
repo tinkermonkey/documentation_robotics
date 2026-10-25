@@ -1,0 +1,32 @@
+{
+  "source": "security.evidence",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.074Z",
+  "relationships": [
+    {
+      "id": "security.evidence.mitigates.security.threat",
+      "previous_description": "Defines relationship: security.evidence mitigates security.threat",
+      "description": "The proof artifact, such as a signed audit record or hash chain, reduces the impact of a repudiation or tampering threat by making the adverse action detectable and attributable after the fact.",
+      "evidence": "The threat-model entry for a repudiation or log-tampering threat lists the signed log, trusted timestamp or hash-chained audit trail as a compensating or detective control."
+    },
+    {
+      "id": "security.evidence.realizes.security.auditconfig",
+      "previous_description": "Defines relationship: security.evidence realizes security.auditconfig",
+      "description": "The audit records actually emitted and retained are the concrete output through which the logging configuration's choice of events, verbosity and captured fields takes effect.",
+      "evidence": "Audit log entries in the log store contain exactly the event types and sanitized fields declared in the audit configuration file or logging policy that emits them."
+    },
+    {
+      "id": "security.evidence.supports.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: security.evidence supports security.accountabilityrequirement",
+      "description": "The proof artifact gives the accountability obligation its means of fulfilment, because it lets the named action on the named resource be shown later to have been performed by a specific actor.",
+      "evidence": "The accountability requirement's documentation or traceability matrix cites the evidence artifact, for example a digitally signed audit record with actor ID and timestamp, as its non-repudiation proof."
+    },
+    {
+      "id": "security.evidence.validates.security.policyrule",
+      "previous_description": "Defines relationship: security.evidence validates security.policyrule",
+      "description": "The recorded artifact, such as a decision log entry capturing the request context and resulting permit or deny, lets auditors verify that the policy rule was evaluated and produced its intended effect.",
+      "evidence": "Policy decision logs or compliance audit reports reference the rule ID and show the matched condition and effect, and they are used to confirm that the rule behaves as specified."
+    }
+  ],
+  "notes": "The 'realizes' link is inverted in spirit: evidence is the output of AuditConfig, which suggests 'generated-by' rather than realization. 'validates' belongs to the testing category and fits evidence poorly; 'references' or 'supports' would be more accurate. 'mitigates' applies only to repudiation-type threats, because evidence is detective rather than preventive."
+}

@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "ux.uxlibrary",
+  "previous_description": "Collection of reusable UI components and sub-views that can be shared across applications",
+  "definition": "A versioned, distributable package of UI building blocks that exports library components, library sub-views, state patterns and action patterns for consumption by one or more UX applications or specs. It is identified by its package boundary (manifest, version, export index), not by any rendered screen or route of its own.",
+  "distinguish_from": [
+    {
+      "type": "ux.uxapplication",
+      "when": "the artifact is a deployable product that consumes components, targets a delivery channel and groups UXSpecs, rather than a package exporting reusable parts."
+    },
+    {
+      "type": "ux.librarycomponent",
+      "when": "the symbol is a single reusable component definition with props, slots and events, not the package or index that exports many of them."
+    },
+    {
+      "type": "ux.librarysubview",
+      "when": "the symbol is one reusable composition of component instances, not the collection that publishes it."
+    },
+    {
+      "type": "ux.uxspec",
+      "when": "the artifact describes the views and states of one concrete experience instead of exporting reusable parts for others to assemble."
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "A package.json (or equivalent manifest) for a UI package with name, version, license and author fields whose main/exports entry is a barrel index re-exporting many components (e.g. `export * from './Button'`).",
+    "A Storybook configuration or design-system documentation site cataloguing components of a single package, or a monorepo workspace such as packages/ui or @org/design-system that is imported by multiple apps.",
+    "Consumer code importing components from a shared package specifier (e.g. `import { DataTable } from '@acme/ui'`) rather than a relative path, often with the package listed as a peer or regular dependency in several applications."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Release version of the library package, normally a semantic version string (e.g. '2.4.1') matching the package manifest; always set, and update it whenever the exported set or its contracts change."
+    },
+    {
+      "name": "description",
+      "description": "Short plain-text summary of the library's scope and intended consumers (e.g. 'Internal admin design system'); set it when the name alone does not convey what the library covers."
+    },
+    {
+      "name": "author",
+      "description": "Person, team or organisation that owns and maintains the library, as recorded in the package manifest or ownership file; set it to identify who to contact for changes."
+    },
+    {
+      "name": "license",
+      "description": "License under which the library is distributed, preferably as an SPDX identifier (e.g. 'MIT', 'Apache-2.0', or 'UNLICENSED' for proprietary); set it when the library is shared beyond a single codebase or sourced from a third party."
+    }
+  ],
+  "notes": "Relationships aggregates and provides are duplicated toward the same targets; pick one semantics. uses→uxlibrary appears twice. No relationships exist to statepattern or actionpattern despite matching array attributes. uxapplication.designSystem references a uxlibrary via a string but no relationship exists. Consider adding a dependencies attribute for library-to-library use.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "ux.transitiontemplate",
+  "previous_description": "Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application.",
+  "definition": "A reusable motion definition specifying the animation type, duration and easing applied when a UI change occurs, such as a state change, route change, or component enter/leave. It describes how the change is animated, not which change occurs, and can be shared by many state transitions, patterns and views.",
+  "distinguish_from": [
+    {
+      "type": "ux.statetransition",
+      "when": "the element is a concrete edge in an ExperienceState machine with a source state, destination state, trigger and guard, whether or not it is animated."
+    },
+    {
+      "type": "ux.actionpattern",
+      "when": "the reusable artifact describes the interaction itself (trigger modality, feedback such as toast or modal, target), rather than the motion curve and duration of the visual change."
+    },
+    {
+      "type": "ux.stateactiontemplate",
+      "when": "the reusable definition is an operation executed during a transition (navigate, submit, dispatch, validate), not an animation."
+    },
+    {
+      "type": "ux.statepattern",
+      "when": "the reusable artifact is a whole state machine of named states and transitions, such as a wizard or optimistic update."
+    }
+  ],
+  "standard_reference": "CSS Transitions Module Level 1 (transition-duration, transition-timing-function); Web Animations API",
+  "code_evidence": [
+    "Named, shared animation definitions such as Angular `trigger('fadeIn', [transition(':enter', [animate('300ms ease-in')])])` or exported Framer Motion `variants` objects imported by several components",
+    "CSS classes or @keyframes reused across components for enter/leave or route changes (e.g. `.fade-enter-active { transition: opacity 300ms ease-in-out }` used with Vue `<Transition name=\"fade\">` or react-transition-group `CSSTransition classNames=\"slide\"`)",
+    "Motion design tokens or theme entries defining duration and easing values (e.g. `motion.duration.medium: 300ms`, `motion.easing.standard: cubic-bezier(0.4,0,0.2,1)`) referenced by page-transition or modal-open animations"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "to",
+      "description": "The target end state of the animation: a specNodeId of the ExperienceState, View or SubView being entered, or a generic lifecycle target such as 'enter' or 'leave'. Set it to the narrowest target the template is meant for."
+    },
+    {
+      "name": "trigger",
+      "description": "The event or change that starts the animation, e.g. 'route-change', 'state-change', 'mount', 'unmount', or a DOM event name such as 'click'. Set it so the template can be matched to the transitions it governs."
+    },
+    {
+      "name": "description",
+      "description": "Free-text summary of the motion's intent and visual effect (e.g. 'modal slides up from bottom and fades in'). Set it whenever the name alone does not convey the effect."
+    }
+  ],
+  "notes": "Required 'to' contradicts reusability, because a template bound to one destination duplicates StateTransition.to. Make 'to' optional, or redefine it as a lifecycle target. 'trigger' is free text while StateTransition.trigger is an enum, so align them. Consider adding delay, direction and iteration attributes. The name invites confusion with StateTransition; 'MotionTemplate' would be clearer.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.251Z"
+}

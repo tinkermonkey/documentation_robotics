@@ -1,0 +1,50 @@
+{
+  "source": "navigation.guardcondition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.080Z",
+  "relationships": [
+    {
+      "id": "navigation.guardcondition.constrains.navigation.route",
+      "previous_description": "Defines relationship: navigation.guardcondition constrains navigation.route",
+      "description": "The guard condition is the boolean test whose outcome decides whether the router may activate the target route, so a failing result keeps the user from landing on it.",
+      "evidence": "A route table entry's beforeEnter/canActivate guard calls a predicate function, such as isAuthenticated() or hasRole('admin'), whose false result blocks activation of that path."
+    },
+    {
+      "id": "navigation.guardcondition.consumes.navigation.contextvariable",
+      "previous_description": "Defines relationship: navigation.guardcondition consumes navigation.contextvariable",
+      "description": "The guard condition reads the current value of a flow context variable at evaluation time, for example a checkout step completion flag, and bases its allow-or-deny result on it.",
+      "evidence": "The guard predicate's code reads the named key from the flow store, sessionStorage, localStorage or URL query, and that value feeds its boolean return expression."
+    },
+    {
+      "id": "navigation.guardcondition.references.data-model.objectschema",
+      "previous_description": "Defines relationship: navigation.guardcondition references data-model.objectschema",
+      "description": "The guard condition's expression is written against the shape of a structured state record, such as the session user or flow context object, whose declared properties it inspects.",
+      "evidence": "The predicate's parameter or the store it reads is typed with an interface, DTO or JSON Schema object, and the condition accesses fields declared in that schema, for example user.emailVerified."
+    },
+    {
+      "id": "navigation.guardcondition.references.security.permission",
+      "previous_description": "Defines relationship: navigation.guardcondition references security.permission",
+      "description": "The guard condition names a specific permission and checks whether the current principal holds it before allowing the route to activate.",
+      "evidence": "The predicate calls an authorization helper with a permission identifier, for example can('orders:approve'), and that identifier matches an entry in the permission catalog."
+    },
+    {
+      "id": "navigation.guardcondition.references.navigation.routemeta",
+      "previous_description": "Defines relationship: navigation.guardcondition references navigation.routemeta",
+      "description": "The guard condition reads access hints declared in the target route's metadata, such as requiresAuth, roles or permissions, and turns them into its allow-or-deny decision.",
+      "evidence": "The guard code reads to.meta.requiresAuth or to.meta.roles, and those keys are declared in the meta block of the route definition."
+    },
+    {
+      "id": "navigation.guardcondition.triggers.navigation.guardaction",
+      "previous_description": "Defines relationship: navigation.guardcondition triggers navigation.guardaction",
+      "description": "When the guard condition evaluates false or times out, the guard's configured denial action fires, such as a redirect to login, a cancellation, a message or a confirmation prompt.",
+      "evidence": "The guard returns a redirect such as next('/login') or router.parseUrl('/denied'), or calls a cancel or confirm handler, in the branch taken when the predicate is false."
+    },
+    {
+      "id": "navigation.guardcondition.uses.navigation.contextvariable",
+      "previous_description": "Defines relationship: navigation.guardcondition uses navigation.contextvariable",
+      "description": "The guard condition depends on a flow context variable as one of its inputs, so it cannot be evaluated meaningfully unless the flow has populated that variable.",
+      "evidence": "The guard condition's declaration lists the context variable as an input, or its code reads the variable from the flow state container when it evaluates."
+    }
+  ],
+  "notes": "The consumes and uses relationships to navigation.contextvariable say the same thing: the guard condition reads flow state. Keep one, preferably consumes or references, since the condition only reads the value. The triggers relationship to guardaction is loosely modeled, because the NavigationGuard invokes the action on denial and the condition itself does not."
+}

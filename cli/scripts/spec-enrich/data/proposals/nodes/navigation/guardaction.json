@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "navigation.guardaction",
+  "previous_description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation — along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
+  "definition": "A denial-handling outcome attached to a NavigationGuard that specifies what the router does when the guard's condition fails. It either redirects to a route or URL, cancels navigation in place, shows a message, or asks for confirmation, and it records whether the attempted route is kept so the user can return to it later.",
+  "distinguish_from": [
+    {
+      "type": "navigation.navigationguard",
+      "when": "you are modelling the interceptor itself: its mechanism type (auth, role, feature-flag), its execution order, and the routes it protects, rather than what happens on denial."
+    },
+    {
+      "type": "navigation.guardcondition",
+      "when": "you are modelling the boolean predicate the guard evaluates (e.g. 'user.isAuthenticated'), not the response executed when that predicate is false."
+    },
+    {
+      "type": "navigation.navigationtransition",
+      "when": "you are modelling a standing edge between two routes in the navigation graph (including one with trigger 'redirect') rather than a guard's conditional denial response."
+    },
+    {
+      "type": "navigation.route",
+      "when": "the redirect is unconditional, such as a route of type 'redirect' whose router entry always forwards (e.g. { path: '/', redirectTo: '/home' }) regardless of any access check."
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: navigation guard outcome (redirect or cancel), e.g. Angular CanActivate/CanDeactivate returning a UrlTree or false, and Vue Router beforeEach returning a route location or false",
+  "code_evidence": [
+    "The denied branch of a beforeEach/canActivate guard that returns a redirect location carrying the attempted path, e.g. return { name: 'login', query: { redirect: to.fullPath } } or router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } }).",
+    "A guard branch that aborts navigation with next(false), return false, or event.preventDefault(), optionally preceded by a toast or notification call explaining the denial.",
+    "A window.confirm(...) or modal-dialog prompt inside a canDeactivate or beforeRouteLeave hook, or a React protected-route wrapper rendering <Navigate to=\"/login\" state={{ from: location }} replace />."
+  ],
+  "attribute_descriptions": [],
+  "notes": "'target' and 'message' are marked required but apply only to some actions; they should be conditionally required. 'target' mentions 'replace' actions, which are not in the enum; add 'replace' or fix the wording. 'prompt' typically comes from leave guards (canDeactivate) rather than access denial, so the definition's 'access denied' framing is too narrow. 'preserveRoute' assumes an authentication context.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.240Z"
+}

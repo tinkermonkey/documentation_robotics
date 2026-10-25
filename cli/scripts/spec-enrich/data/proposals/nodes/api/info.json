@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "api.info",
+  "previous_description": "Required root-level metadata describing the API identity, version, legal terms, and maintainer contact. The 'title' and 'version' fields are required per OpenAPI 3.0. Consumed by documentation generators, API gateways, and developer portals.",
+  "definition": "A single metadata object nested in an OpenAPI document's root 'info' field that records the described API's title, its document version, an optional description and terms-of-service URL, and references to its contact and license. Exactly one exists per OpenAPI document; it describes the API as a whole, not any path, operation or server.",
+  "distinguish_from": [
+    {
+      "type": "api.openapidocument",
+      "when": "the element is the root object itself, which holds the 'openapi' spec-version string and the paths, servers, components and security sections, rather than only the descriptive metadata block"
+    },
+    {
+      "type": "api.contact",
+      "when": "the element carries only the maintainer's name, email or URL, which Info references through its 'contact' field"
+    },
+    {
+      "type": "api.license",
+      "when": "the element carries only the license name and license URL, which Info references through its 'license' field"
+    },
+    {
+      "type": "api.externaldocumentation",
+      "when": "the element is a link to an external guide or wiki attached to the root document, a tag, an operation or a schema, rather than inline title and version metadata"
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Info Object",
+  "code_evidence": [
+    "An 'info:' block containing 'title:' and 'version:' keys at the top level of an openapi.yaml or openapi.json file",
+    "A framework OpenAPI bootstrap call that sets API metadata, such as FastAPI(title=..., version=..., description=...), NestJS new DocumentBuilder().setTitle().setVersion(), or springdoc new OpenAPI().info(new Info().title(...))",
+    "A Java annotation @OpenAPIDefinition(info = @Info(title = ..., version = ...)), or a swagger-jsdoc options object with definition.info.title and definition.info.version"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "title",
+      "description": "Human-readable name of the API as shown in documentation portals and gateways (e.g. 'Taxonomy Service API'); always set, since OpenAPI 3.0 requires it."
+    },
+    {
+      "name": "version",
+      "description": "Version string of the API definition document (e.g. '1.4.0' or '2024-05-01'), distinct from the OpenAPI specification version held in OpenAPIDocument.openapi; always set, since OpenAPI 3.0 requires it."
+    },
+    {
+      "name": "termsOfService",
+      "description": "URL of the API's terms of service, which must be a valid URL per OpenAPI 3.0; set only when the API publishes usage terms."
+    }
+  ],
+  "notes": "The api.externaldocumentation → api.info relationship has no OpenAPI 3.0 basis, because Info has no externalDocs field; it belongs on api.openapidocument. The outgoing info→openapidocument 'associated-with' edge duplicates the incoming 'composes' edge. The contact and license string attributes duplicate the aggregates relationships.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

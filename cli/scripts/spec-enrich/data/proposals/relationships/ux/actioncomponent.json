@@ -1,0 +1,134 @@
+{
+  "source": "ux.actioncomponent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.102Z",
+  "relationships": [
+    {
+      "id": "ux.actioncomponent.accesses.data-store.collection",
+      "previous_description": "Defines relationship: ux.actioncomponent accesses data-store.collection",
+      "description": "Activating the control reads or writes records in the persistent collection directly, for example through a client-side database SDK, with no API layer in between.",
+      "evidence": "The control's click handler calls a client database SDK against the named collection, such as Firestore collection('orders').add() or a Supabase from('orders').update()."
+    },
+    {
+      "id": "ux.actioncomponent.binds-to.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.actioncomponent binds-to ux.dataconfig",
+      "description": "The control takes its label, enabled state, badge count or submitted payload from the data source and field path declared in the data-binding configuration.",
+      "evidence": "The UX spec attaches the dataConfig to the action component, or the button's props are wired to the store selector or API field path that the dataConfig names."
+    },
+    {
+      "id": "ux.actioncomponent.implements.ux.actionpattern",
+      "previous_description": "Defines relationship: ux.actioncomponent implements ux.actionpattern",
+      "description": "The control is a concrete instance of the reusable interaction recipe, so it uses the pattern's input modality and runs its prescribed feedback sequence, such as confirm, then toast, then route change.",
+      "evidence": "The action component's spec entry references the pattern id, or its handler is built from the shared hook or helper that encodes the pattern (e.g. useConfirmThenToast)."
+    },
+    {
+      "id": "ux.actioncomponent.navigates-to.ux.view",
+      "previous_description": "Defines relationship: ux.actioncomponent navigates-to ux.view",
+      "description": "Activating the control takes the user away from the current surface to the destination page, screen, modal or drawer.",
+      "evidence": "The control is a Link whose href matches the view's route, or its onClick calls router.push or openModal with the view's route or identifier."
+    },
+    {
+      "id": "ux.actioncomponent.realizes.business.businessfunction",
+      "previous_description": "Defines relationship: ux.actioncomponent realizes business.businessfunction",
+      "description": "The control is the user-facing touchpoint through which staff carry out part of the ongoing business competency, for example an 'Approve claim' button within Claims Handling.",
+      "evidence": "A traceability matrix or UX spec annotation maps the control to the business function, or the screen hosting it belongs to the function's capability map."
+    },
+    {
+      "id": "ux.actioncomponent.references.security.secureresource",
+      "previous_description": "Defines relationship: ux.actioncomponent references security.secureresource",
+      "description": "The control names the protected resource its operation acts on, which identifies the authorization object without itself enforcing access.",
+      "evidence": "The component metadata or a prop (e.g. resource=\"invoice\") carries the secure resource's identifier as used in the access control model."
+    },
+    {
+      "id": "ux.actioncomponent.renders.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.actioncomponent renders ux.actioncomponent",
+      "description": "A compound control, such as a split button, overflow menu or toolbar trigger, displays nested action controls that each start their own operation.",
+      "evidence": "The control's render output contains child MenuItem or Button elements, each with its own onClick handler."
+    },
+    {
+      "id": "ux.actioncomponent.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.actioncomponent renders ux.componentinstance",
+      "description": "The control draws a specific configured occurrence of a library component inside itself, such as its icon, badge or loading spinner.",
+      "evidence": "The button's markup embeds that component instance with concrete prop values, e.g. <Icon name=\"trash\" size=\"sm\"/>."
+    },
+    {
+      "id": "ux.actioncomponent.renders.ux.componentreference",
+      "previous_description": "Defines relationship: ux.actioncomponent renders ux.componentreference",
+      "description": "The control fills one of its own slots, such as a leading-icon or label slot, with the component that the slot-filling declaration identifies.",
+      "evidence": "The UX spec's slot definition for the action component lists the componentReference, with the slot name and target specNodeId."
+    },
+    {
+      "id": "ux.actioncomponent.renders.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.actioncomponent renders ux.librarycomponent",
+      "description": "The control's visual output is built from the reusable component type, for example a Button primitive or Spinner from the design system.",
+      "evidence": "The control's source file imports the library component and uses it in its render or template output."
+    },
+    {
+      "id": "ux.actioncomponent.requires.security.permission",
+      "previous_description": "Defines relationship: ux.actioncomponent requires security.permission",
+      "description": "The control is shown or enabled only for users whose roles hold the permission, which makes it a UI enforcement point for that grant.",
+      "evidence": "The control is wrapped in a guard such as <Can permission=\"orders:delete\">, or its disabled or visible prop checks hasPermission with that permission key."
+    },
+    {
+      "id": "ux.actioncomponent.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: ux.actioncomponent satisfies motivation.requirement",
+      "description": "The control provides the user-facing capability that the requirement calls for, such as the ability to cancel an order before shipment.",
+      "evidence": "The user story's acceptance criteria, a requirement-trace annotation or an acceptance test names the requirement id and exercises the control."
+    },
+    {
+      "id": "ux.actioncomponent.triggers.application.applicationservice",
+      "previous_description": "Defines relationship: ux.actioncomponent triggers application.applicationservice",
+      "description": "Activating the control invokes one of the operations offered by the application service, such as placing an order through the Order Service.",
+      "evidence": "The click handler calls the service's client or facade method, e.g. orderService.placeOrder(), either directly or through a dispatched command."
+    },
+    {
+      "id": "ux.actioncomponent.triggers.business.businessevent",
+      "previous_description": "Defines relationship: ux.actioncomponent triggers business.businessevent",
+      "description": "Activating the control marks the moment the business state change occurs, as when 'Submit order' brings about Order Placed.",
+      "evidence": "The handler publishes a domain or analytics event named after the business event, or the process model links the control's action to that event."
+    },
+    {
+      "id": "ux.actioncomponent.triggers.api.operation",
+      "previous_description": "Defines relationship: ux.actioncomponent triggers api.operation",
+      "description": "Activating the control sends an HTTP request that matches the operation's method and path template.",
+      "evidence": "The click handler calls fetch or axios with that method and path, or the generated client method bound to the operation's operationId."
+    },
+    {
+      "id": "ux.actioncomponent.triggers.ux.stateaction",
+      "previous_description": "Defines relationship: ux.actioncomponent triggers ux.stateaction",
+      "description": "Activating the control sets off the side-effect operation that runs on the state or transition its event leads to.",
+      "evidence": "The event the control dispatches drives the experience into a state or transition whose on-enter or on-transition hook lists the state action."
+    },
+    {
+      "id": "ux.actioncomponent.triggers.ux.statetransition",
+      "previous_description": "Defines relationship: ux.actioncomponent triggers ux.statetransition",
+      "description": "Activating the control emits the named UI event that fires the transition and moves the experience from its source state to its destination state.",
+      "evidence": "The control's onClick sends an event, e.g. send('SUBMIT'), whose name matches the transition's event in the state machine definition."
+    },
+    {
+      "id": "ux.actioncomponent.triggers.data-store.storedlogic",
+      "previous_description": "Defines relationship: ux.actioncomponent triggers data-store.storedlogic",
+      "description": "Activating the control causes the database engine to execute the named function, procedure or script.",
+      "evidence": "The handler, or the RPC it calls, invokes the stored logic by name, e.g. supabase.rpc('close_period') or CALL close_period()."
+    },
+    {
+      "id": "ux.actioncomponent.uses.application.applicationfunction",
+      "previous_description": "Defines relationship: ux.actioncomponent uses application.applicationfunction",
+      "description": "The control's handler relies on the application function's internal logic, such as validation, price calculation or formatting, to carry out its operation.",
+      "evidence": "The handler imports the module that implements the application function and calls it."
+    },
+    {
+      "id": "ux.actioncomponent.uses.ux.errorconfig",
+      "previous_description": "Defines relationship: ux.actioncomponent uses ux.errorconfig",
+      "description": "When the control's operation fails, the failure is shown to the user with the notification, severity and message text that the error configuration defines.",
+      "evidence": "The action component's spec references the errorConfig, or its catch block shows a toast with the configured severity and message text."
+    },
+    {
+      "id": "ux.actioncomponent.uses.technology.technologyservice",
+      "previous_description": "Defines relationship: ux.actioncomponent uses technology.technologyservice",
+      "description": "Activating the control depends directly on an infrastructure capability, such as object storage for an upload button or an identity provider for a sign-in button.",
+      "evidence": "The handler calls the platform SDK for that service, e.g. an S3 presigned-URL upload or Auth0 loginWithRedirect()."
+    }
+  ],
+  "notes": "renders componentreference contradicts its definition, which says a reference is not a rendered occurrence. accesses collection and triggers storedlogic bypass the API and application layers. triggers stateaction overlaps triggers statetransition, since state actions run from lifecycle hooks. uses applicationfunction conflicts with the 'invoked internally' definition. realizes businessfunction is weak; a control rarely realizes a function."
+}

@@ -1,0 +1,92 @@
+{
+  "source": "ux.dataconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.064Z",
+  "relationships": [
+    {
+      "id": "ux.dataconfig.accesses.data-store.collection",
+      "previous_description": "Defines relationship: ux.dataconfig accesses data-store.collection",
+      "description": "The data binding names a persistent collection, such as a local or embedded store, as the direct source from which the UI reads records or to which it writes them, without going through an API.",
+      "evidence": "The binding's source configuration names the collection, for example a Firestore collection path, an IndexedDB object store or a table name, inside the component's data hook."
+    },
+    {
+      "id": "ux.dataconfig.aggregates.ux.errorconfig",
+      "previous_description": "Defines relationship: ux.dataconfig aggregates ux.errorconfig",
+      "description": "The data binding includes an error display configuration that dictates how failures to load, save or bind its data are shown to the user, and that configuration may also be shared with other bindings.",
+      "evidence": "The binding declaration contains an onError or error block that references an error config id defining the notification flag, severity and message text."
+    },
+    {
+      "id": "ux.dataconfig.binds-to.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.dataconfig binds-to ux.componentinstance",
+      "description": "The data binding feeds its fetched or stored value, or the field it selects from that value, into the props of one specific component occurrence placed in a view.",
+      "evidence": "The component instance in the view spec carries a dataConfig reference to the binding, or the JSX passes the binding hook's result into that instance's props."
+    },
+    {
+      "id": "ux.dataconfig.binds-to.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.dataconfig binds-to ux.librarycomponent",
+      "description": "The data binding is declared as the default data source of a reusable component definition, so every instance of that component receives the bound data unless the instance overrides it.",
+      "evidence": "The library component definition declares a default dataConfig, or a connected container wraps the component with a store selector or query hook."
+    },
+    {
+      "id": "ux.dataconfig.binds-to.ux.subview",
+      "previous_description": "Defines relationship: ux.dataconfig binds-to ux.subview",
+      "description": "The data binding supplies data at the level of a sub-view region, and that data is shared by the component instances grouped inside it.",
+      "evidence": "The subview spec declares a dataConfig, or the section wrapper component calls a data hook and passes the result to its children through props or context."
+    },
+    {
+      "id": "ux.dataconfig.binds-to.ux.view",
+      "previous_description": "Defines relationship: ux.dataconfig binds-to ux.view",
+      "description": "The data binding provides the page-level data that the whole view needs to render.",
+      "evidence": "The view spec declares a dataConfig, or the route loader or page-level query hook fetches that data for the page component."
+    },
+    {
+      "id": "ux.dataconfig.composes.ux.chartseries",
+      "previous_description": "Defines relationship: ux.dataconfig composes ux.chartseries",
+      "description": "The data binding owns the per-series definitions that map its value and category fields onto plotted mark sets, and those series have no meaning apart from the bound data.",
+      "evidence": "The binding declaration nests series entries whose valueField and categoryField name fields under the binding's selected data path."
+    },
+    {
+      "id": "ux.dataconfig.maps-to.data-model.objectschema",
+      "previous_description": "Defines relationship: ux.dataconfig maps-to data-model.objectschema",
+      "description": "The shape of the bound data at the selected field path corresponds to a domain object schema, so each UI field lines up with one of the schema's declared properties.",
+      "evidence": "The binding's schema or type reference points to the JSON Schema object, or the TypeScript type of the hook result is generated from that schema."
+    },
+    {
+      "id": "ux.dataconfig.maps-to.api.requestbody",
+      "previous_description": "Defines relationship: ux.dataconfig maps-to api.requestbody",
+      "description": "The binding, typically a form binding, maps UI state onto the payload of an API operation's request body, so values the user submits populate its properties.",
+      "evidence": "The form's dataConfig names the target operationId and its field paths match the requestBody schema properties, and the submit handler serializes those fields into the request body."
+    },
+    {
+      "id": "ux.dataconfig.maps-to.api.response",
+      "previous_description": "Defines relationship: ux.dataconfig maps-to api.response",
+      "description": "The binding takes its data from a specific status-code response of an API operation, and its field path selects a value within that response body.",
+      "evidence": "The binding source names the endpoint and expected status, for example a 200 response, and its field path resolves to a property in that response's content schema."
+    },
+    {
+      "id": "ux.dataconfig.maps-to.api.schema",
+      "previous_description": "Defines relationship: ux.dataconfig maps-to api.schema",
+      "description": "The bound data and its selected field path conform to an API schema, either a named or an inline one, that defines the structure the UI expects to receive or send.",
+      "evidence": "The binding references a components/schemas entry, or the bound data is typed with a client model generated from that OpenAPI schema."
+    },
+    {
+      "id": "ux.dataconfig.provides.ux.tablecolumn",
+      "previous_description": "Defines relationship: ux.dataconfig provides ux.tablecolumn",
+      "description": "The binding supplies the row records whose fields the table column displays, sorts and filters.",
+      "evidence": "The table column's field key matches a property path in the binding's data, and the table's rows prop is fed by the binding."
+    },
+    {
+      "id": "ux.dataconfig.realizes.ux.statepattern",
+      "previous_description": "Defines relationship: ux.dataconfig realizes ux.statepattern",
+      "description": "The binding's fetch lifecycle (idle, loading, success, error) is a concrete enactment of a reusable state pattern such as loading/success/error.",
+      "evidence": "The binding declares a statePattern reference, and the query status values (isLoading, isError, data) drive the pattern's state transitions in the component."
+    },
+    {
+      "id": "ux.dataconfig.references.data-model.schemadefinition",
+      "previous_description": "Defines relationship: ux.dataconfig references data-model.schemadefinition",
+      "description": "The binding points by name to a reusable schema definition that documents the domain type of its data, without that definition taking part in fetching.",
+      "evidence": "The binding declaration contains a $ref such as '#/definitions/Order', or a type annotation naming the generated type of that definition."
+    }
+  ],
+  "notes": "accesses data-store.collection contradicts the DataConfig definition, which says fetching belongs to the application layer, and it skips the API layer. realizes statepattern is dubious. composes chartseries arguably belongs to the chart component rather than the binding. Binding to a librarycomponent conflicts with the type-versus-instance distinction. The objectschema maps-to and the schemadefinition references overlap, as do the api.schema and api.response maps-to."
+}

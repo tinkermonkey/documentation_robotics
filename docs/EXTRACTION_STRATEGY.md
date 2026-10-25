@@ -206,9 +206,10 @@ with style, `applicationprocess` has no attributes for trigger/steps/outcome,
 `applicationinterface.protocol` mixes protocols with styles, and `applicationinterface
 depends-on applicationservice` duplicates `serves`.
 
-**In flight:** node-definition proposals for the other 183 types (Batch API), then
-relationship proposals for all 1,611 relationships; both land as reviewable proposal files
-under `cli/scripts/spec-enrich/data/proposals/`, not as spec changes.
+**Proposals complete (2026-10-25):** definitions for all 192 node types and descriptions
+for all 1,611 relationships are in `cli/scripts/spec-enrich/data/proposals/` as reviewable
+files (about $5 via the Batch API), not yet applied beyond the application layer. Every type
+came back with maintainer notes; `data/notes-digest.md` collects them per layer.
 
 ## Sequencing
 

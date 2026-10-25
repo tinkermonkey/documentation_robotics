@@ -1,0 +1,20 @@
+{
+  "source": "product.persona",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.097Z",
+  "relationships": [
+    {
+      "id": "product.persona.realizes.motivation.stakeholder",
+      "previous_description": "Defines relationship: product.persona realizes motivation.stakeholder",
+      "description": "The persona gives a concrete, design-ready form to a stakeholder group by turning that group's abstract interests and concerns into a named archetype whose goals, behaviours and pain points product teams design against.",
+      "evidence": "The persona document or product model cites the stakeholder it represents, and the persona's listed goals and pain points trace to that stakeholder's recorded concerns, drivers or goals in the motivation model."
+    },
+    {
+      "id": "product.persona.serves.business.businessrole",
+      "previous_description": "Defines relationship: product.persona serves business.businessrole",
+      "description": "The persona characterises the typical people who occupy a business role, so product designers use it to shape features and workflows that support whoever fills that position, such as a Claims Adjuster persona informing tools for the Claims Adjuster role.",
+      "evidence": "The persona definition names the business role its archetypal users fill, and user stories or journey maps written for that persona target the activities assigned to that role in the business process model."
+    }
+  ],
+  "notes": "Persona 'serves' BusinessRole is semantically off: a persona does not provide service to a role; it describes the people who fill it. 'associated-with' or 'references' fits better. 'realizes' Stakeholder is also questionable, since a fictional archetype does not implement a stakeholder. Consider 'associated-with' or a dedicated 'represents' predicate."
+}

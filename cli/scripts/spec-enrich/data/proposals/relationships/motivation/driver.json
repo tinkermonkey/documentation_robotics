@@ -1,0 +1,56 @@
+{
+  "source": "motivation.driver",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "motivation.driver.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.driver associated-with motivation.constraint",
+      "description": "The driving condition, such as a new regulation or a budget squeeze, is linked to a restriction on the solution space that exists because of it or bears on it, without implying that one causes or refines the other.",
+      "evidence": "An architecture decision record or constraint register entry cites the driver (e.g. 'GDPR enforcement') as the context or rationale for the stated restriction (e.g. 'customer data must remain in EU regions')."
+    },
+    {
+      "id": "motivation.driver.associated-with.motivation.value",
+      "previous_description": "Defines relationship: motivation.driver associated-with motivation.value",
+      "description": "The driving condition is connected to a benefit that a named stakeholder would gain or lose depending on how the organization responds to it, for example rising order-handling cost linked to the value 'saves customers ten minutes per order'.",
+      "evidence": "A business case, value map or strategy document lists the stakeholder value alongside the driver it responds to, or the value statement explicitly references the driver as its context."
+    },
+    {
+      "id": "motivation.driver.influence.motivation.assessment",
+      "previous_description": "Defines relationship: motivation.driver influence motivation.assessment",
+      "description": "The driving condition prompts or shapes an analytical finding about the current state, such as market pressure leading to an identified capability gap or risk.",
+      "evidence": "A SWOT, gap analysis, risk register or audit report records the finding and names the driver as the condition that triggered or informed the analysis."
+    },
+    {
+      "id": "motivation.driver.influence.motivation.driver",
+      "previous_description": "Defines relationship: motivation.driver influence motivation.driver",
+      "description": "One driving condition intensifies, weakens or gives rise to another, for example accumulating technical debt contributing to rising operating cost.",
+      "evidence": "A strategy paper, driver tree or motivation model shows the first driver cited as a cause or contributing factor in the description of the second."
+    },
+    {
+      "id": "motivation.driver.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.driver influence motivation.goal",
+      "description": "The driving condition motivates stakeholders to set, reprioritize or reshape an intended end state, such as a regulation coming into effect prompting a compliance goal.",
+      "evidence": "A goal statement in a strategy document, OKR set or roadmap cites the driver as its rationale or 'why' section."
+    },
+    {
+      "id": "motivation.driver.influence.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.driver influence motivation.outcome",
+      "description": "The driving condition affects which measurable result the organization targets or what threshold and time frame it sets, for example a compliance deadline fixing the date by which an outcome must be reached.",
+      "evidence": "An outcome definition, KPI target or OKR key result references the driver when justifying its target value or deadline."
+    },
+    {
+      "id": "motivation.driver.influence.motivation.principle",
+      "previous_description": "Defines relationship: motivation.driver influence motivation.principle",
+      "description": "The driving condition leads the organization to adopt or revise a general design rule within a scope, such as vendor lock-in concerns giving rise to a cloud-portability principle.",
+      "evidence": "The principle's rationale or implications section in the architecture principles catalog names the driver as the reason the principle exists."
+    },
+    {
+      "id": "motivation.driver.influence.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.driver influence motivation.requirement",
+      "description": "The driving condition gives rise to or shapes a specific verifiable 'shall' statement the solution must meet, for example a data-retention regulation producing a requirement to purge records after seven years.",
+      "evidence": "The requirement in the backlog or requirements specification carries a traceability link or rationale field pointing to the driver, such as a cited regulation clause."
+    }
+  ],
+  "notes": "The two associated-with links are weak: a driver-to-constraint link is usually causal and would be better expressed as influence, as with goals and requirements. Driver-to-value association is vague and may duplicate paths through goals or outcomes."
+}

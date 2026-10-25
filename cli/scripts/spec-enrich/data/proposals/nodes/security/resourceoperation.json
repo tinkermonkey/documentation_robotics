@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "security.resourceoperation",
+  "previous_description": "A permitted operation that an actor may perform on a secured resource, forming the verb component of a subject-verb-object access control policy. Bound to AccessConditions, RateLimits, and AuditConfig nodes via the security policy model, per NIST SP 800-53 AC-3 (Access Enforcement).",
+  "definition": "An action declared on a single SecureResource (create, read, approve, export, etc.) that the authorization layer can permit or refuse. It carries the access conditions, rate limits and audit settings that apply whenever an actor invokes that action on that resource, and so forms the verb in a subject-verb-object access decision.",
+  "distinguish_from": [
+    {
+      "type": "security.permission",
+      "when": "the element is the grant authorizing a role or actor to perform an action, i.e. who may do it, rather than the action as exposed and guarded on the resource."
+    },
+    {
+      "type": "security.secureresource",
+      "when": "the element is the protected API, table, file or service itself rather than one of the actions that can be performed on it."
+    },
+    {
+      "type": "security.policyaction",
+      "when": "the element is the enforcement response a policy rule produces (deny, log, redirect, mask), not the operation an actor requests."
+    },
+    {
+      "type": "security.accesscondition",
+      "when": "the element is the field-operator-value predicate that must hold before the operation is allowed, rather than the operation it gates."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-3 (Access Enforcement); XACML 3.0 Action attribute category",
+  "code_evidence": [
+    "An authorization check naming both a resource type and an action verb, e.g. @PreAuthorize(\"hasPermission(#id, 'Invoice', 'approve')\") or authorize(user, 'export', report).",
+    "A per-resource list of actions in an authorization schema or policy file, e.g. an Oso/Cedar/OpenFGA resource block with actions = [\"read\", \"update\", \"share\"].",
+    "A controller handler for one verb on one resource wrapped with its own guard, rate-limit and audit-log middleware, e.g. router.post('/orders/:id/approve', requireRole, rateLimit, auditLog, handler)."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what invoking this operation does to the resource and any business significance (e.g. 'Approves a pending invoice for payment'); set it when the operation verb alone does not make the effect or the sensitivity clear."
+    }
+  ],
+  "notes": "Outgoing 'accesses' and 'governs' to secureresource plus incoming 'aggregates' are redundant; keep one. The operation enum diverges from permission.action, which lacks approve, share, export and import; align the two. There is no attribute naming the owning resource, so the type depends on aggregation. rateLimit references api.ratelimit across layers, yet the layer intro claims rate limits are in security.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.199Z"
+}

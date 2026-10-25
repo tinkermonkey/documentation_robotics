@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "api.paths",
+  "previous_description": "A map of URL path patterns to PathItem objects defining the API surface. Path keys use OpenAPI path templating (e.g., /users/{id}) and must begin with '/'. Individual path entries are modeled as relationships to api.pathitem nodes.",
+  "definition": "A single container object within one OpenAPI document that maps each relative URL path template (a key beginning with '/', e.g. /users/{id}) to exactly one PathItem, representing the complete set of endpoints the document exposes. There is one per OpenAPI document, and it does not itself carry operations, servers or metadata.",
+  "distinguish_from": [
+    {
+      "type": "api.pathitem",
+      "when": "the symbol represents one specific URL path pattern and the HTTP methods available on it, rather than the whole collection of paths."
+    },
+    {
+      "type": "api.openapidocument",
+      "when": "the symbol is the root specification object carrying openapi version, info, servers, components and security in addition to the paths map."
+    },
+    {
+      "type": "api.operation",
+      "when": "the symbol is a single HTTP method handler bound to a path, with its own parameters, request body and responses."
+    },
+    {
+      "type": "api.components",
+      "when": "the map holds reusable named definitions (schemas, responses, parameters, etc.) referenced via $ref rather than routable URL paths."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Paths Object",
+  "code_evidence": [
+    "The top-level 'paths:' key in an openapi.yaml/openapi.json file, whose children are keys like '/users/{userId}'.",
+    "A root route table that enumerates all URL patterns of the service, e.g. Django root urls.py urlpatterns, Rails config/routes.rb, or an Express app mounting all routers.",
+    "Framework-generated spec output exposing a paths dictionary, e.g. FastAPI app.openapi()['paths'] or a springdoc/Swashbuckle-generated document's Paths collection."
+  ],
+  "attribute_descriptions": [],
+  "notes": "Several relationships do not match OpenAPI 3.0: the Paths Object holds no servers, tags, externalDocs or rate limits (servers belong to PathItem/Operation); api.components does not contain paths; 'api.operation composes api.paths' inverts containment. The duplicate aggregates/composes edges to api.pathitem should be reduced to composes. Consider allowing x- extension keys.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.203Z"
+}

@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.artifact",
+  "previous_description": "A piece of data that is used or produced in a software development process, or by the deployment and operation of an IT system, such as a source file, executable, script, or configuration file.",
+  "definition": "A passive, physical unit of data, such as a file, container image, package, archive, script or configuration document, that is produced by a build or authoring process and is stored, deployed onto, or read by nodes and system software. It is identified by a name or path, can usually be versioned or hashed, and performs no behavior itself.",
+  "distinguish_from": [
+    {
+      "type": "technology.node",
+      "when": "the thing is the running execution environment, such as a container instance, VM or cluster, rather than the image, package or file that is deployed onto it"
+    },
+    {
+      "type": "technology.systemsoftware",
+      "when": "the thing is the installed platform software providing an execution or storage environment, such as a PostgreSQL engine, Docker daemon or Kafka broker, rather than a distributable binary, image or config file of it"
+    },
+    {
+      "type": "technology.technologyprocess",
+      "when": "the subject is the sequence of steps executed, such as a build, deploy or backup job, rather than the pipeline definition file or the outputs it produces"
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the subject is the externally exposed infrastructure capability, such as object storage or a message queue, rather than the deployable unit that realizes it"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.6.1 Artifact",
+  "code_evidence": [
+    "a Dockerfile, or an image reference with registry/name:tag in a docker-compose, Kubernetes or Helm manifest, that is built and pushed or pulled for deployment",
+    "a build output declared in a manifest or build script, such as a package.json 'main'/'bin', Maven <packaging>jar</packaging>, a setup.py wheel, or a Gradle task producing a .war/.zip",
+    "a configuration or deployment file copied into an image or mounted at runtime, such as application.yaml, nginx.conf, a Kubernetes ConfigMap, a .env template, or a Terraform module consumed by a deployment"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of what the artifact contains, how it is produced (build step or source), and where it is stored or deployed. Set it whenever the name and artifactType alone do not identify the artifact's purpose."
+    }
+  ],
+  "notes": "The artifactType enum overlaps: 'file' subsumes 'script' and 'configuration', and a JAR is both 'library' and 'archive'. 'Executable/binary' is named in the definition but missing from the enum. Consider adding version, location/URI and checksum attributes. The relationship list repeats the artifact-to-artifact relations. The name 'source' risks confusion with artifacts that are themselves source files.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.227Z"
+}

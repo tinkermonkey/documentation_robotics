@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.condition",
+  "previous_description": "A reusable logical expression evaluated against request context (time, location, user attributes, resource state) to determine when a SecurityPolicy rule applies. Distinct from AccessCondition, which is a concrete field+operator+value predicate composed inside a PolicyRule condition chain.",
+  "definition": "A named, reusable boolean expression over request context (time, location, subject attributes, environment or resource state) that is defined once and referenced by one or more PolicyRules or SecurityPolicies to decide whether they apply. It may be a free-form expression or a composition of AccessCondition predicates.",
+  "distinguish_from": [
+    {
+      "type": "security.accesscondition",
+      "when": "the predicate is a single concrete field + operator + value comparison written inline in one rule's condition chain rather than a named expression reused across rules."
+    },
+    {
+      "type": "security.policyrule",
+      "when": "the element carries an effect (permit/deny) and enforcement outcome, not just the applicability test."
+    },
+    {
+      "type": "security.informationright",
+      "when": "the constraint expression is bound to a specific actor and the operations they may perform on an InformationEntity."
+    },
+    {
+      "type": "security.policyaction",
+      "when": "the element describes what happens after a match (deny, alert, mask, redirect) rather than the test that produces the match."
+    }
+  ],
+  "standard_reference": "XACML 3.0 §5.25 Condition element; NIST SP 800-162 ABAC environment conditions (supports NIST SP 800-53 AC-3)",
+  "code_evidence": [
+    "A named predicate function or helper rule (e.g. isBusinessHours(ctx), fromTrustedNetwork(req), rego `allow_if_mfa` helper) referenced by several authorization rules",
+    "A Condition block in a policy document (AWS IAM `Condition`, Azure ABAC condition, Cedar `when` clause) defined once and reused by multiple statements",
+    "A Spring Security SpEL expression or CEL/OPA expression string stored in config and referenced by name from @PreAuthorize annotations or policy rule entries"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "expression",
+      "description": "The boolean expression text in its source language (e.g. SpEL, CEL, Rego, IAM condition JSON, or pseudocode such as 'request.time between 08:00 and 18:00'). Always set this; copy it verbatim from code where possible."
+    },
+    {
+      "name": "description",
+      "description": "A plain-language sentence stating what the condition tests and why policies reference it. Set it when the expression is not self-explanatory to a reviewer."
+    }
+  ],
+  "notes": "The single 'operator' attribute fits a field+value predicate, not a compound expression, and duplicates AccessCondition; consider removing it. The evaluationType enum overlaps (static vs compile-time, dynamic vs runtime), and its description names three phases for four values. A 'language' attribute (SpEL, CEL, Rego) is missing. Confirm that the 'triggers policyaction' relationship should not route through PolicyRule.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

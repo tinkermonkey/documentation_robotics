@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.permission",
+  "previous_description": "An atomic grant authorizing a specific action (e.g., read, write, execute) on a resource within a defined scope. Permissions are assigned to Roles and enforced by SecureResource access control lists. Implements NIST SP 800-53 AC-3 access enforcement and AC-6 least privilege.",
+  "definition": "An atomic authorization grant that pairs one action with one named resource at a stated access scope, independent of any particular principal, and is assigned to Roles and checked at enforcement points such as routes, API operations and UI components. It names what may be done. Who holds it, and under what runtime conditions, is captured elsewhere.",
+  "distinguish_from": [
+    {
+      "type": "security.resourceoperation",
+      "when": "the symbol declares which operations a SecureResource supports, along with that operation's conditions, rate limits and audit bindings, rather than a grantable entitlement that is assigned to roles."
+    },
+    {
+      "type": "security.role",
+      "when": "the symbol is a named bundle of permissions with a privilege level or inheritance, such as 'admin' or 'editor', rather than a single action-on-resource grant."
+    },
+    {
+      "type": "security.informationright",
+      "when": "the grant is bound to a specific actor on an InformationEntity and is qualified by a constraint expression (ABAC), rather than being an actor-independent entitlement handed out via roles."
+    },
+    {
+      "type": "security.policyrule",
+      "when": "the symbol evaluates a condition and yields a permit or deny effect at decision time, rather than naming a static entitlement that the check looks up."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-3 (Access Enforcement); AC-6 (Least Privilege)",
+  "code_evidence": [
+    "Permission identifier constants or enum members such as 'orders:read' or 'INVOICE_DELETE', defined in a central permissions file or seeded into a permissions table by migrations or fixtures.",
+    "Enforcement annotations or guards that take a permission name, such as @PreAuthorize(\"hasAuthority('report.export')\"), @RequiresPermission, a requirePermission('user.update') middleware, or a CASL can('update','Article') rule.",
+    "OAuth scope or role-to-permission mapping entries, for example OpenAPI securitySchemes scopes or a YAML/JSON policy file listing the permissions granted to each role."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Human-readable sentence explaining what the grant allows and why it exists; set it whenever the permission identifier alone is not self-explanatory to auditors."
+    },
+    {
+      "name": "resource",
+      "description": "Identifier of the protected resource the action applies to, ideally the 'resource' name of a security.secureresource (e.g. 'orders' or 'billing-api'), or a wildcard pattern such as 'orders/*' when the grant spans a resource family."
+    }
+  ],
+  "notes": "The scope enum mixes access level (read-only, write, admin) with grant mechanism (delegated, conditional), and overlaps action, so contradictions like scope=admin with action=read are possible. The action enum lacks approve/share/export/import, which ResourceOperation has. The resource attribute should be a reference to SecureResource. Role→Permission has three redundant relationships (aggregates, authorizes, provides).",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

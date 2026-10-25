@@ -1,0 +1,29 @@
+{
+  "spec_node_id": "api.responses",
+  "previous_description": "A map of HTTP status codes (e.g., 200, 404, default) to Response objects describing each possible outcome of an operation. At least one response must be defined per OpenAPI 3.0. Status code ranges (e.g., 2XX) are not supported — only specific numeric codes and 'default' are valid keys.",
+  "definition": "A status-code-keyed map, scoped to exactly one operation, whose keys are HTTP status codes (e.g. '200', '404') or 'default' and whose values are the Response objects describing each possible outcome. It is the container of an operation's outcomes, not any single outcome.",
+  "distinguish_from": [
+    {
+      "type": "api.response",
+      "when": "the element describes one outcome (its description, body content, headers, links) under a single status code rather than the whole set of outcomes for an operation."
+    },
+    {
+      "type": "api.components",
+      "when": "the element is the reusable registry (components.responses) of named, individually $ref-able Response definitions rather than the status-code map attached to one operation."
+    },
+    {
+      "type": "api.operation",
+      "when": "the element is the HTTP method bound to a path that owns the responses map alongside its parameters, request body, security and tags."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Responses Object",
+  "code_evidence": [
+    "A 'responses:' block nested under an HTTP method in an openapi.yaml/json file, with status-code keys such as '200', '404' or 'default' each pointing to a response definition or $ref.",
+    "A Java/Spring handler annotated @ApiResponses({@ApiResponse(responseCode = \"200\", ...), @ApiResponse(responseCode = \"404\", ...)}), or a NestJS handler stacked with several @ApiResponse({status: ...}) decorators.",
+    "A route decorator argument mapping status codes to outcomes, such as FastAPI @app.get(..., responses={404: {...}}) or drf-spectacular @extend_schema(responses={200: Serializer, 404: None})."
+  ],
+  "attribute_descriptions": [],
+  "notes": "Current definition is wrong: OpenAPI 3.0 permits uppercase ranges 1XX-5XX as keys; fix it. The openapidocument→responses and components→responses relationships are invalid (no root Responses; components.responses holds Response objects). aggregates header/schema and references link belong on api.response. Consider a 'statusCodes' attribute listing defined keys.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.198Z"
+}

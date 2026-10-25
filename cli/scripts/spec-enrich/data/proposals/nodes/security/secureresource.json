@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.secureresource",
+  "previous_description": "Represents a named resource subject to security controls, defining the operations that can be performed on it and optional field-level access restrictions. Acts as the resource component in subject-action-resource access control triples per NIST SP 800-53 AC-3.",
+  "definition": "A protected object in an access control model — an API, database, file, service, UI area or stream — named as the target of authorization decisions and owning the set of ResourceOperations permitted on it and any FieldAccessControls over its fields. It is the 'object' of a subject-action-object triple, not the grant, rule or operation applied to it.",
+  "distinguish_from": [
+    {
+      "type": "security.informationentity",
+      "when": "the thing protected is a logical information asset (e.g. customer PII) governed by InformationRight grants and classification, independent of the system resource that stores or exposes it"
+    },
+    {
+      "type": "security.resourceoperation",
+      "when": "the element is a specific verb (read, approve, export) permitted on the resource rather than the resource itself"
+    },
+    {
+      "type": "security.permission",
+      "when": "the element is a grant of an action on a resource assigned to a role, rather than the resource being protected"
+    },
+    {
+      "type": "security.fieldaccesscontrol",
+      "when": "the restriction applies to a single field's masking or redaction inside a resource rather than to the resource as a whole"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-3 (Access Enforcement) — protected object; XACML 3.0 Resource attribute category",
+  "code_evidence": [
+    "A route group, controller or API path prefix wrapped by an authorization guard or middleware (e.g. @PreAuthorize, router.use(requireAuth), [Authorize]) that names the protected resource",
+    "A resource identifier string used as the object argument in permission checks (e.g. can(user, 'update', 'invoice'), enforcer.enforce(sub, 'orders', act)) or as a resource entry in a Casbin/OPA/IAM policy file",
+    "A database table, bucket or topic declared in an IAM/RLS/ACL configuration (e.g. Postgres row-level security policy, S3 bucket policy, Kafka ACL) restricting which principals may operate on it"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "resource",
+      "description": "Canonical identifier of the protected object as used in authorization checks — e.g. an API path pattern ('/api/orders/*'), table name, bucket URI or permission-string resource key; set it to the exact value enforcement code matches against."
+    },
+    {
+      "name": "description",
+      "description": "Free-text explanation of what the resource contains or exposes and why it requires protection; set it when the identifier alone does not convey sensitivity or scope."
+    }
+  ],
+  "notes": "Overlaps with InformationEntity; the spec should state that SecureResource is the system-level container and InformationEntity the logical asset. Permission.resource and AccessCondition reference resources by string rather than by relationship—consider aligning. The type enum lacks 'queue'/'topic' (folded into stream?) and 'object-storage'; no classification attribute exists despite DataClassification governing it.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.250Z"
+}

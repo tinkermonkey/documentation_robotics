@@ -1,0 +1,20 @@
+{
+  "source": "business.product",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.062Z",
+  "relationships": [
+    {
+      "id": "business.product.aggregates.business.businessservice",
+      "previous_description": "Defines relationship: business.product aggregates business.businessservice",
+      "description": "The product bundles the business service as one of the offerings sold or subscribed to as a whole, while the service remains independently defined and may also be packaged into other products.",
+      "evidence": "A product catalog, offering sheet or service portfolio entry lists the named business service among the services included in the product, and the same service appears in its own service catalog definition."
+    },
+    {
+      "id": "business.product.composes.business.contract",
+      "previous_description": "Defines relationship: business.product composes business.contract",
+      "description": "The contract is an integral part of the product, setting out the terms, pricing and service levels under which the product is offered, and it has no standing apart from that product.",
+      "evidence": "The product's terms-and-conditions document, SLA or subscription agreement template is versioned and published only as part of that product's definition, for example in the product catalog or a CPQ configuration."
+    }
+  ],
+  "notes": ""
+}

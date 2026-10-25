@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.stateactiontemplate",
+  "previous_description": "A parameterizable, reusable definition of an action to execute during state transitions. StateActionTemplate is the definition; StateAction is the concrete usage bound to a specific ExperienceState and lifecycle hook. Example: a 'scroll-to-top' template with a 'targetId' parameter, instantiated as a StateAction on multiple states.",
+  "definition": "A reusable, parameterized definition of a state-machine side-effect operation that is not bound to any particular ExperienceState or lifecycle hook. It declares the operation kind and its named input parameters, and StateActions instantiate it with concrete values on specific states.",
+  "distinguish_from": [
+    {
+      "type": "ux.stateaction",
+      "when": "the action is attached to a specific ExperienceState or StateTransition with a lifecycle hook (on-enter, on-exit, on-transition) and concrete argument values, even if it reuses a template."
+    },
+    {
+      "type": "ux.actionpattern",
+      "when": "the reusable thing is a user-initiated interaction recipe defined by input trigger (click, swipe, voice, keyboard) and user-facing feedback (toast, modal), not a side effect run by the state machine."
+    },
+    {
+      "type": "ux.transitiontemplate",
+      "when": "the reusable definition describes motion or animation (fade, slide, duration, easing) applied during a state or page change rather than an operation executed."
+    },
+    {
+      "type": "ux.statepattern",
+      "when": "the reusable unit is a whole state machine of ExperienceStates and transitions rather than a single action used inside one."
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "Named, parameterized actions declared once in a state-machine options block (e.g. XState setup({ actions: { scrollTo: (_, params) => ... } })) and referenced by name from the entry/exit arrays of several states.",
+    "An action-creator or effect factory taking arguments (e.g. focusField(fieldId), trackEvent(eventName)) exported from a shared module and called from the lifecycle hooks of multiple steps, screens or states.",
+    "A design-system or state-library catalogue entry (JSON/YAML or docs page) listing a reusable state action with a parameter table of name, type and default value."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what the templated action does and what each parameter controls; set it whenever the template name alone does not make its behaviour and side effects clear."
+    }
+  ],
+  "notes": "The action enum (navigate|submit|open|close|dispatch|validate) has no values for the scroll-to-top and focus-first-field examples; consider adding scroll and focus. 'implements' and 'provides' to stateaction plus incoming 'specializes' are redundant, and 'implements' points the wrong way. The definition says 'state transitions' but on-enter/on-exit hooks also apply. The parameters item schema is unspecified.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.239Z"
+}

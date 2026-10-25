@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologyprocess",
+  "previous_description": "A sequence of technology behaviors that achieves a specific technology result, such as a deployment pipeline, backup job, certificate renewal workflow, or container orchestration sequence.",
+  "definition": "A technology behavior element that is an ordered sequence of automated infrastructure steps with a defined start (trigger) and a defined end result, performed by a node or system software, such as a CI/CD deployment pipeline, scheduled backup job, certificate renewal workflow, or container rollout sequence.",
+  "distinguish_from": [
+    {
+      "type": "technology.technologyfunction",
+      "when": "the behavior is a continuously available capability grouped by what the node can do (e.g. load balancing, replication, log rotation) rather than a sequence of steps with a start, an order and a completion."
+    },
+    {
+      "type": "technology.technologyinteraction",
+      "when": "the behavior can only be performed jointly by two or more collaborating nodes (e.g. a distributed commit or failover handshake) rather than run as a sequence by a single performer."
+    },
+    {
+      "type": "technology.technologyevent",
+      "when": "the thing modelled is the instantaneous trigger or outcome, such as a cron schedule firing or a deployment-completed signal, rather than the steps executed in response."
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the thing modelled is the externally visible infrastructure capability offered to consumers rather than the internal sequence of steps that realizes it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.3.2 Technology Process",
+  "code_evidence": [
+    "A CI/CD pipeline definition such as .github/workflows/*.yml, .gitlab-ci.yml, Jenkinsfile or azure-pipelines.yml with ordered jobs/stages (build, test, deploy).",
+    "A scheduled infrastructure job such as a Kubernetes CronJob manifest, crontab entry or systemd timer that runs a backup, cleanup or certificate-renewal script.",
+    "An orchestration workflow such as an Ansible playbook, Argo Workflow/Argo Rollouts spec, Terraform apply runbook or Helm hook sequence that executes named infrastructure steps in order."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the process's purpose, its trigger, its main ordered steps and its end result; set it whenever the pipeline or job name alone does not convey what it achieves."
+    }
+  ],
+  "notes": "No attribute captures trigger kind (scheduled, event-driven, manual) or schedule expression, which code reliably shows (cron, workflow 'on:'); consider adding 'triggerType' and 'schedule'. Boundary with application-layer ApplicationProcess is unclear for business batch jobs; state that only infrastructure-oriented sequences (build, deploy, backup, provisioning) belong here.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.233Z"
+}

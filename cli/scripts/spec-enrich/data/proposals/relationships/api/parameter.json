@@ -1,0 +1,32 @@
+{
+  "source": "api.parameter",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.062Z",
+  "relationships": [
+    {
+      "id": "api.parameter.references.api.example",
+      "previous_description": "Defines relationship: api.parameter references api.example",
+      "description": "The parameter points to a named sample value that illustrates a concrete input a client might send in that path, query, header or cookie slot, without constraining what is accepted.",
+      "evidence": "The Parameter Object's `examples` map in the OpenAPI document contains an entry, either inline or a `$ref` to `#/components/examples/...`, naming that example."
+    },
+    {
+      "id": "api.parameter.references.api.operation",
+      "previous_description": "Defines relationship: api.parameter references api.operation",
+      "description": "The parameter identifies the HTTP method-and-path operation whose requests carry it as an input outside the request body.",
+      "evidence": "The operation's `parameters` array in the OpenAPI document lists the parameter inline or by `$ref` to `#/components/parameters/...`, or the parameter is declared on the path item that holds the operation."
+    },
+    {
+      "id": "api.parameter.references.api.schema",
+      "previous_description": "Defines relationship: api.parameter references api.schema",
+      "description": "The parameter points to the data-shape definition that constrains the type, format and allowed values of the value carried in its path, query, header or cookie location.",
+      "evidence": "The Parameter Object's `schema` field, or the schema inside its single-entry `content` map, is inline or a `$ref` to `#/components/schemas/...` resolving to that schema."
+    },
+    {
+      "id": "api.parameter.references.api.tag",
+      "previous_description": "Defines relationship: api.parameter references api.tag",
+      "description": "The parameter is associated with a documentation tag that categorizes it alongside the operations grouped under that label.",
+      "evidence": "A vendor extension such as `x-tags` on the Parameter Object, or documentation tooling configuration, names the tag; standard OpenAPI 3.0 provides no tags field on parameters."
+    }
+  ],
+  "notes": "parameter→operation is inverted: operations contain parameters, so operation composes/aggregates parameter fits better. parameter→tag has no basis in OpenAPI 3.0, since Parameter Objects have no tags field; consider removing it. parameter→schema would be more precise as constrained-by than references."
+}

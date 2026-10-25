@@ -1,0 +1,44 @@
+{
+  "source": "api.oauthflow",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.070Z",
+  "relationships": [
+    {
+      "id": "api.oauthflow.aggregates.api.tag",
+      "previous_description": "Defines relationship: api.oauthflow aggregates api.tag",
+      "description": "The OAuth grant configuration is treated as grouping the documentation tags whose operations are protected by the scopes this grant can issue, so tag categories can be listed under the grant that authorizes them.",
+      "evidence": "Every operation carrying a given tag declares a security requirement naming the flow's parent scheme with scopes defined in that flow's scopes map, or a vendor extension on the flow lists those tag names."
+    },
+    {
+      "id": "api.oauthflow.associated-with.api.oauthflows",
+      "previous_description": "Defines relationship: api.oauthflow associated-with api.oauthflows",
+      "description": "The OAuth grant configuration is the value held under one grant-type field (implicit, password, clientCredentials or authorizationCode) of the flows container, and that field gives the configuration its grant type.",
+      "evidence": "In the OpenAPI document, the flow object appears directly under a key such as 'clientCredentials' or 'authorizationCode' inside a securityScheme's 'flows' object."
+    },
+    {
+      "id": "api.oauthflow.associated-with.api.ratelimit",
+      "previous_description": "Defines relationship: api.oauthflow associated-with api.ratelimit",
+      "description": "The throttling policy applies to traffic tied to this grant, either capping calls to the grant's token or authorization endpoints or counting requests per OAuth client or token issued through it.",
+      "evidence": "The rate-limit definition targets the flow's tokenUrl or authorizationUrl path, or its counting key is the OAuth client_id or token subject issued by that grant, as shown in gateway or extension configuration."
+    },
+    {
+      "id": "api.oauthflow.references.api.server",
+      "previous_description": "Defines relationship: api.oauthflow references api.server",
+      "description": "The grant's authorization, token or refresh endpoint URL points at, or is resolved relative to, a base URL declared by the server entry, without the grant depending on that server's operations.",
+      "evidence": "The flow's authorizationUrl, tokenUrl or refreshUrl is relative and resolves against the server's url, or is absolute and shares the host and base path declared in the 'servers' array."
+    },
+    {
+      "id": "api.oauthflow.serves.api.operation",
+      "previous_description": "Defines relationship: api.oauthflow serves api.operation",
+      "description": "The grant issues access tokens carrying the scopes the operation requires, so clients obtain authorization to call that method-path pair through this grant.",
+      "evidence": "The operation's 'security' entry, or the inherited root-level one, names the flow's parent oauth2 scheme and lists scope names that appear as keys in this flow's 'scopes' map."
+    },
+    {
+      "id": "api.oauthflow.serves.api.securityscheme",
+      "previous_description": "Defines relationship: api.oauthflow serves api.securityscheme",
+      "description": "The grant supplies the concrete endpoint URLs and scope catalogue that make the oauth2 security scheme usable for one grant type, so clients can actually obtain credentials under that scheme.",
+      "evidence": "Under components.securitySchemes, the oauth2 scheme's 'flows' object contains this flow, with its tokenUrl, authorizationUrl and scopes."
+    }
+  ],
+  "notes": "aggregates tag is dubious: OAuthFlow has no structural link to tags, only an indirect one via scopes on operations. associated-with oauthflows understates a real composition: the container owns the flow. serves securityscheme is also really composition via OAuthFlows, not a service. associated-with ratelimit lacks any spec basis beyond gateway conventions."
+}

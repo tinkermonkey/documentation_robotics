@@ -1,0 +1,32 @@
+{
+  "source": "product.workflowstep",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.080Z",
+  "relationships": [
+    {
+      "id": "product.workflowstep.flows-to.product.workflowstep",
+      "previous_description": "Defines relationship: product.workflowstep flows-to product.workflowstep",
+      "description": "Completing this step of the user journey leads the user directly on to the next step, establishing the order and branching of actions within the same user workflow.",
+      "evidence": "The workflow definition in product documentation lists the destination step as the successor (or a conditional branch) of the source step within the same UserWorkflow, e.g. via an ordered sequence or a 'next' field."
+    },
+    {
+      "id": "product.workflowstep.serves.product.persona",
+      "previous_description": "Defines relationship: product.workflowstep serves product.persona",
+      "description": "The action or experience described by this step is carried out by, and delivers its observable result to, the named user archetype at that point in the journey.",
+      "evidence": "The workflow or step specification names the persona as the actor or beneficiary of the step, e.g. a persona field or a 'As <persona>, I…' statement in the journey map."
+    },
+    {
+      "id": "product.workflowstep.uses.product.capability",
+      "previous_description": "Defines relationship: product.workflowstep uses product.capability",
+      "description": "Accomplishing this step depends on the product possessing the stated ability, such as payment processing or full-text search, regardless of which feature delivers it.",
+      "evidence": "The step definition or journey map annotates the step with the capability it relies on, or a capability map traces the capability to the step's observable result."
+    },
+    {
+      "id": "product.workflowstep.uses.product.feature",
+      "previous_description": "Defines relationship: product.workflowstep uses product.feature",
+      "description": "The user performs this step by directly invoking or perceiving the specific user-facing feature, such as a command, setting or behaviour, that makes the action possible.",
+      "evidence": "The product spec or user story for the step references the feature by identifier, or the feature's acceptance criteria cite the step as a usage scenario."
+    }
+  ],
+  "notes": "The two 'uses' relationships overlap: features realise capabilities, so step→capability can usually be derived from step→feature→capability. Keep the capability link only for steps whose feature is not yet defined. 'serves' toward a persona is loose, since the persona performs the step; 'performed-by' would read more naturally."
+}

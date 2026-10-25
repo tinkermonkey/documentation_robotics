@@ -5,6 +5,7 @@
  *
  *   bun propose-relationships.ts --layer product --sync
  *   bun propose-relationships.ts --submit [--layer <id>] | --status | --fetch
+ *   bun propose-relationships.ts --source testing.testcasesketch --sync --force   # redo one group
  *
  * Uses enriched node definitions from data/proposals/nodes when present.
  * Output: data/proposals/relationships/<layer>/<sourcetype>.json
@@ -132,9 +133,11 @@ async function main() {
     return;
   }
 
+  const sourceFilter = flagStr(flags, "source");
   const sources = [...bySource.keys()]
     .map((id) => nodesById.get(id))
     .filter((n): n is NodeSchema => !!n)
+    .filter((n) => !sourceFilter || n.specNodeId === sourceFilter)
     .filter((n) => flags.force || !existsSync(proposalFile(n)))
     .filter((n) => flags.all || (bySource.get(n.specNodeId) ?? []).some((r) => BOILERPLATE_REL.test(r.description) || !r.description.trim()))
     .slice(0, limit);
