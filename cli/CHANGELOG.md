@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implementation layers toward intent layers). Direction is a property of the predicate, not of the
   layers (`spec/DESIGN_CHARTER.md`); the validator keeps its existence and declared-external-model
   checks. Models that validated before still validate; references previously rejected for direction
-  now pass.
+  now pass. The relationship classifier no longer warns "violates layer hierarchy" for cross-layer
+  relationships, and the report `layerComplianceScore` now measures the share of cross-layer
+  relationships whose predicate is in the catalog instead of the share running "higher -> lower".
 
 ## [0.2.0] - 2026-09-16
 

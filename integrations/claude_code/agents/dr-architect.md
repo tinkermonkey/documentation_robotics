@@ -44,7 +44,7 @@ You are the **DR Architect** — a unified expert in Documentation Robotics. You
 12. Testing      — VERIFY (ISP coverage model — 17 entity types)
 ```
 
-Cross-layer direction: higher layers reference lower layers (e.g., API references Application, Application references Data Model).
+Cross-layer direction follows the predicate, not the layer order (`spec/DESIGN_CHARTER.md`): an API operation `realizes` an application function, an application function `accesses` a data object, an object schema `maps-to` a data-store collection. The relationship catalog is the authority on valid source/predicate/destination triples.
 
 ## Intent Routing
 

@@ -157,7 +157,7 @@ A "missing schema" is a relationship type that:
 - Would be meaningfully instantiated in real codebases regularly — not just theoretically possible
 - Does NOT yet exist in the spec for this layer pair
 - Enables traceability, governance, or cross-cutting concern validation across this boundary
-- Follows the correct reference direction: ${concreteLayer} → ${abstractLayer}
+- Runs in the direction its predicate defines (spec/DESIGN_CHARTER.md); most cross-layer predicates (realizes, serves, satisfies, supports) run ${concreteLayer} → ${abstractLayer}, while maps-to and constrained-by run the other way
 
 ## The 13-Layer Model (concrete → abstract)
 

@@ -119,7 +119,7 @@ pass on most commits).
 ## Phase 0 results (2026-10-24)
 
 Three corpora, gold labels from Opus 5.5 (high effort, full card context, with the design
-charter in context since 2026-10-26; the pre-charter labels are kept as `gold@baseline`),
+charter in context since 2026-10-25; the pre-charter labels are kept as `gold@baseline`),
 classifiers see a 40-line state card. Layer accuracy / end-to-end type accuracy against gold:
 
 | corpus    | cards | clef          | clef-flash    | claude-sonnet | claude-haiku  |
@@ -255,7 +255,7 @@ classification; the Phase 0 gold stands. The relabelling did settle one boundary
 found: with the charter, Opus moved 20 TypeScript interfaces on dr-cli from
 `data-model.objectschema` to `application.dataobject` (in-code data structures are application
 data objects; published schemas are data-model), which is the precedence rule claim
-`application.dataobject#4` asked for. The charter-labelled set is the reference gold from 2026-10-26 (`gold.jsonl`; the
+`application.dataobject#4` asked for. The charter-labelled set is the reference gold from 2026-10-25 (`gold.jsonl`; the
 pre-charter labels are `gold@baseline.jsonl`); all tables in this document use it. For triage
 the summary is the better choice: it matches evidence-only accuracy, raises mean probability on
 the gold answer for Clef and Sonnet, and costs a fifth more than no charter, where the full text
@@ -271,7 +271,7 @@ came back with maintainer notes; `data/notes-digest.md` collects them per layer.
 | Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                              | Status                   |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
 | 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above. | done 2026-10-25          |
-| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built and piloted on the application layer; proposals for all other layers in flight. See "Phase 1 status".                                                                                                                                                                                                 | in progress (2026-10-25) |
+| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; applied to the application layer only (type-given-layer on dr-cli 68.5% to 82.3%); 1,462 maintainer-note claims triaged. See "Phase 1 status".                                                                                   | in progress (2026-10-25) |
 | 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`.                                                                                                                                                                                                                                         | planned                  |
 | 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                 | planned                  |
 | -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                | after phase 1            |

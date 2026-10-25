@@ -98,7 +98,7 @@ relationship catalog are valid; the CLI enforces this and suggests valid alterna
 - **A defect** is a schema that contradicts itself or its standard, loses information
   modellers need, makes the CLI reject or mis-suggest valid models, or declares one concept in
   two places.
-- **Working as designed** is a documented, deliberate adaptation (the layer direction rule, the
+- **Working as designed** is a documented, deliberate adaptation (predicate-defined direction, the
   spec's own predicate vocabulary, the uniform node form) or optionality that reflects real
   variation among instances (a view may be routable or not; a service may be synchronous or
   not).

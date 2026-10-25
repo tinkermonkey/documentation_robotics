@@ -155,10 +155,11 @@ describe("ChangesetValidator - Validation on Projected Models", () => {
     ).toBe(true);
   });
 
-  it("should enforce higher->lower layer reference constraint", async () => {
-    const changeset = await stagingManager.create("test-layer-direction", "Layer direction test");
+  it("should reject a cross-layer reference to a non-existent element", async () => {
+    const changeset = await stagingManager.create("test-layer-direction", "Cross-layer reference test");
 
-    // Stage API layer element referencing motivation layer (lower -> higher, invalid)
+    // Stage a data-model element referencing a motivation element that does not exist.
+    // Direction is not checked (it follows the predicate, spec/DESIGN_CHARTER.md); existence is.
     await stagingManager.stage(changeset.id!, {
       elementId: "data-model-user",
       layerName: "data-model",
@@ -167,13 +168,13 @@ describe("ChangesetValidator - Validation on Projected Models", () => {
         id: "data-model-user",
         type: "entity",
         name: "User",
-        references: ["motivation-project-users"], // Invalid: lower to higher
+        references: ["motivation-project-users"], // Invalid: target does not exist
       },
     });
 
     const validation = await validator.validateChangeset(model, changeset.id!);
 
-    // Should fail reference validation for invalid layer direction
+    // Should fail reference validation because the target is missing
     expect(validation.isValid()).toBe(false);
     expect(
       validation.errors.some((e) => e.message.includes("layer") || e.message.includes("reference"))
