@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationProcess",
-  "description": "An ordered sequence of application behaviors performed by an application component to achieve a specific operational result.",
+  "description": "An internal behaviour element of an application component consisting of a fixed, ordered series of steps (calls, transformations, state transitions) that runs from a start trigger to a defined end result. What sets it apart is that the sequence and the outcome are explicit, as in a workflow, saga, pipeline or multi-step orchestration method, rather than a grouping of related capabilities. Use ApplicationFunction instead when the behaviour is a cohesive grouping of capability, such as a module of related operations or a single-purpose routine, with no meaningful step order or defined end-to-end outcome. Use ApplicationService instead when the symbol is the externally consumable entry point or contract (a service method or endpoint offered to consumers) rather than the internal step sequence that fulfils it. Use ApplicationInteraction instead when the ordered behaviour is jointly performed by two or more components, for example a choreographed exchange, and cannot be attributed to a single component. Use ApplicationEvent instead when the symbol represents the occurrence or state change that starts or ends the sequence (an event class or message type), not the steps themselves.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the process: its triggering event, its ordered main steps, and the result it produces. Set it whenever the step sequence is not evident from the element name, preferably drawn from code comments or workflow docs."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.3 Application Process (application internal behaviour element)",
+  "x-dr-evidence": [
+    "A workflow, saga or state-machine definition (e.g. Temporal/Camunda/Step Functions workflow, Spring State Machine, a Saga class) declaring ordered steps or states with transitions",
+    "An orchestration method that calls several functions or services in a fixed sequence with intermediate results passed between steps and a final result or status returned (e.g. processOrder(): validate → reserve → charge → ship)",
+    "A pipeline or job definition (ETL job, batch Step/Job configuration, chain of handlers/middleware registered in order) that is started by a trigger such as a scheduled job, a message consumer or an event handler"
+  ],
+  "x-dr-distinguish": {
+    "application.applicationfunction": "the behaviour is a cohesive grouping of capability, such as a module of related operations or a single-purpose routine, with no meaningful step order or defined end-to-end outcome",
+    "application.applicationservice": "the symbol is the externally consumable entry point or contract (a service method or endpoint offered to consumers) rather than the internal step sequence that fulfils it",
+    "application.applicationinteraction": "the ordered behaviour is jointly performed by two or more components, for example a choreographed exchange, and cannot be attributed to a single component",
+    "application.applicationevent": "the symbol represents the occurrence or state change that starts or ends the sequence (an event class or message type), not the steps themselves"
   }
 }

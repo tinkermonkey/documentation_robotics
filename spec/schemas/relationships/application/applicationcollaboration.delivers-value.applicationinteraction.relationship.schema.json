@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcollaboration delivers-value Applicationinteraction",
-  "description": "Defines relationship: application.applicationcollaboration delivers-value application.applicationinteraction",
+  "description": "The collaboration is the joint actor whose members together carry out the interaction, so the interaction's outcome is the value the collaboration exists to produce.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A saga or choreography definition, such as a Temporal workflow, Step Functions state machine, or event-flow document, has every step executed by member components of the collaboration."
+  ]
 }

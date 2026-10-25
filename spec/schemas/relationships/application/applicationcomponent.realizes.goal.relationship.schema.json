@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent realizes Goal",
-  "description": "Defines relationship: application.applicationcomponent realizes motivation.goal",
+  "description": "Building and operating the component directly brings about the desired end state that the goal expresses.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Architecture decision records or roadmap documents cite the component as the delivery vehicle for the goal, with metrics attributing goal progress to it."
+  ]
 }

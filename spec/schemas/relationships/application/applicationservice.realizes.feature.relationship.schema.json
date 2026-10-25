@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice realizes Feature",
-  "description": "Defines relationship: application.applicationservice realizes product.feature",
+  "description": "The application service supplies the operations that make the user-visible product feature work.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The feature's spec, ticket or feature flag is wired to the service's endpoints, e.g. the frontend feature calls the service's API and the feature toggle gates its routes."
+  ]
 }

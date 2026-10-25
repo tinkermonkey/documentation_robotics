@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice satisfies Constraint",
-  "description": "Defines relationship: application.applicationservice satisfies motivation.constraint",
+  "description": "The application service is designed and operated within the limits that the constraint imposes, such as a mandated technology, region or latency budget.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Deployment manifests, technology choices or compliance checks for the service demonstrably conform to the constraint, e.g. data-residency settings restricting it to the required region."
+  ]
 }

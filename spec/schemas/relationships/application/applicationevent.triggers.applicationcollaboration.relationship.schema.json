@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationevent triggers Applicationcollaboration",
-  "description": "Defines relationship: application.applicationevent triggers application.applicationcollaboration",
+  "description": "Occurrence of the application event sets off the joint behaviour carried out by the group of components named by the application collaboration, such as a choreographed saga across several services.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Every component in the collaboration has a subscriber or consumer configuration bound to the event's topic or channel that starts their coordinated handling, for example in AsyncAPI specs or message-broker subscription config."
+  ]
 }

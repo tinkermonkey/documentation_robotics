@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess depends-on Applicationfunction",
-  "description": "Defines relationship: application.applicationprocess depends-on application.applicationfunction",
+  "description": "One or more ordered steps of the workflow call the internal application function to perform a piece of work, so the process cannot finish without that capability.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A step method or activity in the pipeline, saga or workflow code calls the function's internal module or class method, visible in the call graph or activity registration."
+  ]
 }

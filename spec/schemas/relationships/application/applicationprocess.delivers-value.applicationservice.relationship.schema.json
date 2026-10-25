@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess delivers-value Applicationservice",
-  "description": "Defines relationship: application.applicationprocess delivers-value application.applicationservice",
+  "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service's public operation (e.g. an API handler or service-interface method) delegates its work to the workflow, saga or pipeline entry point and returns that process's end result to the caller."
+  ]
 }

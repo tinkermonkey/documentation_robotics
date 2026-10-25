@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationInterface",
-  "description": "Point of access where application service is available",
+  "description": "An active-structure access point owned by an application component, such as a mounted controller, gRPC server binding, GraphQL endpoint or message-channel listener, through which that component's application services are reachable by users or other components over a specific application-level protocol. It is the channel itself, not the behaviour offered through it and not the formal contract document describing it. Use ApplicationService instead when the element describes the externally visible behaviour or functionality offered, such as 'order placement', independent of the endpoint, protocol or channel through which it is reached. Use ApplicationComponent instead when the symbol is the deployable or replaceable module, service or package as a whole, rather than one of the access points it provides. Use ApplicationInteraction instead when the symbol represents joint behaviour carried out by two or more components exchanging messages, rather than the single access point one component offers. Use ApplicationFunction instead when the symbol is internal handler or business logic invoked behind the endpoint, rather than the endpoint binding or adapter itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the access point: which component provides it, its base path, address or channel name, the services reachable through it, and any notable constraints. Set it whenever the name and protocol alone do not identify the endpoint."
         },
         "protocol": {
           "type": "string",
@@ -45,5 +46,17 @@
       "required": ["protocol"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.2.3 Application Interface",
+  "x-dr-evidence": [
+    "A controller or router class that groups route handlers under a base path and is mounted on a web server, such as a Spring @RestController with @RequestMapping(\"/orders\"), an Express Router passed to app.use('/orders', ...), or a FastAPI APIRouter included in the app.",
+    "A gRPC servicer or GraphQL schema/resolver set registered on a server at startup, such as add_OrderServiceServicer_to_server(...) or an Apollo server exposing /graphql.",
+    "A message or socket entry point bound to a named channel in code or config, such as a @RabbitListener(queues=\"orders\") consumer, an AMQP queue binding in application.yml, or a WebSocket endpoint handler (@ServerEndpoint, socket.io namespace)."
+  ],
+  "x-dr-distinguish": {
+    "application.applicationservice": "the element describes the externally visible behaviour or functionality offered, such as 'order placement', independent of the endpoint, protocol or channel through which it is reached.",
+    "application.applicationcomponent": "the symbol is the deployable or replaceable module, service or package as a whole, rather than one of the access points it provides.",
+    "application.applicationinteraction": "the symbol represents joint behaviour carried out by two or more components exchanging messages, rather than the single access point one component offers.",
+    "application.applicationfunction": "the symbol is internal handler or business logic invoked behind the endpoint, rather than the endpoint binding or adapter itself."
   }
 }

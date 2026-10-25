@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess depends-on Applicationevent",
-  "description": "Defines relationship: application.applicationprocess depends-on application.applicationevent",
+  "description": "The workflow needs the application event to occur before it can start or move past a waiting step, so the event acts as its start trigger or a resume signal.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The workflow definition has a start trigger, subscription or wait-for-signal step bound to the named event type, such as a message listener or saga start handler keyed on that event."
+  ]
 }

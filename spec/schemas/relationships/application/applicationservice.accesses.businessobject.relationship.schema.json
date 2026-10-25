@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice accesses Businessobject",
-  "description": "Defines relationship: application.applicationservice accesses business.businessobject",
+  "description": "The application service reads, creates or updates the business-level information, such as an order, invoice or contract, that its operations act upon on behalf of consumers.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service's operation signatures or handler code read or persist the entity that the business model documents as that business object, e.g. an OrderService.submit method that writes the Order record."
+  ]
 }

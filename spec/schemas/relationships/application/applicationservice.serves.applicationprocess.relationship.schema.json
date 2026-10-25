@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice serves Applicationprocess",
-  "description": "Defines relationship: application.applicationservice serves application.applicationprocess",
+  "description": "One or more steps of the application process call the application service to obtain the results the sequence needs.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The workflow, saga or pipeline definition includes a step that invokes the service's operation, e.g. a Temporal activity or step function task targeting its endpoint."
+  ]
 }

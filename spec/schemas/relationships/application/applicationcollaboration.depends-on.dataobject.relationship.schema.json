@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcollaboration depends-on Dataobject",
-  "description": "Defines relationship: application.applicationcollaboration depends-on application.dataobject",
+  "description": "The collaboration's members must share and agree on the data object, such as a common event payload or saga state record, to coordinate their joint work.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A shared contract package, such as a protobuf message or Avro schema, is imported by multiple member components and exchanged between them during the collaborative flow."
+  ]
 }

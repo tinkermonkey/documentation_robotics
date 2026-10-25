@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction depends-on Applicationevent",
-  "description": "Defines relationship: application.applicationfunction depends-on application.applicationevent",
+  "description": "The application function cannot carry out its work unless the application event occurs, because it reacts to that event or needs the state change the event signals.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The function is registered as a listener, subscriber or handler for the event type, through a decorator, a message-consumer binding or an event-bus subscription."
+  ]
 }

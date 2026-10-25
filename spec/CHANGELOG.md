@@ -49,6 +49,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   policy) were always correct. Each predicate carries its own direction; the catalog is the authority
   on valid source/predicate/destination triples; traceability to motivation is a coverage property for
   audits, not a direction prohibition.
+- **Application-layer definitions enriched** (first output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`). All nine application node types now carry an operational
+  genus-and-differentia definition followed by "Use <sibling> instead when ..." distinctions,
+  plus `x-dr-standard` (ArchiMate 3.2 section), `x-dr-evidence` (three observable code signals)
+  and `x-dr-distinguish`; the previously undocumented `documentation` attributes are described.
+  All 87 relationships whose source is an application type have a real `description` (what it
+  means in the domain) and `x-dr-evidence` (what in code or configuration proves it), replacing
+  `Defines relationship: ...`. The compiled `spec/dist` now carries relationship `description`
+  and `evidence`; previously relationships compiled to flat data with no description.
 - **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
   Feature that did not exist in the catalog; it now matches the relationship schemas added above.
 

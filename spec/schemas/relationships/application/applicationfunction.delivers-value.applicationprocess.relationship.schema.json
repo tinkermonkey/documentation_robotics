@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction delivers-value Applicationprocess",
-  "description": "Defines relationship: application.applicationfunction delivers-value application.applicationprocess",
+  "description": "The application function contributes a capability that the application process relies on to reach its defined end result, so the function's output is part of what makes the process worthwhile.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A step in the workflow, saga or orchestration method calls the function's entry point, and design documentation credits the function with producing part of the process outcome."
+  ]
 }

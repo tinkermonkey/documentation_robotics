@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcollaboration Aggregates Applicationcomponent",
-  "description": "Defines relationship: application.applicationcollaboration aggregates application.applicationcomponent",
+  "description": "The collaboration counts the component as one of its participating members, while the component stays independently deployable and may also belong to other collaborations.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A docker-compose file, Helm umbrella chart, or architecture document lists the component as a member service of the named collaboration, for example among the declared participants of a saga."
+  ]
 }

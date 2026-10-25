@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice flows-to Applicationservice",
-  "description": "Defines relationship: application.applicationservice flows-to application.applicationservice",
+  "description": "Data or control produced by the source application service is passed on to the destination application service as the next step in an end-to-end interaction.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The source service publishes an event, message or response that the destination service consumes, as shown in queue/topic subscriptions, workflow definitions or distributed traces linking the two."
+  ]
 }

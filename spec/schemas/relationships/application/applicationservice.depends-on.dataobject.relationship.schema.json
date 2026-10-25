@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice Depends On Dataobject",
-  "description": "Defines relationship: application.applicationservice depends-on application.dataobject",
+  "description": "The application service requires the data structure to exist and keep its shape in order to function, so changes to the data object break the service contract.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service's API schema or code imports and uses the data object type such that compilation or contract tests fail if the type is removed or altered."
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinterface depends-on Applicationservice",
-  "description": "Defines relationship: application.applicationinterface depends-on application.applicationservice",
+  "description": "The interface requires the application service's operations to be available in order to fulfil the calls it accepts on its protocol.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The controller or resolver injects the service class and invokes its operations, with the dependency declared in the DI container or constructor signature."
+  ]
 }

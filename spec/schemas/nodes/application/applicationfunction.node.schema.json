@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationFunction",
-  "description": "Automated behavior performed by an application component for internal purposes, not directly exposed as a service to external consumers.",
+  "description": "A unit of automated behavior performed by a single application component, grouped by the kind of work or capability it covers rather than by execution order or trigger, and invoked from inside the system rather than offered as a contract to external consumers. Use ApplicationProcess instead when the behavior is an ordered sequence of steps leading to a defined operational result, such as a workflow, saga, pipeline or multi-step job, rather than a capability grouping with no inherent order. Use ApplicationService instead when the behavior is the externally visible, consumer-facing offering, such as a public service-layer method or endpoint-backed capability. The function is the internal behavior that realizes it. Use ApplicationInteraction instead when the behavior can only be performed jointly by two or more components, such as a request-reply exchange or a publish-subscribe handshake, rather than by one component alone. Use ApplicationComponent instead when the symbol is the deployable or replaceable structural unit, such as a module, package or service class, that owns behavior, rather than the behavior itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of what the function computes or manages, its inputs and outputs, and the owning component; set it whenever the name alone does not make the behavior's scope clear."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.3.1 Application Function",
+  "x-dr-evidence": [
+    "A class or module of internal, unexported or package-private methods grouped around one concern (e.g. PricingCalculator.computeDiscount, TaxRules.apply) whose callers are other classes in the same codebase rather than route handlers or external clients.",
+    "A domain or utility function, such as validation, scoring, matching or transformation logic, that is reused by several workflows or service methods and is not registered on any HTTP router, message listener or public API surface.",
+    "A stored procedure, rule-engine rule or helper invoked through an internal call graph, documented as 'computes', 'validates' or 'derives' something, with no ordering of steps and no direct external trigger."
+  ],
+  "x-dr-distinguish": {
+    "application.applicationprocess": "the behavior is an ordered sequence of steps leading to a defined operational result, such as a workflow, saga, pipeline or multi-step job, rather than a capability grouping with no inherent order.",
+    "application.applicationservice": "the behavior is the externally visible, consumer-facing offering, such as a public service-layer method or endpoint-backed capability. The function is the internal behavior that realizes it.",
+    "application.applicationinteraction": "the behavior can only be performed jointly by two or more components, such as a request-reply exchange or a publish-subscribe handshake, rather than by one component alone.",
+    "application.applicationcomponent": "the symbol is the deployable or replaceable structural unit, such as a module, package or service class, that owns behavior, rather than the behavior itself."
   }
 }
