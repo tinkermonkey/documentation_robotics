@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationprocess delivers-value Applicationservice",
+  "title": "Applicationprocess realizes Applicationservice",
   "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
   "allOf": [
     {
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationprocess.delivers-value.application.applicationservice"
+      "const": "application.applicationprocess.realizes.application.applicationservice"
     },
     "source_spec_node_id": {
       "const": "application.applicationprocess"
@@ -24,7 +24,7 @@
       "const": "application"
     },
     "predicate": {
-      "const": "delivers-value"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

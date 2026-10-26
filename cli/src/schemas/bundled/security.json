@@ -1471,17 +1471,6 @@
     }
   },
   "relationshipSchemas": {
-    "security.accesscondition.composes.security.policyrule": {
-      "id": "security.accesscondition.composes.security.policyrule",
-      "source_spec_node_id": "security.accesscondition",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.accesscondition.constrains.security.permission": {
       "id": "security.accesscondition.constrains.security.permission",
       "source_spec_node_id": "security.accesscondition",
@@ -1489,17 +1478,6 @@
       "destination_spec_node_id": "security.permission",
       "destination_layer": "security",
       "predicate": "constrains",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.accesscondition.governs.security.fieldaccesscontrol": {
-      "id": "security.accesscondition.governs.security.fieldaccesscontrol",
-      "source_spec_node_id": "security.accesscondition",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.fieldaccesscontrol",
-      "destination_layer": "security",
-      "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1632,17 +1610,6 @@
       "destination_spec_node_id": "security.securityconstraints",
       "destination_layer": "security",
       "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.actor.governed-by.security.authenticationconfig": {
-      "id": "security.actor.governed-by.security.authenticationconfig",
-      "source_spec_node_id": "security.actor",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.authenticationconfig",
-      "destination_layer": "security",
-      "predicate": "governed-by",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1929,17 +1896,6 @@
       "destination_spec_node_id": "security.threat",
       "destination_layer": "security",
       "predicate": "mitigates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.countermeasure.monitors.security.secureresource": {
-      "id": "security.countermeasure.monitors.security.secureresource",
-      "source_spec_node_id": "security.countermeasure",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "monitors",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2461,17 +2417,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.policyaction.enforces-requirement.security.policyrule": {
-      "id": "security.policyaction.enforces-requirement.security.policyrule",
-      "source_spec_node_id": "security.policyaction",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "enforces-requirement",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.policyaction.governs.security.permission": {
       "id": "security.policyaction.governs.security.permission",
       "source_spec_node_id": "security.policyaction",
@@ -2758,17 +2703,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.role.authorizes.security.permission": {
-      "id": "security.role.authorizes.security.permission",
-      "source_spec_node_id": "security.role",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.permission",
-      "destination_layer": "security",
-      "predicate": "authorizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.role.constrained-by.security.separationofduty": {
       "id": "security.role.constrained-by.security.separationofduty",
       "source_spec_node_id": "security.role",
@@ -2787,17 +2721,6 @@
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
       "predicate": "maps-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.role.provides.security.permission": {
-      "id": "security.role.provides.security.permission",
-      "source_spec_node_id": "security.role",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.permission",
-      "destination_layer": "security",
-      "predicate": "provides",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2934,17 +2857,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.security.authenticationconfig": {
-      "id": "security.securitymodel.aggregates.security.authenticationconfig",
-      "source_spec_node_id": "security.securitymodel",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.authenticationconfig",
-      "destination_layer": "security",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.securitymodel.aggregates.delegation": {
       "id": "security.securitymodel.aggregates.delegation",
       "source_spec_node_id": "security.securitymodel",
@@ -3062,28 +2974,6 @@
       "destination_spec_node_id": "security.dataclassification",
       "destination_layer": "security",
       "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securitymodel.governs.security.securitypolicy": {
-      "id": "security.securitymodel.governs.security.securitypolicy",
-      "source_spec_node_id": "security.securitymodel",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.securitymodel.manages.security.threat": {
-      "id": "security.securitymodel.manages.security.threat",
-      "source_spec_node_id": "security.securitymodel",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.threat",
-      "destination_layer": "security",
-      "predicate": "manages",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3403,17 +3293,6 @@
       "destination_spec_node_id": "security.secureresource",
       "destination_layer": "security",
       "predicate": "targets",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "security.threat.triggers.security.auditconfig": {
-      "id": "security.threat.triggers.security.auditconfig",
-      "source_spec_node_id": "security.threat",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.auditconfig",
-      "destination_layer": "security",
-      "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

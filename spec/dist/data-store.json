@@ -866,17 +866,6 @@
       "strength": "medium",
       "required": false
     },
-    "data-store.accesspattern.aggregates.data-store.collection": {
-      "id": "data-store.accesspattern.aggregates.data-store.collection",
-      "source_spec_node_id": "data-store.accesspattern",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "data-store.accesspattern.aggregates.data-store.field": {
       "id": "data-store.accesspattern.aggregates.data-store.field",
       "source_spec_node_id": "data-store.accesspattern",
@@ -1070,17 +1059,6 @@
       "source_layer": "data-store",
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
-      "predicate": "realizes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.collection.realizes.api.schema": {
-      "id": "data-store.collection.realizes.api.schema",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -1581,28 +1559,6 @@
       "strength": "medium",
       "required": false
     },
-    "data-store.retentionpolicy.aggregates.data-store.collection": {
-      "id": "data-store.retentionpolicy.aggregates.data-store.collection",
-      "source_spec_node_id": "data-store.retentionpolicy",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.retentionpolicy.aggregates.data-store.namespace": {
-      "id": "data-store.retentionpolicy.aggregates.data-store.namespace",
-      "source_spec_node_id": "data-store.retentionpolicy",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.namespace",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "data-store.retentionpolicy.archives-to.data-store.collection": {
       "id": "data-store.retentionpolicy.archives-to.data-store.collection",
       "source_spec_node_id": "data-store.retentionpolicy",
@@ -1731,17 +1687,6 @@
       "destination_spec_node_id": "data-store.collection",
       "destination_layer": "data-store",
       "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.storedlogic.aggregates.data-store.collection": {
-      "id": "data-store.storedlogic.aggregates.data-store.collection",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1929,17 +1874,6 @@
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "data-store.view.aggregates.data-store.collection": {
-      "id": "data-store.view.aggregates.data-store.collection",
-      "source_spec_node_id": "data-store.view",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "data-store.collection",
-      "destination_layer": "data-store",
-      "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

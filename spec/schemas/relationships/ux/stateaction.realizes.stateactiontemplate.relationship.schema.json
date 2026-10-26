@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Experiencestate associated-with View",
-  "description": "Defines relationship: ux.experiencestate associated-with ux.view",
+  "title": "Stateaction realizes Stateactiontemplate",
+  "description": "Defines relationship: ux.stateaction realizes ux.stateactiontemplate",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "ux.experiencestate.associated-with.ux.view"
+      "const": "ux.stateaction.realizes.ux.stateactiontemplate"
     },
     "source_spec_node_id": {
-      "const": "ux.experiencestate"
+      "const": "ux.stateaction"
     },
     "source_layer": {
       "const": "ux"
     },
     "destination_spec_node_id": {
-      "const": "ux.view"
+      "const": "ux.stateactiontemplate"
     },
     "destination_layer": {
       "const": "ux"
     },
     "predicate": {
-      "const": "associated-with"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

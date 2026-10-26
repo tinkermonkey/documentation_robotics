@@ -106,6 +106,12 @@ reflect-summary.ts  outcome (reproduced / no_better / alternative) x validity, t
 reflect-plan.ts     groups the alternatives per catalog triple and classifies the implied schema
                     change (remove-duplicate, rename-predicate, reverse, retarget, compound,
                     conflict) with a probability threshold sweep -> reflect/<backend>/plan-<backend>.{json,md}
+apply-reflect-plan.ts  applies selected kinds above a probability (--select remove-duplicate:0.6,reverse:0.7,
+                    rename-predicate:0.7): renames write the new schema and delete the old, reversals
+                    write the swapped schema unless it exists, duplicates are deleted once the replacement
+                    is confirmed; every action is recorded in reflect/<backend>/applied-<record>.json,
+                    the input for the model migration. Retargets, compound changes and conflicts are
+                    never applied automatically.
 ```
 
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and

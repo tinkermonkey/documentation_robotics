@@ -455,17 +455,6 @@
       "strength": "medium",
       "required": false
     },
-    "product.feature.uses.product.capability": {
-      "id": "product.feature.uses.product.capability",
-      "source_spec_node_id": "product.feature",
-      "source_layer": "product",
-      "destination_spec_node_id": "product.capability",
-      "destination_layer": "product",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "product.milestone.precedes.product.milestone": {
       "id": "product.milestone.precedes.product.milestone",
       "source_spec_node_id": "product.milestone",

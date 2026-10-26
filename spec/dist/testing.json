@@ -993,17 +993,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragegap.triggers.testing.coveragerequirement": {
-      "id": "testing.coveragegap.triggers.testing.coveragerequirement",
-      "source_spec_node_id": "testing.coveragegap",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coveragerequirement",
-      "destination_layer": "testing",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.coveragegap.triggers.testing.partitionvalue": {
       "id": "testing.coveragegap.triggers.testing.partitionvalue",
       "source_spec_node_id": "testing.coveragegap",
@@ -1042,17 +1031,6 @@
       "source_spec_node_id": "testing.coveragerequirement",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.contextvariation",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.coveragerequirement.aggregates.testing.coverageexclusion": {
-      "id": "testing.coveragerequirement.aggregates.testing.coverageexclusion",
-      "source_spec_node_id": "testing.coveragerequirement",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.coverageexclusion",
       "destination_layer": "testing",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
@@ -1631,8 +1609,8 @@
       "strength": "medium",
       "required": false
     },
-    "testing.inputspacepartition.composes.partitionvalue": {
-      "id": "testing.inputspacepartition.composes.partitionvalue",
+    "testing.inputspacepartition.composes.testing.partitionvalue": {
+      "id": "testing.inputspacepartition.composes.testing.partitionvalue",
       "source_spec_node_id": "testing.inputspacepartition",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.partitionvalue",
@@ -1803,17 +1781,6 @@
       "destination_spec_node_id": "testing.partitionvalue",
       "destination_layer": "testing",
       "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.partitionvalue.composes.testing.inputspacepartition": {
-      "id": "testing.partitionvalue.composes.testing.inputspacepartition",
-      "source_spec_node_id": "testing.partitionvalue",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputspacepartition",
-      "destination_layer": "testing",
-      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2049,17 +2016,6 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcasesketch.accesses.testing.inputselection": {
-      "id": "testing.testcasesketch.accesses.testing.inputselection",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.inputselection",
-      "destination_layer": "testing",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "testing.testcasesketch.accesses.api.requestbody": {
       "id": "testing.testcasesketch.accesses.api.requestbody",
       "source_spec_node_id": "testing.testcasesketch",
@@ -2198,17 +2154,6 @@
       "source_layer": "testing",
       "destination_spec_node_id": "apm.span",
       "destination_layer": "apm",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcasesketch.references.testing.testcoveragetarget": {
-      "id": "testing.testcasesketch.references.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.testcasesketch",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -2519,17 +2464,6 @@
       "destination_layer": "testing",
       "predicate": "aggregates",
       "cardinality": "one-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "testing.testcoveragemodel.aggregates.testing.testcoveragetarget": {
-      "id": "testing.testcoveragemodel.aggregates.testing.testcoveragetarget",
-      "source_spec_node_id": "testing.testcoveragemodel",
-      "source_layer": "testing",
-      "destination_spec_node_id": "testing.testcoveragetarget",
-      "destination_layer": "testing",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },

@@ -1416,17 +1416,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.encoding.associated-with.api.mediatype": {
-      "id": "api.encoding.associated-with.api.mediatype",
-      "source_spec_node_id": "api.encoding",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.mediatype",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.encoding.associated-with.api.parameter": {
       "id": "api.encoding.associated-with.api.parameter",
       "source_spec_node_id": "api.encoding",
@@ -1434,17 +1423,6 @@
       "destination_spec_node_id": "api.parameter",
       "destination_layer": "api",
       "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.encoding.composes.api.header": {
-      "id": "api.encoding.composes.api.header",
-      "source_spec_node_id": "api.encoding",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.header",
-      "destination_layer": "api",
-      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1500,17 +1478,6 @@
       "destination_spec_node_id": "api.info",
       "destination_layer": "api",
       "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.externaldocumentation.serves.api.openapidocument": {
-      "id": "api.externaldocumentation.serves.api.openapidocument",
-      "source_spec_node_id": "api.externaldocumentation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.openapidocument",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1599,17 +1566,6 @@
       "destination_spec_node_id": "api.license",
       "destination_layer": "api",
       "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.info.associated-with.api.openapidocument": {
-      "id": "api.info.associated-with.api.openapidocument",
-      "source_spec_node_id": "api.info",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.openapidocument",
-      "destination_layer": "api",
-      "predicate": "associated-with",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1779,17 +1735,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.oauthflow.associated-with.api.oauthflows": {
-      "id": "api.oauthflow.associated-with.api.oauthflows",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.oauthflows",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.oauthflow.associated-with.api.ratelimit": {
       "id": "api.oauthflow.associated-with.api.ratelimit",
       "source_spec_node_id": "api.oauthflow",
@@ -1834,17 +1779,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.oauthflows.aggregates.api.oauthflow": {
-      "id": "api.oauthflows.aggregates.api.oauthflow",
-      "source_spec_node_id": "api.oauthflows",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.oauthflow",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.oauthflows.associated-with.api.components": {
       "id": "api.oauthflows.associated-with.api.components",
       "source_spec_node_id": "api.oauthflows",
@@ -1874,17 +1808,6 @@
       "destination_spec_node_id": "api.oauthflow",
       "destination_layer": "api",
       "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflows.serves.api.securityscheme": {
-      "id": "api.oauthflows.serves.api.securityscheme",
-      "source_spec_node_id": "api.oauthflows",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2076,17 +1999,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.operation.aggregates.api.tag": {
-      "id": "api.operation.aggregates.api.tag",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.operation.composes.api.paths": {
       "id": "api.operation.composes.api.paths",
       "source_spec_node_id": "api.operation",
@@ -2103,17 +2015,6 @@
       "source_spec_node_id": "api.operation",
       "source_layer": "api",
       "destination_spec_node_id": "api.responses",
-      "destination_layer": "api",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.operation.composes.api.schema": {
-      "id": "api.operation.composes.api.schema",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
       "destination_layer": "api",
       "predicate": "composes",
       "cardinality": "many-to-many",
@@ -2373,17 +2274,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.operation.triggers.business.businessprocess": {
-      "id": "api.operation.triggers.business.businessprocess",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.operation.triggers.api.callback": {
       "id": "api.operation.triggers.api.callback",
       "source_spec_node_id": "api.operation",
@@ -2433,17 +2323,6 @@
       "source_spec_node_id": "api.parameter",
       "source_layer": "api",
       "destination_spec_node_id": "api.example",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.parameter.references.api.operation": {
-      "id": "api.parameter.references.api.operation",
-      "source_spec_node_id": "api.parameter",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
       "destination_layer": "api",
       "predicate": "references",
       "cardinality": "many-to-many",
@@ -2571,17 +2450,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.paths.aggregates.api.pathitem": {
-      "id": "api.paths.aggregates.api.pathitem",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.pathitem",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.paths.aggregates.api.server": {
       "id": "api.paths.aggregates.api.server",
       "source_spec_node_id": "api.paths",
@@ -2703,17 +2571,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.ratelimit.serves.api.operation": {
-      "id": "api.ratelimit.serves.api.operation",
-      "source_spec_node_id": "api.ratelimit",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.ratelimit.serves.api.pathitem": {
       "id": "api.ratelimit.serves.api.pathitem",
       "source_spec_node_id": "api.ratelimit",
@@ -2820,17 +2677,6 @@
       "destination_spec_node_id": "api.schema",
       "destination_layer": "api",
       "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.serves.api.operation": {
-      "id": "api.requestbody.serves.api.operation",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3066,8 +2912,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.securityscheme.composes.oauthflows": {
-      "id": "api.securityscheme.composes.oauthflows",
+    "api.securityscheme.composes.api.oauthflows": {
+      "id": "api.securityscheme.composes.api.oauthflows",
       "source_spec_node_id": "api.securityscheme",
       "source_layer": "api",
       "destination_spec_node_id": "api.oauthflows",

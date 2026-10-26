@@ -1256,17 +1256,6 @@
       "strength": "medium",
       "required": false
     },
-    "apm.logconfiguration.serves.apm.resource": {
-      "id": "apm.logconfiguration.serves.apm.resource",
-      "source_spec_node_id": "apm.logconfiguration",
-      "source_layer": "apm",
-      "destination_spec_node_id": "apm.resource",
-      "destination_layer": "apm",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "apm.logprocessor.flows-to.apm.exporterconfig": {
       "id": "apm.logprocessor.flows-to.apm.exporterconfig",
       "source_spec_node_id": "apm.logprocessor",
@@ -1828,17 +1817,6 @@
       "strength": "medium",
       "required": false
     },
-    "apm.resource.monitors.technology.node": {
-      "id": "apm.resource.monitors.technology.node",
-      "source_spec_node_id": "apm.resource",
-      "source_layer": "apm",
-      "destination_spec_node_id": "technology.node",
-      "destination_layer": "technology",
-      "predicate": "monitors",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "apm.resource.monitors.technology.systemsoftware": {
       "id": "apm.resource.monitors.technology.systemsoftware",
       "source_spec_node_id": "apm.resource",
@@ -1846,6 +1824,17 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "monitors",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.references.technology.node": {
+      "id": "apm.resource.references.technology.node",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

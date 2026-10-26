@@ -69,6 +69,26 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Breaking Changes
 
+- **BREAKING: 86 relationship schemas removed, 5 renamed, 2 reversed (reflection plan, tier 1).** The
+  relationship catalog carried pairs of schemas that said the same thing twice (`aggregates` beside
+  `composes`, `delivers-value` beside `realizes`, a `serves` or `associated-with` edge beside its
+  reverse `composes`/`aggregates`/`triggers`), and a few predicates that did not match their meaning
+  (`depends-on` a data object for `accesses`, `monitors` a node for `references`). Each change was
+  found by the maintainer-note triage, confirmed by the sorting-question reflection
+  (`cli/scripts/spec-enrich/triage-reflect.ts`) at p >= 0.6 for duplicate removals and p >= 0.7
+  for reversals and renames, and accepted after review. Removed: 79 duplicate or reverse-direction
+  schemas (api 14, security 11, ux 10, navigation 9, technology 8, motivation 8, application 7,
+  testing 6, data-store 6, business 4, apm 2, product 1). Renamed: `apm.resource monitors
+  technology.node` to `references`; `application.applicationprocess depends-on dataobject` to
+  `accesses`; `applicationprocess delivers-value applicationservice` to `realizes`;
+  `navigation.routemeta governs navigationguard` to `references`; `ux.stateaction specializes
+  stateactiontemplate` to `realizes`. Reversed: `api.oauthflows serves securityscheme` becomes
+  `api.securityscheme composes api.oauthflows`; `testing.partitionvalue composes
+  inputspacepartition` becomes `testing.inputspacepartition composes partitionvalue`. 1,610 to
+  1,529 relationship schemas. The full old-id to new-id list is
+  `cli/scripts/spec-enrich/data/triage/reflect/clef/applied-tier1.json`, the input for the model
+  migration that rewrites or drops affected relationships.
+
 - **BREAKING: `implements` predicate retired in favour of `realizes`.** The two predicates had the same
   meaning ("provides concrete implementation of" versus "implements or makes concrete") and the same
   ArchiMate alignment (Realization), violating the charter's one-meaning-one-predicate rule. The 18

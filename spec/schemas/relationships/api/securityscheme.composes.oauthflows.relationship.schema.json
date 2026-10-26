@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Securityscheme Composes Oauthflows",
+  "title": "Securityscheme composes Oauthflows",
   "description": "Defines relationship: api.securityscheme composes api.oauthflows",
   "allOf": [
     {
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.securityscheme.composes.oauthflows"
+      "const": "api.securityscheme.composes.api.oauthflows"
     },
     "source_spec_node_id": {
       "const": "api.securityscheme"

@@ -541,21 +541,6 @@
         "An API gateway route or service-catalog entry for the service is fulfilled by orchestrating calls across several member components of the collaboration."
       ]
     },
-    "application.applicationcollaboration.depends-on.application.applicationcomponent": {
-      "id": "application.applicationcollaboration.depends-on.application.applicationcomponent",
-      "source_spec_node_id": "application.applicationcollaboration",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The collaboration cannot perform its collective behaviour unless the component, such as a shared platform service outside its membership, is available.",
-      "evidence": [
-        "The member components' runtime configuration or readiness checks reference the component's endpoint, and the collaborative flow fails when that component is unavailable."
-      ]
-    },
     "application.applicationcollaboration.depends-on.application.applicationinteraction": {
       "id": "application.applicationcollaboration.depends-on.application.applicationinteraction",
       "source_spec_node_id": "application.applicationcollaboration",
@@ -644,21 +629,6 @@
       "description": "The component performs operations on the protected resource at runtime, which makes it a subject whose actions on that resource are checked by access control.",
       "evidence": [
         "The component's code calls the resource's protected operations, such as a guarded API path, table or file, or the security configuration lists the component's service identity as a principal on that resource."
-      ]
-    },
-    "application.applicationcomponent.assigned-to.application.applicationfunction": {
-      "id": "application.applicationcomponent.assigned-to.application.applicationfunction",
-      "source_spec_node_id": "application.applicationcomponent",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "assigned-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The component is the active element responsible for executing the internal function, so the function's work is carried out by this component and by no other.",
-      "evidence": [
-        "The methods implementing the function are defined on the component's class or within its module and are invoked only from inside the component's deployment unit."
       ]
     },
     "application.applicationcomponent.assigned-to.application.applicationinterface": {
@@ -991,21 +961,6 @@
         "A step in the workflow, saga or orchestration method calls the function's entry point, and design documentation credits the function with producing part of the process outcome."
       ]
     },
-    "application.applicationfunction.delivers-value.application.applicationservice": {
-      "id": "application.applicationfunction.delivers-value.application.applicationservice",
-      "source_spec_node_id": "application.applicationfunction",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "delivers-value",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The application function supplies the internal capability whose results give the externally offered application service its usefulness to consumers.",
-      "evidence": [
-        "The service's operation handlers delegate to the function's methods, and service documentation names the function as the source of the behavior the service offers."
-      ]
-    },
     "application.applicationfunction.depends-on.application.applicationevent": {
       "id": "application.applicationfunction.depends-on.application.applicationevent",
       "source_spec_node_id": "application.applicationfunction",
@@ -1109,21 +1064,6 @@
       "description": "The application function's behavior meets the stated need, so the requirement is fulfilled by what the function does.",
       "evidence": [
         "A requirements-traceability matrix, ticket link or code annotation ties the function's implementation to the requirement ID, and acceptance tests for the requirement exercise the function."
-      ]
-    },
-    "application.applicationinteraction.delivers-value.application.applicationservice": {
-      "id": "application.applicationinteraction.delivers-value.application.applicationservice",
-      "source_spec_node_id": "application.applicationinteraction",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "delivers-value",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The joint behaviour carried out by the collaborating components produces the outcome that gives an externally offered application service its worth to consumers, such as a checkout saga delivering the completed-order result of an ordering service.",
-      "evidence": [
-        "Service documentation or an API contract states that the service's operation outcome (e.g. order confirmed) is produced only when the saga or choreography completes, and the saga's final step returns or publishes that result."
       ]
     },
     "application.applicationinteraction.depends-on.application.applicationcollaboration": {
@@ -1321,19 +1261,19 @@
         "The interface's authorization configuration, UI/API documentation or access policy names the role as an intended consumer, e.g. role-restricted routes or a role-specific portal endpoint."
       ]
     },
-    "application.applicationprocess.delivers-value.application.applicationservice": {
-      "id": "application.applicationprocess.delivers-value.application.applicationservice",
+    "application.applicationprocess.accesses.application.dataobject": {
+      "id": "application.applicationprocess.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationprocess",
       "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
+      "destination_spec_node_id": "application.dataobject",
       "destination_layer": "application",
-      "predicate": "delivers-value",
+      "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false,
-      "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
+      "description": "The workflow creates, reads, transforms or passes along the data object between steps, so its inputs, intermediate state or result have that structure.",
       "evidence": [
-        "The service's public operation (e.g. an API handler or service-interface method) delegates its work to the workflow, saga or pipeline entry point and returns that process's end result to the caller."
+        "The process's step signatures, saga state class or pipeline stage types take or return the data object's class, record or message payload type."
       ]
     },
     "application.applicationprocess.depends-on.application.applicationcollaboration": {
@@ -1349,21 +1289,6 @@
       "description": "The workflow can only run end to end when the grouped components of the collaboration are all present, because its steps call across several of those cooperating components.",
       "evidence": [
         "The saga or orchestration definition calls services from several components that the deployment manifest, service mesh config or architecture docs list as one named collaboration, and the workflow fails if any member is missing."
-      ]
-    },
-    "application.applicationprocess.depends-on.application.applicationevent": {
-      "id": "application.applicationprocess.depends-on.application.applicationevent",
-      "source_spec_node_id": "application.applicationprocess",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationevent",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The workflow needs the application event to occur before it can start or move past a waiting step, so the event acts as its start trigger or a resume signal.",
-      "evidence": [
-        "The workflow definition has a start trigger, subscription or wait-for-signal step bound to the named event type, such as a message listener or saga start handler keyed on that event."
       ]
     },
     "application.applicationprocess.depends-on.application.applicationfunction": {
@@ -1396,21 +1321,6 @@
         "A workflow step calls through a generated client, HTTP or gRPC stub, GraphQL query or message-channel producer configured against that interface's endpoint or topic."
       ]
     },
-    "application.applicationprocess.depends-on.application.dataobject": {
-      "id": "application.applicationprocess.depends-on.application.dataobject",
-      "source_spec_node_id": "application.applicationprocess",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.dataobject",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The workflow creates, reads, transforms or passes along the data object between steps, so its inputs, intermediate state or result have that structure.",
-      "evidence": [
-        "The process's step signatures, saga state class or pipeline stage types take or return the data object's class, record or message payload type."
-      ]
-    },
     "application.applicationprocess.flows-to.application.applicationprocess": {
       "id": "application.applicationprocess.flows-to.application.applicationprocess",
       "source_spec_node_id": "application.applicationprocess",
@@ -1424,6 +1334,21 @@
       "description": "When the upstream workflow completes or reaches a hand-off point, control or its output data passes to the downstream workflow, which continues the end-to-end sequence.",
       "evidence": [
         "The upstream process's final step starts the downstream workflow, publishes the message it consumes, or is chained to it in the orchestration definition (e.g. Step Functions, Airflow DAG, Temporal child workflow)."
+      ]
+    },
+    "application.applicationprocess.realizes.application.applicationservice": {
+      "id": "application.applicationprocess.realizes.application.applicationservice",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
+      "evidence": [
+        "The service's public operation (e.g. an API handler or service-interface method) delegates its work to the workflow, saga or pipeline entry point and returns that process's end result to the caller."
       ]
     },
     "application.applicationprocess.realizes.business.businessprocess": {

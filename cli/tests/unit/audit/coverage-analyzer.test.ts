@@ -181,9 +181,10 @@ describe("CoverageAnalyzer", () => {
     const dataModelLayer = getLayerById("data-model");
     expect(dataModelLayer).toBeDefined();
 
-    const coverage = await analyzer.analyzeLayer(dataModelLayer!);
+    // Every layer in the registry now lists its node types (data-model used to be empty by
+    // mistake), so build a copy of the layer with none to exercise the empty case.
+    const coverage = await analyzer.analyzeLayer({ ...dataModelLayer!, nodeTypes: [] });
 
-    // Data-model layer has 0 node types in the layer registry
     expect(coverage.nodeTypeCount).toBe(0);
     expect(coverage.isolatedNodeTypes.length).toBe(0);
     expect(coverage.isolationPercentage).toBe(0);

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationprocess depends-on Dataobject",
+  "title": "Applicationprocess accesses Dataobject",
   "description": "The workflow creates, reads, transforms or passes along the data object between steps, so its inputs, intermediate state or result have that structure.",
   "allOf": [
     {
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationprocess.depends-on.application.dataobject"
+      "const": "application.applicationprocess.accesses.application.dataobject"
     },
     "source_spec_node_id": {
       "const": "application.applicationprocess"
@@ -24,7 +24,7 @@
       "const": "application"
     },
     "predicate": {
-      "const": "depends-on"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"
