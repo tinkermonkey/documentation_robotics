@@ -83,14 +83,19 @@ export function sortingQuestions(t: Triple, nodes: NodeSchema[], rels: Relations
   // as reverse), then a few general ones.
   const forward = [...new Set(rels.filter((r) => r.source === t.source && r.destination === t.destination).map((r) => r.predicate))];
   const reverse = [...new Set(rels.filter((r) => r.source === t.destination && r.destination === t.source).map((r) => r.predicate))];
-  const general = ["realizes", "serves", "uses", "depends-on", "composes", "references", "triggers", "accesses"];
+  // The ArchiMate 3.2 core relationships first (structural: composition, aggregation, assignment,
+  // realization; dependency: serving, access, influence, association; dynamic: triggering, flow;
+  // other: specialization), then the catalog's own general predicates. The application-layer walk
+  // showed that assignment was the right answer three times and was never on offer.
+  const general = ["realizes", "serves", "assigned-to", "composes", "aggregates", "accesses", "triggers", "flows-to", "uses", "depends-on", "associated-with", "specializes", "references"];
   const predCriteria: Record<string, string> = {};
+  const predTop = Math.max(top, 12);
   for (const p of [t.predicate, ...forward, ...general]) {
-    if (Object.keys(predCriteria).length >= top) break;
+    if (Object.keys(predCriteria).length >= predTop) break;
     if (preds[p] && !predCriteria[p]) predCriteria[p] = `${t.source} ${p} ${t.destination}: ${preds[p].description ?? p}`;
   }
   for (const p of reverse) {
-    if (Object.keys(predCriteria).length >= top + 2) break;
+    if (Object.keys(predCriteria).length >= predTop + 3) break;
     const k = `reverse:${p}`;
     if (preds[p] && !predCriteria[k]) predCriteria[k] = `the other way round, ${t.destination} ${p} ${t.source}: ${preds[p].description ?? p}`;
   }

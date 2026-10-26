@@ -300,6 +300,21 @@ one step from the user's works_as_designed. `reflect-summary.ts` writes the outc
 table, the transitions and every alternative per layer
 (`data/triage/reflect/summary-clef.md`).
 
+**Applying the plan (2026-10-26).** `apply-reflect-plan.ts` applied tier 1 (duplicate removals
+at p >= 0.6, reversals and renames at p >= 0.7: 86 schemas removed, 5 renamed, 2 reversals
+resolved to existing schemas), and the maintainer walked the 18 application rows the plan could
+not apply automatically, one at a time with the claim, the catalog state and the sorting answers
+in view (`walk-application.jsonl`, applied by `apply-walk.ts`; 6 deleted, 7 renamed, 1 reversed,
+1 added, 4 kept). Two lessons from the walk. The sorting question had never offered the ArchiMate
+structural predicates, and three rows needed `assigned-to`; the candidate list now leads with the
+ArchiMate 3.2 core relationships. And when two claims about one pair each prefer the other's
+predicate, the plan files them as two rows, and tier 1 applied whichever row's replacement
+already existed, which once kept the wrong twin (`applicationcomponent composes
+applicationfunction` over `assigned-to`); conflicts between rows about the same pair should be
+detected across rows, not only within one. The model migration (`dr upgrade`, table generated
+from every `applied-*.json` record) treats retargets as drops, since an existing relationship
+cannot be moved to a different element type mechanically.
+
 ## Sequencing
 
 | Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                              | Status                   |

@@ -1,21 +1,21 @@
 [
   {
-    "triple": "api.oauthflows.serves.api.securityscheme",
-    "source": "api.oauthflows",
-    "predicate": "serves",
-    "destination": "api.securityscheme",
+    "triple": "api.oauthflow.associated-with.api.oauthflows",
+    "source": "api.oauthflow",
+    "predicate": "associated-with",
+    "destination": "api.oauthflows",
     "layer": "api",
     "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.securityscheme.composes.api.oauthflows"],
-    "replacement_exists": false,
-    "p": 0.867,
-    "claims": ["rel:api.oauthflows#2"],
+    "current_exists": false,
+    "replacement": ["api.oauthflows.composes.api.oauthflow"],
+    "replacement_exists": true,
+    "p": 0.889,
+    "claims": ["rel:api.oauthflow#2"],
     "claim_texts": [
-      "The serves relationship from api.oauthflows to api.securityscheme should be composition, since the security scheme composes OAuthFlows (and api.securityscheme already composes api.oauthflows)."
+      "The relationship api.oauthflow associated-with api.oauthflows understates a real composition, because the OAuthFlows container owns the flow."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:composes|0.87"]
+    "alternatives": ["predicate=reverse:composes|0.89"]
   },
   {
     "triple": "api.components.composes.api.response",
@@ -30,7 +30,7 @@
       "api.responses.aggregates.api.response"
     ],
     "replacement_exists": false,
-    "p": 0.836,
+    "p": 0.88,
     "claims": ["node:api.components#3", "rel:api.components#1"],
     "claim_texts": [
       "api.response is related to api.components by both an aggregates and a composes relationship, which express the same meaning redundantly.",
@@ -38,32 +38,28 @@
     ],
     "reflect_validity": ["real_defect", "real_defect"],
     "alternatives": [
-      "predicate=aggregates|0.84",
-      "source=api.responses|0.41",
-      "predicate=aggregates|0.81"
+      "predicate=aggregates|0.88",
+      "source=api.responses|0.44",
+      "predicate=aggregates|0.84"
     ]
   },
   {
-    "triple": "api.info.associated-with.api.openapidocument",
-    "source": "api.info",
-    "predicate": "associated-with",
-    "destination": "api.openapidocument",
+    "triple": "api.requestbody.references.api.schema",
+    "source": "api.requestbody",
+    "predicate": "references",
+    "destination": "api.schema",
     "layer": "api",
-    "kind": "reverse",
+    "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.openapidocument.composes.api.info"],
+    "replacement": ["api.mediatype.references.api.schema"],
     "replacement_exists": true,
-    "p": 0.827,
-    "claims": ["node:api.openapidocument#4", "rel:api.info#1"],
+    "p": 0.847,
+    "claims": ["rel:api.requestbody#2"],
     "claim_texts": [
-      "The relationship from api.info to api.openapidocument with predicate 'associated-with' duplicates the composes relationship from api.openapidocument to api.info.",
-      "The relationship api.info --[associated-with]--> api.openapidocument is weak and redundant, because Info cannot exist without its document and the inverse api.openapidocument composes api.info already expresses the accurate structural relation."
+      "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody."
     ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": [
-      "predicate=reverse:composes|0.83",
-      "predicate=reverse:composes|0.84"
-    ]
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.mediatype|0.85"]
   },
   {
     "triple": "api.oauthflows.aggregates.api.oauthflow",
@@ -72,10 +68,10 @@
     "destination": "api.oauthflow",
     "layer": "api",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["api.oauthflows.composes.api.oauthflow"],
     "replacement_exists": true,
-    "p": 0.825,
+    "p": 0.839,
     "claims": [
       "node:api.oauthflow#6",
       "node:api.oauthflows#2",
@@ -86,12 +82,66 @@
       "The link from api.oauthflows to api.oauthflow is listed both as 'aggregates' and as 'composes', which express the same meaning.",
       "api.oauthflows has both aggregates and composes relationships to api.oauthflow, which are contradictory because OAuthFlow cannot exist outside OAuthFlows, so composes is correct."
     ],
-    "reflect_validity": ["real_defect", "real_defect", "real_defect"],
+    "reflect_validity": ["real_defect", "real_defect", "works_as_designed"],
     "alternatives": [
-      "predicate=composes|0.82",
       "predicate=composes|0.84",
-      "predicate=composes|0.86"
+      "predicate=composes|0.84",
+      "predicate=composes|0.88"
     ]
+  },
+  {
+    "triple": "api.encoding.composes.api.header",
+    "source": "api.encoding",
+    "predicate": "composes",
+    "destination": "api.header",
+    "layer": "api",
+    "kind": "remove-duplicate",
+    "current_exists": false,
+    "replacement": ["api.encoding.references.api.header"],
+    "replacement_exists": true,
+    "p": 0.838,
+    "claims": ["rel:api.encoding#3"],
+    "claim_texts": [
+      "The relationships api.encoding composes api.header and api.encoding references api.header are not redundant: composes is an inline header declaration while references is a $ref."
+    ],
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=references|0.84"]
+  },
+  {
+    "triple": "api.oauthflows.serves.api.securityscheme",
+    "source": "api.oauthflows",
+    "predicate": "serves",
+    "destination": "api.securityscheme",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": false,
+    "replacement": ["api.securityscheme.composes.api.oauthflows"],
+    "replacement_exists": true,
+    "p": 0.827,
+    "claims": ["rel:api.oauthflows#2"],
+    "claim_texts": [
+      "The serves relationship from api.oauthflows to api.securityscheme should be composition, since the security scheme composes OAuthFlows (and api.securityscheme already composes api.oauthflows)."
+    ],
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=reverse:composes|0.83"]
+  },
+  {
+    "triple": "api.requestbody.aggregates.api.example",
+    "source": "api.requestbody",
+    "predicate": "aggregates",
+    "destination": "api.example",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.mediatype.aggregates.api.mediatype"],
+    "replacement_exists": false,
+    "p": 0.82,
+    "claims": ["rel:api.requestbody#2"],
+    "claim_texts": [
+      "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.mediatype|0.82", "target=api.mediatype|0.84"]
   },
   {
     "triple": "api.ratelimit.serves.api.operation",
@@ -100,10 +150,10 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["api.ratelimit.governs.api.operation"],
     "replacement_exists": true,
-    "p": 0.824,
+    "p": 0.792,
     "claims": [
       "rel:api.ratelimit#2",
       "node:api.ratelimit#5",
@@ -116,159 +166,46 @@
     ],
     "reflect_validity": ["real_defect", "real_defect", "real_defect"],
     "alternatives": [
-      "predicate=governs|0.82",
-      "predicate=governs|0.86",
-      "predicate=governs|0.86"
+      "predicate=governs|0.79",
+      "predicate=governs|0.83",
+      "predicate=governs|0.80"
     ]
   },
   {
-    "triple": "api.requestbody.serves.api.operation",
-    "source": "api.requestbody",
+    "triple": "api.externaldocumentation.serves.api.openapidocument",
+    "source": "api.externaldocumentation",
     "predicate": "serves",
-    "destination": "api.operation",
+    "destination": "api.openapidocument",
     "layer": "api",
     "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.operation.aggregates.api.requestbody"],
+    "current_exists": false,
+    "replacement": ["api.openapidocument.references.api.externaldocumentation"],
     "replacement_exists": true,
-    "p": 0.824,
-    "claims": ["rel:api.requestbody#3"],
+    "p": 0.785,
+    "claims": ["rel:api.externaldocumentation#1"],
     "claim_texts": [
-      "The relationship api.requestbody serves api.operation has odd semantics and points the wrong way; the operation should own the request body as part of its contract."
+      "The associated-with relationship from api.externaldocumentation to api.info is questionable and redundant, because OpenAPI does not allow externalDocs to attach to Info; it attaches to the root document, which already has a serves relationship."
     ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:aggregates|0.82"]
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=reverse:references|0.79"]
   },
   {
-    "triple": "api.requestbody.references.api.schema",
-    "source": "api.requestbody",
-    "predicate": "references",
-    "destination": "api.schema",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.mediatype.references.api.schema"],
-    "replacement_exists": true,
-    "p": 0.812,
-    "claims": ["rel:api.requestbody#2"],
-    "claim_texts": [
-      "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.mediatype|0.81"]
-  },
-  {
-    "triple": "api.oauthflow.associated-with.api.oauthflows",
-    "source": "api.oauthflow",
-    "predicate": "associated-with",
-    "destination": "api.oauthflows",
-    "layer": "api",
-    "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.oauthflows.composes.api.oauthflow"],
-    "replacement_exists": true,
-    "p": 0.81,
-    "claims": ["rel:api.oauthflow#2"],
-    "claim_texts": [
-      "The relationship api.oauthflow associated-with api.oauthflows understates a real composition, because the OAuthFlows container owns the flow."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:composes|0.81"]
-  },
-  {
-    "triple": "api.paths.aggregates.api.pathitem",
-    "source": "api.paths",
+    "triple": "api.mediatype.aggregates.api.encoding",
+    "source": "api.mediatype",
     "predicate": "aggregates",
-    "destination": "api.pathitem",
+    "destination": "api.encoding",
     "layer": "api",
     "kind": "remove-duplicate",
     "current_exists": true,
-    "replacement": ["api.paths.composes.api.pathitem"],
+    "replacement": ["api.mediatype.composes.api.encoding"],
     "replacement_exists": true,
-    "p": 0.778,
-    "claims": ["node:api.paths#4", "rel:api.paths#1"],
+    "p": 0.784,
+    "claims": ["rel:api.mediatype#1"],
     "claim_texts": [
-      "api.paths has duplicate aggregates and composes relationships to api.pathitem that express the same meaning.",
-      "api.paths has both an aggregates and a composes relationship to api.pathitem, which express the same meaning redundantly; composes should be kept and aggregates reserved for $ref'd components/pathItems."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": ["predicate=composes|0.78", "predicate=composes|0.80"]
-  },
-  {
-    "triple": "api.responses.aggregates.api.header",
-    "source": "api.responses",
-    "predicate": "aggregates",
-    "destination": "api.header",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.response.aggregates.api.header"],
-    "replacement_exists": true,
-    "p": 0.776,
-    "claims": ["rel:api.responses#1"],
-    "claim_texts": [
-      "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map."
+      "api.mediatype has both aggregates and composes relationships to api.encoding, which are contradictory because Encoding cannot exist outside its MediaType, so only composes should remain."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.response|0.78"]
-  },
-  {
-    "triple": "api.requestbody.aggregates.api.example",
-    "source": "api.requestbody",
-    "predicate": "aggregates",
-    "destination": "api.example",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.mediatype.aggregates.api.mediatype"],
-    "replacement_exists": false,
-    "p": 0.768,
-    "claims": ["rel:api.requestbody#2"],
-    "claim_texts": [
-      "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.mediatype|0.80", "target=api.mediatype|0.77"]
-  },
-  {
-    "triple": "api.operation.composes.api.schema",
-    "source": "api.operation",
-    "predicate": "composes",
-    "destination": "api.schema",
-    "layer": "api",
-    "kind": "remove-duplicate",
-    "current_exists": true,
-    "replacement": ["api.operation.references.api.schema"],
-    "replacement_exists": true,
-    "p": 0.758,
-    "claims": ["rel:api.operation#2"],
-    "claim_texts": [
-      "The relationships api.operation composes api.schema and api.operation references api.schema overlap, differing only in inline versus $ref."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=references|0.76"]
-  },
-  {
-    "triple": "api.parameter.references.api.operation",
-    "source": "api.parameter",
-    "predicate": "references",
-    "destination": "api.operation",
-    "layer": "api",
-    "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.operation.aggregates.api.parameter"],
-    "replacement_exists": true,
-    "p": 0.753,
-    "claims": ["node:api.parameter#3", "rel:api.parameter#1"],
-    "claim_texts": [
-      "The outgoing 'references' relationship from api.parameter to api.operation is redundant because operation-to-parameter already exists as an aggregates relationship, and it points the opposite way.",
-      "The relationship api.parameter references api.operation is inverted, since operations contain parameters; an operation-to-parameter composes/aggregates relationship fits better (api.operation aggregates api.parameter already exists)."
-    ],
-    "reflect_validity": ["works_as_designed", "real_defect"],
-    "alternatives": [
-      "predicate=reverse:aggregates|0.77",
-      "predicate=reverse:aggregates|0.75"
-    ]
+    "alternatives": ["predicate=composes|0.78"]
   },
   {
     "triple": "api.openapidocument.composes.api.responses",
@@ -283,7 +220,7 @@
       "api.operation.composes.api.responses"
     ],
     "replacement_exists": true,
-    "p": 0.752,
+    "p": 0.771,
     "claims": ["node:api.openapidocument#3", "rel:api.openapidocument#1"],
     "claim_texts": [
       "The outgoing composes relationships from api.openapidocument to api.responses and api.schema contradict OpenAPI, where these live under Components or Operations rather than the root document.",
@@ -291,116 +228,119 @@
     ],
     "reflect_validity": ["real_defect", "real_defect"],
     "alternatives": [
-      "source=api.components|0.56",
-      "target=api.paths|0.30",
-      "source=api.operation|0.75"
+      "source=api.components|0.58",
+      "target=api.paths|0.29",
+      "source=api.operation|0.77"
     ]
   },
   {
-    "triple": "api.tag.aggregates.api.operation",
-    "source": "api.tag",
-    "predicate": "aggregates",
+    "triple": "api.components.composes.api.securityscheme",
+    "source": "api.components",
+    "predicate": "composes",
+    "destination": "api.securityscheme",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.components.aggregates.api.securityscheme"],
+    "replacement_exists": false,
+    "p": 0.768,
+    "claims": ["rel:api.components#4"],
+    "claim_texts": [
+      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["predicate=aggregates|0.77"]
+  },
+  {
+    "triple": "api.requestbody.serves.api.operation",
+    "source": "api.requestbody",
+    "predicate": "serves",
     "destination": "api.operation",
     "layer": "api",
-    "kind": "conflict",
-    "current_exists": true,
-    "replacement": [
-      "api.operation.references.api.tag",
-      "api.operation.aggregates.api.tag"
-    ],
-    "replacement_exists": true,
-    "p": 0.75,
-    "claims": ["node:api.tag#2", "rel:api.tag#1"],
-    "claim_texts": [
-      "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships.",
-      "The relationships api.tag --aggregates--> api.operation and api.tag --serves--> api.operation express the same fact (the operation lists the tag name), so they are redundant."
-    ],
-    "reflect_validity": ["real_defect", "works_as_designed"],
-    "alternatives": [
-      "predicate=reverse:references|0.75",
-      "predicate=reverse:aggregates|0.37"
-    ]
-  },
-  {
-    "triple": "api.externaldocumentation.serves.api.openapidocument",
-    "source": "api.externaldocumentation",
-    "predicate": "serves",
-    "destination": "api.openapidocument",
-    "layer": "api",
     "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.openapidocument.references.api.externaldocumentation"],
+    "current_exists": false,
+    "replacement": ["api.operation.aggregates.api.requestbody"],
     "replacement_exists": true,
-    "p": 0.745,
-    "claims": ["rel:api.externaldocumentation#1"],
+    "p": 0.766,
+    "claims": ["rel:api.requestbody#3"],
     "claim_texts": [
-      "The associated-with relationship from api.externaldocumentation to api.info is questionable and redundant, because OpenAPI does not allow externalDocs to attach to Info; it attaches to the root document, which already has a serves relationship."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:references|0.74"]
-  },
-  {
-    "triple": "api.encoding.composes.api.header",
-    "source": "api.encoding",
-    "predicate": "composes",
-    "destination": "api.header",
-    "layer": "api",
-    "kind": "remove-duplicate",
-    "current_exists": true,
-    "replacement": ["api.encoding.references.api.header"],
-    "replacement_exists": true,
-    "p": 0.727,
-    "claims": ["rel:api.encoding#3"],
-    "claim_texts": [
-      "The relationships api.encoding composes api.header and api.encoding references api.header are not redundant: composes is an inline header declaration while references is a $ref."
+      "The relationship api.requestbody serves api.operation has odd semantics and points the wrong way; the operation should own the request body as part of its contract."
     ],
     "reflect_validity": ["works_as_designed"],
-    "alternatives": ["predicate=references|0.73"]
+    "alternatives": ["predicate=reverse:aggregates|0.77"]
   },
   {
-    "triple": "api.response.references.api.example",
-    "source": "api.response",
-    "predicate": "references",
-    "destination": "api.example",
+    "triple": "api.responses.aggregates.api.header",
+    "source": "api.responses",
+    "predicate": "aggregates",
+    "destination": "api.header",
     "layer": "api",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.mediatype.references.api.example"],
+    "replacement": ["api.response.aggregates.api.header"],
     "replacement_exists": true,
-    "p": 0.726,
-    "claims": ["rel:api.response#4"],
+    "p": 0.763,
+    "claims": ["rel:api.responses#1"],
     "claim_texts": [
-      "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships."
+      "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.mediatype|0.73"]
+    "alternatives": ["source=api.response|0.76"]
   },
   {
-    "triple": "api.tag.serves.api.operation",
-    "source": "api.tag",
-    "predicate": "serves",
-    "destination": "api.operation",
+    "triple": "api.operation.composes.api.schema",
+    "source": "api.operation",
+    "predicate": "composes",
+    "destination": "api.schema",
     "layer": "api",
-    "kind": "conflict",
-    "current_exists": true,
-    "replacement": [
-      "api.operation.aggregates.api.tag",
-      "api.operation.references.api.tag"
-    ],
+    "kind": "remove-duplicate",
+    "current_exists": false,
+    "replacement": ["api.operation.references.api.schema"],
     "replacement_exists": true,
-    "p": 0.725,
-    "claims": ["rel:api.tag#2", "node:api.tag#2", "rel:api.tag#1"],
+    "p": 0.754,
+    "claims": ["rel:api.operation#2"],
     "claim_texts": [
-      "The 'serves' predicate for api.tag to api.operation is semantically weak because tags provide no behavior.",
-      "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships.",
-      "The relationships api.tag --aggregates--> api.operation and api.tag --serves--> api.operation express the same fact (the operation lists the tag name), so they are redundant."
+      "The relationships api.operation composes api.schema and api.operation references api.schema overlap, differing only in inline versus $ref."
     ],
-    "reflect_validity": ["real_defect", "real_defect", "works_as_designed"],
-    "alternatives": [
-      "predicate=reverse:aggregates|0.38",
-      "predicate=reverse:references|0.72",
-      "predicate=reverse:references|0.37"
-    ]
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=references|0.75"]
+  },
+  {
+    "triple": "api.paths.aggregates.api.pathitem",
+    "source": "api.paths",
+    "predicate": "aggregates",
+    "destination": "api.pathitem",
+    "layer": "api",
+    "kind": "remove-duplicate",
+    "current_exists": false,
+    "replacement": ["api.paths.composes.api.pathitem"],
+    "replacement_exists": true,
+    "p": 0.751,
+    "claims": ["node:api.paths#4", "rel:api.paths#1"],
+    "claim_texts": [
+      "api.paths has duplicate aggregates and composes relationships to api.pathitem that express the same meaning.",
+      "api.paths has both an aggregates and a composes relationship to api.pathitem, which express the same meaning redundantly; composes should be kept and aggregates reserved for $ref'd components/pathItems."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": ["predicate=composes|0.82", "predicate=composes|0.75"]
+  },
+  {
+    "triple": "api.components.composes.api.parameter",
+    "source": "api.components",
+    "predicate": "composes",
+    "destination": "api.parameter",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.components.aggregates.api.parameter"],
+    "replacement_exists": false,
+    "p": 0.744,
+    "claims": ["rel:api.components#4"],
+    "claim_texts": [
+      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["predicate=aggregates|0.74"]
   },
   {
     "triple": "api.encoding.associated-with.api.mediatype",
@@ -409,16 +349,16 @@
     "destination": "api.mediatype",
     "layer": "api",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["api.mediatype.composes.api.encoding"],
     "replacement_exists": true,
-    "p": 0.709,
+    "p": 0.722,
     "claims": ["rel:api.encoding#1"],
     "claim_texts": [
       "The relationship api.encoding associated-with api.mediatype understates the link, because MediaType composes its encoding entries; it should be expressed as composition from MediaType (api.mediatype composes api.encoding already exists)."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:composes|0.71"]
+    "alternatives": ["predicate=reverse:composes|0.72"]
   },
   {
     "triple": "api.server.serves.application.applicationcomponent",
@@ -433,7 +373,7 @@
       "application.applicationservice.serves.application.applicationinterface"
     ],
     "replacement_exists": false,
-    "p": 0.701,
+    "p": 0.721,
     "claims": ["node:api.server#3", "rel:api.server#4"],
     "claim_texts": [
       "The relationship 'serves' from api.server to application.applicationcomponent inverts the usual dependency direction and should be reviewed.",
@@ -441,28 +381,10 @@
     ],
     "reflect_validity": ["real_defect", "works_as_designed"],
     "alternatives": [
-      "source=application.applicationservice|0.70",
-      "source=application.applicationservice|0.53",
-      "target=application.applicationinterface|0.37"
+      "source=application.applicationservice|0.72",
+      "source=application.applicationservice|0.57",
+      "target=application.applicationinterface|0.38"
     ]
-  },
-  {
-    "triple": "api.operation.triggers.business.businessprocess",
-    "source": "api.operation",
-    "predicate": "triggers",
-    "destination": "business.businessprocess",
-    "layer": "api",
-    "kind": "remove-duplicate",
-    "current_exists": true,
-    "replacement": ["api.operation.realizes.business.businessprocess"],
-    "replacement_exists": true,
-    "p": 0.697,
-    "claims": ["rel:api.operation#6"],
-    "claim_texts": [
-      "The relationships api.operation realizes business.businessprocess and api.operation triggers business.businessprocess overlap."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=realizes|0.70"]
   },
   {
     "triple": "api.pathitem.realizes.business.businessfunction",
@@ -476,49 +398,155 @@
       "application.applicationfunction.realizes.business.businessfunction"
     ],
     "replacement_exists": true,
-    "p": 0.683,
+    "p": 0.718,
     "claims": ["rel:api.pathitem#2"],
     "claim_texts": [
       "The relationship api.pathitem realizes business.businessfunction is unusual because business behaviour is normally realized by the operation or an application service rather than directly by a path item."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=application.applicationfunction|0.68"]
+    "alternatives": ["source=application.applicationfunction|0.72"]
   },
   {
-    "triple": "api.paths.references.api.tag",
-    "source": "api.paths",
+    "triple": "api.response.references.api.example",
+    "source": "api.response",
     "predicate": "references",
-    "destination": "api.tag",
+    "destination": "api.example",
     "layer": "api",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.operation.references.api.tag"],
+    "replacement": ["api.mediatype.references.api.example"],
     "replacement_exists": true,
-    "p": 0.673,
-    "claims": ["node:api.tag#3"],
+    "p": 0.712,
+    "claims": ["rel:api.response#4"],
     "claim_texts": [
-      "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI."
+      "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.operation|0.67"]
+    "alternatives": ["source=api.mediatype|0.71"]
   },
   {
-    "triple": "api.requestbody.associated-with.api.encoding",
-    "source": "api.requestbody",
+    "triple": "api.components.composes.api.header",
+    "source": "api.components",
+    "predicate": "composes",
+    "destination": "api.header",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.components.aggregates.api.header"],
+    "replacement_exists": false,
+    "p": 0.708,
+    "claims": ["rel:api.components#4"],
+    "claim_texts": [
+      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["predicate=aggregates|0.71"]
+  },
+  {
+    "triple": "api.response.composes.api.header",
+    "source": "api.response",
+    "predicate": "composes",
+    "destination": "api.header",
+    "layer": "api",
+    "kind": "remove-duplicate",
+    "current_exists": true,
+    "replacement": ["api.response.aggregates.api.header"],
+    "replacement_exists": true,
+    "p": 0.707,
+    "claims": ["rel:api.response#1"],
+    "claim_texts": [
+      "api.response has both aggregates and composes relationships to api.header, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["predicate=aggregates|0.71"]
+  },
+  {
+    "triple": "api.info.associated-with.api.openapidocument",
+    "source": "api.info",
     "predicate": "associated-with",
-    "destination": "api.encoding",
+    "destination": "api.openapidocument",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": false,
+    "replacement": ["api.openapidocument.composes.api.info"],
+    "replacement_exists": true,
+    "p": 0.706,
+    "claims": ["node:api.openapidocument#4", "rel:api.info#1"],
+    "claim_texts": [
+      "The relationship from api.info to api.openapidocument with predicate 'associated-with' duplicates the composes relationship from api.openapidocument to api.info.",
+      "The relationship api.info --[associated-with]--> api.openapidocument is weak and redundant, because Info cannot exist without its document and the inverse api.openapidocument composes api.info already expresses the accurate structural relation."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": [
+      "predicate=reverse:composes|0.71",
+      "predicate=reverse:composes|0.84"
+    ]
+  },
+  {
+    "triple": "api.parameter.references.api.operation",
+    "source": "api.parameter",
+    "predicate": "references",
+    "destination": "api.operation",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": false,
+    "replacement": ["api.operation.aggregates.api.parameter"],
+    "replacement_exists": true,
+    "p": 0.702,
+    "claims": ["node:api.parameter#3", "rel:api.parameter#1"],
+    "claim_texts": [
+      "The outgoing 'references' relationship from api.parameter to api.operation is redundant because operation-to-parameter already exists as an aggregates relationship, and it points the opposite way.",
+      "The relationship api.parameter references api.operation is inverted, since operations contain parameters; an operation-to-parameter composes/aggregates relationship fits better (api.operation aggregates api.parameter already exists)."
+    ],
+    "reflect_validity": ["works_as_designed", "real_defect"],
+    "alternatives": [
+      "predicate=reverse:aggregates|0.76",
+      "predicate=reverse:aggregates|0.70"
+    ]
+  },
+  {
+    "triple": "api.response.references.api.schema",
+    "source": "api.response",
+    "predicate": "references",
+    "destination": "api.schema",
+    "layer": "api",
+    "kind": "conflict",
+    "current_exists": true,
+    "replacement": [
+      "api.mediatype.aggregates.api.schema",
+      "api.mediatype.references.api.schema"
+    ],
+    "replacement_exists": false,
+    "p": 0.691,
+    "claims": ["rel:api.response#3", "rel:api.response#4"],
+    "claim_texts": [
+      "The aggregates and references relationships from api.response to api.schema overlap in meaning.",
+      "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": [
+      "source=api.mediatype|0.63",
+      "predicate=aggregates|0.35",
+      "source=api.mediatype|0.69"
+    ]
+  },
+  {
+    "triple": "api.oauthflow.serves.api.operation",
+    "source": "api.oauthflow",
+    "predicate": "serves",
+    "destination": "api.operation",
     "layer": "api",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.encoding.associated-with.api.encoding"],
-    "replacement_exists": false,
-    "p": 0.673,
-    "claims": ["rel:api.requestbody#2"],
+    "replacement": ["api.securityscheme.serves.api.operation"],
+    "replacement_exists": true,
+    "p": 0.683,
+    "claims": ["node:api.oauthflow#5"],
     "claim_texts": [
-      "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody."
+      "The outgoing serves relationship from api.oauthflow to api.operation looks spurious because an OAuth flow is consumed only via its SecurityScheme."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.encoding|0.67"]
+    "alternatives": ["source=api.securityscheme|0.68"]
   },
   {
     "triple": "api.response.aggregates.api.schema",
@@ -533,7 +561,7 @@
       "api.response.aggregates.api.mediatype"
     ],
     "replacement_exists": false,
-    "p": 0.639,
+    "p": 0.671,
     "claims": ["rel:api.response#3", "rel:api.response#4"],
     "claim_texts": [
       "The aggregates and references relationships from api.response to api.schema overlap in meaning.",
@@ -541,28 +569,66 @@
     ],
     "reflect_validity": ["real_defect", "real_defect"],
     "alternatives": [
-      "target=api.mediatype|0.43",
-      "predicate=references|0.71",
-      "target=api.mediatype|0.64"
+      "target=api.mediatype|0.50",
+      "predicate=references|0.53",
+      "target=api.mediatype|0.67"
     ]
   },
   {
-    "triple": "api.mediatype.serves.api.response",
+    "triple": "api.mediatype.associated-with.api.header",
     "source": "api.mediatype",
-    "predicate": "serves",
-    "destination": "api.response",
+    "predicate": "associated-with",
+    "destination": "api.header",
     "layer": "api",
-    "kind": "reverse",
+    "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.response.composes.api.mediatype"],
-    "replacement_exists": true,
-    "p": 0.639,
-    "claims": ["rel:api.mediatype#3"],
+    "replacement": ["api.encoding.associated-with.api.header"],
+    "replacement_exists": false,
+    "p": 0.66,
+    "claims": ["rel:api.mediatype#2"],
     "claim_texts": [
-      "The serves relationships from api.mediatype to api.requestbody and api.response misstate the structure, because RequestBody and Response compose MediaType through their content map."
+      "The associated-with relationship from api.mediatype to api.header is indirect (it goes via Encoding) and therefore redundant."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:composes|0.64"]
+    "alternatives": ["source=api.encoding|0.66"]
+  },
+  {
+    "triple": "api.paths.references.api.tag",
+    "source": "api.paths",
+    "predicate": "references",
+    "destination": "api.tag",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.operation.references.api.tag"],
+    "replacement_exists": true,
+    "p": 0.66,
+    "claims": ["node:api.tag#3"],
+    "claim_texts": [
+      "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.operation|0.66"]
+  },
+  {
+    "triple": "api.openapidocument.serves.motivation.stakeholder",
+    "source": "api.openapidocument",
+    "predicate": "serves",
+    "destination": "motivation.stakeholder",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": [
+      "application.applicationservice.serves.motivation.stakeholder"
+    ],
+    "replacement_exists": true,
+    "p": 0.634,
+    "claims": ["rel:api.openapidocument#5"],
+    "claim_texts": [
+      "The serves relationship from api.openapidocument to motivation.stakeholder is weak."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=application.applicationservice|0.63"]
   },
   {
     "triple": "api.info.aggregates.api.license",
@@ -570,21 +636,54 @@
     "predicate": "aggregates",
     "destination": "api.license",
     "layer": "api",
-    "kind": "conflict",
+    "kind": "rename-predicate",
     "current_exists": true,
-    "replacement": [
-      "api.info.composes.api.license",
-      "api.info.references.api.license"
-    ],
+    "replacement": ["api.info.composes.api.license"],
     "replacement_exists": false,
-    "p": 0.635,
+    "p": 0.605,
     "claims": ["rel:api.license#2", "rel:api.info#2"],
     "claim_texts": [
       "The api.info --aggregates--> api.license relationship understates the structural nesting of License inside Info; the containment should be modeled as composition (License nested in Info, composed into OpenAPIDocument) rather than aggregation or loose association.",
       "The relationships api.info aggregates api.contact and api.info aggregates api.license may be better expressed as composes, since Contact and License are nested and document-bound, unless shared contacts or licenses are intended."
     ],
     "reflect_validity": ["judgment_call", "judgment_call"],
-    "alternatives": ["predicate=composes|0.58", "predicate=references|0.64"]
+    "alternatives": ["predicate=composes|0.63", "predicate=composes|0.60"]
+  },
+  {
+    "triple": "api.ratelimit.serves.api.pathitem",
+    "source": "api.ratelimit",
+    "predicate": "serves",
+    "destination": "api.pathitem",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.ratelimit.associated-with.api.pathitem"],
+    "replacement_exists": false,
+    "p": 0.597,
+    "claims": ["rel:api.ratelimit#2"],
+    "claim_texts": [
+      "The 'serves' predicate from api.ratelimit to api.operation and api.pathitem inverts the usual meaning, since a rate limit restricts rather than provides functionality."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["predicate=associated-with|0.60"]
+  },
+  {
+    "triple": "api.link.references.api.tag",
+    "source": "api.link",
+    "predicate": "references",
+    "destination": "api.tag",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.operation.references.api.tag"],
+    "replacement_exists": true,
+    "p": 0.595,
+    "claims": ["rel:api.link#2"],
+    "claim_texts": [
+      "The relationship api.link references api.tag has no corresponding field in the OpenAPI Link Object and is only indirect via the target operation's tags; it is derivable from link→operation plus operation→tag."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.operation|0.59"]
   },
   {
     "triple": "api.responses.references.api.schema",
@@ -596,32 +695,109 @@
     "current_exists": true,
     "replacement": ["api.mediatype.references.api.schema"],
     "replacement_exists": true,
-    "p": 0.629,
+    "p": 0.592,
     "claims": ["rel:api.responses#2"],
     "claim_texts": [
       "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning."
     ],
     "reflect_validity": ["judgment_call"],
-    "alternatives": ["source=api.mediatype|0.63"]
+    "alternatives": ["source=api.mediatype|0.59"]
   },
   {
-    "triple": "api.response.references.api.schema",
-    "source": "api.response",
-    "predicate": "references",
-    "destination": "api.schema",
+    "triple": "api.server.aggregates.api.servervariable",
+    "source": "api.server",
+    "predicate": "aggregates",
+    "destination": "api.servervariable",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.server.composes.api.servervariable"],
+    "replacement_exists": false,
+    "p": 0.587,
+    "claims": ["rel:api.server#1"],
+    "claim_texts": [
+      "The relationship api.server aggregates api.servervariable should use composes, since server variables have no existence outside their server."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["predicate=composes|0.59"]
+  },
+  {
+    "triple": "api.info.aggregates.api.contact",
+    "source": "api.info",
+    "predicate": "aggregates",
+    "destination": "api.contact",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.info.composes.api.contact"],
+    "replacement_exists": false,
+    "p": 0.567,
+    "claims": ["rel:api.info#2"],
+    "claim_texts": [
+      "The relationships api.info aggregates api.contact and api.info aggregates api.license may be better expressed as composes, since Contact and License are nested and document-bound, unless shared contacts or licenses are intended."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["predicate=composes|0.57"]
+  },
+  {
+    "triple": "api.requestbody.associated-with.api.encoding",
+    "source": "api.requestbody",
+    "predicate": "associated-with",
+    "destination": "api.encoding",
     "layer": "api",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.mediatype.references.api.schema"],
-    "replacement_exists": true,
-    "p": 0.626,
-    "claims": ["rel:api.response#4", "rel:api.response#3"],
+    "replacement": ["api.encoding.associated-with.api.encoding"],
+    "replacement_exists": false,
+    "p": 0.566,
+    "claims": ["rel:api.requestbody#2"],
     "claim_texts": [
-      "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships.",
-      "The aggregates and references relationships from api.response to api.schema overlap in meaning."
+      "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.encoding|0.57"]
+  },
+  {
+    "triple": "api.pathitem.serves.application.applicationcomponent",
+    "source": "api.pathitem",
+    "predicate": "serves",
+    "destination": "application.applicationcomponent",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": [
+      "application.applicationservice.serves.application.applicationcomponent"
+    ],
+    "replacement_exists": true,
+    "p": 0.565,
+    "claims": ["rel:api.pathitem#3"],
+    "claim_texts": [
+      "The relationship api.pathitem serves application.applicationcomponent is more naturally expressed at the operation level than at the path item level."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["source=application.applicationservice|0.56"]
+  },
+  {
+    "triple": "api.tag.aggregates.api.operation",
+    "source": "api.tag",
+    "predicate": "aggregates",
+    "destination": "api.operation",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": true,
+    "replacement": ["api.operation.references.api.tag"],
+    "replacement_exists": true,
+    "p": 0.564,
+    "claims": ["node:api.tag#2", "rel:api.tag#1"],
+    "claim_texts": [
+      "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships.",
+      "The relationships api.tag --aggregates--> api.operation and api.tag --serves--> api.operation express the same fact (the operation lists the tag name), so they are redundant."
     ],
     "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": ["source=api.mediatype|0.70", "source=api.mediatype|0.63"]
+    "alternatives": [
+      "predicate=reverse:references|0.85",
+      "predicate=reverse:references|0.56"
+    ]
   },
   {
     "triple": "api.pathitem.references.api.externaldocumentation",
@@ -636,7 +812,7 @@
       "api.openapidocument.references.api.externaldocumentation"
     ],
     "replacement_exists": true,
-    "p": 0.612,
+    "p": 0.543,
     "claims": ["node:api.externaldocumentation#1", "rel:api.pathitem#1"],
     "claim_texts": [
       "The incoming 'references' relationship from api.pathitem to api.externaldocumentation has no basis in OpenAPI 3.0 because PathItem has no externalDocs field.",
@@ -644,286 +820,8 @@
     ],
     "reflect_validity": ["judgment_call", "real_defect"],
     "alternatives": [
-      "source=api.operation|0.36",
-      "source=api.openapidocument|0.61"
-    ]
-  },
-  {
-    "triple": "api.operation.aggregates.api.tag",
-    "source": "api.operation",
-    "predicate": "aggregates",
-    "destination": "api.tag",
-    "layer": "api",
-    "kind": "remove-duplicate",
-    "current_exists": true,
-    "replacement": ["api.operation.references.api.tag"],
-    "replacement_exists": true,
-    "p": 0.611,
-    "claims": ["rel:api.operation#3", "node:api.tag#2"],
-    "claim_texts": [
-      "The relationships api.operation aggregates api.tag and api.operation references api.tag overlap, differing only in inline versus $ref.",
-      "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": ["predicate=references|0.61", "predicate=references|0.65"]
-  },
-  {
-    "triple": "api.server.aggregates.api.servervariable",
-    "source": "api.server",
-    "predicate": "aggregates",
-    "destination": "api.servervariable",
-    "layer": "api",
-    "kind": "rename-predicate",
-    "current_exists": true,
-    "replacement": ["api.server.composes.api.servervariable"],
-    "replacement_exists": false,
-    "p": 0.599,
-    "claims": ["rel:api.server#1"],
-    "claim_texts": [
-      "The relationship api.server aggregates api.servervariable should use composes, since server variables have no existence outside their server."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=composes|0.60"]
-  },
-  {
-    "triple": "api.oauthflow.serves.api.operation",
-    "source": "api.oauthflow",
-    "predicate": "serves",
-    "destination": "api.operation",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.securityscheme.serves.api.operation"],
-    "replacement_exists": true,
-    "p": 0.595,
-    "claims": ["node:api.oauthflow#5"],
-    "claim_texts": [
-      "The outgoing serves relationship from api.oauthflow to api.operation looks spurious because an OAuth flow is consumed only via its SecurityScheme."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.securityscheme|0.59"]
-  },
-  {
-    "triple": "api.mediatype.aggregates.api.encoding",
-    "source": "api.mediatype",
-    "predicate": "aggregates",
-    "destination": "api.encoding",
-    "layer": "api",
-    "kind": "remove-duplicate",
-    "current_exists": true,
-    "replacement": ["api.mediatype.composes.api.encoding"],
-    "replacement_exists": true,
-    "p": 0.593,
-    "claims": ["rel:api.mediatype#1"],
-    "claim_texts": [
-      "api.mediatype has both aggregates and composes relationships to api.encoding, which are contradictory because Encoding cannot exist outside its MediaType, so only composes should remain."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=composes|0.59"]
-  },
-  {
-    "triple": "api.openapidocument.composes.api.schema",
-    "source": "api.openapidocument",
-    "predicate": "composes",
-    "destination": "api.schema",
-    "layer": "api",
-    "kind": "conflict",
-    "current_exists": true,
-    "replacement": [
-      "api.components.composes.api.components",
-      "api.components.composes.api.info"
-    ],
-    "replacement_exists": false,
-    "p": 0.584,
-    "claims": ["rel:api.openapidocument#2", "node:api.openapidocument#3"],
-    "claim_texts": [
-      "The composes relationship from api.openapidocument to api.schema duplicates the path through api.components, which already holds schemas.",
-      "The outgoing composes relationships from api.openapidocument to api.responses and api.schema contradict OpenAPI, where these live under Components or Operations rather than the root document."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": [
-      "source=api.components|0.66",
-      "target=api.components|0.58",
-      "source=api.components|0.50",
-      "target=api.info|0.29"
-    ]
-  },
-  {
-    "triple": "api.openapidocument.serves.motivation.stakeholder",
-    "source": "api.openapidocument",
-    "predicate": "serves",
-    "destination": "motivation.stakeholder",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": [
-      "application.applicationservice.serves.motivation.stakeholder"
-    ],
-    "replacement_exists": true,
-    "p": 0.574,
-    "claims": ["rel:api.openapidocument#5"],
-    "claim_texts": [
-      "The serves relationship from api.openapidocument to motivation.stakeholder is weak."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=application.applicationservice|0.57"]
-  },
-  {
-    "triple": "api.response.composes.api.header",
-    "source": "api.response",
-    "predicate": "composes",
-    "destination": "api.header",
-    "layer": "api",
-    "kind": "remove-duplicate",
-    "current_exists": true,
-    "replacement": ["api.response.aggregates.api.header"],
-    "replacement_exists": true,
-    "p": 0.571,
-    "claims": ["rel:api.response#1"],
-    "claim_texts": [
-      "api.response has both aggregates and composes relationships to api.header, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=aggregates|0.57"]
-  },
-  {
-    "triple": "api.info.aggregates.api.contact",
-    "source": "api.info",
-    "predicate": "aggregates",
-    "destination": "api.contact",
-    "layer": "api",
-    "kind": "rename-predicate",
-    "current_exists": true,
-    "replacement": ["api.info.references.api.contact"],
-    "replacement_exists": false,
-    "p": 0.56,
-    "claims": ["rel:api.info#2"],
-    "claim_texts": [
-      "The relationships api.info aggregates api.contact and api.info aggregates api.license may be better expressed as composes, since Contact and License are nested and document-bound, unless shared contacts or licenses are intended."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=references|0.56"]
-  },
-  {
-    "triple": "api.components.composes.api.header",
-    "source": "api.components",
-    "predicate": "composes",
-    "destination": "api.header",
-    "layer": "api",
-    "kind": "rename-predicate",
-    "current_exists": true,
-    "replacement": ["api.components.references.api.header"],
-    "replacement_exists": false,
-    "p": 0.553,
-    "claims": ["rel:api.components#4"],
-    "claim_texts": [
-      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=references|0.55"]
-  },
-  {
-    "triple": "api.pathitem.serves.application.applicationcomponent",
-    "source": "api.pathitem",
-    "predicate": "serves",
-    "destination": "application.applicationcomponent",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": [
-      "application.applicationservice.serves.application.applicationcomponent"
-    ],
-    "replacement_exists": true,
-    "p": 0.538,
-    "claims": ["rel:api.pathitem#3"],
-    "claim_texts": [
-      "The relationship api.pathitem serves application.applicationcomponent is more naturally expressed at the operation level than at the path item level."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["source=application.applicationservice|0.54"]
-  },
-  {
-    "triple": "api.components.composes.api.schema",
-    "source": "api.components",
-    "predicate": "composes",
-    "destination": "api.schema",
-    "layer": "api",
-    "kind": "rename-predicate",
-    "current_exists": true,
-    "replacement": ["api.components.references.api.schema"],
-    "replacement_exists": false,
-    "p": 0.532,
-    "claims": ["rel:api.components#4"],
-    "claim_texts": [
-      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=references|0.53"]
-  },
-  {
-    "triple": "api.components.composes.api.paths",
-    "source": "api.components",
-    "predicate": "composes",
-    "destination": "api.paths",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.openapidocument.composes.api.paths"],
-    "replacement_exists": true,
-    "p": 0.529,
-    "claims": ["node:api.components#1", "rel:api.components#2"],
-    "claim_texts": [
-      "The composes relationship from api.components to api.paths is invalid because an OpenAPI 3.0 Components object has no paths or pathItems (these exist only in 3.1).",
-      "The api.components composes api.paths relationship is wrong because Paths is a root-level sibling of components, not a child of it."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": [
-      "source=api.openapidocument|0.69",
-      "source=api.openapidocument|0.53"
-    ]
-  },
-  {
-    "triple": "api.mediatype.associated-with.api.header",
-    "source": "api.mediatype",
-    "predicate": "associated-with",
-    "destination": "api.header",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.encoding.associated-with.api.encoding"],
-    "replacement_exists": false,
-    "p": 0.502,
-    "claims": ["rel:api.mediatype#2"],
-    "claim_texts": [
-      "The associated-with relationship from api.mediatype to api.header is indirect (it goes via Encoding) and therefore redundant."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.encoding|0.57", "target=api.encoding|0.50"]
-  },
-  {
-    "triple": "api.components.composes.api.responses",
-    "source": "api.components",
-    "predicate": "composes",
-    "destination": "api.responses",
-    "layer": "api",
-    "kind": "conflict",
-    "current_exists": true,
-    "replacement": [
-      "api.components.composes.api.response",
-      "api.operation.composes.api.response"
-    ],
-    "replacement_exists": false,
-    "p": 0.494,
-    "claims": ["node:api.components#2", "rel:api.components#3"],
-    "claim_texts": [
-      "The composes relationship from api.components to api.responses is wrong because components.responses holds individual Response objects, not a Responses map.",
-      "The api.components composes api.responses relationship is wrong because components holds individual Response entries, not operation-scoped Responses maps."
-    ],
-    "reflect_validity": ["works_as_designed", "real_defect"],
-    "alternatives": [
-      "target=api.response|0.35",
-      "source=api.operation|0.71",
-      "target=api.response|0.49"
+      "source=api.operation|0.38",
+      "source=api.openapidocument|0.54"
     ]
   },
   {
@@ -936,13 +834,35 @@
     "current_exists": true,
     "replacement": ["api.operation.references.api.tag"],
     "replacement_exists": true,
-    "p": 0.493,
+    "p": 0.535,
     "claims": ["node:api.tag#3"],
     "claim_texts": [
       "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.operation|0.49"]
+    "alternatives": ["source=api.operation|0.54"]
+  },
+  {
+    "triple": "api.components.composes.api.paths",
+    "source": "api.components",
+    "predicate": "composes",
+    "destination": "api.paths",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.openapidocument.composes.api.paths"],
+    "replacement_exists": true,
+    "p": 0.534,
+    "claims": ["node:api.components#1", "rel:api.components#2"],
+    "claim_texts": [
+      "The composes relationship from api.components to api.paths is invalid because an OpenAPI 3.0 Components object has no paths or pathItems (these exist only in 3.1).",
+      "The api.components composes api.paths relationship is wrong because Paths is a root-level sibling of components, not a child of it."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": [
+      "source=api.openapidocument|0.74",
+      "source=api.openapidocument|0.53"
+    ]
   },
   {
     "triple": "api.operation.realizes.motivation.outcome",
@@ -954,49 +874,13 @@
     "current_exists": true,
     "replacement": ["business.businessprocess.realizes.motivation.outcome"],
     "replacement_exists": true,
-    "p": 0.483,
+    "p": 0.53,
     "claims": ["rel:api.operation#5"],
     "claim_texts": [
       "The relationships api.operation realizes motivation.goal and realizes motivation.outcome use the wrong predicate; they should be supports or delivers."
     ],
-    "reflect_validity": ["works_as_designed"],
-    "alternatives": ["source=business.businessprocess|0.48"]
-  },
-  {
-    "triple": "api.response.aggregates.api.header",
-    "source": "api.response",
-    "predicate": "aggregates",
-    "destination": "api.header",
-    "layer": "api",
-    "kind": "rename-predicate",
-    "current_exists": true,
-    "replacement": ["api.response.references.api.header"],
-    "replacement_exists": false,
-    "p": 0.479,
-    "claims": ["rel:api.response#1"],
-    "claim_texts": [
-      "api.response has both aggregates and composes relationships to api.header, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=references|0.48"]
-  },
-  {
-    "triple": "api.securityscheme.maps-to.security.actor",
-    "source": "api.securityscheme",
-    "predicate": "maps-to",
-    "destination": "security.actor",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.securityscheme.maps-to.security.authenticationconfig"],
-    "replacement_exists": false,
-    "p": 0.468,
-    "claims": ["rel:api.securityscheme#3"],
-    "claim_texts": [
-      "The maps-to edge from api.securityscheme to security.actor misuses a schema-mapping predicate."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["target=security.authenticationconfig|0.47"]
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["source=business.businessprocess|0.53"]
   },
   {
     "triple": "api.responses.aggregates.api.schema",
@@ -1008,7 +892,7 @@
     "current_exists": true,
     "replacement": ["api.response.references.api.schema"],
     "replacement_exists": true,
-    "p": 0.457,
+    "p": 0.51,
     "claims": ["rel:api.responses#2", "rel:api.responses#1"],
     "claim_texts": [
       "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning.",
@@ -1016,10 +900,10 @@
     ],
     "reflect_validity": ["judgment_call", "real_defect"],
     "alternatives": [
-      "source=api.response|0.48",
+      "source=api.response|0.51",
       "predicate=references|0.72",
-      "source=api.response|0.79",
-      "predicate=references|0.46"
+      "source=api.response|0.74",
+      "predicate=references|0.54"
     ]
   },
   {
@@ -1032,7 +916,7 @@
     "current_exists": true,
     "replacement": ["api.operation.references.api.tag"],
     "replacement_exists": true,
-    "p": 0.456,
+    "p": 0.477,
     "claims": ["node:api.parameter#2", "rel:api.parameter#2", "node:api.tag#3"],
     "claim_texts": [
       "The outgoing 'references' relationship from api.parameter to api.tag looks wrong because parameters do not reference tags.",
@@ -1041,106 +925,54 @@
     ],
     "reflect_validity": ["real_defect", "real_defect", "real_defect"],
     "alternatives": [
-      "source=api.operation|0.46",
-      "source=api.operation|0.68",
-      "source=api.operation|0.52"
+      "source=api.operation|0.50",
+      "source=api.operation|0.74",
+      "source=api.operation|0.48"
     ]
   },
   {
-    "triple": "api.components.composes.api.parameter",
+    "triple": "api.securityscheme.maps-to.security.actor",
+    "source": "api.securityscheme",
+    "predicate": "maps-to",
+    "destination": "security.actor",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.securityscheme.maps-to.security.authenticationconfig"],
+    "replacement_exists": false,
+    "p": 0.472,
+    "claims": ["rel:api.securityscheme#3"],
+    "claim_texts": [
+      "The maps-to edge from api.securityscheme to security.actor misuses a schema-mapping predicate."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["target=security.authenticationconfig|0.47"]
+  },
+  {
+    "triple": "api.components.composes.api.responses",
     "source": "api.components",
     "predicate": "composes",
-    "destination": "api.parameter",
+    "destination": "api.responses",
     "layer": "api",
-    "kind": "rename-predicate",
+    "kind": "conflict",
     "current_exists": true,
-    "replacement": ["api.components.references.api.parameter"],
+    "replacement": [
+      "api.components.aggregates.api.response",
+      "api.operation.composes.api.response"
+    ],
     "replacement_exists": false,
-    "p": 0.449,
-    "claims": ["rel:api.components#4"],
+    "p": 0.466,
+    "claims": ["node:api.components#2", "rel:api.components#3"],
     "claim_texts": [
-      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
+      "The composes relationship from api.components to api.responses is wrong because components.responses holds individual Response objects, not a Responses map.",
+      "The api.components composes api.responses relationship is wrong because components holds individual Response entries, not operation-scoped Responses maps."
     ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=references|0.45"]
-  },
-  {
-    "triple": "api.oauthflow.references.api.tag",
-    "source": "api.oauthflow",
-    "predicate": "references",
-    "destination": "api.tag",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": false,
-    "replacement": ["api.operation.references.api.tag"],
-    "replacement_exists": true,
-    "p": 0.447,
-    "claims": ["node:api.tag#3"],
-    "claim_texts": [
-      "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.operation|0.45"]
-  },
-  {
-    "triple": "api.license.associated-with.api.openapidocument",
-    "source": "api.license",
-    "predicate": "associated-with",
-    "destination": "api.openapidocument",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.info.associated-with.api.openapidocument"],
-    "replacement_exists": true,
-    "p": 0.443,
-    "claims": ["node:api.license#2"],
-    "claim_texts": [
-      "The outgoing associated-with relationship from api.license to api.openapidocument may be redundant because the same connection is already expressed via api.info aggregation."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.info|0.44"]
-  },
-  {
-    "triple": "api.mediatype.serves.api.requestbody",
-    "source": "api.mediatype",
-    "predicate": "serves",
-    "destination": "api.requestbody",
-    "layer": "api",
-    "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.requestbody.composes.api.mediatype"],
-    "replacement_exists": true,
-    "p": 0.434,
-    "claims": ["rel:api.mediatype#3", "node:api.requestbody#2"],
-    "claim_texts": [
-      "The serves relationships from api.mediatype to api.requestbody and api.response misstate the structure, because RequestBody and Response compose MediaType through their content map.",
-      "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
+    "reflect_validity": ["judgment_call", "real_defect"],
     "alternatives": [
-      "predicate=reverse:composes|0.59",
-      "predicate=reverse:composes|0.43"
-    ]
-  },
-  {
-    "triple": "api.server.serves.api.pathitem",
-    "source": "api.server",
-    "predicate": "serves",
-    "destination": "api.pathitem",
-    "layer": "api",
-    "kind": "compound",
-    "current_exists": true,
-    "replacement": ["application.applicationcomponent.aggregates.api.server"],
-    "replacement_exists": false,
-    "p": 0.433,
-    "claims": ["rel:api.server#5"],
-    "claim_texts": [
-      "The relationship api.server serves api.pathitem overlaps with plain structural scoping already expressed by the pathitem aggregating servers."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": [
-      "target=application.applicationcomponent|0.43",
-      "predicate=reverse:aggregates|0.66"
+      "target=api.response|0.35",
+      "predicate=aggregates|0.32",
+      "source=api.operation|0.69",
+      "target=api.response|0.47"
     ]
   },
   {
@@ -1157,7 +989,7 @@
       "api.responses.serves.api.openapidocument"
     ],
     "replacement_exists": false,
-    "p": 0.431,
+    "p": 0.466,
     "claims": [
       "node:api.operation#5",
       "node:api.paths#3",
@@ -1170,13 +1002,283 @@
     ],
     "reflect_validity": ["real_defect", "real_defect", "real_defect"],
     "alternatives": [
-      "predicate=reverse:serves|0.33",
-      "source=api.openapidocument|0.55",
-      "predicate=reverse:serves|0.43",
-      "source=api.openapidocument|0.69",
-      "target=api.responses|0.41",
-      "predicate=reverse:serves|0.46"
+      "predicate=reverse:serves|0.30",
+      "source=api.openapidocument|0.46",
+      "predicate=reverse:serves|0.37",
+      "source=api.openapidocument|0.62",
+      "target=api.responses|0.47",
+      "predicate=reverse:serves|0.52"
     ]
+  },
+  {
+    "triple": "api.tag.serves.api.operation",
+    "source": "api.tag",
+    "predicate": "serves",
+    "destination": "api.operation",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": true,
+    "replacement": ["api.operation.references.api.tag"],
+    "replacement_exists": true,
+    "p": 0.461,
+    "claims": ["rel:api.tag#2", "node:api.tag#2", "rel:api.tag#1"],
+    "claim_texts": [
+      "The 'serves' predicate for api.tag to api.operation is semantically weak because tags provide no behavior.",
+      "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships.",
+      "The relationships api.tag --aggregates--> api.operation and api.tag --serves--> api.operation express the same fact (the operation lists the tag name), so they are redundant."
+    ],
+    "reflect_validity": ["real_defect", "real_defect", "real_defect"],
+    "alternatives": [
+      "predicate=reverse:references|0.46",
+      "predicate=reverse:references|0.78",
+      "predicate=reverse:references|0.54"
+    ]
+  },
+  {
+    "triple": "api.server.serves.api.pathitem",
+    "source": "api.server",
+    "predicate": "serves",
+    "destination": "api.pathitem",
+    "layer": "api",
+    "kind": "compound",
+    "current_exists": true,
+    "replacement": ["application.applicationcomponent.aggregates.api.server"],
+    "replacement_exists": false,
+    "p": 0.454,
+    "claims": ["rel:api.server#5"],
+    "claim_texts": [
+      "The relationship api.server serves api.pathitem overlaps with plain structural scoping already expressed by the pathitem aggregating servers."
+    ],
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": [
+      "target=application.applicationcomponent|0.45",
+      "predicate=reverse:aggregates|0.61"
+    ]
+  },
+  {
+    "triple": "api.schema.references.api.operation",
+    "source": "api.schema",
+    "predicate": "references",
+    "destination": "api.operation",
+    "layer": "api",
+    "kind": "compound",
+    "current_exists": true,
+    "replacement": ["api.operation.references.api.operation"],
+    "replacement_exists": true,
+    "p": 0.452,
+    "claims": ["rel:api.schema#1"],
+    "claim_texts": [
+      "The relationship api.schema references api.operation has no native OpenAPI 3.0 basis, since schemas do not point to operations except via vendor extensions."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": [
+      "source=api.operation|0.49",
+      "predicate=reverse:references|0.45"
+    ]
+  },
+  {
+    "triple": "api.openapidocument.composes.api.schema",
+    "source": "api.openapidocument",
+    "predicate": "composes",
+    "destination": "api.schema",
+    "layer": "api",
+    "kind": "conflict",
+    "current_exists": true,
+    "replacement": [
+      "api.components.composes.api.components",
+      "api.components.composes.api.paths"
+    ],
+    "replacement_exists": false,
+    "p": 0.442,
+    "claims": ["rel:api.openapidocument#2", "node:api.openapidocument#3"],
+    "claim_texts": [
+      "The composes relationship from api.openapidocument to api.schema duplicates the path through api.components, which already holds schemas.",
+      "The outgoing composes relationships from api.openapidocument to api.responses and api.schema contradict OpenAPI, where these live under Components or Operations rather than the root document."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": [
+      "source=api.components|0.64",
+      "target=api.components|0.44",
+      "source=api.components|0.52",
+      "target=api.paths|0.30"
+    ]
+  },
+  {
+    "triple": "api.mediatype.serves.api.response",
+    "source": "api.mediatype",
+    "predicate": "serves",
+    "destination": "api.response",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": true,
+    "replacement": ["api.response.composes.api.mediatype"],
+    "replacement_exists": true,
+    "p": 0.44,
+    "claims": ["rel:api.mediatype#3"],
+    "claim_texts": [
+      "The serves relationships from api.mediatype to api.requestbody and api.response misstate the structure, because RequestBody and Response compose MediaType through their content map."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["predicate=reverse:composes|0.44"]
+  },
+  {
+    "triple": "api.mediatype.serves.api.requestbody",
+    "source": "api.mediatype",
+    "predicate": "serves",
+    "destination": "api.requestbody",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": true,
+    "replacement": ["api.requestbody.composes.api.mediatype"],
+    "replacement_exists": true,
+    "p": 0.428,
+    "claims": ["rel:api.mediatype#3", "node:api.requestbody#2"],
+    "claim_texts": [
+      "The serves relationships from api.mediatype to api.requestbody and api.response misstate the structure, because RequestBody and Response compose MediaType through their content map.",
+      "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": [
+      "predicate=reverse:composes|0.43",
+      "predicate=reverse:composes|0.47"
+    ]
+  },
+  {
+    "triple": "api.securityscheme.implements.security.securitypolicy",
+    "source": "api.securityscheme",
+    "predicate": "implements",
+    "destination": "security.securitypolicy",
+    "layer": "api",
+    "kind": "compound",
+    "current_exists": false,
+    "replacement": [
+      "api.securityscheme.realizes.security.authenticationconfig"
+    ],
+    "replacement_exists": false,
+    "p": 0.419,
+    "claims": ["rel:api.securityscheme#5"],
+    "claim_texts": [
+      "The implements edge from api.securityscheme to security.securitypolicy overstates the relationship because a scheme covers authentication only."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": [
+      "target=security.authenticationconfig|0.62",
+      "predicate=realizes|0.42"
+    ]
+  },
+  {
+    "triple": "api.oauthflow.serves.api.securityscheme",
+    "source": "api.oauthflow",
+    "predicate": "serves",
+    "destination": "api.securityscheme",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.oauthflow.serves.api.operation"],
+    "replacement_exists": true,
+    "p": 0.407,
+    "claims": ["rel:api.oauthflow#3"],
+    "claim_texts": [
+      "The relationship api.oauthflow serves api.securityscheme is really composition via OAuthFlows, not a service relationship."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["target=api.operation|0.41"]
+  },
+  {
+    "triple": "api.openapidocument.realizes.business.businessservice",
+    "source": "api.openapidocument",
+    "predicate": "realizes",
+    "destination": "business.businessservice",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": [
+      "application.applicationcomponent.realizes.application.applicationservice"
+    ],
+    "replacement_exists": true,
+    "p": 0.407,
+    "claims": ["rel:api.openapidocument#4"],
+    "claim_texts": [
+      "The realizes relationship from api.openapidocument to business.businessservice skips the application layer."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": [
+      "source=application.applicationcomponent|0.41",
+      "target=application.applicationservice|0.52"
+    ]
+  },
+  {
+    "triple": "api.securityscheme.maps-to.data-store.collection",
+    "source": "api.securityscheme",
+    "predicate": "maps-to",
+    "destination": "data-store.collection",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.schema.maps-to.data-store.collection"],
+    "replacement_exists": true,
+    "p": 0.407,
+    "claims": ["rel:api.securityscheme#4"],
+    "claim_texts": [
+      "The maps-to edge from api.securityscheme to data-store.collection misuses a schema-mapping predicate."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.schema|0.41"]
+  },
+  {
+    "triple": "api.requestbody.aggregates.api.mediatype",
+    "source": "api.requestbody",
+    "predicate": "aggregates",
+    "destination": "api.mediatype",
+    "layer": "api",
+    "kind": "remove-duplicate",
+    "current_exists": true,
+    "replacement": ["api.requestbody.composes.api.mediatype"],
+    "replacement_exists": true,
+    "p": 0.379,
+    "claims": ["node:api.requestbody#2", "rel:api.requestbody#1"],
+    "claim_texts": [
+      "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent.",
+      "The relationships api.requestbody aggregates api.mediatype and api.requestbody composes api.mediatype are redundant and conflicting; composes is the correct one since media types live only inside the content map."
+    ],
+    "reflect_validity": ["real_defect", "real_defect"],
+    "alternatives": ["predicate=composes|0.38", "predicate=composes|0.40"]
+  },
+  {
+    "triple": "api.operation.references.api.tag",
+    "source": "api.operation",
+    "predicate": "references",
+    "destination": "api.tag",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": true,
+    "replacement": ["api.tag.aggregates.api.operation"],
+    "replacement_exists": true,
+    "p": 0.376,
+    "claims": ["rel:api.operation#3"],
+    "claim_texts": [
+      "The relationships api.operation aggregates api.tag and api.operation references api.tag overlap, differing only in inline versus $ref."
+    ],
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=reverse:aggregates|0.38"]
+  },
+  {
+    "triple": "api.requestbody.composes.api.mediatype",
+    "source": "api.requestbody",
+    "predicate": "composes",
+    "destination": "api.mediatype",
+    "layer": "api",
+    "kind": "reverse",
+    "current_exists": true,
+    "replacement": ["api.mediatype.serves.api.requestbody"],
+    "replacement_exists": true,
+    "p": 0.371,
+    "claims": ["rel:api.requestbody#1"],
+    "claim_texts": [
+      "The relationships api.requestbody aggregates api.mediatype and api.requestbody composes api.mediatype are redundant and conflicting; composes is the correct one since media types live only inside the content map."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["predicate=reverse:serves|0.37"]
   },
   {
     "triple": "api.servervariable.governs.api.server",
@@ -1188,7 +1290,7 @@
     "current_exists": true,
     "replacement": ["api.server.aggregates.api.servervariable"],
     "replacement_exists": true,
-    "p": 0.415,
+    "p": 0.369,
     "claims": ["node:api.servervariable#4", "rel:api.servervariable#1"],
     "claim_texts": [
       "The relationship 'governs api.server' from api.servervariable duplicates the inverse 'aggregates' relationship from api.server.",
@@ -1196,90 +1298,27 @@
     ],
     "reflect_validity": ["real_defect", "judgment_call"],
     "alternatives": [
-      "predicate=reverse:aggregates|0.77",
-      "predicate=reverse:aggregates|0.41"
+      "predicate=reverse:aggregates|0.57",
+      "predicate=reverse:aggregates|0.37"
     ]
   },
   {
-    "triple": "api.oauthflow.serves.api.securityscheme",
-    "source": "api.oauthflow",
-    "predicate": "serves",
-    "destination": "api.securityscheme",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.oauthflows.serves.api.operation"],
-    "replacement_exists": false,
-    "p": 0.41,
-    "claims": ["rel:api.oauthflow#3"],
-    "claim_texts": [
-      "The relationship api.oauthflow serves api.securityscheme is really composition via OAuthFlows, not a service relationship."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.oauthflows|0.43", "target=api.operation|0.41"]
-  },
-  {
-    "triple": "api.operation.aggregates.api.requestbody",
+    "triple": "api.operation.composes.api.responses",
     "source": "api.operation",
-    "predicate": "aggregates",
-    "destination": "api.requestbody",
+    "predicate": "composes",
+    "destination": "api.responses",
     "layer": "api",
     "kind": "rename-predicate",
     "current_exists": true,
-    "replacement": ["api.operation.composes.api.requestbody"],
+    "replacement": ["api.operation.aggregates.api.responses"],
     "replacement_exists": false,
-    "p": 0.41,
-    "claims": ["rel:api.requestbody#3"],
+    "p": 0.355,
+    "claims": ["rel:api.operation#4"],
     "claim_texts": [
-      "The relationship api.requestbody serves api.operation has odd semantics and points the wrong way; the operation should own the request body as part of its contract."
+      "The relationship api.operation delivers api.response duplicates api.operation composes api.responses."
     ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=composes|0.41"]
-  },
-  {
-    "triple": "api.schema.maps-to.data-store.collection",
-    "source": "api.schema",
-    "predicate": "maps-to",
-    "destination": "data-store.collection",
-    "layer": "api",
-    "kind": "compound",
-    "current_exists": true,
-    "replacement": [
-      "data-store.collection.realizes.data-model.schemadefinition"
-    ],
-    "replacement_exists": false,
-    "p": 0.403,
-    "claims": ["rel:api.schema#4"],
-    "claim_texts": [
-      "The api.schema maps-to relationships to data-store.collection and data-store.field overlap with property-level mapping."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": [
-      "source=data-model.schemadefinition|0.40",
-      "predicate=reverse:realizes|0.40"
-    ]
-  },
-  {
-    "triple": "api.requestbody.aggregates.api.mediatype",
-    "source": "api.requestbody",
-    "predicate": "aggregates",
-    "destination": "api.mediatype",
-    "layer": "api",
-    "kind": "conflict",
-    "current_exists": true,
-    "replacement": [
-      "api.requestbody.composes.api.mediatype",
-      "api.mediatype.serves.api.requestbody"
-    ],
-    "replacement_exists": true,
-    "p": 0.391,
-    "claims": ["node:api.requestbody#2", "rel:api.requestbody#1"],
-    "claim_texts": [
-      "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent.",
-      "The relationships api.requestbody aggregates api.mediatype and api.requestbody composes api.mediatype are redundant and conflicting; composes is the correct one since media types live only inside the content map."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": ["predicate=composes|0.39", "predicate=reverse:serves|0.34"]
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=aggregates|0.35"]
   },
   {
     "triple": "api.parameter.references.api.schema",
@@ -1291,170 +1330,31 @@
     "current_exists": true,
     "replacement": ["api.parameter.uses.api.schema"],
     "replacement_exists": false,
-    "p": 0.39,
+    "p": 0.346,
     "claims": ["rel:api.parameter#3"],
     "claim_texts": [
       "The relationship api.parameter references api.schema would be more precise with a constrained-by predicate than references."
     ],
     "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=uses|0.39"]
+    "alternatives": ["predicate=uses|0.35"]
   },
   {
-    "triple": "api.contact.associated-with.api.openapidocument",
-    "source": "api.contact",
-    "predicate": "associated-with",
-    "destination": "api.openapidocument",
+    "triple": "api.schema.maps-to.data-store.collection",
+    "source": "api.schema",
+    "predicate": "maps-to",
+    "destination": "data-store.collection",
     "layer": "api",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["api.info.associated-with.api.openapidocument"],
+    "replacement": ["data-model.objectschema.maps-to.data-store.collection"],
     "replacement_exists": true,
-    "p": 0.389,
-    "claims": ["node:api.contact#2", "rel:api.contact#1"],
+    "p": 0.346,
+    "claims": ["rel:api.schema#4"],
     "claim_texts": [
-      "The associated-with relationship from api.contact to api.openapidocument duplicates the path through api.info aggregates, since Contact is reachable only via Info in OpenAPI 3.0.",
-      "The relationship api.contact associated-with api.openapidocument is an indirect shortcut, because Contact is structurally nested in the Info object, which the document composes, and it may be redundant once a containment link via api.info exists."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": ["source=api.info|0.61", "source=api.info|0.39"]
-  },
-  {
-    "triple": "api.link.references.api.tag",
-    "source": "api.link",
-    "predicate": "references",
-    "destination": "api.tag",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.operation.references.api.operation"],
-    "replacement_exists": true,
-    "p": 0.383,
-    "claims": ["rel:api.link#2"],
-    "claim_texts": [
-      "The relationship api.link references api.tag has no corresponding field in the OpenAPI Link Object and is only indirect via the target operation's tags; it is derivable from link→operation plus operation→tag."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.operation|0.59", "target=api.operation|0.38"]
-  },
-  {
-    "triple": "api.components.composes.api.securityscheme",
-    "source": "api.components",
-    "predicate": "composes",
-    "destination": "api.securityscheme",
-    "layer": "api",
-    "kind": "rename-predicate",
-    "current_exists": true,
-    "replacement": ["api.components.references.api.securityscheme"],
-    "replacement_exists": false,
-    "p": 0.38,
-    "claims": ["rel:api.components#4"],
-    "claim_texts": [
-      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
+      "The api.schema maps-to relationships to data-store.collection and data-store.field overlap with property-level mapping."
     ],
     "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=references|0.38"]
-  },
-  {
-    "triple": "api.pathitem.aggregates.api.server",
-    "source": "api.pathitem",
-    "predicate": "aggregates",
-    "destination": "api.server",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.paths.aggregates.api.server"],
-    "replacement_exists": true,
-    "p": 0.38,
-    "claims": ["rel:api.server#5"],
-    "claim_texts": [
-      "The relationship api.server serves api.pathitem overlaps with plain structural scoping already expressed by the pathitem aggregating servers."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.paths|0.38"]
-  },
-  {
-    "triple": "api.openapidocument.realizes.business.businessservice",
-    "source": "api.openapidocument",
-    "predicate": "realizes",
-    "destination": "business.businessservice",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": [
-      "application.applicationservice.realizes.application.applicationservice"
-    ],
-    "replacement_exists": false,
-    "p": 0.371,
-    "claims": ["rel:api.openapidocument#4"],
-    "claim_texts": [
-      "The realizes relationship from api.openapidocument to business.businessservice skips the application layer."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": [
-      "source=application.applicationservice|0.45",
-      "target=application.applicationservice|0.37"
-    ]
-  },
-  {
-    "triple": "api.securityscheme.references.business.businessservice",
-    "source": "api.securityscheme",
-    "predicate": "references",
-    "destination": "business.businessservice",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.securityscheme.references.security.secureresource"],
-    "replacement_exists": true,
-    "p": 0.354,
-    "claims": ["rel:api.securityscheme#1"],
-    "claim_texts": [
-      "The four references edges from api.securityscheme to application and business elements (applicationcomponent, applicationservice, businessinterface, businessservice) are vague in meaning."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["target=security.secureresource|0.35"]
-  },
-  {
-    "triple": "api.requestbody.composes.api.mediatype",
-    "source": "api.requestbody",
-    "predicate": "composes",
-    "destination": "api.mediatype",
-    "layer": "api",
-    "kind": "conflict",
-    "current_exists": true,
-    "replacement": [
-      "api.requestbody.aggregates.api.mediatype",
-      "api.mediatype.serves.api.requestbody"
-    ],
-    "replacement_exists": true,
-    "p": 0.347,
-    "claims": ["node:api.requestbody#2", "rel:api.requestbody#1"],
-    "claim_texts": [
-      "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent.",
-      "The relationships api.requestbody aggregates api.mediatype and api.requestbody composes api.mediatype are redundant and conflicting; composes is the correct one since media types live only inside the content map."
-    ],
-    "reflect_validity": ["real_defect", "real_defect"],
-    "alternatives": [
-      "predicate=aggregates|0.35",
-      "predicate=reverse:serves|0.33"
-    ]
-  },
-  {
-    "triple": "api.securityscheme.references.business.businessinterface",
-    "source": "api.securityscheme",
-    "predicate": "references",
-    "destination": "business.businessinterface",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.securityscheme.references.security.secureresource"],
-    "replacement_exists": true,
-    "p": 0.347,
-    "claims": ["rel:api.securityscheme#1"],
-    "claim_texts": [
-      "The four references edges from api.securityscheme to application and business elements (applicationcomponent, applicationservice, businessinterface, businessservice) are vague in meaning."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["target=security.secureresource|0.35"]
+    "alternatives": ["source=data-model.objectschema|0.35"]
   },
   {
     "triple": "api.securityscheme.satisfies.motivation.principle",
@@ -1466,13 +1366,32 @@
     "current_exists": true,
     "replacement": ["api.securityscheme.satisfies.motivation.requirement"],
     "replacement_exists": true,
-    "p": 0.341,
+    "p": 0.346,
     "claims": ["rel:api.securityscheme#6"],
     "claim_texts": [
       "The satisfies edge from api.securityscheme to motivation.principle conflicts with the Principle definition, which says it is not directly verifiable."
     ],
     "reflect_validity": ["judgment_call"],
-    "alternatives": ["target=motivation.requirement|0.34"]
+    "alternatives": ["target=motivation.requirement|0.35"]
+  },
+  {
+    "triple": "api.operation.aggregates.api.tag",
+    "source": "api.operation",
+    "predicate": "aggregates",
+    "destination": "api.tag",
+    "layer": "api",
+    "kind": "remove-duplicate",
+    "current_exists": false,
+    "replacement": ["api.operation.references.api.tag"],
+    "replacement_exists": true,
+    "p": 0.343,
+    "claims": ["rel:api.operation#3", "node:api.tag#2"],
+    "claim_texts": [
+      "The relationships api.operation aggregates api.tag and api.operation references api.tag overlap, differing only in inline versus $ref.",
+      "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships."
+    ],
+    "reflect_validity": ["works_as_designed", "real_defect"],
+    "alternatives": ["predicate=references|0.34", "predicate=references|0.72"]
   },
   {
     "triple": "api.example.references.api.schema",
@@ -1490,62 +1409,50 @@
       "The relationship api.example --[references]--> api.schema is only an inferred link, because in OpenAPI 3.0 an Example Object never points to a Schema and is merely co-located with one, so 'references' is the wrong predicate.",
       "A path via parameter, header or media type may make both the api.example references-schema and associated-with-operation relationships redundant."
     ],
-    "reflect_validity": ["real_defect", "judgment_call"],
-    "alternatives": ["source=api.mediatype|0.49", "source=api.mediatype|0.33"]
+    "reflect_validity": ["real_defect", "works_as_designed"],
+    "alternatives": ["source=api.mediatype|0.56", "source=api.mediatype|0.33"]
   },
   {
-    "triple": "api.operation.references.api.tag",
+    "triple": "api.operation.triggers.business.businessprocess",
     "source": "api.operation",
-    "predicate": "references",
-    "destination": "api.tag",
+    "predicate": "triggers",
+    "destination": "business.businessprocess",
     "layer": "api",
-    "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.tag.aggregates.api.operation"],
-    "replacement_exists": true,
-    "p": 0.308,
-    "claims": ["rel:api.operation#3"],
-    "claim_texts": [
-      "The relationships api.operation aggregates api.tag and api.operation references api.tag overlap, differing only in inline versus $ref."
+    "kind": "compound",
+    "current_exists": false,
+    "replacement": [
+      "business.businessevent.realizes.application.applicationevent"
     ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["predicate=reverse:aggregates|0.31"]
+    "replacement_exists": false,
+    "p": 0.314,
+    "claims": ["rel:api.operation#6"],
+    "claim_texts": [
+      "The relationships api.operation realizes business.businessprocess and api.operation triggers business.businessprocess overlap."
+    ],
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": [
+      "source=business.businessevent|0.31",
+      "target=application.applicationevent|0.39",
+      "predicate=realizes|0.73"
+    ]
   },
   {
-    "triple": "api.response.composes.api.mediatype",
-    "source": "api.response",
-    "predicate": "composes",
-    "destination": "api.mediatype",
-    "layer": "api",
-    "kind": "reverse",
-    "current_exists": true,
-    "replacement": ["api.mediatype.serves.api.response"],
-    "replacement_exists": true,
-    "p": 0.301,
-    "claims": ["rel:api.response#2"],
-    "claim_texts": [
-      "api.response has both aggregates and composes relationships to api.mediatype, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped."
-    ],
-    "reflect_validity": ["judgment_call"],
-    "alternatives": ["predicate=reverse:serves|0.30"]
-  },
-  {
-    "triple": "api.securityscheme.references.application.applicationservice",
+    "triple": "api.securityscheme.references.business.businessservice",
     "source": "api.securityscheme",
     "predicate": "references",
-    "destination": "application.applicationservice",
+    "destination": "business.businessservice",
     "layer": "api",
     "kind": "retarget",
     "current_exists": true,
     "replacement": ["api.securityscheme.references.security.secureresource"],
     "replacement_exists": true,
-    "p": 0.3,
+    "p": 0.307,
     "claims": ["rel:api.securityscheme#1"],
     "claim_texts": [
       "The four references edges from api.securityscheme to application and business elements (applicationcomponent, applicationservice, businessinterface, businessservice) are vague in meaning."
     ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["target=security.secureresource|0.30"]
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["target=security.secureresource|0.31"]
   },
   {
     "triple": "api.operation.realizes.application.applicationfunction",
@@ -1566,63 +1473,22 @@
     "alternatives": ["target=application.applicationcomponent|0.30"]
   },
   {
-    "triple": "api.link.references.api.schema",
-    "source": "api.link",
-    "predicate": "references",
-    "destination": "api.schema",
+    "triple": "api.response.composes.api.mediatype",
+    "source": "api.response",
+    "predicate": "composes",
+    "destination": "api.mediatype",
     "layer": "api",
-    "kind": "retarget",
+    "kind": "remove-duplicate",
     "current_exists": true,
-    "replacement": ["api.parameter.references.api.schema"],
+    "replacement": ["api.response.aggregates.api.mediatype"],
     "replacement_exists": true,
-    "p": 0.27,
-    "claims": ["rel:api.link#1"],
+    "p": 0.296,
+    "claims": ["rel:api.response#2"],
     "claim_texts": [
-      "The relationship api.link references api.schema has no corresponding field in the OpenAPI Link Object; it exists only indirectly via runtime expressions."
+      "api.response has both aggregates and composes relationships to api.mediatype, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped."
     ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["source=api.parameter|0.27"]
-  },
-  {
-    "triple": "api.securityscheme.references.application.applicationcomponent",
-    "source": "api.securityscheme",
-    "predicate": "references",
-    "destination": "application.applicationcomponent",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": ["api.securityscheme.references.security.secureresource"],
-    "replacement_exists": true,
-    "p": 0.263,
-    "claims": ["rel:api.securityscheme#1"],
-    "claim_texts": [
-      "The four references edges from api.securityscheme to application and business elements (applicationcomponent, applicationservice, businessinterface, businessservice) are vague in meaning."
-    ],
-    "reflect_validity": ["real_defect"],
-    "alternatives": ["target=security.secureresource|0.26"]
-  },
-  {
-    "triple": "api.operation.realizes.motivation.goal",
-    "source": "api.operation",
-    "predicate": "realizes",
-    "destination": "motivation.goal",
-    "layer": "api",
-    "kind": "retarget",
-    "current_exists": true,
-    "replacement": [
-      "application.applicationcomponent.realizes.motivation.outcome"
-    ],
-    "replacement_exists": false,
-    "p": 0.258,
-    "claims": ["rel:api.operation#5"],
-    "claim_texts": [
-      "The relationships api.operation realizes motivation.goal and realizes motivation.outcome use the wrong predicate; they should be supports or delivers."
-    ],
-    "reflect_validity": ["works_as_designed"],
-    "alternatives": [
-      "source=application.applicationcomponent|0.26",
-      "target=motivation.outcome|0.26"
-    ]
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["predicate=aggregates|0.30"]
   },
   {
     "triple": "api.securityscheme.serves.business.businessrole",
@@ -1636,36 +1502,90 @@
       "application.applicationcomponent.serves.business.businessrole"
     ],
     "replacement_exists": true,
-    "p": 0.233,
+    "p": 0.278,
     "claims": ["node:api.securityscheme#4"],
     "claim_texts": [
       "The outgoing relationships from api.securityscheme to data-store.collection (maps-to) and to business.businessrole (serves) are speculative and invite misclassification."
     ],
     "reflect_validity": ["real_defect"],
-    "alternatives": ["source=application.applicationcomponent|0.23"]
+    "alternatives": ["source=application.applicationcomponent|0.28"]
   },
   {
-    "triple": "api.securityscheme.implements.security.securitypolicy",
-    "source": "api.securityscheme",
-    "predicate": "implements",
-    "destination": "security.securitypolicy",
+    "triple": "api.link.references.api.schema",
+    "source": "api.link",
+    "predicate": "references",
+    "destination": "api.schema",
     "layer": "api",
-    "kind": "compound",
-    "current_exists": false,
+    "kind": "retarget",
+    "current_exists": true,
+    "replacement": ["api.parameter.references.api.schema"],
+    "replacement_exists": true,
+    "p": 0.264,
+    "claims": ["rel:api.link#1"],
+    "claim_texts": [
+      "The relationship api.link references api.schema has no corresponding field in the OpenAPI Link Object; it exists only indirectly via runtime expressions."
+    ],
+    "reflect_validity": ["real_defect"],
+    "alternatives": ["source=api.parameter|0.26"]
+  },
+  {
+    "triple": "api.operation.realizes.motivation.goal",
+    "source": "api.operation",
+    "predicate": "realizes",
+    "destination": "motivation.goal",
+    "layer": "api",
+    "kind": "retarget",
+    "current_exists": true,
     "replacement": [
-      "api.securityscheme.realizes.security.authenticationconfig"
+      "application.applicationcomponent.realizes.motivation.outcome"
     ],
     "replacement_exists": false,
-    "p": 0.232,
-    "claims": ["rel:api.securityscheme#5"],
+    "p": 0.245,
+    "claims": ["rel:api.operation#5"],
     "claim_texts": [
-      "The implements edge from api.securityscheme to security.securitypolicy overstates the relationship because a scheme covers authentication only."
+      "The relationships api.operation realizes motivation.goal and realizes motivation.outcome use the wrong predicate; they should be supports or delivers."
     ],
     "reflect_validity": ["judgment_call"],
     "alternatives": [
-      "target=security.authenticationconfig|0.62",
-      "predicate=realizes|0.23"
+      "source=application.applicationcomponent|0.31",
+      "target=motivation.outcome|0.24"
     ]
+  },
+  {
+    "triple": "api.components.composes.api.schema",
+    "source": "api.components",
+    "predicate": "composes",
+    "destination": "api.schema",
+    "layer": "api",
+    "kind": "compound",
+    "current_exists": true,
+    "replacement": ["api.components.aggregates.api.parameter"],
+    "replacement_exists": false,
+    "p": 0.242,
+    "claims": ["rel:api.components#4"],
+    "claim_texts": [
+      "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference."
+    ],
+    "reflect_validity": ["judgment_call"],
+    "alternatives": ["target=api.parameter|0.24", "predicate=aggregates|0.72"]
+  },
+  {
+    "triple": "api.operation.delivers.api.response",
+    "source": "api.operation",
+    "predicate": "delivers",
+    "destination": "api.response",
+    "layer": "api",
+    "kind": "rename-predicate",
+    "current_exists": true,
+    "replacement": ["api.operation.aggregates.api.response"],
+    "replacement_exists": false,
+    "p": 0.219,
+    "claims": ["rel:api.operation#4"],
+    "claim_texts": [
+      "The relationship api.operation delivers api.response duplicates api.operation composes api.responses."
+    ],
+    "reflect_validity": ["works_as_designed"],
+    "alternatives": ["predicate=aggregates|0.22"]
   },
   {
     "triple": "apm.metricinstrument.flows-to.apm.span",
@@ -1695,7 +1615,7 @@
     "destination": "apm.resource",
     "layer": "apm",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["apm.logconfiguration.depends-on.apm.resource"],
     "replacement_exists": true,
     "p": 0.731,
@@ -1712,10 +1632,10 @@
     "predicate": "monitors",
     "destination": "technology.node",
     "layer": "apm",
-    "kind": "rename-predicate",
-    "current_exists": true,
+    "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": ["apm.resource.references.technology.node"],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.708,
     "claims": ["rel:apm.resource#1"],
     "claim_texts": [
@@ -2512,7 +2432,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationfunction.realizes.application.applicationservice"
     ],
@@ -2532,7 +2452,7 @@
     "destination": "application.applicationcomponent",
     "layer": "application",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationcollaboration.aggregates.application.applicationcomponent"
     ],
@@ -2552,7 +2472,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinteraction.realizes.application.applicationservice"
     ],
@@ -2575,12 +2495,12 @@
     "predicate": "depends-on",
     "destination": "application.dataobject",
     "layer": "application",
-    "kind": "rename-predicate",
-    "current_exists": true,
+    "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": [
       "application.applicationprocess.accesses.application.dataobject"
     ],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.763,
     "claims": ["rel:application.applicationprocess#4"],
     "claim_texts": [
@@ -2595,12 +2515,12 @@
     "predicate": "delivers-value",
     "destination": "application.applicationservice",
     "layer": "application",
-    "kind": "rename-predicate",
-    "current_exists": true,
+    "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": [
       "application.applicationprocess.realizes.application.applicationservice"
     ],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.75,
     "claims": ["rel:application.applicationprocess#1"],
     "claim_texts": [
@@ -2615,12 +2535,12 @@
     "predicate": "assigned-to",
     "destination": "application.applicationfunction",
     "layer": "application",
-    "kind": "remove-duplicate",
+    "kind": "rename-predicate",
     "current_exists": true,
     "replacement": [
       "application.applicationcomponent.composes.application.applicationfunction"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.723,
     "claims": ["rel:application.applicationcomponent#1"],
     "claim_texts": [
@@ -2636,7 +2556,7 @@
     "destination": "application.applicationevent",
     "layer": "application",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationevent.triggers.application.applicationprocess"
     ],
@@ -2656,7 +2576,7 @@
     "destination": "application.applicationfunction",
     "layer": "application",
     "kind": "conflict",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationprocess.assigned-to.application.applicationfunction",
       "application.applicationcomponent.assigned-to.application.applicationfunction"
@@ -2705,7 +2625,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "conflict",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinterface.depends-on.application.applicationservice",
       "application.applicationinterface.realizes.application.applicationservice"
@@ -2744,7 +2664,7 @@
     "destination": "application.applicationprocess",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationservice.depends-on.application.applicationprocess"
     ],
@@ -2851,7 +2771,7 @@
     "destination": "application.applicationcollaboration",
     "layer": "application",
     "kind": "retarget",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinteraction.triggers.application.applicationinteraction"
     ],
@@ -2874,7 +2794,7 @@
     "destination": "application.applicationinteraction",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinteraction.depends-on.application.applicationinteraction"
     ],
@@ -2953,7 +2873,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "conflict",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationcomponent.realizes.application.applicationservice",
       "application.applicationcomponent.realizes.application.applicationcomponent",
@@ -3012,7 +2932,7 @@
     "destination": "application.applicationcollaboration",
     "layer": "application",
     "kind": "retarget",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinteraction.depends-on.application.applicationinteraction"
     ],
@@ -3058,7 +2978,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationcomponent.accesses.application.dataobject"
     ],
@@ -3081,7 +3001,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationprocess.references.application.dataobject"
     ],
@@ -3104,7 +3024,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinteraction.realizes.application.applicationinteraction"
     ],
@@ -3128,11 +3048,11 @@
     "destination": "application.applicationcollaboration",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationcollaboration.depends-on.application.applicationinteraction"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.291,
     "claims": ["rel:application.applicationinterface#1"],
     "claim_texts": [
@@ -3151,11 +3071,11 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationprocess.accesses.application.dataobject"
     ],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.253,
     "claims": ["rel:application.applicationfunction#2"],
     "claim_texts": [
@@ -3174,7 +3094,7 @@
     "destination": "security.accesscondition",
     "layer": "application",
     "kind": "retarget",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "security.informationright.constrained-by.security.accesscondition"
     ],
@@ -3194,7 +3114,7 @@
     "destination": "application.applicationinteraction",
     "layer": "application",
     "kind": "compound",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationinteraction.depends-on.application.applicationinteraction"
     ],
@@ -3244,7 +3164,7 @@
     "destination": "application.applicationprocess",
     "layer": "business",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "application.applicationprocess.realizes.business.businessprocess"
     ],
@@ -3271,7 +3191,7 @@
     "destination": "business.businessprocess",
     "layer": "business",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "business.businessrole.assigned-to.business.businessprocess"
     ],
@@ -3331,7 +3251,7 @@
     "destination": "business.businessactor",
     "layer": "business",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["business.businessactor.assigned-to.business.businessrole"],
     "replacement_exists": true,
     "p": 0.838,
@@ -3348,10 +3268,10 @@
     "predicate": "assigned-to",
     "destination": "business.businessprocess",
     "layer": "business",
-    "kind": "remove-duplicate",
+    "kind": "rename-predicate",
     "current_exists": true,
     "replacement": ["business.businessrole.performs.business.businessprocess"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.819,
     "claims": ["node:business.businessprocess#3"],
     "claim_texts": [
@@ -3387,7 +3307,7 @@
     "destination": "business.businessobject",
     "layer": "business",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "business.businessprocess.accesses.business.businessobject"
     ],
@@ -4149,7 +4069,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["data-store.view.derives-from.data-store.collection"],
     "replacement_exists": true,
     "p": 0.886,
@@ -4167,7 +4087,7 @@
     "destination": "data-store.namespace",
     "layer": "data-store",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["data-store.retentionpolicy.governs.data-store.namespace"],
     "replacement_exists": true,
     "p": 0.868,
@@ -4189,7 +4109,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["data-store.retentionpolicy.governs.data-store.collection"],
     "replacement_exists": true,
     "p": 0.852,
@@ -4211,7 +4131,7 @@
     "destination": "api.schema",
     "layer": "data-store",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["api.schema.maps-to.data-store.collection"],
     "replacement_exists": true,
     "p": 0.772,
@@ -4249,7 +4169,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["data-store.storedlogic.accesses.data-store.collection"],
     "replacement_exists": true,
     "p": 0.753,
@@ -4362,7 +4282,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["data-store.accesspattern.accesses.data-store.collection"],
     "replacement_exists": true,
     "p": 0.679,
@@ -4800,7 +4720,7 @@
     "replacement": [
       "application.applicationinterface.serves.application.applicationservice"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.292,
     "claims": ["rel:data-store.view#4"],
     "claim_texts": [
@@ -4816,7 +4736,7 @@
     "destination": "motivation.constraint",
     "layer": "motivation",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.constraint.influence.motivation.outcome"],
     "replacement_exists": true,
     "p": 0.836,
@@ -4834,7 +4754,7 @@
     "destination": "motivation.constraint",
     "layer": "motivation",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.constraint.influence.motivation.assessment"],
     "replacement_exists": true,
     "p": 0.83,
@@ -4852,7 +4772,7 @@
     "destination": "motivation.driver",
     "layer": "motivation",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.driver.influence.motivation.outcome"],
     "replacement_exists": true,
     "p": 0.773,
@@ -4870,7 +4790,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.stakeholder.influence.motivation.goal"],
     "replacement_exists": true,
     "p": 0.738,
@@ -4949,7 +4869,7 @@
     "destination": "motivation.requirement",
     "layer": "motivation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.constraint.constrains.motivation.requirement"],
     "replacement_exists": true,
     "p": 0.721,
@@ -4967,7 +4887,7 @@
     "destination": "motivation.value",
     "layer": "motivation",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.value.associated-with.motivation.outcome"],
     "replacement_exists": true,
     "p": 0.717,
@@ -4985,7 +4905,7 @@
     "destination": "motivation.driver",
     "layer": "motivation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.stakeholder.influence.motivation.driver"],
     "replacement_exists": true,
     "p": 0.692,
@@ -5002,10 +4922,10 @@
     "predicate": "influences",
     "destination": "motivation.driver",
     "layer": "motivation",
-    "kind": "remove-duplicate",
+    "kind": "rename-predicate",
     "current_exists": false,
     "replacement": ["motivation.stakeholder.associated-with.motivation.driver"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.681,
     "claims": ["node:motivation.driver#4"],
     "claim_texts": [
@@ -5043,7 +4963,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["motivation.principle.influence.motivation.goal"],
     "replacement_exists": true,
     "p": 0.645,
@@ -5504,7 +5424,7 @@
     "destination": "navigation.guardcondition",
     "layer": "navigation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "navigation.navigationguard.evaluates.navigation.guardcondition"
     ],
@@ -5528,7 +5448,7 @@
     "destination": "business.businessprocess",
     "layer": "navigation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "navigation.navigationflow.realizes.business.businessprocess"
     ],
@@ -5548,7 +5468,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["navigation.route.composes.navigation.routemeta"],
     "replacement_exists": true,
     "p": 0.835,
@@ -5566,7 +5486,7 @@
     "destination": "navigation.navigationtransition",
     "layer": "navigation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "navigation.navigationgraph.composes.navigation.navigationtransition"
     ],
@@ -5586,7 +5506,7 @@
     "destination": "navigation.flowstep",
     "layer": "navigation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["navigation.navigationflow.composes.navigation.flowstep"],
     "replacement_exists": true,
     "p": 0.772,
@@ -5613,12 +5533,12 @@
     "predicate": "governs",
     "destination": "navigation.navigationguard",
     "layer": "navigation",
-    "kind": "rename-predicate",
-    "current_exists": true,
+    "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": [
       "navigation.routemeta.references.navigation.navigationguard"
     ],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.765,
     "claims": ["rel:navigation.routemeta#3"],
     "claim_texts": [
@@ -5634,7 +5554,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "navigation.navigationtransition.navigates-to.navigation.route"
     ],
@@ -5654,7 +5574,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["navigation.navigationgraph.composes.navigation.route"],
     "replacement_exists": true,
     "p": 0.751,
@@ -5704,7 +5624,7 @@
     "destination": "navigation.navigationgraph",
     "layer": "navigation",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig"
     ],
@@ -5885,10 +5805,10 @@
     "predicate": "composes",
     "destination": "navigation.route",
     "layer": "navigation",
-    "kind": "remove-duplicate",
+    "kind": "rename-predicate",
     "current_exists": true,
     "replacement": ["navigation.navigationgraph.aggregates.navigation.route"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.546,
     "claims": ["rel:navigation.navigationgraph#1"],
     "claim_texts": [
@@ -6227,7 +6147,7 @@
     "destination": "product.capability",
     "layer": "product",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["product.feature.realizes.product.capability"],
     "replacement_exists": true,
     "p": 0.836,
@@ -6331,7 +6251,7 @@
     "kind": "retarget",
     "current_exists": true,
     "replacement": ["product.feature.uses.product.capability"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.526,
     "claims": ["rel:product.userworkflow#3"],
     "claim_texts": [
@@ -6442,7 +6362,7 @@
     "destination": "security.securitypolicy",
     "layer": "security",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.securitymodel.composes.security.securitypolicy"],
     "replacement_exists": true,
     "p": 0.85,
@@ -6461,7 +6381,7 @@
     "destination": "security.auditconfig",
     "layer": "security",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.auditconfig.mitigates.security.threat"],
     "replacement_exists": true,
     "p": 0.82,
@@ -6537,7 +6457,7 @@
     "destination": "security.policyrule",
     "layer": "security",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.policyrule.triggers.security.policyaction"],
     "replacement_exists": true,
     "p": 0.794,
@@ -6559,7 +6479,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.countermeasure.protects.security.secureresource"],
     "replacement_exists": true,
     "p": 0.789,
@@ -6577,7 +6497,7 @@
     "destination": "security.policyrule",
     "layer": "security",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.policyrule.uses.security.accesscondition"],
     "replacement_exists": true,
     "p": 0.756,
@@ -6605,7 +6525,7 @@
     "destination": "security.authenticationconfig",
     "layer": "security",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "security.authenticationconfig.authenticates.security.actor"
     ],
@@ -6625,7 +6545,7 @@
     "destination": "security.authenticationconfig",
     "layer": "security",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "security.securitymodel.composes.security.authenticationconfig"
     ],
@@ -6645,7 +6565,7 @@
     "destination": "security.fieldaccesscontrol",
     "layer": "security",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "security.fieldaccesscontrol.constrained-by.security.accesscondition"
     ],
@@ -6775,7 +6695,7 @@
     "destination": "security.permission",
     "layer": "security",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.role.aggregates.security.permission"],
     "replacement_exists": true,
     "p": 0.644,
@@ -6847,7 +6767,7 @@
     "destination": "security.threat",
     "layer": "security",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.securitymodel.aggregates.security.threat"],
     "replacement_exists": true,
     "p": 0.611,
@@ -6866,7 +6786,7 @@
     "destination": "security.permission",
     "layer": "security",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["security.role.aggregates.security.permission"],
     "replacement_exists": true,
     "p": 0.602,
@@ -7132,7 +7052,7 @@
     "kind": "retarget",
     "current_exists": true,
     "replacement": ["security.securitymodel.governs.security.securitypolicy"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.533,
     "claims": [
       "node:security.securityconstraints#3",
@@ -7198,12 +7118,12 @@
     "predicate": "composes",
     "destination": "security.authenticationconfig",
     "layer": "security",
-    "kind": "remove-duplicate",
+    "kind": "rename-predicate",
     "current_exists": true,
     "replacement": [
       "security.securitymodel.aggregates.security.authenticationconfig"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.508,
     "claims": [
       "node:security.authenticationconfig#2",
@@ -7575,7 +7495,7 @@
     "kind": "reverse",
     "current_exists": true,
     "replacement": ["security.accesscondition.composes.security.policyrule"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.376,
     "claims": ["rel:security.policyrule#2", "node:security.accesscondition#5"],
     "claim_texts": [
@@ -7858,7 +7778,7 @@
     "destination": "technology.node",
     "layer": "technology",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["technology.communicationnetwork.connects.technology.node"],
     "replacement_exists": true,
     "p": 0.902,
@@ -7894,7 +7814,7 @@
     "destination": "technology.technologyfunction",
     "layer": "technology",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "technology.technologyfunction.realizes.technology.technologyservice"
     ],
@@ -7966,7 +7886,7 @@
     "destination": "technology.technologyservice",
     "layer": "technology",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "technology.technologyservice.provides.technology.technologyinterface"
     ],
@@ -8015,7 +7935,7 @@
     "destination": "technology.technologyprocess",
     "layer": "technology",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "technology.technologyprocess.realizes.technology.technologyservice"
     ],
@@ -8035,7 +7955,7 @@
     "destination": "technology.systemsoftware",
     "layer": "technology",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["technology.systemsoftware.depends-on.technology.device"],
     "replacement_exists": true,
     "p": 0.763,
@@ -8078,7 +7998,7 @@
     "destination": "technology.node",
     "layer": "technology",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["technology.node.composes.technology.technologyinterface"],
     "replacement_exists": true,
     "p": 0.724,
@@ -8096,7 +8016,7 @@
     "destination": "technology.artifact",
     "layer": "technology",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "technology.artifact.realizes.technology.technologyservice"
     ],
@@ -8143,7 +8063,7 @@
     "destination": "technology.technologyprocess",
     "layer": "technology",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "technology.technologyevent.triggers.technology.technologyprocess"
     ],
@@ -8371,7 +8291,7 @@
     "replacement": [
       "technology.technologyinterface.assigned-to.technology.technologyservice"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.444,
     "claims": [
       "node:technology.technologyinterface#4",
@@ -8489,7 +8409,7 @@
     "replacement": [
       "technology.technologyinterface.assigned-to.technology.technologyservice"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.346,
     "claims": [
       "node:technology.technologyinterface#4",
@@ -8663,7 +8583,7 @@
     "destination": "testing.inputselection",
     "layer": "testing",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["testing.testcasesketch.composes.testing.inputselection"],
     "replacement_exists": true,
     "p": 0.85,
@@ -8681,11 +8601,11 @@
     "destination": "testing.inputspacepartition",
     "layer": "testing",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "testing.inputspacepartition.composes.testing.partitionvalue"
     ],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.843,
     "claims": ["node:testing.inputspacepartition#4"],
     "claim_texts": [
@@ -8701,7 +8621,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "testing.coveragegap.references.testing.coveragerequirement"
     ],
@@ -8722,7 +8642,7 @@
     "destination": "testing.coverageexclusion",
     "layer": "testing",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "testing.coverageexclusion.references.testing.coveragerequirement"
     ],
@@ -8742,7 +8662,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "testing.testcasesketch.validates.testing.testcoveragetarget"
     ],
@@ -8842,7 +8762,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": [
       "testing.testcoveragemodel.composes.testing.testcoveragetarget"
     ],
@@ -9190,7 +9110,7 @@
     "replacement": [
       "testing.coveragerequirement.aggregates.testing.coverageexclusion"
     ],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.496,
     "claims": ["rel:testing.coverageexclusion#3"],
     "claim_texts": [
@@ -9982,7 +9902,7 @@
     "destination": "ux.statetransition",
     "layer": "ux",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.statetransition.uses.ux.transitiontemplate"],
     "replacement_exists": true,
     "p": 0.834,
@@ -10000,9 +9920,9 @@
     "destination": "ux.stateaction",
     "layer": "ux",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.stateaction.specializes.ux.stateactiontemplate"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.818,
     "claims": ["rel:ux.stateactiontemplate#1"],
     "claim_texts": [
@@ -10017,10 +9937,10 @@
     "predicate": "specializes",
     "destination": "ux.stateactiontemplate",
     "layer": "ux",
-    "kind": "rename-predicate",
-    "current_exists": true,
+    "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": ["ux.stateaction.realizes.ux.stateactiontemplate"],
-    "replacement_exists": false,
+    "replacement_exists": true,
     "p": 0.816,
     "claims": ["rel:ux.stateaction#2"],
     "claim_texts": [
@@ -10036,7 +9956,7 @@
     "destination": "ux.componentinstance",
     "layer": "ux",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.componentinstance.uses.ux.errorconfig"],
     "replacement_exists": true,
     "p": 0.809,
@@ -10054,7 +9974,7 @@
     "destination": "ux.actioncomponent",
     "layer": "ux",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.actioncomponent.uses.ux.errorconfig"],
     "replacement_exists": true,
     "p": 0.798,
@@ -10072,7 +9992,7 @@
     "destination": "ux.actioncomponent",
     "layer": "ux",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.actioncomponent.triggers.ux.statetransition"],
     "replacement_exists": true,
     "p": 0.781,
@@ -10090,7 +10010,7 @@
     "destination": "ux.statetransition",
     "layer": "ux",
     "kind": "reverse",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.statetransition.triggers.ux.stateaction"],
     "replacement_exists": true,
     "p": 0.765,
@@ -10141,7 +10061,7 @@
     "destination": "ux.layoutconfig",
     "layer": "ux",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.view.applies.ux.layoutconfig"],
     "replacement_exists": true,
     "p": 0.752,
@@ -10223,7 +10143,7 @@
     "kind": "reverse",
     "current_exists": false,
     "replacement": ["ux.stateaction.specializes.ux.stateactiontemplate"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.692,
     "claims": ["rel:ux.stateactiontemplate#1", "rel:ux.stateactiontemplate#2"],
     "claim_texts": [
@@ -10297,7 +10217,7 @@
     "destination": "ux.librarysubview",
     "layer": "ux",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.uxlibrary.aggregates.ux.librarysubview"],
     "replacement_exists": true,
     "p": 0.646,
@@ -10315,7 +10235,7 @@
     "destination": "ux.view",
     "layer": "ux",
     "kind": "remove-duplicate",
-    "current_exists": true,
+    "current_exists": false,
     "replacement": ["ux.experiencestate.governs.ux.view"],
     "replacement_exists": true,
     "p": 0.615,
@@ -10433,10 +10353,10 @@
     "predicate": "aggregates",
     "destination": "ux.librarysubview",
     "layer": "ux",
-    "kind": "remove-duplicate",
+    "kind": "rename-predicate",
     "current_exists": true,
     "replacement": ["ux.uxlibrary.provides.ux.librarysubview"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.57,
     "claims": ["rel:ux.uxlibrary#2"],
     "claim_texts": [
@@ -10530,7 +10450,7 @@
     "kind": "reverse",
     "current_exists": true,
     "replacement": ["ux.statetransition.associated-with.ux.actioncomponent"],
-    "replacement_exists": true,
+    "replacement_exists": false,
     "p": 0.543,
     "claims": ["rel:ux.actioncomponent#4"],
     "claim_texts": [
