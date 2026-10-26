@@ -121,6 +121,16 @@ apply-walk.ts       applies a maintainer's per-layer walk of those rows (--layer
 The walk file doubles as adjudicated gold for the relationship claims it covers: each line names
 the triple, the decision and why, and who decided.
 
+Deciding in bulk: `sheet-export.py` writes `reflect/clef/walk-sheet.xlsx`, one sheet per
+unwalked layer and one row per plan row, with the framing (current relationship and description,
+the catalog's other predicates between the pair in both directions, the claims, Clef's three
+sorting answers, the plan's replacement, a mechanical suggestion) in read-only columns and four
+yellow columns to fill: Outcome (dropdown: keep, delete, rename, reverse, retarget, defer),
+Replacement, Also delete, Notes. `sheet-import.py --layer <id>` turns the filled rows into
+`walk-<layer>.jsonl` (rows already decided there are pre-filled in the sheet and keep their
+numbers), and `apply-walk.ts --layer <id>` applies them. Both Python scripts need `openpyxl`
+(`python3 -m venv .venv && .venv/bin/pip install openpyxl`).
+
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
 relationship, `alternative` names a concrete different source, destination or predicate to weigh

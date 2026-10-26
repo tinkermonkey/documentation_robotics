@@ -27,6 +27,7 @@ interface WalkRow {
   decision: "keep" | "delete" | "rename" | "retarget" | "reverse";
   replacement: string | null;
   add?: string[];
+  also_delete?: string[];
   editorial?: string;
   rationale: string;
   adjudicated_by: string;
@@ -58,6 +59,16 @@ function main() {
   const note = (r: WalkRow) => `walk row ${r.row} (${r.decision}): ${r.rationale.slice(0, 160)}`;
   for (const r of rows) {
     const fromFile = fileFor(r.triple);
+    // extra schemas the row also removes (e.g. the other twin of the same shortcut)
+    for (const extra of r.also_delete ?? []) {
+      const extraFile = fileFor(extra);
+      if (!existsSync(extraFile)) {
+        console.log(`  SKIP   row ${r.row} also_delete ${extra}: schema file not found`);
+        continue;
+      }
+      actions.push({ action: "delete", kind: `walk:${r.kind}`, from: extra, to: r.replacement, p: 1, claims: [], file_removed: extraFile, note: `also deleted by walk row ${r.row}: ${r.rationale.slice(0, 160)}` });
+      if (!dry) unlinkSync(extraFile);
+    }
     if (r.decision === "keep") {
       if (r.editorial) console.log(`  keep   row ${r.row} ${r.triple}  editorial: ${r.editorial}`);
       continue;
