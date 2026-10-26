@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`dr upgrade` rewrites relationships retired by the spec 0.10.0 catalog.** The 0.9.0 → 0.10.0
+  model migration now also rewrites `documentation-robotics/model/relationships.yaml`, so models
+  recorded against spec 0.9.0 still validate after the catalog cleanup: `implements` becomes
+  `realizes` on every relationship; a relationship whose triple was renamed (for example
+  `applicationprocess depends-on dataobject` to `accesses`) takes the new predicate; one whose
+  triple was removed in favour of the reverse direction (`requestbody serves operation`) becomes the
+  catalog direction with source and target swapped (`operation aggregates requestbody`). A
+  rewritten relationship that would duplicate one already in the model is dropped, and
+  `dr upgrade` lists each dropped relationship. The rules come from a generated table
+  (`src/core/relationship-migration-table.ts`, 104 triple rules and 1 predicate rename) built by
+  `scripts/generate-relationship-migration.ts` from the `applied-*.json` change records under
+  `scripts/spec-enrich/data`; adding the record of a later change set and rerunning the script
+  extends the migration (`--check` reports a stale table, and a unit test compares the committed
+  table with a fresh build).
+
 ### Changed
 
 - **Reference validation no longer enforces a layer-direction rule.** `ReferenceValidator` used to

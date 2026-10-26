@@ -18,6 +18,10 @@ import {
   getModelSpecVersion,
 } from "../utils/spec-version.js";
 import { MigrationRegistry } from "../core/migration-registry.js";
+import {
+  summarizeRelationshipChanges,
+  type RelationshipRewriteChange,
+} from "../core/relationship-migration.js";
 import { installSpecReference } from "../utils/spec-installer.js";
 import { Model } from "../core/model.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
@@ -612,6 +616,7 @@ async function executeModelMigration(
       if (applied.changes?.filesModified) {
         console.log(ansis.dim(`    Files modified: ${applied.changes.filesModified}`));
       }
+      printRelationshipChanges(applied.changes?.details?.relationshipChanges);
     }
 
     // Save changes
@@ -639,6 +644,29 @@ async function executeModelMigration(
     throw error;
   } finally {
     endSpan(operationSpan);
+  }
+}
+
+/**
+ * Report relationships a catalog migration rewrote, listing each one it dropped
+ */
+function printRelationshipChanges(changes: unknown): void {
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return;
+  }
+  const relationshipChanges = changes as RelationshipRewriteChange[];
+  const format = (rel: { source: string; predicate: string; target: string }) =>
+    `${rel.source} --[${rel.predicate}]--> ${rel.target}`;
+
+  console.log(ansis.dim(`    ${summarizeRelationshipChanges(relationshipChanges)}`));
+  for (const change of relationshipChanges) {
+    if (change.action === "dropped-duplicate" && change.after) {
+      console.log(
+        ansis.dim(`      dropped ${format(change.before)} (now the same as ${format(change.after)})`)
+      );
+    } else if (change.action === "dropped") {
+      console.log(ansis.dim(`      dropped ${format(change.before)} (no replacement in the catalog)`));
+    }
   }
 }
 
