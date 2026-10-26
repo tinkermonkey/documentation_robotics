@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationcomponent composes Applicationfunction",
-  "description": "The function is an integral part of the component and is not defined, deployed or meaningful outside it, so removing the component removes the function.",
+  "title": "Applicationcomponent assigned-to Applicationfunction",
+  "description": "The component is the active structure that performs the function: the function's logic runs inside this component and is attributed to it, not offered as a service of its own.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationcomponent.composes.application.applicationfunction"
+      "const": "application.applicationcomponent.assigned-to.application.applicationfunction"
     },
     "source_spec_node_id": {
       "const": "application.applicationcomponent"
@@ -24,7 +24,7 @@
       "const": "application"
     },
     "predicate": {
-      "const": "composes"
+      "const": "assigned-to"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationevent triggers Applicationcollaboration",
-  "description": "Occurrence of the application event sets off the joint behaviour carried out by the group of components named by the application collaboration, such as a choreographed saga across several services.",
+  "title": "Applicationevent triggers Applicationinteraction",
+  "description": "Occurrence of the application event sets off the interaction, the joint behaviour carried out by a collaboration of components, such as a choreographed saga across several services.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationevent.triggers.application.applicationcollaboration"
+      "const": "application.applicationevent.triggers.application.applicationinteraction"
     },
     "source_spec_node_id": {
       "const": "application.applicationevent"
@@ -18,7 +18,7 @@
       "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "application.applicationcollaboration"
+      "const": "application.applicationinteraction"
     },
     "destination_layer": {
       "const": "application"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationcollaboration depends-on Applicationinteraction",
-  "description": "The collaboration relies on a separate interaction, such as a prerequisite handshake or upstream saga, completing before its own collective behaviour can proceed.",
+  "title": "Applicationcollaboration realizes Applicationservice",
+  "description": "The collaboration's combined behaviour is what makes the externally visible service available, so the service's operations exist only because the members work together.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationcollaboration.depends-on.application.applicationinteraction"
+      "const": "application.applicationcollaboration.realizes.application.applicationservice"
     },
     "source_spec_node_id": {
       "const": "application.applicationcollaboration"
@@ -18,13 +18,13 @@
       "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "application.applicationinteraction"
+      "const": "application.applicationservice"
     },
     "destination_layer": {
       "const": "application"
     },
     "predicate": {
-      "const": "depends-on"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The collaboration's workflow or choreography definition waits on the completion event or callback emitted by that other interaction."
+    "An API gateway route or service-catalog entry for the service is fulfilled by orchestrating calls across several member components of the collaboration."
   ]
 }

@@ -31,13 +31,13 @@ interface Action {
   note?: string;
 }
 
-const parts = (id: string) => {
+export const parts = (id: string) => {
   const p = id.split(".");
   return { source: `${p[0]}.${p[1]}`, predicate: p[2], destination: `${p[3]}.${p[4]}`, sourceLayer: p[0], destLayer: p[3], sourceType: p[1], destType: p[4] };
 };
 /** Existing schemas by id -> file (a few files are not named after their id, e.g. audit-config). */
 const catalogFiles = new Map<string, string>(loadRelationshipSchemas().map((r: RelationshipSchema) => [r.id, r.file]));
-const fileFor = (id: string) => {
+export const fileFor = (id: string) => {
   const known = catalogFiles.get(id);
   if (known) return known;
   const t = parts(id);
@@ -46,7 +46,7 @@ const fileFor = (id: string) => {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Write a schema for `newId` derived from the schema at `fromFile` (same pair, new predicate, or swapped pair). */
-function writeDerived(fromFile: string, newId: string, swapped: boolean): string {
+export function writeDerived(fromFile: string, newId: string, swapped: boolean): string {
   const s = JSON.parse(readFileSync(fromFile, "utf8")) as Record<string, any>;
   const t = parts(newId);
   s.title = `${cap(t.sourceType)} ${t.predicate} ${cap(t.destType)}`;
@@ -143,4 +143,4 @@ function main() {
   for (const a of actions) console.log(`  ${a.action.padEnd(6)} ${a.kind.padEnd(16)} p=${a.p.toFixed(2)} ${a.from}${a.to ? ` -> ${a.to}` : ""}${a.note ? `  (${a.note})` : ""}`);
 }
 
-main();
+if (import.meta.main) main();

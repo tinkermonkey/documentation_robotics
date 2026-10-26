@@ -112,7 +112,14 @@ apply-reflect-plan.ts  applies selected kinds above a probability (--select remo
                     is confirmed; every action is recorded in reflect/<backend>/applied-<record>.json,
                     the input for the model migration. Retargets, compound changes and conflicts are
                     never applied automatically.
+apply-walk.ts       applies a maintainer's per-layer walk of those rows (--layer <id>), read from
+                    reflect/clef/walk-<layer>.jsonl: one line per row with decision keep | delete |
+                    rename | retarget | reverse, the replacement triple, optional extra triples to add,
+                    and the rationale; writes reflect/clef/applied-walk-<layer>.json in the tier format
 ```
+
+The walk file doubles as adjudicated gold for the relationship claims it covers: each line names
+the triple, the decision and why, and who decided.
 
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the

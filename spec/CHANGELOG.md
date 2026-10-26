@@ -69,6 +69,27 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Breaking Changes
 
+- **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
+  maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six
+  schemas deleted as duplicates of an existing edge (`applicationfunction delivers-value
+  applicationprocess`; `applicationservice` and `applicationfunction depends-on dataobject`, covered by
+  `accesses`; `applicationinterface delivers-value applicationcollaboration`, covered by `collaboration
+  provides interface`; `applicationcollaboration depends-on applicationinteraction` and
+  `applicationinterface depends-on applicationservice`, covered by the edges below). Seven renamed to
+  the ArchiMate 3.2 relationship: `applicationcollaboration` *assigned-to* `applicationinteraction`
+  (was delivers-value); `applicationcollaboration realizes applicationservice` (was delivers-value);
+  `applicationevent accesses dataobject` (was depends-on); `applicationcomponent` *assigned-to*
+  `applicationfunction` (was composes; tier 1 had kept the wrong twin); `applicationinterface`
+  *assigned-to* `applicationservice` (was serves); `applicationevent triggers applicationinteraction`
+  (was triggers applicationcollaboration); `applicationservice constrained-by security.securitypolicy`
+  (was accesscondition, one clause of a rule). One reversed: `applicationcollaboration assigned-to
+  applicationprocess` (was process depends-on collaboration). One added: `applicationcomponent
+  assigned-to applicationprocess`, which the layer lacked. `delivers-value` no longer appears in the
+  application layer, and application behaviour reaches data objects through `accesses` only. The
+  `applicationinterface` definition now says an interface is owned by a component or collaboration.
+  1,529 to 1,524 relationship schemas; actions recorded in `applied-walk-application.json` for the
+  model migration.
+
 - **BREAKING: 86 relationship schemas removed, 5 renamed, 2 reversed (reflection plan, tier 1).** The
   relationship catalog carried pairs of schemas that said the same thing twice (`aggregates` beside
   `composes`, `delivers-value` beside `realizes`, a `serves` or `associated-with` edge beside its

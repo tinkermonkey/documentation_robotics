@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationinterface depends-on Applicationservice",
-  "description": "The interface requires the application service's operations to be available in order to fulfil the calls it accepts on its protocol.",
+  "title": "Applicationinterface assigned-to Applicationservice",
+  "description": "The interface is the protocol-specific channel through which the application service's operations are offered to its consumers.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationinterface.depends-on.application.applicationservice"
+      "const": "application.applicationinterface.assigned-to.application.applicationservice"
     },
     "source_spec_node_id": {
       "const": "application.applicationinterface"
@@ -24,7 +24,7 @@
       "const": "application"
     },
     "predicate": {
-      "const": "depends-on"
+      "const": "assigned-to"
     },
     "cardinality": {
       "const": "many-to-many"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "The controller or resolver injects the service class and invokes its operations, with the dependency declared in the DI container or constructor signature."
+    "The service's operations are bound to routes, RPC methods or topics on this interface in the router, servicer registration or API specification."
   ]
 }

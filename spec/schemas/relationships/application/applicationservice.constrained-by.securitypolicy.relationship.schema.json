@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationservice constrained-by Accesscondition",
-  "description": "Invocation of the application service is permitted only when the access condition's predicate on a request attribute evaluates to true.",
+  "title": "Applicationservice constrained-by Securitypolicy",
+  "description": "Invocation of the application service is governed by the security policy: the policy's rules decide which requests may call the service and under what conditions.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationservice.constrained-by.security.accesscondition"
+      "const": "application.applicationservice.constrained-by.security.securitypolicy"
     },
     "source_spec_node_id": {
       "const": "application.applicationservice"
@@ -18,7 +18,7 @@
       "const": "application"
     },
     "destination_spec_node_id": {
-      "const": "security.accesscondition"
+      "const": "security.securitypolicy"
     },
     "destination_layer": {
       "const": "security"
@@ -34,6 +34,6 @@
     }
   },
   "x-dr-evidence": [
-    "A policy file or authorization middleware binds a condition such as `request.tenant == user.tenant` to the service's routes or operations, and calls are rejected when it fails."
+    "A policy file, authorization middleware or gateway rule set bound to the service's routes applies the named policy's rules before the service is invoked."
   ]
 }

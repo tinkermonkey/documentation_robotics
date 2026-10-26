@@ -1,0 +1,173 @@
+{
+  "backend": "clef",
+  "record": "walk-application",
+  "select": {
+    "walk": "application"
+  },
+  "applied_at": "2026-10-26T17:07:36.642Z",
+  "counts": {
+    "rename": 7,
+    "create": 2,
+    "delete": 6
+  },
+  "actions": [
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "application.applicationfunction.delivers-value.application.applicationprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationfunction.delivers-value.applicationprocess.relationship.schema.json",
+      "note": "walk row 1 (delete): Redundant: applicationprocess depends-on applicationfunction already expresses the link, and the value meaning is applicationfunction realizes applicationservic"
+    },
+    {
+      "action": "rename",
+      "kind": "walk:compound",
+      "from": "application.applicationcollaboration.delivers-value.application.applicationinteraction",
+      "to": "application.applicationcollaboration.assigned-to.application.applicationinteraction",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.delivers-value.applicationinteraction.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.assigned-to.applicationinteraction.relationship.schema.json",
+      "note": "walk row 3 (rename): ArchiMate 3.2: the collaboration is the active structure assigned to the interaction. delivers-value is a traceability predicate. assigned-to was not among the "
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "application.applicationservice.depends-on.application.dataobject",
+      "to": "application.applicationservice.accesses.application.dataobject",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationservice.depends-on.dataobject.relationship.schema.json",
+      "note": "walk row 5 (delete): Contract dependency on a data object is implied by access; ArchiMate models behaviour to passive structure as access only. Same call as tier 1 made for process "
+    },
+    {
+      "action": "rename",
+      "kind": "walk:compound",
+      "from": "application.applicationevent.depends-on.application.dataobject",
+      "to": "application.applicationevent.accesses.application.dataobject",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationevent.depends-on.dataobject.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationevent.accesses.dataobject.relationship.schema.json",
+      "note": "walk row 6 (rename): ArchiMate 3.2: an event (behaviour) accesses the data object it carries; same behaviour-to-passive-structure rule as rows 5 and 9. references (Clef 0.50) would "
+    },
+    {
+      "action": "rename",
+      "kind": "walk:compound",
+      "from": "application.applicationcollaboration.delivers-value.application.applicationservice",
+      "to": "application.applicationcollaboration.realizes.application.applicationservice",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.delivers-value.applicationservice.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.realizes.applicationservice.relationship.schema.json",
+      "note": "walk row 7 (rename): A collaboration is a specialisation of a component in ArchiMate 3.2 and realizes services as a component does (applicationcomponent realizes applicationservice "
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "application.applicationinterface.delivers-value.application.applicationcollaboration",
+      "to": "application.applicationcollaboration.provides.application.applicationinterface",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationinterface.delivers-value.applicationcollaboration.relationship.schema.json",
+      "note": "walk row 8 (delete): Its own description paraphrases collaboration provides interface (kept, row 2). Sorting: destination none 0.39; predicate reverse:depends-on 0.47 / reverse:prov"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "application.applicationfunction.depends-on.application.dataobject",
+      "to": "application.applicationfunction.accesses.application.dataobject",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationfunction.depends-on.dataobject.relationship.schema.json",
+      "note": "walk row 9 (delete): Same as row 5: behaviour reaches passive structure through access only. Sorting: predicate accesses 0.86."
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "application.applicationcollaboration.depends-on.application.applicationinteraction",
+      "to": "application.applicationinteraction.depends-on.application.applicationcollaboration",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.depends-on.applicationinteraction.relationship.schema.json",
+      "note": "walk row 10 (delete): Inverted performer edge; assigned-to (row 3) carries performance and the existing reverse depends-on carries the prerequisite meaning. Both reflections: predica"
+    },
+    {
+      "action": "rename",
+      "kind": "walk:conflict",
+      "from": "application.applicationcomponent.composes.application.applicationfunction",
+      "to": "application.applicationcomponent.assigned-to.application.applicationfunction",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcomponent.composes.applicationfunction.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcomponent.assigned-to.applicationfunction.relationship.schema.json",
+      "note": "walk row 11 (rename): ArchiMate 3.2: active structure is assigned to the behaviour it performs; composition is same-kind only. Tier 1 had removed assigned-to as the duplicate (its ro"
+    },
+    {
+      "action": "rename",
+      "kind": "walk:conflict",
+      "from": "application.applicationinterface.serves.application.applicationservice",
+      "to": "application.applicationinterface.assigned-to.application.applicationservice",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationinterface.serves.applicationservice.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationinterface.assigned-to.applicationservice.relationship.schema.json",
+      "note": "walk row 12 (rename): ArchiMate 3.2: an interface is assigned to the services it exposes. serves runs provider to consumer and the interface serves consumers, not the service; realiz"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:conflict",
+      "from": "application.applicationinterface.depends-on.application.applicationservice",
+      "to": "application.applicationinterface.assigned-to.application.applicationservice",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationinterface.depends-on.applicationservice.relationship.schema.json",
+      "note": "walk row 13 (delete): Same fact as row 12 from the other side; one edge, assigned-to, remains."
+    },
+    {
+      "action": "rename",
+      "kind": "walk:retarget",
+      "from": "application.applicationevent.triggers.application.applicationcollaboration",
+      "to": "application.applicationevent.triggers.application.applicationinteraction",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationevent.triggers.applicationcollaboration.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationevent.triggers.applicationinteraction.relationship.schema.json",
+      "note": "walk row 14 (retarget): Triggering links behaviour; the collaboration is the performer of the interaction the event sets off (the enriched description says so). Sorting: destination in"
+    },
+    {
+      "action": "create",
+      "kind": "walk:retarget",
+      "from": "application.applicationprocess.depends-on.application.applicationcollaboration",
+      "to": "application.applicationcollaboration.assigned-to.application.applicationprocess",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationprocess.depends-on.applicationcollaboration.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.assigned-to.applicationprocess.relationship.schema.json",
+      "note": "walk row 16 (reverse): Performer relationship seen from the behaviour side; a collaboration (component specialisation) is assigned to the process it performs. The layer had no compone"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "application.applicationcomponent.assigned-to.application.applicationprocess",
+      "to": "application.applicationcomponent.assigned-to.application.applicationprocess",
+      "p": 1,
+      "claims": [],
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcomponent.assigned-to.applicationprocess.relationship.schema.json",
+      "note": "added as counterpart of application.applicationcollaboration.assigned-to.application.applicationprocess (walk row 16)"
+    },
+    {
+      "action": "rename",
+      "kind": "walk:retarget",
+      "from": "application.applicationservice.constrained-by.security.accesscondition",
+      "to": "application.applicationservice.constrained-by.security.securitypolicy",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationservice.constrained-by.accesscondition.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationservice.constrained-by.securitypolicy.relationship.schema.json",
+      "note": "walk row 17 (retarget): An access condition is one clause of a policy rule; a service is governed by a policy, matching applicationcomponent constrained-by securitypolicy. Sorting: pre"
+    }
+  ]
+}
