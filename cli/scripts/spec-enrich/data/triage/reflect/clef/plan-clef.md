@@ -1,112 +1,109 @@
 # Reflection change plan (clef)
 
-502 reflections with a concrete alternative name 408 distinct catalog triples.
+502 reflections with a concrete alternative name 408 distinct triples; 7 of them are not in the catalog (the claim misnamed the relationship) and are listed last, not counted below.
 
 ## Change kinds by probability threshold
 
 | kind             | triples | p >= 0.5 | p >= 0.6 | p >= 0.7 | p >= 0.8 | real_defect (reflect) on all claims |
 | ---------------- | ------- | -------- | -------- | -------- | -------- | ----------------------------------- |
-| remove-duplicate | 60      | 46       | 35       | 28       | 12       | 42                                  |
-| rename-predicate | 55      | 26       | 16       | 5        | 1        | 20                                  |
-| reverse          | 70      | 55       | 47       | 30       | 13       | 45                                  |
-| retarget         | 130     | 54       | 31       | 15       | 7        | 67                                  |
+| remove-duplicate | 57      | 44       | 34       | 28       | 12       | 41                                  |
+| rename-predicate | 54      | 25       | 15       | 5        | 1        | 20                                  |
+| reverse          | 69      | 54       | 46       | 29       | 12       | 44                                  |
+| retarget         | 128     | 54       | 31       | 15       | 7        | 66                                  |
 | compound         | 56      | 7        | 3        | 2        | 1        | 33                                  |
 | conflict         | 37      | 20       | 15       | 9        | 2        | 22                                  |
-| all              | 408     | 208      | 147      | 89       | 36       | 229                                 |
+| all              | 401     | 204      | 144      | 88       | 35       | 226                                 |
 
 ## Per layer
 
 | layer       | triples | remove-duplicate | rename-predicate | reverse | retarget | compound | conflict |
 | ----------- | ------- | ---------------- | ---------------- | ------- | -------- | -------- | -------- |
-| api         | 56      | 7                | 5                | 9       | 23       | 4        | 8        |
-| apm         | 33      | 2                | 5                | 2       | 16       | 5        | 3        |
+| api         | 55      | 7                | 5                | 9       | 22       | 4        | 8        |
+| apm         | 32      | 2                | 4                | 2       | 16       | 5        | 3        |
 | application | 27      | 7                | 3                | 3       | 5        | 8        | 1        |
-| business    | 20      | 1                | 2                | 5       | 7        | 2        | 3        |
+| business    | 19      | 1                | 2                | 5       | 6        | 2        | 3        |
 | data-model  | 11      | 0                | 3                | 0       | 6        | 2        | 0        |
 | data-store  | 24      | 5                | 3                | 0       | 10       | 1        | 5        |
-| motivation  | 22      | 7                | 0                | 6       | 3        | 5        | 1        |
+| motivation  | 20      | 5                | 0                | 6       | 3        | 5        | 1        |
 | navigation  | 28      | 5                | 4                | 2       | 10       | 6        | 1        |
 | product     | 9       | 1                | 2                | 0       | 4        | 1        | 1        |
-| security    | 48      | 6                | 9                | 18      | 10       | 4        | 1        |
+| security    | 47      | 6                | 9                | 17      | 10       | 4        | 1        |
 | technology  | 29      | 3                | 1                | 9       | 8        | 5        | 3        |
 | testing     | 48      | 5                | 8                | 7       | 17       | 6        | 5        |
-| ux          | 53      | 11               | 10               | 9       | 11       | 7        | 5        |
+| ux          | 52      | 10               | 10               | 9       | 11       | 7        | 5        |
 
 ## Predicate replacements (rename-predicate and remove-duplicate), by old -> new
 
-| old -> new                    | triples | exists already | mean p |
-| ----------------------------- | ------- | -------------- | ------ |
-| aggregates -> composes        | 16      | 9              | 0.64   |
-| aggregates -> references      | 8       | 2              | 0.54   |
-| serves -> depends-on          | 4       | 3              | 0.48   |
-| delivers-value -> realizes    | 3       | 2              | 0.80   |
-| implements -> realizes        | 3       | 1              | 0.48   |
-| triggers -> references        | 3       | 1              | 0.57   |
-| composes -> references        | 2       | 2              | 0.74   |
-| monitors -> references        | 2       | 0              | 0.65   |
-| depends-on -> accesses        | 2       | 0              | 0.66   |
-| composes -> uses              | 2       | 0              | 0.35   |
-| satisfies -> references       | 2       | 0              | 0.36   |
-| aggregates -> accesses        | 2       | 2              | 0.77   |
-| associated-with -> influence  | 2       | 2              | 0.71   |
-| requires -> references        | 2       | 0              | 0.33   |
-| uses -> realizes              | 2       | 2              | 0.85   |
-| flows-to -> triggers          | 2       | 1              | 0.53   |
-| maps-to -> references         | 2       | 0              | 0.59   |
-| aggregates -> provides        | 2       | 2              | 0.57   |
-| serves -> uses                | 2       | 0              | 0.29   |
-| serves -> governs             | 1       | 1              | 0.82   |
-| references -> uses            | 1       | 0              | 0.39   |
-| satisfies -> realizes         | 1       | 0              | 0.35   |
-| depends-on -> aggregates      | 1       | 1              | 0.81   |
-| assigned-to -> composes       | 1       | 1              | 0.72   |
-| flows-to -> depends-on        | 1       | 1              | 0.50   |
-| realizes -> composes          | 1       | 1              | 0.39   |
-| assigned-to -> performs       | 1       | 1              | 0.82   |
-| serves -> realizes            | 1       | 0              | 0.65   |
-| aggregates -> uses            | 1       | 0              | 0.38   |
-| aggregates -> derives-from    | 1       | 1              | 0.89   |
-| aggregates -> governs         | 1       | 1              | 0.85   |
-| validates -> accesses         | 1       | 1              | 0.56   |
-| influences -> associated-with | 1       | 1              | 0.68   |
-| realizes -> influence         | 1       | 1              | 0.65   |
-| associated-with -> realizes   | 1       | 1              | 0.52   |
-| influence -> realizes         | 1       | 1              | 0.43   |
-| influences -> influence       | 1       | 1              | 0.41   |
-| governs -> references         | 1       | 0              | 0.77   |
-| flows-to -> navigates-to      | 1       | 1              | 0.76   |
-| associated-with -> composes   | 1       | 1              | 0.53   |
-| provides -> uses              | 1       | 0              | 0.43   |
-| implements -> uses            | 1       | 0              | 0.24   |
-| aggregates -> realizes        | 1       | 0              | 0.68   |
-| realizes -> references        | 1       | 0              | 0.52   |
-| monitors -> protects          | 1       | 1              | 0.79   |
-| enforces -> governs           | 1       | 1              | 0.51   |
-| constrains -> references      | 1       | 0              | 0.50   |
-| constrains -> composes        | 1       | 0              | 0.46   |
-| governs -> depends-on         | 1       | 1              | 0.38   |
-| governs -> accesses           | 1       | 1              | 0.37   |
-| accesses -> governs           | 1       | 1              | 0.30   |
-| triggers -> flows-to          | 1       | 1              | 0.45   |
-| serves -> assigned-to         | 1       | 1              | 0.44   |
-| accesses -> composes          | 1       | 1              | 0.85   |
-| references -> validates       | 1       | 1              | 0.73   |
-| accesses -> references        | 1       | 0              | 0.68   |
-| validates -> references       | 1       | 0              | 0.38   |
-| accesses -> uses              | 1       | 0              | 0.29   |
-| specializes -> realizes       | 1       | 0              | 0.82   |
-| uses -> applies               | 1       | 1              | 0.75   |
-| renders -> uses               | 1       | 0              | 0.66   |
-| associated-with -> governs    | 1       | 1              | 0.61   |
-| uses -> triggers              | 1       | 0              | 0.59   |
-| ref -> realizes               | 1       | 1              | 0.57   |
-| aggregates -> renders         | 1       | 1              | 0.53   |
-| renders -> composes           | 1       | 0              | 0.51   |
-| provides -> renders           | 1       | 1              | 0.51   |
-| maps-to -> realizes           | 1       | 0              | 0.49   |
-| governs -> aggregates         | 1       | 1              | 0.42   |
-| navigates-to -> references    | 1       | 0              | 0.37   |
-| renders -> references         | 1       | 0              | 0.32   |
+| old -> new                   | triples | exists already | mean p |
+| ---------------------------- | ------- | -------------- | ------ |
+| aggregates -> composes       | 15      | 9              | 0.64   |
+| aggregates -> references     | 8       | 2              | 0.54   |
+| serves -> depends-on         | 4       | 3              | 0.48   |
+| delivers-value -> realizes   | 3       | 2              | 0.80   |
+| implements -> realizes       | 3       | 1              | 0.48   |
+| triggers -> references       | 3       | 1              | 0.57   |
+| composes -> references       | 2       | 2              | 0.74   |
+| monitors -> references       | 2       | 0              | 0.65   |
+| depends-on -> accesses       | 2       | 0              | 0.66   |
+| composes -> uses             | 2       | 0              | 0.35   |
+| satisfies -> references      | 2       | 0              | 0.36   |
+| aggregates -> accesses       | 2       | 2              | 0.77   |
+| associated-with -> influence | 2       | 2              | 0.71   |
+| requires -> references       | 2       | 0              | 0.33   |
+| uses -> realizes             | 2       | 2              | 0.85   |
+| flows-to -> triggers         | 2       | 1              | 0.53   |
+| maps-to -> references        | 2       | 0              | 0.59   |
+| aggregates -> provides       | 2       | 2              | 0.57   |
+| serves -> uses               | 2       | 0              | 0.29   |
+| serves -> governs            | 1       | 1              | 0.82   |
+| references -> uses           | 1       | 0              | 0.39   |
+| satisfies -> realizes        | 1       | 0              | 0.35   |
+| depends-on -> aggregates     | 1       | 1              | 0.81   |
+| assigned-to -> composes      | 1       | 1              | 0.72   |
+| flows-to -> depends-on       | 1       | 1              | 0.50   |
+| realizes -> composes         | 1       | 1              | 0.39   |
+| assigned-to -> performs      | 1       | 1              | 0.82   |
+| serves -> realizes           | 1       | 0              | 0.65   |
+| aggregates -> uses           | 1       | 0              | 0.38   |
+| aggregates -> derives-from   | 1       | 1              | 0.89   |
+| aggregates -> governs        | 1       | 1              | 0.85   |
+| validates -> accesses        | 1       | 1              | 0.56   |
+| realizes -> influence        | 1       | 1              | 0.65   |
+| associated-with -> realizes  | 1       | 1              | 0.52   |
+| influence -> realizes        | 1       | 1              | 0.43   |
+| governs -> references        | 1       | 0              | 0.77   |
+| flows-to -> navigates-to     | 1       | 1              | 0.76   |
+| associated-with -> composes  | 1       | 1              | 0.53   |
+| provides -> uses             | 1       | 0              | 0.43   |
+| implements -> uses           | 1       | 0              | 0.24   |
+| aggregates -> realizes       | 1       | 0              | 0.68   |
+| realizes -> references       | 1       | 0              | 0.52   |
+| monitors -> protects         | 1       | 1              | 0.79   |
+| enforces -> governs          | 1       | 1              | 0.51   |
+| constrains -> references     | 1       | 0              | 0.50   |
+| constrains -> composes       | 1       | 0              | 0.46   |
+| governs -> depends-on        | 1       | 1              | 0.38   |
+| governs -> accesses          | 1       | 1              | 0.37   |
+| accesses -> governs          | 1       | 1              | 0.30   |
+| triggers -> flows-to         | 1       | 1              | 0.45   |
+| serves -> assigned-to        | 1       | 1              | 0.44   |
+| accesses -> composes         | 1       | 1              | 0.85   |
+| references -> validates      | 1       | 1              | 0.73   |
+| accesses -> references       | 1       | 0              | 0.68   |
+| validates -> references      | 1       | 0              | 0.38   |
+| accesses -> uses             | 1       | 0              | 0.29   |
+| specializes -> realizes      | 1       | 0              | 0.82   |
+| uses -> applies              | 1       | 1              | 0.75   |
+| renders -> uses              | 1       | 0              | 0.66   |
+| associated-with -> governs   | 1       | 1              | 0.61   |
+| uses -> triggers             | 1       | 0              | 0.59   |
+| aggregates -> renders        | 1       | 1              | 0.53   |
+| renders -> composes          | 1       | 0              | 0.51   |
+| provides -> renders          | 1       | 1              | 0.51   |
+| maps-to -> realizes          | 1       | 0              | 0.49   |
+| governs -> aggregates        | 1       | 1              | 0.42   |
+| navigates-to -> references   | 1       | 0              | 0.37   |
+| renders -> references        | 1       | 0              | 0.32   |
 
 ## Changes at p >= 0.5
 
@@ -146,14 +143,13 @@
 | retarget         | api.components.composes.api.paths                    | api.openapidocument.composes.api.paths (exists)                                                                                                 | 0.53 | real_defect                   | The composes relationship from api.components to api.paths is invalid because an OpenAPI 3.0 Components object has no pa |
 | retarget         | api.mediatype.associated-with.api.header             | api.encoding.associated-with.api.encoding                                                                                                       | 0.50 | real_defect                   | The associated-with relationship from api.mediatype to api.header is indirect (it goes via Encoding) and therefore redun |
 
-### apm (13)
+### apm (12)
 
 | kind             | current                                             | replacement                                                                    | p    | reflect validity          | claim                                                                                                                    |
 | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ | ---- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | compound         | apm.metricinstrument.flows-to.apm.span              | apm.metricinstrument.references.apm.exporterconfig                             | 0.81 | real_defect               | The relationship apm.metricinstrument flows-to apm.span is semantically wrong because metrics flow to readers or exporte |
 | remove-duplicate | apm.logconfiguration.serves.apm.resource            | apm.logconfiguration.depends-on.apm.resource (exists)                          | 0.73 | real_defect               | The relationship apm.logconfiguration serves apm.resource inverts the natural direction and conflicts with the depends-o |
 | rename-predicate | apm.resource.monitors.technology.node               | apm.resource.references.technology.node                                        | 0.71 | real_defect               | The relationships apm.resource monitors technology.node and technology.systemsoftware use the wrong predicate, since a R |
-| rename-predicate | apm.span.aggregates.apm.spanlink                    | apm.span.composes.apm.spanlink                                                 | 0.69 | judgment_call             | Ownership of a span link by its carrier span (a composed-of relationship from apm.span to apm.spanlink) is not covered b |
 | retarget         | apm.spanevent.depends-on.apm.instrumentationscope   | apm.span.depends-on.apm.instrumentationscope (exists)                          | 0.66 | real_defect               | The depends-on relationships from apm.spanevent to apm.instrumentationscope and apm.resource are indirect, because both  |
 | retarget         | apm.resource.serves.business.businessprocess        | application.applicationservice.serves.business.businessprocess (exists)        | 0.65 | real_defect               | The relationship apm.resource serves business.businessprocess is dubious because a Resource is an attribute set and does |
 | conflict         | apm.span.composes.apm.traceconfiguration            | apm.traceconfiguration.aggregates.apm.span / apm.spanevent.aggregates.apm.span | 0.65 | real_defect               | The 'composes' relationships between apm.span and apm.traceconfiguration and between apm.span and apm.metricinstrument a |
@@ -224,7 +220,7 @@
 | retarget         | data-store.view.aggregates.data-store.field                 | data-store.collection.aggregates.data-store.field                                                                                                                     | 0.52 | real_defect               | The relationship data-store.view aggregates data-store.field is odd because fields belong to persisted collections, not  |
 | conflict         | data-store.database.realizes.business.businessservice       | business.businessprocess.realizes.business.businessservice / application.applicationcomponent.serves.business.businessservice                                         | 0.50 | real_defect               | The relationships 'data-store.database realizes businessservice' and 'technology.systemsoftware realizes businessservice |
 
-### motivation (11)
+### motivation (10)
 
 | kind             | current                                                      | replacement                                                           | p    | reflect validity | claim                                                                                                                    |
 | ---------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- | ---- | ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -233,7 +229,6 @@
 | reverse          | motivation.outcome.associated-with.motivation.driver         | motivation.driver.influence.motivation.outcome (exists)               | 0.77 | real_defect      | The associated-with relationship between motivation.outcome and motivation.driver is weak; a driver-to-outcome influence |
 | remove-duplicate | motivation.stakeholder.associated-with.motivation.goal       | motivation.stakeholder.influence.motivation.goal (exists)             | 0.74 | judgment_call    | The stakeholder associated-with goal and stakeholder influence goal relationships overlap, and influence subsumes associ |
 | remove-duplicate | motivation.stakeholder.associated-with.motivation.driver     | motivation.stakeholder.influence.motivation.driver (exists)           | 0.69 | judgment_call    | The stakeholder associated-with driver and stakeholder influence driver relationships overlap, and influence subsumes as |
-| remove-duplicate | motivation.stakeholder.influences.motivation.driver          | motivation.stakeholder.associated-with.motivation.driver (exists)     | 0.68 | judgment_call    | The incoming 'influence' relationship from stakeholder to driver is non-standard, since ArchiMate defines stakeholder-to |
 | reverse          | motivation.value.associated-with.motivation.goal             | motivation.goal.realizes.motivation.value (exists)                    | 0.67 | judgment_call    | The relationship from motivation.value to motivation.goal would read better as 'supports'.                               |
 | remove-duplicate | motivation.principle.realizes.motivation.goal                | motivation.principle.influence.motivation.goal (exists)               | 0.65 | real_defect      | The relationship motivation.principle realizes motivation.goal duplicates the meaning of motivation.principle influence  |
 | reverse          | motivation.goal.realizes.motivation.value                    | motivation.value.associated-with.motivation.goal (exists)             | 0.63 | real_defect      | The relationships 'motivation.goal realizes motivation.value' and 'motivation.outcome realizes motivation.value' deviate |
@@ -274,14 +269,13 @@
 | retarget         | product.userworkflow.uses.product.capability             | product.feature.uses.product.capability (exists)                                                | 0.53 | judgment_call    | The relationship product.userworkflow uses product.capability is largely derivable via workflow steps to features to cap |
 | rename-predicate | product.persona.realizes.motivation.stakeholder          | product.persona.references.motivation.stakeholder                                               | 0.52 | judgment_call    | The relationship 'product.persona realizes motivation.stakeholder' is questionable because a fictional archetype does no |
 
-### security (27)
+### security (26)
 
 | kind             | current                                                          | replacement                                                                  | p    | reflect validity              | claim                                                                                                                    |
 | ---------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | retarget         | security.policyaction.mitigates.security.threat                  | security.countermeasure.mitigates.security.threat (exists)                   | 0.92 | real_defect                   | The relationship security.policyaction mitigates security.threat partially duplicates the path through Countermeasure.   |
 | retarget         | security.passwordpolicy.mitigates.security.threat                | security.countermeasure.mitigates.security.threat (exists)                   | 0.90 | judgment_call                 | The mitigates relationship from security.passwordpolicy to security.threat partly duplicates the path PasswordPolicy to  |
 | reverse          | security.threat.triggers.security.auditconfig                    | security.auditconfig.mitigates.security.threat (exists)                      | 0.82 | real_defect                   | The relationships security.threat triggers security.auditconfig and security.threat constrains security.accesscondition  |
-| reverse          | security.threat.aggregates.security.countermeasure               | security.countermeasure.mitigates.security.threat (exists)                   | 0.82 | real_defect                   | The relationship security.threat aggregates security.countermeasure inverts the natural 'countermeasure mitigates threat |
 | retarget         | security.evidence.mitigates.security.threat                      | security.countermeasure.mitigates.security.threat (exists)                   | 0.82 | judgment_call                 | The relationship security.evidence --[mitigates]--> security.threat is too broad because evidence is detective rather th |
 | retarget         | security.condition.triggers.security.policyaction                | security.policyrule.triggers.security.policyaction (exists)                  | 0.80 | real_defect                   | The 'triggers' relationship from security.condition to policyaction may be wrong, since the trigger should perhaps route |
 | reverse          | security.policyaction.enforces-requirement.security.policyrule   | security.policyrule.triggers.security.policyaction (exists)                  | 0.79 | real_defect                   | The enforces-requirement relationship to policyrule inverts the direction of the existing triggers relationship between  |
@@ -350,7 +344,7 @@
 | reverse          | testing.environmentfactor.composes.testing.contextvariation         | testing.contextvariation.references.testing.environmentfactor (exists)                                                  | 0.51 | real_defect               | The relationship 'EnvironmentFactor composes ContextVariation' conflicts in direction with the 'ContextVariation referen |
 | retarget         | testing.testcoveragetarget.composes.testing.inputpartitionselection | testing.coveragerequirement.composes.testing.inputpartitionselection (exists)                                           | 0.50 | real_defect               | The composes edge from testing.testcoveragetarget to testing.inputpartitionselection conflicts with the definition of In |
 
-### ux (28)
+### ux (27)
 
 | kind             | current                                                 | replacement                                                                                                                                                    | p    | reflect validity              | claim                                                                                                                    |
 | ---------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -373,7 +367,6 @@
 | rename-predicate | ux.actioncomponent.uses.application.applicationfunction | ux.actioncomponent.triggers.application.applicationfunction                                                                                                    | 0.59 | judgment_call                 | The relationship ux.actioncomponent uses application.applicationfunction conflicts with the application function definit |
 | reverse          | ux.subview.uses.ux.layoutconfig                         | ux.layoutconfig.provides.ux.subview (exists)                                                                                                                   | 0.59 | judgment_call                 | The relationship ux.subview uses ux.layoutconfig would fit better with the predicate applies than uses.                  |
 | conflict         | ux.actionpattern.governs.ux.stateaction                 | ux.stateaction.uses.ux.actionpattern / ux.actioncomponent.uses.ux.actionpattern                                                                                | 0.59 | works_as_designed/real_defect | The relationships ux.actionpattern governs ux.stateaction and ux.stateaction uses ux.actionpattern are redundant, expres |
-| remove-duplicate | ux.subview.ref.ux.librarysubview                        | ux.subview.realizes.ux.librarysubview (exists)                                                                                                                 | 0.57 | real_defect                   | ux.subview has redundant relationships to librarysubview: ref, realizes and uses express the same meaning.               |
 | remove-duplicate | ux.uxlibrary.aggregates.ux.librarycomponent             | ux.uxlibrary.provides.ux.librarycomponent (exists)                                                                                                             | 0.57 | judgment_call                 | ux.uxlibrary has both 'aggregates' and 'provides' relationships to ux.librarycomponent, which overlap because membership |
 | remove-duplicate | ux.uxlibrary.aggregates.ux.librarysubview               | ux.uxlibrary.provides.ux.librarysubview (exists)                                                                                                               | 0.57 | real_defect                   | ux.uxlibrary has both 'aggregates' and 'provides' relationships to ux.librarysubview, which overlap because membership a |
 | compound         | ux.actioncomponent.renders.ux.componentreference        | ux.componentreference.renders.ux.componentreference (exists)                                                                                                   | 0.55 | real_defect                   | The relationship ux.actioncomponent renders ux.componentreference contradicts the componentreference definition, which s |
@@ -382,3 +375,15 @@
 | retarget         | ux.uxspec.governs.ux.errorconfig                        | ux.errorconfig.governs.ux.errorconfig                                                                                                                          | 0.53 | judgment_call                 | The relationship ux.uxspec governs ux.errorconfig is only plausible if specs define default error policies; otherwise er |
 | rename-predicate | ux.subview.renders.ux.componentinstance                 | ux.subview.composes.ux.componentinstance                                                                                                                       | 0.51 | real_defect                   | The relationships ux.subview renders ux.componentinstance and ux.subview aggregates ux.componentinstance overlap in mean |
 | remove-duplicate | ux.componentinstance.provides.ux.componentinstance      | ux.componentinstance.renders.ux.componentinstance (exists)                                                                                                     | 0.51 | judgment_call                 | The relationship ux.componentinstance provides ux.componentinstance is a self-reference whose meaning is vague.          |
+
+## Claims naming triples the catalog does not have (7)
+
+| named triple                                                   | alternative                                                | claim                                                                                                                    |
+| -------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| api.oauthflow.references.api.tag                               | api.operation.references.api.tag                           | The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI.                           |
+| apm.span.aggregates.apm.spanlink                               | apm.span.composes.apm.spanlink                             | Ownership of a span link by its carrier span (a composed-of relationship from apm.span to apm.spanlink) is not covered b |
+| business.businessinteraction.realizes.business.businessservice | business.businessprocess.realizes.business.businessservice | A 'realizes' relationship from business.businessinteraction to business.businessservice is missing from the catalog.     |
+| motivation.stakeholder.influences.motivation.driver            | motivation.stakeholder.associated-with.motivation.driver   | The incoming 'influence' relationship from stakeholder to driver is non-standard, since ArchiMate defines stakeholder-to |
+| motivation.assessment.influences.motivation.assessment         | motivation.assessment.influence.motivation.assessment      | The relationship assessment-influence-assessment appears twice in the relationship list of motivation.assessment, which  |
+| security.threat.aggregates.security.countermeasure             | security.countermeasure.mitigates.security.threat          | The relationship security.threat aggregates security.countermeasure inverts the natural 'countermeasure mitigates threat |
+| ux.subview.ref.ux.librarysubview                               | ux.subview.realizes.ux.librarysubview                      | ux.subview has redundant relationships to librarysubview: ref, realizes and uses express the same meaning.               |

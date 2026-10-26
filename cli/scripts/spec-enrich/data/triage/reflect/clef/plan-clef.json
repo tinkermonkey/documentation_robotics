@@ -6,6 +6,7 @@
     "destination": "api.securityscheme",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.securityscheme.composes.api.oauthflows"],
     "replacement_exists": false,
     "p": 0.867,
@@ -23,6 +24,7 @@
     "destination": "api.openapidocument",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.openapidocument.composes.api.info"],
     "replacement_exists": true,
     "p": 0.827,
@@ -44,6 +46,7 @@
     "destination": "api.oauthflow",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.oauthflows.composes.api.oauthflow"],
     "replacement_exists": true,
     "p": 0.825,
@@ -71,6 +74,7 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.ratelimit.governs.api.operation"],
     "replacement_exists": true,
     "p": 0.824,
@@ -88,6 +92,7 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.operation.aggregates.api.requestbody"],
     "replacement_exists": true,
     "p": 0.824,
@@ -105,6 +110,7 @@
     "destination": "api.oauthflows",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.oauthflows.composes.api.oauthflow"],
     "replacement_exists": true,
     "p": 0.81,
@@ -122,6 +128,7 @@
     "destination": "api.pathitem",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.paths.composes.api.pathitem"],
     "replacement_exists": true,
     "p": 0.778,
@@ -140,6 +147,7 @@
     "destination": "api.header",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.response.aggregates.api.header"],
     "replacement_exists": true,
     "p": 0.776,
@@ -157,6 +165,7 @@
     "destination": "api.example",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.mediatype.aggregates.api.mediatype"],
     "replacement_exists": false,
     "p": 0.768,
@@ -174,6 +183,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.operation.references.api.schema"],
     "replacement_exists": true,
     "p": 0.758,
@@ -191,6 +201,7 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.operation.aggregates.api.parameter"],
     "replacement_exists": true,
     "p": 0.753,
@@ -212,6 +223,7 @@
     "destination": "api.responses",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.components.composes.api.paths",
       "api.operation.composes.api.responses"
@@ -237,6 +249,7 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.operation.references.api.tag",
       "api.operation.aggregates.api.tag"
@@ -261,6 +274,7 @@
     "destination": "api.header",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.encoding.references.api.header"],
     "replacement_exists": true,
     "p": 0.727,
@@ -278,6 +292,7 @@
     "destination": "api.mediatype",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.mediatype.composes.api.encoding"],
     "replacement_exists": true,
     "p": 0.709,
@@ -295,6 +310,7 @@
     "destination": "application.applicationcomponent",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.application.applicationcomponent",
       "application.applicationservice.serves.application.applicationinterface"
@@ -320,6 +336,7 @@
     "destination": "business.businessfunction",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationfunction.realizes.business.businessfunction"
     ],
@@ -339,6 +356,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.response.references.api.mediatype",
       "api.response.aggregates.api.mediatype"
@@ -364,6 +382,7 @@
     "destination": "api.externaldocumentation",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.operation.references.api.externaldocumentation",
       "api.openapidocument.references.api.externaldocumentation"
@@ -388,6 +407,7 @@
     "destination": "api.tag",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.operation.references.api.tag"],
     "replacement_exists": true,
     "p": 0.611,
@@ -405,6 +425,7 @@
     "destination": "api.servervariable",
     "layer": "api",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["api.server.composes.api.servervariable"],
     "replacement_exists": false,
     "p": 0.599,
@@ -422,6 +443,7 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.securityscheme.serves.api.operation"],
     "replacement_exists": true,
     "p": 0.595,
@@ -439,6 +461,7 @@
     "destination": "api.encoding",
     "layer": "api",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["api.mediatype.composes.api.encoding"],
     "replacement_exists": true,
     "p": 0.593,
@@ -456,6 +479,7 @@
     "destination": "api.requestbody",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.requestbody.composes.api.mediatype"],
     "replacement_exists": true,
     "p": 0.59,
@@ -473,6 +497,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.components.composes.api.components"],
     "replacement_exists": false,
     "p": 0.584,
@@ -490,6 +515,7 @@
     "destination": "api.license",
     "layer": "api",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["api.info.composes.api.license"],
     "replacement_exists": false,
     "p": 0.577,
@@ -507,6 +533,7 @@
     "destination": "motivation.stakeholder",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.motivation.stakeholder"
     ],
@@ -526,6 +553,7 @@
     "destination": "api.contact",
     "layer": "api",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["api.info.references.api.contact"],
     "replacement_exists": false,
     "p": 0.56,
@@ -543,6 +571,7 @@
     "destination": "application.applicationcomponent",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.application.applicationcomponent"
     ],
@@ -562,6 +591,7 @@
     "destination": "api.paths",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.openapidocument.composes.api.paths"],
     "replacement_exists": true,
     "p": 0.529,
@@ -583,6 +613,7 @@
     "destination": "api.header",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.encoding.associated-with.api.encoding"],
     "replacement_exists": false,
     "p": 0.502,
@@ -600,6 +631,7 @@
     "destination": "api.responses",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.components.composes.api.response",
       "api.operation.composes.api.response"
@@ -625,6 +657,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["api.response.references.api.schema"],
     "replacement_exists": true,
     "p": 0.484,
@@ -642,6 +675,7 @@
     "destination": "api.header",
     "layer": "api",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["api.response.references.api.header"],
     "replacement_exists": false,
     "p": 0.479,
@@ -659,6 +693,7 @@
     "destination": "security.actor",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.securityscheme.maps-to.security.authenticationconfig"],
     "replacement_exists": false,
     "p": 0.468,
@@ -676,6 +711,7 @@
     "destination": "api.tag",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.operation.references.api.tag"],
     "replacement_exists": true,
     "p": 0.456,
@@ -694,6 +730,7 @@
     "destination": "api.tag",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": false,
     "replacement": ["api.operation.references.api.tag"],
     "replacement_exists": true,
     "p": 0.447,
@@ -711,6 +748,7 @@
     "destination": "api.openapidocument",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.info.associated-with.api.openapidocument"],
     "replacement_exists": true,
     "p": 0.443,
@@ -728,6 +766,7 @@
     "destination": "api.pathitem",
     "layer": "api",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["application.applicationcomponent.aggregates.api.server"],
     "replacement_exists": false,
     "p": 0.433,
@@ -748,6 +787,7 @@
     "destination": "api.paths",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.paths.serves.api.operation",
       "api.paths.serves.api.openapidocument",
@@ -782,6 +822,7 @@
     "destination": "api.server",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.server.aggregates.api.servervariable"],
     "replacement_exists": true,
     "p": 0.415,
@@ -803,6 +844,7 @@
     "destination": "api.securityscheme",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.oauthflows.serves.api.operation"],
     "replacement_exists": false,
     "p": 0.41,
@@ -820,6 +862,7 @@
     "destination": "data-store.collection",
     "layer": "api",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "data-store.collection.realizes.data-model.schemadefinition"
     ],
@@ -842,6 +885,7 @@
     "destination": "api.mediatype",
     "layer": "api",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "api.requestbody.composes.api.mediatype",
       "api.mediatype.serves.api.requestbody"
@@ -863,6 +907,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["api.parameter.uses.api.schema"],
     "replacement_exists": false,
     "p": 0.39,
@@ -880,6 +925,7 @@
     "destination": "api.openapidocument",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.info.associated-with.api.openapidocument"],
     "replacement_exists": true,
     "p": 0.389,
@@ -898,6 +944,7 @@
     "destination": "api.tag",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.operation.references.api.operation"],
     "replacement_exists": true,
     "p": 0.383,
@@ -915,6 +962,7 @@
     "destination": "api.operation",
     "layer": "api",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["api.operation.aggregates.api.tag"],
     "replacement_exists": true,
     "p": 0.378,
@@ -932,6 +980,7 @@
     "destination": "business.businessservice",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.realizes.application.applicationservice"
     ],
@@ -954,6 +1003,7 @@
     "destination": "motivation.principle",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.securityscheme.satisfies.motivation.requirement"],
     "replacement_exists": true,
     "p": 0.341,
@@ -971,6 +1021,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.mediatype.references.api.schema"],
     "replacement_exists": true,
     "p": 0.329,
@@ -989,6 +1040,7 @@
     "destination": "application.applicationfunction",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.operation.realizes.application.applicationcomponent"],
     "replacement_exists": false,
     "p": 0.3,
@@ -1006,6 +1058,7 @@
     "destination": "api.schema",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.parameter.references.api.schema"],
     "replacement_exists": true,
     "p": 0.27,
@@ -1023,6 +1076,7 @@
     "destination": "application.applicationcomponent",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["api.securityscheme.references.security.secureresource"],
     "replacement_exists": true,
     "p": 0.263,
@@ -1040,6 +1094,7 @@
     "destination": "motivation.goal",
     "layer": "api",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationcomponent.realizes.motivation.outcome"
     ],
@@ -1062,6 +1117,7 @@
     "destination": "security.securitypolicy",
     "layer": "api",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "api.securityscheme.realizes.security.authenticationconfig"
     ],
@@ -1084,6 +1140,7 @@
     "destination": "apm.span",
     "layer": "apm",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["apm.metricinstrument.references.apm.exporterconfig"],
     "replacement_exists": false,
     "p": 0.806,
@@ -1104,6 +1161,7 @@
     "destination": "apm.resource",
     "layer": "apm",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["apm.logconfiguration.depends-on.apm.resource"],
     "replacement_exists": true,
     "p": 0.731,
@@ -1121,6 +1179,7 @@
     "destination": "technology.node",
     "layer": "apm",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["apm.resource.references.technology.node"],
     "replacement_exists": false,
     "p": 0.708,
@@ -1138,6 +1197,7 @@
     "destination": "apm.spanlink",
     "layer": "apm",
     "kind": "rename-predicate",
+    "current_exists": false,
     "replacement": ["apm.span.composes.apm.spanlink"],
     "replacement_exists": false,
     "p": 0.693,
@@ -1155,6 +1215,7 @@
     "destination": "apm.instrumentationscope",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.span.depends-on.apm.instrumentationscope"],
     "replacement_exists": true,
     "p": 0.661,
@@ -1172,6 +1233,7 @@
     "destination": "business.businessprocess",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.business.businessprocess"
     ],
@@ -1191,6 +1253,7 @@
     "destination": "apm.traceconfiguration",
     "layer": "apm",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "apm.traceconfiguration.aggregates.apm.span",
       "apm.spanevent.aggregates.apm.span"
@@ -1216,6 +1279,7 @@
     "destination": "apm.alert",
     "layer": "apm",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["apm.dashboard.references.apm.alert"],
     "replacement_exists": false,
     "p": 0.594,
@@ -1234,6 +1298,7 @@
     "destination": "apm.exporterconfig",
     "layer": "apm",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["apm.exporterconfig.serves.apm.resource"],
     "replacement_exists": true,
     "p": 0.588,
@@ -1251,6 +1316,7 @@
     "destination": "data-store.database",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.exporterconfig.depends-on.data-store.database"],
     "replacement_exists": false,
     "p": 0.579,
@@ -1268,6 +1334,7 @@
     "destination": "api.pathitem",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.metricinstrument.monitors.api.operation"],
     "replacement_exists": true,
     "p": 0.579,
@@ -1285,6 +1352,7 @@
     "destination": "apm.resource",
     "layer": "apm",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["apm.resource.aggregates.apm.exporterconfig"],
     "replacement_exists": true,
     "p": 0.537,
@@ -1302,6 +1370,7 @@
     "destination": "apm.resource",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "apm.instrumentationconfig.serves.apm.instrumentationscope"
     ],
@@ -1321,6 +1390,7 @@
     "destination": "apm.exporterconfig",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.logconfiguration.references.apm.exporterconfig"],
     "replacement_exists": false,
     "p": 0.496,
@@ -1338,6 +1408,7 @@
     "destination": "apm.span",
     "layer": "apm",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["apm.spanlink.flows-to.apm.span"],
     "replacement_exists": false,
     "p": 0.481,
@@ -1355,6 +1426,7 @@
     "destination": "apm.metricinstrument",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.metricconfiguration.aggregates.apm.span"],
     "replacement_exists": false,
     "p": 0.458,
@@ -1375,6 +1447,7 @@
     "destination": "apm.exporterconfig",
     "layer": "apm",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["apm.logprocessor.aggregates.apm.logprocessor"],
     "replacement_exists": false,
     "p": 0.441,
@@ -1396,6 +1469,7 @@
     "destination": "apm.span",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.logprocessor.flows-to.apm.logprocessor"],
     "replacement_exists": true,
     "p": 0.434,
@@ -1417,6 +1491,7 @@
     "destination": "data-store.database",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.exporterconfig.depends-on.data-store.database"],
     "replacement_exists": false,
     "p": 0.421,
@@ -1434,6 +1509,7 @@
     "destination": "security.retentionpolicy",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "data-store.retentionpolicy.satisfies.security.retentionpolicy"
     ],
@@ -1453,6 +1529,7 @@
     "destination": "application.applicationservice",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "apm.traceconfiguration.monitors.application.applicationcomponent"
     ],
@@ -1472,6 +1549,7 @@
     "destination": "apm.logprocessor",
     "layer": "apm",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "apm.logprocessor.flows-to.apm.logprocessor",
       "apm.logprocessor.flows-to.apm.exporterconfig"
@@ -1497,6 +1575,7 @@
     "destination": "apm.metricinstrument",
     "layer": "apm",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "apm.instrumentationscope.composes.apm.spanevent",
       "apm.spanevent.references.apm.span"
@@ -1523,6 +1602,7 @@
     "destination": "data-store.database",
     "layer": "apm",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["apm.exporterconfig.depends-on.data-store.database"],
     "replacement_exists": false,
     "p": 0.394,
@@ -1540,6 +1620,7 @@
     "destination": "application.applicationservice",
     "layer": "apm",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["apm.dashboard.references.application.applicationservice"],
     "replacement_exists": false,
     "p": 0.393,
@@ -1557,6 +1638,7 @@
     "destination": "apm.instrumentationscope",
     "layer": "apm",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "apm.instrumentationscope.references.apm.instrumentationscope"
     ],
@@ -1579,6 +1661,7 @@
     "destination": "api.operation",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.dashboard.monitors.apm.span"],
     "replacement_exists": true,
     "p": 0.361,
@@ -1596,6 +1679,7 @@
     "destination": "apm.logprocessor",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.logprocessor.flows-to.apm.exporterconfig"],
     "replacement_exists": true,
     "p": 0.359,
@@ -1616,6 +1700,7 @@
     "destination": "security.securityconstraints",
     "layer": "apm",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["apm.logprocessor.realizes.security.securityconstraints"],
     "replacement_exists": false,
     "p": 0.355,
@@ -1633,6 +1718,7 @@
     "destination": "apm.exporterconfig",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.logconfiguration.aggregates.apm.metricinstrument"],
     "replacement_exists": false,
     "p": 0.292,
@@ -1653,6 +1739,7 @@
     "destination": "apm.resource",
     "layer": "apm",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["apm.metricconfiguration.depends-on.apm.resource"],
     "replacement_exists": true,
     "p": 0.283,
@@ -1680,6 +1767,7 @@
     "destination": "data-model.objectschema",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["apm.span.monitors.application.applicationcomponent"],
     "replacement_exists": true,
     "p": 0.246,
@@ -1697,6 +1785,7 @@
     "destination": "motivation.goal",
     "layer": "apm",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessprocess.realizes.motivation.goal"],
     "replacement_exists": true,
     "p": 0.231,
@@ -1714,6 +1803,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationfunction.realizes.application.applicationservice"
     ],
@@ -1733,6 +1823,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationinteraction.realizes.application.applicationservice"
     ],
@@ -1752,6 +1843,7 @@
     "destination": "application.applicationcomponent",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationcollaboration.aggregates.application.applicationcomponent"
     ],
@@ -1771,6 +1863,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationprocess.accesses.application.dataobject"
     ],
@@ -1790,6 +1883,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationprocess.realizes.application.applicationservice"
     ],
@@ -1809,6 +1903,7 @@
     "destination": "application.applicationfunction",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationcomponent.composes.application.applicationfunction"
     ],
@@ -1828,6 +1923,7 @@
     "destination": "application.applicationevent",
     "layer": "application",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "application.applicationevent.triggers.application.applicationprocess"
     ],
@@ -1847,6 +1943,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationinteraction.accesses.application.dataobject"
     ],
@@ -1866,6 +1963,7 @@
     "destination": "application.applicationprocess",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.depends-on.application.applicationprocess"
     ],
@@ -1889,6 +1987,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.depends-on.application.applicationservice"
     ],
@@ -1908,6 +2007,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "application.applicationinterface.depends-on.application.applicationservice"
     ],
@@ -1927,6 +2027,7 @@
     "destination": "application.applicationinterface",
     "layer": "application",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "application.applicationinterface.depends-on.application.applicationcomponent"
     ],
@@ -1946,6 +2047,7 @@
     "destination": "application.applicationinterface",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationcomponent.depends-on.application.applicationinterface"
     ],
@@ -1968,6 +2070,7 @@
     "destination": "application.applicationcollaboration",
     "layer": "application",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationinteraction.triggers.application.applicationinteraction"
     ],
@@ -1990,6 +2093,7 @@
     "destination": "application.applicationinteraction",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationinteraction.depends-on.application.applicationinteraction"
     ],
@@ -2012,6 +2116,7 @@
     "destination": "application.applicationcomponent",
     "layer": "application",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "application.applicationcomponent.provides.application.applicationinterface"
     ],
@@ -2031,6 +2136,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["application.dataobject.composes.application.dataobject"],
     "replacement_exists": true,
     "p": 0.387,
@@ -2048,6 +2154,7 @@
     "destination": "application.applicationservice",
     "layer": "application",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "application.applicationcomponent.realizes.application.applicationservice",
       "application.applicationcomponent.realizes.application.applicationcomponent",
@@ -2086,6 +2193,7 @@
     "destination": "motivation.goal",
     "layer": "application",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationcomponent.realizes.motivation.goal"
     ],
@@ -2105,6 +2213,7 @@
     "destination": "application.applicationcollaboration",
     "layer": "application",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationinteraction.depends-on.application.applicationinteraction"
     ],
@@ -2127,6 +2236,7 @@
     "destination": "application.applicationfunction",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationprocess.assigned-to.application.applicationfunction"
     ],
@@ -2149,6 +2259,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationprocess.references.application.dataobject"
     ],
@@ -2171,6 +2282,7 @@
     "destination": "application.applicationcollaboration",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationcollaboration.depends-on.application.applicationinteraction"
     ],
@@ -2193,6 +2305,7 @@
     "destination": "application.dataobject",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationprocess.accesses.application.dataobject"
     ],
@@ -2215,6 +2328,7 @@
     "destination": "security.accesscondition",
     "layer": "application",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "security.informationright.constrained-by.security.accesscondition"
     ],
@@ -2234,6 +2348,7 @@
     "destination": "application.applicationinteraction",
     "layer": "application",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationinteraction.depends-on.application.applicationinteraction"
     ],
@@ -2262,6 +2377,7 @@
     "destination": "motivation.goal",
     "layer": "application",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessprocess.realizes.motivation.constraint"],
     "replacement_exists": false,
     "p": 0.226,
@@ -2282,6 +2398,7 @@
     "destination": "application.applicationprocess",
     "layer": "business",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "application.applicationprocess.realizes.business.businessprocess"
     ],
@@ -2308,6 +2425,7 @@
     "destination": "business.businessprocess",
     "layer": "business",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.realizes.business.businessservice",
       "business.businessprocess.realizes.application.applicationprocess"
@@ -2347,6 +2465,7 @@
     "destination": "business.businessactor",
     "layer": "business",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["business.businessactor.assigned-to.business.businessrole"],
     "replacement_exists": true,
     "p": 0.838,
@@ -2364,6 +2483,7 @@
     "destination": "business.businessprocess",
     "layer": "business",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["business.businessrole.performs.business.businessprocess"],
     "replacement_exists": true,
     "p": 0.819,
@@ -2381,6 +2501,7 @@
     "destination": "business.businessobject",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "business.businessinteraction.accesses.business.businessobject"
     ],
@@ -2400,6 +2521,7 @@
     "destination": "business.businessprocess",
     "layer": "business",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["business.businessprocess.accesses.business.businessevent"],
     "replacement_exists": false,
     "p": 0.735,
@@ -2420,6 +2542,7 @@
     "destination": "business.businessinterface",
     "layer": "business",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["business.businessinterface.serves.business.businessrole"],
     "replacement_exists": true,
     "p": 0.68,
@@ -2437,6 +2560,7 @@
     "destination": "business.businessrole",
     "layer": "business",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["business.businessrole.accesses.business.contract"],
     "replacement_exists": true,
     "p": 0.672,
@@ -2454,6 +2578,7 @@
     "destination": "business.businessfunction",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessevent.triggers.business.businessprocess"],
     "replacement_exists": true,
     "p": 0.661,
@@ -2471,6 +2596,7 @@
     "destination": "business.businessrole",
     "layer": "business",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["business.businessrole.performs.business.businessfunction"],
     "replacement_exists": true,
     "p": 0.649,
@@ -2488,6 +2614,7 @@
     "destination": "business.businessservice",
     "layer": "business",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "business.businessinteraction.realizes.business.businessservice"
     ],
@@ -2517,6 +2644,7 @@
     "destination": "motivation.goal",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessprocess.realizes.motivation.goal"],
     "replacement_exists": true,
     "p": 0.561,
@@ -2534,6 +2662,7 @@
     "destination": "business.businessfunction",
     "layer": "business",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "business.businessevent.triggers.business.businessfunction",
       "business.businessevent.triggers.business.businessprocess"
@@ -2562,6 +2691,7 @@
     "destination": "business.businessservice",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": false,
     "replacement": [
       "business.businessprocess.realizes.business.businessservice"
     ],
@@ -2581,6 +2711,7 @@
     "destination": "business.businessobject",
     "layer": "business",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.accesses.business.businessobject",
       "business.businessprocess.references.business.businessobject"
@@ -2606,6 +2737,7 @@
     "destination": "motivation.goal",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessservice.realizes.motivation.outcome"],
     "replacement_exists": false,
     "p": 0.36,
@@ -2626,6 +2758,7 @@
     "destination": "business.businessobject",
     "layer": "business",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.accesses.business.businessobject"
     ],
@@ -2648,6 +2781,7 @@
     "destination": "business.businessevent",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessprocess.triggers.business.businessevent"],
     "replacement_exists": true,
     "p": 0.315,
@@ -2669,6 +2803,7 @@
     "destination": "business.businessobject",
     "layer": "business",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.accesses.business.businessobject"
     ],
@@ -2688,6 +2823,7 @@
     "destination": "business.businessrole",
     "layer": "business",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "business.businesscollaboration.uses.business.businessrole"
     ],
@@ -2707,6 +2843,7 @@
     "destination": "api.schema",
     "layer": "data-model",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-model.schemadefinition.maps-to.api.schema"],
     "replacement_exists": true,
     "p": 0.575,
@@ -2724,6 +2861,7 @@
     "destination": "data-model.schemadefinition",
     "layer": "data-model",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "data-model.schemadefinition.references.data-model.schemadefinition"
     ],
@@ -2746,6 +2884,7 @@
     "destination": "application.applicationfunction",
     "layer": "data-model",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.references.application.applicationfunction"
     ],
@@ -2768,6 +2907,7 @@
     "destination": "security.dataclassification",
     "layer": "data-model",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "data-model.schemadefinition.references.security.dataclassification"
     ],
@@ -2787,6 +2927,7 @@
     "destination": "data-model.reference",
     "layer": "data-model",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["data-model.arrayschema.uses.data-model.reference"],
     "replacement_exists": false,
     "p": 0.381,
@@ -2804,6 +2945,7 @@
     "destination": "api.schema",
     "layer": "data-model",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-model.objectschema.realizes.api.schema"],
     "replacement_exists": false,
     "p": 0.373,
@@ -2821,6 +2963,7 @@
     "destination": "api.response",
     "layer": "data-model",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-model.jsonschema.maps-to.api.response"],
     "replacement_exists": false,
     "p": 0.371,
@@ -2838,6 +2981,7 @@
     "destination": "data-model.schemaproperty",
     "layer": "data-model",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "data-model.objectschema.composes.data-model.schemaproperty"
     ],
@@ -2857,6 +3001,7 @@
     "destination": "application.applicationservice",
     "layer": "data-model",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "data-model.schemadefinition.maps-to.application.applicationservice"
     ],
@@ -2880,6 +3025,7 @@
     "destination": "motivation.goal",
     "layer": "data-model",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-model.objectschema.realizes.business.businessobject"],
     "replacement_exists": true,
     "p": 0.269,
@@ -2897,6 +3043,7 @@
     "destination": "motivation.goal",
     "layer": "data-model",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessprocess.realizes.motivation.goal"],
     "replacement_exists": true,
     "p": 0.238,
@@ -2914,6 +3061,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["data-store.view.derives-from.data-store.collection"],
     "replacement_exists": true,
     "p": 0.886,
@@ -2931,6 +3079,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["data-store.retentionpolicy.governs.data-store.collection"],
     "replacement_exists": true,
     "p": 0.852,
@@ -2952,6 +3101,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["data-store.accesspattern.accesses.data-store.collection"],
     "replacement_exists": true,
     "p": 0.793,
@@ -2969,6 +3119,7 @@
     "destination": "business.businessevent",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "data-store.eventhandler.triggers.application.applicationevent"
     ],
@@ -2988,6 +3139,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["data-store.storedlogic.accesses.data-store.collection"],
     "replacement_exists": true,
     "p": 0.753,
@@ -3005,6 +3157,7 @@
     "destination": "business.businessservice",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-store.view.serves.application.applicationservice"],
     "replacement_exists": true,
     "p": 0.705,
@@ -3022,6 +3175,7 @@
     "destination": "data-store.field",
     "layer": "data-store",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "data-store.collection.composes.data-store.collection",
       "data-store.collection.composes.data-store.field"
@@ -3047,6 +3201,7 @@
     "destination": "data-store.field",
     "layer": "data-store",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["data-store.accesspattern.references.data-store.field"],
     "replacement_exists": false,
     "p": 0.691,
@@ -3064,6 +3219,7 @@
     "destination": "data-store.field",
     "layer": "data-store",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "data-store.collection.composes.data-store.collection",
       "data-store.collection.composes.data-store.field",
@@ -3097,6 +3253,7 @@
     "destination": "data-store.namespace",
     "layer": "data-store",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "data-store.namespace.composes.data-store.namespace",
       "data-store.field.composes.data-store.collection"
@@ -3130,6 +3287,7 @@
     "destination": "data-store.index",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-store.collection.composes.data-store.index"],
     "replacement_exists": true,
     "p": 0.617,
@@ -3147,6 +3305,7 @@
     "destination": "data-store.storedlogic",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-store.eventhandler.triggers.data-store.eventhandler"],
     "replacement_exists": false,
     "p": 0.604,
@@ -3167,6 +3326,7 @@
     "destination": "business.businessfunction",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "data-store.accesspattern.serves.application.applicationfunction"
     ],
@@ -3186,6 +3346,7 @@
     "destination": "data-store.validationrule",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-store.storedlogic.composes.data-store.storedlogic"],
     "replacement_exists": true,
     "p": 0.561,
@@ -3203,6 +3364,7 @@
     "destination": "data-store.collection",
     "layer": "data-store",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["data-store.storedlogic.accesses.data-store.collection"],
     "replacement_exists": true,
     "p": 0.558,
@@ -3220,6 +3382,7 @@
     "destination": "data-store.field",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["data-store.collection.aggregates.data-store.field"],
     "replacement_exists": false,
     "p": 0.524,
@@ -3237,6 +3400,7 @@
     "destination": "business.businessservice",
     "layer": "data-store",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.realizes.business.businessservice",
       "application.applicationcomponent.serves.business.businessservice"
@@ -3262,6 +3426,7 @@
     "destination": "data-store.index",
     "layer": "data-store",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "data-store.accesspattern.uses.data-store.index",
       "data-store.index.optimizes.data-store.accesspattern"
@@ -3283,6 +3448,7 @@
     "destination": "security.secureresource",
     "layer": "data-store",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["data-store.collection.realizes.security.secureresource"],
     "replacement_exists": false,
     "p": 0.424,
@@ -3300,6 +3466,7 @@
     "destination": "data-store.validationrule",
     "layer": "data-store",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["data-store.storedlogic.aggregates.data-store.field"],
     "replacement_exists": true,
     "p": 0.41,
@@ -3320,6 +3487,7 @@
     "destination": "business.businessfunction",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationfunction.realizes.business.businessfunction"
     ],
@@ -3339,6 +3507,7 @@
     "destination": "application.applicationcomponent",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.application.applicationcomponent"
     ],
@@ -3358,6 +3527,7 @@
     "destination": "security.accesscondition",
     "layer": "data-store",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "data-store.accesspattern.satisfies.motivation.requirement"
     ],
@@ -3377,6 +3547,7 @@
     "destination": "security.dataclassification",
     "layer": "data-store",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["data-store.field.references.security.dataclassification"],
     "replacement_exists": false,
     "p": 0.313,
@@ -3394,6 +3565,7 @@
     "destination": "motivation.constraint",
     "layer": "motivation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["motivation.constraint.influence.motivation.outcome"],
     "replacement_exists": true,
     "p": 0.836,
@@ -3411,6 +3583,7 @@
     "destination": "motivation.constraint",
     "layer": "motivation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["motivation.constraint.influence.motivation.assessment"],
     "replacement_exists": true,
     "p": 0.83,
@@ -3428,6 +3601,7 @@
     "destination": "motivation.driver",
     "layer": "motivation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["motivation.driver.influence.motivation.outcome"],
     "replacement_exists": true,
     "p": 0.773,
@@ -3445,6 +3619,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["motivation.stakeholder.influence.motivation.goal"],
     "replacement_exists": true,
     "p": 0.738,
@@ -3462,6 +3637,7 @@
     "destination": "motivation.driver",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["motivation.stakeholder.influence.motivation.driver"],
     "replacement_exists": true,
     "p": 0.692,
@@ -3479,6 +3655,7 @@
     "destination": "motivation.driver",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": ["motivation.stakeholder.associated-with.motivation.driver"],
     "replacement_exists": true,
     "p": 0.681,
@@ -3496,6 +3673,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["motivation.goal.realizes.motivation.value"],
     "replacement_exists": true,
     "p": 0.671,
@@ -3513,6 +3691,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["motivation.principle.influence.motivation.goal"],
     "replacement_exists": true,
     "p": 0.645,
@@ -3531,6 +3710,7 @@
     "destination": "motivation.value",
     "layer": "motivation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["motivation.value.associated-with.motivation.goal"],
     "replacement_exists": true,
     "p": 0.632,
@@ -3552,6 +3732,7 @@
     "destination": "motivation.constraint",
     "layer": "motivation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "motivation.requirement.associated-with.motivation.constraint"
     ],
@@ -3571,6 +3752,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["motivation.requirement.realizes.motivation.goal"],
     "replacement_exists": true,
     "p": 0.52,
@@ -3588,6 +3770,7 @@
     "destination": "motivation.stakeholder",
     "layer": "motivation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["motivation.meaning.associated-with.motivation.meaning"],
     "replacement_exists": false,
     "p": 0.476,
@@ -3605,6 +3788,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "motivation.goal.realizes.motivation.goal",
       "motivation.goal.aggregates.motivation.goal"
@@ -3631,6 +3815,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["motivation.outcome.realizes.motivation.goal"],
     "replacement_exists": true,
     "p": 0.428,
@@ -3648,6 +3833,7 @@
     "destination": "motivation.driver",
     "layer": "motivation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["motivation.driver.influence.motivation.driver"],
     "replacement_exists": true,
     "p": 0.416,
@@ -3668,6 +3854,7 @@
     "destination": "motivation.assessment",
     "layer": "motivation",
     "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": ["motivation.assessment.influence.motivation.assessment"],
     "replacement_exists": true,
     "p": 0.413,
@@ -3685,6 +3872,7 @@
     "destination": "motivation.outcome",
     "layer": "motivation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["motivation.outcome.realizes.motivation.outcome"],
     "replacement_exists": false,
     "p": 0.407,
@@ -3705,6 +3893,7 @@
     "destination": "motivation.assessment",
     "layer": "motivation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["motivation.assessment.influence.motivation.assessment"],
     "replacement_exists": true,
     "p": 0.35,
@@ -3725,6 +3914,7 @@
     "destination": "motivation.requirement",
     "layer": "motivation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["motivation.requirement.associated-with.motivation.goal"],
     "replacement_exists": true,
     "p": 0.341,
@@ -3742,6 +3932,7 @@
     "destination": "motivation.principle",
     "layer": "motivation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["motivation.principle.influence.motivation.principle"],
     "replacement_exists": true,
     "p": 0.329,
@@ -3762,6 +3953,7 @@
     "destination": "motivation.goal",
     "layer": "motivation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["business.businessprocess.aggregates.motivation.goal"],
     "replacement_exists": false,
     "p": 0.327,
@@ -3782,6 +3974,7 @@
     "destination": "motivation.value",
     "layer": "motivation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["motivation.value.associated-with.motivation.value"],
     "replacement_exists": true,
     "p": 0.297,
@@ -3799,6 +3992,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["navigation.route.composes.navigation.routemeta"],
     "replacement_exists": true,
     "p": 0.835,
@@ -3816,6 +4010,7 @@
     "destination": "navigation.navigationtransition",
     "layer": "navigation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "navigation.navigationgraph.composes.navigation.navigationtransition"
     ],
@@ -3835,6 +4030,7 @@
     "destination": "navigation.flowstep",
     "layer": "navigation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["navigation.navigationflow.composes.navigation.flowstep"],
     "replacement_exists": true,
     "p": 0.772,
@@ -3862,6 +4058,7 @@
     "destination": "navigation.navigationguard",
     "layer": "navigation",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "navigation.routemeta.references.navigation.navigationguard"
     ],
@@ -3881,6 +4078,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "navigation.navigationtransition.navigates-to.navigation.route"
     ],
@@ -3900,6 +4098,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["navigation.navigationgraph.composes.navigation.route"],
     "replacement_exists": true,
     "p": 0.751,
@@ -3917,6 +4116,7 @@
     "destination": "navigation.navigationgraph",
     "layer": "navigation",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig"
     ],
@@ -3936,6 +4136,7 @@
     "destination": "business.businessfunction",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.flowstep.realizes.product.workflowstep"],
     "replacement_exists": true,
     "p": 0.681,
@@ -3953,6 +4154,7 @@
     "destination": "ux.view",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.route.maps-to.ux.view"],
     "replacement_exists": true,
     "p": 0.655,
@@ -3970,6 +4172,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.navigationguard.constrains.navigation.route"],
     "replacement_exists": false,
     "p": 0.645,
@@ -3987,6 +4190,7 @@
     "destination": "navigation.guardaction",
     "layer": "navigation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "navigation.guardaction.depends-on.navigation.navigationguard"
     ],
@@ -4009,6 +4213,7 @@
     "destination": "ux.layoutconfig",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.routemeta.uses.ux.layoutconfig"],
     "replacement_exists": true,
     "p": 0.618,
@@ -4026,6 +4231,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["navigation.navigationflow.navigates-to.navigation.route"],
     "replacement_exists": false,
     "p": 0.578,
@@ -4046,6 +4252,7 @@
     "destination": "motivation.goal",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.navigationflow.realizes.product.userworkflow"],
     "replacement_exists": true,
     "p": 0.552,
@@ -4063,6 +4270,7 @@
     "destination": "ux.view",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.flowstep.accesses.ux.view"],
     "replacement_exists": false,
     "p": 0.548,
@@ -4080,6 +4288,7 @@
     "destination": "navigation.contextvariable",
     "layer": "navigation",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "navigation.guardcondition.uses.navigation.contextvariable",
       "navigation.guardcondition.references.navigation.contextvariable"
@@ -4110,6 +4319,7 @@
     "destination": "navigation.routemeta",
     "layer": "navigation",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["navigation.route.composes.navigation.routemeta"],
     "replacement_exists": true,
     "p": 0.526,
@@ -4127,6 +4337,7 @@
     "destination": "motivation.outcome",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.realizes.business.businessprocess"
     ],
@@ -4149,6 +4360,7 @@
     "destination": "navigation.navigationtransition",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "navigation.flowstep.flows-to.navigation.navigationtransition"
     ],
@@ -4168,6 +4380,7 @@
     "destination": "navigation.guardaction",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "navigation.navigationguard.triggers.navigation.guardaction"
     ],
@@ -4187,6 +4400,7 @@
     "destination": "navigation.routemeta",
     "layer": "navigation",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["navigation.breadcrumbconfig.uses.navigation.routemeta"],
     "replacement_exists": false,
     "p": 0.432,
@@ -4204,6 +4418,7 @@
     "destination": "navigation.guardcondition",
     "layer": "navigation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "navigation.guardcondition.triggers.navigation.navigationguard"
     ],
@@ -4226,6 +4441,7 @@
     "destination": "navigation.route",
     "layer": "navigation",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["navigation.flowstep.consumes.navigation.route"],
     "replacement_exists": false,
     "p": 0.389,
@@ -4243,6 +4459,7 @@
     "destination": "security.role",
     "layer": "navigation",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["navigation.navigationguard.references.security.role"],
     "replacement_exists": false,
     "p": 0.348,
@@ -4260,6 +4477,7 @@
     "destination": "navigation.navigationtransition",
     "layer": "navigation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["navigation.navigationtransition.uses.navigation.flowstep"],
     "replacement_exists": false,
     "p": 0.333,
@@ -4286,6 +4504,7 @@
     "destination": "application.applicationservice",
     "layer": "navigation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "navigation.route.resolves-with.application.applicationcomponent"
     ],
@@ -4308,6 +4527,7 @@
     "destination": "security.securitypolicy",
     "layer": "navigation",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["navigation.navigationguard.uses.security.securitypolicy"],
     "replacement_exists": false,
     "p": 0.243,
@@ -4325,6 +4545,7 @@
     "destination": "navigation.navigationtransition",
     "layer": "navigation",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "navigation.navigationtransition.navigates-to.navigation.flowstep"
     ],
@@ -4347,6 +4568,7 @@
     "destination": "product.capability",
     "layer": "product",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["product.feature.realizes.product.capability"],
     "replacement_exists": true,
     "p": 0.836,
@@ -4364,6 +4586,7 @@
     "destination": "product.capability",
     "layer": "product",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["product.workflowstep.uses.product.feature"],
     "replacement_exists": true,
     "p": 0.767,
@@ -4381,6 +4604,7 @@
     "destination": "business.businessprocess",
     "layer": "product",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["product.userworkflow.realizes.business.businessprocess"],
     "replacement_exists": false,
     "p": 0.679,
@@ -4398,6 +4622,7 @@
     "destination": "business.businessservice",
     "layer": "product",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.realizes.business.businessservice"
     ],
@@ -4417,6 +4642,7 @@
     "destination": "product.feature",
     "layer": "product",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "product.userworkflow.uses.product.workflowstep",
       "product.workflowstep.uses.product.workflowstep"
@@ -4444,6 +4670,7 @@
     "destination": "product.capability",
     "layer": "product",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["product.feature.uses.product.capability"],
     "replacement_exists": true,
     "p": 0.526,
@@ -4461,6 +4688,7 @@
     "destination": "motivation.stakeholder",
     "layer": "product",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["product.persona.references.motivation.stakeholder"],
     "replacement_exists": false,
     "p": 0.515,
@@ -4478,6 +4706,7 @@
     "destination": "product.persona",
     "layer": "product",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["product.userworkflow.serves.product.persona"],
     "replacement_exists": true,
     "p": 0.475,
@@ -4495,6 +4724,7 @@
     "destination": "business.businessrole",
     "layer": "product",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "business.businessfunction.references.business.businessrole"
     ],
@@ -4517,6 +4747,7 @@
     "destination": "security.threat",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.countermeasure.mitigates.security.threat"],
     "replacement_exists": true,
     "p": 0.917,
@@ -4534,6 +4765,7 @@
     "destination": "security.threat",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.countermeasure.mitigates.security.threat"],
     "replacement_exists": true,
     "p": 0.903,
@@ -4551,6 +4783,7 @@
     "destination": "security.auditconfig",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.auditconfig.mitigates.security.threat"],
     "replacement_exists": true,
     "p": 0.82,
@@ -4568,6 +4801,7 @@
     "destination": "security.countermeasure",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": false,
     "replacement": ["security.countermeasure.mitigates.security.threat"],
     "replacement_exists": true,
     "p": 0.818,
@@ -4585,6 +4819,7 @@
     "destination": "security.threat",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.countermeasure.mitigates.security.threat"],
     "replacement_exists": true,
     "p": 0.817,
@@ -4602,6 +4837,7 @@
     "destination": "security.policyaction",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.policyrule.triggers.security.policyaction"],
     "replacement_exists": true,
     "p": 0.801,
@@ -4623,6 +4859,7 @@
     "destination": "security.policyrule",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.policyrule.triggers.security.policyaction"],
     "replacement_exists": true,
     "p": 0.794,
@@ -4644,6 +4881,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["security.countermeasure.protects.security.secureresource"],
     "replacement_exists": true,
     "p": 0.789,
@@ -4661,6 +4899,7 @@
     "destination": "security.policyrule",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.policyrule.uses.security.accesscondition"],
     "replacement_exists": true,
     "p": 0.756,
@@ -4688,6 +4927,7 @@
     "destination": "security.authenticationconfig",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.authenticationconfig.authenticates.security.actor"
     ],
@@ -4707,6 +4947,7 @@
     "destination": "security.authenticationconfig",
     "layer": "security",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "security.securitymodel.composes.security.authenticationconfig"
     ],
@@ -4726,6 +4967,7 @@
     "destination": "security.fieldaccesscontrol",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.fieldaccesscontrol.constrained-by.security.accesscondition"
     ],
@@ -4745,6 +4987,7 @@
     "destination": "motivation.constraint",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "security.securityconstraints.realizes.motivation.constraint"
     ],
@@ -4764,6 +5007,7 @@
     "destination": "security.auditconfig",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.auditconfig.triggers.security.evidence"],
     "replacement_exists": true,
     "p": 0.676,
@@ -4781,6 +5025,7 @@
     "destination": "security.evidence",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.evidence.realizes.security.auditconfig"],
     "replacement_exists": true,
     "p": 0.649,
@@ -4798,6 +5043,7 @@
     "destination": "security.fieldaccesscontrol",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "security.secureresource.composes.security.fieldaccesscontrol"
     ],
@@ -4817,6 +5063,7 @@
     "destination": "security.resourceoperation",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "security.secureresource.composes.security.resourceoperation"
     ],
@@ -4840,6 +5087,7 @@
     "destination": "security.policyrule",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.policyrule.generates.security.evidence"],
     "replacement_exists": true,
     "p": 0.613,
@@ -4857,6 +5105,7 @@
     "destination": "security.informationright",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.informationright.accesses.security.informationentity"
     ],
@@ -4876,6 +5125,7 @@
     "destination": "security.accesscondition",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.accesscondition.uses.security.validationrule"],
     "replacement_exists": true,
     "p": 0.601,
@@ -4893,6 +5143,7 @@
     "destination": "security.countermeasure",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.securitypolicy.mandates.security.countermeasure"],
     "replacement_exists": true,
     "p": 0.576,
@@ -4910,6 +5161,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["security.securitypolicy.monitors.security.secureresource"],
     "replacement_exists": false,
     "p": 0.572,
@@ -4930,6 +5182,7 @@
     "destination": "security.role",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.bindingofduty.constrains.security.actor"],
     "replacement_exists": false,
     "p": 0.567,
@@ -4947,6 +5200,7 @@
     "destination": "security.auditconfig",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "security.resourceoperation.references.security.auditconfig"
     ],
@@ -4966,6 +5220,7 @@
     "destination": "security.delegation",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.delegation.requires.security.actor"],
     "replacement_exists": true,
     "p": 0.545,
@@ -4983,6 +5238,7 @@
     "destination": "security.authenticationconfig",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.authenticationconfig.uses.security.passwordpolicy"
     ],
@@ -5002,6 +5258,7 @@
     "destination": "security.securitypolicy",
     "layer": "security",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "security.securityconstraints.governs.security.securitypolicy"
     ],
@@ -5021,6 +5278,7 @@
     "destination": "security.actor",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "security.accountabilityrequirement.references.security.actor"
     ],
@@ -5040,6 +5298,7 @@
     "destination": "security.securitypolicy",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.securitypolicy.mandates.security.countermeasure"],
     "replacement_exists": true,
     "p": 0.477,
@@ -5057,6 +5316,7 @@
     "destination": "security.countermeasure",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.policyrule.mandates.security.countermeasure"],
     "replacement_exists": true,
     "p": 0.473,
@@ -5078,6 +5338,7 @@
     "destination": "security.policyrule",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["security.securitypolicy.composes.security.policyrule"],
     "replacement_exists": false,
     "p": 0.473,
@@ -5095,6 +5356,7 @@
     "destination": "security.passwordpolicy",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.passwordpolicy.constrains.security.authenticationconfig"
     ],
@@ -5121,6 +5383,7 @@
     "destination": "security.accountabilityrequirement",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "security.securitymodel.composes.security.accountabilityrequirement"
     ],
@@ -5140,6 +5403,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "security.fieldaccesscontrol.protects.security.secureresource",
       "security.securitypolicy.protects.security.secureresource"
@@ -5171,6 +5435,7 @@
     "destination": "security.accesscondition",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["security.condition.uses.security.accesscondition"],
     "replacement_exists": false,
     "p": 0.416,
@@ -5188,6 +5453,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "security.resourceoperation.accesses.security.secureresource"
     ],
@@ -5207,6 +5473,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.secureresource.aggregates.security.resourceoperation"
     ],
@@ -5233,6 +5500,7 @@
     "destination": "security.retentionpolicy",
     "layer": "security",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["security.auditconfig.depends-on.security.retentionpolicy"],
     "replacement_exists": true,
     "p": 0.38,
@@ -5250,6 +5518,7 @@
     "destination": "security.accesscondition",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["security.accesscondition.composes.security.policyrule"],
     "replacement_exists": true,
     "p": 0.376,
@@ -5267,6 +5536,7 @@
     "destination": "security.informationentity",
     "layer": "security",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "security.informationright.accesses.security.informationentity"
     ],
@@ -5286,6 +5556,7 @@
     "destination": "security.auditconfig",
     "layer": "security",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "security.auditconfig.fulfills.security.accountabilityrequirement"
     ],
@@ -5305,6 +5576,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "security.securitypolicy.governs.security.informationentity"
     ],
@@ -5327,6 +5599,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["security.securitypolicy.accesses.security.secureresource"],
     "replacement_exists": false,
     "p": 0.354,
@@ -5347,6 +5620,7 @@
     "destination": "security.secureresource",
     "layer": "security",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["security.actor.targets.security.secureresource"],
     "replacement_exists": false,
     "p": 0.32,
@@ -5364,6 +5638,7 @@
     "destination": "security.auditconfig",
     "layer": "security",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["security.auditconfig.triggers.security.auditconfig"],
     "replacement_exists": false,
     "p": 0.305,
@@ -5384,6 +5659,7 @@
     "destination": "security.evidence",
     "layer": "security",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["security.bindingofduty.references.security.evidence"],
     "replacement_exists": false,
     "p": 0.303,
@@ -5401,6 +5677,7 @@
     "destination": "security.informationentity",
     "layer": "security",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "security.informationright.governs.security.informationentity"
     ],
@@ -5420,6 +5697,7 @@
     "destination": "security.countermeasure",
     "layer": "security",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["security.securitypolicy.mandates.security.countermeasure"],
     "replacement_exists": true,
     "p": 0.295,
@@ -5437,6 +5715,7 @@
     "destination": "technology.technologyfunction",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "technology.technologyfunction.realizes.technology.technologyservice"
     ],
@@ -5456,6 +5735,7 @@
     "destination": "technology.technologycollaboration",
     "layer": "technology",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "technology.technologycollaboration.performs.technology.technologyinteraction",
       "technology.technologyservice.performs.technology.technologyinteraction"
@@ -5487,6 +5767,7 @@
     "destination": "business.businessservice",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "technology.technologyservice.serves.business.businessservice"
     ],
@@ -5506,6 +5787,7 @@
     "destination": "technology.technologyservice",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "technology.technologyservice.provides.technology.technologyinterface"
     ],
@@ -5525,6 +5807,7 @@
     "destination": "technology.technologycollaboration",
     "layer": "technology",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "technology.technologycollaboration.uses.technology.communicationnetwork",
       "technology.technologycollaboration.uses.technology.technologycollaboration"
@@ -5553,6 +5836,7 @@
     "destination": "technology.systemsoftware",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["technology.systemsoftware.depends-on.technology.device"],
     "replacement_exists": true,
     "p": 0.763,
@@ -5570,6 +5854,7 @@
     "destination": "technology.node",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["technology.node.composes.technology.technologyinterface"],
     "replacement_exists": true,
     "p": 0.724,
@@ -5587,6 +5872,7 @@
     "destination": "technology.artifact",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "technology.artifact.realizes.technology.technologyservice"
     ],
@@ -5606,6 +5892,7 @@
     "destination": "technology.communicationnetwork",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "technology.communicationnetwork.provides.technology.technologyinterface"
     ],
@@ -5632,6 +5919,7 @@
     "destination": "technology.technologyprocess",
     "layer": "technology",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "technology.technologyevent.triggers.technology.technologyprocess"
     ],
@@ -5651,6 +5939,7 @@
     "destination": "business.businessprocess",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.business.businessprocess"
     ],
@@ -5670,6 +5959,7 @@
     "destination": "technology.technologyinterface",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "technology.technologyinterface.serves.technology.technologycollaboration"
     ],
@@ -5689,6 +5979,7 @@
     "destination": "technology.technologyinterface",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["technology.technologyinterface.uses.technology.path"],
     "replacement_exists": true,
     "p": 0.602,
@@ -5706,6 +5997,7 @@
     "destination": "technology.technologyfunction",
     "layer": "technology",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "technology.technologyinteraction.uses.technology.technologyfunction",
       "technology.technologyfunction.serves.technology.technologyinteraction"
@@ -5730,6 +6022,7 @@
     "destination": "business.businessservice",
     "layer": "technology",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.business.businessservice"
     ],
@@ -5752,6 +6045,7 @@
     "destination": "application.applicationcomponent",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.serves.application.applicationcomponent"
     ],
@@ -5771,6 +6065,7 @@
     "destination": "technology.technologyprocess",
     "layer": "technology",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "technology.technologyfunction.flows-to.technology.technologyprocess"
     ],
@@ -5790,6 +6085,7 @@
     "destination": "technology.technologyinterface",
     "layer": "technology",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "technology.technologyinterface.assigned-to.technology.technologyservice"
     ],
@@ -5816,6 +6112,7 @@
     "destination": "technology.technologyfunction",
     "layer": "technology",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "technology.systemsoftware.assigned-to.technology.technologyfunction"
     ],
@@ -5835,6 +6132,7 @@
     "destination": "technology.technologyinteraction",
     "layer": "technology",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "technology.technologyinteraction.triggers.technology.technologyinteraction"
     ],
@@ -5854,6 +6152,7 @@
     "destination": "technology.technologyinterface",
     "layer": "technology",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["technology.technologyinterface.uses.technology.device"],
     "replacement_exists": false,
     "p": 0.363,
@@ -5874,6 +6173,7 @@
     "destination": "technology.technologyservice",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["technology.path.flows-to.technology.node"],
     "replacement_exists": false,
     "p": 0.315,
@@ -5891,6 +6191,7 @@
     "destination": "technology.systemsoftware",
     "layer": "technology",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["technology.systemsoftware.uses.technology.systemsoftware"],
     "replacement_exists": false,
     "p": 0.298,
@@ -5911,6 +6212,7 @@
     "destination": "motivation.goal",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "business.businessprocess.realizes.technology.technologyservice"
     ],
@@ -5933,6 +6235,7 @@
     "destination": "technology.artifact",
     "layer": "technology",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["technology.device.accesses.technology.artifact"],
     "replacement_exists": false,
     "p": 0.283,
@@ -5950,6 +6253,7 @@
     "destination": "business.businessservice",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationservice.realizes.technology.technologyservice"
     ],
@@ -5972,6 +6276,7 @@
     "destination": "technology.technologyservice",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "technology.technologyprocess.realizes.technology.technologyservice"
     ],
@@ -5991,6 +6296,7 @@
     "destination": "motivation.goal",
     "layer": "technology",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["business.businessservice.realizes.motivation.outcome"],
     "replacement_exists": false,
     "p": 0.204,
@@ -6011,6 +6317,7 @@
     "destination": "technology.technologyservice",
     "layer": "technology",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "technology.technologyservice.consumes.technology.systemsoftware"
     ],
@@ -6033,6 +6340,7 @@
     "destination": "testing.inputselection",
     "layer": "testing",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["testing.testcasesketch.composes.testing.inputselection"],
     "replacement_exists": true,
     "p": 0.85,
@@ -6050,6 +6358,7 @@
     "destination": "data-model.jsonschema",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.inputspacepartition.references.data-model.schemaproperty"
     ],
@@ -6069,6 +6378,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "testing.coveragegap.references.testing.coveragerequirement"
     ],
@@ -6089,6 +6399,7 @@
     "destination": "testing.coverageexclusion",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "testing.coverageexclusion.references.testing.coveragerequirement"
     ],
@@ -6108,6 +6419,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "testing.testcasesketch.validates.testing.testcoveragetarget"
     ],
@@ -6127,6 +6439,7 @@
     "destination": "testing.inputpartitionselection",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.composes.testing.inputpartitionselection"
     ],
@@ -6146,6 +6459,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "testing.testcoveragetarget.composes.testing.targetinputfield"
     ],
@@ -6165,6 +6479,7 @@
     "destination": "testing.inputpartitionselection",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.testcasesketch.references.testing.inputpartitionselection"
     ],
@@ -6184,6 +6499,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "testing.testcoveragetarget.aggregates.testing.contextvariation"
     ],
@@ -6203,6 +6519,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "testing.testcoveragemodel.composes.testing.testcoveragetarget"
     ],
@@ -6222,6 +6539,7 @@
     "destination": "data-store.collection",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["testing.inputspacepartition.references.data-store.field"],
     "replacement_exists": false,
     "p": 0.649,
@@ -6239,6 +6557,7 @@
     "destination": "testing.testcasesketch",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.targetcoveragesummary.references.testing.testcasesketch"
     ],
@@ -6258,6 +6577,7 @@
     "destination": "testing.coverageexclusion",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["testing.coverageexclusion.references.testing.coveragegap"],
     "replacement_exists": true,
     "p": 0.63,
@@ -6275,6 +6595,7 @@
     "destination": "testing.testcasesketch",
     "layer": "testing",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "testing.testcasesketch.depends-on.testing.testcoveragemodel",
       "testing.testcasesketch.depends-on.testing.outcomecategory"
@@ -6303,6 +6624,7 @@
     "destination": "testing.contextvariation",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.aggregates.testing.partitionvalue"
     ],
@@ -6325,6 +6647,7 @@
     "destination": "testing.partitionvalue",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.inputpartitionselection.references.testing.partitionvalue"
     ],
@@ -6348,6 +6671,7 @@
     "destination": "testing.testcoveragemodel",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.contextvariation.serves.testing.testcoveragemodel"
     ],
@@ -6367,6 +6691,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.testcoveragemodel.composes.testing.testcoveragetarget"
     ],
@@ -6386,6 +6711,7 @@
     "destination": "testing.contextvariation",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "testing.contextvariation.references.testing.environmentfactor"
     ],
@@ -6412,6 +6738,7 @@
     "destination": "testing.inputpartitionselection",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.composes.testing.inputpartitionselection"
     ],
@@ -6431,6 +6758,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.aggregates.testing.coverageexclusion"
     ],
@@ -6450,6 +6778,7 @@
     "destination": "ux.actioncomponent",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["testing.targetinputfield.references.ux.actioncomponent"],
     "replacement_exists": false,
     "p": 0.486,
@@ -6467,6 +6796,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "testing.inputpartitionselection.composes.testing.testcoveragemodel",
       "testing.testcoveragetarget.composes.testing.testcoveragemodel"
@@ -6497,6 +6827,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "testing.targetcoveragesummary.references.testing.coveragerequirement"
     ],
@@ -6525,6 +6856,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "testing.testcoveragetarget.composes.testing.testcasesketch"
     ],
@@ -6547,6 +6879,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["testing.testcasesketch.references.testing.partitionvalue"],
     "replacement_exists": true,
     "p": 0.464,
@@ -6567,6 +6900,7 @@
     "destination": "motivation.requirement",
     "layer": "testing",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["testing.testcasesketch.references.motivation.requirement"],
     "replacement_exists": false,
     "p": 0.447,
@@ -6587,6 +6921,7 @@
     "destination": "testing.inputselection",
     "layer": "testing",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "testing.testcasesketch.accesses.testing.inputpartitionselection",
       "testing.inputselection.references.testing.coveragerequirement"
@@ -6615,6 +6950,7 @@
     "destination": "testing.coverageexclusion",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.references.testing.coverageexclusion"
     ],
@@ -6634,6 +6970,7 @@
     "destination": "testing.coveragesummary",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.flows-to.testing.coveragesummary"
     ],
@@ -6653,6 +6990,7 @@
     "destination": "testing.environmentfactor",
     "layer": "testing",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": [
       "testing.environmentfactor.references.testing.partitionvalue"
     ],
@@ -6672,6 +7010,7 @@
     "destination": "testing.partitionvalue",
     "layer": "testing",
     "kind": "compound",
+    "current_exists": true,
     "replacement": [
       "testing.inputpartitionselection.constrained-by.testing.inputpartitionselection"
     ],
@@ -6695,6 +7034,7 @@
     "destination": "testing.contextvariation",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.references.testing.contextvariation"
     ],
@@ -6714,6 +7054,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.targetinputfield.references.testing.testcoveragetarget"
     ],
@@ -6733,6 +7074,7 @@
     "destination": "testing.testcoveragetarget",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.serves.testing.testcoveragetarget"
     ],
@@ -6752,6 +7094,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.targetcoveragesummary.references.testing.coveragerequirement"
     ],
@@ -6771,6 +7114,7 @@
     "destination": "testing.outcomecategory",
     "layer": "testing",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.references.testing.outcomecategory",
       "testing.testcoveragetarget.references.testing.outcomecategory"
@@ -6799,6 +7143,7 @@
     "destination": "testing.inputspacepartition",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.contextvariation.composes.testing.contextvariation"
     ],
@@ -6821,6 +7166,7 @@
     "destination": "testing.partitionvalue",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.partitiondependency.references.testing.partitionvalue"
     ],
@@ -6844,6 +7190,7 @@
     "destination": "testing.targetinputfield",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.references.testing.targetinputfield"
     ],
@@ -6863,6 +7210,7 @@
     "destination": "testing.testcoveragemodel",
     "layer": "testing",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": [
       "testing.coveragesummary.references.testing.testcoveragemodel"
     ],
@@ -6882,6 +7230,7 @@
     "destination": "testing.coveragesummary",
     "layer": "testing",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "testing.contextvariation.flows-to.testing.contextvariation",
       "testing.contextvariation.flows-to.testing.coveragesummary"
@@ -6910,6 +7259,7 @@
     "destination": "testing.environmentfactor",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.constrained-by.testing.environmentfactor"
     ],
@@ -6929,6 +7279,7 @@
     "destination": "testing.coveragegap",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["testing.coveragerequirement.triggers.testing.coveragegap"],
     "replacement_exists": false,
     "p": 0.329,
@@ -6946,6 +7297,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["testing.testcasesketch.validates.api.operation"],
     "replacement_exists": false,
     "p": 0.323,
@@ -6963,6 +7315,7 @@
     "destination": "testing.inputpartitionselection",
     "layer": "testing",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "testing.coveragerequirement.uses.testing.inputpartitionselection"
     ],
@@ -6982,6 +7335,7 @@
     "destination": "testing.coveragerequirement",
     "layer": "testing",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "testing.partitiondependency.triggers.testing.inputpartitionselection"
     ],
@@ -7001,6 +7355,7 @@
     "destination": "motivation.requirement",
     "layer": "testing",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["testing.testcasesketch.references.motivation.requirement"],
     "replacement_exists": false,
     "p": 0.253,
@@ -7021,6 +7376,7 @@
     "destination": "data-model.objectschema",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.dataconfig.maps-to.data-model.objectschema"],
     "replacement_exists": true,
     "p": 0.895,
@@ -7038,6 +7394,7 @@
     "destination": "ux.librarysubview",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.subview.realizes.ux.librarysubview"],
     "replacement_exists": true,
     "p": 0.859,
@@ -7055,6 +7412,7 @@
     "destination": "ux.statetransition",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.statetransition.uses.ux.transitiontemplate"],
     "replacement_exists": true,
     "p": 0.834,
@@ -7072,6 +7430,7 @@
     "destination": "ux.stateactiontemplate",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.stateaction.realizes.ux.stateactiontemplate"],
     "replacement_exists": false,
     "p": 0.816,
@@ -7089,6 +7448,7 @@
     "destination": "ux.actioncomponent",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.actioncomponent.uses.ux.errorconfig"],
     "replacement_exists": true,
     "p": 0.798,
@@ -7106,6 +7466,7 @@
     "destination": "ux.actioncomponent",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.actioncomponent.triggers.ux.statetransition"],
     "replacement_exists": true,
     "p": 0.781,
@@ -7123,6 +7484,7 @@
     "destination": "ux.statetransition",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.statetransition.triggers.ux.stateaction"],
     "replacement_exists": true,
     "p": 0.765,
@@ -7140,6 +7502,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "ux.componentreference.references.ux.librarycomponent",
       "ux.componentinstance.references.ux.librarycomponent",
@@ -7172,6 +7535,7 @@
     "destination": "ux.layoutconfig",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.view.applies.ux.layoutconfig"],
     "replacement_exists": true,
     "p": 0.752,
@@ -7189,6 +7553,7 @@
     "destination": "ux.statepattern",
     "layer": "ux",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "ux.statepattern.aggregates.ux.statepattern",
       "ux.statepattern.aggregates.ux.experiencestate"
@@ -7214,6 +7579,7 @@
     "destination": "ux.statetransition",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.actioncomponent.triggers.ux.statetransition"],
     "replacement_exists": true,
     "p": 0.707,
@@ -7231,6 +7597,7 @@
     "destination": "api.response",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.errorconfig.references.api.response"],
     "replacement_exists": false,
     "p": 0.699,
@@ -7248,6 +7615,7 @@
     "destination": "ux.stateaction",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.stateaction.specializes.ux.stateactiontemplate"],
     "replacement_exists": true,
     "p": 0.692,
@@ -7269,6 +7637,7 @@
     "destination": "ux.layoutconfig",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.componentinstance.uses.ux.layoutconfig"],
     "replacement_exists": false,
     "p": 0.663,
@@ -7286,6 +7655,7 @@
     "destination": "ux.stateaction",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.statetransition.triggers.ux.stateaction"],
     "replacement_exists": true,
     "p": 0.659,
@@ -7303,6 +7673,7 @@
     "destination": "ux.view",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.experiencestate.governs.ux.view"],
     "replacement_exists": true,
     "p": 0.615,
@@ -7321,6 +7692,7 @@
     "destination": "application.applicationfunction",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": [
       "ux.actioncomponent.triggers.application.applicationfunction"
     ],
@@ -7340,6 +7712,7 @@
     "destination": "ux.layoutconfig",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.layoutconfig.provides.ux.subview"],
     "replacement_exists": true,
     "p": 0.595,
@@ -7357,6 +7730,7 @@
     "destination": "ux.stateaction",
     "layer": "ux",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "ux.stateaction.uses.ux.actionpattern",
       "ux.actioncomponent.uses.ux.actionpattern"
@@ -7382,6 +7756,7 @@
     "destination": "ux.librarysubview",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": false,
     "replacement": ["ux.subview.realizes.ux.librarysubview"],
     "replacement_exists": true,
     "p": 0.575,
@@ -7399,6 +7774,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.uxlibrary.provides.ux.librarycomponent"],
     "replacement_exists": true,
     "p": 0.574,
@@ -7416,6 +7792,7 @@
     "destination": "ux.librarysubview",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.uxlibrary.provides.ux.librarysubview"],
     "replacement_exists": true,
     "p": 0.57,
@@ -7433,6 +7810,7 @@
     "destination": "ux.componentreference",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.componentreference.renders.ux.componentreference"],
     "replacement_exists": true,
     "p": 0.548,
@@ -7453,6 +7831,7 @@
     "destination": "ux.view",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.view.applies.ux.layoutconfig"],
     "replacement_exists": true,
     "p": 0.537,
@@ -7470,6 +7849,7 @@
     "destination": "ux.componentinstance",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.subview.renders.ux.componentinstance"],
     "replacement_exists": true,
     "p": 0.528,
@@ -7487,6 +7867,7 @@
     "destination": "ux.errorconfig",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.errorconfig.governs.ux.errorconfig"],
     "replacement_exists": false,
     "p": 0.527,
@@ -7504,6 +7885,7 @@
     "destination": "ux.componentinstance",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.subview.composes.ux.componentinstance"],
     "replacement_exists": false,
     "p": 0.51,
@@ -7521,6 +7903,7 @@
     "destination": "ux.componentinstance",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.componentinstance.renders.ux.componentinstance"],
     "replacement_exists": true,
     "p": 0.509,
@@ -7538,6 +7921,7 @@
     "destination": "ux.experiencestate",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.statepattern.composes.ux.experiencestate"],
     "replacement_exists": false,
     "p": 0.495,
@@ -7555,6 +7939,7 @@
     "destination": "motivation.outcome",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.view.realizes.motivation.outcome"],
     "replacement_exists": false,
     "p": 0.493,
@@ -7572,6 +7957,7 @@
     "destination": "business.businessprocess",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "navigation.navigationflow.realizes.business.businessprocess"
     ],
@@ -7591,6 +7977,7 @@
     "destination": "ux.componentinstance",
     "layer": "ux",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "ux.componentinstance.aggregates.ux.componentreference",
       "ux.componentreference.aggregates.ux.componentreference"
@@ -7618,6 +8005,7 @@
     "destination": "ux.actioncomponent",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.actioncomponent.renders.ux.componentreference"],
     "replacement_exists": true,
     "p": 0.453,
@@ -7635,6 +8023,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.componentinstance.binds-to.ux.componentinstance"],
     "replacement_exists": false,
     "p": 0.423,
@@ -7655,6 +8044,7 @@
     "destination": "ux.experiencestate",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.statepattern.aggregates.ux.experiencestate"],
     "replacement_exists": true,
     "p": 0.421,
@@ -7672,6 +8062,7 @@
     "destination": "api.schema",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.dataconfig.maps-to.api.response"],
     "replacement_exists": true,
     "p": 0.405,
@@ -7689,6 +8080,7 @@
     "destination": "ux.stateaction",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.statetransition.triggers.ux.stateaction"],
     "replacement_exists": true,
     "p": 0.396,
@@ -7706,6 +8098,7 @@
     "destination": "ux.componentreference",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.componentreference.implements.ux.componentreference"],
     "replacement_exists": false,
     "p": 0.396,
@@ -7726,6 +8119,7 @@
     "destination": "ux.experiencestate",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.statetransition.references.ux.experiencestate"],
     "replacement_exists": false,
     "p": 0.374,
@@ -7743,6 +8137,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.componentreference.composes.ux.componentreference"],
     "replacement_exists": false,
     "p": 0.362,
@@ -7764,6 +8159,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.componentinstance.realizes.ux.librarycomponent"],
     "replacement_exists": true,
     "p": 0.349,
@@ -7791,6 +8187,7 @@
     "destination": "ux.componentreference",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.componentreference.renders.ux.componentreference"],
     "replacement_exists": true,
     "p": 0.347,
@@ -7811,6 +8208,7 @@
     "destination": "ux.actioncomponent",
     "layer": "ux",
     "kind": "reverse",
+    "current_exists": true,
     "replacement": ["ux.actioncomponent.renders.ux.librarycomponent"],
     "replacement_exists": true,
     "p": 0.338,
@@ -7828,6 +8226,7 @@
     "destination": "data-model.arrayschema",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.chartseries.maps-to.data-model.schemaproperty"],
     "replacement_exists": false,
     "p": 0.329,
@@ -7845,6 +8244,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "conflict",
+    "current_exists": true,
     "replacement": [
       "ux.componentinstance.realizes.ux.librarycomponent",
       "ux.librarycomponent.realizes.ux.librarycomponent"
@@ -7870,6 +8270,7 @@
     "destination": "ux.subview",
     "layer": "ux",
     "kind": "remove-duplicate",
+    "current_exists": true,
     "replacement": ["ux.view.composes.ux.subview"],
     "replacement_exists": true,
     "p": 0.326,
@@ -7897,6 +8298,7 @@
     "destination": "application.applicationservice",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.view.uses.application.applicationservice"],
     "replacement_exists": false,
     "p": 0.324,
@@ -7914,6 +8316,7 @@
     "destination": "ux.componentreference",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.componentreference.references.ux.componentreference"],
     "replacement_exists": false,
     "p": 0.322,
@@ -7931,6 +8334,7 @@
     "destination": "business.businessfunction",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": [
       "application.applicationfunction.realizes.business.businessfunction"
     ],
@@ -7950,6 +8354,7 @@
     "destination": "ux.chartseries",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.chartseries.binds-to.ux.componentinstance"],
     "replacement_exists": false,
     "p": 0.291,
@@ -7970,6 +8375,7 @@
     "destination": "ux.librarycomponent",
     "layer": "ux",
     "kind": "compound",
+    "current_exists": true,
     "replacement": ["ux.componentinstance.realizes.ux.librarycomponent"],
     "replacement_exists": true,
     "p": 0.281,
@@ -7990,6 +8396,7 @@
     "destination": "application.applicationservice",
     "layer": "ux",
     "kind": "rename-predicate",
+    "current_exists": true,
     "replacement": ["ux.subview.uses.application.applicationservice"],
     "replacement_exists": false,
     "p": 0.263,
@@ -8007,6 +8414,7 @@
     "destination": "ux.experiencestate",
     "layer": "ux",
     "kind": "retarget",
+    "current_exists": true,
     "replacement": ["ux.dataconfig.uses.ux.experiencestate"],
     "replacement_exists": false,
     "p": 0.217,

@@ -34,6 +34,8 @@ export interface PlannedChange {
   destination: string;
   layer: string;
   kind: "remove-duplicate" | "rename-predicate" | "reverse" | "retarget" | "compound" | "conflict";
+  /** false when the claim names a triple the catalog does not have (the proposer misnamed it); such rows are not changes */
+  current_exists: boolean;
   /** the replacement triple(s) implied, e.g. "application.applicationfunction.realizes.application.applicationservice" */
   replacement: string[];
   replacement_exists: boolean;
@@ -111,7 +113,7 @@ function main() {
   const byTriple = new Map<string, Array<{ r: Reflection; c: ReturnType<typeof oneChange> }>>();
   for (const r of refl) byTriple.set(r.triple, [...(byTriple.get(r.triple) ?? []), { r, c: oneChange(r, existing) }]);
 
-  const plan: PlannedChange[] = [];
+  let plan: PlannedChange[] = [];
   for (const [triple, rows] of byTriple) {
     const [sl, st, pred, dl, dt] = triple.split(".");
     const replacements = [...new Set(rows.map((x) => x.c.replacement[0]))];
@@ -124,6 +126,7 @@ function main() {
       destination: `${dl}.${dt}`,
       layer: sl,
       kind: conflict ? "conflict" : kinds[0],
+      current_exists: existing.has(triple),
       replacement: replacements,
       replacement_exists: replacements.every((x) => existing.has(x)),
       p: conflict ? Math.max(...rows.map((x) => x.c.p)) : Math.min(...rows.map((x) => x.c.p)),
@@ -134,10 +137,11 @@ function main() {
     });
   }
   plan.sort((a, b) => a.layer.localeCompare(b.layer) || b.p - a.p);
-  writeFileSync(path.join(reflDir, `plan-${backend}.json`), JSON.stringify(plan, null, 2) + "\n");
-
   const kinds: PlannedChange["kind"][] = ["remove-duplicate", "rename-predicate", "reverse", "retarget", "compound", "conflict"];
-  const md: string[] = [`# Reflection change plan (${backend})`, "", `${refl.length} reflections with a concrete alternative name ${plan.length} distinct catalog triples${layerFilter ? ` in ${layerFilter}` : ""}.`, ""];
+  const missing = plan.filter((x) => !x.current_exists);
+  const md: string[] = [`# Reflection change plan (${backend})`, "", `${refl.length} reflections with a concrete alternative name ${plan.length} distinct triples${layerFilter ? ` in ${layerFilter}` : ""}; ${missing.length} of them are not in the catalog (the claim misnamed the relationship) and are listed last, not counted below.`, ""];
+  const all = plan;
+  plan = plan.filter((x) => x.current_exists);
   md.push("## Change kinds by probability threshold", "", "| kind | triples | p >= 0.5 | p >= 0.6 | p >= 0.7 | p >= 0.8 | real_defect (reflect) on all claims |", "|---|---|---|---|---|---|---|");
   for (const k of kinds) {
     const rows = plan.filter((x) => x.kind === k);
@@ -170,6 +174,12 @@ function main() {
     for (const x of rows) md.push(`| ${x.kind} | ${x.triple} | ${x.replacement.join(" / ")}${x.replacement_exists ? " (exists)" : ""} | ${x.p.toFixed(2)} | ${[...new Set(x.reflect_validity)].join("/")} | ${x.claim_texts[0].replace(/\|/g, "/").slice(0, 120)} |`);
     md.push("");
   }
+  if (missing.length) {
+    md.push(`## Claims naming triples the catalog does not have (${missing.length})`, "", "| named triple | alternative | claim |", "|---|---|---|");
+    for (const x of missing) md.push(`| ${x.triple} | ${x.replacement.join(" / ")} | ${x.claim_texts[0].replace(/\|/g, "/").slice(0, 120)} |`);
+    md.push("");
+  }
+  writeFileSync(path.join(reflDir, `plan-${backend}.json`), JSON.stringify(all, null, 2) + "\n");
   const out = md.join("\n").replace(/\n+$/, "") + "\n";
   writeFileSync(path.join(reflDir, `plan-${backend}.md`), out);
   console.log(out.slice(0, out.indexOf(`## Changes at p >=`)));
