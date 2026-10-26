@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Storedlogic implements Applicationfunction",
-  "description": "Defines relationship: data-store.storedlogic implements application.applicationfunction",
+  "title": "Needtoknow realizes Policyrule",
+  "description": "Defines relationship: security.needtoknow realizes security.policyrule",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.storedlogic.implements.application.applicationfunction"
+      "const": "security.needtoknow.realizes.security.policyrule"
     },
     "source_spec_node_id": {
-      "const": "data-store.storedlogic"
+      "const": "security.needtoknow"
     },
     "source_layer": {
-      "const": "data-store"
+      "const": "security"
     },
     "destination_spec_node_id": {
-      "const": "application.applicationfunction"
+      "const": "security.policyrule"
     },
     "destination_layer": {
-      "const": "application"
+      "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

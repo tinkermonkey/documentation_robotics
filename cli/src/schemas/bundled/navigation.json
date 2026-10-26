@@ -1243,17 +1243,6 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.navigationguard.implements.security.securitypolicy": {
-      "id": "navigation.navigationguard.implements.security.securitypolicy",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.navigationguard.intercepts.navigation.navigationflow": {
       "id": "navigation.navigationguard.intercepts.navigation.navigationflow",
       "source_spec_node_id": "navigation.navigationguard",
@@ -1282,6 +1271,17 @@
       "source_layer": "navigation",
       "destination_spec_node_id": "motivation.principle",
       "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.realizes.security.securitypolicy": {
+      "id": "navigation.navigationguard.realizes.security.securitypolicy",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",

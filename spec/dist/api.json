@@ -2681,13 +2681,13 @@
       "strength": "medium",
       "required": false
     },
-    "api.ratelimit.implements.security.countermeasure": {
-      "id": "api.ratelimit.implements.security.countermeasure",
+    "api.ratelimit.realizes.security.countermeasure": {
+      "id": "api.ratelimit.realizes.security.countermeasure",
       "source_spec_node_id": "api.ratelimit",
       "source_layer": "api",
       "destination_spec_node_id": "security.countermeasure",
       "destination_layer": "security",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3077,17 +3077,6 @@
       "strength": "high",
       "required": false
     },
-    "api.securityscheme.implements.security.securitypolicy": {
-      "id": "api.securityscheme.implements.security.securitypolicy",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.securityscheme.maps-to.security.actor": {
       "id": "api.securityscheme.maps-to.security.actor",
       "source_spec_node_id": "api.securityscheme",
@@ -3106,6 +3095,17 @@
       "destination_spec_node_id": "data-store.collection",
       "destination_layer": "data-store",
       "predicate": "maps-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.realizes.security.securitypolicy": {
+      "id": "api.securityscheme.realizes.security.securitypolicy",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

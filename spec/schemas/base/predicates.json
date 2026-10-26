@@ -134,7 +134,7 @@
       "predicate": "covers",
       "inverse": "covered-by",
       "category": "testing",
-      "description": "Coverage scope \u2014 test requirement or target covers an element",
+      "description": "Coverage scope — test requirement or target covers an element",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",
@@ -487,19 +487,6 @@
       "category": "dependency",
       "description": "Element depends on or utilizes another element",
       "archimate_alignment": "Serving",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "implements": {
-      "predicate": "implements",
-      "inverse": "implemented-by",
-      "category": "structural",
-      "description": "Element provides concrete implementation of another element",
-      "archimate_alignment": "Realization",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,

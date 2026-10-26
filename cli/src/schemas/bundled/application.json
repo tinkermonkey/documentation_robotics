@@ -706,21 +706,6 @@
         "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
       ]
     },
-    "application.applicationcomponent.implements.security.countermeasure": {
-      "id": "application.applicationcomponent.implements.security.countermeasure",
-      "source_spec_node_id": "application.applicationcomponent",
-      "source_layer": "application",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false,
-      "description": "The component contains the working code of the security control, turning the documented countermeasure into executing behaviour.",
-      "evidence": [
-        "The component's source contains the control logic, such as input sanitization, rate limiting, encryption or token validation, and the countermeasure record points to that module as its implementation."
-      ]
-    },
     "application.applicationcomponent.mitigates.security.threat": {
       "id": "application.applicationcomponent.mitigates.security.threat",
       "source_spec_node_id": "application.applicationcomponent",
@@ -794,6 +779,21 @@
       "description": "The component supplies the concrete implementation that gives the product the stated ability.",
       "evidence": [
         "A capability map or product documentation links the capability to the component, and the component's code implements the behaviour the capability describes."
+      ]
+    },
+    "application.applicationcomponent.realizes.security.countermeasure": {
+      "id": "application.applicationcomponent.realizes.security.countermeasure",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component contains the working code of the security control, turning the documented countermeasure into executing behaviour.",
+      "evidence": [
+        "The component's source contains the control logic, such as input sanitization, rate limiting, encryption or token validation, and the countermeasure record points to that module as its implementation."
       ]
     },
     "application.applicationcomponent.realizes.product.feature": {

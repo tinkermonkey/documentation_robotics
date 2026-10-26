@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Fieldaccesscontrol implements Policyrule",
-  "description": "Defines relationship: security.fieldaccesscontrol implements security.policyrule",
+  "title": "Ratelimit realizes Countermeasure",
+  "description": "Defines relationship: api.ratelimit realizes security.countermeasure",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "security.fieldaccesscontrol.implements.security.policyrule"
+      "const": "api.ratelimit.realizes.security.countermeasure"
     },
     "source_spec_node_id": {
-      "const": "security.fieldaccesscontrol"
+      "const": "api.ratelimit"
     },
     "source_layer": {
-      "const": "security"
+      "const": "api"
     },
     "destination_spec_node_id": {
-      "const": "security.policyrule"
+      "const": "security.countermeasure"
     },
     "destination_layer": {
       "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

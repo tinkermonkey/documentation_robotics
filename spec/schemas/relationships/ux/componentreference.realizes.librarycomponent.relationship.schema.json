@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Countermeasure implements Securitypolicy",
-  "description": "Defines relationship: security.countermeasure implements security.securitypolicy",
+  "title": "Componentreference Implements Librarycomponent",
+  "description": "Defines relationship: ux.componentreference realizes ux.librarycomponent",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "security.countermeasure.implements.security.securitypolicy"
+      "const": "ux.componentreference.realizes.ux.librarycomponent"
     },
     "source_spec_node_id": {
-      "const": "security.countermeasure"
+      "const": "ux.componentreference"
     },
     "source_layer": {
-      "const": "security"
+      "const": "ux"
     },
     "destination_spec_node_id": {
-      "const": "security.securitypolicy"
+      "const": "ux.librarycomponent"
     },
     "destination_layer": {
-      "const": "security"
+      "const": "ux"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

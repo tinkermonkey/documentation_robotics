@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Applicationcomponent implements Countermeasure",
+  "title": "Applicationcomponent realizes Countermeasure",
   "description": "The component contains the working code of the security control, turning the documented countermeasure into executing behaviour.",
   "allOf": [
     {
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.applicationcomponent.implements.security.countermeasure"
+      "const": "application.applicationcomponent.realizes.security.countermeasure"
     },
     "source_spec_node_id": {
       "const": "application.applicationcomponent"
@@ -24,7 +24,7 @@
       "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

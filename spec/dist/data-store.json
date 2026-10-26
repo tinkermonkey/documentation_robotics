@@ -1053,17 +1053,6 @@
       "strength": "medium",
       "required": false
     },
-    "data-store.collection.implements.security.secureresource": {
-      "id": "data-store.collection.implements.security.secureresource",
-      "source_spec_node_id": "data-store.collection",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "security.secureresource",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "data-store.collection.maps-to.api.requestbody": {
       "id": "data-store.collection.maps-to.api.requestbody",
       "source_spec_node_id": "data-store.collection",
@@ -1092,6 +1081,17 @@
       "source_layer": "data-store",
       "destination_spec_node_id": "api.schema",
       "destination_layer": "api",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.realizes.security.secureresource": {
+      "id": "data-store.collection.realizes.security.secureresource",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -1790,17 +1790,6 @@
       "strength": "medium",
       "required": false
     },
-    "data-store.storedlogic.implements.application.applicationfunction": {
-      "id": "data-store.storedlogic.implements.application.applicationfunction",
-      "source_spec_node_id": "data-store.storedlogic",
-      "source_layer": "data-store",
-      "destination_spec_node_id": "application.applicationfunction",
-      "destination_layer": "application",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "data-store.storedlogic.migrates.data-store.collection": {
       "id": "data-store.storedlogic.migrates.data-store.collection",
       "source_spec_node_id": "data-store.storedlogic",
@@ -1808,6 +1797,17 @@
       "destination_spec_node_id": "data-store.collection",
       "destination_layer": "data-store",
       "predicate": "migrates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.storedlogic.realizes.application.applicationfunction": {
+      "id": "data-store.storedlogic.realizes.application.applicationfunction",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

@@ -1106,28 +1106,6 @@
       "strength": "medium",
       "required": false
     },
-    "technology.systemsoftware.implements.security.countermeasure": {
-      "id": "technology.systemsoftware.implements.security.countermeasure",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "technology.systemsoftware.implements.motivation.principle": {
-      "id": "technology.systemsoftware.implements.motivation.principle",
-      "source_spec_node_id": "technology.systemsoftware",
-      "source_layer": "technology",
-      "destination_spec_node_id": "motivation.principle",
-      "destination_layer": "motivation",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "technology.systemsoftware.mitigates.security.threat": {
       "id": "technology.systemsoftware.mitigates.security.threat",
       "source_spec_node_id": "technology.systemsoftware",
@@ -1172,11 +1150,33 @@
       "strength": "medium",
       "required": false
     },
+    "technology.systemsoftware.realizes.security.countermeasure": {
+      "id": "technology.systemsoftware.realizes.security.countermeasure",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "technology.systemsoftware.realizes.motivation.goal": {
       "id": "technology.systemsoftware.realizes.motivation.goal",
       "source_spec_node_id": "technology.systemsoftware",
       "source_layer": "technology",
       "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.realizes.motivation.principle": {
+      "id": "technology.systemsoftware.realizes.motivation.principle",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.principle",
       "destination_layer": "motivation",
       "predicate": "realizes",
       "cardinality": "many-to-many",
@@ -1491,13 +1491,13 @@
       "strength": "medium",
       "required": false
     },
-    "technology.technologyfunction.implements.security.countermeasure": {
-      "id": "technology.technologyfunction.implements.security.countermeasure",
+    "technology.technologyfunction.realizes.security.countermeasure": {
+      "id": "technology.technologyfunction.realizes.security.countermeasure",
       "source_spec_node_id": "technology.technologyfunction",
       "source_layer": "technology",
       "destination_spec_node_id": "security.countermeasure",
       "destination_layer": "security",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

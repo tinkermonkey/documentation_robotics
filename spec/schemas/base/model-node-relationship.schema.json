@@ -47,7 +47,7 @@
     "predicate": {
       "type": "string",
       "description": "The semantic predicate describing this relationship (e.g., 'supports', 'realizes'). Must be a valid predicate from PredicateCatalog.",
-      "examples": ["supports", "realizes", "fulfills", "implements", "uses"]
+      "examples": ["supports", "realizes", "fulfills", "uses"]
     },
     "attributes": {
       "type": "object",

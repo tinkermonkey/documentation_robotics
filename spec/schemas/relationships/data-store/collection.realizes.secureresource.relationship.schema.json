@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Securityscheme implements Securitypolicy",
-  "description": "Defines relationship: api.securityscheme implements security.securitypolicy",
+  "title": "Collection realizes Secureresource",
+  "description": "Defines relationship: data-store.collection realizes security.secureresource",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "api.securityscheme.implements.security.securitypolicy"
+      "const": "data-store.collection.realizes.security.secureresource"
     },
     "source_spec_node_id": {
-      "const": "api.securityscheme"
+      "const": "data-store.collection"
     },
     "source_layer": {
-      "const": "api"
+      "const": "data-store"
     },
     "destination_spec_node_id": {
-      "const": "security.securitypolicy"
+      "const": "security.secureresource"
     },
     "destination_layer": {
       "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -1542,17 +1542,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.actioncomponent.implements.ux.actionpattern": {
-      "id": "ux.actioncomponent.implements.ux.actionpattern",
-      "source_spec_node_id": "ux.actioncomponent",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.actionpattern",
-      "destination_layer": "ux",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.actioncomponent.navigates-to.ux.view": {
       "id": "ux.actioncomponent.navigates-to.ux.view",
       "source_spec_node_id": "ux.actioncomponent",
@@ -1560,6 +1549,17 @@
       "destination_spec_node_id": "ux.view",
       "destination_layer": "ux",
       "predicate": "navigates-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.realizes.ux.actionpattern": {
+      "id": "ux.actioncomponent.realizes.ux.actionpattern",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1916,17 +1916,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.componentinstance.implements.ux.librarycomponent": {
-      "id": "ux.componentinstance.implements.ux.librarycomponent",
-      "source_spec_node_id": "ux.componentinstance",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.librarycomponent",
-      "destination_layer": "ux",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.componentinstance.maps-to.data-model.objectschema": {
       "id": "ux.componentinstance.maps-to.data-model.objectschema",
       "source_spec_node_id": "ux.componentinstance",
@@ -2026,13 +2015,13 @@
       "strength": "medium",
       "required": false
     },
-    "ux.componentreference.implements.ux.librarycomponent": {
-      "id": "ux.componentreference.implements.ux.librarycomponent",
+    "ux.componentreference.realizes.ux.librarycomponent": {
+      "id": "ux.componentreference.realizes.ux.librarycomponent",
       "source_spec_node_id": "ux.componentreference",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.librarycomponent",
       "destination_layer": "ux",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2730,17 +2719,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.stateactiontemplate.implements.ux.stateaction": {
-      "id": "ux.stateactiontemplate.implements.ux.stateaction",
-      "source_spec_node_id": "ux.stateactiontemplate",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.stateaction",
-      "destination_layer": "ux",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.stateactiontemplate.provides.ux.stateaction": {
       "id": "ux.stateactiontemplate.provides.ux.stateaction",
       "source_spec_node_id": "ux.stateactiontemplate",
@@ -2748,6 +2726,17 @@
       "destination_spec_node_id": "ux.stateaction",
       "destination_layer": "ux",
       "predicate": "provides",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateactiontemplate.realizes.ux.stateaction": {
+      "id": "ux.stateactiontemplate.realizes.ux.stateaction",
+      "source_spec_node_id": "ux.stateactiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

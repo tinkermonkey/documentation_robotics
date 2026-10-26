@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Needtoknow implements Policyrule",
-  "description": "Defines relationship: security.needtoknow implements security.policyrule",
+  "title": "Navigationguard realizes Securitypolicy",
+  "description": "Defines relationship: navigation.navigationguard realizes security.securitypolicy",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "security.needtoknow.implements.security.policyrule"
+      "const": "navigation.navigationguard.realizes.security.securitypolicy"
     },
     "source_spec_node_id": {
-      "const": "security.needtoknow"
+      "const": "navigation.navigationguard"
     },
     "source_layer": {
-      "const": "security"
+      "const": "navigation"
     },
     "destination_spec_node_id": {
-      "const": "security.policyrule"
+      "const": "security.securitypolicy"
     },
     "destination_layer": {
       "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

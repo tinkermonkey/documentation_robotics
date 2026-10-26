@@ -69,6 +69,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Breaking Changes
 
+- **BREAKING: `implements` predicate retired in favour of `realizes`.** The two predicates had the same
+  meaning ("provides concrete implementation of" versus "implements or makes concrete") and the same
+  ArchiMate alignment (Realization), violating the charter's one-meaning-one-predicate rule. The 18
+  relationship schemas that used `implements` are now `realizes` (17 renamed; `ux.componentinstance
+  implements ux.librarycomponent` deleted because the `realizes` schema already existed), and
+  `implements` is removed from `spec/schemas/base/predicates.json` (72 to 71 predicates, 1,611 to
+  1,610 relationship schemas). Models that recorded `implements` relationships need a migration that
+  rewrites the predicate to `realizes`.
+
 - **BREAKING: `objectschema.required` Type Change** — The `required` field on `data-model.objectschema` nodes changed from `{"type": "string"}` to `{"type": "array", "items": {"type": "string"}}` in `spec/schemas/nodes/data-model/objectschema.node.schema.json`:
   - **Rationale**: JSON Schema Draft 7 standard specifies `required` as an array of property names. The string format was non-standard and prevented accurate schema validation.
   - **Impact**: Existing `objectschema` elements with string-typed `required` values will fail schema validation after upgrade.

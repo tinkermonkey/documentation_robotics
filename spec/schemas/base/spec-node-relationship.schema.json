@@ -45,14 +45,7 @@
     "predicate": {
       "type": "string",
       "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
-      "examples": [
-        "supports",
-        "realizes",
-        "fulfills",
-        "implements",
-        "uses",
-        "consumes"
-      ]
+      "examples": ["supports", "realizes", "fulfills", "uses", "consumes"]
     },
     "cardinality": {
       "type": "string",

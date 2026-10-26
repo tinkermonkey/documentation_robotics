@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Collection implements Secureresource",
-  "description": "Defines relationship: data-store.collection implements security.secureresource",
+  "title": "Technologyfunction realizes Countermeasure",
+  "description": "Defines relationship: technology.technologyfunction realizes security.countermeasure",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.collection.implements.security.secureresource"
+      "const": "technology.technologyfunction.realizes.security.countermeasure"
     },
     "source_spec_node_id": {
-      "const": "data-store.collection"
+      "const": "technology.technologyfunction"
     },
     "source_layer": {
-      "const": "data-store"
+      "const": "technology"
     },
     "destination_spec_node_id": {
-      "const": "security.secureresource"
+      "const": "security.countermeasure"
     },
     "destination_layer": {
       "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

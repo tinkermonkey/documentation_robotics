@@ -132,14 +132,7 @@
         "predicate": {
           "type": "string",
           "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
-          "examples": [
-            "supports",
-            "realizes",
-            "fulfills",
-            "implements",
-            "uses",
-            "consumes"
-          ]
+          "examples": ["supports", "realizes", "fulfills", "uses", "consumes"]
         },
         "cardinality": {
           "type": "string",
@@ -361,7 +354,7 @@
         "predicate": {
           "type": "string",
           "description": "The semantic predicate describing this relationship (e.g., 'supports', 'realizes'). Must be a valid predicate from PredicateCatalog.",
-          "examples": ["supports", "realizes", "fulfills", "implements", "uses"]
+          "examples": ["supports", "realizes", "fulfills", "uses"]
         },
         "attributes": {
           "type": "object",
@@ -580,7 +573,6 @@
         "governed-by",
         "governed-by-principles",
         "governs",
-        "implements",
         "influence",
         "intercepts",
         "lazy-loads",
@@ -1197,19 +1189,6 @@
       "category": "dependency",
       "description": "Element depends on or utilizes another element",
       "archimate_alignment": "Serving",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "implements": {
-      "predicate": "implements",
-      "inverse": "implemented-by",
-      "category": "structural",
-      "description": "Element provides concrete implementation of another element",
-      "archimate_alignment": "Realization",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,

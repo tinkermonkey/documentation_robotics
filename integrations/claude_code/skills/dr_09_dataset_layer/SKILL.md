@@ -148,7 +148,7 @@ Cross-layer links are created via `dr relate`, not inline YAML attributes. Key r
 | `collection.realizes.api.schema`                     | Users collection → API response schema        |
 | `collection.maps-to.api.requestbody`                 | Orders collection → POST /orders body         |
 | `collection.serves.api.operation`                    | Products collection → GET /products operation |
-| `collection.implements.security.secureresource`      | PII collection → SecureResource policy        |
+| `collection.realizes.security.secureresource`        | PII collection → SecureResource policy        |
 | `collection.satisfies.security.dataclassification`   | Payments collection → PCI data class          |
 | `field.satisfies.security.dataclassification`        | email field → PII data classification         |
 | `field.requires.security.fieldaccesscontrol`         | SSN field → FieldAccessControl rule           |

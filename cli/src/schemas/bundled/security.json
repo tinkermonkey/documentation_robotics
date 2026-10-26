@@ -1922,17 +1922,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.countermeasure.implements.security.securitypolicy": {
-      "id": "security.countermeasure.implements.security.securitypolicy",
-      "source_spec_node_id": "security.countermeasure",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.countermeasure.mitigates.security.threat": {
       "id": "security.countermeasure.mitigates.security.threat",
       "source_spec_node_id": "security.countermeasure",
@@ -1983,6 +1972,17 @@
       "source_layer": "security",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.realizes.security.securitypolicy": {
+      "id": "security.countermeasure.realizes.security.securitypolicy",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -2197,17 +2197,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.fieldaccesscontrol.implements.security.policyrule": {
-      "id": "security.fieldaccesscontrol.implements.security.policyrule",
-      "source_spec_node_id": "security.fieldaccesscontrol",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.fieldaccesscontrol.protects.security.secureresource": {
       "id": "security.fieldaccesscontrol.protects.security.secureresource",
       "source_spec_node_id": "security.fieldaccesscontrol",
@@ -2215,6 +2204,17 @@
       "destination_spec_node_id": "security.secureresource",
       "destination_layer": "security",
       "predicate": "protects",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.realizes.security.policyrule": {
+      "id": "security.fieldaccesscontrol.realizes.security.policyrule",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2318,13 +2318,13 @@
       "strength": "medium",
       "required": false
     },
-    "security.informationright.implements.security.permission": {
-      "id": "security.informationright.implements.security.permission",
+    "security.informationright.realizes.security.permission": {
+      "id": "security.informationright.realizes.security.permission",
       "source_spec_node_id": "security.informationright",
       "source_layer": "security",
       "destination_spec_node_id": "security.permission",
       "destination_layer": "security",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2362,17 +2362,6 @@
       "strength": "medium",
       "required": false
     },
-    "security.needtoknow.implements.security.policyrule": {
-      "id": "security.needtoknow.implements.security.policyrule",
-      "source_spec_node_id": "security.needtoknow",
-      "source_layer": "security",
-      "destination_spec_node_id": "security.policyrule",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "security.needtoknow.protects.security.informationentity": {
       "id": "security.needtoknow.protects.security.informationentity",
       "source_spec_node_id": "security.needtoknow",
@@ -2380,6 +2369,17 @@
       "destination_spec_node_id": "security.informationentity",
       "destination_layer": "security",
       "predicate": "protects",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.needtoknow.realizes.security.policyrule": {
+      "id": "security.needtoknow.realizes.security.policyrule",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2912,13 +2912,13 @@
       "strength": "medium",
       "required": false
     },
-    "security.securityconstraints.implements.motivation.constraint": {
-      "id": "security.securityconstraints.implements.motivation.constraint",
+    "security.securityconstraints.realizes.motivation.constraint": {
+      "id": "security.securityconstraints.realizes.motivation.constraint",
       "source_spec_node_id": "security.securityconstraints",
       "source_layer": "security",
       "destination_spec_node_id": "motivation.constraint",
       "destination_layer": "motivation",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

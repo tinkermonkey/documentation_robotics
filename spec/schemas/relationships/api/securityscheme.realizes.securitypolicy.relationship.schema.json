@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Stateactiontemplate Implements Stateaction",
-  "description": "Defines relationship: ux.stateactiontemplate implements ux.stateaction",
+  "title": "Securityscheme realizes Securitypolicy",
+  "description": "Defines relationship: api.securityscheme realizes security.securitypolicy",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "ux.stateactiontemplate.implements.ux.stateaction"
+      "const": "api.securityscheme.realizes.security.securitypolicy"
     },
     "source_spec_node_id": {
-      "const": "ux.stateactiontemplate"
+      "const": "api.securityscheme"
     },
     "source_layer": {
-      "const": "ux"
+      "const": "api"
     },
     "destination_spec_node_id": {
-      "const": "ux.stateaction"
+      "const": "security.securitypolicy"
     },
     "destination_layer": {
-      "const": "ux"
+      "const": "security"
     },
     "predicate": {
-      "const": "implements"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"
