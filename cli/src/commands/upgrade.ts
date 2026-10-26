@@ -19,11 +19,16 @@ import {
 } from "../utils/spec-version.js";
 import { MigrationRegistry } from "../core/migration-registry.js";
 import {
+  upgradeModel,
+  type ChangesetRebaselineResult,
+  type ChangesetRef,
+} from "../core/model-upgrade.js";
+import {
   summarizeRelationshipChanges,
   type RelationshipRewriteChange,
+  type StagedRelationshipRewriteChange,
 } from "../core/relationship-migration.js";
 import { installSpecReference } from "../utils/spec-installer.js";
-import { Model } from "../core/model.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -583,13 +588,20 @@ async function executeModelMigration(
       console.log(
         ansis.dim(`Bumping model spec version from v${action.fromVersion} to v${action.toVersion}...`)
       );
-      const model = await Model.load(process.cwd(), { lazyLoad: true });
-      model.manifest.specVersion = action.toVersion;
-      await model.saveManifest();
+      const result = await upgradeModel(process.cwd(), {
+        fromVersion: action.fromVersion!,
+        toVersion: action.toVersion,
+        versionBumpOnly: true,
+      });
       console.log(ansis.green(`✓ Model spec version updated to v${action.toVersion}`));
+      printChangesetRebaseline(result.changesets);
 
       if (operationSpan) {
         operationSpan.setAttribute("upgrade.model.result", "version_bumped");
+        operationSpan.setAttribute(
+          "upgrade.model.changesets_rebaselined",
+          result.changesets.rebaselined.length
+        );
       }
       return;
     }
@@ -598,36 +610,34 @@ async function executeModelMigration(
       ansis.dim(`Migrating model from v${action.fromVersion} to v${action.toVersion}...`)
     );
 
-    // Load the model
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
-
-    // Apply migrations
-    const registry = new MigrationRegistry();
-    const result = await registry.applyMigrations(model, {
+    // Apply migrations, save the model and re-baseline staged changesets on it
+    const result = await upgradeModel(process.cwd(), {
       fromVersion: action.fromVersion!,
       toVersion: action.toVersion,
-      dryRun: false,
       validate: !options.force,
     });
+    const applied = result.migration?.applied ?? [];
 
     // Display migration results
-    for (const applied of result.applied) {
-      console.log(ansis.green(`  ✓ ${applied.from} → ${applied.to}: ${applied.description}`));
-      if (applied.changes?.filesModified) {
-        console.log(ansis.dim(`    Files modified: ${applied.changes.filesModified}`));
+    for (const migration of applied) {
+      console.log(ansis.green(`  ✓ ${migration.from} → ${migration.to}: ${migration.description}`));
+      if (migration.changes?.filesModified) {
+        console.log(ansis.dim(`    Files modified: ${migration.changes.filesModified}`));
       }
-      printRelationshipChanges(applied.changes?.details?.relationshipChanges);
+      printRelationshipChanges(migration.changes?.details?.relationshipChanges);
+      printStagedRelationshipChanges(migration.changes?.details?.stagedRelationshipChanges);
     }
 
-    // Save changes
-    await model.saveManifest();
-    await model.saveDirtyLayers();
-
     console.log(ansis.green(`✓ Model migrated to v${action.toVersion}`));
+    printChangesetRebaseline(result.changesets);
 
     if (operationSpan) {
       operationSpan.setAttribute("upgrade.model.result", "migrated");
-      operationSpan.setAttribute("upgrade.model.migrations_applied", result.applied.length);
+      operationSpan.setAttribute("upgrade.model.migrations_applied", applied.length);
+      operationSpan.setAttribute(
+        "upgrade.model.changesets_rebaselined",
+        result.changesets.rebaselined.length
+      );
     }
   } catch (error) {
     if (operationSpan) {
@@ -655,18 +665,99 @@ function printRelationshipChanges(changes: unknown): void {
     return;
   }
   const relationshipChanges = changes as RelationshipRewriteChange[];
-  const format = (rel: { source: string; predicate: string; target: string }) =>
-    `${rel.source} --[${rel.predicate}]--> ${rel.target}`;
 
   console.log(ansis.dim(`    ${summarizeRelationshipChanges(relationshipChanges)}`));
   for (const change of relationshipChanges) {
     if (change.action === "dropped-duplicate" && change.after) {
       console.log(
-        ansis.dim(`      dropped ${format(change.before)} (now the same as ${format(change.after)})`)
+        ansis.dim(
+          `      dropped ${formatRelationship(change.before)} (now the same as ${formatRelationship(change.after)})`
+        )
       );
     } else if (change.action === "dropped") {
-      console.log(ansis.dim(`      dropped ${format(change.before)} (no replacement in the catalog)`));
+      console.log(
+        ansis.dim(`      dropped ${formatRelationship(change.before)} (no replacement in the catalog)`)
+      );
     }
+  }
+}
+
+/**
+ * Report staged changeset changes a catalog migration rewrote, per changeset, listing each one
+ * it removed from its changeset
+ */
+function printStagedRelationshipChanges(changes: unknown): void {
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return;
+  }
+  const byChangeset = new Map<string, StagedRelationshipRewriteChange[]>();
+  for (const change of changes as StagedRelationshipRewriteChange[]) {
+    byChangeset.set(change.changeset, [...(byChangeset.get(change.changeset) ?? []), change]);
+  }
+
+  for (const [changeset, staged] of byChangeset) {
+    console.log(
+      ansis.dim(`    ${summarizeRelationshipChanges(staged, `changeset ${changeset}, staged relationships`)}`)
+    );
+    for (const change of staged) {
+      if (change.action === "rewritten") {
+        continue;
+      }
+      const kind = change.stagedAs === "relationship-add" ? "add" : "delete";
+      console.log(
+        ansis.dim(
+          `      dropped staged ${kind} of ${formatRelationship(change.before)} (${stagedDropReason(change)})`
+        )
+      );
+    }
+  }
+}
+
+function stagedDropReason(change: StagedRelationshipRewriteChange): string {
+  if (change.action === "dropped" || !change.after) {
+    return "no replacement in the catalog";
+  }
+  const sameAs = `now the same as ${formatRelationship(change.after)}`;
+  switch (change.duplicateOf) {
+    case "model":
+      return `${sameAs}, already in the model`;
+    case "kept":
+      return `${sameAs}, which also stands for a relationship the changeset keeps`;
+    default:
+      return change.stagedAs === "relationship-add"
+        ? `${sameAs}, which the changeset already adds`
+        : `${sameAs}, which the changeset already deletes`;
+  }
+}
+
+function formatRelationship(rel: { source: string; predicate: string; target: string }): string {
+  return `${rel.source} --[${rel.predicate}]--> ${rel.target}`;
+}
+
+/**
+ * Report the staged changesets re-baselined on the upgraded model, and those left on their old
+ * base snapshot because they had drifted before the upgrade
+ */
+function printChangesetRebaseline(result: ChangesetRebaselineResult): void {
+  const names = (refs: ChangesetRef[]) => refs.map((ref) => ref.name).join(", ");
+  const count = (n: number) => `${n} staged changeset${n === 1 ? "" : "s"}`;
+
+  if (result.rebaselined.length > 0) {
+    console.log(
+      ansis.green(
+        `✓ Re-baselined ${count(result.rebaselined.length)} on the upgraded model: ${names(result.rebaselined)}`
+      )
+    );
+  }
+  if (result.drifted.length > 0) {
+    console.log(
+      ansis.yellow(
+        `⚠ ${count(result.drifted.length)} had drifted from the model before the upgrade and still ${result.drifted.length === 1 ? "needs" : "need"} --force to commit: ${names(result.drifted)}`
+      )
+    );
+  }
+  for (const error of result.errors) {
+    console.log(ansis.yellow(`⚠ ${error}`));
   }
 }
 

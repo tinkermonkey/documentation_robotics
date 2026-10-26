@@ -5,11 +5,17 @@ import { join } from "path";
 import YAML from "yaml";
 import { MigrationRegistry } from "../../../src/core/migration-registry.js";
 import { Model } from "../../../src/core/model.js";
+import { upgradeModel } from "../../../src/core/model-upgrade.js";
 import type { Relationship } from "../../../src/core/relationships.js";
+import type { Change } from "../../../src/core/changeset.js";
+import { StagingAreaManager } from "../../../src/core/staging-area.js";
+import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import {
   rewriteRelationships,
+  rewriteStagedChangeset,
   type ElementResolver,
-  type RelationshipRewriteTable
+  type RelationshipRewriteTable,
+  type StagedRelationshipRewriteChange
 } from "../../../src/core/relationship-migration.js";
 import { RELATIONSHIP_REWRITE_TABLE } from "../../../src/core/relationship-migration-table.js";
 import { RelationshipValidator } from "../../../src/validators/relationship-schema-validator.js";
@@ -143,6 +149,10 @@ async function writeModel(root: string): Promise<void> {
       version: "1.0.0",
       schema: "documentation-robotics-v1",
       spec_version: "0.9.0",
+      // Model.load stamps the current time on a manifest without these, which changes the
+      // model's snapshot (and so a staged changeset's drift check) on every load
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
       project: { name: "relationship-migration-test", version: "1.0.0" }
     })
   );
@@ -272,6 +282,321 @@ describe("relationship catalog migration (0.9.0 -> 0.10.0)", () => {
       expect(again.applied[0].changes?.filesModified).toBe(0);
       expect(await readFile(path, "utf-8")).toBe(once);
     }));
+});
+
+/** A staged add of an element that exists only in the changeset, shaped like Element.toJSON() */
+const elementAdd = (
+  uuid: string,
+  path: string,
+  attributes?: Record<string, unknown>
+): Omit<Change, "timestamp"> => {
+  const [layerId, type, name] = path.split(".");
+  return {
+    type: "add",
+    elementId: path,
+    layerName: layerId,
+    after: {
+      id: uuid,
+      path,
+      spec_node_id: `${layerId}.${type}`,
+      type,
+      layer_id: layerId,
+      name,
+      ...(attributes && { attributes })
+    }
+  };
+};
+
+const relationshipKey = (r: { source: string; predicate: string; target: string }) =>
+  `${r.source}::${r.predicate}::${r.target}`;
+
+const relationshipAdd = (r: Relationship): Omit<Change, "timestamp"> => ({
+  type: "relationship-add",
+  elementId: relationshipKey(r),
+  layerName: r.layer,
+  after: { ...r }
+});
+
+const relationshipDelete = (r: Relationship): Omit<Change, "timestamp"> => ({
+  type: "relationship-delete",
+  elementId: relationshipKey(r),
+  layerName: r.layer,
+  before: { ...r }
+});
+
+/** Stage changes in a new changeset on the 0.9.0 model at root, the way the CLI records them */
+async function stageChangeset(
+  root: string,
+  changes: Array<Omit<Change, "timestamp">>
+): Promise<string> {
+  const model = await Model.load(root, { lazyLoad: false });
+  const staging = new StagingAreaManager(root, model);
+  const changeset = await staging.create("staged under 0.9.0");
+  await staging.setActive(changeset.id);
+  for (const change of changes) {
+    await staging.stage(changeset.id, change);
+  }
+  return changeset.id;
+}
+
+/** Run the 0.9.0 -> 0.10.0 upgrade of the model data the way `dr upgrade` does */
+async function upgrade(root: string): Promise<StagedRelationshipRewriteChange[]> {
+  const { migration } = await upgradeModel(root, { fromVersion: "0.9.0", toVersion: "0.10.0" });
+  const changes = migration!.applied[0].changes;
+  expect(changes?.error).toBeUndefined();
+  return changes?.details?.stagedRelationshipChanges as StagedRelationshipRewriteChange[];
+}
+
+/** Commit a changeset after the upgrade, without --force, and reload the model from disk */
+async function commit(root: string, changesetId: string): Promise<Model> {
+  const model = await Model.load(root, { lazyLoad: false });
+  await new StagingAreaManager(root, model).commit(model, changesetId);
+  return Model.load(root, { lazyLoad: false });
+}
+
+describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)", () => {
+  it("rewrites staged relationship adds so the committed changeset validates", () =>
+    withModel(async (root) => {
+      const gateway = "technology.systemsoftware.api-gateway";
+      const body = "api.requestbody.update-order-body";
+      const changesetId = await stageChangeset(root, [
+        elementAdd("00000000-0000-4000-8000-000000000051", gateway, { softwareType: "middleware" }),
+        elementAdd("00000000-0000-4000-8000-000000000052", body),
+        // implements is retired: becomes realizes on the same pair
+        relationshipAdd(
+          rel(gateway, "implements", "security.countermeasure.rate-limiting", "technology", "security")
+        ),
+        // retired direction, from an element only the changeset adds: ends swap
+        relationshipAdd(rel(body, "serves", "api.operation.create-order", "api"))
+      ]);
+
+      // The staged relationships fail validation against the 0.10.0 catalog before the upgrade
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+      const before = await Model.load(root, { lazyLoad: false });
+      const beforeErrors = (await validator.validateModel(before)).errors.map((e) => e.message);
+      expect(beforeErrors.filter((m) => m.includes(gateway) || m.includes(body))).toHaveLength(2);
+
+      const report = await upgrade(root);
+      expect(report).toMatchObject([
+        {
+          changeset: changesetId,
+          stagedAs: "relationship-add",
+          action: "rewritten",
+          before: { source: gateway, predicate: "implements", target: "security.countermeasure.rate-limiting" },
+          after: { source: gateway, predicate: "realizes", target: "security.countermeasure.rate-limiting" },
+          rules: [
+            "technology.systemsoftware.implements.security.countermeasure -> technology.systemsoftware.realizes.security.countermeasure"
+          ]
+        },
+        {
+          changeset: changesetId,
+          stagedAs: "relationship-add",
+          action: "rewritten",
+          after: { source: "api.operation.create-order", predicate: "aggregates", target: body },
+          rules: ["api.requestbody.serves.api.operation -> api.operation.aggregates.api.requestbody"]
+        }
+      ]);
+
+      // The changeset on disk carries the rewritten relationships under matching keys
+      const staged = await new StagedChangesetStorage(root).load(changesetId);
+      expect(
+        staged!.changes.map((c) => ({ type: c.type, elementId: c.elementId, layerName: c.layerName }))
+      ).toEqual([
+        { type: "add", elementId: gateway, layerName: "technology" },
+        { type: "add", elementId: body, layerName: "api" },
+        {
+          type: "relationship-add",
+          elementId: `${gateway}::realizes::security.countermeasure.rate-limiting`,
+          layerName: "technology"
+        },
+        {
+          type: "relationship-add",
+          elementId: `api.operation.create-order::aggregates::${body}`,
+          layerName: "api"
+        }
+      ]);
+      expect(staged!.changes[2].after).toMatchObject({ layer: "technology", targetLayer: "security" });
+
+      const after = await commit(root, changesetId);
+      expect((await validator.validateModel(after)).errors).toEqual([]);
+      const migrated = triples(after.relationships.getAll());
+      expect(migrated).toContain(`${gateway} realizes security.countermeasure.rate-limiting`);
+      expect(migrated).toContain(`api.operation.create-order aggregates ${body}`);
+      expect(migrated.filter((t) => t.includes("implements") || t.includes(" serves api."))).toEqual([]);
+    }));
+
+  it("drops staged adds that become duplicates and re-targets staged deletes", () =>
+    withModel(async (root) => {
+      const committed = [
+        rel(
+          "application.applicationcomponent.order-service",
+          "composes",
+          "application.applicationfunction.price-order",
+          "application"
+        ),
+        rel(
+          "application.applicationprocess.place-order",
+          "depends-on",
+          "application.dataobject.order",
+          "application"
+        ),
+        // Both become stateaction realizes stateactiontemplate
+        rel("ux.stateaction.submit-order", "specializes", "ux.stateactiontemplate.submit", "ux"),
+        rel("ux.stateactiontemplate.submit", "provides", "ux.stateaction.submit-order", "ux")
+      ];
+      await writeFile(
+        join(root, "documentation-robotics", "model", "relationships.yaml"),
+        `# Intra-layer relationships\n\n${YAML.stringify(committed)}`
+      );
+
+      const flow = "api.oauthflow.auth-code";
+      const changesetId = await stageChangeset(root, [
+        // becomes composes, which the model already has
+        relationshipAdd(
+          rel(
+            "application.applicationcomponent.order-service",
+            "assigned-to",
+            "application.applicationfunction.price-order",
+            "application"
+          )
+        ),
+        elementAdd("00000000-0000-4000-8000-000000000053", flow, { scopes: { "orders:write": "Place orders" } }),
+        // two retired relationships that both become oauthflows composes oauthflow
+        relationshipAdd(rel(flow, "associated-with", "api.oauthflows.oauth-flows", "api")),
+        relationshipAdd(rel("api.oauthflows.oauth-flows", "aggregates", flow, "api")),
+        // the committed relationship it deletes becomes accesses
+        relationshipDelete(committed[1]),
+        // the provides twin the changeset keeps becomes the same relationship
+        relationshipDelete(committed[2])
+      ]);
+
+      const report = await upgrade(root);
+      expect(
+        report.map(({ stagedAs, action, duplicateOf }) => ({ stagedAs, action, duplicateOf }))
+      ).toEqual([
+        { stagedAs: "relationship-add", action: "dropped-duplicate", duplicateOf: "model" },
+        { stagedAs: "relationship-add", action: "rewritten", duplicateOf: undefined },
+        { stagedAs: "relationship-add", action: "dropped-duplicate", duplicateOf: "changeset" },
+        { stagedAs: "relationship-delete", action: "rewritten", duplicateOf: undefined },
+        { stagedAs: "relationship-delete", action: "dropped-duplicate", duplicateOf: "kept" }
+      ]);
+
+      const staged = await new StagedChangesetStorage(root).load(changesetId);
+      expect(staged!.changes.map((c) => [c.type, c.elementId, (c as { sequenceNumber?: number }).sequenceNumber])).toEqual([
+        ["add", flow, 0],
+        ["relationship-add", `api.oauthflows.oauth-flows::composes::${flow}`, 1],
+        [
+          "relationship-delete",
+          "application.applicationprocess.place-order::accesses::application.dataobject.order",
+          2
+        ]
+      ]);
+
+      const after = await commit(root, changesetId);
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+      expect((await validator.validateModel(after)).errors).toEqual([]);
+      expect(triples(after.relationships.getAll())).toEqual([
+        "application.applicationcomponent.order-service composes application.applicationfunction.price-order",
+        "ux.stateaction.submit-order realizes ux.stateactiontemplate.submit",
+        `api.oauthflows.oauth-flows composes ${flow}`
+      ]);
+    }));
+
+  it("leaves committed changesets alone", () =>
+    withModel(async (root) => {
+      const changesetId = await stageChangeset(root, [
+        relationshipAdd(
+          rel(
+            "application.applicationcomponent.order-service",
+            "implements",
+            "security.countermeasure.rate-limiting",
+            "application",
+            "security"
+          )
+        )
+      ]);
+      const storage = new StagedChangesetStorage(root);
+      const changeset = await storage.load(changesetId);
+      changeset!.markCommitted();
+      await storage.save(changeset!);
+      const path = join(root, "documentation-robotics", "changesets", changesetId, "changes.yaml");
+      const recorded = await readFile(path, "utf-8");
+
+      expect(await upgrade(root)).toEqual([]);
+      expect(await readFile(path, "utf-8")).toBe(recorded);
+    }));
+});
+
+describe("rewriteStagedChangeset", () => {
+  const types: Record<string, string> = {
+    a: "technology.systemsoftware",
+    b: "security.countermeasure"
+  };
+  const resolve: ElementResolver = (id) =>
+    types[id] ? { specNodeId: types[id], canonicalId: id } : undefined;
+  const implementsRel = rel("a", "implements", "b", "technology", "security");
+  const realizesRel = rel("a", "realizes", "b", "technology", "security");
+  const staged = (changes: Array<Omit<Change, "timestamp">>) => ({
+    id: "cs",
+    changes: changes.map((c, sequenceNumber) => ({ ...c, sequenceNumber }))
+  });
+
+  it("drops a staged delete whose relationship the changeset re-adds under the new predicate", () => {
+    // Under 0.9.0 the changeset swapped implements for realizes; after the migration the model
+    // already says realizes, so deleting it would lose the relationship
+    const { changes, report } = rewriteStagedChangeset(
+      staged([relationshipAdd(realizesRel), relationshipDelete(implementsRel)]),
+      { before: [implementsRel], after: [realizesRel] },
+      resolve
+    );
+    expect(changes.map((c) => [c.type, c.elementId])).toEqual([
+      ["relationship-add", "a::realizes::b"]
+    ]);
+    expect(report).toMatchObject([{ stagedAs: "relationship-delete", duplicateOf: "kept" }]);
+  });
+
+  it("leaves a changeset alone when it deletes and re-adds a relationship the table does not touch", () => {
+    const changes = staged([
+      relationshipDelete(realizesRel),
+      relationshipAdd({ ...realizesRel, properties: { note: "re-added" } })
+    ]).changes;
+    const result = rewriteStagedChangeset(
+      { id: "cs", changes },
+      { before: [realizesRel], after: [realizesRel] },
+      resolve
+    );
+    expect(result.report).toEqual([]);
+    expect(result.changes).toEqual(changes);
+  });
+
+  it("keeps a delete when a later change in the changeset adds the relationship back", () => {
+    // The committed implements and realizes merge into one realizes; the changeset deletes the
+    // realizes and later re-adds it, so the delete must stay ahead of the add
+    const { changes, report } = rewriteStagedChangeset(
+      staged([relationshipDelete(realizesRel), relationshipAdd(realizesRel)]),
+      { before: [implementsRel, realizesRel], after: [realizesRel] },
+      resolve
+    );
+    expect(report).toEqual([]);
+    expect(changes.map((c) => [c.type, c.elementId])).toEqual([
+      ["relationship-delete", "a::realizes::b"],
+      ["relationship-add", "a::realizes::b"]
+    ]);
+  });
+
+  it("keeps an add and a later delete of the same retired relationship in order", () => {
+    const { changes } = rewriteStagedChangeset(
+      staged([relationshipAdd(implementsRel), relationshipDelete(implementsRel)]),
+      { before: [], after: [] },
+      resolve
+    );
+    expect(changes.map((c) => [c.type, c.elementId])).toEqual([
+      ["relationship-add", "a::realizes::b"],
+      ["relationship-delete", "a::realizes::b"]
+    ]);
+  });
 });
 
 describe("rewriteRelationships", () => {

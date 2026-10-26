@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/spec-enrich/data`; adding the record of a later change set and rerunning the script
   extends the migration (`--check` reports a stale table, and a unit test compares the committed
   table with a fresh build).
+- **The same migration rewrites relationship changes in staged changesets.** A changeset staged
+  under spec 0.9.0 used to keep its retired triples through `dr upgrade`, so committing it added
+  relationships that failed validation, and a staged delete of a since-rewritten relationship
+  matched nothing. Each staged `relationship-add` and `relationship-delete` now takes the rewritten
+  relationship and its `source::predicate::target` key (element types come from the model and from
+  the elements the changeset adds). A staged add that becomes a relationship the model or the
+  changeset already has is removed, as is a staged delete whose rewritten relationship the
+  changeset still keeps through another relationship that was rewritten to it. `dr upgrade` lists
+  each removed change per changeset. Committed and discarded changesets are left as they are.
 
 ### Changed
 
@@ -36,6 +45,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now pass. The relationship classifier no longer warns "violates layer hierarchy" for cross-layer
   relationships, and the report `layerComplianceScore` now measures the share of cross-layer
   relationships whose predicate is in the catalog instead of the share running "higher -> lower".
+
+### Fixed
+
+- **Staged changesets no longer need `--force` to commit after `dr upgrade`.** An upgrade writes a
+  new spec version into the manifest (and its migrations may rewrite element files), which changed
+  the model snapshot every staged changeset is checked against, so `dr changeset commit` reported
+  drift for all of them. `dr upgrade` now re-baselines each staged changeset whose base snapshot
+  matched the model before the upgrade onto the upgraded model, for migrations and `--force`
+  version bumps alike, and lists them. A changeset that had already drifted before the upgrade
+  keeps its old snapshot, so its drift still blocks the commit, and `dr upgrade` names it.
+- **`dr upgrade` to spec 0.10.0 now keeps the `objectschema.required` conversion.** The migration
+  rewrote `08_data-model` files to turn a comma-separated `required` string into an array, but the
+  upgrade then saved the loaded data-model layer, still holding the string, over them, so object
+  schemas kept failing 0.10.0 validation. The migration now converts the loaded layer as well.
 
 ## [0.2.0] - 2026-09-16
 
