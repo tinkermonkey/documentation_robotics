@@ -99,6 +99,8 @@ triage-reflect.ts   stage 1: three sorting questions per relationship claim
                     the current answer (capped, --top 8) and 'none'
                     stage 2: the normal triage questions with the answers appended to the state
                     -> decisions/<backend>@reflect/<layer>.jsonl  and  reflect/<backend>/<layer>.jsonl
+                    --extra-triples: second pass over the further relationships a claim names,
+                    re-deciding the claim with every reflection -> decisions/<backend>@reflect2/
 reflect-summary.ts  outcome (reproduced / no_better / alternative) x validity, the transitions
                     against a baseline configuration, and every concrete alternative found
 reflect-plan.ts     groups the alternatives per catalog triple and classifies the implied schema

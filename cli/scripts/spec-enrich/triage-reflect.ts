@@ -17,7 +17,7 @@
  *   bun triage-reflect.ts --backend clef [--layer application] [--ids a,b] [--limit n] [--top 8] [--tag reflect] [--force]
  */
 import path from "node:path";
-import { mkdirSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { callClef, choiceOf, CLEF_MODELS, noulOf, scoreOf, type Question } from "../classify-eval/backends/clef.js";
 import { mapConcurrent } from "../classify-eval/lib/claude.js";
 import { appendJsonl, flagNum, flagStr, parseFlags, readJsonl } from "../classify-eval/lib/io.js";
@@ -198,15 +198,29 @@ async function decideWithReflection(backend: string, c: Claim, state: string): P
   return { d, cost: d.cost_usd ?? 0 };
 }
 
+/** All reflections already recorded for a backend, keyed by claim id. */
+export function readReflections(reflDir: string): Map<string, Reflection[]> {
+  const out = new Map<string, Reflection[]>();
+  if (!existsSync(reflDir)) return out;
+  for (const f of readdirSync(reflDir).filter((f) => f.endsWith(".jsonl")).sort()) {
+    for (const r of readJsonl<Reflection>(path.join(reflDir, f))) out.set(r.claim_id, [...(out.get(r.claim_id) ?? []), r]);
+  }
+  return out;
+}
+
 async function main() {
   const flags = parseFlags(process.argv.slice(2));
   const backend = flagStr(flags, "backend", "clef") ?? "clef";
   if (!(backend in CLEF_MODELS)) {
-    console.error("Usage: bun triage-reflect.ts --backend <clef|clef-flash> [--layer id] [--ids a,b] [--limit n] [--top 8] [--tag reflect]");
+    console.error("Usage: bun triage-reflect.ts --backend <clef|clef-flash> [--layer id] [--ids a,b] [--limit n] [--top 8] [--tag reflect] [--extra-triples]");
     process.exit(2);
   }
+  // --extra-triples: second pass. For claims that name more than one relationship, reflect on
+  // the triples the first pass skipped, then re-decide the claim with every reflection in the
+  // state. Decisions go under @reflect2 (default) so the first pass stays comparable.
+  const extra = !!flags["extra-triples"];
   const dir = path.join(harnessDir(), "data", "triage");
-  const tag = flagStr(flags, "tag", "reflect") ?? "reflect";
+  const tag = flagStr(flags, "tag", extra ? "reflect2" : "reflect") ?? "reflect";
   const outDir = decisionsDir(`${backend}@${tag}`);
   const reflDir = path.join(dir, "reflect", backend);
   mkdirSync(reflDir, { recursive: true });
@@ -215,40 +229,57 @@ async function main() {
   const limit = flagNum(flags, "limit", Infinity);
   const top = flagNum(flags, "top", 8);
   if (flags.force) {
-    for (const d of [outDir, reflDir]) for (const f of readdirSync(d)) if (!layerFilter || f === `${layerFilter}.jsonl`) rmSync(path.join(d, f));
+    for (const d of extra ? [outDir] : [outDir, reflDir]) for (const f of readdirSync(d)) if (!layerFilter || f === `${layerFilter}.jsonl`) rmSync(path.join(d, f));
   }
   const done = new Set(readAllDecisions(outDir).filter((d) => !d.error).map((d) => d.claim_id));
+  const have = readReflections(reflDir);
   const claims = readJsonl<Claim>(path.join(dir, "claims.jsonl"))
     .filter((c) => !layerFilter || c.layer === layerFilter)
     .filter((c) => !ids || ids.includes(c.id))
     .filter((c) => !done.has(c.id))
-    .map((c) => ({ c, t: c.affected_ids.map(parseTriple).find((x): x is Triple => !!x) }))
-    .filter((x): x is { c: Claim; t: Triple } => !!x.t)
+    .map((c) => {
+      const all = c.affected_ids.map(parseTriple).filter((x): x is Triple => !!x);
+      const seen = new Set((have.get(c.id) ?? []).map((r) => r.triple));
+      // first pass: the first triple only; second pass: every triple not yet reflected on, for claims with >1
+      const todo = extra ? all.filter((t) => !seen.has(t.id)) : all.slice(0, 1);
+      return { c, all, todo };
+    })
+    .filter((x) => x.all.length > (extra ? 1 : 0) && (extra ? x.todo.length > 0 || x.all.length > 1 : x.todo.length > 0))
     .slice(0, limit);
-  console.error(`Reflecting on ${claims.length} relationship claims with ${backend} (${done.size} already done)`);
+  console.error(`${extra ? "Second pass: " : ""}reflecting on ${claims.length} relationship claims with ${backend} (${done.size} already done; ${claims.reduce((s, x) => s + x.todo.length, 0)} sorting calls)`);
   const nodes = loadNodeSchemas();
   const rels = loadRelationshipSchemas();
   const preds = loadPredicates();
   let cost = 0,
     errors = 0,
     reproduced = 0;
-  await mapConcurrent(claims, flagNum(flags, "concurrency", 4), async ({ c, t }, i) => {
+  await mapConcurrent(claims, flagNum(flags, "concurrency", 4), async ({ c, all, todo }, i) => {
     try {
       const base = claimState(c, true, "short");
-      const sq = sortingQuestions(t, nodes, rels, preds, top);
-      const { refl, cost: c1 } = await reflectOne(backend, c, t, sq, base);
-      const { d, cost: c2 } = await decideWithReflection(backend, c, `${base}\n\n${reflectionText(t, refl)}`);
-      cost += c1 + c2;
-      if (refl.reproduced) reproduced++;
-      appendJsonl(path.join(reflDir, `${c.layer}.jsonl`), refl);
+      const refls: Reflection[] = [...(have.get(c.id) ?? [])];
+      for (const t of todo) {
+        const sq = sortingQuestions(t, nodes, rels, preds, top);
+        const { refl, cost: c1 } = await reflectOne(backend, c, t, sq, base);
+        cost += c1;
+        appendJsonl(path.join(reflDir, `${c.layer}.jsonl`), refl);
+        refls.push(refl);
+      }
+      // keep the order of the claim's affected ids
+      refls.sort((a, b) => all.findIndex((t) => t.id === a.triple) - all.findIndex((t) => t.id === b.triple));
+      const text = refls.map((r) => reflectionText(all.find((t) => t.id === r.triple)!, r)).join("\n\n");
+      const { d, cost: c2 } = await decideWithReflection(backend, c, `${base}\n\n${text}`);
+      d.backend = `${backend}@${tag}`;
+      cost += c2;
+      if (refls.every((r) => r.reproduced)) reproduced++;
       appendJsonl(path.join(outDir, `${c.layer}.jsonl`), compactDecision(d));
-      console.error(`[${i + 1}/${claims.length}] ${c.id} ${refl.outcome}${refl.alternatives.length ? ` (${refl.alternatives.join("; ")})` : ""} -> ${d.validity.choice} (${(d.validity.probabilities[d.validity.choice] ?? NaN).toFixed(2)})`);
+      const outcomes = refls.map((r) => `${r.outcome}${r.alternatives.length ? `(${r.alternatives.join(";")})` : ""}`).join(" | ");
+      console.error(`[${i + 1}/${claims.length}] ${c.id} ${outcomes} -> ${d.validity.choice} (${(d.validity.probabilities[d.validity.choice] ?? NaN).toFixed(2)})`);
     } catch (e) {
       errors++;
       console.error(`[${i + 1}/${claims.length}] ${c.id} FAILED: ${e instanceof Error ? e.message : String(e)}`);
     }
   });
-  console.error(`Done: ${claims.length - errors} ok, ${errors} failed, ${reproduced} reproduced the current triple, approx cost $${cost.toFixed(4)} -> ${outDir}/`);
+  console.error(`Done: ${claims.length - errors} ok, ${errors} failed, ${reproduced} reproduced every current triple, approx cost $${cost.toFixed(4)} -> ${outDir}/`);
 }
 
 if (import.meta.main) {

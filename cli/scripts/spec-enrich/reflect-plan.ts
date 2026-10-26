@@ -103,7 +103,8 @@ function main() {
   const minP = flagNum(flags, "min-p", 0.5);
   const dir = path.join(harnessDir(), "data", "triage");
   const claims = new Map(readJsonl<Claim>(path.join(dir, "claims.jsonl")).map((c) => [c.id, c]));
-  const dec = new Map(readAllDecisions(decisionsDir(`${backend}@reflect`)).filter((d) => !d.error).map((d) => [d.claim_id, d]));
+  // second-pass decisions (, every triple of a claim considered) override first-pass ones
+  const dec = new Map([...readAllDecisions(decisionsDir(`${backend}@reflect`)), ...readAllDecisions(decisionsDir(`${backend}@reflect2`))].filter((d) => !d.error).map((d) => [d.claim_id, d]));
   const reflDir = path.join(dir, "reflect", backend);
   let refl: Reflection[] = [];
   for (const f of readdirSync(reflDir).filter((f) => f.endsWith(".jsonl")).sort()) refl = refl.concat(readJsonl<Reflection>(path.join(reflDir, f)));

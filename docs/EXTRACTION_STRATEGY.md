@@ -273,8 +273,18 @@ realize a function, then what does? `triage-reflect.ts` asks Clef three sorting 
 relationship claim before judging it (best source of `pred dst`, best destination of
 `src pred`, best predicate between the pair, each over the current answer, the catalog's other
 answers, siblings of the current answer and `none`), then appends the answers to the state and
-asks the normal triage questions. Over all 755 relationship claims (about $1): 121 reproduced
-the current triple, 132 found no better answer, 502 named a concrete alternative. The
+asks the normal triage questions. Over all 755 relationship claims (about $1), plus a second
+pass over the 405 further relationships that 313 of those claims also name (`--extra-triples`,
+$0.52, decisions under `clef@reflect2`): of 1,160 reflections, 274 reproduced the current
+triple, 174 found no better answer, 712 named a concrete alternative. `reflect-plan.ts` groups
+the alternatives per catalog triple and classifies the implied change: 526 triples, of which 79
+are duplicate removals (the preferred predicate already exists between the pair), 62 predicate
+renames, 96 reversals, 164 retargets, 65 compound changes and 60 conflicts between claims;
+184 clear p >= 0.6 and 108 clear p >= 0.7. The user reviewed the first-pass summary, found
+nothing wrong in a spot check, and accepted the findings in principle; applying them is a
+breaking spec change (renames, removals), so the plan is applied in tiers with a migration to
+follow once the changeset settles. One finding was applied at once: `implements` and `realizes`
+had the same meaning, so `implements` is retired (18 schemas, spec changelog). The
 alternatives are coherent where a reviewer can check them: in the application layer
 `delivers-value` to a service is answered with `realizes` (p 0.75-0.82) on every pair it
 appears, `depends-on` a data object with `accesses` (0.76-0.86), and each aggregates/composes

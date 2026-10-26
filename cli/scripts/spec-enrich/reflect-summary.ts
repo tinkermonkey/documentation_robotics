@@ -24,7 +24,8 @@ function main() {
   let refl: Reflection[] = [];
   for (const f of readdirSync(reflDir).filter((f) => f.endsWith(".jsonl")).sort()) refl = refl.concat(readJsonl<Reflection>(path.join(reflDir, f)));
   refl = refl.filter((r) => !layerFilter || claims.get(r.claim_id)?.layer === layerFilter);
-  const dec = new Map(readAllDecisions(decisionsDir(`${backend}@reflect`)).filter((d) => !d.error).map((d) => [d.claim_id, d]));
+  // second-pass decisions (, every triple of a claim considered) override first-pass ones
+  const dec = new Map([...readAllDecisions(decisionsDir(`${backend}@reflect`)), ...readAllDecisions(decisionsDir(`${backend}@reflect2`))].filter((d) => !d.error).map((d) => [d.claim_id, d]));
   const base = new Map(readAllDecisions(decisionsDir(baseline)).filter((d) => !d.error).map((d) => [d.claim_id, d]));
   const validities = ["real_defect", "judgment_call", "works_as_designed", "out_of_scope"];
   const outcomes: Reflection["outcome"][] = ["reproduced", "no_better", "alternative"];
