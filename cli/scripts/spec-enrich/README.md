@@ -84,6 +84,31 @@ Clef from 40% to 70% validity agreement at the same cost. `--charter short` (the
 the one-paragraph summary from `spec/DESIGN_CHARTER.md`; `full` prepends the whole charter, which
 measured slightly worse on accuracy, and `none` disables it.
 
+### Reflection: the sorting questions
+
+For a claim about a relationship `src pred dst`, a maintainer's natural check is "if `src`
+does not `pred` `dst`, then what does?". `triage-reflect.ts` asks a decision model exactly
+that before it judges the claim:
+
+```
+triage-reflect.ts   stage 1: three sorting questions per relationship claim
+                      source_for    which type is the best source of 'pred dst'?
+                      target_for    what does 'src pred' best point to?
+                      predicate_for which predicate best relates src to dst (incl. 'reverse:p')?
+                    each offered the current answer, the catalog's other answers, the siblings of
+                    the current answer (capped, --top 8) and 'none'
+                    stage 2: the normal triage questions with the answers appended to the state
+                    -> decisions/<backend>@reflect/<layer>.jsonl  and  reflect/<backend>/<layer>.jsonl
+reflect-summary.ts  outcome (reproduced / no_better / alternative) x validity, the transitions
+                    against a baseline configuration, and every concrete alternative found
+```
+
+The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
+`no_better` (the alternatives were `none` or the current value) argue for keeping the
+relationship, `alternative` names a concrete different source, destination or predicate to weigh
+against the claim's proposed change. Claims without a relationship id among `affected_ids` are
+skipped; only Clef backends are supported.
+
 ## Governance
 
 Proposals are reviewed per layer and land as spec PRs with a changelog entry. The `notes`

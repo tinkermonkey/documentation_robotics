@@ -266,6 +266,30 @@ for all 1,611 relationships are in `cli/scripts/spec-enrich/data/proposals/` as 
 files (about $5 via the Batch API), not yet applied beyond the application layer. Every type
 came back with maintainer notes; `data/notes-digest.md` collects them per layer.
 
+**Reflection: the sorting questions (2026-10-26).** The benchmark's one unresolved claim,
+`api.operation realizes applicationfunction`, was adjudicated by the user as a fair fit
+(works_as_designed), and their reasoning became a pipeline stage: if an operation does not
+realize a function, then what does? `triage-reflect.ts` asks Clef three sorting questions per
+relationship claim before judging it (best source of `pred dst`, best destination of
+`src pred`, best predicate between the pair, each over the current answer, the catalog's other
+answers, siblings of the current answer and `none`), then appends the answers to the state and
+asks the normal triage questions. Over all 755 relationship claims (about $1): 121 reproduced
+the current triple, 132 found no better answer, 502 named a concrete alternative. The
+alternatives are coherent where a reviewer can check them: in the application layer
+`delivers-value` to a service is answered with `realizes` (p 0.75-0.82) on every pair it
+appears, `depends-on` a data object with `accesses` (0.76-0.86), and each aggregates/composes
+duplicate with `composes` (0.78-0.86); in the api layer `parameter references tag` is answered
+with `operation` as the source (0.68, OpenAPI has no parameter tags). Validity agreement with
+evidence-only Clef is 69.9%; the moves are mostly between judgment_call and real_defect in both
+directions (92 up, 69 down), so the stage changes decisions rather than merely sharpening
+them, and the outcome bucket is the signal a reviewer should sort by. On the three benchmark
+claims that name a relationship it fixes `accesscondition composes policyrule` (reverse:uses at
+0.81, now real_defect as gold says), keeps the self-relationship false claim right, and calls
+the operation/function claim a judgment call (no candidate beat `none` or the current triple),
+one step from the user's works_as_designed. `reflect-summary.ts` writes the outcome-by-validity
+table, the transitions and every alternative per layer
+(`data/triage/reflect/summary-clef.md`).
+
 ## Sequencing
 
 | Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                              | Status                   |

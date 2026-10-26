@@ -130,7 +130,7 @@ export function readAllDecisions(dir: string): Decision[] {
 }
 
 /** Round probabilities and drop near-zero entries so decision files stay small. */
-function compactDecision(d: Decision): Decision {
+export function compactDecision(d: Decision): Decision {
   const r3 = (x: number) => Math.round(x * 1000) / 1000;
   for (const k of ["validity", "category"] as const) {
     d[k].probabilities = Object.fromEntries(Object.entries(d[k].probabilities).filter(([a, v]) => v >= 0.01 || a === d[k].choice).map(([a, v]) => [a, r3(v)]));
