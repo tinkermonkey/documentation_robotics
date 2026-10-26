@@ -6,9 +6,9 @@
   },
   "applied_at": "2026-10-26T17:07:36.642Z",
   "counts": {
-    "rename": 7,
-    "create": 2,
-    "delete": 6
+    "rename": 5,
+    "create": 4,
+    "delete": 8
   },
   "actions": [
     {
@@ -127,15 +127,24 @@
       "note": "walk row 13 (delete): Same fact as row 12 from the other side; one edge, assigned-to, remains."
     },
     {
-      "action": "rename",
+      "action": "delete",
       "kind": "walk:retarget",
       "from": "application.applicationevent.triggers.application.applicationcollaboration",
-      "to": "application.applicationevent.triggers.application.applicationinteraction",
+      "to": null,
       "p": 1,
       "claims": [],
       "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationevent.triggers.applicationcollaboration.relationship.schema.json",
+      "note": "walk row 14 (retarget): Triggering links behaviour; the collaboration is the performer of the interaction the event sets off (the enriched description says so). Sorting: destination in; retargeted to application.applicationevent.triggers.application.applicationinteraction, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "application.applicationevent.triggers.application.applicationinteraction",
+      "to": "application.applicationevent.triggers.application.applicationinteraction",
+      "p": 1,
+      "claims": [],
       "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationevent.triggers.applicationinteraction.relationship.schema.json",
-      "note": "walk row 14 (retarget): Triggering links behaviour; the collaboration is the performer of the interaction the event sets off (the enriched description says so). Sorting: destination in"
+      "note": "retarget of application.applicationevent.triggers.application.applicationcollaboration"
     },
     {
       "action": "create",
@@ -159,15 +168,24 @@
       "note": "added as counterpart of application.applicationcollaboration.assigned-to.application.applicationprocess (walk row 16)"
     },
     {
-      "action": "rename",
+      "action": "delete",
       "kind": "walk:retarget",
       "from": "application.applicationservice.constrained-by.security.accesscondition",
-      "to": "application.applicationservice.constrained-by.security.securitypolicy",
+      "to": null,
       "p": 1,
       "claims": [],
       "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationservice.constrained-by.accesscondition.relationship.schema.json",
+      "note": "walk row 17 (retarget): An access condition is one clause of a policy rule; a service is governed by a policy, matching applicationcomponent constrained-by securitypolicy. Sorting: pre; retargeted to application.applicationservice.constrained-by.security.securitypolicy, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "application.applicationservice.constrained-by.security.securitypolicy",
+      "to": "application.applicationservice.constrained-by.security.securitypolicy",
+      "p": 1,
+      "claims": [],
       "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationservice.constrained-by.securitypolicy.relationship.schema.json",
-      "note": "walk row 17 (retarget): An access condition is one clause of a policy rule; a service is governed by a policy, matching applicationcomponent constrained-by securitypolicy. Sorting: pre"
+      "note": "retarget of application.applicationservice.constrained-by.security.accesscondition"
     }
   ]
 }

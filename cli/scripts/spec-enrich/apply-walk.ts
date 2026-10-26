@@ -80,7 +80,18 @@ function main() {
     } else {
       const written = dry ? toFile : writeDerived(fromFile, to, swapped);
       if (!dry) unlinkSync(fromFile);
-      actions.push({ action: swapped ? "create" : "rename", kind: `walk:${r.kind}`, from: r.triple, to, p: 1, claims: [], file_removed: fromFile, file_written: written, note: note(r) });
+      const a = parts(r.triple),
+        b = parts(to);
+      const samePair = (a.source === b.source && a.destination === b.destination) || (a.source === b.destination && a.destination === b.source);
+      if (samePair) {
+        actions.push({ action: swapped ? "create" : "rename", kind: `walk:${r.kind}`, from: r.triple, to, p: 1, claims: [], file_removed: fromFile, file_written: written, note: note(r) });
+      } else {
+        // A retarget changes a type on one side; a model migration cannot move an existing
+        // relationship to a different element, so the old triple is dropped and the new schema
+        // is recorded as an addition.
+        actions.push({ action: "delete", kind: `walk:${r.kind}`, from: r.triple, to: null, p: 1, claims: [], file_removed: fromFile, note: `${note(r)}; retargeted to ${to}, which a migration cannot apply mechanically, so model relationships of this triple are dropped` });
+        actions.push({ action: "create", kind: "walk:add", from: to, to, p: 1, claims: [], file_written: written, note: `retarget of ${r.triple} (walk row ${r.row})` });
+      }
     }
     for (const extra of r.add ?? []) {
       const extraFile = fileFor(extra);

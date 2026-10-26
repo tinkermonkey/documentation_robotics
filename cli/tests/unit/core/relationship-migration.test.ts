@@ -226,7 +226,7 @@ describe("relationship catalog migration (0.9.0 -> 0.10.0)", () => {
         "api.operation.create-order aggregates api.requestbody.create-order-body",
         "00000000-0000-4000-8000-000000000031 aggregates api.parameter.order-id",
         "api.securityscheme.oauth composes api.oauthflows.oauth-flows",
-        "application.applicationcomponent.order-service composes application.applicationfunction.price-order",
+        "application.applicationcomponent.order-service assigned-to application.applicationfunction.price-order",
         "ux.stateaction.submit-order realizes ux.stateactiontemplate.submit",
         "application.applicationservice.ordering serves application.applicationprocess.place-order"
       ]);
@@ -431,7 +431,7 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
       const committed = [
         rel(
           "application.applicationcomponent.order-service",
-          "composes",
+          "assigned-to",
           "application.applicationfunction.price-order",
           "application"
         ),
@@ -452,11 +452,11 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
 
       const flow = "api.oauthflow.auth-code";
       const changesetId = await stageChangeset(root, [
-        // becomes composes, which the model already has
+        // becomes assigned-to (tier 1 kept composes, the application walk restored assigned-to), which the model already has
         relationshipAdd(
           rel(
             "application.applicationcomponent.order-service",
-            "assigned-to",
+            "composes",
             "application.applicationfunction.price-order",
             "application"
           )
@@ -498,7 +498,7 @@ describe("relationship catalog migration of staged changesets (0.9.0 -> 0.10.0)"
       await validator.initialize();
       expect((await validator.validateModel(after)).errors).toEqual([]);
       expect(triples(after.relationships.getAll())).toEqual([
-        "application.applicationcomponent.order-service composes application.applicationfunction.price-order",
+        "application.applicationcomponent.order-service assigned-to application.applicationfunction.price-order",
         "ux.stateaction.submit-order realizes ux.stateactiontemplate.submit",
         `api.oauthflows.oauth-flows composes ${flow}`
       ]);
