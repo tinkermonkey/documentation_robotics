@@ -10,7 +10,17 @@
       "version": "Draft 7",
       "url": "https://json-schema.org/draft-07/"
     },
-    "node_types": []
+    "node_types": [
+      "data-model.arrayschema",
+      "data-model.jsonschema",
+      "data-model.numericschema",
+      "data-model.objectschema",
+      "data-model.reference",
+      "data-model.schemacomposition",
+      "data-model.schemadefinition",
+      "data-model.schemaproperty",
+      "data-model.stringschema"
+    ]
   },
   "nodeSchemas": {
     "arrayschema": {

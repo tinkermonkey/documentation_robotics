@@ -31,6 +31,12 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   relationship). Previously an application service could serve a business process only, so "this
   process uses the email service" had no predicate inside the application layer.
 
+### Fixed
+
+- **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
+  schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
+  and warned about the inconsistency. The layer file now lists all nine types.
+
 ### Changed
 
 - **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder

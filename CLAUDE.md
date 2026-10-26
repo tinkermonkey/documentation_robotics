@@ -310,7 +310,7 @@ Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — the
 
 ### 2. Cross-Layer References
 
-- Direction follows the predicate, not the layer numbers; use the predicate whose semantics match (an application function `realizes` an API operation, not the reverse)
+- Direction follows the predicate, not the layer numbers; use the predicate whose semantics match (an API operation `realizes` an application function, as the catalog declares; an object schema `maps-to` a data-store collection)
 - Always validate references exist before creating
 - Use the reference registry, don't manually check
 
