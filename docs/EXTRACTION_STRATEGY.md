@@ -315,6 +315,32 @@ detected across rows, not only within one. The model migration (`dr upgrade`, ta
 from every `applied-*.json` record) treats retargets as drops, since an existing relationship
 cannot be moved to a different element type mechanically.
 
+**Context Studio as the review queue (2026-10-27).** Context Studio's Workbench Phase B
+(tinkermonkey/context-studio#1351) imports the DR spec as one property definition per
+relationship schema and adds a change-proposal model: agents propose, people accept or reject
+in a review queue, scope (editorial / additive / breaking) is computed by the system and
+breaking changes never auto-apply. Its issue #1366 imports DR plan rows as proposals and
+exports decisions back as `walk-<layer>.jsonl`; Gate B (#1370) scores one DR layer walk in that
+queue against the spreadsheet walk. The DR side is built: `proposal-export.ts --layer <id>`
+writes `reflect/clef/proposals/<layer>.json` (format `dr-reflection-plan/1`: one operation per
+plan row, delete / update / create on the relationship's property definition, with the claims
+and the sorting answers as evidence and the plan's p as probability; rows already decided carry
+their decision so a round trip can be checked), and `proposal-import.ts` reads a decided
+proposal back into the walk file. The api layer is the fixture: 63 operations, 11 deletes and
+52 updates.
+
+Manual baseline for Gate B, from the application walk (2026-10-26): 18 rows in 3 h 54 min of
+wall-clock (tier-1 commit 09:41 to walk commit 13:35, including building the walk tooling and
+one row per conversational turn); every row followed the reviewer's recommendation, and in all
+18 the final replacement differed from the plan's mechanical replacement (6 deletes, 5 renames,
+2 retargets, 1 reversal, 4 keeps). Tier 1's 87 automatic changes had one wrong twin, found in
+the walk (`applicationcomponent composes applicationfunction`, restored to `assigned-to`). Two
+consequences for the review-queue design (#1359): a reviewer must be able to choose a different
+replacement than the one proposed, or the proposal must carry alternatives, because accept /
+reject alone would have rejected every one of these 18 rows; and conflicts between claims about
+the same pair should be shown together, since the plan's split rows are how tier 1 kept the wrong
+twin. The spreadsheet remains the interim queue (`sheet-export.py`, `sheet-import.py`).
+
 ## Sequencing
 
 | Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                              | Status                   |

@@ -1,0 +1,2804 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: api layer (64 relationship changes)",
+  "rationale": "Relationship schemas in the api layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json, branch feature/extraction-eval-harness",
+  "created_at": "2026-10-27T18:53:54.136Z",
+  "layer": "api",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "api.mediatype.aggregates.api.encoding",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.mediatype.aggregates.api.encoding: api.mediatype.composes.api.encoding already expresses it. Plan kind remove-duplicate, p 0.78; claims rel:api.mediatype#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.mediatype",
+        "destination_spec_node_id": "api.encoding",
+        "title": "Mediatype Aggregates Encoding",
+        "description": "Defines relationship: api.mediatype aggregates api.encoding"
+      },
+      "evidence": [
+        {
+          "quote": "api.mediatype has both aggregates and composes relationships to api.encoding, which are contradictory because Encoding cannot exist outside its MediaType, so only composes should remain. Proposed: Remove the api.mediatype aggregates api.encoding relationship and keep composes.",
+          "entity_id": "rel:api.mediatype#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.mediatype#1): best source of 'aggregates api.encoding': none (0.39), api.encoding (0.31), api.mediatype (0.20); best destination of 'api.mediatype aggregates': api.encoding (0.61), none (0.29), api.components (0.03); best predicate: composes (0.78), aggregates (0.06), uses (0.04). Outcome: alternative (predicate=composes).",
+          "entity_id": "rel:api.mediatype#1"
+        }
+      ],
+      "probability": 0.784,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "api.mediatype.aggregates.api.encoding",
+        "replacement": ["api.mediatype.composes.api.encoding"],
+        "claims": ["rel:api.mediatype#1"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "delete",
+      "target_id": "api.response.composes.api.header",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.response.composes.api.header: api.response.aggregates.api.header already expresses it. Plan kind remove-duplicate, p 0.71; claims rel:api.response#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.response",
+        "destination_spec_node_id": "api.header",
+        "title": "Response composes Header",
+        "description": "Defines relationship: api.response composes api.header"
+      },
+      "evidence": [
+        {
+          "quote": "api.response has both aggregates and composes relationships to api.header, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped. Proposed: Define aggregates as $ref-reused headers and composes as inline headers, or drop one of the two.",
+          "entity_id": "rel:api.response#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#1): best source of 'composes api.header': api.response (0.79), api.components (0.10), none (0.06); best destination of 'api.response composes': api.header (0.70), none (0.12), api.mediatype (0.06); best predicate: aggregates (0.71), composes (0.11), uses (0.07). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.response#1"
+        }
+      ],
+      "probability": 0.707,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "remove-duplicate",
+        "triple": "api.response.composes.api.header",
+        "replacement": ["api.response.aggregates.api.header"],
+        "claims": ["rel:api.response#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "delete",
+      "target_id": "api.requestbody.aggregates.api.mediatype",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.requestbody.aggregates.api.mediatype: api.requestbody.composes.api.mediatype already expresses it. Plan kind remove-duplicate, p 0.38; claims node:api.requestbody#2, rel:api.requestbody#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.requestbody",
+        "destination_spec_node_id": "api.mediatype",
+        "title": "Requestbody Aggregates Mediatype",
+        "description": "Defines relationship: api.requestbody aggregates api.mediatype"
+      },
+      "evidence": [
+        {
+          "quote": "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent. Proposed: Keep only one relationship between api.requestbody and api.mediatype and remove the others.",
+          "entity_id": "node:api.requestbody#2"
+        },
+        {
+          "quote": "The relationships api.requestbody aggregates api.mediatype and api.requestbody composes api.mediatype are redundant and conflicting; composes is the correct one since media types live only inside the content map. Proposed: Remove the aggregates relationship from api.requestbody to api.mediatype and keep composes.",
+          "entity_id": "rel:api.requestbody#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.requestbody#2): best source of 'aggregates api.mediatype': api.requestbody (0.82), api.components (0.05), none (0.04); best destination of 'api.requestbody aggregates': api.mediatype (0.90), none (0.04), api.components (0.02); best predicate: composes (0.38), aggregates (0.24), reverse:serves (0.11). Outcome: alternative (predicate=composes).",
+          "entity_id": "node:api.requestbody#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.requestbody#1): best source of 'aggregates api.mediatype': api.requestbody (0.33), none (0.28), api.components (0.16); best destination of 'api.requestbody aggregates': api.mediatype (0.81), none (0.11), api.example (0.02); best predicate: composes (0.40), reverse:serves (0.30), aggregates (0.11). Outcome: alternative (predicate=composes).",
+          "entity_id": "rel:api.requestbody#1"
+        }
+      ],
+      "probability": 0.379,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "remove-duplicate",
+        "triple": "api.requestbody.aggregates.api.mediatype",
+        "replacement": ["api.requestbody.composes.api.mediatype"],
+        "claims": ["node:api.requestbody#2", "rel:api.requestbody#1"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "api.response.composes.api.mediatype",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.response.composes.api.mediatype: api.response.aggregates.api.mediatype already expresses it. Plan kind remove-duplicate, p 0.30; claims rel:api.response#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.response",
+        "destination_spec_node_id": "api.mediatype",
+        "title": "Response composes Mediatype",
+        "description": "Defines relationship: api.response composes api.mediatype"
+      },
+      "evidence": [
+        {
+          "quote": "api.response has both aggregates and composes relationships to api.mediatype, which express overlapping meaning; they should be distinguished (e.g. $ref-reused versus inline) or one dropped. Proposed: Define aggregates as $ref-reused media types and composes as inline media types, or drop one of the two.",
+          "entity_id": "rel:api.response#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#2): best source of 'composes api.mediatype': api.response (0.71), api.requestbody (0.10), none (0.08); best destination of 'api.response composes': api.mediatype (0.81), none (0.09), api.link (0.02); best predicate: aggregates (0.30), reverse:serves (0.26), composes (0.18). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.response#2"
+        }
+      ],
+      "probability": 0.296,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "remove-duplicate",
+        "triple": "api.response.composes.api.mediatype",
+        "replacement": ["api.response.aggregates.api.mediatype"],
+        "claims": ["rel:api.response#2"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "update",
+      "target_id": "api.components.composes.api.securityscheme",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "api.components aggregates api.securityscheme"
+      },
+      "rationale": "Rename the predicate of api.components.composes.api.securityscheme to api.components.aggregates.api.securityscheme. Plan kind rename-predicate, p 0.77; claims rel:api.components#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.securityscheme",
+        "title": "Components composes Securityscheme",
+        "description": "Defines relationship: api.components composes api.securityscheme"
+      },
+      "evidence": [
+        {
+          "quote": "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference. Proposed: Use one consistent predicate for all registry entry kinds held by api.components.",
+          "entity_id": "rel:api.components#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#4): best source of 'composes api.securityscheme': api.components (0.82), none (0.08), api.info (0.02); best destination of 'api.components composes': api.securityscheme (0.79), none (0.08), api.parameter (0.03); best predicate: aggregates (0.77), composes (0.13), none (0.03). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.components#4"
+        }
+      ],
+      "probability": 0.768,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "rename-predicate",
+        "triple": "api.components.composes.api.securityscheme",
+        "replacement": ["api.components.aggregates.api.securityscheme"],
+        "claims": ["rel:api.components#4"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "update",
+      "target_id": "api.components.composes.api.parameter",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "api.components aggregates api.parameter"
+      },
+      "rationale": "Rename the predicate of api.components.composes.api.parameter to api.components.aggregates.api.parameter. Plan kind rename-predicate, p 0.74; claims rel:api.components#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.parameter",
+        "title": "Components composes Parameter",
+        "description": "Defines relationship: api.components composes api.parameter"
+      },
+      "evidence": [
+        {
+          "quote": "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference. Proposed: Use one consistent predicate for all registry entry kinds held by api.components.",
+          "entity_id": "rel:api.components#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#4): best source of 'composes api.parameter': api.components (0.72), none (0.13), api.header (0.05); best destination of 'api.components composes': api.parameter (0.50), api.securityscheme (0.14), none (0.13); best predicate: aggregates (0.74), composes (0.12), none (0.04). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.components#4"
+        }
+      ],
+      "probability": 0.744,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "rename-predicate",
+        "triple": "api.components.composes.api.parameter",
+        "replacement": ["api.components.aggregates.api.parameter"],
+        "claims": ["rel:api.components#4"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "update",
+      "target_id": "api.components.composes.api.header",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "api.components aggregates api.header"
+      },
+      "rationale": "Rename the predicate of api.components.composes.api.header to api.components.aggregates.api.header. Plan kind rename-predicate, p 0.71; claims rel:api.components#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.header",
+        "title": "Components composes Header",
+        "description": "Defines relationship: api.components composes api.header"
+      },
+      "evidence": [
+        {
+          "quote": "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference. Proposed: Use one consistent predicate for all registry entry kinds held by api.components.",
+          "entity_id": "rel:api.components#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#4): best source of 'composes api.header': api.components (0.69), none (0.10), api.header (0.09); best destination of 'api.components composes': api.header (0.66), api.parameter (0.11), none (0.08); best predicate: aggregates (0.71), composes (0.17), none (0.05). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.components#4"
+        }
+      ],
+      "probability": 0.708,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "rename-predicate",
+        "triple": "api.components.composes.api.header",
+        "replacement": ["api.components.aggregates.api.header"],
+        "claims": ["rel:api.components#4"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "api.info.aggregates.api.license",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "api.info composes api.license"
+      },
+      "rationale": "Rename the predicate of api.info.aggregates.api.license to api.info.composes.api.license. Plan kind rename-predicate, p 0.60; claims rel:api.license#2, rel:api.info#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.info",
+        "destination_spec_node_id": "api.license",
+        "title": "Info aggregates License",
+        "description": "Defines relationship: api.info aggregates api.license"
+      },
+      "evidence": [
+        {
+          "quote": "The api.info --aggregates--> api.license relationship understates the structural nesting of License inside Info; the containment should be modeled as composition (License nested in Info, composed into OpenAPIDocument) rather than aggregation or loose association. Proposed: Change the Info-to-License relationship to composes, or express License containment via Info, instead of a direct association to the document.",
+          "entity_id": "rel:api.license#2"
+        },
+        {
+          "quote": "The relationships api.info aggregates api.contact and api.info aggregates api.license may be better expressed as composes, since Contact and License are nested and document-bound, unless shared contacts or licenses are intended. Proposed: Change the predicate of both relationships from aggregates to composes, unless shared contacts or licenses are intended.",
+          "entity_id": "rel:api.info#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.license#2): best source of 'aggregates api.license': api.info (0.85), none (0.07), api.components (0.02); best destination of 'api.info aggregates': api.license (0.94), none (0.02), api.contact (0.02); best predicate: composes (0.63), aggregates (0.21), none (0.04). Outcome: alternative (predicate=composes).",
+          "entity_id": "rel:api.license#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.info#2): best source of 'aggregates api.license': api.info (0.85), none (0.07), api.contact (0.03); best destination of 'api.info aggregates': api.license (0.87), none (0.04), api.contact (0.04); best predicate: composes (0.60), aggregates (0.19), uses (0.06). Outcome: alternative (predicate=composes).",
+          "entity_id": "rel:api.info#2"
+        }
+      ],
+      "probability": 0.605,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "rename-predicate",
+        "triple": "api.info.aggregates.api.license",
+        "replacement": ["api.info.composes.api.license"],
+        "claims": ["rel:api.license#2", "rel:api.info#2"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "update",
+      "target_id": "api.ratelimit.serves.api.pathitem",
+      "ref": null,
+      "fields": {
+        "predicate": "associated-with",
+        "title": "api.ratelimit associated-with api.pathitem"
+      },
+      "rationale": "Rename the predicate of api.ratelimit.serves.api.pathitem to api.ratelimit.associated-with.api.pathitem. Plan kind rename-predicate, p 0.60; claims rel:api.ratelimit#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.ratelimit",
+        "destination_spec_node_id": "api.pathitem",
+        "title": "Ratelimit serves Pathitem",
+        "description": "Defines relationship: api.ratelimit serves api.pathitem"
+      },
+      "evidence": [
+        {
+          "quote": "The 'serves' predicate from api.ratelimit to api.operation and api.pathitem inverts the usual meaning, since a rate limit restricts rather than provides functionality. Proposed: Replace the serves relationships with governs/constrains semantics toward api.operation and api.pathitem.",
+          "entity_id": "rel:api.ratelimit#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.ratelimit#2): best source of 'serves api.pathitem': none (0.41), api.server (0.35), api.ratelimit (0.16); best destination of 'api.ratelimit serves': none (0.61), api.pathitem (0.33), api.components (0.01); best predicate: associated-with (0.60), none (0.12), serves (0.06). Outcome: alternative (predicate=associated-with).",
+          "entity_id": "rel:api.ratelimit#2"
+        }
+      ],
+      "probability": 0.597,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "rename-predicate",
+        "triple": "api.ratelimit.serves.api.pathitem",
+        "replacement": ["api.ratelimit.associated-with.api.pathitem"],
+        "claims": ["rel:api.ratelimit#2"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "update",
+      "target_id": "api.server.aggregates.api.servervariable",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "api.server composes api.servervariable"
+      },
+      "rationale": "Rename the predicate of api.server.aggregates.api.servervariable to api.server.composes.api.servervariable. Plan kind rename-predicate, p 0.59; claims rel:api.server#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.server",
+        "destination_spec_node_id": "api.servervariable",
+        "title": "Server aggregates Servervariable",
+        "description": "Defines relationship: api.server aggregates api.servervariable"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.server aggregates api.servervariable should use composes, since server variables have no existence outside their server. Proposed: Replace aggregates with composes for server to servervariable.",
+          "entity_id": "rel:api.server#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.server#1): best source of 'aggregates api.servervariable': api.server (0.83), none (0.10), api.components (0.03); best destination of 'api.server aggregates': api.servervariable (0.64), none (0.23), api.components (0.03); best predicate: composes (0.59), reverse:governs (0.13), aggregates (0.10). Outcome: alternative (predicate=composes).",
+          "entity_id": "rel:api.server#1"
+        }
+      ],
+      "probability": 0.587,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "rename-predicate",
+        "triple": "api.server.aggregates.api.servervariable",
+        "replacement": ["api.server.composes.api.servervariable"],
+        "claims": ["rel:api.server#1"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "api.info.aggregates.api.contact",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "api.info composes api.contact"
+      },
+      "rationale": "Rename the predicate of api.info.aggregates.api.contact to api.info.composes.api.contact. Plan kind rename-predicate, p 0.57; claims rel:api.info#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.info",
+        "destination_spec_node_id": "api.contact",
+        "title": "Info aggregates Contact",
+        "description": "Defines relationship: api.info aggregates api.contact"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.info aggregates api.contact and api.info aggregates api.license may be better expressed as composes, since Contact and License are nested and document-bound, unless shared contacts or licenses are intended. Proposed: Change the predicate of both relationships from aggregates to composes, unless shared contacts or licenses are intended.",
+          "entity_id": "rel:api.info#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.info#2): best source of 'aggregates api.contact': api.info (0.83), none (0.06), api.contact (0.05); best destination of 'api.info aggregates': api.contact (0.93), none (0.02), api.license (0.02); best predicate: composes (0.57), aggregates (0.21), uses (0.06). Outcome: alternative (predicate=composes).",
+          "entity_id": "rel:api.info#2"
+        }
+      ],
+      "probability": 0.567,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "rename-predicate",
+        "triple": "api.info.aggregates.api.contact",
+        "replacement": ["api.info.composes.api.contact"],
+        "claims": ["rel:api.info#2"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "update",
+      "target_id": "api.operation.composes.api.responses",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "api.operation aggregates api.responses"
+      },
+      "rationale": "Rename the predicate of api.operation.composes.api.responses to api.operation.aggregates.api.responses. Plan kind rename-predicate, p 0.35; claims rel:api.operation#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "api.responses",
+        "title": "Operation Composes Responses",
+        "description": "Defines relationship: api.operation composes api.responses"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.operation delivers api.response duplicates api.operation composes api.responses. Proposed: Remove one of the two relationships.",
+          "entity_id": "rel:api.operation#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.operation#4): best source of 'composes api.responses': api.operation (0.76), api.components (0.08), none (0.07); best destination of 'api.operation composes': api.responses (0.89), none (0.04), api.components (0.02); best predicate: aggregates (0.35), composes (0.28), none (0.09). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.operation#4"
+        }
+      ],
+      "probability": 0.355,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "rename-predicate",
+        "triple": "api.operation.composes.api.responses",
+        "replacement": ["api.operation.aggregates.api.responses"],
+        "claims": ["rel:api.operation#4"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "api.parameter.references.api.schema",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "api.parameter uses api.schema"
+      },
+      "rationale": "Rename the predicate of api.parameter.references.api.schema to api.parameter.uses.api.schema. Plan kind rename-predicate, p 0.35; claims rel:api.parameter#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.parameter",
+        "destination_spec_node_id": "api.schema",
+        "title": "Parameter References Schema",
+        "description": "Defines relationship: api.parameter references api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.parameter references api.schema would be more precise with a constrained-by predicate than references. Proposed: Change the predicate of parameter→schema from references to constrained-by.",
+          "entity_id": "rel:api.parameter#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.parameter#3): best source of 'references api.schema': api.parameter (0.86), api.mediatype (0.04), api.operation (0.03); best destination of 'api.parameter references': api.schema (0.81), none (0.06), api.components (0.04); best predicate: uses (0.35), references (0.18), depends-on (0.18). Outcome: alternative (predicate=uses).",
+          "entity_id": "rel:api.parameter#3"
+        }
+      ],
+      "probability": 0.346,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "rename-predicate",
+        "triple": "api.parameter.references.api.schema",
+        "replacement": ["api.parameter.uses.api.schema"],
+        "claims": ["rel:api.parameter#3"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "update",
+      "target_id": "api.operation.delivers.api.response",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "api.operation aggregates api.response"
+      },
+      "rationale": "Rename the predicate of api.operation.delivers.api.response to api.operation.aggregates.api.response. Plan kind rename-predicate, p 0.22; claims rel:api.operation#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "delivers",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "api.response",
+        "title": "Operation Delivers Response",
+        "description": "Defines relationship: api.operation delivers api.response"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.operation delivers api.response duplicates api.operation composes api.responses. Proposed: Remove one of the two relationships.",
+          "entity_id": "rel:api.operation#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.operation#4): best source of 'delivers api.response': api.operation (0.68), none (0.16), api.components (0.08); best destination of 'api.operation delivers': api.response (0.53), none (0.26), api.components (0.05); best predicate: aggregates (0.22), composes (0.21), none (0.17). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "rel:api.operation#4"
+        }
+      ],
+      "probability": 0.219,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "rename-predicate",
+        "triple": "api.operation.delivers.api.response",
+        "replacement": ["api.operation.aggregates.api.response"],
+        "claims": ["rel:api.operation#4"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "delete",
+      "target_id": "api.tag.aggregates.api.operation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.tag.aggregates.api.operation: api.operation.references.api.tag already expresses it. Plan kind reverse, p 0.56; claims node:api.tag#2, rel:api.tag#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.tag",
+        "destination_spec_node_id": "api.operation",
+        "title": "Tag aggregates Operation",
+        "description": "Defines relationship: api.tag aggregates api.operation"
+      },
+      "evidence": [
+        {
+          "quote": "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships. Proposed: Remove the duplicate tag→operation relationships (or the operation→tag ones) and keep a single direction and predicate.",
+          "entity_id": "node:api.tag#2"
+        },
+        {
+          "quote": "The relationships api.tag --aggregates--> api.operation and api.tag --serves--> api.operation express the same fact (the operation lists the tag name), so they are redundant. Proposed: Keep only the aggregates relationship and remove serves from api.tag to api.operation.",
+          "entity_id": "rel:api.tag#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.tag#2): best source of 'aggregates api.operation': api.tag (0.82), none (0.11), api.components (0.02); best destination of 'api.tag aggregates': api.operation (0.52), none (0.21), api.components (0.06); best predicate: reverse:references (0.85), aggregates (0.07), none (0.03). Outcome: alternative (predicate=reverse:references).",
+          "entity_id": "node:api.tag#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.tag#1): best source of 'aggregates api.operation': api.tag (0.81), none (0.14), api.components (0.02); best destination of 'api.tag aggregates': api.operation (0.44), none (0.36), api.components (0.05); best predicate: reverse:references (0.56), aggregates (0.24), none (0.08). Outcome: alternative (predicate=reverse:references).",
+          "entity_id": "rel:api.tag#1"
+        }
+      ],
+      "probability": 0.564,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "reverse",
+        "triple": "api.tag.aggregates.api.operation",
+        "replacement": ["api.operation.references.api.tag"],
+        "claims": ["node:api.tag#2", "rel:api.tag#1"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "delete",
+      "target_id": "api.tag.serves.api.operation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.tag.serves.api.operation: api.operation.references.api.tag already expresses it. Plan kind reverse, p 0.46; claims rel:api.tag#2, node:api.tag#2, rel:api.tag#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.tag",
+        "destination_spec_node_id": "api.operation",
+        "title": "Tag serves Operation",
+        "description": "Defines relationship: api.tag serves api.operation"
+      },
+      "evidence": [
+        {
+          "quote": "The 'serves' predicate for api.tag to api.operation is semantically weak because tags provide no behavior. Proposed: Remove the serves relationship from api.tag to api.operation.",
+          "entity_id": "rel:api.tag#2"
+        },
+        {
+          "quote": "The tag→operation 'aggregates' and 'serves' relationships duplicate the operation→tag 'aggregates' and 'references' relationships. Proposed: Remove the duplicate tag→operation relationships (or the operation→tag ones) and keep a single direction and predicate.",
+          "entity_id": "node:api.tag#2"
+        },
+        {
+          "quote": "The relationships api.tag --aggregates--> api.operation and api.tag --serves--> api.operation express the same fact (the operation lists the tag name), so they are redundant. Proposed: Keep only the aggregates relationship and remove serves from api.tag to api.operation.",
+          "entity_id": "rel:api.tag#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.tag#2): best source of 'serves api.operation': none (0.52), api.paths (0.21), api.tag (0.14); best destination of 'api.tag serves': none (0.62), api.operation (0.29), api.externaldocumentation (0.03); best predicate: reverse:references (0.46), aggregates (0.36), none (0.06). Outcome: alternative (predicate=reverse:references).",
+          "entity_id": "rel:api.tag#2"
+        },
+        {
+          "quote": "Sorting answers (node:api.tag#2): best source of 'serves api.operation': none (0.70), api.tag (0.14), api.paths (0.07); best destination of 'api.tag serves': api.operation (0.67), none (0.25), api.externaldocumentation (0.02); best predicate: reverse:references (0.78), aggregates (0.11), none (0.04). Outcome: alternative (predicate=reverse:references).",
+          "entity_id": "node:api.tag#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.tag#1): best source of 'serves api.operation': none (0.59), api.tag (0.16), api.paths (0.10); best destination of 'api.tag serves': none (0.67), api.operation (0.21), api.externaldocumentation (0.04); best predicate: reverse:references (0.54), aggregates (0.31), none (0.04). Outcome: alternative (predicate=reverse:references).",
+          "entity_id": "rel:api.tag#1"
+        }
+      ],
+      "probability": 0.461,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "reverse",
+        "triple": "api.tag.serves.api.operation",
+        "replacement": ["api.operation.references.api.tag"],
+        "claims": ["rel:api.tag#2", "node:api.tag#2", "rel:api.tag#1"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "delete",
+      "target_id": "api.mediatype.serves.api.response",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.mediatype.serves.api.response: api.response.composes.api.mediatype already expresses it. Plan kind reverse, p 0.44; claims rel:api.mediatype#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.mediatype",
+        "destination_spec_node_id": "api.response",
+        "title": "Mediatype serves Response",
+        "description": "Defines relationship: api.mediatype serves api.response"
+      },
+      "evidence": [
+        {
+          "quote": "The serves relationships from api.mediatype to api.requestbody and api.response misstate the structure, because RequestBody and Response compose MediaType through their content map. Proposed: Replace the serves relationships with the inverse composed-of relationships from api.mediatype to api.requestbody and api.response.",
+          "entity_id": "rel:api.mediatype#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.mediatype#3): best source of 'serves api.response': none (0.75), api.mediatype (0.10), api.callback (0.03); best destination of 'api.mediatype serves': none (0.49), api.response (0.36), api.requestbody (0.06); best predicate: reverse:composes (0.44), reverse:aggregates (0.36), none (0.08). Outcome: alternative (predicate=reverse:composes).",
+          "entity_id": "rel:api.mediatype#3"
+        }
+      ],
+      "probability": 0.44,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "reverse",
+        "triple": "api.mediatype.serves.api.response",
+        "replacement": ["api.response.composes.api.mediatype"],
+        "claims": ["rel:api.mediatype#3"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "delete",
+      "target_id": "api.mediatype.serves.api.requestbody",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.mediatype.serves.api.requestbody: api.requestbody.composes.api.mediatype already expresses it. Plan kind reverse, p 0.43; claims rel:api.mediatype#3, node:api.requestbody#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.mediatype",
+        "destination_spec_node_id": "api.requestbody",
+        "title": "Mediatype serves Requestbody",
+        "description": "Defines relationship: api.mediatype serves api.requestbody"
+      },
+      "evidence": [
+        {
+          "quote": "The serves relationships from api.mediatype to api.requestbody and api.response misstate the structure, because RequestBody and Response compose MediaType through their content map. Proposed: Replace the serves relationships with the inverse composed-of relationships from api.mediatype to api.requestbody and api.response.",
+          "entity_id": "rel:api.mediatype#3"
+        },
+        {
+          "quote": "api.requestbody declares both 'aggregates' and 'composes' relationships to api.mediatype, plus a 'mediatype serves requestbody' relationship, which are redundant and inconsistent. Proposed: Keep only one relationship between api.requestbody and api.mediatype and remove the others.",
+          "entity_id": "node:api.requestbody#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.mediatype#3): best source of 'serves api.requestbody': none (0.72), api.mediatype (0.16), api.components (0.03); best destination of 'api.mediatype serves': none (0.65), api.requestbody (0.17), api.response (0.09); best predicate: reverse:composes (0.43), reverse:aggregates (0.32), none (0.12). Outcome: alternative (predicate=reverse:composes).",
+          "entity_id": "rel:api.mediatype#3"
+        },
+        {
+          "quote": "Sorting answers (node:api.requestbody#2): best source of 'serves api.requestbody': api.mediatype (0.68), none (0.16), api.encoding (0.07); best destination of 'api.mediatype serves': api.requestbody (0.57), none (0.17), api.response (0.08); best predicate: reverse:composes (0.47), reverse:aggregates (0.30), none (0.08). Outcome: alternative (predicate=reverse:composes).",
+          "entity_id": "node:api.requestbody#2"
+        }
+      ],
+      "probability": 0.428,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "reverse",
+        "triple": "api.mediatype.serves.api.requestbody",
+        "replacement": ["api.requestbody.composes.api.mediatype"],
+        "claims": ["rel:api.mediatype#3", "node:api.requestbody#2"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "api.operation.references.api.tag",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.operation.references.api.tag: api.tag.aggregates.api.operation already expresses it. Plan kind reverse, p 0.38; claims rel:api.operation#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "api.tag",
+        "title": "Operation References Tag",
+        "description": "Defines relationship: api.operation references api.tag"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.operation aggregates api.tag and api.operation references api.tag overlap, differing only in inline versus $ref. Proposed: Consolidate into a single relationship between api.operation and api.tag.",
+          "entity_id": "rel:api.operation#3"
+        },
+        {
+          "quote": "Sorting answers (node:api.tag#2): best source of 'references api.tag': api.operation (0.92), none (0.03), api.components (0.01); best destination of 'api.operation references': api.tag (0.94), none (0.03), api.externaldocumentation (0.01); best predicate: references (0.73), reverse:aggregates (0.12), aggregates (0.03). Outcome: reproduced.",
+          "entity_id": "node:api.tag#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.operation#3): best source of 'references api.tag': api.operation (0.78), none (0.08), api.parameter (0.03); best destination of 'api.operation references': api.tag (0.91), api.operation (0.02), none (0.02); best predicate: reverse:aggregates (0.38), references (0.14), reverse:serves (0.09). Outcome: alternative (predicate=reverse:aggregates).",
+          "entity_id": "rel:api.operation#3"
+        }
+      ],
+      "probability": 0.376,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "reverse",
+        "triple": "api.operation.references.api.tag",
+        "replacement": ["api.tag.aggregates.api.operation"],
+        "claims": ["rel:api.operation#3"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "delete",
+      "target_id": "api.requestbody.composes.api.mediatype",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.requestbody.composes.api.mediatype: api.mediatype.serves.api.requestbody already expresses it. Plan kind reverse, p 0.37; claims rel:api.requestbody#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.requestbody",
+        "destination_spec_node_id": "api.mediatype",
+        "title": "Requestbody composes Mediatype",
+        "description": "Defines relationship: api.requestbody composes api.mediatype"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.requestbody aggregates api.mediatype and api.requestbody composes api.mediatype are redundant and conflicting; composes is the correct one since media types live only inside the content map. Proposed: Remove the aggregates relationship from api.requestbody to api.mediatype and keep composes.",
+          "entity_id": "rel:api.requestbody#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.requestbody#2): best source of 'composes api.mediatype': api.requestbody (0.71), none (0.09), api.components (0.07); best destination of 'api.requestbody composes': api.mediatype (0.86), none (0.07), api.components (0.02); best predicate: composes (0.31), aggregates (0.30), uses (0.11). Outcome: reproduced.",
+          "entity_id": "node:api.requestbody#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.requestbody#1): best source of 'composes api.mediatype': api.requestbody (0.73), none (0.08), api.components (0.06); best destination of 'api.requestbody composes': api.mediatype (0.90), none (0.04), api.components (0.01); best predicate: reverse:serves (0.37), composes (0.22), aggregates (0.15). Outcome: alternative (predicate=reverse:serves).",
+          "entity_id": "rel:api.requestbody#1"
+        }
+      ],
+      "probability": 0.371,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "reverse",
+        "triple": "api.requestbody.composes.api.mediatype",
+        "replacement": ["api.mediatype.serves.api.requestbody"],
+        "claims": ["rel:api.requestbody#1"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "api.servervariable.governs.api.server",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove api.servervariable.governs.api.server: api.server.aggregates.api.servervariable already expresses it. Plan kind reverse, p 0.37; claims node:api.servervariable#4, rel:api.servervariable#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "api.servervariable",
+        "destination_spec_node_id": "api.server",
+        "title": "Servervariable governs Server",
+        "description": "Defines relationship: api.servervariable governs api.server"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'governs api.server' from api.servervariable duplicates the inverse 'aggregates' relationship from api.server. Proposed: Remove 'governs api.server' and keep the 'aggregates' relationship.",
+          "entity_id": "node:api.servervariable#4"
+        },
+        {
+          "quote": "The relationship api.servervariable --[governs]--> api.server understates the link, since a server variable is structurally part of its server and cannot exist without it, so 'composes' would fit better. Proposed: Replace the 'governs' predicate with 'composes' for the servervariable-to-server relationship.",
+          "entity_id": "rel:api.servervariable#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.servervariable#4): best source of 'governs api.server': none (0.51), api.servervariable (0.34), api.components (0.05); best destination of 'api.servervariable governs': api.server (0.74), none (0.19), api.externaldocumentation (0.02); best predicate: reverse:aggregates (0.57), composes (0.20), none (0.07). Outcome: alternative (predicate=reverse:aggregates).",
+          "entity_id": "node:api.servervariable#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.servervariable#1): best source of 'governs api.server': api.servervariable (0.47), none (0.37), api.components (0.05); best destination of 'api.servervariable governs': api.server (0.67), none (0.24), api.callback (0.02); best predicate: reverse:aggregates (0.37), composes (0.34), depends-on (0.09). Outcome: alternative (predicate=reverse:aggregates).",
+          "entity_id": "rel:api.servervariable#1"
+        }
+      ],
+      "probability": 0.369,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "reverse",
+        "triple": "api.servervariable.governs.api.server",
+        "replacement": ["api.server.aggregates.api.servervariable"],
+        "claims": ["node:api.servervariable#4", "rel:api.servervariable#1"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "update",
+      "target_id": "api.requestbody.references.api.schema",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.mediatype",
+        "title": "api.mediatype references api.schema"
+      },
+      "rationale": "Retarget of api.requestbody.references.api.schema to api.mediatype.references.api.schema. Plan kind retarget, p 0.85; claims rel:api.requestbody#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.requestbody",
+        "destination_spec_node_id": "api.schema",
+        "title": "Requestbody references Schema",
+        "description": "Defines relationship: api.requestbody references api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody. Proposed: Remove the direct relationships from api.requestbody to api.example, api.encoding and api.schema, leaving them on api.mediatype.",
+          "entity_id": "rel:api.requestbody#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.requestbody#2): best source of 'references api.schema': api.mediatype (0.85), none (0.05), api.parameter (0.03); best destination of 'api.requestbody references': none (0.60), api.schema (0.22), api.components (0.06); best predicate: references (0.36), none (0.34), uses (0.09). Outcome: alternative (source=api.mediatype).",
+          "entity_id": "rel:api.requestbody#2"
+        }
+      ],
+      "probability": 0.847,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "retarget",
+        "triple": "api.requestbody.references.api.schema",
+        "replacement": ["api.mediatype.references.api.schema"],
+        "claims": ["rel:api.requestbody#2"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "update",
+      "target_id": "api.requestbody.aggregates.api.example",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.mediatype",
+        "destination_spec_node_id": "api.mediatype",
+        "title": "api.mediatype aggregates api.mediatype"
+      },
+      "rationale": "Retarget of api.requestbody.aggregates.api.example to api.mediatype.aggregates.api.mediatype. Plan kind retarget, p 0.82; claims rel:api.requestbody#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.requestbody",
+        "destination_spec_node_id": "api.example",
+        "title": "Requestbody aggregates Example",
+        "description": "Defines relationship: api.requestbody aggregates api.example"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody. Proposed: Remove the direct relationships from api.requestbody to api.example, api.encoding and api.schema, leaving them on api.mediatype.",
+          "entity_id": "rel:api.requestbody#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.requestbody#2): best source of 'aggregates api.example': api.mediatype (0.82), none (0.06), api.requestbody (0.05); best destination of 'api.requestbody aggregates': api.mediatype (0.84), none (0.09), api.example (0.03); best predicate: none (0.61), aggregates (0.17), associated-with (0.05). Outcome: alternative (source=api.mediatype; target=api.mediatype).",
+          "entity_id": "rel:api.requestbody#2"
+        }
+      ],
+      "probability": 0.82,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "retarget",
+        "triple": "api.requestbody.aggregates.api.example",
+        "replacement": ["api.mediatype.aggregates.api.mediatype"],
+        "claims": ["rel:api.requestbody#2"]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "update",
+      "target_id": "api.responses.aggregates.api.header",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.response",
+        "title": "api.response aggregates api.header"
+      },
+      "rationale": "Retarget of api.responses.aggregates.api.header to api.response.aggregates.api.header. Plan kind retarget, p 0.76; claims rel:api.responses#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.responses",
+        "destination_spec_node_id": "api.header",
+        "title": "Responses aggregates Header",
+        "description": "Defines relationship: api.responses aggregates api.header"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map. Proposed: Remove the header, schema and link relationships from api.responses and keep them only on api.response or api.mediatype.",
+          "entity_id": "rel:api.responses#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#1): best source of 'aggregates api.header': api.response (0.76), none (0.14), api.responses (0.04); best destination of 'api.responses aggregates': none (0.69), api.header (0.16), api.components (0.04); best predicate: none (0.87), aggregates (0.06), composes (0.01). Outcome: alternative (source=api.response).",
+          "entity_id": "rel:api.responses#1"
+        }
+      ],
+      "probability": 0.763,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "retarget",
+        "triple": "api.responses.aggregates.api.header",
+        "replacement": ["api.response.aggregates.api.header"],
+        "claims": ["rel:api.responses#1"]
+      }
+    },
+    {
+      "seq": 25,
+      "op": "update",
+      "target_id": "api.pathitem.realizes.business.businessfunction",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationfunction",
+        "title": "application.applicationfunction realizes business.businessfunction"
+      },
+      "rationale": "Retarget of api.pathitem.realizes.business.businessfunction to application.applicationfunction.realizes.business.businessfunction. Plan kind retarget, p 0.72; claims rel:api.pathitem#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "api.pathitem",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "Pathitem realizes Businessfunction",
+        "description": "Defines relationship: api.pathitem realizes business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.pathitem realizes business.businessfunction is unusual because business behaviour is normally realized by the operation or an application service rather than directly by a path item. Proposed: Remove the realizes relationship from api.pathitem to business.businessfunction and rely on operation-level or application-service realization.",
+          "entity_id": "rel:api.pathitem#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.pathitem#2): best source of 'realizes business.businessfunction': application.applicationfunction (0.72), none (0.12), api.pathitem (0.05); best destination of 'api.pathitem realizes': business.businessfunction (0.28), none (0.27), business.businessevent (0.16); best predicate: none (0.48), serves (0.21), realizes (0.12). Outcome: alternative (source=application.applicationfunction).",
+          "entity_id": "rel:api.pathitem#2"
+        }
+      ],
+      "probability": 0.718,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 25,
+        "plan_kind": "retarget",
+        "triple": "api.pathitem.realizes.business.businessfunction",
+        "replacement": [
+          "application.applicationfunction.realizes.business.businessfunction"
+        ],
+        "claims": ["rel:api.pathitem#2"]
+      }
+    },
+    {
+      "seq": 26,
+      "op": "update",
+      "target_id": "api.response.references.api.example",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.mediatype",
+        "title": "api.mediatype references api.example"
+      },
+      "rationale": "Retarget of api.response.references.api.example to api.mediatype.references.api.example. Plan kind retarget, p 0.71; claims rel:api.response#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.response",
+        "destination_spec_node_id": "api.example",
+        "title": "Response references Example",
+        "description": "Defines relationship: api.response references api.example"
+      },
+      "evidence": [
+        {
+          "quote": "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships. Proposed: Remove the direct response-to-schema and response-to-example relationships, leaving the paths via api.mediatype and api.header.",
+          "entity_id": "rel:api.response#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#4): best source of 'references api.example': api.mediatype (0.71), api.response (0.12), api.components (0.08); best destination of 'api.response references': api.example (0.56), none (0.26), api.components (0.06); best predicate: references (0.49), none (0.28), uses (0.06). Outcome: alternative (source=api.mediatype).",
+          "entity_id": "rel:api.response#4"
+        }
+      ],
+      "probability": 0.712,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 26,
+        "plan_kind": "retarget",
+        "triple": "api.response.references.api.example",
+        "replacement": ["api.mediatype.references.api.example"],
+        "claims": ["rel:api.response#4"]
+      }
+    },
+    {
+      "seq": 27,
+      "op": "update",
+      "target_id": "api.oauthflow.serves.api.operation",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.securityscheme",
+        "title": "api.securityscheme serves api.operation"
+      },
+      "rationale": "Retarget of api.oauthflow.serves.api.operation to api.securityscheme.serves.api.operation. Plan kind retarget, p 0.68; claims node:api.oauthflow#5.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.oauthflow",
+        "destination_spec_node_id": "api.operation",
+        "title": "Oauthflow serves Operation",
+        "description": "Defines relationship: api.oauthflow serves api.operation"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing serves relationship from api.oauthflow to api.operation looks spurious because an OAuth flow is consumed only via its SecurityScheme. Proposed: Remove the serves relationship from api.oauthflow to api.operation.",
+          "entity_id": "node:api.oauthflow#5"
+        },
+        {
+          "quote": "Sorting answers (node:api.oauthflow#5): best source of 'serves api.operation': api.securityscheme (0.68), none (0.20), api.oauthflow (0.06); best destination of 'api.oauthflow serves': none (0.54), api.operation (0.34), api.securityscheme (0.06); best predicate: none (0.73), serves (0.11), associated-with (0.05). Outcome: alternative (source=api.securityscheme).",
+          "entity_id": "node:api.oauthflow#5"
+        }
+      ],
+      "probability": 0.683,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 27,
+        "plan_kind": "retarget",
+        "triple": "api.oauthflow.serves.api.operation",
+        "replacement": ["api.securityscheme.serves.api.operation"],
+        "claims": ["node:api.oauthflow#5"]
+      }
+    },
+    {
+      "seq": 28,
+      "op": "update",
+      "target_id": "api.mediatype.associated-with.api.header",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.encoding",
+        "title": "api.encoding associated-with api.header"
+      },
+      "rationale": "Retarget of api.mediatype.associated-with.api.header to api.encoding.associated-with.api.header. Plan kind retarget, p 0.66; claims rel:api.mediatype#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "api.mediatype",
+        "destination_spec_node_id": "api.header",
+        "title": "Mediatype associated-with Header",
+        "description": "Defines relationship: api.mediatype associated-with api.header"
+      },
+      "evidence": [
+        {
+          "quote": "The associated-with relationship from api.mediatype to api.header is indirect (it goes via Encoding) and therefore redundant. Proposed: Remove the api.mediatype associated-with api.header relationship.",
+          "entity_id": "rel:api.mediatype#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.mediatype#2): best source of 'associated-with api.header': api.encoding (0.66), none (0.19), api.mediatype (0.09); best destination of 'api.mediatype associated-with': none (0.55), api.encoding (0.34), api.header (0.04); best predicate: none (0.75), associated-with (0.12), aggregates (0.04). Outcome: alternative (source=api.encoding).",
+          "entity_id": "rel:api.mediatype#2"
+        }
+      ],
+      "probability": 0.66,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 28,
+        "plan_kind": "retarget",
+        "triple": "api.mediatype.associated-with.api.header",
+        "replacement": ["api.encoding.associated-with.api.header"],
+        "claims": ["rel:api.mediatype#2"]
+      }
+    },
+    {
+      "seq": 29,
+      "op": "update",
+      "target_id": "api.paths.references.api.tag",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.operation",
+        "title": "api.operation references api.tag"
+      },
+      "rationale": "Retarget of api.paths.references.api.tag to api.operation.references.api.tag. Plan kind retarget, p 0.66; claims node:api.tag#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.paths",
+        "destination_spec_node_id": "api.tag",
+        "title": "Paths references Tag",
+        "description": "Defines relationship: api.paths references api.tag"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI. Proposed: Remove the oauthflow→tag, parameter→tag, schema→tag and paths→tag relationships.",
+          "entity_id": "node:api.tag#3"
+        },
+        {
+          "quote": "Sorting answers (node:api.tag#3): best source of 'references api.tag': api.operation (0.66), none (0.24), api.paths (0.03); best destination of 'api.paths references': none (0.52), api.tag (0.36), api.components (0.05); best predicate: none (0.63), references (0.11), associated-with (0.07). Outcome: alternative (source=api.operation).",
+          "entity_id": "node:api.tag#3"
+        }
+      ],
+      "probability": 0.66,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 29,
+        "plan_kind": "retarget",
+        "triple": "api.paths.references.api.tag",
+        "replacement": ["api.operation.references.api.tag"],
+        "claims": ["node:api.tag#3"]
+      }
+    },
+    {
+      "seq": 30,
+      "op": "update",
+      "target_id": "api.openapidocument.serves.motivation.stakeholder",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationservice",
+        "title": "application.applicationservice serves motivation.stakeholder"
+      },
+      "rationale": "Retarget of api.openapidocument.serves.motivation.stakeholder to application.applicationservice.serves.motivation.stakeholder. Plan kind retarget, p 0.63; claims rel:api.openapidocument#5.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.openapidocument",
+        "destination_spec_node_id": "motivation.stakeholder",
+        "title": "Openapidocument serves Stakeholder",
+        "description": "Defines relationship: api.openapidocument serves motivation.stakeholder"
+      },
+      "evidence": [
+        {
+          "quote": "The serves relationship from api.openapidocument to motivation.stakeholder is weak. Proposed: Remove the serves relationship to motivation.stakeholder.",
+          "entity_id": "rel:api.openapidocument#5"
+        },
+        {
+          "quote": "Sorting answers (rel:api.openapidocument#5): best source of 'serves motivation.stakeholder': application.applicationservice (0.63), none (0.14), business.businessrole (0.06); best destination of 'api.openapidocument serves': motivation.stakeholder (0.40), application.applicationcomponent (0.27), none (0.17); best predicate: none (0.63), serves (0.22), associated-with (0.05). Outcome: alternative (source=application.applicationservice).",
+          "entity_id": "rel:api.openapidocument#5"
+        }
+      ],
+      "probability": 0.634,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 30,
+        "plan_kind": "retarget",
+        "triple": "api.openapidocument.serves.motivation.stakeholder",
+        "replacement": [
+          "application.applicationservice.serves.motivation.stakeholder"
+        ],
+        "claims": ["rel:api.openapidocument#5"]
+      }
+    },
+    {
+      "seq": 31,
+      "op": "update",
+      "target_id": "api.link.references.api.tag",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.operation",
+        "title": "api.operation references api.tag"
+      },
+      "rationale": "Retarget of api.link.references.api.tag to api.operation.references.api.tag. Plan kind retarget, p 0.59; claims rel:api.link#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.link",
+        "destination_spec_node_id": "api.tag",
+        "title": "Link References Tag",
+        "description": "Defines relationship: api.link references api.tag"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.link references api.tag has no corresponding field in the OpenAPI Link Object and is only indirect via the target operation's tags; it is derivable from link→operation plus operation→tag. Proposed: Remove the api.link references api.tag relationship, since it is derivable from link→operation and operation→tag.",
+          "entity_id": "rel:api.link#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.link#2): best source of 'references api.tag': api.operation (0.59), none (0.25), api.link (0.07); best destination of 'api.link references': none (0.39), api.operation (0.37), api.tag (0.14); best predicate: none (0.73), references (0.18), associated-with (0.03). Outcome: alternative (source=api.operation).",
+          "entity_id": "rel:api.link#2"
+        }
+      ],
+      "probability": 0.595,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 31,
+        "plan_kind": "retarget",
+        "triple": "api.link.references.api.tag",
+        "replacement": ["api.operation.references.api.tag"],
+        "claims": ["rel:api.link#2"]
+      }
+    },
+    {
+      "seq": 32,
+      "op": "update",
+      "target_id": "api.responses.references.api.schema",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.mediatype",
+        "title": "api.mediatype references api.schema"
+      },
+      "rationale": "Retarget of api.responses.references.api.schema to api.mediatype.references.api.schema. Plan kind retarget, p 0.59; claims rel:api.responses#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.responses",
+        "destination_spec_node_id": "api.schema",
+        "title": "Responses references Schema",
+        "description": "Defines relationship: api.responses references api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning. Proposed: Distinguish inline schemas from $ref schemas between the two relationships, or drop one of them.",
+          "entity_id": "rel:api.responses#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#2): best source of 'references api.schema': api.mediatype (0.59), api.operation (0.12), none (0.09); best destination of 'api.responses references': api.schema (0.39), api.components (0.25), none (0.22); best predicate: references (0.64), none (0.11), uses (0.08). Outcome: alternative (source=api.mediatype).",
+          "entity_id": "rel:api.responses#2"
+        }
+      ],
+      "probability": 0.592,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 32,
+        "plan_kind": "retarget",
+        "triple": "api.responses.references.api.schema",
+        "replacement": ["api.mediatype.references.api.schema"],
+        "claims": ["rel:api.responses#2"]
+      }
+    },
+    {
+      "seq": 33,
+      "op": "update",
+      "target_id": "api.requestbody.associated-with.api.encoding",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.encoding",
+        "title": "api.encoding associated-with api.encoding"
+      },
+      "rationale": "Retarget of api.requestbody.associated-with.api.encoding to api.encoding.associated-with.api.encoding. Plan kind retarget, p 0.57; claims rel:api.requestbody#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "api.requestbody",
+        "destination_spec_node_id": "api.encoding",
+        "title": "Requestbody associated-with Encoding",
+        "description": "Defines relationship: api.requestbody associated-with api.encoding"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from api.requestbody to api.example (aggregates), api.encoding (associated-with) and api.schema (references) are indirect because these elements hang off api.mediatype, not api.requestbody. Proposed: Remove the direct relationships from api.requestbody to api.example, api.encoding and api.schema, leaving them on api.mediatype.",
+          "entity_id": "rel:api.requestbody#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.requestbody#2): best source of 'associated-with api.encoding': api.encoding (0.57), none (0.28), api.requestbody (0.09); best destination of 'api.requestbody associated-with': api.encoding (0.81), none (0.14), api.externaldocumentation (0.01); best predicate: none (0.47), associated-with (0.30), uses (0.07). Outcome: alternative (source=api.encoding).",
+          "entity_id": "rel:api.requestbody#2"
+        }
+      ],
+      "probability": 0.566,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 33,
+        "plan_kind": "retarget",
+        "triple": "api.requestbody.associated-with.api.encoding",
+        "replacement": ["api.encoding.associated-with.api.encoding"],
+        "claims": ["rel:api.requestbody#2"]
+      }
+    },
+    {
+      "seq": 34,
+      "op": "update",
+      "target_id": "api.pathitem.serves.application.applicationcomponent",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationservice",
+        "title": "application.applicationservice serves application.applicationcomponent"
+      },
+      "rationale": "Retarget of api.pathitem.serves.application.applicationcomponent to application.applicationservice.serves.application.applicationcomponent. Plan kind retarget, p 0.56; claims rel:api.pathitem#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.pathitem",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "Pathitem serves Applicationcomponent",
+        "description": "Defines relationship: api.pathitem serves application.applicationcomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.pathitem serves application.applicationcomponent is more naturally expressed at the operation level than at the path item level. Proposed: Move the serves relationship to application.applicationcomponent from api.pathitem to api.operation.",
+          "entity_id": "rel:api.pathitem#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.pathitem#3): best source of 'serves application.applicationcomponent': application.applicationservice (0.57), api.pathitem (0.13), api.openapidocument (0.10); best destination of 'api.pathitem serves': application.applicationcomponent (0.35), application.applicationservice (0.27), application.applicationinterface (0.17); best predicate: serves (0.46), none (0.14), realizes (0.09). Outcome: alternative (source=application.applicationservice).",
+          "entity_id": "rel:api.pathitem#3"
+        }
+      ],
+      "probability": 0.565,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 34,
+        "plan_kind": "retarget",
+        "triple": "api.pathitem.serves.application.applicationcomponent",
+        "replacement": [
+          "application.applicationservice.serves.application.applicationcomponent"
+        ],
+        "claims": ["rel:api.pathitem#3"]
+      }
+    },
+    {
+      "seq": 35,
+      "op": "update",
+      "target_id": "api.schema.references.api.tag",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.operation",
+        "title": "api.operation references api.tag"
+      },
+      "rationale": "Retarget of api.schema.references.api.tag to api.operation.references.api.tag. Plan kind retarget, p 0.54; claims node:api.tag#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.schema",
+        "destination_spec_node_id": "api.tag",
+        "title": "Schema References Tag",
+        "description": "Defines relationship: api.schema references api.tag"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI. Proposed: Remove the oauthflow→tag, parameter→tag, schema→tag and paths→tag relationships.",
+          "entity_id": "node:api.tag#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.schema#2): best source of 'references api.tag': none (0.53), api.operation (0.33), api.schema (0.04); best destination of 'api.schema references': none (0.35), api.tag (0.33), api.schema (0.13); best predicate: none (0.39), reverse:associated-with (0.36), associated-with (0.14). Outcome: no_better.",
+          "entity_id": "rel:api.schema#2"
+        },
+        {
+          "quote": "Sorting answers (node:api.tag#3): best source of 'references api.tag': api.operation (0.54), none (0.34), api.parameter (0.04); best destination of 'api.schema references': none (0.85), api.tag (0.06), api.components (0.03); best predicate: none (0.62), reverse:associated-with (0.20), references (0.07). Outcome: alternative (source=api.operation).",
+          "entity_id": "node:api.tag#3"
+        }
+      ],
+      "probability": 0.535,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 35,
+        "plan_kind": "retarget",
+        "triple": "api.schema.references.api.tag",
+        "replacement": ["api.operation.references.api.tag"],
+        "claims": ["node:api.tag#3"]
+      }
+    },
+    {
+      "seq": 36,
+      "op": "update",
+      "target_id": "api.components.composes.api.paths",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.openapidocument",
+        "title": "api.openapidocument composes api.paths"
+      },
+      "rationale": "Retarget of api.components.composes.api.paths to api.openapidocument.composes.api.paths. Plan kind retarget, p 0.53; claims node:api.components#1, rel:api.components#2.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.paths",
+        "title": "Components Composes Paths",
+        "description": "Defines relationship: api.components composes api.paths"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationship from api.components to api.paths is invalid because an OpenAPI 3.0 Components object has no paths or pathItems (these exist only in 3.1). Proposed: Remove the composes relationship from api.components to api.paths.",
+          "entity_id": "node:api.components#1"
+        },
+        {
+          "quote": "The api.components composes api.paths relationship is wrong because Paths is a root-level sibling of components, not a child of it. Proposed: Remove the composes edge from api.components to api.paths.",
+          "entity_id": "rel:api.components#2"
+        },
+        {
+          "quote": "Sorting answers (node:api.components#1): best source of 'composes api.paths': api.openapidocument (0.74), none (0.14), api.components (0.05); best destination of 'api.components composes': none (0.66), api.parameter (0.08), api.schema (0.06); best predicate: none (0.81), aggregates (0.04), associated-with (0.04). Outcome: alternative (source=api.openapidocument).",
+          "entity_id": "node:api.components#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#2): best source of 'composes api.paths': api.openapidocument (0.53), none (0.30), api.components (0.08); best destination of 'api.components composes': api.paths (0.25), none (0.17), api.parameter (0.15); best predicate: none (0.83), aggregates (0.06), composes (0.03). Outcome: alternative (source=api.openapidocument).",
+          "entity_id": "rel:api.components#2"
+        }
+      ],
+      "probability": 0.534,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 36,
+        "plan_kind": "retarget",
+        "triple": "api.components.composes.api.paths",
+        "replacement": ["api.openapidocument.composes.api.paths"],
+        "claims": ["node:api.components#1", "rel:api.components#2"]
+      }
+    },
+    {
+      "seq": 37,
+      "op": "update",
+      "target_id": "api.operation.realizes.motivation.outcome",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessprocess",
+        "title": "business.businessprocess realizes motivation.outcome"
+      },
+      "rationale": "Retarget of api.operation.realizes.motivation.outcome to business.businessprocess.realizes.motivation.outcome. Plan kind retarget, p 0.53; claims rel:api.operation#5.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "Operation realizes Outcome",
+        "description": "Defines relationship: api.operation realizes motivation.outcome"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.operation realizes motivation.goal and realizes motivation.outcome use the wrong predicate; they should be supports or delivers. Proposed: Change the predicate from realizes to supports or delivers.",
+          "entity_id": "rel:api.operation#5"
+        },
+        {
+          "quote": "Sorting answers (rel:api.operation#5): best source of 'realizes motivation.outcome': business.businessprocess (0.53), none (0.21), api.operation (0.16); best destination of 'api.operation realizes': motivation.outcome (0.37), motivation.goal (0.20), none (0.14); best predicate: realizes (0.45), none (0.32), serves (0.09). Outcome: alternative (source=business.businessprocess).",
+          "entity_id": "rel:api.operation#5"
+        }
+      ],
+      "probability": 0.53,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 37,
+        "plan_kind": "retarget",
+        "triple": "api.operation.realizes.motivation.outcome",
+        "replacement": ["business.businessprocess.realizes.motivation.outcome"],
+        "claims": ["rel:api.operation#5"]
+      }
+    },
+    {
+      "seq": 38,
+      "op": "update",
+      "target_id": "api.parameter.references.api.tag",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.operation",
+        "title": "api.operation references api.tag"
+      },
+      "rationale": "Retarget of api.parameter.references.api.tag to api.operation.references.api.tag. Plan kind retarget, p 0.48; claims node:api.parameter#2, rel:api.parameter#2, node:api.tag#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.parameter",
+        "destination_spec_node_id": "api.tag",
+        "title": "Parameter References Tag",
+        "description": "Defines relationship: api.parameter references api.tag"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing 'references' relationship from api.parameter to api.tag looks wrong because parameters do not reference tags. Proposed: Remove the references relationship from api.parameter to api.tag.",
+          "entity_id": "node:api.parameter#2"
+        },
+        {
+          "quote": "The relationship api.parameter references api.tag has no basis in OpenAPI 3.0 because Parameter Objects have no tags field. Proposed: Remove the api.parameter references api.tag relationship.",
+          "entity_id": "rel:api.parameter#2"
+        },
+        {
+          "quote": "The relationships from oauthflow, parameter, schema and paths to tag have no basis in OpenAPI. Proposed: Remove the oauthflow→tag, parameter→tag, schema→tag and paths→tag relationships.",
+          "entity_id": "node:api.tag#3"
+        },
+        {
+          "quote": "Sorting answers (node:api.parameter#2): best source of 'references api.tag': api.operation (0.50), none (0.30), api.components (0.05); best destination of 'api.parameter references': none (0.62), api.tag (0.19), api.components (0.06); best predicate: none (0.85), references (0.04), associated-with (0.04). Outcome: alternative (source=api.operation).",
+          "entity_id": "node:api.parameter#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.parameter#2): best source of 'references api.tag': api.operation (0.74), none (0.11), api.parameter (0.05); best destination of 'api.parameter references': api.tag (0.43), api.schema (0.18), api.example (0.16); best predicate: none (0.71), references (0.13), associated-with (0.04). Outcome: alternative (source=api.operation).",
+          "entity_id": "rel:api.parameter#2"
+        },
+        {
+          "quote": "Sorting answers (node:api.tag#3): best source of 'references api.tag': api.operation (0.48), none (0.41), api.parameter (0.04); best destination of 'api.parameter references': none (0.87), api.tag (0.08), api.components (0.02); best predicate: none (0.83), references (0.06), associated-with (0.03). Outcome: alternative (source=api.operation).",
+          "entity_id": "node:api.tag#3"
+        }
+      ],
+      "probability": 0.477,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 38,
+        "plan_kind": "retarget",
+        "triple": "api.parameter.references.api.tag",
+        "replacement": ["api.operation.references.api.tag"],
+        "claims": [
+          "node:api.parameter#2",
+          "rel:api.parameter#2",
+          "node:api.tag#3"
+        ]
+      }
+    },
+    {
+      "seq": 39,
+      "op": "update",
+      "target_id": "api.securityscheme.maps-to.security.actor",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "security.authenticationconfig",
+        "title": "api.securityscheme maps-to security.authenticationconfig"
+      },
+      "rationale": "Retarget of api.securityscheme.maps-to.security.actor to api.securityscheme.maps-to.security.authenticationconfig. Plan kind retarget, p 0.47; claims rel:api.securityscheme#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "api.securityscheme",
+        "destination_spec_node_id": "security.actor",
+        "title": "Securityscheme maps-to Actor",
+        "description": "Defines relationship: api.securityscheme maps-to security.actor"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to edge from api.securityscheme to security.actor misuses a schema-mapping predicate. Proposed: Replace maps-to with authenticates for the edge to security.actor.",
+          "entity_id": "rel:api.securityscheme#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.securityscheme#3): best source of 'maps-to security.actor': none (0.61), api.securityscheme (0.28), api.components (0.04); best destination of 'api.securityscheme maps-to': security.authenticationconfig (0.47), security.actor (0.25), none (0.22); best predicate: none (0.34), associated-with (0.19), serves (0.18). Outcome: alternative (target=security.authenticationconfig).",
+          "entity_id": "rel:api.securityscheme#3"
+        }
+      ],
+      "probability": 0.472,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 39,
+        "plan_kind": "retarget",
+        "triple": "api.securityscheme.maps-to.security.actor",
+        "replacement": [
+          "api.securityscheme.maps-to.security.authenticationconfig"
+        ],
+        "claims": ["rel:api.securityscheme#3"]
+      }
+    },
+    {
+      "seq": 40,
+      "op": "update",
+      "target_id": "api.oauthflow.serves.api.securityscheme",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "api.operation",
+        "title": "api.oauthflow serves api.operation"
+      },
+      "rationale": "Retarget of api.oauthflow.serves.api.securityscheme to api.oauthflow.serves.api.operation. Plan kind retarget, p 0.41; claims rel:api.oauthflow#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.oauthflow",
+        "destination_spec_node_id": "api.securityscheme",
+        "title": "Oauthflow serves Securityscheme",
+        "description": "Defines relationship: api.oauthflow serves api.securityscheme"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.oauthflow serves api.securityscheme is really composition via OAuthFlows, not a service relationship. Proposed: Replace the serves relationship with a composition-based relationship via OAuthFlows, or remove it.",
+          "entity_id": "rel:api.oauthflow#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.oauthflow#3): best source of 'serves api.securityscheme': none (0.50), api.oauthflow (0.37), api.components (0.07); best destination of 'api.oauthflow serves': api.operation (0.41), none (0.36), api.securityscheme (0.15); best predicate: none (0.61), composes (0.08), associated-with (0.07). Outcome: alternative (target=api.operation).",
+          "entity_id": "rel:api.oauthflow#3"
+        }
+      ],
+      "probability": 0.407,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 40,
+        "plan_kind": "retarget",
+        "triple": "api.oauthflow.serves.api.securityscheme",
+        "replacement": ["api.oauthflow.serves.api.operation"],
+        "claims": ["rel:api.oauthflow#3"]
+      }
+    },
+    {
+      "seq": 41,
+      "op": "update",
+      "target_id": "api.openapidocument.realizes.business.businessservice",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "application.applicationcomponent realizes application.applicationservice"
+      },
+      "rationale": "Retarget of api.openapidocument.realizes.business.businessservice to application.applicationcomponent.realizes.application.applicationservice. Plan kind retarget, p 0.41; claims rel:api.openapidocument#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "api.openapidocument",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "Openapidocument realizes Businessservice",
+        "description": "Defines relationship: api.openapidocument realizes business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The realizes relationship from api.openapidocument to business.businessservice skips the application layer. Proposed: Remove the direct realizes link to business.businessservice and route it through the application layer.",
+          "entity_id": "rel:api.openapidocument#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.openapidocument#4): best source of 'realizes business.businessservice': application.applicationcomponent (0.41), application.applicationservice (0.40), business.businessprocess (0.07); best destination of 'api.openapidocument realizes': application.applicationservice (0.52), business.businessservice (0.17), business.businessinterface (0.10); best predicate: none (0.41), realizes (0.25), serves (0.08). Outcome: alternative (source=application.applicationcomponent; target=application.applicationservice).",
+          "entity_id": "rel:api.openapidocument#4"
+        }
+      ],
+      "probability": 0.407,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 41,
+        "plan_kind": "retarget",
+        "triple": "api.openapidocument.realizes.business.businessservice",
+        "replacement": [
+          "application.applicationcomponent.realizes.application.applicationservice"
+        ],
+        "claims": ["rel:api.openapidocument#4"]
+      }
+    },
+    {
+      "seq": 42,
+      "op": "update",
+      "target_id": "api.securityscheme.maps-to.data-store.collection",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.schema",
+        "title": "api.schema maps-to data-store.collection"
+      },
+      "rationale": "Retarget of api.securityscheme.maps-to.data-store.collection to api.schema.maps-to.data-store.collection. Plan kind retarget, p 0.41; claims rel:api.securityscheme#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "api.securityscheme",
+        "destination_spec_node_id": "data-store.collection",
+        "title": "Securityscheme MapsTo Collection",
+        "description": "Defines relationship: api.securityscheme maps-to data-store.collection"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to edge from api.securityscheme to data-store.collection misuses a schema-mapping predicate. Proposed: Replace maps-to with accesses for the edge to data-store.collection.",
+          "entity_id": "rel:api.securityscheme#4"
+        },
+        {
+          "quote": "Sorting answers (node:api.securityscheme#4): best source of 'maps-to data-store.collection': none (0.66), api.schema (0.20), data-model.objectschema (0.04); best destination of 'api.securityscheme maps-to': none (0.91), data-store.collection (0.04), security.actor (0.03); best predicate: none (0.82), maps-to (0.07), associated-with (0.02). Outcome: no_better.",
+          "entity_id": "node:api.securityscheme#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.securityscheme#4): best source of 'maps-to data-store.collection': api.schema (0.41), none (0.21), data-model.schemadefinition (0.16); best destination of 'api.securityscheme maps-to': none (0.65), security.actor (0.21), data-store.collection (0.09); best predicate: none (0.71), associated-with (0.07), accesses (0.05). Outcome: alternative (source=api.schema).",
+          "entity_id": "rel:api.securityscheme#4"
+        }
+      ],
+      "probability": 0.407,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 42,
+        "plan_kind": "retarget",
+        "triple": "api.securityscheme.maps-to.data-store.collection",
+        "replacement": ["api.schema.maps-to.data-store.collection"],
+        "claims": ["rel:api.securityscheme#4"]
+      }
+    },
+    {
+      "seq": 43,
+      "op": "update",
+      "target_id": "api.schema.maps-to.data-store.collection",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-model.objectschema",
+        "title": "data-model.objectschema maps-to data-store.collection"
+      },
+      "rationale": "Retarget of api.schema.maps-to.data-store.collection to data-model.objectschema.maps-to.data-store.collection. Plan kind retarget, p 0.35; claims rel:api.schema#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "api.schema",
+        "destination_spec_node_id": "data-store.collection",
+        "title": "Schema MapsTo Collection",
+        "description": "Defines relationship: api.schema maps-to data-store.collection"
+      },
+      "evidence": [
+        {
+          "quote": "The api.schema maps-to relationships to data-store.collection and data-store.field overlap with property-level mapping. Proposed: none stated",
+          "entity_id": "rel:api.schema#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.schema#4): best source of 'maps-to data-store.collection': data-model.objectschema (0.35), data-model.schemadefinition (0.23), api.schema (0.19); best destination of 'api.schema maps-to': data-store.collection (0.50), data-store.field (0.29), none (0.09); best predicate: maps-to (0.63), none (0.16), realizes (0.05). Outcome: alternative (source=data-model.objectschema).",
+          "entity_id": "rel:api.schema#4"
+        }
+      ],
+      "probability": 0.346,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 43,
+        "plan_kind": "retarget",
+        "triple": "api.schema.maps-to.data-store.collection",
+        "replacement": [
+          "data-model.objectschema.maps-to.data-store.collection"
+        ],
+        "claims": ["rel:api.schema#4"]
+      }
+    },
+    {
+      "seq": 44,
+      "op": "update",
+      "target_id": "api.securityscheme.satisfies.motivation.principle",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "motivation.requirement",
+        "title": "api.securityscheme satisfies motivation.requirement"
+      },
+      "rationale": "Retarget of api.securityscheme.satisfies.motivation.principle to api.securityscheme.satisfies.motivation.requirement. Plan kind retarget, p 0.35; claims rel:api.securityscheme#6.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "api.securityscheme",
+        "destination_spec_node_id": "motivation.principle",
+        "title": "Securityscheme satisfies Principle",
+        "description": "Defines relationship: api.securityscheme satisfies motivation.principle"
+      },
+      "evidence": [
+        {
+          "quote": "The satisfies edge from api.securityscheme to motivation.principle conflicts with the Principle definition, which says it is not directly verifiable. Proposed: Replace satisfies with governed-by-principles.",
+          "entity_id": "rel:api.securityscheme#6"
+        },
+        {
+          "quote": "Sorting answers (rel:api.securityscheme#6): best source of 'satisfies motivation.principle': none (0.56), api.securityscheme (0.30), api.components (0.06); best destination of 'api.securityscheme satisfies': motivation.requirement (0.35), motivation.principle (0.24), motivation.constraint (0.20); best predicate: none (0.45), realizes (0.20), associated-with (0.19). Outcome: alternative (target=motivation.requirement).",
+          "entity_id": "rel:api.securityscheme#6"
+        }
+      ],
+      "probability": 0.346,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 44,
+        "plan_kind": "retarget",
+        "triple": "api.securityscheme.satisfies.motivation.principle",
+        "replacement": ["api.securityscheme.satisfies.motivation.requirement"],
+        "claims": ["rel:api.securityscheme#6"]
+      }
+    },
+    {
+      "seq": 45,
+      "op": "update",
+      "target_id": "api.example.references.api.schema",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.mediatype",
+        "title": "api.mediatype references api.schema"
+      },
+      "rationale": "Retarget of api.example.references.api.schema to api.mediatype.references.api.schema. Plan kind retarget, p 0.33; claims rel:api.example#1, rel:api.example#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.example",
+        "destination_spec_node_id": "api.schema",
+        "title": "Example references Schema",
+        "description": "Defines relationship: api.example references api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.example --[references]--> api.schema is only an inferred link, because in OpenAPI 3.0 an Example Object never points to a Schema and is merely co-located with one, so 'references' is the wrong predicate. Proposed: Remove the references relationship from api.example to api.schema, or replace it with a path via the elements that actually hold both.",
+          "entity_id": "rel:api.example#1"
+        },
+        {
+          "quote": "A path via parameter, header or media type may make both the api.example references-schema and associated-with-operation relationships redundant. Proposed: Drop both relationships if the indirect paths through parameter, header and media type already express the connection.",
+          "entity_id": "rel:api.example#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.example#1): best source of 'references api.schema': api.mediatype (0.56), none (0.15), api.parameter (0.12); best destination of 'api.example references': none (0.79), api.schema (0.08), api.example (0.03); best predicate: none (0.58), realizes (0.12), associated-with (0.10). Outcome: alternative (source=api.mediatype).",
+          "entity_id": "rel:api.example#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.example#3): best source of 'references api.schema': api.mediatype (0.33), api.parameter (0.23), none (0.16); best destination of 'api.example references': api.schema (0.47), none (0.42), api.example (0.03); best predicate: references (0.51), none (0.18), realizes (0.12). Outcome: alternative (source=api.mediatype).",
+          "entity_id": "rel:api.example#3"
+        }
+      ],
+      "probability": 0.329,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 45,
+        "plan_kind": "retarget",
+        "triple": "api.example.references.api.schema",
+        "replacement": ["api.mediatype.references.api.schema"],
+        "claims": ["rel:api.example#1", "rel:api.example#3"]
+      }
+    },
+    {
+      "seq": 46,
+      "op": "update",
+      "target_id": "api.securityscheme.references.business.businessservice",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "security.secureresource",
+        "title": "api.securityscheme references security.secureresource"
+      },
+      "rationale": "Retarget of api.securityscheme.references.business.businessservice to api.securityscheme.references.security.secureresource. Plan kind retarget, p 0.31; claims rel:api.securityscheme#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.securityscheme",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "Securityscheme References Businessservice",
+        "description": "Defines relationship: api.securityscheme references business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The four references edges from api.securityscheme to application and business elements (applicationcomponent, applicationservice, businessinterface, businessservice) are vague in meaning. Proposed: none stated",
+          "entity_id": "rel:api.securityscheme#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.securityscheme#1): best source of 'references business.businessservice': none (0.41), api.securityscheme (0.24), api.operation (0.23); best destination of 'api.securityscheme references': security.secureresource (0.31), none (0.24), business.businessservice (0.12); best predicate: none (0.50), references (0.12), associated-with (0.12). Outcome: alternative (target=security.secureresource).",
+          "entity_id": "rel:api.securityscheme#1"
+        }
+      ],
+      "probability": 0.307,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 46,
+        "plan_kind": "retarget",
+        "triple": "api.securityscheme.references.business.businessservice",
+        "replacement": [
+          "api.securityscheme.references.security.secureresource"
+        ],
+        "claims": ["rel:api.securityscheme#1"]
+      }
+    },
+    {
+      "seq": 47,
+      "op": "update",
+      "target_id": "api.operation.realizes.application.applicationfunction",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "api.operation realizes application.applicationcomponent"
+      },
+      "rationale": "Retarget of api.operation.realizes.application.applicationfunction to api.operation.realizes.application.applicationcomponent. Plan kind retarget, p 0.30; claims node:application.applicationfunction#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "application.applicationfunction",
+        "title": "Operation realizes Applicationfunction",
+        "description": "Defines relationship: api.operation realizes application.applicationfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.operation realizes application.applicationfunction appears inverted; operations normally realize or serve services rather than functions. Proposed: Reverse or replace the relationship so operations realize or serve application services (or the function realizes the operation) instead of the operation realizing the function.",
+          "entity_id": "node:application.applicationfunction#3"
+        }
+      ],
+      "probability": 0.3,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 47,
+        "plan_kind": "retarget",
+        "triple": "api.operation.realizes.application.applicationfunction",
+        "replacement": [
+          "api.operation.realizes.application.applicationcomponent"
+        ],
+        "claims": ["node:application.applicationfunction#3"]
+      }
+    },
+    {
+      "seq": 48,
+      "op": "update",
+      "target_id": "api.securityscheme.serves.business.businessrole",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationcomponent",
+        "title": "application.applicationcomponent serves business.businessrole"
+      },
+      "rationale": "Retarget of api.securityscheme.serves.business.businessrole to application.applicationcomponent.serves.business.businessrole. Plan kind retarget, p 0.28; claims node:api.securityscheme#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.securityscheme",
+        "destination_spec_node_id": "business.businessrole",
+        "title": "Securityscheme serves Businessrole",
+        "description": "Defines relationship: api.securityscheme serves business.businessrole"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing relationships from api.securityscheme to data-store.collection (maps-to) and to business.businessrole (serves) are speculative and invite misclassification. Proposed: Remove the maps-to data-store.collection and serves business.businessrole relationships from api.securityscheme.",
+          "entity_id": "node:api.securityscheme#4"
+        },
+        {
+          "quote": "Sorting answers (node:api.securityscheme#4): best source of 'serves business.businessrole': application.applicationcomponent (0.28), api.operation (0.19), business.businessinterface (0.15); best destination of 'api.securityscheme serves': none (0.53), business.businessrole (0.27), business.businessactor (0.11); best predicate: none (0.79), serves (0.06), associated-with (0.04). Outcome: alternative (source=application.applicationcomponent).",
+          "entity_id": "node:api.securityscheme#4"
+        }
+      ],
+      "probability": 0.278,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 48,
+        "plan_kind": "retarget",
+        "triple": "api.securityscheme.serves.business.businessrole",
+        "replacement": [
+          "application.applicationcomponent.serves.business.businessrole"
+        ],
+        "claims": ["node:api.securityscheme#4"]
+      }
+    },
+    {
+      "seq": 49,
+      "op": "update",
+      "target_id": "api.link.references.api.schema",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.parameter",
+        "title": "api.parameter references api.schema"
+      },
+      "rationale": "Retarget of api.link.references.api.schema to api.parameter.references.api.schema. Plan kind retarget, p 0.26; claims rel:api.link#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.link",
+        "destination_spec_node_id": "api.schema",
+        "title": "Link References Schema",
+        "description": "Defines relationship: api.link references api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.link references api.schema has no corresponding field in the OpenAPI Link Object; it exists only indirectly via runtime expressions. Proposed: Remove the api.link references api.schema relationship.",
+          "entity_id": "rel:api.link#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.link#1): best source of 'references api.schema': api.parameter (0.26), api.link (0.24), none (0.16); best destination of 'api.link references': none (0.38), api.operation (0.33), api.schema (0.09); best predicate: none (0.61), references (0.23), associated-with (0.04). Outcome: alternative (source=api.parameter).",
+          "entity_id": "rel:api.link#1"
+        }
+      ],
+      "probability": 0.264,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 49,
+        "plan_kind": "retarget",
+        "triple": "api.link.references.api.schema",
+        "replacement": ["api.parameter.references.api.schema"],
+        "claims": ["rel:api.link#1"]
+      }
+    },
+    {
+      "seq": 50,
+      "op": "update",
+      "target_id": "api.operation.realizes.motivation.goal",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "application.applicationcomponent realizes motivation.outcome"
+      },
+      "rationale": "Retarget of api.operation.realizes.motivation.goal to application.applicationcomponent.realizes.motivation.outcome. Plan kind retarget, p 0.24; claims rel:api.operation#5.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "Operation realizes Goal",
+        "description": "Defines relationship: api.operation realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships api.operation realizes motivation.goal and realizes motivation.outcome use the wrong predicate; they should be supports or delivers. Proposed: Change the predicate from realizes to supports or delivers.",
+          "entity_id": "rel:api.operation#5"
+        },
+        {
+          "quote": "Sorting answers (rel:api.operation#5): best source of 'realizes motivation.goal': application.applicationcomponent (0.31), business.businessprocess (0.26), application.applicationservice (0.20); best destination of 'api.operation realizes': motivation.outcome (0.24), motivation.goal (0.24), application.applicationfunction (0.17); best predicate: realizes (0.42), none (0.32), serves (0.12). Outcome: alternative (source=application.applicationcomponent; target=motivation.outcome).",
+          "entity_id": "rel:api.operation#5"
+        }
+      ],
+      "probability": 0.245,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 50,
+        "plan_kind": "retarget",
+        "triple": "api.operation.realizes.motivation.goal",
+        "replacement": [
+          "application.applicationcomponent.realizes.motivation.outcome"
+        ],
+        "claims": ["rel:api.operation#5"]
+      }
+    },
+    {
+      "seq": 51,
+      "op": "delete",
+      "target_id": "api.responses.aggregates.api.schema",
+      "ref": null,
+      "fields": {},
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.responses",
+        "destination_spec_node_id": "api.schema",
+        "title": "Responses Aggregates Schema",
+        "description": "Defines relationship: api.responses aggregates api.schema"
+      },
+      "rationale": "Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68.",
+      "scope": "breaking",
+      "status": "applied",
+      "reason": "Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68.",
+      "kind": "property",
+      "evidence": [
+        {
+          "quote": "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning. Proposed: Distinguish inline schemas from $ref schemas between the two relationships, or drop one of them.",
+          "entity_id": "rel:api.responses#2"
+        },
+        {
+          "quote": "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map. Proposed: Remove the header, schema and link relationships from api.responses and keep them only on api.response or api.mediatype.",
+          "entity_id": "rel:api.responses#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#2): best source of 'aggregates api.schema': api.response (0.51), api.responses (0.15), none (0.14); best destination of 'api.responses aggregates': api.schema (0.53), none (0.30), api.components (0.05); best predicate: references (0.72), aggregates (0.08), uses (0.06). Outcome: alternative (source=api.response; predicate=references).",
+          "entity_id": "rel:api.responses#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#1): best source of 'aggregates api.schema': api.response (0.75), none (0.11), api.responses (0.06); best destination of 'api.responses aggregates': none (0.68), api.schema (0.17), api.header (0.05); best predicate: references (0.54), none (0.30), aggregates (0.05). Outcome: alternative (source=api.response; predicate=references).",
+          "entity_id": "rel:api.responses#1"
+        }
+      ],
+      "probability": 0.51,
+      "dr": {
+        "plan_row": 51,
+        "plan_kind": "compound",
+        "triple": "api.responses.aggregates.api.schema",
+        "replacement": ["api.response.aggregates.api.schema"],
+        "claims": ["rel:api.responses#2", "rel:api.responses#1"],
+        "walk_decision": "delete"
+      }
+    },
+    {
+      "seq": 52,
+      "op": "delete",
+      "target_id": "api.responses.references.api.schema",
+      "ref": null,
+      "fields": {},
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.responses",
+        "destination_spec_node_id": "api.schema",
+        "title": "Responses references Schema",
+        "description": "Defines relationship: api.responses references api.schema"
+      },
+      "rationale": "Also removed with api.responses.aggregates.api.schema: Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68.",
+      "scope": "breaking",
+      "status": "applied",
+      "reason": "Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68.",
+      "kind": "property",
+      "evidence": [
+        {
+          "quote": "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning. Proposed: Distinguish inline schemas from $ref schemas between the two relationships, or drop one of them.",
+          "entity_id": "rel:api.responses#2"
+        },
+        {
+          "quote": "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map. Proposed: Remove the header, schema and link relationships from api.responses and keep them only on api.response or api.mediatype.",
+          "entity_id": "rel:api.responses#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#2): best source of 'aggregates api.schema': api.response (0.51), api.responses (0.15), none (0.14); best destination of 'api.responses aggregates': api.schema (0.53), none (0.30), api.components (0.05); best predicate: references (0.72), aggregates (0.08), uses (0.06). Outcome: alternative (source=api.response; predicate=references).",
+          "entity_id": "rel:api.responses#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#1): best source of 'aggregates api.schema': api.response (0.75), none (0.11), api.responses (0.06); best destination of 'api.responses aggregates': none (0.68), api.schema (0.17), api.header (0.05); best predicate: references (0.54), none (0.30), aggregates (0.05). Outcome: alternative (source=api.response; predicate=references).",
+          "entity_id": "rel:api.responses#1"
+        }
+      ],
+      "probability": 0.51,
+      "dr": {
+        "plan_row": 51,
+        "plan_kind": "compound",
+        "triple": "api.responses.references.api.schema",
+        "replacement": ["api.response.references.api.schema"],
+        "claims": ["rel:api.responses#2", "rel:api.responses#1"],
+        "walk_decision": "delete"
+      }
+    },
+    {
+      "seq": 53,
+      "op": "update",
+      "target_id": "api.server.serves.api.pathitem",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "api.server",
+        "title": "application.applicationcomponent aggregates api.server"
+      },
+      "rationale": "Change of api.server.serves.api.pathitem to application.applicationcomponent.aggregates.api.server. Plan kind compound, p 0.45; claims rel:api.server#5.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.server",
+        "destination_spec_node_id": "api.pathitem",
+        "title": "Server serves Pathitem",
+        "description": "Defines relationship: api.server serves api.pathitem"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.server serves api.pathitem overlaps with plain structural scoping already expressed by the pathitem aggregating servers. Proposed: Remove the serves relationship from api.server to api.pathitem.",
+          "entity_id": "rel:api.server#5"
+        },
+        {
+          "quote": "Sorting answers (rel:api.server#5): best source of 'serves api.pathitem': none (0.50), api.server (0.34), api.callback (0.04); best destination of 'api.server serves': application.applicationcomponent (0.45), api.pathitem (0.29), none (0.15); best predicate: reverse:aggregates (0.61), none (0.22), serves (0.05). Outcome: alternative (target=application.applicationcomponent; predicate=reverse:aggregates).",
+          "entity_id": "rel:api.server#5"
+        }
+      ],
+      "probability": 0.454,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 52,
+        "plan_kind": "compound",
+        "triple": "api.server.serves.api.pathitem",
+        "replacement": [
+          "application.applicationcomponent.aggregates.api.server"
+        ],
+        "claims": ["rel:api.server#5"]
+      }
+    },
+    {
+      "seq": 54,
+      "op": "update",
+      "target_id": "api.schema.references.api.operation",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "api.operation",
+        "title": "api.operation references api.operation"
+      },
+      "rationale": "Change of api.schema.references.api.operation to api.operation.references.api.operation. Plan kind compound, p 0.45; claims rel:api.schema#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.schema",
+        "destination_spec_node_id": "api.operation",
+        "title": "Schema References Operation",
+        "description": "Defines relationship: api.schema references api.operation"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship api.schema references api.operation has no native OpenAPI 3.0 basis, since schemas do not point to operations except via vendor extensions. Proposed: Remove the references relationship from api.schema to api.operation.",
+          "entity_id": "rel:api.schema#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.schema#1): best source of 'references api.operation': api.operation (0.49), none (0.24), api.link (0.16); best destination of 'api.schema references': api.operation (0.30), none (0.28), api.tag (0.16); best predicate: reverse:references (0.45), none (0.35), references (0.07). Outcome: alternative (source=api.operation; predicate=reverse:references).",
+          "entity_id": "rel:api.schema#1"
+        }
+      ],
+      "probability": 0.452,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 53,
+        "plan_kind": "compound",
+        "triple": "api.schema.references.api.operation",
+        "replacement": ["api.operation.references.api.operation"],
+        "claims": ["rel:api.schema#1"]
+      }
+    },
+    {
+      "seq": 55,
+      "op": "update",
+      "target_id": "api.components.composes.api.schema",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "destination_spec_node_id": "api.parameter",
+        "title": "api.components aggregates api.parameter"
+      },
+      "rationale": "Change of api.components.composes.api.schema to api.components.aggregates.api.parameter. Plan kind compound, p 0.24; claims rel:api.components#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.schema",
+        "title": "Components Composes Schema",
+        "description": "Defines relationship: api.components composes api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "api.components relationships to registry entry kinds use aggregates for some kinds (callback, example, link, requestbody, response) and composes for others (header, parameter, schema, securityscheme) with no clear basis for the difference. Proposed: Use one consistent predicate for all registry entry kinds held by api.components.",
+          "entity_id": "rel:api.components#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#4): best source of 'composes api.schema': api.components (0.71), none (0.10), api.openapidocument (0.07); best destination of 'api.components composes': api.parameter (0.24), api.securityscheme (0.22), api.schema (0.21); best predicate: aggregates (0.72), composes (0.14), none (0.04). Outcome: alternative (target=api.parameter; predicate=aggregates).",
+          "entity_id": "rel:api.components#4"
+        }
+      ],
+      "probability": 0.242,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 54,
+        "plan_kind": "compound",
+        "triple": "api.components.composes.api.schema",
+        "replacement": ["api.components.aggregates.api.parameter"],
+        "claims": ["rel:api.components#4"]
+      }
+    },
+    {
+      "seq": 56,
+      "op": "update",
+      "target_id": "api.components.composes.api.response",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.response"
+      },
+      "rationale": "Claims disagree on the replacement (api.components.aggregates.api.response | api.responses.aggregates.api.response); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.88; claims node:api.components#3, rel:api.components#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.response",
+        "title": "Components composes Response",
+        "description": "Defines relationship: api.components composes api.response"
+      },
+      "evidence": [
+        {
+          "quote": "api.response is related to api.components by both an aggregates and a composes relationship, which express the same meaning redundantly. Proposed: Keep only one of aggregates or composes between api.components and api.response.",
+          "entity_id": "node:api.components#3"
+        },
+        {
+          "quote": "api.components has both an aggregates and a composes relationship to api.response, which are redundant and contradictory. Proposed: Keep a single relationship from api.components to api.response and remove the other.",
+          "entity_id": "rel:api.components#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.components#3): best source of 'composes api.response': api.components (0.34), api.responses (0.30), none (0.26); best destination of 'api.components composes': none (0.51), api.response (0.29), api.responses (0.06); best predicate: aggregates (0.88), composes (0.05), none (0.03). Outcome: alternative (predicate=aggregates).",
+          "entity_id": "node:api.components#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#1): best source of 'composes api.response': api.responses (0.44), api.components (0.27), none (0.18); best destination of 'api.components composes': api.response (0.38), api.header (0.20), none (0.14); best predicate: aggregates (0.84), none (0.06), composes (0.05). Outcome: alternative (source=api.responses; predicate=aggregates).",
+          "entity_id": "rel:api.components#1"
+        }
+      ],
+      "probability": 0.88,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 55,
+        "plan_kind": "conflict",
+        "triple": "api.components.composes.api.response",
+        "replacement": [
+          "api.components.aggregates.api.response",
+          "api.responses.aggregates.api.response"
+        ],
+        "claims": ["node:api.components#3", "rel:api.components#1"]
+      }
+    },
+    {
+      "seq": 57,
+      "op": "update",
+      "target_id": "api.openapidocument.composes.api.responses",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.paths"
+      },
+      "rationale": "Claims disagree on the replacement (api.components.composes.api.paths | api.operation.composes.api.responses); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.77; claims node:api.openapidocument#3, rel:api.openapidocument#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.openapidocument",
+        "destination_spec_node_id": "api.responses",
+        "title": "Openapidocument Composes Responses",
+        "description": "Defines relationship: api.openapidocument composes api.responses"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing composes relationships from api.openapidocument to api.responses and api.schema contradict OpenAPI, where these live under Components or Operations rather than the root document. Proposed: Remove the composes relationships from api.openapidocument to api.responses and api.schema.",
+          "entity_id": "node:api.openapidocument#3"
+        },
+        {
+          "quote": "The composes relationship from api.openapidocument to api.responses is wrong because a Responses map is scoped to an operation, not the document. Proposed: Remove the relationship and have api.operation compose api.responses instead.",
+          "entity_id": "rel:api.openapidocument#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.openapidocument#3): best source of 'composes api.responses': api.components (0.58), none (0.16), api.operation (0.16); best destination of 'api.openapidocument composes': api.paths (0.29), api.info (0.25), api.components (0.25); best predicate: none (0.54), aggregates (0.21), composes (0.10). Outcome: alternative (source=api.components; target=api.paths).",
+          "entity_id": "node:api.openapidocument#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.openapidocument#1): best source of 'composes api.responses': api.operation (0.77), api.components (0.09), none (0.07); best destination of 'api.openapidocument composes': api.responses (0.43), api.components (0.20), api.info (0.15); best predicate: none (0.70), composes (0.11), aggregates (0.08). Outcome: alternative (source=api.operation).",
+          "entity_id": "rel:api.openapidocument#1"
+        }
+      ],
+      "probability": 0.771,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 56,
+        "plan_kind": "conflict",
+        "triple": "api.openapidocument.composes.api.responses",
+        "replacement": [
+          "api.components.composes.api.paths",
+          "api.operation.composes.api.responses"
+        ],
+        "claims": ["node:api.openapidocument#3", "rel:api.openapidocument#1"]
+      }
+    },
+    {
+      "seq": 58,
+      "op": "update",
+      "target_id": "api.server.serves.application.applicationcomponent",
+      "ref": null,
+      "fields": {
+        "predicate": "serves",
+        "source_spec_node_id": "application.applicationservice",
+        "destination_spec_node_id": "application.applicationcomponent"
+      },
+      "rationale": "Claims disagree on the replacement (application.applicationservice.serves.application.applicationcomponent | application.applicationservice.serves.application.applicationinterface); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.72; claims node:api.server#3, rel:api.server#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.server",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "Server serves Applicationcomponent",
+        "description": "Defines relationship: api.server serves application.applicationcomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'serves' from api.server to application.applicationcomponent inverts the usual dependency direction and should be reviewed. Proposed: Review the relationship and likely reverse its direction or remove it.",
+          "entity_id": "node:api.server#3"
+        },
+        {
+          "quote": "The relationship api.server serves application.applicationcomponent has an inverted direction, since the component is exposed via the server. Proposed: Reverse the direction so the application component is served/exposed via the server, or use a predicate that fits.",
+          "entity_id": "rel:api.server#4"
+        },
+        {
+          "quote": "Sorting answers (node:api.server#3): best source of 'serves application.applicationcomponent': application.applicationservice (0.72), none (0.15), api.openapidocument (0.05); best destination of 'api.server serves': application.applicationcomponent (0.33), application.applicationinterface (0.27), none (0.26); best predicate: none (0.65), serves (0.11), associated-with (0.07). Outcome: alternative (source=application.applicationservice).",
+          "entity_id": "node:api.server#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.server#4): best source of 'serves application.applicationcomponent': application.applicationservice (0.57), none (0.25), api.server (0.08); best destination of 'api.server serves': application.applicationinterface (0.38), application.applicationcomponent (0.29), api.pathitem (0.09); best predicate: none (0.32), serves (0.23), associated-with (0.15). Outcome: alternative (source=application.applicationservice; target=application.applicationinterface).",
+          "entity_id": "rel:api.server#4"
+        }
+      ],
+      "probability": 0.721,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 57,
+        "plan_kind": "conflict",
+        "triple": "api.server.serves.application.applicationcomponent",
+        "replacement": [
+          "application.applicationservice.serves.application.applicationcomponent",
+          "application.applicationservice.serves.application.applicationinterface"
+        ],
+        "claims": ["node:api.server#3", "rel:api.server#4"]
+      }
+    },
+    {
+      "seq": 59,
+      "op": "update",
+      "target_id": "api.response.references.api.schema",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.mediatype",
+        "destination_spec_node_id": "api.schema"
+      },
+      "rationale": "Claims disagree on the replacement (api.mediatype.aggregates.api.schema | api.mediatype.references.api.schema); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.69; claims rel:api.response#3, rel:api.response#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.response",
+        "destination_spec_node_id": "api.schema",
+        "title": "Response references Schema",
+        "description": "Defines relationship: api.response references api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates and references relationships from api.response to api.schema overlap in meaning. Proposed: Drop one of the two or define a clear distinction between them.",
+          "entity_id": "rel:api.response#3"
+        },
+        {
+          "quote": "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships. Proposed: Remove the direct response-to-schema and response-to-example relationships, leaving the paths via api.mediatype and api.header.",
+          "entity_id": "rel:api.response#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#3): best source of 'references api.schema': api.mediatype (0.63), api.response (0.26), api.operation (0.03); best destination of 'api.response references': api.schema (0.38), api.example (0.23), none (0.17); best predicate: aggregates (0.35), references (0.21), uses (0.14). Outcome: alternative (source=api.mediatype; predicate=aggregates).",
+          "entity_id": "rel:api.response#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#4): best source of 'references api.schema': api.mediatype (0.69), api.response (0.11), none (0.09); best destination of 'api.response references': none (0.34), api.example (0.30), api.components (0.16); best predicate: none (0.53), references (0.18), aggregates (0.09). Outcome: alternative (source=api.mediatype).",
+          "entity_id": "rel:api.response#4"
+        }
+      ],
+      "probability": 0.691,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 58,
+        "plan_kind": "conflict",
+        "triple": "api.response.references.api.schema",
+        "replacement": [
+          "api.mediatype.aggregates.api.schema",
+          "api.mediatype.references.api.schema"
+        ],
+        "claims": ["rel:api.response#3", "rel:api.response#4"]
+      }
+    },
+    {
+      "seq": 60,
+      "op": "update",
+      "target_id": "api.response.aggregates.api.schema",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "api.response",
+        "destination_spec_node_id": "api.mediatype"
+      },
+      "rationale": "Claims disagree on the replacement (api.response.references.api.mediatype | api.response.aggregates.api.mediatype); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.67; claims rel:api.response#3, rel:api.response#4.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.response",
+        "destination_spec_node_id": "api.schema",
+        "title": "Response Aggregates Schema",
+        "description": "Defines relationship: api.response aggregates api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates and references relationships from api.response to api.schema overlap in meaning. Proposed: Drop one of the two or define a clear distinction between them.",
+          "entity_id": "rel:api.response#3"
+        },
+        {
+          "quote": "The direct api.response to api.schema (aggregates and references) and api.response references api.example relationships are indirect in OAS 3.0, since responses reach schemas and examples only through media types or headers, making them transitive shortcuts of the mediatype/header relationships. Proposed: Remove the direct response-to-schema and response-to-example relationships, leaving the paths via api.mediatype and api.header.",
+          "entity_id": "rel:api.response#4"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#3): best source of 'aggregates api.schema': api.response (0.58), api.components (0.21), none (0.12); best destination of 'api.response aggregates': api.mediatype (0.50), api.schema (0.27), none (0.14); best predicate: references (0.53), uses (0.13), aggregates (0.09). Outcome: alternative (target=api.mediatype; predicate=references).",
+          "entity_id": "rel:api.response#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.response#4): best source of 'aggregates api.schema': api.response (0.48), none (0.23), api.components (0.18); best destination of 'api.response aggregates': api.mediatype (0.67), api.schema (0.11), none (0.11); best predicate: none (0.61), references (0.18), aggregates (0.06). Outcome: alternative (target=api.mediatype).",
+          "entity_id": "rel:api.response#4"
+        }
+      ],
+      "probability": 0.671,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 59,
+        "plan_kind": "conflict",
+        "triple": "api.response.aggregates.api.schema",
+        "replacement": [
+          "api.response.references.api.mediatype",
+          "api.response.aggregates.api.mediatype"
+        ],
+        "claims": ["rel:api.response#3", "rel:api.response#4"]
+      }
+    },
+    {
+      "seq": 61,
+      "op": "update",
+      "target_id": "api.pathitem.references.api.externaldocumentation",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "api.externaldocumentation"
+      },
+      "rationale": "Claims disagree on the replacement (api.operation.references.api.externaldocumentation | api.openapidocument.references.api.externaldocumentation); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.54; claims node:api.externaldocumentation#1, rel:api.pathitem#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "api.pathitem",
+        "destination_spec_node_id": "api.externaldocumentation",
+        "title": "Pathitem references Externaldocumentation",
+        "description": "Defines relationship: api.pathitem references api.externaldocumentation"
+      },
+      "evidence": [
+        {
+          "quote": "The incoming 'references' relationship from api.pathitem to api.externaldocumentation has no basis in OpenAPI 3.0 because PathItem has no externalDocs field. Proposed: Remove the 'references' relationship from api.pathitem to api.externaldocumentation.",
+          "entity_id": "node:api.externaldocumentation#1"
+        },
+        {
+          "quote": "The relationship api.pathitem references api.externaldocumentation is questionable because OpenAPI's Path Item Object has no externalDocs field, so it is only realizable via description links. Proposed: Remove the references relationship from api.pathitem to api.externaldocumentation.",
+          "entity_id": "rel:api.pathitem#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.externaldocumentation#1): best source of 'references api.externaldocumentation': api.operation (0.38), api.openapidocument (0.16), api.pathitem (0.15); best destination of 'api.pathitem references': api.externaldocumentation (0.82), none (0.11), api.pathitem (0.03); best predicate: references (0.41), none (0.35), associated-with (0.08). Outcome: alternative (source=api.operation).",
+          "entity_id": "node:api.externaldocumentation#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.pathitem#1): best source of 'references api.externaldocumentation': api.openapidocument (0.54), none (0.25), api.pathitem (0.05); best destination of 'api.pathitem references': api.externaldocumentation (0.48), none (0.34), api.pathitem (0.11); best predicate: none (0.49), references (0.34), associated-with (0.08). Outcome: alternative (source=api.openapidocument).",
+          "entity_id": "rel:api.pathitem#1"
+        }
+      ],
+      "probability": 0.543,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 60,
+        "plan_kind": "conflict",
+        "triple": "api.pathitem.references.api.externaldocumentation",
+        "replacement": [
+          "api.operation.references.api.externaldocumentation",
+          "api.openapidocument.references.api.externaldocumentation"
+        ],
+        "claims": ["node:api.externaldocumentation#1", "rel:api.pathitem#1"]
+      }
+    },
+    {
+      "seq": 62,
+      "op": "update",
+      "target_id": "api.components.composes.api.responses",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.response"
+      },
+      "rationale": "Claims disagree on the replacement (api.components.aggregates.api.response | api.operation.composes.api.response); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.47; claims node:api.components#2, rel:api.components#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.responses",
+        "title": "Components Composes Responses",
+        "description": "Defines relationship: api.components composes api.responses"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationship from api.components to api.responses is wrong because components.responses holds individual Response objects, not a Responses map. Proposed: Drop the composes relationship from api.components to api.responses.",
+          "entity_id": "node:api.components#2"
+        },
+        {
+          "quote": "The api.components composes api.responses relationship is wrong because components holds individual Response entries, not operation-scoped Responses maps. Proposed: Remove the composes edge from api.components to api.responses.",
+          "entity_id": "rel:api.components#3"
+        },
+        {
+          "quote": "Sorting answers (node:api.components#2): best source of 'composes api.responses': api.components (0.50), api.operation (0.23), none (0.17); best destination of 'api.components composes': api.response (0.35), none (0.33), api.responses (0.18); best predicate: aggregates (0.32), none (0.32), composes (0.17). Outcome: alternative (target=api.response; predicate=aggregates).",
+          "entity_id": "node:api.components#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.components#3): best source of 'composes api.responses': api.operation (0.69), none (0.19), api.components (0.06); best destination of 'api.components composes': api.response (0.47), api.responses (0.31), none (0.08); best predicate: none (0.51), aggregates (0.29), composes (0.07). Outcome: alternative (source=api.operation; target=api.response).",
+          "entity_id": "rel:api.components#3"
+        }
+      ],
+      "probability": 0.466,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 61,
+        "plan_kind": "conflict",
+        "triple": "api.components.composes.api.responses",
+        "replacement": [
+          "api.components.aggregates.api.response",
+          "api.operation.composes.api.response"
+        ],
+        "claims": ["node:api.components#2", "rel:api.components#3"]
+      }
+    },
+    {
+      "seq": 63,
+      "op": "update",
+      "target_id": "api.operation.composes.api.paths",
+      "ref": null,
+      "fields": {
+        "predicate": "serves",
+        "source_spec_node_id": "api.paths",
+        "destination_spec_node_id": "api.operation"
+      },
+      "rationale": "Claims disagree on the replacement (api.paths.serves.api.operation | api.paths.serves.api.openapidocument | api.responses.serves.api.openapidocument); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.47; claims node:api.operation#5, node:api.paths#3, rel:api.operation#1.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.operation",
+        "destination_spec_node_id": "api.paths",
+        "title": "Operation Composes Paths",
+        "description": "Defines relationship: api.operation composes api.paths"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing 'composes api.paths' relationship from api.operation is inverted, since Paths composes operations (via PathItem) rather than the reverse. Proposed: Reverse the edge or remove it so that paths/pathitem composes operation.",
+          "entity_id": "node:api.operation#5"
+        },
+        {
+          "quote": "The relationship 'api.operation composes api.paths' inverts containment, since paths contain operations via path items. Proposed: Remove or reverse the relationship so containment does not run from api.operation to api.paths.",
+          "entity_id": "node:api.paths#3"
+        },
+        {
+          "quote": "The relationship api.operation composes api.paths is inverted, because Paths contains PathItems which contain operations. Proposed: Remove or reverse it so that api.paths (via api.pathitem) composes api.operation.",
+          "entity_id": "rel:api.operation#1"
+        },
+        {
+          "quote": "Sorting answers (node:api.operation#5): best source of 'composes api.paths': none (0.57), api.openapidocument (0.25), api.operation (0.08); best destination of 'api.operation composes': none (0.62), api.paths (0.30), api.responses (0.02); best predicate: reverse:serves (0.30), none (0.29), composes (0.08). Outcome: alternative (predicate=reverse:serves).",
+          "entity_id": "node:api.operation#5"
+        },
+        {
+          "quote": "Sorting answers (node:api.paths#3): best source of 'composes api.paths': api.openapidocument (0.46), none (0.38), api.operation (0.08); best destination of 'api.operation composes': none (0.71), api.paths (0.16), api.responses (0.05); best predicate: reverse:serves (0.37), none (0.27), composes (0.06). Outcome: alternative (source=api.openapidocument; predicate=reverse:serves).",
+          "entity_id": "node:api.paths#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.operation#1): best source of 'composes api.paths': api.openapidocument (0.62), none (0.28), api.operation (0.03); best destination of 'api.operation composes': api.responses (0.47), none (0.28), api.paths (0.15); best predicate: reverse:serves (0.51), none (0.27), uses (0.04). Outcome: alternative (source=api.openapidocument; target=api.responses; predicate=reverse:serves).",
+          "entity_id": "rel:api.operation#1"
+        }
+      ],
+      "probability": 0.466,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 62,
+        "plan_kind": "conflict",
+        "triple": "api.operation.composes.api.paths",
+        "replacement": [
+          "api.paths.serves.api.operation",
+          "api.paths.serves.api.openapidocument",
+          "api.responses.serves.api.openapidocument"
+        ],
+        "claims": [
+          "node:api.operation#5",
+          "node:api.paths#3",
+          "rel:api.operation#1"
+        ]
+      }
+    },
+    {
+      "seq": 64,
+      "op": "update",
+      "target_id": "api.openapidocument.composes.api.schema",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.components",
+        "destination_spec_node_id": "api.components"
+      },
+      "rationale": "Claims disagree on the replacement (api.components.composes.api.components | api.components.composes.api.paths); the first is proposed, the others are in dr.replacement. Plan kind conflict, p 0.44; claims rel:api.openapidocument#2, node:api.openapidocument#3.",
+      "scope": "breaking",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "api.openapidocument",
+        "destination_spec_node_id": "api.schema",
+        "title": "Openapidocument Composes Schema",
+        "description": "Defines relationship: api.openapidocument composes api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationship from api.openapidocument to api.schema duplicates the path through api.components, which already holds schemas. Proposed: Remove the direct composes relationship to api.schema and keep the path via api.components.",
+          "entity_id": "rel:api.openapidocument#2"
+        },
+        {
+          "quote": "The outgoing composes relationships from api.openapidocument to api.responses and api.schema contradict OpenAPI, where these live under Components or Operations rather than the root document. Proposed: Remove the composes relationships from api.openapidocument to api.responses and api.schema.",
+          "entity_id": "node:api.openapidocument#3"
+        },
+        {
+          "quote": "Sorting answers (rel:api.openapidocument#2): best source of 'composes api.schema': api.components (0.64), none (0.21), api.openapidocument (0.08); best destination of 'api.openapidocument composes': api.components (0.44), api.info (0.25), api.paths (0.17); best predicate: none (0.47), aggregates (0.20), composes (0.13). Outcome: alternative (source=api.components; target=api.components).",
+          "entity_id": "rel:api.openapidocument#2"
+        },
+        {
+          "quote": "Sorting answers (node:api.openapidocument#3): best source of 'composes api.schema': api.components (0.52), none (0.27), api.openapidocument (0.14); best destination of 'api.openapidocument composes': api.paths (0.30), api.info (0.25), api.components (0.24); best predicate: none (0.39), aggregates (0.21), uses (0.12). Outcome: alternative (source=api.components; target=api.paths).",
+          "entity_id": "node:api.openapidocument#3"
+        }
+      ],
+      "probability": 0.442,
+      "status": "pending",
+      "reason": null,
+      "dr": {
+        "plan_row": 63,
+        "plan_kind": "conflict",
+        "triple": "api.openapidocument.composes.api.schema",
+        "replacement": [
+          "api.components.composes.api.components",
+          "api.components.composes.api.paths"
+        ],
+        "claims": ["rel:api.openapidocument#2", "node:api.openapidocument#3"]
+      }
+    }
+  ]
+}

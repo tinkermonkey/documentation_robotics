@@ -131,6 +131,18 @@ Replacement, Also delete, Notes. `sheet-import.py --layer <id>` turns the filled
 numbers), and `apply-walk.ts --layer <id>` applies them. Both Python scripts need `openpyxl`
 (`python3 -m venv .venv && .venv/bin/pip install openpyxl`).
 
+Context Studio as the review queue (tinkermonkey/context-studio#1366, Gate B #1370):
+`proposal-export.ts --layer <id>` writes `reflect/clef/proposals/<layer>.json`, a change
+proposal in Context Studio's shape (format `dr-reflection-plan/1`): one operation per plan row,
+delete / update / create on the relationship's property definition (identified by the DR
+relationship id), the claims and sorting answers as evidence, the plan's p as probability, and a
+`dr` block the importer hands back untouched. Rows already decided in the walk file carry the
+operations their decision implies, marked applied or rejected, so a round trip can be checked.
+`proposal-import.ts --layer <id> [--file ...]` reads the decided proposal back into
+`walk-<layer>.jsonl` (applied delete -> delete, applied update -> rename / reverse / retarget by
+what changed, applied create -> add, rejected -> keep; pending skipped). The api layer is the
+fixture (`proposals/api.json`).
+
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
 relationship, `alternative` names a concrete different source, destination or predicate to weigh
