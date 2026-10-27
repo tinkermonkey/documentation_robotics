@@ -135,13 +135,17 @@ Context Studio as the review queue (tinkermonkey/context-studio#1366, Gate B #13
 `proposal-export.ts --layer <id>` writes `reflect/clef/proposals/<layer>.json`, a change
 proposal in Context Studio's shape (format `dr-reflection-plan/1`): one operation per plan row,
 delete / update / create on the relationship's property definition (identified by the DR
-relationship id), the claims and sorting answers as evidence, the plan's p as probability, and a
-`dr` block the importer hands back untouched. Rows already decided in the walk file carry the
-operations their decision implies, marked applied or rejected, so a round trip can be checked.
-`proposal-import.ts --layer <id> [--file ...]` reads the decided proposal back into
-`walk-<layer>.jsonl` (applied delete -> delete, applied update -> rename / reverse / retarget by
-what changed, applied create -> add, rejected -> keep; pending skipped). The api layer is the
-fixture (`proposals/api.json`).
+relationship id), the claims and sorting answers as evidence (`claim_id`), the plan's p as
+probability, status always pending and scope null (Context Studio computes it), and a `dr`
+block Context Studio ignores. A row whose replacement already exists as a schema is exported as a
+delete, since Context Studio has no merge. Rows already decided in the walk file carry the
+operations their decision implies, still pending, with the decision in `dr.walk_decision`.
+`proposal-import.ts --layer <id> --decisions <file>` joins Context Studio's decision export
+({seq, status, reason, ...}) to the proposal by seq and writes `walk-<layer>.jsonl` (applied
+delete -> delete, applied update -> rename / reverse / retarget by what changed, applied create
+-> add, rejected -> keep; undecided skipped); `--simulate-walk` does the same from
+`dr.walk_decision` as a round-trip check. The contract is in the header of `proposal-export.ts`;
+the api layer is the fixture (`proposals/api.json`, 64 operations).
 
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
