@@ -1,123 +1,37 @@
 # GitHub Workflows
 
-## Current Status: Disabled
+| File                    | Name                   | Triggers                        |
+| ----------------------- | ---------------------- | ------------------------------- |
+| `cli-tests.yml`         | CLI Tests              | pull_request, workflow_dispatch |
+| `release.yml`           | Release                | push                            |
+| `ts-cli-regression.yml` | CLI Regression Suite   | workflow_dispatch               |
+| `validate-docs.yml`     | Validate Documentation | workflow_dispatch               |
 
-**Why?** CI workflows are temporarily disabled to prevent costly failure cycles while pre-commit hooks are being set up.
+## CLI Tests (`cli-tests.yml`)
 
-**What to do?** Install and use pre-commit hooks locally (see [../../PRE_COMMIT_SETUP.md](../../PRE_COMMIT_SETUP.md))
+Runs on every pull request against `main` and on manual dispatch.
 
-## Workflows
+- **Build & Smoke Tests**: installs the CLI, builds it, runs lint and the curated smoke suite
+  (`cli/tests/ci-smoke.manifest.ts`, what `npm run test:smoke` runs locally).
+- **Validate Specification and Schemas**: JSON Schema syntax for every node and relationship
+  schema, markdown lint, and the check that `cli/src/schemas/bundled/` matches `spec/dist/`.
+- **Comprehensive Tests**: visualization and performance suites; runs on manual dispatch only.
 
-### Spec Validation (`spec-validation.yml`)
+The full regression suite runs locally (`npm test` in `cli/`); CI is a smoke check. See
+`CLAUDE.md`, "Testing".
 
-**Status:** Deprecated (consolidated into `cli-tests.yml`)
-**Purpose:** Validate specification files
+## Other workflows
 
-**Note:** Specification validation has been consolidated into the `cli-tests.yml` workflow's `spec-validation` job. This file is kept for reference only.
-
-**Consolidated Checks (now in cli-tests.yml):**
-
-- JSON Schema syntax (ajv-cli)
-- Markdown link validity (markdownlint-cli2)
-- Schema synchronization (spec/ vs cli/src/schemas/bundled/)
-- VERSION file format
-- CHANGELOG updates
-
-See `.github/workflows/cli-tests.yml` for active specification validation.
-
-### CLI Tests (`cli-tests.yml`)
-
-**Status:** Disabled (manual trigger only)
-**Purpose:** Test CLI tool and validate specifications
-
-**Checks:**
-
-- TypeScript type checking
-- Unit and integration tests (Bun)
-- Compatibility tests
-- Code coverage (HTML and LCOV reports)
-- Specification validation (markdownlint on layer docs)
-- JSON Schema validation (syntax and cross-validation)
-- Schema synchronization (spec/ vs cli/src/schemas/bundled/)
-
-**Re-enable when:**
-
-- [ ] Pre-commit hooks are stable
-- [ ] All tests pass locally
-- [ ] Team is using hooks consistently
-
-### Release (`release.yml`)
-
-**Status:** Enabled (release tags only)
-**Purpose:** Publish releases
-
-**Note:** Keep enabled for releases, but ensure pre-commit validation passes before tagging
-
-## How to Re-enable
-
-When ready to re-enable CI:
-
-1. **Verify local validation passes:**
-
-   ```bash
-   pre-commit run --all-files
-   pytest  # In cli/ directory
-   ```
-
-2. **Update workflow files:**
-
-   ```bash
-   # Uncomment the push/pull_request triggers in:
-   .github/workflows/spec-validation.yml
-   .github/workflows/cli-tests.yml
-   ```
-
-3. **Test with small PR:**
-   - Create a small test PR
-   - Verify workflows run successfully
-   - Merge if all passes
-
-4. **Document re-enablement:**
-   - Update this README
-   - Announce to team
-
-## Manual Workflow Triggers
-
-Even while disabled, workflows can be triggered manually:
+The remaining workflows run on manual dispatch (or on push for the release workflow); trigger
+them from the Actions tab or with:
 
 ```bash
-# Via GitHub UI:
-# 1. Go to Actions tab
-# 2. Select workflow
-# 3. Click "Run workflow"
-# 4. Select branch and run
-
-# Via GitHub CLI:
-gh workflow run spec-validation.yml
-gh workflow run cli-tests.yml
+gh workflow run <file> --ref <branch>
 ```
 
-## Local Alternative
+## History
 
-While CI is disabled, run validation locally:
-
-```bash
-# Spec validation
-pre-commit run --all-files
-
-# CLI tests
-cd cli
-bun test                          # Run all tests
-bun test --coverage              # Generate coverage reports
-bun run type-check               # TypeScript type checking
-npm run lint                      # Linting checks
-
-# Specification and schema validation
-dr validate --schemas             # Validate schema synchronization
-markdownlint spec/layers/*.md     # Validate markdown files
-```
-
----
-
-**Last Updated:** 2025-01-23
-**Next Review:** After pre-commit hooks stabilize
+Specification validation used to live in `spec-validation.yml`; it was consolidated into the
+`spec-validation` job of `cli-tests.yml` and the old file removed on 2026-10-28. Pull-request
+triggers were disabled for a period while pre-commit hooks were set up; `cli-tests.yml` has run
+on pull requests since PR #974.
