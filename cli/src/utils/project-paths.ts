@@ -17,6 +17,8 @@
 
 import { fileExists } from "./file-io.js";
 import { join, dirname, resolve } from "path";
+import { stat } from "fs/promises";
+import type { Stats } from "fs";
 
 const MAX_SEARCH_DEPTH = 5;
 const PROJECT_FOLDER_NAME = "documentation-robotics";
@@ -167,4 +169,76 @@ export async function findFarmRoot(startPath?: string): Promise<string | null> {
   }
 
   return null;
+}
+
+/**
+ * Layouts under which a model directory can be found below a base path.
+ * - `standard`: `{base}/documentation-robotics/model/` (a project that self-hosts its model)
+ * - `legacy`: `{base}/model/`
+ * - `detached`: `{base}` itself holds `manifest.yaml` and the layer folders
+ */
+export type ModelLayout = "standard" | "legacy" | "detached";
+
+export interface ResolvedModelDirectory {
+  /** Absolute path of the directory that holds the model (manifest.yaml and layer folders) */
+  modelDir: string;
+  layout: ModelLayout;
+  /** False when something that is not a directory sits at the resolved path */
+  isDirectory: boolean;
+}
+
+const MODEL_LAYOUT_CANDIDATES: ReadonlyArray<{ layout: ModelLayout; segments: string[] }> = [
+  { layout: "standard", segments: [PROJECT_FOLDER_NAME, "model"] },
+  { layout: "legacy", segments: ["model"] },
+  { layout: "detached", segments: [] },
+];
+
+/**
+ * Locate a model directory under `basePath`, trying the standard, legacy and detached
+ * layouts in that order. Shared by the composed reference validator (resolving external
+ * models) and `dr farm add` (adopting a codebase's self-hosted model).
+ *
+ * Only a missing path moves the search on to the next candidate; permission and I/O
+ * errors propagate so callers never mistake them for "no model here".
+ *
+ * @param basePath - Project root, model folder or any path to probe
+ * @param options.requireManifest - When true, a candidate counts only if it is a directory
+ *   that contains `manifest.yaml`; otherwise the first existing path wins (even a file, so
+ *   the caller can report it)
+ * @returns The resolved directory, or null when none of the candidates exists
+ */
+export async function resolveModelDirectory(
+  basePath: string,
+  options: { requireManifest?: boolean } = {}
+): Promise<ResolvedModelDirectory | null> {
+  const resolvedBase = resolve(basePath);
+
+  for (const candidate of MODEL_LAYOUT_CANDIDATES) {
+    const modelDir = join(resolvedBase, ...candidate.segments);
+    const stats = await statIfExists(modelDir);
+    if (!stats) {
+      continue;
+    }
+
+    if (options.requireManifest) {
+      if (!stats.isDirectory() || !(await statIfExists(join(modelDir, "manifest.yaml")))) {
+        continue;
+      }
+    }
+
+    return { modelDir, layout: candidate.layout, isDirectory: stats.isDirectory() };
+  }
+
+  return null;
+}
+
+async function statIfExists(target: string): Promise<Stats | undefined> {
+  try {
+    return await stat(target);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+      return undefined;
+    }
+    throw err;
+  }
 }

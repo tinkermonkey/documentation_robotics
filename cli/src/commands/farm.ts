@@ -7,7 +7,7 @@ import { Command } from "commander";
 import path from "path";
 import { rm } from "fs/promises";
 import { FarmManifest } from "../core/farm-manifest.js";
-import { findFarmRoot } from "../utils/project-paths.js";
+import { findFarmRoot, resolveModelDirectory } from "../utils/project-paths.js";
 import { fileExists } from "../utils/file-io.js";
 import { execSync, execFileSync } from "child_process";
 import * as prompts from "@clack/prompts";
@@ -94,6 +94,131 @@ function checkGitRepository(cwd: string): GitRepositoryCheck {
  */
 function uncommittedChangeWarning(what: string, farmRoot: string, gitError: string): string {
   return `${what} was saved but not committed: could not check git repository at ${farmRoot}: ${gitError}`;
+}
+
+/**
+ * Resolve the top-level directory of the git repository containing `cwd`, or null when
+ * `cwd` is not inside one (or git cannot answer).
+ */
+function gitTopLevel(cwd: string): string | null {
+  try {
+    return execSync("git rev-parse --show-toplevel", { cwd, stdio: "pipe", encoding: "utf-8" }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when `target` is tracked by the same git repository as `farmRoot`, i.e. a
+ * `git add` of it from the farm root can succeed. A model outside the farm root, or inside
+ * a nested checkout with its own `.git`, belongs to another repository.
+ */
+function isInSameGitRepository(farmRoot: string, target: string): boolean {
+  const farmTop = gitTopLevel(farmRoot);
+  return farmTop !== null && farmTop === gitTopLevel(target);
+}
+
+/**
+ * How `dr farm add` settled on a model folder for a project.
+ */
+interface ModelRegistration {
+  /** Model path as recorded in farm.yaml: relative to the farm root, and allowed to leave it */
+  modelFolder: string;
+  /** Absolute path of the registered model directory */
+  modelFullPath: string;
+  /** True when an existing model was registered instead of scaffolding one */
+  adopted: boolean;
+  /** Set when --new-model ignored a model that lives in the codebase */
+  ignoredModelPath?: string;
+  /** User-facing warning attached to the registration (also carried in JSON output) */
+  warning?: string;
+}
+
+/**
+ * A path relative to the farm root, using forward slashes so farm.yaml stays portable.
+ * Returns "." for the farm root itself.
+ */
+function farmRelativePath(farmRoot: string, target: string): string {
+  const rel = path.relative(farmRoot, target);
+  return rel === "" ? "." : rel.split(path.sep).join("/");
+}
+
+/**
+ * True when `target` is `parent` itself or lies strictly inside it (lexical check on
+ * resolved paths; symlinks are not followed).
+ */
+function isWithinPath(target: string, parent: string): boolean {
+  return target === parent || target.startsWith(parent + path.sep);
+}
+
+/**
+ * Decide which model folder a newly added project should use.
+ *
+ * Lookup order, mirroring `ComposedReferenceValidator`'s external model resolution:
+ * `{codebase}/documentation-robotics/model`, `{codebase}/model`, then the codebase path
+ * itself. A codebase that already carries a model is adopted in place unless
+ * `forceNewModel` asks for the old scaffold-a-duplicate behaviour; `explicitModel` skips
+ * detection and registers that path (resolved with the same lookup order).
+ */
+async function resolveProjectModel(
+  name: string,
+  input: {
+    farmRoot: string;
+    codebaseFullPath: string;
+    explicitModel?: string;
+    forceNewModel: boolean;
+  }
+): Promise<ModelRegistration> {
+  const { farmRoot, codebaseFullPath, explicitModel, forceNewModel } = input;
+
+  if (explicitModel) {
+    const explicitFullPath = path.resolve(farmRoot, explicitModel);
+    const resolved = await resolveModelDirectory(explicitFullPath, { requireManifest: true });
+    if (!resolved) {
+      throw new Error(
+        `No model found at '${explicitModel}': expected manifest.yaml in ${explicitFullPath}, ` +
+          `${path.join(explicitFullPath, "model")} or ${path.join(explicitFullPath, "documentation-robotics", "model")}. ` +
+          `Omit --model to scaffold a new model at ${name}-model.`
+      );
+    }
+    return {
+      modelFolder: farmRelativePath(farmRoot, resolved.modelDir),
+      modelFullPath: resolved.modelDir,
+      adopted: true,
+    };
+  }
+
+  // A codebase that self-hosts its model (documentation-robotics/model/manifest.yaml) is
+  // adopted rather than shadowed by an empty duplicate (#962). The farm root itself is
+  // never a candidate: a farm is not a model.
+  const detected =
+    codebaseFullPath === farmRoot
+      ? null
+      : await resolveModelDirectory(codebaseFullPath, { requireManifest: true });
+
+  if (detected && !forceNewModel) {
+    return {
+      modelFolder: farmRelativePath(farmRoot, detected.modelDir),
+      modelFullPath: detected.modelDir,
+      adopted: true,
+    };
+  }
+
+  // Scaffold (or reuse) <farm>/<name>-model
+  const modelFolder = `${name}-model`;
+  const modelFullPath = path.resolve(path.join(farmRoot, modelFolder));
+
+  // Validate path traversal for model folder
+  if (!modelFullPath.startsWith(farmRoot + path.sep)) {
+    throw new Error(`Invalid model path: would escape farm root. Path: ${modelFolder}`);
+  }
+
+  return {
+    modelFolder,
+    modelFullPath,
+    adopted: false,
+    ...(detected ? { ignoredModelPath: farmRelativePath(farmRoot, detected.modelDir) } : {}),
+  };
 }
 
 /**
@@ -210,6 +335,8 @@ export async function farmAddCommand(
   options: {
     remote?: string;
     codebase?: string;
+    model?: string;
+    newModel?: boolean;
     format?: string;
   }
 ): Promise<void> {
@@ -217,6 +344,12 @@ export async function farmAddCommand(
   const useJson = options.format === "json" || isJson();
 
   try {
+    if (options.model && options.newModel) {
+      throw new Error(
+        "--model and --new-model cannot be combined: --model registers an existing model, --new-model scaffolds a fresh one"
+      );
+    }
+
     // Find farm root
     const farmRoot = await findFarmRoot();
     if (!farmRoot) {
@@ -266,21 +399,32 @@ export async function farmAddCommand(
       }
     }
 
-    // Create and scaffold model folder
-    const modelFolder = `${name}-model`;
-    const modelFullPath = path.resolve(path.join(farmRoot, modelFolder));
+    // Decide which model the project uses: an explicit --model path, the codebase's own
+    // self-hosted model (adopted in place), or a fresh scaffold at <name>-model.
+    const registration = await resolveProjectModel(name, {
+      farmRoot: farmRootResolved,
+      codebaseFullPath,
+      explicitModel: options.model,
+      forceNewModel: options.newModel ?? false,
+    });
+    const modelFolder = registration.modelFolder;
 
-    // Validate path traversal for model folder
-    if (!modelFullPath.startsWith(farmRootResolved + path.sep)) {
-      throw new Error(
-        `Invalid model path: would escape farm root. Path: ${modelFolder}`
-      );
+    if (registration.ignoredModelPath) {
+      const ignoredWarning = `Codebase '${codebasePath}' already has a model at ${registration.ignoredModelPath}; ignoring it and scaffolding a new model at ${modelFolder} (--new-model)`;
+      registration.warning = ignoredWarning;
+      if (!useJson) {
+        handleWarning(ignoredWarning);
+      }
     }
 
-    if (!(await fileExists(modelFullPath))) {
+    if (registration.adopted) {
+      if (!useJson) {
+        handleInfo(`Using existing model at ${registration.modelFullPath}; nothing was created`);
+      }
+    } else if (!(await fileExists(registration.modelFullPath))) {
       // Initialize model with manifest and layer structure
       await Model.init(
-        modelFullPath,
+        registration.modelFullPath,
         {
           name: name,
           version: "0.1.0",
@@ -342,13 +486,18 @@ export async function farmAddCommand(
           project: name,
           source: codebasePath,
           model: modelFolder,
+          model_path: registration.modelFullPath,
+          model_adopted: registration.adopted,
+          ...(registration.ignoredModelPath ? { ignored_model: registration.ignoredModelPath } : {}),
+          ...(registration.warning ? { warning: registration.warning } : {}),
           git_committed: gitCommitted,
           ...(gitWarning ? { git_warning: gitWarning } : {}),
         })
       );
     } else {
+      const modelNote = registration.adopted ? " (existing model, adopted in place)" : "";
       handleSuccess(
-        `Project added to farm: ${ansis.bold(name)}\n  Codebase: ${codebasePath}\n  Model: ${modelFolder}`
+        `Project added to farm: ${ansis.bold(name)}\n  Codebase: ${codebasePath}\n  Model: ${modelFolder}${modelNote}`
       );
     }
 
@@ -399,21 +548,31 @@ export async function farmRemoveCommand(
       throw new Error(`Project '${name}' not found in farm`);
     }
 
-    // Remove model folder if requested
+    // Remove model folder if requested. Only a model the farm scaffolded for itself is
+    // deleted: one adopted from the codebase (inside the project's source tree) or lying
+    // outside the farm root is left untouched and the project is merely deregistered.
+    let modelDeleted = false;
+    let modelKeptReason: string | undefined;
     if (options.deleteModel) {
       const modelFullPath = path.resolve(path.join(farmRoot, project.model));
       const farmRootResolved = path.resolve(farmRoot);
+      const codebaseFullPath = path.resolve(path.join(farmRoot, project.source));
 
-      // Validate that the resolved path is strictly within the farm root to prevent path traversal
       if (!modelFullPath.startsWith(farmRootResolved + path.sep)) {
-        throw new Error(
-          `Invalid model path: would escape farm root. Path: ${project.model}`
-        );
+        // Traversal guard: never delete anything outside the farm root
+        modelKeptReason = `model '${project.model}' lies outside the farm root and is not managed by the farm`;
+      } else if (isWithinPath(modelFullPath, codebaseFullPath)) {
+        modelKeptReason = `model '${project.model}' is the codebase's own model (inside '${project.source}')`;
       }
 
-      if (await fileExists(modelFullPath)) {
+      if (modelKeptReason) {
+        if (!useJson) {
+          handleWarning(`Model folder not deleted: ${modelKeptReason}. Remove it by hand if that is what you want.`);
+        }
+      } else if (await fileExists(modelFullPath)) {
         try {
           await rm(modelFullPath, { recursive: true, force: false });
+          modelDeleted = true;
           if (!useJson) {
             handleInfo(`Deleted model folder: ${project.model}`);
           }
@@ -460,7 +619,9 @@ export async function farmRemoveCommand(
         JSON.stringify({
           status: "ok",
           project: name,
-          modelDeleted: options.deleteModel ?? false,
+          model: project.model,
+          modelDeleted,
+          ...(modelKeptReason ? { model_kept_reason: modelKeptReason } : {}),
           git_committed: gitCommitted,
           ...(gitWarning ? { git_warning: gitWarning } : {}),
         })
@@ -1188,9 +1349,10 @@ export async function farmSyncCommand(options: {
           // Auto-commit if requested and changes were staged
           if (options.autoCommit && result.changesetId && result.changeCount > 0 && !options.dryRun) {
             try {
-              const projectModelPath = path.join(farmRoot, project.model);
+              // The staging area lives under the model's project root (which, for a model
+              // adopted from a codebase, is the codebase itself rather than farm.yaml's `model`)
               const stagingManager = new (await import("../core/staging-area.js")).StagingAreaManager(
-                projectModelPath,
+                model.rootPath,
                 model
               );
               const commitResult = await stagingManager.commit(model, result.changesetId);
@@ -1209,6 +1371,17 @@ export async function farmSyncCommand(options: {
                   farmRoot,
                   gitCheck.error
                 );
+                if (!useJson) {
+                  handleWarning(`${project.name}: ${resultEntry.git_warning}`);
+                }
+              } else if (gitCheck.isRepo && !isInSameGitRepository(farmRoot, modelPath)) {
+                // An adopted model outside the farm's repository (a sibling checkout, or a
+                // nested clone with its own .git) cannot be committed from the farm root.
+                // The changes are on disk in the model's own repository; say so.
+                resultEntry.git_committed = false;
+                resultEntry.git_warning =
+                  `Model '${project.model}' is outside the farm git repository at ${farmRoot}: ` +
+                  `the synced changes were saved but not committed. Commit them in the model's own repository.`;
                 if (!useJson) {
                   handleWarning(`${project.name}: ${resultEntry.git_warning}`);
                 }
@@ -1422,6 +1595,14 @@ Notes:
       "--codebase <path>",
       "Path to codebase folder, relative to the farm root (defaults to project name; may point outside the farm root unless --remote is used)"
     )
+    .option(
+      "--model <path>",
+      "Register an existing model at this path (relative to the farm root) instead of detecting or scaffolding one"
+    )
+    .option(
+      "--new-model",
+      "Always scaffold a fresh <name>-model, even when the codebase already carries a model"
+    )
     .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
@@ -1431,7 +1612,15 @@ Examples:
   $ dr farm add my-service --remote https://github.com/org/my-service.git
   $ dr farm add my-service --codebase ./services/my-service
   $ dr farm add my-service --codebase ../my-service   # sibling checkout outside the farm root
-  $ dr farm add my-service --format json`
+  $ dr farm add my-service --codebase ../my-service --new-model
+  $ dr farm add my-service --model ../shared-models/my-service
+  $ dr farm add my-service --format json
+
+Model detection:
+  If the codebase already holds a model (documentation-robotics/model/manifest.yaml, model/manifest.yaml
+  or manifest.yaml at the codebase path itself), that model is adopted in place and nothing is
+  created; farm.yaml records its path (which may lie outside the farm root). Use --new-model to
+  scaffold a separate <name>-model regardless, or --model to point at a model explicitly.`
     )
     .action(async (name, options) => {
       await farmAddCommand(name, options);

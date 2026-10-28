@@ -132,6 +132,31 @@ dr validate                 # Validate model integrity
 dr upgrade                  # Check for spec upgrades
 ```
 
+### Model Farms
+
+A farm (`farm.yaml`) groups several projects' models so they can be synced and validated
+together with cross-model references.
+
+```bash
+dr farm init                              # Create a farm in the current directory
+dr farm add my-service                    # Register ./my-service; scaffolds my-service-model
+dr farm add my-service --codebase ../my-service   # Sibling checkout outside the farm root
+dr farm add my-service --new-model        # Scaffold even if the codebase has its own model
+dr farm add my-service --model ../models/my-service   # Register an existing model explicitly
+dr farm status                            # Pending changes per project
+dr farm validate                          # Validate with farm-aware references
+dr farm sync [--auto-commit]              # Map codebase changes into staged changesets
+dr farm remove my-service [--delete-model]
+```
+
+A codebase that already carries a model (`documentation-robotics/model/manifest.yaml`, or
+`model/manifest.yaml`, or `manifest.yaml` at the codebase path) is adopted in place by
+`dr farm add` rather than shadowed by an empty duplicate: `farm.yaml` points at it, even outside
+the farm root, and the other farm commands read and write it there. `--delete-model` never
+deletes an adopted model, and `sync --auto-commit` leaves committing a model in another git
+repository to that repository (reported as `git_committed: false` with a warning). See
+[docs/FARM_AUTOMATION.md](../docs/FARM_AUTOMATION.md) for flags, JSON output and CI recipes.
+
 ### Working with Elements
 
 ```bash

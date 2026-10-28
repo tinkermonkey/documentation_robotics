@@ -26,6 +26,38 @@ JSON output includes a `code` field that mirrors the exit code.
 
 - `--format json` — Output structured JSON instead of human-readable text
 
+### `dr farm add`
+
+```bash
+dr farm add <name> [--codebase <path>] [--remote <url>] [--model <path>] [--new-model] [--format json]
+```
+
+Registers a project. Before scaffolding `<name>-model`, the command looks for a model the
+codebase already carries, in this order: `<codebase>/documentation-robotics/model/manifest.yaml`,
+`<codebase>/model/manifest.yaml`, then `<codebase>/manifest.yaml`. A model found there is
+**adopted in place**: `farm.yaml` records its path relative to the farm root (a sibling checkout
+yields something like `../heimdall/documentation-robotics/model`), nothing is created, and every
+other farm command reads and writes that model where it is.
+
+Options:
+
+- `--codebase <path>` — Codebase folder, relative to the farm root (defaults to `<name>`; may lie outside the farm root unless `--remote` is used)
+- `--remote <url>` — Clone the repository to the codebase path first (a clone that self-hosts a model is adopted too)
+- `--model <path>` — Register the model at this path (relative to the farm root, resolved with the same lookup order) instead of detecting or scaffolding one; an error if no model is there
+- `--new-model` — Always scaffold a fresh `<name>-model`, even when the codebase holds a model (a warning says the codebase's own model is ignored)
+- `--format json` — Adds `model_adopted` (true when an existing model was registered), the absolute `model_path`, and, with `--new-model`, `ignored_model` plus `warning`
+
+### `dr farm remove`
+
+```bash
+dr farm remove <name> [--delete-model] [--format json]
+```
+
+Deregisters a project. `--delete-model` deletes only a model folder the farm scaffolded for
+itself inside the farm root. An adopted model (outside the farm root, or inside the project's own
+codebase) is never deleted: the project is removed from `farm.yaml`, the JSON result carries
+`modelDeleted: false` and a `model_kept_reason`, and text mode warns on stderr.
+
 ### `dr farm status`
 
 ```bash
@@ -80,6 +112,13 @@ Options:
 - `--output <path>` — Write JSON report to file (`.json` only; any other extension is rejected before the sync runs)
 - `--auto-commit` — **Automatically commit changes** (bypasses staged review step)
 - `--concurrency <n>` — Process up to N projects in parallel (default: 1)
+
+With `--auto-commit`, the model changes are committed to the farm-level git repository only when
+the model belongs to it. An adopted model in another repository (a sibling checkout, or a clone
+inside the farm root with its own `.git`) is synced and committed into its own staging area, but
+the farm-level commit is skipped: the project entry carries `git_committed: false` and a
+`git_warning` (printed on stderr in text mode), and the sync still counts as a success. Commit
+those changes in the model's own repository.
 
 ## Cron Job Examples
 
@@ -403,7 +442,9 @@ The affected entry carries `codebase_error` (codebase folder missing or HEAD unr
       "commitsBefore": "a1b2c3d",
       "commitsAfter": "x9y8z7w",
       "autoCommitted": true,
-      "committedChanges": 5
+      "committedChanges": 5,
+      "git_committed": false,
+      "git_warning": "Model '../auth-service/documentation-robotics/model' is outside the farm git repository at /farms/platform: the synced changes were saved but not committed. Commit them in the model's own repository."
     }
   ],
   "synced": 1,
@@ -411,6 +452,28 @@ The affected entry carries `codebase_error` (codebase folder missing or HEAD unr
   "autoCommitted": true
 }
 ```
+
+`git_committed` is `true` when the farm-level repository took the commit, `false` when the farm is
+not a git repository, when git could not be run (then `git_warning` says why), or when the model
+belongs to another repository (adopted model; `git_warning` as above).
+
+### `dr farm add --format json`
+
+```json
+{
+  "status": "ok",
+  "project": "auth-service",
+  "source": "../auth-service",
+  "model": "../auth-service/documentation-robotics/model",
+  "model_path": "/repos/auth-service/documentation-robotics/model",
+  "model_adopted": true,
+  "git_committed": true
+}
+```
+
+With `--new-model` on a codebase that holds a model, `model_adopted` is `false`, `model` is
+`<name>-model`, and `ignored_model` names the model that was left alone (its text appears in
+`warning`).
 
 ## Monitoring and Alerting
 
