@@ -1,0 +1,1035 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: motivation layer (24 relationship changes)",
+  "rationale": "Relationship schemas in the motivation layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.865Z",
+  "layer": "motivation",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "motivation.requirement.associated-with.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.requirement.associated-with.motivation.goal: motivation.requirement.realizes.motivation.goal already exists and expresses it. Plan kind remove-duplicate, p 0.52; claims rel:motivation.requirement#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.requirement",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.requirement associated-with motivation.goal",
+        "description": "Defines relationship: motivation.requirement associated-with motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship motivation.requirement --[associated-with]--> motivation.goal overlaps with motivation.requirement --[realizes]--> motivation.goal, and realizes should be preferred when the requirement actually refines the goal. Proposed: Prefer realizes over associated-with for requirement-to-goal links where the requirement refines the goal, removing or restricting the associated-with relationship.",
+          "claim_id": "rel:motivation.requirement#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.requirement#2): best source of 'associated-with motivation.goal': motivation.requirement (0.84), none (0.04), motivation.driver (0.03); best destination of 'motivation.requirement associated-with': motivation.goal (0.47), motivation.outcome (0.21), none (0.08); best predicate: realizes (0.52), reverse:aggregates (0.17), reverse:influence (0.14). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:motivation.requirement#2"
+        }
+      ],
+      "probability": 0.52,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "motivation.requirement.associated-with.motivation.goal",
+        "replacement": ["motivation.requirement.realizes.motivation.goal"],
+        "claims": ["rel:motivation.requirement#2"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "delete",
+      "target_id": "motivation.outcome.influence.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.outcome.influence.motivation.goal: motivation.outcome.realizes.motivation.goal already exists and expresses it. Plan kind remove-duplicate, p 0.43; claims rel:motivation.outcome#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "influence",
+        "source_spec_node_id": "motivation.outcome",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.outcome influence motivation.goal",
+        "description": "Defines relationship: motivation.outcome influence motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships motivation.outcome --influence--> motivation.goal and motivation.outcome --realizes--> motivation.goal overlap in meaning; modelers should use realizes for full attainment and influence for partial contribution. Proposed: Document a usage rule: realizes for full attainment of the goal, influence for partial contribution (or merge the two).",
+          "claim_id": "rel:motivation.outcome#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.outcome#1): best source of 'influence motivation.goal': motivation.outcome (0.56), motivation.goal (0.27), motivation.driver (0.07); best destination of 'motivation.outcome influence': motivation.goal (0.71), motivation.outcome (0.11), motivation.driver (0.06); best predicate: realizes (0.43), reverse:influence (0.39), none (0.07). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:motivation.outcome#1"
+        }
+      ],
+      "probability": 0.428,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "remove-duplicate",
+        "triple": "motivation.outcome.influence.motivation.goal",
+        "replacement": ["motivation.outcome.realizes.motivation.goal"],
+        "claims": ["rel:motivation.outcome#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "delete",
+      "target_id": "motivation.value.associated-with.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.value.associated-with.motivation.goal: motivation.goal.realizes.motivation.value already exists and expresses it. Plan kind reverse, p 0.67; claims rel:motivation.value#3, rel:motivation.value#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.value",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.value associated-with motivation.goal",
+        "description": "Defines relationship: motivation.value associated-with motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship from motivation.value to motivation.goal would read better as 'supports'. Proposed: Change the predicate of the value-to-goal relationship to supports.",
+          "claim_id": "rel:motivation.value#3"
+        },
+        {
+          "quote": "Apart from value-to-stakeholder, the relationships from motivation.value use generic associated-with, which hides their meaning. Proposed: Replace generic associated-with with more specific predicates where a meaningful one exists.",
+          "claim_id": "rel:motivation.value#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#3): best source of 'associated-with motivation.goal': motivation.value (0.61), motivation.goal (0.15), none (0.12); best destination of 'motivation.value associated-with': motivation.goal (0.43), motivation.outcome (0.21), motivation.value (0.15); best predicate: reverse:realizes (0.67), associated-with (0.13), none (0.06). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "rel:motivation.value#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#1): best source of 'associated-with motivation.goal': motivation.value (0.41), none (0.19), motivation.goal (0.19); best destination of 'motivation.value associated-with': motivation.goal (0.41), motivation.outcome (0.17), motivation.value (0.14); best predicate: reverse:realizes (0.72), associated-with (0.07), none (0.07). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "rel:motivation.value#1"
+        }
+      ],
+      "probability": 0.671,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "reverse",
+        "triple": "motivation.value.associated-with.motivation.goal",
+        "replacement": ["motivation.goal.realizes.motivation.value"],
+        "claims": ["rel:motivation.value#3", "rel:motivation.value#1"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "motivation.goal.realizes.motivation.value",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.goal.realizes.motivation.value: motivation.value.associated-with.motivation.goal already exists and expresses it. Plan kind reverse, p 0.63; claims node:motivation.value#1, rel:motivation.goal#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.value",
+        "title": "motivation.goal realizes motivation.value",
+        "description": "Defines relationship: motivation.goal realizes motivation.value"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships 'motivation.goal realizes motivation.value' and 'motivation.outcome realizes motivation.value' deviate from ArchiMate, which only associates value with other elements. Proposed: Replace the realizes relationships from goal and outcome to value with associated-with, or otherwise align them with ArchiMate.",
+          "claim_id": "node:motivation.value#1"
+        },
+        {
+          "quote": "The relationship motivation.goal realizes motivation.value is unusual, and association would be more typical. Proposed: Replace goal realizes value with an associated-with relationship.",
+          "claim_id": "rel:motivation.goal#4"
+        },
+        {
+          "quote": "Sorting answers (node:motivation.value#1): best source of 'realizes motivation.value': none (0.58), motivation.outcome (0.12), motivation.goal (0.11); best destination of 'motivation.goal realizes': none (0.47), motivation.outcome (0.15), motivation.value (0.13); best predicate: reverse:associated-with (0.63), none (0.23), realizes (0.04). Outcome: alternative (predicate=reverse:associated-with).",
+          "claim_id": "node:motivation.value#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#4): best source of 'realizes motivation.value': motivation.goal (0.34), motivation.outcome (0.33), none (0.14); best destination of 'motivation.goal realizes': motivation.value (0.38), motivation.outcome (0.25), motivation.goal (0.14); best predicate: reverse:associated-with (0.78), none (0.06), realizes (0.06). Outcome: alternative (predicate=reverse:associated-with).",
+          "claim_id": "rel:motivation.goal#4"
+        }
+      ],
+      "probability": 0.632,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "reverse",
+        "triple": "motivation.goal.realizes.motivation.value",
+        "replacement": ["motivation.value.associated-with.motivation.goal"],
+        "claims": ["node:motivation.value#1", "rel:motivation.goal#4"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "motivation.outcome.realizes.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.outcome.realizes.motivation.goal: motivation.goal.influence.motivation.outcome already exists and expresses it. Plan kind reverse, p 0.44; claims rel:motivation.outcome#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "motivation.outcome",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.outcome realizes motivation.goal",
+        "description": "Defines relationship: motivation.outcome realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships motivation.outcome --influence--> motivation.goal and motivation.outcome --realizes--> motivation.goal overlap in meaning; modelers should use realizes for full attainment and influence for partial contribution. Proposed: Document a usage rule: realizes for full attainment of the goal, influence for partial contribution (or merge the two).",
+          "claim_id": "rel:motivation.outcome#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.outcome#1): best source of 'realizes motivation.goal': motivation.outcome (0.49), business.businessprocess (0.30), none (0.08); best destination of 'motivation.outcome realizes': motivation.goal (0.71), motivation.outcome (0.12), motivation.value (0.05); best predicate: reverse:influence (0.44), realizes (0.34), influence (0.09). Outcome: alternative (predicate=reverse:influence).",
+          "claim_id": "rel:motivation.outcome#1"
+        }
+      ],
+      "probability": 0.441,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "reverse",
+        "triple": "motivation.outcome.realizes.motivation.goal",
+        "replacement": ["motivation.goal.influence.motivation.outcome"],
+        "claims": ["rel:motivation.outcome#1"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "motivation.goal.aggregates.motivation.requirement",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.goal.aggregates.motivation.requirement: motivation.requirement.associated-with.motivation.goal already exists and expresses it. Plan kind reverse, p 0.34; claims rel:motivation.goal#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.requirement",
+        "title": "motivation.goal aggregates motivation.requirement",
+        "description": "Defines relationship: motivation.goal aggregates motivation.requirement"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship motivation.goal aggregates motivation.requirement inverts the usual ArchiMate direction, in which requirements realize goals. Proposed: Remove or reverse the goal-aggregates-requirement relationship so that requirement realizes goal is the canonical form.",
+          "claim_id": "rel:motivation.goal#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#1): best source of 'aggregates motivation.requirement': motivation.goal (0.29), motivation.requirement (0.28), none (0.18); best destination of 'motivation.goal aggregates': none (0.28), motivation.goal (0.25), motivation.requirement (0.23); best predicate: reverse:associated-with (0.34), influence (0.27), reverse:aggregates (0.11). Outcome: alternative (predicate=reverse:associated-with).",
+          "claim_id": "rel:motivation.goal#1"
+        }
+      ],
+      "probability": 0.341,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "reverse",
+        "triple": "motivation.goal.aggregates.motivation.requirement",
+        "replacement": [
+          "motivation.requirement.associated-with.motivation.goal"
+        ],
+        "claims": ["rel:motivation.goal#1"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "motivation.value.associated-with.motivation.driver",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.value.associated-with.motivation.driver: motivation.driver.associated-with.motivation.value already exists and expresses it. Plan kind reverse, p 0.30; claims rel:motivation.value#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.value",
+        "destination_spec_node_id": "motivation.driver",
+        "title": "motivation.value associated-with motivation.driver",
+        "description": "Defines relationship: motivation.value associated-with motivation.driver"
+      },
+      "evidence": [
+        {
+          "quote": "Apart from value-to-stakeholder, the relationships from motivation.value use generic associated-with, which hides their meaning. Proposed: Replace generic associated-with with more specific predicates where a meaningful one exists.",
+          "claim_id": "rel:motivation.value#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#1): best source of 'associated-with motivation.driver': motivation.value (0.43), none (0.16), motivation.driver (0.16); best destination of 'motivation.value associated-with': motivation.driver (0.29), motivation.stakeholder (0.20), none (0.14); best predicate: reverse:associated-with (0.30), associated-with (0.24), none (0.21). Outcome: alternative (predicate=reverse:associated-with).",
+          "claim_id": "rel:motivation.value#1"
+        }
+      ],
+      "probability": 0.3,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "reverse",
+        "triple": "motivation.value.associated-with.motivation.driver",
+        "replacement": ["motivation.driver.associated-with.motivation.value"],
+        "claims": ["rel:motivation.value#1"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "delete",
+      "target_id": "motivation.meaning.associated-with.motivation.value",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.meaning.associated-with.motivation.value: motivation.meaning.associated-with.motivation.stakeholder already exists and expresses it. Plan kind retarget, p 0.64; claims rel:motivation.meaning#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.meaning",
+        "destination_spec_node_id": "motivation.value",
+        "title": "motivation.meaning associated-with motivation.value",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.value"
+      },
+      "evidence": [
+        {
+          "quote": "The meaning-to-stakeholder link is the most substantive (whose interpretation), while the other associations essentially only say 'defines a term used in'. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#2): best source of 'associated-with motivation.value': motivation.meaning (0.52), motivation.value (0.19), motivation.stakeholder (0.10); best destination of 'motivation.meaning associated-with': motivation.value (0.46), motivation.stakeholder (0.17), none (0.14); best predicate: associated-with (0.60), none (0.18), references (0.12). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#1): best source of 'associated-with motivation.value': motivation.meaning (0.82), motivation.value (0.08), motivation.stakeholder (0.03); best destination of 'motivation.meaning associated-with': motivation.value (0.69), none (0.10), motivation.stakeholder (0.06); best predicate: associated-with (0.66), none (0.14), references (0.09). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#3): best source of 'associated-with motivation.value': motivation.meaning (0.73), motivation.value (0.10), motivation.stakeholder (0.07); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.64), motivation.value (0.14), none (0.07); best predicate: associated-with (0.45), none (0.35), references (0.11). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.meaning#3"
+        }
+      ],
+      "probability": 0.639,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "retarget",
+        "triple": "motivation.meaning.associated-with.motivation.value",
+        "replacement": [
+          "motivation.meaning.associated-with.motivation.stakeholder"
+        ],
+        "claims": ["rel:motivation.meaning#3"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "motivation.meaning.associated-with.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.meaning.associated-with.motivation.goal: motivation.meaning.associated-with.motivation.stakeholder already exists and expresses it. Plan kind retarget, p 0.63; claims rel:motivation.meaning#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.meaning",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.meaning associated-with motivation.goal",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The meaning-to-stakeholder link is the most substantive (whose interpretation), while the other associations essentially only say 'defines a term used in'. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#1): best source of 'associated-with motivation.goal': motivation.meaning (0.81), motivation.stakeholder (0.06), motivation.goal (0.04); best destination of 'motivation.meaning associated-with': motivation.goal (0.34), motivation.meaning (0.16), none (0.12); best predicate: associated-with (0.69), none (0.13), references (0.10). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#2): best source of 'associated-with motivation.goal': motivation.meaning (0.54), motivation.stakeholder (0.14), motivation.goal (0.09); best destination of 'motivation.meaning associated-with': motivation.goal (0.21), motivation.value (0.16), none (0.16); best predicate: associated-with (0.66), none (0.16), references (0.12). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#3): best source of 'associated-with motivation.goal': motivation.meaning (0.76), motivation.stakeholder (0.12), none (0.03); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.63), motivation.meaning (0.21), none (0.04); best predicate: associated-with (0.49), none (0.28), references (0.13). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.meaning#3"
+        }
+      ],
+      "probability": 0.63,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "retarget",
+        "triple": "motivation.meaning.associated-with.motivation.goal",
+        "replacement": [
+          "motivation.meaning.associated-with.motivation.stakeholder"
+        ],
+        "claims": ["rel:motivation.meaning#3"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "delete",
+      "target_id": "motivation.stakeholder.associated-with.motivation.constraint",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.stakeholder.associated-with.motivation.constraint: motivation.requirement.associated-with.motivation.constraint already exists and expresses it. Plan kind retarget, p 0.62; claims rel:motivation.stakeholder#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.stakeholder",
+        "destination_spec_node_id": "motivation.constraint",
+        "title": "motivation.stakeholder associated-with motivation.constraint",
+        "description": "Defines relationship: motivation.stakeholder associated-with motivation.constraint"
+      },
+      "evidence": [
+        {
+          "quote": "The stakeholder associated-with constraint relationship is weak, because ArchiMate typically links stakeholders to drivers and goals, with constraints reached via requirements. Proposed: Remove stakeholder associated-with constraint and reach constraints through requirements.",
+          "claim_id": "rel:motivation.stakeholder#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.stakeholder#3): best source of 'associated-with motivation.constraint': motivation.requirement (0.62), none (0.13), motivation.stakeholder (0.05); best destination of 'motivation.stakeholder associated-with': motivation.constraint (0.42), motivation.requirement (0.30), motivation.principle (0.09); best predicate: none (0.58), associated-with (0.30), references (0.04). Outcome: alternative (source=motivation.requirement).",
+          "claim_id": "rel:motivation.stakeholder#3"
+        }
+      ],
+      "probability": 0.622,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "motivation.stakeholder.associated-with.motivation.constraint",
+        "replacement": [
+          "motivation.requirement.associated-with.motivation.constraint"
+        ],
+        "claims": ["rel:motivation.stakeholder#3"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "delete",
+      "target_id": "motivation.meaning.associated-with.motivation.driver",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.meaning.associated-with.motivation.driver: motivation.meaning.associated-with.motivation.stakeholder already exists and expresses it. Plan kind retarget, p 0.62; claims rel:motivation.meaning#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.meaning",
+        "destination_spec_node_id": "motivation.driver",
+        "title": "motivation.meaning associated-with motivation.driver",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.driver"
+      },
+      "evidence": [
+        {
+          "quote": "The meaning-to-stakeholder link is the most substantive (whose interpretation), while the other associations essentially only say 'defines a term used in'. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#1): best source of 'associated-with motivation.driver': motivation.meaning (0.72), motivation.stakeholder (0.09), motivation.driver (0.06); best destination of 'motivation.meaning associated-with': motivation.driver (0.20), motivation.meaning (0.18), motivation.stakeholder (0.16); best predicate: associated-with (0.68), none (0.16), references (0.07). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#2): best source of 'associated-with motivation.driver': motivation.meaning (0.60), motivation.stakeholder (0.14), none (0.07); best destination of 'motivation.meaning associated-with': none (0.21), motivation.stakeholder (0.20), motivation.meaning (0.20); best predicate: associated-with (0.54), none (0.27), references (0.11). Outcome: no_better.",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#3): best source of 'associated-with motivation.driver': motivation.meaning (0.67), motivation.stakeholder (0.16), none (0.04); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.62), motivation.meaning (0.09), none (0.08); best predicate: none (0.41), associated-with (0.39), references (0.11). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.meaning#3"
+        }
+      ],
+      "probability": 0.617,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "motivation.meaning.associated-with.motivation.driver",
+        "replacement": [
+          "motivation.meaning.associated-with.motivation.stakeholder"
+        ],
+        "claims": ["rel:motivation.meaning#3"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "delete",
+      "target_id": "motivation.meaning.associated-with.motivation.constraint",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.meaning.associated-with.motivation.constraint: motivation.meaning.associated-with.motivation.stakeholder already exists and expresses it. Plan kind retarget, p 0.58; claims rel:motivation.meaning#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.meaning",
+        "destination_spec_node_id": "motivation.constraint",
+        "title": "motivation.meaning associated-with motivation.constraint",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.constraint"
+      },
+      "evidence": [
+        {
+          "quote": "The meaning-to-stakeholder link is the most substantive (whose interpretation), while the other associations essentially only say 'defines a term used in'. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#2): best source of 'associated-with motivation.constraint': motivation.meaning (0.50), motivation.stakeholder (0.14), none (0.13); best destination of 'motivation.meaning associated-with': motivation.constraint (0.24), none (0.18), motivation.stakeholder (0.17); best predicate: associated-with (0.50), none (0.28), references (0.16). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#1): best source of 'associated-with motivation.constraint': motivation.meaning (0.82), motivation.stakeholder (0.05), none (0.04); best destination of 'motivation.meaning associated-with': motivation.constraint (0.32), none (0.16), motivation.stakeholder (0.11); best predicate: associated-with (0.63), none (0.20), references (0.10). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#3): best source of 'associated-with motivation.constraint': motivation.meaning (0.75), motivation.stakeholder (0.11), none (0.03); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.58), motivation.meaning (0.11), motivation.constraint (0.09); best predicate: associated-with (0.42), none (0.36), references (0.14). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.meaning#3"
+        }
+      ],
+      "probability": 0.582,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "retarget",
+        "triple": "motivation.meaning.associated-with.motivation.constraint",
+        "replacement": [
+          "motivation.meaning.associated-with.motivation.stakeholder"
+        ],
+        "claims": ["rel:motivation.meaning#3"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "motivation.meaning.associated-with.motivation.stakeholder",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "motivation.meaning",
+        "title": "motivation.meaning associated-with motivation.meaning",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.meaning"
+      },
+      "rationale": "Retarget of motivation.meaning.associated-with.motivation.stakeholder to motivation.meaning.associated-with.motivation.meaning. Plan kind retarget, p 0.48; claims rel:motivation.meaning#3, rel:motivation.meaning#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.meaning",
+        "destination_spec_node_id": "motivation.stakeholder",
+        "title": "motivation.meaning associated-with motivation.stakeholder",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.stakeholder"
+      },
+      "evidence": [
+        {
+          "quote": "The meaning-to-stakeholder link is the most substantive (whose interpretation), while the other associations essentially only say 'defines a term used in'. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "All six relationships from motivation.meaning use the generic associated-with predicate, which is ArchiMate's only permitted relation for Meaning but carries little semantics. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#3): best source of 'associated-with motivation.stakeholder': motivation.meaning (0.80), motivation.stakeholder (0.13), none (0.02); best destination of 'motivation.meaning associated-with': motivation.meaning (0.48), motivation.stakeholder (0.43), none (0.03); best predicate: associated-with (0.43), references (0.18), none (0.17). Outcome: alternative (target=motivation.meaning).",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#2): best source of 'associated-with motivation.stakeholder': motivation.meaning (0.57), motivation.stakeholder (0.27), none (0.04); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.38), motivation.meaning (0.20), none (0.15); best predicate: associated-with (0.50), none (0.24), references (0.13). Outcome: reproduced.",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#1): best source of 'associated-with motivation.stakeholder': motivation.meaning (0.83), motivation.stakeholder (0.08), none (0.02); best destination of 'motivation.meaning associated-with': motivation.meaning (0.52), motivation.stakeholder (0.29), motivation.value (0.05); best predicate: associated-with (0.66), none (0.11), references (0.08). Outcome: alternative (target=motivation.meaning).",
+          "claim_id": "rel:motivation.meaning#1"
+        }
+      ],
+      "probability": 0.476,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "retarget",
+        "triple": "motivation.meaning.associated-with.motivation.stakeholder",
+        "replacement": [
+          "motivation.meaning.associated-with.motivation.meaning"
+        ],
+        "claims": ["rel:motivation.meaning#3", "rel:motivation.meaning#1"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "delete",
+      "target_id": "motivation.driver.associated-with.motivation.value",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.driver.associated-with.motivation.value: motivation.value.associated-with.motivation.value already exists and expresses it. Plan kind retarget, p 0.30; claims rel:motivation.driver#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.driver",
+        "destination_spec_node_id": "motivation.value",
+        "title": "motivation.driver associated-with motivation.value",
+        "description": "Defines relationship: motivation.driver associated-with motivation.value"
+      },
+      "evidence": [
+        {
+          "quote": "The associated-with relationship from motivation.driver to motivation.value is vague and may duplicate paths that already run through goals or outcomes. Proposed: Remove the driver-to-value associated-with relationship or justify it against the paths via goals or outcomes.",
+          "claim_id": "rel:motivation.driver#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.driver#2): best source of 'associated-with motivation.value': motivation.value (0.30), motivation.driver (0.19), none (0.17); best destination of 'motivation.driver associated-with': none (0.27), motivation.value (0.20), motivation.outcome (0.15); best predicate: none (0.70), associated-with (0.11), reverse:associated-with (0.10). Outcome: alternative (source=motivation.value).",
+          "claim_id": "rel:motivation.driver#2"
+        }
+      ],
+      "probability": 0.297,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "retarget",
+        "triple": "motivation.driver.associated-with.motivation.value",
+        "replacement": ["motivation.value.associated-with.motivation.value"],
+        "claims": ["rel:motivation.driver#2"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "delete",
+      "target_id": "motivation.value.associated-with.motivation.value",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.value.associated-with.motivation.value: motivation.value.associated-with.motivation.stakeholder already exists and expresses it. Plan kind retarget, p 0.29; claims rel:motivation.value#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.value",
+        "destination_spec_node_id": "motivation.value",
+        "title": "motivation.value associated-with motivation.value",
+        "description": "Defines relationship: motivation.value associated-with motivation.value"
+      },
+      "evidence": [
+        {
+          "quote": "Apart from value-to-stakeholder, the relationships from motivation.value use generic associated-with, which hides their meaning. Proposed: Replace generic associated-with with more specific predicates where a meaningful one exists.",
+          "claim_id": "rel:motivation.value#1"
+        },
+        {
+          "quote": "Sorting answers (node:motivation.value#2): best source of 'associated-with motivation.value': motivation.value (0.42), none (0.30), motivation.stakeholder (0.07); best destination of 'motivation.value associated-with': none (0.38), motivation.value (0.28), motivation.outcome (0.09); best predicate: none (0.58), associated-with (0.21), reverse:associated-with (0.06). Outcome: no_better.",
+          "claim_id": "node:motivation.value#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#5): best source of 'associated-with motivation.value': motivation.value (0.42), motivation.stakeholder (0.19), none (0.14); best destination of 'motivation.value associated-with': motivation.value (0.36), none (0.17), motivation.stakeholder (0.12); best predicate: none (0.52), composes (0.24), associated-with (0.09). Outcome: no_better.",
+          "claim_id": "rel:motivation.value#5"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#1): best source of 'associated-with motivation.value': motivation.value (0.35), none (0.23), motivation.stakeholder (0.20); best destination of 'motivation.value associated-with': motivation.stakeholder (0.29), none (0.18), motivation.value (0.17); best predicate: associated-with (0.28), none (0.27), composes (0.13). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.value#1"
+        }
+      ],
+      "probability": 0.288,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "retarget",
+        "triple": "motivation.value.associated-with.motivation.value",
+        "replacement": [
+          "motivation.value.associated-with.motivation.stakeholder"
+        ],
+        "claims": ["rel:motivation.value#1"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "delete",
+      "target_id": "motivation.assessment.influence.motivation.driver",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.assessment.influence.motivation.driver: motivation.driver.influence.motivation.driver already exists and expresses it. Plan kind compound, p 0.42; claims rel:motivation.assessment#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "influence",
+        "source_spec_node_id": "motivation.assessment",
+        "destination_spec_node_id": "motivation.driver",
+        "title": "motivation.assessment influence motivation.driver",
+        "description": "Defines relationship: motivation.assessment influence motivation.driver"
+      },
+      "evidence": [
+        {
+          "quote": "The influence relationship from motivation.assessment to motivation.driver inverts ArchiMate's convention, where assessments are associated with the drivers they evaluate. Proposed: Replace the assessment-influence-driver relationship with associated-with between assessment and driver.",
+          "claim_id": "rel:motivation.assessment#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.assessment#2): best source of 'influence motivation.driver': motivation.driver (0.42), none (0.36), motivation.assessment (0.09); best destination of 'motivation.assessment influence': motivation.driver (0.31), motivation.goal (0.19), motivation.assessment (0.17); best predicate: reverse:influence (0.66), none (0.17), references (0.07). Outcome: alternative (source=motivation.driver; predicate=reverse:influence).",
+          "claim_id": "rel:motivation.assessment#2"
+        }
+      ],
+      "probability": 0.416,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "compound",
+        "triple": "motivation.assessment.influence.motivation.driver",
+        "replacement": ["motivation.driver.influence.motivation.driver"],
+        "claims": ["rel:motivation.assessment#2"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "delete",
+      "target_id": "motivation.goal.influence.motivation.assessment",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.goal.influence.motivation.assessment: motivation.assessment.influence.motivation.assessment already exists and expresses it. Plan kind compound, p 0.35; claims rel:motivation.goal#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "influence",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.assessment",
+        "title": "motivation.goal influence motivation.assessment",
+        "description": "Defines relationship: motivation.goal influence motivation.assessment"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship motivation.goal influence motivation.assessment reverses the normal direction, in which an assessment influences a goal. Proposed: Remove goal influence assessment and rely on assessment influence goal.",
+          "claim_id": "rel:motivation.goal#5"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#5): best source of 'influence motivation.assessment': motivation.assessment (0.35), none (0.19), motivation.outcome (0.15); best destination of 'motivation.goal influence': motivation.assessment (0.32), motivation.outcome (0.24), none (0.11); best predicate: reverse:influence (0.74), none (0.11), influence (0.08). Outcome: alternative (source=motivation.assessment; predicate=reverse:influence).",
+          "claim_id": "rel:motivation.goal#5"
+        }
+      ],
+      "probability": 0.35,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "compound",
+        "triple": "motivation.goal.influence.motivation.assessment",
+        "replacement": [
+          "motivation.assessment.influence.motivation.assessment"
+        ],
+        "claims": ["rel:motivation.goal#5"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "update",
+      "target_id": "motivation.goal.supports.motivation.principle",
+      "ref": null,
+      "fields": {
+        "predicate": "realizes",
+        "source_spec_node_id": "motivation.principle",
+        "title": "motivation.principle realizes motivation.principle",
+        "description": "Defines relationship: motivation.principle realizes motivation.principle"
+      },
+      "rationale": "Change of motivation.goal.supports.motivation.principle to motivation.principle.realizes.motivation.principle. Plan kind compound, p 0.33; claims rel:motivation.goal#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "supports",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.principle",
+        "title": "motivation.goal supports motivation.principle",
+        "description": "Defines relationship: motivation.goal supports motivation.principle"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships motivation.goal influence motivation.principle and motivation.goal supports motivation.principle are largely redundant with each other. Proposed: Keep only one of influence or supports between goal and principle.",
+          "claim_id": "rel:motivation.goal#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#3): best source of 'supports motivation.principle': motivation.principle (0.33), none (0.17), motivation.goal (0.17); best destination of 'motivation.goal supports': motivation.principle (0.52), motivation.outcome (0.14), none (0.12); best predicate: reverse:realizes (0.34), reverse:influence (0.30), influence (0.11). Outcome: alternative (source=motivation.principle; predicate=reverse:realizes).",
+          "claim_id": "rel:motivation.goal#3"
+        }
+      ],
+      "probability": 0.331,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "compound",
+        "triple": "motivation.goal.supports.motivation.principle",
+        "replacement": ["motivation.principle.realizes.motivation.principle"],
+        "claims": ["rel:motivation.goal#3"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "motivation.goal.influence.motivation.principle",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.goal.influence.motivation.principle: motivation.principle.influence.motivation.principle already exists and expresses it. Plan kind compound, p 0.33; claims rel:motivation.goal#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "influence",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.principle",
+        "title": "motivation.goal influence motivation.principle",
+        "description": "Defines relationship: motivation.goal influence motivation.principle"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships motivation.goal influence motivation.principle and motivation.goal supports motivation.principle are largely redundant with each other. Proposed: Keep only one of influence or supports between goal and principle.",
+          "claim_id": "rel:motivation.goal#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#3): best source of 'influence motivation.principle': motivation.principle (0.33), motivation.goal (0.25), motivation.outcome (0.11); best destination of 'motivation.goal influence': motivation.principle (0.53), motivation.outcome (0.12), motivation.goal (0.10); best predicate: reverse:influence (0.37), reverse:realizes (0.29), supports (0.09). Outcome: alternative (source=motivation.principle; predicate=reverse:influence).",
+          "claim_id": "rel:motivation.goal#3"
+        }
+      ],
+      "probability": 0.329,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "compound",
+        "triple": "motivation.goal.influence.motivation.principle",
+        "replacement": ["motivation.principle.influence.motivation.principle"],
+        "claims": ["rel:motivation.goal#3"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "update",
+      "target_id": "motivation.goal.realizes.motivation.goal",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "business.businessprocess",
+        "title": "business.businessprocess aggregates motivation.goal",
+        "description": "Defines relationship: business.businessprocess aggregates motivation.goal"
+      },
+      "rationale": "Change of motivation.goal.realizes.motivation.goal to business.businessprocess.aggregates.motivation.goal. Plan kind compound, p 0.33; claims rel:motivation.goal#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.goal realizes motivation.goal",
+        "description": "Defines relationship: motivation.goal realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship motivation.goal realizes motivation.goal overlaps with motivation.goal aggregates motivation.goal and motivation.goal influence motivation.goal as variants of goal decomposition. Proposed: Consolidate the goal-to-goal decomposition relationships into one, with clear semantics for the rest.",
+          "claim_id": "rel:motivation.goal#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#2): best source of 'realizes motivation.goal': business.businessprocess (0.33), motivation.goal (0.23), application.applicationcomponent (0.11); best destination of 'motivation.goal realizes': motivation.goal (0.45), motivation.outcome (0.23), none (0.12); best predicate: aggregates (0.47), reverse:aggregates (0.17), specializes (0.11). Outcome: alternative (source=business.businessprocess; predicate=aggregates).",
+          "claim_id": "rel:motivation.goal#2"
+        }
+      ],
+      "probability": 0.327,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "compound",
+        "triple": "motivation.goal.realizes.motivation.goal",
+        "replacement": ["business.businessprocess.aggregates.motivation.goal"],
+        "claims": ["rel:motivation.goal#2"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "update",
+      "target_id": "motivation.goal.influence.motivation.goal",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "motivation.driver",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "motivation.driver aggregates motivation.outcome",
+        "description": "Defines relationship: motivation.driver aggregates motivation.outcome"
+      },
+      "rationale": "Change of motivation.goal.influence.motivation.goal to motivation.driver.aggregates.motivation.outcome. Plan kind compound, p 0.29; claims rel:motivation.goal#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "influence",
+        "source_spec_node_id": "motivation.goal",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.goal influence motivation.goal",
+        "description": "Defines relationship: motivation.goal influence motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship motivation.goal realizes motivation.goal overlaps with motivation.goal aggregates motivation.goal and motivation.goal influence motivation.goal as variants of goal decomposition. Proposed: Consolidate the goal-to-goal decomposition relationships into one, with clear semantics for the rest.",
+          "claim_id": "rel:motivation.goal#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.goal#2): best source of 'influence motivation.goal': motivation.driver (0.29), motivation.outcome (0.25), motivation.assessment (0.14); best destination of 'motivation.goal influence': motivation.outcome (0.39), motivation.goal (0.17), none (0.14); best predicate: aggregates (0.45), reverse:aggregates (0.16), composes (0.11). Outcome: alternative (source=motivation.driver; target=motivation.outcome; predicate=aggregates).",
+          "claim_id": "rel:motivation.goal#2"
+        }
+      ],
+      "probability": 0.291,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "compound",
+        "triple": "motivation.goal.influence.motivation.goal",
+        "replacement": ["motivation.driver.aggregates.motivation.outcome"],
+        "claims": ["rel:motivation.goal#2"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "update",
+      "target_id": "motivation.value.associated-with.motivation.outcome",
+      "ref": null,
+      "fields": {
+        "predicate": "realizes",
+        "source_spec_node_id": "motivation.outcome",
+        "title": "motivation.outcome realizes motivation.outcome",
+        "description": "Defines relationship: motivation.outcome realizes motivation.outcome"
+      },
+      "rationale": "Change of motivation.value.associated-with.motivation.outcome to motivation.outcome.realizes.motivation.outcome. Claims disagree on the replacement (motivation.outcome.realizes.motivation.outcome | motivation.outcome.realizes.motivation.value); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.73; claims rel:motivation.value#2, rel:motivation.value#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.value",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "motivation.value associated-with motivation.outcome",
+        "description": "Defines relationship: motivation.value associated-with motivation.outcome"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship from motivation.value to motivation.outcome would read better as outcome 'delivers' value. Proposed: Replace it with a delivers relationship from motivation.outcome to motivation.value.",
+          "claim_id": "rel:motivation.value#2"
+        },
+        {
+          "quote": "Apart from value-to-stakeholder, the relationships from motivation.value use generic associated-with, which hides their meaning. Proposed: Replace generic associated-with with more specific predicates where a meaningful one exists.",
+          "claim_id": "rel:motivation.value#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#2): best source of 'associated-with motivation.outcome': motivation.outcome (0.41), motivation.value (0.26), none (0.14); best destination of 'motivation.value associated-with': motivation.outcome (0.77), motivation.value (0.06), motivation.stakeholder (0.05); best predicate: reverse:realizes (0.74), associated-with (0.11), none (0.05). Outcome: alternative (source=motivation.outcome; predicate=reverse:realizes).",
+          "claim_id": "rel:motivation.value#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.value#1): best source of 'associated-with motivation.outcome': motivation.value (0.49), motivation.outcome (0.22), none (0.13); best destination of 'motivation.value associated-with': motivation.outcome (0.61), motivation.value (0.09), motivation.goal (0.08); best predicate: reverse:realizes (0.73), none (0.08), associated-with (0.07). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "rel:motivation.value#1"
+        }
+      ],
+      "probability": 0.732,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "conflict",
+        "triple": "motivation.value.associated-with.motivation.outcome",
+        "replacement": [
+          "motivation.outcome.realizes.motivation.outcome",
+          "motivation.outcome.realizes.motivation.value"
+        ],
+        "claims": ["rel:motivation.value#2", "rel:motivation.value#1"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "motivation.meaning.associated-with.motivation.outcome",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.meaning.associated-with.motivation.outcome: motivation.meaning.associated-with.motivation.stakeholder already exists and expresses it. Plan kind conflict, p 0.73; claims rel:motivation.meaning#2, rel:motivation.meaning#1, rel:motivation.meaning#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "motivation.meaning",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "motivation.meaning associated-with motivation.outcome",
+        "description": "Defines relationship: motivation.meaning associated-with motivation.outcome"
+      },
+      "evidence": [
+        {
+          "quote": "The direction of the associated-with relationships from motivation.meaning is ambiguous because Meaning interprets a concept rather than the target motivation element itself. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "All six relationships from motivation.meaning use the generic associated-with predicate, which is ArchiMate's only permitted relation for Meaning but carries little semantics. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "The meaning-to-stakeholder link is the most substantive (whose interpretation), while the other associations essentially only say 'defines a term used in'. Proposed: none stated",
+          "claim_id": "rel:motivation.meaning#3"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#2): best source of 'associated-with motivation.outcome': motivation.meaning (0.57), motivation.stakeholder (0.12), motivation.outcome (0.08); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.24), motivation.outcome (0.19), none (0.16); best predicate: associated-with (0.61), none (0.23), references (0.10). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.meaning#2"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#1): best source of 'associated-with motivation.outcome': motivation.meaning (0.80), motivation.stakeholder (0.06), motivation.outcome (0.03); best destination of 'motivation.meaning associated-with': motivation.value (0.18), motivation.stakeholder (0.16), none (0.15); best predicate: associated-with (0.67), none (0.15), references (0.08). Outcome: alternative (target=motivation.value).",
+          "claim_id": "rel:motivation.meaning#1"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.meaning#3): best source of 'associated-with motivation.outcome': motivation.meaning (0.75), motivation.stakeholder (0.11), motivation.outcome (0.04); best destination of 'motivation.meaning associated-with': motivation.stakeholder (0.73), none (0.05), motivation.value (0.05); best predicate: associated-with (0.39), none (0.36), references (0.16). Outcome: alternative (target=motivation.stakeholder).",
+          "claim_id": "rel:motivation.meaning#3"
+        }
+      ],
+      "probability": 0.73,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "conflict",
+        "triple": "motivation.meaning.associated-with.motivation.outcome",
+        "replacement": [
+          "motivation.meaning.associated-with.motivation.stakeholder",
+          "motivation.meaning.associated-with.motivation.value"
+        ],
+        "claims": [
+          "rel:motivation.meaning#2",
+          "rel:motivation.meaning#1",
+          "rel:motivation.meaning#3"
+        ]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "motivation.requirement.aggregates.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove motivation.requirement.aggregates.motivation.goal: motivation.goal.realizes.motivation.goal already exists and expresses it. Plan kind conflict, p 0.44; claims node:motivation.requirement#4, rel:motivation.requirement#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "motivation.requirement",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "motivation.requirement aggregates motivation.goal",
+        "description": "Defines relationship: motivation.requirement aggregates motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'requirement aggregates goal' has an inverted direction compared to the normal direction. Proposed: Reverse the direction (goal aggregates requirement) or replace the relationship.",
+          "claim_id": "node:motivation.requirement#4"
+        },
+        {
+          "quote": "The relationship motivation.requirement --[aggregates]--> motivation.goal inverts the usual hierarchy, since goals are refined by requirements, so it should be removed or reversed. Proposed: Remove the requirement aggregates goal relationship or reverse its direction.",
+          "claim_id": "rel:motivation.requirement#1"
+        },
+        {
+          "quote": "Sorting answers (node:motivation.requirement#4): best source of 'aggregates motivation.goal': motivation.goal (0.44), none (0.22), motivation.requirement (0.19); best destination of 'motivation.requirement aggregates': none (0.37), motivation.requirement (0.30), motivation.goal (0.18); best predicate: realizes (0.51), reverse:influence (0.15), reverse:aggregates (0.14). Outcome: alternative (source=motivation.goal; predicate=realizes).",
+          "claim_id": "node:motivation.requirement#4"
+        },
+        {
+          "quote": "Sorting answers (rel:motivation.requirement#1): best source of 'aggregates motivation.goal': motivation.goal (0.63), none (0.22), motivation.requirement (0.06); best destination of 'motivation.requirement aggregates': none (0.46), motivation.goal (0.27), motivation.requirement (0.14); best predicate: reverse:aggregates (0.40), realizes (0.28), associated-with (0.13). Outcome: alternative (source=motivation.goal; predicate=reverse:aggregates).",
+          "claim_id": "rel:motivation.requirement#1"
+        }
+      ],
+      "probability": 0.438,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "conflict",
+        "triple": "motivation.requirement.aggregates.motivation.goal",
+        "replacement": [
+          "motivation.goal.realizes.motivation.goal",
+          "motivation.goal.aggregates.motivation.goal"
+        ],
+        "claims": [
+          "node:motivation.requirement#4",
+          "rel:motivation.requirement#1"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,629 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: data-model layer (15 relationship changes)",
+  "rationale": "Relationship schemas in the data-model layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.776Z",
+  "layer": "data-model",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "update",
+      "target_id": "data-model.schemadefinition.satisfies.security.dataclassification",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "data-model.schemadefinition references security.dataclassification",
+        "description": "Defines relationship: data-model.schemadefinition references security.dataclassification"
+      },
+      "rationale": "Rename the predicate of data-model.schemadefinition.satisfies.security.dataclassification to data-model.schemadefinition.references.security.dataclassification. Plan kind rename-predicate, p 0.41; claims rel:data-model.schemadefinition#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "data-model.schemadefinition",
+        "destination_spec_node_id": "security.dataclassification",
+        "title": "data-model.schemadefinition satisfies security.dataclassification",
+        "description": "Defines relationship: data-model.schemadefinition satisfies security.dataclassification"
+      },
+      "evidence": [
+        {
+          "quote": "The satisfies predicate from data-model.schemadefinition to security.dataclassification fits poorly and governed-by or constrained-by would read better. Proposed: Replace the satisfies predicate with governed-by or constrained-by for the link to security.dataclassification.",
+          "claim_id": "rel:data-model.schemadefinition#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.schemadefinition#3): best source of 'satisfies security.dataclassification': data-model.schemadefinition (0.42), data-model.objectschema (0.21), data-model.jsonschema (0.18); best destination of 'data-model.schemadefinition satisfies': security.dataclassification (0.72), motivation.constraint (0.11), none (0.08); best predicate: references (0.41), none (0.22), satisfies (0.13). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:data-model.schemadefinition#3"
+        }
+      ],
+      "probability": 0.409,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "rename-predicate",
+        "triple": "data-model.schemadefinition.satisfies.security.dataclassification",
+        "replacement": [
+          "data-model.schemadefinition.references.security.dataclassification"
+        ],
+        "claims": ["rel:data-model.schemadefinition#3"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "update",
+      "target_id": "data-model.arrayschema.aggregates.data-model.reference",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "data-model.arrayschema uses data-model.reference",
+        "description": "Defines relationship: data-model.arrayschema uses data-model.reference"
+      },
+      "rationale": "Rename the predicate of data-model.arrayschema.aggregates.data-model.reference to data-model.arrayschema.uses.data-model.reference. Plan kind rename-predicate, p 0.38; claims rel:data-model.arrayschema#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-model.arrayschema",
+        "destination_spec_node_id": "data-model.reference",
+        "title": "data-model.arrayschema aggregates data-model.reference",
+        "description": "Defines relationship: data-model.arrayschema aggregates data-model.reference"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates relationships from data-model.arrayschema to data-model.reference and to data-model.schemadefinition overlap, because an items $ref is a Reference that resolves to a SchemaDefinition, so both edges may be recorded for a single link. Proposed: Model ArraySchema→Reference and Reference→SchemaDefinition instead of a direct ArraySchema→SchemaDefinition aggregates edge.",
+          "claim_id": "rel:data-model.arrayschema#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.arrayschema#1): best source of 'aggregates data-model.reference': data-model.arrayschema (0.41), data-model.reference (0.28), data-model.jsonschema (0.16); best destination of 'data-model.arrayschema aggregates': data-model.reference (0.85), data-model.schemadefinition (0.03), data-model.arrayschema (0.03); best predicate: uses (0.38), references (0.21), aggregates (0.14). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:data-model.arrayschema#1"
+        }
+      ],
+      "probability": 0.381,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "rename-predicate",
+        "triple": "data-model.arrayschema.aggregates.data-model.reference",
+        "replacement": ["data-model.arrayschema.uses.data-model.reference"],
+        "claims": ["rel:data-model.arrayschema#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "update",
+      "target_id": "data-model.objectschema.aggregates.data-model.schemaproperty",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "data-model.objectschema composes data-model.schemaproperty",
+        "description": "Defines relationship: data-model.objectschema composes data-model.schemaproperty"
+      },
+      "rationale": "Rename the predicate of data-model.objectschema.aggregates.data-model.schemaproperty to data-model.objectschema.composes.data-model.schemaproperty. Plan kind rename-predicate, p 0.36; claims node:data-model.objectschema#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-model.objectschema",
+        "destination_spec_node_id": "data-model.schemaproperty",
+        "title": "data-model.objectschema aggregates data-model.schemaproperty",
+        "description": "Defines relationship: data-model.objectschema aggregates data-model.schemaproperty"
+      },
+      "evidence": [
+        {
+          "quote": "The properties attribute on data-model.objectschema duplicates the aggregates relationship to data-model.schemaproperty, so only one representation should exist. Proposed: Keep either the properties attribute or the aggregates relationship to schemaproperty and remove the other.",
+          "claim_id": "node:data-model.objectschema#3"
+        },
+        {
+          "quote": "Sorting answers (node:data-model.objectschema#3): best source of 'aggregates data-model.schemaproperty': data-model.objectschema (0.88), data-model.jsonschema (0.03), data-model.schemaproperty (0.02); best destination of 'data-model.objectschema aggregates': data-model.schemaproperty (0.86), none (0.04), data-model.objectschema (0.02); best predicate: composes (0.36), reverse:references (0.26), aggregates (0.17). Outcome: alternative (predicate=composes).",
+          "claim_id": "node:data-model.objectschema#3"
+        }
+      ],
+      "probability": 0.36,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "rename-predicate",
+        "triple": "data-model.objectschema.aggregates.data-model.schemaproperty",
+        "replacement": [
+          "data-model.objectschema.composes.data-model.schemaproperty"
+        ],
+        "claims": ["node:data-model.objectschema#3"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "data-model.reference.maps-to.api.schema",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-model.reference.maps-to.api.schema: data-model.schemadefinition.maps-to.api.schema already exists and expresses it. Plan kind retarget, p 0.57; claims rel:data-model.reference#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "data-model.reference",
+        "destination_spec_node_id": "api.schema",
+        "title": "data-model.reference maps-to api.schema",
+        "description": "Defines relationship: data-model.reference maps-to api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-model.reference maps-to api.schema is less strongly misplaced because it duplicates what the resolved SchemaDefinition would map to. Proposed: Remove or reconsider the maps-to relationship from data-model.reference to api.schema, relying on the mapping of the resolved data-model.schemadefinition.",
+          "claim_id": "rel:data-model.reference#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.reference#2): best source of 'maps-to api.schema': data-model.schemadefinition (0.57), none (0.14), data-model.reference (0.13); best destination of 'data-model.reference maps-to': api.schema (0.35), none (0.34), api.components (0.24); best predicate: none (0.46), references (0.20), maps-to (0.17). Outcome: alternative (source=data-model.schemadefinition).",
+          "claim_id": "rel:data-model.reference#2"
+        }
+      ],
+      "probability": 0.575,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "retarget",
+        "triple": "data-model.reference.maps-to.api.schema",
+        "replacement": ["data-model.schemadefinition.maps-to.api.schema"],
+        "claims": ["rel:data-model.reference#2"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "update",
+      "target_id": "data-model.arrayschema.aggregates.data-model.schemadefinition",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-model.reference",
+        "destination_spec_node_id": "data-model.reference",
+        "title": "data-model.reference aggregates data-model.reference",
+        "description": "Defines relationship: data-model.reference aggregates data-model.reference"
+      },
+      "rationale": "Retarget of data-model.arrayschema.aggregates.data-model.schemadefinition to data-model.reference.aggregates.data-model.reference. Plan kind retarget, p 0.48; claims rel:data-model.arrayschema#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-model.arrayschema",
+        "destination_spec_node_id": "data-model.schemadefinition",
+        "title": "data-model.arrayschema aggregates data-model.schemadefinition",
+        "description": "Defines relationship: data-model.arrayschema aggregates data-model.schemadefinition"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates relationships from data-model.arrayschema to data-model.reference and to data-model.schemadefinition overlap, because an items $ref is a Reference that resolves to a SchemaDefinition, so both edges may be recorded for a single link. Proposed: Model ArraySchema→Reference and Reference→SchemaDefinition instead of a direct ArraySchema→SchemaDefinition aggregates edge.",
+          "claim_id": "rel:data-model.arrayschema#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.arrayschema#1): best source of 'aggregates data-model.schemadefinition': data-model.reference (0.49), data-model.schemadefinition (0.21), none (0.12); best destination of 'data-model.arrayschema aggregates': data-model.reference (0.89), data-model.schemadefinition (0.06), none (0.02); best predicate: none (0.44), references (0.22), uses (0.15). Outcome: alternative (source=data-model.reference; target=data-model.reference).",
+          "claim_id": "rel:data-model.arrayschema#1"
+        }
+      ],
+      "probability": 0.485,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "retarget",
+        "triple": "data-model.arrayschema.aggregates.data-model.schemadefinition",
+        "replacement": ["data-model.reference.aggregates.data-model.reference"],
+        "claims": ["rel:data-model.arrayschema#1"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "update",
+      "target_id": "data-model.jsonschema.realizes.api.schema",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-model.objectschema",
+        "title": "data-model.objectschema realizes api.schema",
+        "description": "Defines relationship: data-model.objectschema realizes api.schema"
+      },
+      "rationale": "Retarget of data-model.jsonschema.realizes.api.schema to data-model.objectschema.realizes.api.schema. Plan kind retarget, p 0.37; claims rel:data-model.jsonschema#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "data-model.jsonschema",
+        "destination_spec_node_id": "api.schema",
+        "title": "data-model.jsonschema realizes api.schema",
+        "description": "Defines relationship: data-model.jsonschema realizes api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The realizes relationship from data-model.jsonschema to api.schema could equally be expressed as maps-to. Proposed: Consider changing realizes to maps-to for the relationship to api.schema.",
+          "claim_id": "rel:data-model.jsonschema#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.jsonschema#2): best source of 'realizes api.schema': data-model.objectschema (0.37), data-model.jsonschema (0.31), none (0.13); best destination of 'data-model.jsonschema realizes': api.schema (0.76), none (0.09), api.components (0.07); best predicate: realizes (0.66), none (0.08), references (0.07). Outcome: alternative (source=data-model.objectschema).",
+          "claim_id": "rel:data-model.jsonschema#2"
+        }
+      ],
+      "probability": 0.373,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "retarget",
+        "triple": "data-model.jsonschema.realizes.api.schema",
+        "replacement": ["data-model.objectschema.realizes.api.schema"],
+        "claims": ["rel:data-model.jsonschema#2"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "update",
+      "target_id": "data-model.arrayschema.maps-to.api.response",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-model.jsonschema",
+        "title": "data-model.jsonschema maps-to api.response",
+        "description": "Defines relationship: data-model.jsonschema maps-to api.response"
+      },
+      "rationale": "Retarget of data-model.arrayschema.maps-to.api.response to data-model.jsonschema.maps-to.api.response. Plan kind retarget, p 0.37; claims rel:data-model.arrayschema#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "data-model.arrayschema",
+        "destination_spec_node_id": "api.response",
+        "title": "data-model.arrayschema maps-to api.response",
+        "description": "Defines relationship: data-model.arrayschema maps-to api.response"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to relationship from data-model.arrayschema to api.response uses a data-layer predicate, and describing a response body may fit a 'references' or 'used-by' relation better. Proposed: Replace the maps-to predicate with 'references' or 'used-by' for the arrayschema to api.response relationship.",
+          "claim_id": "rel:data-model.arrayschema#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.arrayschema#2): best source of 'maps-to api.response': data-model.jsonschema (0.37), none (0.35), data-model.arrayschema (0.13); best destination of 'data-model.arrayschema maps-to': api.response (0.79), none (0.13), api.components (0.04); best predicate: none (0.31), maps-to (0.28), references (0.22). Outcome: alternative (source=data-model.jsonschema).",
+          "claim_id": "rel:data-model.arrayschema#2"
+        }
+      ],
+      "probability": 0.371,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "retarget",
+        "triple": "data-model.arrayschema.maps-to.api.response",
+        "replacement": ["data-model.jsonschema.maps-to.api.response"],
+        "claims": ["rel:data-model.arrayschema#2"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "data-model.reference.maps-to.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-model.schemadefinition",
+        "title": "data-model.schemadefinition maps-to application.applicationservice",
+        "description": "Defines relationship: data-model.schemadefinition maps-to application.applicationservice"
+      },
+      "rationale": "Retarget of data-model.reference.maps-to.application.applicationservice to data-model.schemadefinition.maps-to.application.applicationservice. Plan kind retarget, p 0.33; claims node:data-model.reference#1, rel:data-model.reference#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "data-model.reference",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "data-model.reference maps-to application.applicationservice",
+        "description": "Defines relationship: data-model.reference maps-to application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to relationship from data-model.reference to application.applicationservice looks wrong because a schema pointer does not realise a service. Proposed: Remove or replace the maps-to relationship to application.applicationservice.",
+          "claim_id": "node:data-model.reference#1"
+        },
+        {
+          "quote": "The relationship data-model.reference maps-to application.applicationservice looks misplaced because a $ref adds no content of its own, so any service mapping belongs on the SchemaDefinition it resolves to. Proposed: Remove the maps-to relationship from data-model.reference to application.applicationservice and place the service mapping on data-model.schemadefinition.",
+          "claim_id": "rel:data-model.reference#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-model.reference#1): best source of 'maps-to application.applicationservice': data-model.schemadefinition (0.33), none (0.20), data-model.objectschema (0.15); best destination of 'data-model.reference maps-to': none (0.55), application.applicationcomponent (0.14), application.applicationservice (0.12); best predicate: none (0.82), maps-to (0.07), references (0.03). Outcome: alternative (source=data-model.schemadefinition).",
+          "claim_id": "node:data-model.reference#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.reference#1): best source of 'maps-to application.applicationservice': data-model.schemadefinition (0.77), data-model.objectschema (0.08), data-model.jsonschema (0.05); best destination of 'data-model.reference maps-to': none (0.35), application.applicationcomponent (0.21), api.schema (0.19); best predicate: none (0.59), maps-to (0.24), realizes (0.04). Outcome: alternative (source=data-model.schemadefinition).",
+          "claim_id": "rel:data-model.reference#1"
+        }
+      ],
+      "probability": 0.332,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "retarget",
+        "triple": "data-model.reference.maps-to.application.applicationservice",
+        "replacement": [
+          "data-model.schemadefinition.maps-to.application.applicationservice"
+        ],
+        "claims": ["node:data-model.reference#1", "rel:data-model.reference#1"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "update",
+      "target_id": "data-model.objectschema.serves.application.applicationfunction",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "data-model.objectschema serves application.applicationservice",
+        "description": "Defines relationship: data-model.objectschema serves application.applicationservice"
+      },
+      "rationale": "Retarget of data-model.objectschema.serves.application.applicationfunction to data-model.objectschema.serves.application.applicationservice. Plan kind retarget, p 0.31; claims rel:data-model.objectschema#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-model.objectschema",
+        "destination_spec_node_id": "application.applicationfunction",
+        "title": "data-model.objectschema serves application.applicationfunction",
+        "description": "Defines relationship: data-model.objectschema serves application.applicationfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships data-model.objectschema serves application.applicationcomponent and data-model.objectschema serves application.applicationfunction are redundant with the inverse of the component's or function's uses or accesses relationship to the object schema. Proposed: Remove the serves relationships and rely on the inverse of the uses or accesses relationships from the application component and function.",
+          "claim_id": "rel:data-model.objectschema#4"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.objectschema#4): best source of 'serves application.applicationfunction': none (0.45), application.applicationservice (0.37), data-store.accesspattern (0.07); best destination of 'data-model.objectschema serves': application.applicationservice (0.31), none (0.26), application.applicationcomponent (0.16); best predicate: none (0.50), references (0.28), serves (0.10). Outcome: alternative (target=application.applicationservice).",
+          "claim_id": "rel:data-model.objectschema#4"
+        }
+      ],
+      "probability": 0.307,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "retarget",
+        "triple": "data-model.objectschema.serves.application.applicationfunction",
+        "replacement": [
+          "data-model.objectschema.serves.application.applicationservice"
+        ],
+        "claims": ["rel:data-model.objectschema#4"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "delete",
+      "target_id": "data-model.objectschema.realizes.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-model.objectschema.realizes.motivation.goal: data-model.objectschema.realizes.business.businessobject already exists and expresses it. Plan kind retarget, p 0.27; claims rel:data-model.objectschema#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "data-model.objectschema",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "data-model.objectschema realizes motivation.goal",
+        "description": "Defines relationship: data-model.objectschema realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-model.objectschema realizes motivation.goal is dubious because data structures rarely realize goals directly; a supports relationship would fit better. Proposed: Replace the realizes relationship to motivation.goal with a supports relationship.",
+          "claim_id": "rel:data-model.objectschema#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-model.objectschema#5): best source of 'realizes motivation.goal': none (0.27), application.applicationcomponent (0.17), business.businessprocess (0.16); best destination of 'data-model.objectschema realizes': none (0.38), business.businessobject (0.22), motivation.goal (0.17); best predicate: none (0.88), realizes (0.06), serves (0.01). Outcome: no_better.",
+          "claim_id": "node:data-model.objectschema#5"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.objectschema#1): best source of 'realizes motivation.goal': none (0.25), business.businessprocess (0.24), application.applicationcomponent (0.14); best destination of 'data-model.objectschema realizes': business.businessobject (0.27), motivation.goal (0.19), application.dataobject (0.19); best predicate: none (0.81), realizes (0.07), references (0.04). Outcome: alternative (target=business.businessobject).",
+          "claim_id": "rel:data-model.objectschema#1"
+        }
+      ],
+      "probability": 0.269,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "data-model.objectschema.realizes.motivation.goal",
+        "replacement": [
+          "data-model.objectschema.realizes.business.businessobject"
+        ],
+        "claims": ["rel:data-model.objectschema#1"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "delete",
+      "target_id": "data-model.jsonschema.realizes.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-model.jsonschema.realizes.motivation.goal: business.businessprocess.realizes.motivation.goal already exists and expresses it. Plan kind retarget, p 0.24; claims rel:data-model.jsonschema#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "data-model.jsonschema",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "data-model.jsonschema realizes motivation.goal",
+        "description": "Defines relationship: data-model.jsonschema realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The realizes relationship from data-model.jsonschema to motivation.goal is weak because a data schema rarely realizes a goal directly; a supports/supports-goals predicate fits better. Proposed: Replace realizes with supports (supports-goals) for the relationship to motivation.goal.",
+          "claim_id": "rel:data-model.jsonschema#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.jsonschema#1): best source of 'realizes motivation.goal': business.businessprocess (0.24), none (0.18), business.businessservice (0.15); best destination of 'data-model.jsonschema realizes': motivation.goal (0.34), none (0.26), motivation.outcome (0.13); best predicate: none (0.69), realizes (0.09), serves (0.09). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "rel:data-model.jsonschema#1"
+        }
+      ],
+      "probability": 0.238,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "data-model.jsonschema.realizes.motivation.goal",
+        "replacement": ["business.businessprocess.realizes.motivation.goal"],
+        "claims": ["rel:data-model.jsonschema#1"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "delete",
+      "target_id": "data-model.schemacomposition.composes.data-model.schemadefinition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-model.schemacomposition.composes.data-model.schemadefinition: data-model.schemadefinition.references.data-model.schemadefinition already exists and expresses it. Plan kind compound, p 0.44; claims rel:data-model.schemacomposition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-model.schemacomposition",
+        "destination_spec_node_id": "data-model.schemadefinition",
+        "title": "data-model.schemacomposition composes data-model.schemadefinition",
+        "description": "Defines relationship: data-model.schemacomposition composes data-model.schemadefinition"
+      },
+      "evidence": [
+        {
+          "quote": "The 'composes' relationship from data-model.schemacomposition to data-model.schemadefinition is questionable because a named definition exists independently and is reused via $ref, so composition's lifecycle ownership does not fit. Proposed: Replace 'composes' with 'aggregates' or 'references' for the relationship to data-model.schemadefinition.",
+          "claim_id": "rel:data-model.schemacomposition#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.schemacomposition#1): best source of 'composes data-model.schemadefinition': data-model.schemadefinition (0.44), data-model.schemacomposition (0.23), none (0.12); best destination of 'data-model.schemacomposition composes': data-model.schemadefinition (0.56), data-model.reference (0.27), data-model.objectschema (0.05); best predicate: references (0.58), uses (0.20), none (0.07). Outcome: alternative (source=data-model.schemadefinition; predicate=references).",
+          "claim_id": "rel:data-model.schemacomposition#1"
+        }
+      ],
+      "probability": 0.44,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "compound",
+        "triple": "data-model.schemacomposition.composes.data-model.schemadefinition",
+        "replacement": [
+          "data-model.schemadefinition.references.data-model.schemadefinition"
+        ],
+        "claims": ["rel:data-model.schemacomposition#1"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "data-model.jsonschema.serves.application.applicationfunction",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "application.applicationservice",
+        "title": "application.applicationservice references application.applicationfunction",
+        "description": "Defines relationship: application.applicationservice references application.applicationfunction"
+      },
+      "rationale": "Change of data-model.jsonschema.serves.application.applicationfunction to application.applicationservice.references.application.applicationfunction. Plan kind compound, p 0.41; claims rel:data-model.jsonschema#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-model.jsonschema",
+        "destination_spec_node_id": "application.applicationfunction",
+        "title": "data-model.jsonschema serves application.applicationfunction",
+        "description": "Defines relationship: data-model.jsonschema serves application.applicationfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The serves relationships from data-model.jsonschema to application.applicationfunction and business.businessservice are indirect, since passive schemas are accessed rather than serving. Proposed: Replace or reconsider the serves predicate, e.g. use an access-style relationship; none more specific stated.",
+          "claim_id": "rel:data-model.jsonschema#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.jsonschema#3): best source of 'serves application.applicationfunction': application.applicationservice (0.41), none (0.33), data-model.objectschema (0.08); best destination of 'data-model.jsonschema serves': none (0.43), application.applicationcomponent (0.14), application.applicationfunction (0.13); best predicate: references (0.55), none (0.25), realizes (0.10). Outcome: alternative (source=application.applicationservice; predicate=references).",
+          "claim_id": "rel:data-model.jsonschema#3"
+        }
+      ],
+      "probability": 0.412,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "compound",
+        "triple": "data-model.jsonschema.serves.application.applicationfunction",
+        "replacement": [
+          "application.applicationservice.references.application.applicationfunction"
+        ],
+        "claims": ["rel:data-model.jsonschema#3"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "update",
+      "target_id": "data-model.schemaproperty.references.data-model.objectschema",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-model.schemadefinition",
+        "destination_spec_node_id": "data-model.schemaproperty",
+        "title": "data-model.schemadefinition aggregates data-model.schemaproperty",
+        "description": "Defines relationship: data-model.schemadefinition aggregates data-model.schemaproperty"
+      },
+      "rationale": "Change of data-model.schemaproperty.references.data-model.objectschema to data-model.schemadefinition.aggregates.data-model.schemaproperty. Plan kind compound, p 0.38; claims rel:data-model.schemaproperty#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "data-model.schemaproperty",
+        "destination_spec_node_id": "data-model.objectschema",
+        "title": "data-model.schemaproperty references data-model.objectschema",
+        "description": "Defines relationship: data-model.schemaproperty references data-model.objectschema"
+      },
+      "evidence": [
+        {
+          "quote": "The five 'references' relationships from data-model.schemaproperty to arrayschema, numericschema, objectschema, schemadefinition and stringschema treat the property's own value subschema as a separate referenced element, although the property has no meaning apart from it, so 'composes' or a typed-by predicate may fit better. Proposed: Replace the 'references' predicate on these five relationships with 'composes' or a typed-by style predicate.",
+          "claim_id": "rel:data-model.schemaproperty#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.schemaproperty#1): best source of 'references data-model.objectschema': data-model.schemaproperty (0.73), data-model.jsonschema (0.12), none (0.10); best destination of 'data-model.schemaproperty references': data-model.schemadefinition (0.40), data-model.objectschema (0.27), data-model.reference (0.14); best predicate: reverse:aggregates (0.38), references (0.32), composes (0.08). Outcome: alternative (target=data-model.schemadefinition; predicate=reverse:aggregates).",
+          "claim_id": "rel:data-model.schemaproperty#1"
+        }
+      ],
+      "probability": 0.384,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "compound",
+        "triple": "data-model.schemaproperty.references.data-model.objectschema",
+        "replacement": [
+          "data-model.schemadefinition.aggregates.data-model.schemaproperty"
+        ],
+        "claims": ["rel:data-model.schemaproperty#1"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "update",
+      "target_id": "data-model.jsonschema.serves.business.businessservice",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "data-store.view",
+        "title": "data-store.view references business.businessservice",
+        "description": "Defines relationship: data-store.view references business.businessservice"
+      },
+      "rationale": "Change of data-model.jsonschema.serves.business.businessservice to data-store.view.references.business.businessservice. Plan kind compound, p 0.36; claims rel:data-model.jsonschema#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-model.jsonschema",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "data-model.jsonschema serves business.businessservice",
+        "description": "Defines relationship: data-model.jsonschema serves business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The serves relationships from data-model.jsonschema to application.applicationfunction and business.businessservice are indirect, since passive schemas are accessed rather than serving. Proposed: Replace or reconsider the serves predicate, e.g. use an access-style relationship; none more specific stated.",
+          "claim_id": "rel:data-model.jsonschema#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-model.jsonschema#3): best source of 'serves business.businessservice': data-store.view (0.36), none (0.29), business.businessinteraction (0.11); best destination of 'data-model.jsonschema serves': none (0.49), business.businessservice (0.19), business.businessfunction (0.06); best predicate: references (0.49), none (0.24), realizes (0.18). Outcome: alternative (source=data-store.view; predicate=references).",
+          "claim_id": "rel:data-model.jsonschema#3"
+        }
+      ],
+      "probability": 0.362,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "compound",
+        "triple": "data-model.jsonschema.serves.business.businessservice",
+        "replacement": ["data-store.view.references.business.businessservice"],
+        "claims": ["rel:data-model.jsonschema#3"]
+      }
+    }
+  ]
+}

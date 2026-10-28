@@ -1,0 +1,2381 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: security layer (54 relationship changes)",
+  "rationale": "Relationship schemas in the security layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:06.008Z",
+  "layer": "security",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "security.retentionpolicy.requires.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.retentionpolicy.requires.security.countermeasure: security.retentionpolicy.mandates.security.countermeasure already exists and expresses it. Plan kind remove-duplicate, p 0.59; claims rel:security.retentionpolicy#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.retentionpolicy",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.retentionpolicy requires security.countermeasure",
+        "description": "Defines relationship: security.retentionpolicy requires security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.retentionpolicy mandates security.countermeasure and security.retentionpolicy requires security.countermeasure overlap heavily, since both say the policy needs a control. Proposed: Keep mandates for the normative obligation and drop requires, or redefine requires strictly as an operational dependency.",
+          "claim_id": "rel:security.retentionpolicy#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.retentionpolicy#1): best source of 'requires security.countermeasure': security.retentionpolicy (0.38), security.accountabilityrequirement (0.14), security.securitypolicy (0.11); best destination of 'security.retentionpolicy requires': security.countermeasure (0.60), none (0.27), security.auditconfig (0.05); best predicate: mandates (0.59), none (0.11), depends-on (0.10). Outcome: alternative (predicate=mandates).",
+          "claim_id": "rel:security.retentionpolicy#1"
+        }
+      ],
+      "probability": 0.588,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.retentionpolicy.requires.security.countermeasure",
+        "replacement": [
+          "security.retentionpolicy.mandates.security.countermeasure"
+        ],
+        "claims": ["rel:security.retentionpolicy#1"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "delete",
+      "target_id": "security.validationrule.enforces-requirement.security.fieldaccesscontrol",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.validationrule.enforces-requirement.security.fieldaccesscontrol: security.validationrule.constrains.security.fieldaccesscontrol already exists and expresses it. Plan kind remove-duplicate, p 0.57; claims rel:security.validationrule#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "enforces-requirement",
+        "source_spec_node_id": "security.validationrule",
+        "destination_spec_node_id": "security.fieldaccesscontrol",
+        "title": "security.validationrule enforces-requirement security.fieldaccesscontrol",
+        "description": "Defines relationship: security.validationrule enforces-requirement security.fieldaccesscontrol"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.validationrule constrains security.fieldaccesscontrol and security.validationrule enforces-requirement security.fieldaccesscontrol largely overlap, so only one should be kept. Proposed: Keep one of the two relationships from ValidationRule to FieldAccessControl and remove the other.",
+          "claim_id": "rel:security.validationrule#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.validationrule#1): best source of 'enforces-requirement security.fieldaccesscontrol': security.validationrule (0.88), none (0.06), security.accesscondition (0.03); best destination of 'security.validationrule enforces-requirement': security.fieldaccesscontrol (0.73), security.securityconstraints (0.11), none (0.08); best predicate: constrains (0.57), none (0.14), references (0.08). Outcome: alternative (predicate=constrains).",
+          "claim_id": "rel:security.validationrule#1"
+        }
+      ],
+      "probability": 0.567,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.validationrule.enforces-requirement.security.fieldaccesscontrol",
+        "replacement": [
+          "security.validationrule.constrains.security.fieldaccesscontrol"
+        ],
+        "claims": ["rel:security.validationrule#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "delete",
+      "target_id": "security.securityconstraints.enforces.security.securitypolicy",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.securityconstraints.enforces.security.securitypolicy: security.securityconstraints.governs.security.securitypolicy already exists and expresses it. Plan kind remove-duplicate, p 0.51; claims rel:security.securityconstraints#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "enforces",
+        "source_spec_node_id": "security.securityconstraints",
+        "destination_spec_node_id": "security.securitypolicy",
+        "title": "security.securityconstraints enforces security.securitypolicy",
+        "description": "Defines relationship: security.securityconstraints enforces security.securitypolicy"
+      },
+      "evidence": [
+        {
+          "quote": "The enforces and governs relationships from security.securityconstraints to security.securitypolicy express overlapping meaning. Proposed: Keep only the governs relationship and remove enforces.",
+          "claim_id": "rel:security.securityconstraints#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.securityconstraints#3): best source of 'enforces security.securitypolicy': security.securityconstraints (0.48), none (0.23), security.bindingofduty (0.07); best destination of 'security.securityconstraints enforces': none (0.54), security.securitypolicy (0.31), security.bindingofduty (0.05); best predicate: none (0.65), realizes (0.08), governs (0.07). Outcome: no_better.",
+          "claim_id": "node:security.securityconstraints#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securityconstraints#2): best source of 'enforces security.securitypolicy': security.securityconstraints (0.46), none (0.20), security.bindingofduty (0.14); best destination of 'security.securityconstraints enforces': none (0.56), security.securitypolicy (0.25), security.bindingofduty (0.08); best predicate: none (0.75), governs (0.07), enforces (0.04). Outcome: no_better.",
+          "claim_id": "rel:security.securityconstraints#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securityconstraints#1): best source of 'enforces security.securitypolicy': security.securityconstraints (0.65), none (0.14), security.bindingofduty (0.05); best destination of 'security.securityconstraints enforces': security.securitypolicy (0.54), none (0.32), security.bindingofduty (0.04); best predicate: governs (0.51), none (0.14), enforces (0.09). Outcome: alternative (predicate=governs).",
+          "claim_id": "rel:security.securityconstraints#1"
+        }
+      ],
+      "probability": 0.509,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.securityconstraints.enforces.security.securitypolicy",
+        "replacement": [
+          "security.securityconstraints.governs.security.securitypolicy"
+        ],
+        "claims": ["rel:security.securityconstraints#1"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "security.securitypolicy.requires.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.securitypolicy.requires.security.countermeasure: security.securitypolicy.mandates.security.countermeasure already exists and expresses it. Plan kind remove-duplicate, p 0.50; claims node:security.securitypolicy#4, rel:security.securitypolicy#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.securitypolicy",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.securitypolicy requires security.countermeasure",
+        "description": "Defines relationship: security.securitypolicy requires security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from SecurityPolicy to Countermeasure are duplicates that express overlapping meaning. Proposed: Merge the two edges into one, keeping a single predicate between SecurityPolicy and Countermeasure.",
+          "claim_id": "node:security.securitypolicy#4"
+        },
+        {
+          "quote": "The relationships security.securitypolicy mandates Countermeasure and security.securitypolicy requires Countermeasure largely overlap in meaning. Proposed: Keep one of mandates/requires or sharpen the distinction between them.",
+          "claim_id": "rel:security.securitypolicy#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.securitypolicy#4): best source of 'requires security.countermeasure': security.securitypolicy (0.45), security.policyrule (0.18), none (0.10); best destination of 'security.securitypolicy requires': security.countermeasure (0.81), none (0.08), security.bindingofduty (0.03); best predicate: mandates (0.56), reverse:implements (0.16), depends-on (0.06). Outcome: alternative (predicate=mandates).",
+          "claim_id": "node:security.securitypolicy#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securitypolicy#1): best source of 'requires security.countermeasure': security.securitypolicy (0.62), none (0.11), security.policyrule (0.07); best destination of 'security.securitypolicy requires': security.countermeasure (0.76), none (0.12), security.authenticationconfig (0.03); best predicate: mandates (0.50), reverse:implements (0.22), depends-on (0.07). Outcome: alternative (predicate=mandates).",
+          "claim_id": "rel:security.securitypolicy#1"
+        }
+      ],
+      "probability": 0.496,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.securitypolicy.requires.security.countermeasure",
+        "replacement": [
+          "security.securitypolicy.mandates.security.countermeasure"
+        ],
+        "claims": [
+          "node:security.securitypolicy#4",
+          "rel:security.securitypolicy#1"
+        ]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "security.auditconfig.governs.security.retentionpolicy",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.auditconfig.governs.security.retentionpolicy: security.auditconfig.depends-on.security.retentionpolicy already exists and expresses it. Plan kind remove-duplicate, p 0.38; claims rel:security.auditconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.auditconfig",
+        "destination_spec_node_id": "security.retentionpolicy",
+        "title": "security.auditconfig governs security.retentionpolicy",
+        "description": "Defines relationship: security.auditconfig governs security.retentionpolicy"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.auditconfig depends-on security.retentionpolicy and security.auditconfig governs security.retentionpolicy point in opposite directions relative to security.retentionpolicy governs security.auditconfig, and governs contradicts the scope statement that retention belongs to RetentionPolicy. Proposed: Remove the governs relationship from security.auditconfig to security.retentionpolicy.",
+          "claim_id": "rel:security.auditconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.auditconfig#1): best source of 'governs security.retentionpolicy': none (0.71), security.auditconfig (0.14), security.dataclassification (0.04); best destination of 'security.auditconfig governs': security.retentionpolicy (0.57), security.secureresource (0.23), none (0.11); best predicate: depends-on (0.38), reverse:governs (0.32), references (0.13). Outcome: alternative (predicate=depends-on).",
+          "claim_id": "rel:security.auditconfig#1"
+        }
+      ],
+      "probability": 0.38,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.auditconfig.governs.security.retentionpolicy",
+        "replacement": [
+          "security.auditconfig.depends-on.security.retentionpolicy"
+        ],
+        "claims": ["rel:security.auditconfig#1"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "security.informationright.governs.security.informationentity",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.informationright.governs.security.informationentity: security.informationright.accesses.security.informationentity already exists and expresses it. Plan kind remove-duplicate, p 0.37; claims rel:security.informationright#1, node:security.informationright#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.informationright",
+        "destination_spec_node_id": "security.informationentity",
+        "title": "security.informationright governs security.informationentity",
+        "description": "Defines relationship: security.informationright governs security.informationentity"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.informationright --[governs]--> security.informationentity largely duplicates security.informationright --[accesses]--> security.informationentity, since both state that the right targets one information category. Proposed: Remove one of the two relationships, most likely the 'governs' relationship, and keep 'accesses'.",
+          "claim_id": "rel:security.informationright#1"
+        },
+        {
+          "quote": "The accesses and governs relationships from security.informationright to security.informationentity, plus the reverse governs edge from informationentity, are redundant with each other. Proposed: Remove the redundant edges, keeping a single relationship between informationright and informationentity.",
+          "claim_id": "node:security.informationright#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.informationright#1): best source of 'governs security.informationentity': security.informationright (0.45), none (0.23), security.dataclassification (0.19); best destination of 'security.informationright governs': security.informationentity (0.60), none (0.30), security.accesscondition (0.03); best predicate: accesses (0.37), reverse:governs (0.30), references (0.10). Outcome: alternative (predicate=accesses).",
+          "claim_id": "rel:security.informationright#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.informationright#3): best source of 'governs security.informationentity': security.informationright (0.84), none (0.07), security.dataclassification (0.04); best destination of 'security.informationright governs': security.informationentity (0.86), none (0.09), security.accesscondition (0.02); best predicate: accesses (0.45), governs (0.13), reverse:governs (0.10). Outcome: alternative (predicate=accesses).",
+          "claim_id": "node:security.informationright#3"
+        }
+      ],
+      "probability": 0.374,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.informationright.governs.security.informationentity",
+        "replacement": [
+          "security.informationright.accesses.security.informationentity"
+        ],
+        "claims": [
+          "rel:security.informationright#1",
+          "node:security.informationright#3"
+        ]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "security.passwordpolicy.requires.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.passwordpolicy.requires.security.countermeasure: security.passwordpolicy.mandates.security.countermeasure already exists and expresses it. Plan kind remove-duplicate, p 0.35; claims node:security.passwordpolicy#5, rel:security.passwordpolicy#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.passwordpolicy",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.passwordpolicy requires security.countermeasure",
+        "description": "Defines relationship: security.passwordpolicy requires security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from security.passwordpolicy to security.countermeasure express the same meaning and duplicate each other. Proposed: Remove one of the two relationships, keeping a single predicate.",
+          "claim_id": "node:security.passwordpolicy#5"
+        },
+        {
+          "quote": "The mandates and requires relationships from security.passwordpolicy to security.countermeasure overlap; since Countermeasure is defined as implemented or mandated by configuration types, requires is redundant or ambiguous. Proposed: Remove the requires relationship from PasswordPolicy to Countermeasure and keep mandates.",
+          "claim_id": "rel:security.passwordpolicy#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.passwordpolicy#5): best source of 'requires security.countermeasure': security.passwordpolicy (0.38), none (0.18), security.securitypolicy (0.15); best destination of 'security.passwordpolicy requires': security.countermeasure (0.56), none (0.25), security.authenticationconfig (0.11); best predicate: mandates (0.35), none (0.22), realizes (0.14). Outcome: alternative (predicate=mandates).",
+          "claim_id": "node:security.passwordpolicy#5"
+        },
+        {
+          "quote": "Sorting answers (rel:security.passwordpolicy#1): best source of 'requires security.countermeasure': security.passwordpolicy (0.27), security.policyrule (0.19), security.securitypolicy (0.19); best destination of 'security.passwordpolicy requires': security.countermeasure (0.42), security.auditconfig (0.27), none (0.20); best predicate: mandates (0.66), none (0.09), depends-on (0.06). Outcome: alternative (predicate=mandates).",
+          "claim_id": "rel:security.passwordpolicy#1"
+        }
+      ],
+      "probability": 0.353,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "remove-duplicate",
+        "triple": "security.passwordpolicy.requires.security.countermeasure",
+        "replacement": [
+          "security.passwordpolicy.mandates.security.countermeasure"
+        ],
+        "claims": [
+          "node:security.passwordpolicy#5",
+          "rel:security.passwordpolicy#1"
+        ]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "security.resourceoperation.triggers.security.auditconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "security.resourceoperation references security.auditconfig",
+        "description": "Defines relationship: security.resourceoperation references security.auditconfig"
+      },
+      "rationale": "Rename the predicate of security.resourceoperation.triggers.security.auditconfig to security.resourceoperation.references.security.auditconfig. Plan kind rename-predicate, p 0.55; claims rel:security.resourceoperation#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "security.resourceoperation",
+        "destination_spec_node_id": "security.auditconfig",
+        "title": "security.resourceoperation triggers security.auditconfig",
+        "description": "Defines relationship: security.resourceoperation triggers security.auditconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The triggers relationship from security.resourceoperation to security.auditconfig is semantically loose, since an operation triggers audit events rather than the configuration. Proposed: Replace the triggers predicate with uses or references.",
+          "claim_id": "rel:security.resourceoperation#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.resourceoperation#4): best source of 'triggers security.auditconfig': security.resourceoperation (0.53), none (0.17), security.auditconfig (0.10); best destination of 'security.resourceoperation triggers': security.auditconfig (0.55), none (0.21), security.accountabilityrequirement (0.17); best predicate: references (0.55), uses (0.22), triggers (0.07). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:security.resourceoperation#4"
+        }
+      ],
+      "probability": 0.548,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "rename-predicate",
+        "triple": "security.resourceoperation.triggers.security.auditconfig",
+        "replacement": [
+          "security.resourceoperation.references.security.auditconfig"
+        ],
+        "claims": ["rel:security.resourceoperation#4"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "update",
+      "target_id": "security.secureresource.aggregates.security.fieldaccesscontrol",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "security.secureresource composes security.fieldaccesscontrol",
+        "description": "Defines relationship: security.secureresource composes security.fieldaccesscontrol"
+      },
+      "rationale": "Rename the predicate of security.secureresource.aggregates.security.fieldaccesscontrol to security.secureresource.composes.security.fieldaccesscontrol. Plan kind rename-predicate, p 0.51; claims rel:security.secureresource#1, rel:security.fieldaccesscontrol#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "security.secureresource",
+        "destination_spec_node_id": "security.fieldaccesscontrol",
+        "title": "security.secureresource aggregates security.fieldaccesscontrol",
+        "description": "Defines relationship: security.secureresource aggregates security.fieldaccesscontrol"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates relationship from security.secureresource to security.fieldaccesscontrol is semantically weak because a FieldAccessControl is bound to one field of a single resource and cannot exist without it, so composes fits the lifecycle dependency better. Proposed: Change the predicate of secureresource -> fieldaccesscontrol from aggregates to composes.",
+          "claim_id": "rel:security.secureresource#1"
+        },
+        {
+          "quote": "SecureResource is described as owning its FieldAccessControls, so the governs relationship from FieldAccessControl to SecureResource has the wrong direction and predicate; a composition from the resource side would be more accurate. Proposed: Replace governs with a composes relationship from security.secureresource to security.fieldaccesscontrol.",
+          "claim_id": "rel:security.fieldaccesscontrol#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.secureresource#1): best source of 'aggregates security.fieldaccesscontrol': security.secureresource (0.81), none (0.11), security.accesscondition (0.02); best destination of 'security.secureresource aggregates': security.fieldaccesscontrol (0.80), security.resourceoperation (0.06), none (0.06); best predicate: composes (0.64), reverse:governs (0.09), reverse:protects (0.09). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:security.secureresource#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.fieldaccesscontrol#2): best source of 'aggregates security.fieldaccesscontrol': security.secureresource (0.91), none (0.04), security.actor (0.01); best destination of 'security.secureresource aggregates': security.fieldaccesscontrol (0.87), none (0.04), security.resourceoperation (0.02); best predicate: composes (0.51), aggregates (0.22), reverse:protects (0.13). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:security.fieldaccesscontrol#2"
+        }
+      ],
+      "probability": 0.509,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "rename-predicate",
+        "triple": "security.secureresource.aggregates.security.fieldaccesscontrol",
+        "replacement": [
+          "security.secureresource.composes.security.fieldaccesscontrol"
+        ],
+        "claims": [
+          "rel:security.secureresource#1",
+          "rel:security.fieldaccesscontrol#2"
+        ]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "update",
+      "target_id": "security.securitymodel.composes.security.authenticationconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "security.securitymodel aggregates security.authenticationconfig",
+        "description": "Defines relationship: security.securitymodel aggregates security.authenticationconfig"
+      },
+      "rationale": "Rename the predicate of security.securitymodel.composes.security.authenticationconfig to security.securitymodel.aggregates.security.authenticationconfig. Plan kind rename-predicate, p 0.51; claims node:security.authenticationconfig#2, node:security.securitymodel#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "security.securitymodel",
+        "destination_spec_node_id": "security.authenticationconfig",
+        "title": "security.securitymodel composes security.authenticationconfig",
+        "description": "Defines relationship: security.securitymodel composes security.authenticationconfig"
+      },
+      "evidence": [
+        {
+          "quote": "security.securitymodel has both 'aggregates' and 'composes' edges to security.authenticationconfig, which express the same containment meaning redundantly. Proposed: Keep only one of aggregates or composes from securitymodel to authenticationconfig.",
+          "claim_id": "node:security.authenticationconfig#2"
+        },
+        {
+          "quote": "security.securitymodel has redundant relationships to authenticationconfig, which is both aggregated and composed; one semantics should be chosen. Proposed: Keep only one of aggregates or composes between securitymodel and authenticationconfig.",
+          "claim_id": "node:security.securitymodel#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.authenticationconfig#2): best source of 'composes security.authenticationconfig': security.securitymodel (0.81), none (0.12), security.authenticationconfig (0.03); best destination of 'security.securitymodel composes': security.authenticationconfig (0.78), none (0.07), security.securitypolicy (0.04); best predicate: aggregates (0.51), composes (0.29), uses (0.07). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "node:security.authenticationconfig#2"
+        },
+        {
+          "quote": "Sorting answers (node:security.securitymodel#1): best source of 'composes security.authenticationconfig': security.securitymodel (0.77), security.authenticationconfig (0.11), none (0.07); best destination of 'security.securitymodel composes': security.authenticationconfig (0.70), none (0.09), security.securityconstraints (0.08); best predicate: aggregates (0.69), composes (0.12), references (0.08). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "node:security.securitymodel#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securitymodel#1): best source of 'composes security.authenticationconfig': security.securitymodel (0.89), security.authenticationconfig (0.04), none (0.03); best destination of 'security.securitymodel composes': security.authenticationconfig (0.75), security.securityconstraints (0.08), none (0.07); best predicate: composes (0.66), aggregates (0.11), uses (0.09). Outcome: reproduced.",
+          "claim_id": "rel:security.securitymodel#1"
+        }
+      ],
+      "probability": 0.508,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "rename-predicate",
+        "triple": "security.securitymodel.composes.security.authenticationconfig",
+        "replacement": [
+          "security.securitymodel.aggregates.security.authenticationconfig"
+        ],
+        "claims": [
+          "node:security.authenticationconfig#2",
+          "node:security.securitymodel#1"
+        ]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "security.accountabilityrequirement.constrains.security.actor",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "security.accountabilityrequirement references security.actor",
+        "description": "Defines relationship: security.accountabilityrequirement references security.actor"
+      },
+      "rationale": "Rename the predicate of security.accountabilityrequirement.constrains.security.actor to security.accountabilityrequirement.references.security.actor. Plan kind rename-predicate, p 0.50; claims rel:security.accountabilityrequirement#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrains",
+        "source_spec_node_id": "security.accountabilityrequirement",
+        "destination_spec_node_id": "security.actor",
+        "title": "security.accountabilityrequirement constrains security.actor",
+        "description": "Defines relationship: security.accountabilityrequirement constrains security.actor"
+      },
+      "evidence": [
+        {
+          "quote": "The 'constrains' relationship from security.accountabilityrequirement to security.actor is loosely used, because the obligation restricts how the actor may act rather than limiting the actor itself. Proposed: none stated",
+          "claim_id": "rel:security.accountabilityrequirement#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.accountabilityrequirement#2): best source of 'constrains security.actor': security.accountabilityrequirement (0.45), security.bindingofduty (0.16), none (0.15); best destination of 'security.accountabilityrequirement constrains': security.actor (0.63), none (0.17), security.accountabilityrequirement (0.06); best predicate: references (0.50), constrains (0.16), none (0.14). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:security.accountabilityrequirement#2"
+        }
+      ],
+      "probability": 0.497,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "rename-predicate",
+        "triple": "security.accountabilityrequirement.constrains.security.actor",
+        "replacement": [
+          "security.accountabilityrequirement.references.security.actor"
+        ],
+        "claims": ["rel:security.accountabilityrequirement#2"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "update",
+      "target_id": "security.securitypolicy.aggregates.security.policyrule",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "security.securitypolicy composes security.policyrule",
+        "description": "Defines relationship: security.securitypolicy composes security.policyrule"
+      },
+      "rationale": "Rename the predicate of security.securitypolicy.aggregates.security.policyrule to security.securitypolicy.composes.security.policyrule. Plan kind rename-predicate, p 0.47; claims rel:security.securitypolicy#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "security.securitypolicy",
+        "destination_spec_node_id": "security.policyrule",
+        "title": "security.securitypolicy aggregates security.policyrule",
+        "description": "Defines relationship: security.securitypolicy aggregates security.policyrule"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.securitypolicy aggregates PolicyRule should arguably be composes, since rules do not exist outside their policy. Proposed: Change the aggregates predicate to composes.",
+          "claim_id": "rel:security.securitypolicy#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securitypolicy#2): best source of 'aggregates security.policyrule': security.securitypolicy (0.84), none (0.08), security.condition (0.02); best destination of 'security.securitypolicy aggregates': security.policyrule (0.78), none (0.08), security.condition (0.04); best predicate: composes (0.47), reverse:composes (0.34), aggregates (0.08). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:security.securitypolicy#2"
+        }
+      ],
+      "probability": 0.473,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "rename-predicate",
+        "triple": "security.securitypolicy.aggregates.security.policyrule",
+        "replacement": ["security.securitypolicy.composes.security.policyrule"],
+        "claims": ["rel:security.securitypolicy#2"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "security.securitymodel.constrains.security.accountabilityrequirement",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "security.securitymodel composes security.accountabilityrequirement",
+        "description": "Defines relationship: security.securitymodel composes security.accountabilityrequirement"
+      },
+      "rationale": "Rename the predicate of security.securitymodel.constrains.security.accountabilityrequirement to security.securitymodel.composes.security.accountabilityrequirement. Plan kind rename-predicate, p 0.46; claims rel:security.securitymodel#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrains",
+        "source_spec_node_id": "security.securitymodel",
+        "destination_spec_node_id": "security.accountabilityrequirement",
+        "title": "security.securitymodel constrains security.accountabilityrequirement",
+        "description": "Defines relationship: security.securitymodel constrains security.accountabilityrequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The constrains relationship from SecurityModel to AccountabilityRequirement has weak semantics because a container does not restrict its members; aggregates would fit better. Proposed: Replace constrains with aggregates for SecurityModel to AccountabilityRequirement.",
+          "claim_id": "rel:security.securitymodel#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securitymodel#4): best source of 'constrains security.accountabilityrequirement': security.securitymodel (0.67), none (0.11), security.accountabilityrequirement (0.06); best destination of 'security.securitymodel constrains': security.accountabilityrequirement (0.35), none (0.24), security.auditconfig (0.23); best predicate: composes (0.46), constrains (0.18), none (0.11). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:security.securitymodel#4"
+        }
+      ],
+      "probability": 0.461,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "rename-predicate",
+        "triple": "security.securitymodel.constrains.security.accountabilityrequirement",
+        "replacement": [
+          "security.securitymodel.composes.security.accountabilityrequirement"
+        ],
+        "claims": ["rel:security.securitymodel#4"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "update",
+      "target_id": "security.condition.composes.security.accesscondition",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "security.condition uses security.accesscondition",
+        "description": "Defines relationship: security.condition uses security.accesscondition"
+      },
+      "rationale": "Rename the predicate of security.condition.composes.security.accesscondition to security.condition.uses.security.accesscondition. Plan kind rename-predicate, p 0.42; claims rel:security.condition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "security.condition",
+        "destination_spec_node_id": "security.accesscondition",
+        "title": "security.condition composes security.accesscondition",
+        "description": "Defines relationship: security.condition composes security.accesscondition"
+      },
+      "evidence": [
+        {
+          "quote": "The 'composes' relationship from security.condition to security.accesscondition may be too strong, because AccessConditions are also evaluated on their own within PolicyRules, ResourceOperations and InformationRights and so exist independently of a Condition; 'aggregates' would fit better. Proposed: Change the predicate of security.condition -> security.accesscondition from 'composes' to 'aggregates'.",
+          "claim_id": "rel:security.condition#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.condition#1): best source of 'composes security.accesscondition': none (0.55), security.condition (0.32), security.accesscondition (0.05); best destination of 'security.condition composes': security.accesscondition (0.62), none (0.26), security.condition (0.04); best predicate: uses (0.42), composes (0.22), references (0.18). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:security.condition#1"
+        }
+      ],
+      "probability": 0.416,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "rename-predicate",
+        "triple": "security.condition.composes.security.accesscondition",
+        "replacement": ["security.condition.uses.security.accesscondition"],
+        "claims": ["rel:security.condition#1"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "update",
+      "target_id": "security.secureresource.aggregates.security.resourceoperation",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "security.secureresource composes security.resourceoperation",
+        "description": "Defines relationship: security.secureresource composes security.resourceoperation"
+      },
+      "rationale": "Rename the predicate of security.secureresource.aggregates.security.resourceoperation to security.secureresource.composes.security.resourceoperation. Plan kind rename-predicate, p 0.33; claims rel:security.resourceoperation#2, rel:security.secureresource#2, node:security.resourceoperation#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "security.secureresource",
+        "destination_spec_node_id": "security.resourceoperation",
+        "title": "security.secureresource aggregates security.resourceoperation",
+        "description": "Defines relationship: security.secureresource aggregates security.resourceoperation"
+      },
+      "evidence": [
+        {
+          "quote": "The definition says the resource owns its operations, which suggests SecureResource composes ResourceOperation, whereas the catalog currently uses aggregates from secureresource to resourceoperation. Proposed: Change the secureresource-to-resourceoperation relationship from aggregates to composes.",
+          "claim_id": "rel:security.resourceoperation#2"
+        },
+        {
+          "quote": "The aggregates relationship from security.secureresource to security.resourceoperation is semantically weak because a ResourceOperation is declared on a single resource and cannot exist without it, so composes fits the lifecycle dependency better. Proposed: Change the predicate of secureresource -> resourceoperation from aggregates to composes.",
+          "claim_id": "rel:security.secureresource#2"
+        },
+        {
+          "quote": "The outgoing 'accesses' and 'governs' relationships from security.resourceoperation to security.secureresource, plus the incoming 'aggregates' relationship, express the same meaning and are redundant. Proposed: Keep only one of the accesses, governs and aggregates relationships and remove the others.",
+          "claim_id": "node:security.resourceoperation#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.resourceoperation#2): best source of 'aggregates security.resourceoperation': security.secureresource (0.80), none (0.11), security.actor (0.02); best destination of 'security.secureresource aggregates': security.resourceoperation (0.89), none (0.04), security.fieldaccesscontrol (0.01); best predicate: composes (0.62), reverse:accesses (0.14), aggregates (0.12). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:security.resourceoperation#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.secureresource#2): best source of 'aggregates security.resourceoperation': security.secureresource (0.83), none (0.11), security.authenticationconfig (0.01); best destination of 'security.secureresource aggregates': security.resourceoperation (0.85), none (0.07), security.fieldaccesscontrol (0.03); best predicate: composes (0.68), reverse:accesses (0.11), aggregates (0.07). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:security.secureresource#2"
+        },
+        {
+          "quote": "Sorting answers (node:security.resourceoperation#1): best source of 'aggregates security.resourceoperation': security.secureresource (0.91), none (0.03), security.actor (0.01); best destination of 'security.secureresource aggregates': security.resourceoperation (0.89), none (0.03), security.fieldaccesscontrol (0.01); best predicate: composes (0.33), aggregates (0.32), reverse:accesses (0.19). Outcome: alternative (predicate=composes).",
+          "claim_id": "node:security.resourceoperation#1"
+        }
+      ],
+      "probability": 0.327,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "rename-predicate",
+        "triple": "security.secureresource.aggregates.security.resourceoperation",
+        "replacement": [
+          "security.secureresource.composes.security.resourceoperation"
+        ],
+        "claims": [
+          "rel:security.resourceoperation#2",
+          "rel:security.secureresource#2",
+          "node:security.resourceoperation#1"
+        ]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "update",
+      "target_id": "security.bindingofduty.requires.security.evidence",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "security.bindingofduty references security.evidence",
+        "description": "Defines relationship: security.bindingofduty references security.evidence"
+      },
+      "rationale": "Rename the predicate of security.bindingofduty.requires.security.evidence to security.bindingofduty.references.security.evidence. Plan kind rename-predicate, p 0.30; claims rel:security.bindingofduty#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.bindingofduty",
+        "destination_spec_node_id": "security.evidence",
+        "title": "security.bindingofduty requires security.evidence",
+        "description": "Defines relationship: security.bindingofduty requires security.evidence"
+      },
+      "evidence": [
+        {
+          "quote": "The requires relationship from bindingofduty to evidence is labelled ArchiMate Access, but for Evidence it is better read as a data dependency. Proposed: Relabel the requires predicate mapping from ArchiMate Access to a data dependency reading.",
+          "claim_id": "rel:security.bindingofduty#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.bindingofduty#2): best source of 'requires security.evidence': security.bindingofduty (0.44), security.accountabilityrequirement (0.31), none (0.10); best destination of 'security.bindingofduty requires': security.evidence (0.56), security.accountabilityrequirement (0.14), none (0.12); best predicate: references (0.30), requires (0.21), depends-on (0.17). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:security.bindingofduty#2"
+        }
+      ],
+      "probability": 0.303,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "rename-predicate",
+        "triple": "security.bindingofduty.requires.security.evidence",
+        "replacement": ["security.bindingofduty.references.security.evidence"],
+        "claims": ["rel:security.bindingofduty#2"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "delete",
+      "target_id": "security.dataclassification.governs.security.fieldaccesscontrol",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.dataclassification.governs.security.fieldaccesscontrol: security.fieldaccesscontrol.constrained-by.security.dataclassification already exists and expresses it. Plan kind reverse, p 0.69; claims rel:security.dataclassification#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.dataclassification",
+        "destination_spec_node_id": "security.fieldaccesscontrol",
+        "title": "security.dataclassification governs security.fieldaccesscontrol",
+        "description": "Defines relationship: security.dataclassification governs security.fieldaccesscontrol"
+      },
+      "evidence": [
+        {
+          "quote": "The governs relationships from security.dataclassification to security.secureresource and security.fieldaccesscontrol overlap with the label-to-asset relationship already held by security.informationentity, since classification applies to resources only indirectly through information entities. Proposed: Remove the governs relationships to secureresource and fieldaccesscontrol and rely on the informationentity relationship for indirect application to resources.",
+          "claim_id": "rel:security.dataclassification#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.dataclassification#1): best source of 'governs security.fieldaccesscontrol': security.dataclassification (0.45), none (0.31), security.accesscondition (0.11); best destination of 'security.dataclassification governs': security.fieldaccesscontrol (0.75), security.informationentity (0.13), security.secureresource (0.04); best predicate: reverse:constrained-by (0.69), none (0.17), governs (0.09). Outcome: alternative (predicate=reverse:constrained-by).",
+          "claim_id": "rel:security.dataclassification#1"
+        }
+      ],
+      "probability": 0.694,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "reverse",
+        "triple": "security.dataclassification.governs.security.fieldaccesscontrol",
+        "replacement": [
+          "security.fieldaccesscontrol.constrained-by.security.dataclassification"
+        ],
+        "claims": ["rel:security.dataclassification#1"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "delete",
+      "target_id": "security.evidence.realizes.security.auditconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.evidence.realizes.security.auditconfig: security.auditconfig.triggers.security.evidence already exists and expresses it. Plan kind reverse, p 0.68; claims rel:security.evidence#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "security.evidence",
+        "destination_spec_node_id": "security.auditconfig",
+        "title": "security.evidence realizes security.auditconfig",
+        "description": "Defines relationship: security.evidence realizes security.auditconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.evidence --[realizes]--> security.auditconfig is inverted in spirit: evidence is the output of AuditConfig, so a 'generated-by' style predicate fits better than realization. Proposed: Replace 'realizes' with a generated-by relationship (e.g. auditconfig triggers/generates evidence) or reverse its direction.",
+          "claim_id": "rel:security.evidence#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.evidence#1): best source of 'realizes security.auditconfig': none (0.63), security.evidence (0.13), security.accountabilityrequirement (0.10); best destination of 'security.evidence realizes': none (0.59), security.auditconfig (0.23), security.accountabilityrequirement (0.10); best predicate: reverse:triggers (0.68), none (0.14), references (0.06). Outcome: alternative (predicate=reverse:triggers).",
+          "claim_id": "rel:security.evidence#1"
+        }
+      ],
+      "probability": 0.676,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "reverse",
+        "triple": "security.evidence.realizes.security.auditconfig",
+        "replacement": ["security.auditconfig.triggers.security.evidence"],
+        "claims": ["rel:security.evidence#1"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "security.auditconfig.triggers.security.evidence",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.auditconfig.triggers.security.evidence: security.evidence.realizes.security.auditconfig already exists and expresses it. Plan kind reverse, p 0.65; claims rel:security.auditconfig#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "security.auditconfig",
+        "destination_spec_node_id": "security.evidence",
+        "title": "security.auditconfig triggers security.evidence",
+        "description": "Defines relationship: security.auditconfig triggers security.evidence"
+      },
+      "evidence": [
+        {
+          "quote": "The predicate triggers from security.auditconfig to security.evidence would read better as generates, since the config emits the artifact. Proposed: Replace the triggers predicate with generates for auditconfig to evidence.",
+          "claim_id": "rel:security.auditconfig#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.auditconfig#3): best source of 'triggers security.evidence': security.auditconfig (0.58), none (0.12), security.accountabilityrequirement (0.11); best destination of 'security.auditconfig triggers': security.evidence (0.89), none (0.04), security.actor (0.02); best predicate: reverse:realizes (0.65), triggers (0.19), none (0.08). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "rel:security.auditconfig#3"
+        }
+      ],
+      "probability": 0.649,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "reverse",
+        "triple": "security.auditconfig.triggers.security.evidence",
+        "replacement": ["security.evidence.realizes.security.auditconfig"],
+        "claims": ["rel:security.auditconfig#3"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "delete",
+      "target_id": "security.evidence.validates.security.policyrule",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.evidence.validates.security.policyrule: security.policyrule.generates.security.evidence already exists and expresses it. Plan kind reverse, p 0.61; claims rel:security.evidence#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "validates",
+        "source_spec_node_id": "security.evidence",
+        "destination_spec_node_id": "security.policyrule",
+        "title": "security.evidence validates security.policyrule",
+        "description": "Defines relationship: security.evidence validates security.policyrule"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.evidence --[validates]--> security.policyrule uses a predicate that belongs to the testing category and fits evidence poorly. Proposed: Replace 'validates' with 'references' or 'supports'.",
+          "claim_id": "rel:security.evidence#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.evidence#2): best source of 'validates security.policyrule': none (0.35), security.evidence (0.21), security.accesscondition (0.15); best destination of 'security.evidence validates': security.policyrule (0.33), none (0.23), security.accountabilityrequirement (0.16); best predicate: reverse:generates (0.61), references (0.16), none (0.09). Outcome: alternative (predicate=reverse:generates).",
+          "claim_id": "rel:security.evidence#2"
+        }
+      ],
+      "probability": 0.613,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "reverse",
+        "triple": "security.evidence.validates.security.policyrule",
+        "replacement": ["security.policyrule.generates.security.evidence"],
+        "claims": ["rel:security.evidence#2"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "security.informationentity.governs.security.informationright",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.informationentity.governs.security.informationright: security.informationright.accesses.security.informationentity already exists and expresses it. Plan kind reverse, p 0.60; claims rel:security.informationentity#1, node:security.informationright#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.informationentity",
+        "destination_spec_node_id": "security.informationright",
+        "title": "security.informationentity governs security.informationright",
+        "description": "Defines relationship: security.informationentity governs security.informationright"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.informationentity --[governs]--> security.informationright points the wrong way, because the right grants access to the entity; a predicate such as 'referenced-by' or 'governed-by' would fit better. Proposed: Reverse the relationship or replace 'governs' with 'referenced-by' or 'governed-by'.",
+          "claim_id": "rel:security.informationentity#1"
+        },
+        {
+          "quote": "The accesses and governs relationships from security.informationright to security.informationentity, plus the reverse governs edge from informationentity, are redundant with each other. Proposed: Remove the redundant edges, keeping a single relationship between informationright and informationentity.",
+          "claim_id": "node:security.informationright#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.informationentity#1): best source of 'governs security.informationright': security.informationentity (0.49), none (0.28), security.actor (0.08); best destination of 'security.informationentity governs': security.informationright (0.76), none (0.14), security.accesscondition (0.03); best predicate: reverse:accesses (0.60), reverse:governs (0.12), references (0.10). Outcome: alternative (predicate=reverse:accesses).",
+          "claim_id": "rel:security.informationentity#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.informationright#3): best source of 'governs security.informationright': security.informationentity (0.48), none (0.27), security.policyrule (0.10); best destination of 'security.informationentity governs': security.informationright (0.70), none (0.21), security.actor (0.02); best predicate: reverse:accesses (0.64), reverse:governs (0.11), none (0.11). Outcome: alternative (predicate=reverse:accesses).",
+          "claim_id": "node:security.informationright#3"
+        }
+      ],
+      "probability": 0.601,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "reverse",
+        "triple": "security.informationentity.governs.security.informationright",
+        "replacement": [
+          "security.informationright.accesses.security.informationentity"
+        ],
+        "claims": [
+          "rel:security.informationentity#1",
+          "node:security.informationright#3"
+        ]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "delete",
+      "target_id": "security.validationrule.constrains.security.accesscondition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.validationrule.constrains.security.accesscondition: security.accesscondition.uses.security.validationrule already exists and expresses it. Plan kind reverse, p 0.60; claims rel:security.validationrule#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrains",
+        "source_spec_node_id": "security.validationrule",
+        "destination_spec_node_id": "security.accesscondition",
+        "title": "security.validationrule constrains security.accesscondition",
+        "description": "Defines relationship: security.validationrule constrains security.accesscondition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.validationrule constrains security.accesscondition is a weak fit for a value-validation construct. Proposed: Remove the constrains relationship from ValidationRule to AccessCondition.",
+          "claim_id": "rel:security.validationrule#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.validationrule#4): best source of 'constrains security.accesscondition': none (0.50), security.validationrule (0.24), security.accesscondition (0.15); best destination of 'security.validationrule constrains': none (0.42), security.fieldaccesscontrol (0.42), security.accesscondition (0.07); best predicate: reverse:uses (0.60), none (0.34), constrains (0.02). Outcome: alternative (predicate=reverse:uses).",
+          "claim_id": "rel:security.validationrule#4"
+        }
+      ],
+      "probability": 0.601,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "reverse",
+        "triple": "security.validationrule.constrains.security.accesscondition",
+        "replacement": [
+          "security.accesscondition.uses.security.validationrule"
+        ],
+        "claims": ["rel:security.validationrule#4"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "security.retentionpolicy.governs.security.auditconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.retentionpolicy.governs.security.auditconfig: security.auditconfig.depends-on.security.retentionpolicy already exists and expresses it. Plan kind reverse, p 0.56; claims rel:security.auditconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.retentionpolicy",
+        "destination_spec_node_id": "security.auditconfig",
+        "title": "security.retentionpolicy governs security.auditconfig",
+        "description": "Defines relationship: security.retentionpolicy governs security.auditconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.auditconfig depends-on security.retentionpolicy and security.auditconfig governs security.retentionpolicy point in opposite directions relative to security.retentionpolicy governs security.auditconfig, and governs contradicts the scope statement that retention belongs to RetentionPolicy. Proposed: Remove the governs relationship from security.auditconfig to security.retentionpolicy.",
+          "claim_id": "rel:security.auditconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.auditconfig#1): best source of 'governs security.auditconfig': security.retentionpolicy (0.88), security.auditconfig (0.04), none (0.04); best destination of 'security.retentionpolicy governs': security.auditconfig (0.68), none (0.13), security.evidence (0.09); best predicate: reverse:depends-on (0.56), governs (0.16), none (0.09). Outcome: alternative (predicate=reverse:depends-on).",
+          "claim_id": "rel:security.auditconfig#1"
+        }
+      ],
+      "probability": 0.556,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "reverse",
+        "triple": "security.retentionpolicy.governs.security.auditconfig",
+        "replacement": [
+          "security.auditconfig.depends-on.security.retentionpolicy"
+        ],
+        "claims": ["rel:security.auditconfig#1"]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "security.actor.references.security.delegation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.actor.references.security.delegation: security.delegation.requires.security.actor already exists and expresses it. Plan kind reverse, p 0.55; claims rel:security.actor#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "security.actor",
+        "destination_spec_node_id": "security.delegation",
+        "title": "security.actor references security.delegation",
+        "description": "Defines relationship: security.actor references security.delegation"
+      },
+      "evidence": [
+        {
+          "quote": "Actor has both associated-with and references relationships to Delegation, which are near-redundant; one should be kept, ideally with explicit delegator/delegatee roles. Proposed: Keep one relationship between Actor and Delegation and make delegator/delegatee roles explicit.",
+          "claim_id": "rel:security.actor#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.actor#1): best source of 'references security.delegation': security.actor (0.47), none (0.34), security.bindingofduty (0.04); best destination of 'security.actor references': security.delegation (0.87), none (0.07), security.actor (0.02); best predicate: reverse:requires (0.55), references (0.11), associated-with (0.10). Outcome: alternative (predicate=reverse:requires).",
+          "claim_id": "rel:security.actor#1"
+        }
+      ],
+      "probability": 0.551,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "reverse",
+        "triple": "security.actor.references.security.delegation",
+        "replacement": ["security.delegation.requires.security.actor"],
+        "claims": ["rel:security.actor#1"]
+      }
+    },
+    {
+      "seq": 25,
+      "op": "delete",
+      "target_id": "security.actor.associated-with.security.delegation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.actor.associated-with.security.delegation: security.delegation.requires.security.actor already exists and expresses it. Plan kind reverse, p 0.55; claims rel:security.actor#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "security.actor",
+        "destination_spec_node_id": "security.delegation",
+        "title": "security.actor associated-with security.delegation",
+        "description": "Defines relationship: security.actor associated-with security.delegation"
+      },
+      "evidence": [
+        {
+          "quote": "Actor has both associated-with and references relationships to Delegation, which are near-redundant; one should be kept, ideally with explicit delegator/delegatee roles. Proposed: Keep one relationship between Actor and Delegation and make delegator/delegatee roles explicit.",
+          "claim_id": "rel:security.actor#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.actor#1): best source of 'associated-with security.delegation': security.actor (0.72), none (0.16), security.bindingofduty (0.03); best destination of 'security.actor associated-with': security.delegation (0.87), none (0.05), security.threat (0.03); best predicate: reverse:requires (0.54), references (0.11), uses (0.07). Outcome: alternative (predicate=reverse:requires).",
+          "claim_id": "rel:security.actor#1"
+        }
+      ],
+      "probability": 0.545,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 25,
+        "plan_kind": "reverse",
+        "triple": "security.actor.associated-with.security.delegation",
+        "replacement": ["security.delegation.requires.security.actor"],
+        "claims": ["rel:security.actor#1"]
+      }
+    },
+    {
+      "seq": 26,
+      "op": "delete",
+      "target_id": "security.passwordpolicy.constrains.security.authenticationconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.passwordpolicy.constrains.security.authenticationconfig: security.authenticationconfig.uses.security.passwordpolicy already exists and expresses it. Plan kind reverse, p 0.53; claims rel:security.passwordpolicy#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrains",
+        "source_spec_node_id": "security.passwordpolicy",
+        "destination_spec_node_id": "security.authenticationconfig",
+        "title": "security.passwordpolicy constrains security.authenticationconfig",
+        "description": "Defines relationship: security.passwordpolicy constrains security.authenticationconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The constrains relationship from security.passwordpolicy to security.authenticationconfig may have the wrong direction and would be better expressed as AuthenticationConfig referencing or using PasswordPolicy. Proposed: Drop the constrains relationship and rely on authenticationconfig references/uses passwordpolicy.",
+          "claim_id": "rel:security.passwordpolicy#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.passwordpolicy#3): best source of 'constrains security.authenticationconfig': security.passwordpolicy (0.45), none (0.25), security.authenticationconfig (0.18); best destination of 'security.passwordpolicy constrains': security.authenticationconfig (0.46), none (0.28), security.countermeasure (0.07); best predicate: reverse:uses (0.53), reverse:references (0.34), none (0.05). Outcome: alternative (predicate=reverse:uses).",
+          "claim_id": "rel:security.passwordpolicy#3"
+        },
+        {
+          "quote": "Sorting answers (node:security.authenticationconfig#1): best source of 'constrains security.authenticationconfig': security.passwordpolicy (0.95), none (0.02), security.authenticationconfig (0.01); best destination of 'security.passwordpolicy constrains': security.authenticationconfig (0.86), none (0.07), security.actor (0.02); best predicate: constrains (0.37), reverse:references (0.35), reverse:uses (0.17). Outcome: reproduced.",
+          "claim_id": "node:security.authenticationconfig#1"
+        }
+      ],
+      "probability": 0.534,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 26,
+        "plan_kind": "reverse",
+        "triple": "security.passwordpolicy.constrains.security.authenticationconfig",
+        "replacement": [
+          "security.authenticationconfig.uses.security.passwordpolicy"
+        ],
+        "claims": ["rel:security.passwordpolicy#3"]
+      }
+    },
+    {
+      "seq": 27,
+      "op": "delete",
+      "target_id": "security.authenticationconfig.uses.security.passwordpolicy",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.authenticationconfig.uses.security.passwordpolicy: security.passwordpolicy.constrains.security.authenticationconfig already exists and expresses it. Plan kind reverse, p 0.49; claims node:security.authenticationconfig#1, rel:security.authenticationconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "security.authenticationconfig",
+        "destination_spec_node_id": "security.passwordpolicy",
+        "title": "security.authenticationconfig uses security.passwordpolicy",
+        "description": "Defines relationship: security.authenticationconfig uses security.passwordpolicy"
+      },
+      "evidence": [
+        {
+          "quote": "security.authenticationconfig has both 'references' and 'uses' edges to security.passwordpolicy, and passwordpolicy also 'constrains' authenticationconfig, so these overlapping relationships are redundant and only one should be kept. Proposed: Keep a single relationship between authenticationconfig and passwordpolicy and remove the others.",
+          "claim_id": "node:security.authenticationconfig#1"
+        },
+        {
+          "quote": "The references and uses relationships from security.authenticationconfig to security.passwordpolicy are redundant, since an authentication config that names its credential policy also applies it, so uses subsumes references. Proposed: Keep only the uses relationship and remove the references relationship from security.authenticationconfig to security.passwordpolicy.",
+          "claim_id": "rel:security.authenticationconfig#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.authenticationconfig#1): best source of 'uses security.passwordpolicy': security.authenticationconfig (0.87), none (0.05), security.actor (0.02); best destination of 'security.authenticationconfig uses': security.passwordpolicy (0.89), security.authenticationconfig (0.04), none (0.03); best predicate: reverse:constrains (0.49), references (0.32), uses (0.07). Outcome: alternative (predicate=reverse:constrains).",
+          "claim_id": "node:security.authenticationconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.authenticationconfig#1): best source of 'uses security.passwordpolicy': security.authenticationconfig (0.87), none (0.05), security.actor (0.03); best destination of 'security.authenticationconfig uses': security.passwordpolicy (0.93), none (0.02), security.authenticationconfig (0.01); best predicate: reverse:constrains (0.53), references (0.22), uses (0.10). Outcome: alternative (predicate=reverse:constrains).",
+          "claim_id": "rel:security.authenticationconfig#1"
+        }
+      ],
+      "probability": 0.487,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 27,
+        "plan_kind": "reverse",
+        "triple": "security.authenticationconfig.uses.security.passwordpolicy",
+        "replacement": [
+          "security.passwordpolicy.constrains.security.authenticationconfig"
+        ],
+        "claims": [
+          "node:security.authenticationconfig#1",
+          "rel:security.authenticationconfig#1"
+        ]
+      }
+    },
+    {
+      "seq": 28,
+      "op": "delete",
+      "target_id": "security.authenticationconfig.references.security.passwordpolicy",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.authenticationconfig.references.security.passwordpolicy: security.passwordpolicy.constrains.security.authenticationconfig already exists and expresses it. Plan kind reverse, p 0.46; claims node:security.authenticationconfig#1, rel:security.authenticationconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "security.authenticationconfig",
+        "destination_spec_node_id": "security.passwordpolicy",
+        "title": "security.authenticationconfig references security.passwordpolicy",
+        "description": "Defines relationship: security.authenticationconfig references security.passwordpolicy"
+      },
+      "evidence": [
+        {
+          "quote": "security.authenticationconfig has both 'references' and 'uses' edges to security.passwordpolicy, and passwordpolicy also 'constrains' authenticationconfig, so these overlapping relationships are redundant and only one should be kept. Proposed: Keep a single relationship between authenticationconfig and passwordpolicy and remove the others.",
+          "claim_id": "node:security.authenticationconfig#1"
+        },
+        {
+          "quote": "The references and uses relationships from security.authenticationconfig to security.passwordpolicy are redundant, since an authentication config that names its credential policy also applies it, so uses subsumes references. Proposed: Keep only the uses relationship and remove the references relationship from security.authenticationconfig to security.passwordpolicy.",
+          "claim_id": "rel:security.authenticationconfig#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.authenticationconfig#1): best source of 'references security.passwordpolicy': security.authenticationconfig (0.85), none (0.07), security.actor (0.02); best destination of 'security.authenticationconfig references': security.passwordpolicy (0.94), none (0.02), security.authenticationconfig (0.01); best predicate: reverse:constrains (0.49), references (0.31), uses (0.07). Outcome: alternative (predicate=reverse:constrains).",
+          "claim_id": "node:security.authenticationconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.authenticationconfig#1): best source of 'references security.passwordpolicy': security.authenticationconfig (0.83), none (0.09), security.actor (0.02); best destination of 'security.authenticationconfig references': security.passwordpolicy (0.94), none (0.02), security.authenticationconfig (0.01); best predicate: reverse:constrains (0.46), uses (0.24), references (0.15). Outcome: alternative (predicate=reverse:constrains).",
+          "claim_id": "rel:security.authenticationconfig#1"
+        }
+      ],
+      "probability": 0.464,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 28,
+        "plan_kind": "reverse",
+        "triple": "security.authenticationconfig.references.security.passwordpolicy",
+        "replacement": [
+          "security.passwordpolicy.constrains.security.authenticationconfig"
+        ],
+        "claims": [
+          "node:security.authenticationconfig#1",
+          "rel:security.authenticationconfig#1"
+        ]
+      }
+    },
+    {
+      "seq": 29,
+      "op": "delete",
+      "target_id": "security.policyrule.uses.security.condition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.policyrule.uses.security.condition: security.condition.constrains.security.policyrule already exists and expresses it. Plan kind reverse, p 0.42; claims rel:security.policyrule#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "security.policyrule",
+        "destination_spec_node_id": "security.condition",
+        "title": "security.policyrule uses security.condition",
+        "description": "Defines relationship: security.policyrule uses security.condition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.policyrule uses security.accesscondition and security.policyrule uses security.condition are partly redundant because a Condition may itself compose AccessConditions. Proposed: none stated",
+          "claim_id": "rel:security.policyrule#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyrule#2): best source of 'uses security.condition': security.policyrule (0.72), security.condition (0.17), security.accesscondition (0.06); best destination of 'security.policyrule uses': security.condition (0.45), security.accesscondition (0.43), none (0.07); best predicate: reverse:constrains (0.42), uses (0.23), depends-on (0.11). Outcome: alternative (predicate=reverse:constrains).",
+          "claim_id": "rel:security.policyrule#2"
+        }
+      ],
+      "probability": 0.425,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 29,
+        "plan_kind": "reverse",
+        "triple": "security.policyrule.uses.security.condition",
+        "replacement": ["security.condition.constrains.security.policyrule"],
+        "claims": ["rel:security.policyrule#2"]
+      }
+    },
+    {
+      "seq": 30,
+      "op": "delete",
+      "target_id": "security.resourceoperation.accesses.security.secureresource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.resourceoperation.accesses.security.secureresource: security.secureresource.aggregates.security.resourceoperation already exists and expresses it. Plan kind reverse, p 0.40; claims node:security.resourceoperation#1, rel:security.resourceoperation#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "security.resourceoperation",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.resourceoperation accesses security.secureresource",
+        "description": "Defines relationship: security.resourceoperation accesses security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing 'accesses' and 'governs' relationships from security.resourceoperation to security.secureresource, plus the incoming 'aggregates' relationship, express the same meaning and are redundant. Proposed: Keep only one of the accesses, governs and aggregates relationships and remove the others.",
+          "claim_id": "node:security.resourceoperation#1"
+        },
+        {
+          "quote": "The accesses and governs relationships from security.resourceoperation to security.secureresource overlap in meaning between the same pair of types. Proposed: Collapse accesses and governs into a single relationship between ResourceOperation and SecureResource.",
+          "claim_id": "rel:security.resourceoperation#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.resourceoperation#1): best source of 'accesses security.secureresource': security.resourceoperation (0.61), security.actor (0.17), none (0.06); best destination of 'security.resourceoperation accesses': security.secureresource (0.90), none (0.04), security.auditconfig (0.01); best predicate: reverse:aggregates (0.60), depends-on (0.09), composes (0.07). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "node:security.resourceoperation#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.resourceoperation#1): best source of 'accesses security.secureresource': security.resourceoperation (0.83), security.actor (0.06), none (0.04); best destination of 'security.resourceoperation accesses': security.secureresource (0.94), none (0.02), security.authenticationconfig (0.01); best predicate: reverse:aggregates (0.40), references (0.13), depends-on (0.12). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "rel:security.resourceoperation#1"
+        }
+      ],
+      "probability": 0.4,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 30,
+        "plan_kind": "reverse",
+        "triple": "security.resourceoperation.accesses.security.secureresource",
+        "replacement": [
+          "security.secureresource.aggregates.security.resourceoperation"
+        ],
+        "claims": [
+          "node:security.resourceoperation#1",
+          "rel:security.resourceoperation#1"
+        ]
+      }
+    },
+    {
+      "seq": 31,
+      "op": "delete",
+      "target_id": "security.fieldaccesscontrol.protects.security.secureresource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.fieldaccesscontrol.protects.security.secureresource: security.secureresource.aggregates.security.fieldaccesscontrol already exists and expresses it. Plan kind reverse, p 0.39; claims node:security.fieldaccesscontrol#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "protects",
+        "source_spec_node_id": "security.fieldaccesscontrol",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.fieldaccesscontrol protects security.secureresource",
+        "description": "Defines relationship: security.fieldaccesscontrol protects security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The governs and protects relationships from security.fieldaccesscontrol to security.secureresource appear redundant with each other. Proposed: Keep only one of the governs or protects relationships to secureresource.",
+          "claim_id": "node:security.fieldaccesscontrol#4"
+        },
+        {
+          "quote": "Sorting answers (node:security.fieldaccesscontrol#4): best source of 'protects security.secureresource': security.fieldaccesscontrol (0.88), none (0.03), security.countermeasure (0.02); best destination of 'security.fieldaccesscontrol protects': security.secureresource (0.79), none (0.14), security.accesscondition (0.02); best predicate: reverse:aggregates (0.39), protects (0.27), governs (0.11). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "node:security.fieldaccesscontrol#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.fieldaccesscontrol#1): best source of 'protects security.secureresource': security.fieldaccesscontrol (0.88), security.countermeasure (0.03), none (0.03); best destination of 'security.fieldaccesscontrol protects': security.secureresource (0.86), none (0.09), security.accesscondition (0.01); best predicate: protects (0.51), reverse:aggregates (0.27), none (0.05). Outcome: reproduced.",
+          "claim_id": "rel:security.fieldaccesscontrol#1"
+        }
+      ],
+      "probability": 0.394,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 31,
+        "plan_kind": "reverse",
+        "triple": "security.fieldaccesscontrol.protects.security.secureresource",
+        "replacement": [
+          "security.secureresource.aggregates.security.fieldaccesscontrol"
+        ],
+        "claims": ["node:security.fieldaccesscontrol#4"]
+      }
+    },
+    {
+      "seq": 32,
+      "op": "update",
+      "target_id": "security.policyrule.uses.security.accesscondition",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "source_spec_node_id": "security.accesscondition",
+        "destination_spec_node_id": "security.policyrule",
+        "title": "security.accesscondition composes security.policyrule",
+        "description": "Defines relationship: security.accesscondition composes security.policyrule"
+      },
+      "rationale": "Reverse the direction of security.policyrule.uses.security.accesscondition to security.accesscondition.composes.security.policyrule. Plan kind reverse, p 0.38; claims rel:security.policyrule#2, node:security.accesscondition#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "security.policyrule",
+        "destination_spec_node_id": "security.accesscondition",
+        "title": "security.policyrule uses security.accesscondition",
+        "description": "Defines relationship: security.policyrule uses security.accesscondition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.policyrule uses security.accesscondition and security.policyrule uses security.condition are partly redundant because a Condition may itself compose AccessConditions. Proposed: none stated",
+          "claim_id": "rel:security.policyrule#2"
+        },
+        {
+          "quote": "Both 'accesscondition composes policyrule' and 'policyrule uses accesscondition' exist, which are redundant relationships between the same pair of types. Proposed: Remove one of the two redundant relationships.",
+          "claim_id": "node:security.accesscondition#5"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyrule#2): best source of 'uses security.accesscondition': security.policyrule (0.74), security.condition (0.12), security.accesscondition (0.05); best destination of 'security.policyrule uses': security.accesscondition (0.79), security.condition (0.11), none (0.05); best predicate: reverse:composes (0.38), uses (0.24), composes (0.11). Outcome: alternative (predicate=reverse:composes).",
+          "claim_id": "rel:security.policyrule#2"
+        },
+        {
+          "quote": "Sorting answers (node:security.accesscondition#5): best source of 'uses security.accesscondition': security.policyrule (0.69), security.condition (0.12), none (0.07); best destination of 'security.policyrule uses': security.accesscondition (0.88), none (0.04), security.condition (0.03); best predicate: reverse:composes (0.45), composes (0.29), uses (0.11). Outcome: alternative (predicate=reverse:composes).",
+          "claim_id": "node:security.accesscondition#5"
+        }
+      ],
+      "probability": 0.376,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 32,
+        "plan_kind": "reverse",
+        "triple": "security.policyrule.uses.security.accesscondition",
+        "replacement": [
+          "security.accesscondition.composes.security.policyrule"
+        ],
+        "claims": [
+          "rel:security.policyrule#2",
+          "node:security.accesscondition#5"
+        ]
+      }
+    },
+    {
+      "seq": 33,
+      "op": "delete",
+      "target_id": "security.accountabilityrequirement.requires.security.auditconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.accountabilityrequirement.requires.security.auditconfig: security.auditconfig.fulfills.security.accountabilityrequirement already exists and expresses it. Plan kind reverse, p 0.36; claims rel:security.accountabilityrequirement#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.accountabilityrequirement",
+        "destination_spec_node_id": "security.auditconfig",
+        "title": "security.accountabilityrequirement requires security.auditconfig",
+        "description": "Defines relationship: security.accountabilityrequirement requires security.auditconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The three 'requires' relationships from security.accountabilityrequirement to AuditConfig, Evidence and RetentionPolicy partly overlap, because Evidence such as audit trails is produced by AuditConfig and kept under RetentionPolicy. Proposed: none stated",
+          "claim_id": "rel:security.accountabilityrequirement#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.accountabilityrequirement#1): best source of 'requires security.auditconfig': security.accountabilityrequirement (0.63), none (0.14), security.auditconfig (0.10); best destination of 'security.accountabilityrequirement requires': security.auditconfig (0.52), security.evidence (0.24), none (0.09); best predicate: reverse:fulfills (0.36), requires (0.31), depends-on (0.15). Outcome: alternative (predicate=reverse:fulfills).",
+          "claim_id": "rel:security.accountabilityrequirement#1"
+        }
+      ],
+      "probability": 0.364,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 33,
+        "plan_kind": "reverse",
+        "triple": "security.accountabilityrequirement.requires.security.auditconfig",
+        "replacement": [
+          "security.auditconfig.fulfills.security.accountabilityrequirement"
+        ],
+        "claims": ["rel:security.accountabilityrequirement#1"]
+      }
+    },
+    {
+      "seq": 34,
+      "op": "delete",
+      "target_id": "security.auditconfig.depends-on.security.retentionpolicy",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.auditconfig.depends-on.security.retentionpolicy: security.retentionpolicy.governs.security.auditconfig already exists and expresses it. Plan kind reverse, p 0.32; claims rel:security.auditconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "security.auditconfig",
+        "destination_spec_node_id": "security.retentionpolicy",
+        "title": "security.auditconfig depends-on security.retentionpolicy",
+        "description": "Defines relationship: security.auditconfig depends-on security.retentionpolicy"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.auditconfig depends-on security.retentionpolicy and security.auditconfig governs security.retentionpolicy point in opposite directions relative to security.retentionpolicy governs security.auditconfig, and governs contradicts the scope statement that retention belongs to RetentionPolicy. Proposed: Remove the governs relationship from security.auditconfig to security.retentionpolicy.",
+          "claim_id": "rel:security.auditconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.auditconfig#1): best source of 'depends-on security.retentionpolicy': security.auditconfig (0.64), none (0.20), security.accountabilityrequirement (0.07); best destination of 'security.auditconfig depends-on': security.retentionpolicy (0.75), security.auditconfig (0.15), none (0.07); best predicate: reverse:governs (0.32), references (0.28), depends-on (0.14). Outcome: alternative (predicate=reverse:governs).",
+          "claim_id": "rel:security.auditconfig#1"
+        }
+      ],
+      "probability": 0.322,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 34,
+        "plan_kind": "reverse",
+        "triple": "security.auditconfig.depends-on.security.retentionpolicy",
+        "replacement": [
+          "security.retentionpolicy.governs.security.auditconfig"
+        ],
+        "claims": ["rel:security.auditconfig#1"]
+      }
+    },
+    {
+      "seq": 35,
+      "op": "delete",
+      "target_id": "security.policyaction.mitigates.security.threat",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.policyaction.mitigates.security.threat: security.countermeasure.mitigates.security.threat already exists and expresses it. Plan kind retarget, p 0.92; claims rel:security.policyaction#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "mitigates",
+        "source_spec_node_id": "security.policyaction",
+        "destination_spec_node_id": "security.threat",
+        "title": "security.policyaction mitigates security.threat",
+        "description": "Defines relationship: security.policyaction mitigates security.threat"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.policyaction mitigates security.threat partially duplicates the path through Countermeasure. Proposed: Remove the direct mitigates relationship to Threat or consolidate it with the Countermeasure path.",
+          "claim_id": "rel:security.policyaction#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyaction#4): best source of 'mitigates security.threat': security.countermeasure (0.92), none (0.03), security.policyaction (0.02); best destination of 'security.policyaction mitigates': security.threat (0.77), none (0.17), security.actor (0.01); best predicate: none (0.56), mitigates (0.33), references (0.03). Outcome: alternative (source=security.countermeasure).",
+          "claim_id": "rel:security.policyaction#4"
+        }
+      ],
+      "probability": 0.917,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 35,
+        "plan_kind": "retarget",
+        "triple": "security.policyaction.mitigates.security.threat",
+        "replacement": ["security.countermeasure.mitigates.security.threat"],
+        "claims": ["rel:security.policyaction#4"]
+      }
+    },
+    {
+      "seq": 36,
+      "op": "delete",
+      "target_id": "security.passwordpolicy.mitigates.security.threat",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.passwordpolicy.mitigates.security.threat: security.countermeasure.mitigates.security.threat already exists and expresses it. Plan kind retarget, p 0.90; claims rel:security.passwordpolicy#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "mitigates",
+        "source_spec_node_id": "security.passwordpolicy",
+        "destination_spec_node_id": "security.threat",
+        "title": "security.passwordpolicy mitigates security.threat",
+        "description": "Defines relationship: security.passwordpolicy mitigates security.threat"
+      },
+      "evidence": [
+        {
+          "quote": "The mitigates relationship from security.passwordpolicy to security.threat partly duplicates the path PasswordPolicy to Countermeasure to Threat. Proposed: Remove or reconsider the direct mitigates relationship to Threat in favor of the path via Countermeasure.",
+          "claim_id": "rel:security.passwordpolicy#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.passwordpolicy#2): best source of 'mitigates security.threat': security.countermeasure (0.90), security.passwordpolicy (0.04), none (0.03); best destination of 'security.passwordpolicy mitigates': security.threat (0.84), none (0.09), security.authenticationconfig (0.02); best predicate: mitigates (0.57), none (0.35), realizes (0.02). Outcome: alternative (source=security.countermeasure).",
+          "claim_id": "rel:security.passwordpolicy#2"
+        }
+      ],
+      "probability": 0.903,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 36,
+        "plan_kind": "retarget",
+        "triple": "security.passwordpolicy.mitigates.security.threat",
+        "replacement": ["security.countermeasure.mitigates.security.threat"],
+        "claims": ["rel:security.passwordpolicy#2"]
+      }
+    },
+    {
+      "seq": 37,
+      "op": "delete",
+      "target_id": "security.evidence.mitigates.security.threat",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.evidence.mitigates.security.threat: security.countermeasure.mitigates.security.threat already exists and expresses it. Plan kind retarget, p 0.82; claims rel:security.evidence#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "mitigates",
+        "source_spec_node_id": "security.evidence",
+        "destination_spec_node_id": "security.threat",
+        "title": "security.evidence mitigates security.threat",
+        "description": "Defines relationship: security.evidence mitigates security.threat"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.evidence --[mitigates]--> security.threat is too broad because evidence is detective rather than preventive, so it applies only to repudiation-type threats. Proposed: Restrict or qualify 'mitigates' to repudiation-type threats, or replace the predicate.",
+          "claim_id": "rel:security.evidence#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.evidence#3): best source of 'mitigates security.threat': security.countermeasure (0.82), security.evidence (0.13), none (0.02); best destination of 'security.evidence mitigates': security.threat (0.75), none (0.18), security.accountabilityrequirement (0.02); best predicate: mitigates (0.61), none (0.26), references (0.05). Outcome: alternative (source=security.countermeasure).",
+          "claim_id": "rel:security.evidence#3"
+        }
+      ],
+      "probability": 0.817,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 37,
+        "plan_kind": "retarget",
+        "triple": "security.evidence.mitigates.security.threat",
+        "replacement": ["security.countermeasure.mitigates.security.threat"],
+        "claims": ["rel:security.evidence#3"]
+      }
+    },
+    {
+      "seq": 38,
+      "op": "delete",
+      "target_id": "security.condition.triggers.security.policyaction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.condition.triggers.security.policyaction: security.policyrule.triggers.security.policyaction already exists and expresses it. Plan kind retarget, p 0.80; claims node:security.condition#6, rel:security.condition#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "security.condition",
+        "destination_spec_node_id": "security.policyaction",
+        "title": "security.condition triggers security.policyaction",
+        "description": "Defines relationship: security.condition triggers security.policyaction"
+      },
+      "evidence": [
+        {
+          "quote": "The 'triggers' relationship from security.condition to policyaction may be wrong, since the trigger should perhaps route through PolicyRule rather than directly from Condition to PolicyAction. Proposed: Confirm whether the relationship should be removed or rerouted through PolicyRule.",
+          "claim_id": "node:security.condition#6"
+        },
+        {
+          "quote": "The 'triggers' relationship from security.condition to security.policyaction partly duplicates PolicyRule obligation triggering and bypasses the permit/deny decision step. Proposed: Remove or rework the condition triggers policyaction relationship so that actions are triggered through PolicyRule obligations after the permit/deny decision.",
+          "claim_id": "rel:security.condition#2"
+        },
+        {
+          "quote": "Sorting answers (node:security.condition#6): best source of 'triggers security.policyaction': security.policyrule (0.81), none (0.09), security.condition (0.04); best destination of 'security.condition triggers': security.policyaction (0.43), none (0.41), security.condition (0.04); best predicate: none (0.85), triggers (0.05), references (0.03). Outcome: alternative (source=security.policyrule).",
+          "claim_id": "node:security.condition#6"
+        },
+        {
+          "quote": "Sorting answers (rel:security.condition#2): best source of 'triggers security.policyaction': security.policyrule (0.80), none (0.10), security.condition (0.03); best destination of 'security.condition triggers': none (0.65), security.policyaction (0.19), security.condition (0.04); best predicate: none (0.88), triggers (0.05), references (0.03). Outcome: alternative (source=security.policyrule).",
+          "claim_id": "rel:security.condition#2"
+        }
+      ],
+      "probability": 0.801,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 38,
+        "plan_kind": "retarget",
+        "triple": "security.condition.triggers.security.policyaction",
+        "replacement": ["security.policyrule.triggers.security.policyaction"],
+        "claims": ["node:security.condition#6", "rel:security.condition#2"]
+      }
+    },
+    {
+      "seq": 39,
+      "op": "delete",
+      "target_id": "security.policyrule.mandates.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.policyrule.mandates.security.countermeasure: security.securitypolicy.mandates.security.countermeasure already exists and expresses it. Plan kind retarget, p 0.58; claims node:security.policyrule#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "mandates",
+        "source_spec_node_id": "security.policyrule",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.policyrule mandates security.countermeasure",
+        "description": "Defines relationship: security.policyrule mandates security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from PolicyRule to Countermeasure appear to express the same meaning and are redundant. Proposed: Consolidate 'mandates' and 'requires' into a single relationship between PolicyRule and Countermeasure.",
+          "claim_id": "node:security.policyrule#3"
+        },
+        {
+          "quote": "Sorting answers (node:security.policyrule#3): best source of 'mandates security.countermeasure': security.securitypolicy (0.58), security.policyrule (0.23), none (0.07); best destination of 'security.policyrule mandates': security.countermeasure (0.81), none (0.10), security.accountabilityrequirement (0.02); best predicate: mandates (0.38), none (0.20), depends-on (0.10). Outcome: alternative (source=security.securitypolicy).",
+          "claim_id": "node:security.policyrule#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyrule#1): best source of 'mandates security.countermeasure': security.policyrule (0.44), security.securitypolicy (0.37), none (0.06); best destination of 'security.policyrule mandates': security.countermeasure (0.86), none (0.06), security.bindingofduty (0.02); best predicate: mandates (0.47), requires (0.13), depends-on (0.10). Outcome: reproduced.",
+          "claim_id": "rel:security.policyrule#1"
+        }
+      ],
+      "probability": 0.576,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 39,
+        "plan_kind": "retarget",
+        "triple": "security.policyrule.mandates.security.countermeasure",
+        "replacement": [
+          "security.securitypolicy.mandates.security.countermeasure"
+        ],
+        "claims": ["node:security.policyrule#3"]
+      }
+    },
+    {
+      "seq": 40,
+      "op": "update",
+      "target_id": "security.bindingofduty.constrains.security.role",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "security.actor",
+        "title": "security.bindingofduty constrains security.actor",
+        "description": "Defines relationship: security.bindingofduty constrains security.actor"
+      },
+      "rationale": "Retarget of security.bindingofduty.constrains.security.role to security.bindingofduty.constrains.security.actor. Plan kind retarget, p 0.57; claims node:security.bindingofduty#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrains",
+        "source_spec_node_id": "security.bindingofduty",
+        "destination_spec_node_id": "security.role",
+        "title": "security.bindingofduty constrains security.role",
+        "description": "Defines relationship: security.bindingofduty constrains security.role"
+      },
+      "evidence": [
+        {
+          "quote": "The constrains relationship from security.bindingofduty to security.role implies role-level binding, whereas the definition of security.bindingofduty is actor-level, so the binding granularity is inconsistent. Proposed: Clarify the binding granularity (actor-level vs role-level) and align the definition and the constrains relationship.",
+          "claim_id": "node:security.bindingofduty#3"
+        },
+        {
+          "quote": "Sorting answers (node:security.bindingofduty#3): best source of 'constrains security.role': security.bindingofduty (0.40), security.securityconstraints (0.37), security.actor (0.08); best destination of 'security.bindingofduty constrains': security.actor (0.57), none (0.23), security.role (0.09); best predicate: constrains (0.32), none (0.31), uses (0.12). Outcome: alternative (target=security.actor).",
+          "claim_id": "node:security.bindingofduty#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.bindingofduty#1): best source of 'constrains security.role': security.bindingofduty (0.72), security.securityconstraints (0.16), none (0.05); best destination of 'security.bindingofduty constrains': security.role (0.49), none (0.21), security.actor (0.17); best predicate: constrains (0.59), references (0.12), uses (0.10). Outcome: reproduced.",
+          "claim_id": "rel:security.bindingofduty#1"
+        }
+      ],
+      "probability": 0.567,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 40,
+        "plan_kind": "retarget",
+        "triple": "security.bindingofduty.constrains.security.role",
+        "replacement": ["security.bindingofduty.constrains.security.actor"],
+        "claims": ["node:security.bindingofduty#3"]
+      }
+    },
+    {
+      "seq": 41,
+      "op": "update",
+      "target_id": "security.securityconstraints.governs.security.securitypolicy",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "security.securitymodel",
+        "title": "security.securitymodel governs security.securitypolicy",
+        "description": "Defines relationship: security.securitymodel governs security.securitypolicy"
+      },
+      "rationale": "Retarget of security.securityconstraints.governs.security.securitypolicy to security.securitymodel.governs.security.securitypolicy. Plan kind retarget, p 0.53; claims node:security.securityconstraints#3, rel:security.securityconstraints#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.securityconstraints",
+        "destination_spec_node_id": "security.securitypolicy",
+        "title": "security.securityconstraints governs security.securitypolicy",
+        "description": "Defines relationship: security.securityconstraints governs security.securitypolicy"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing 'enforces' and 'governs' relationships from security.securityconstraints to security.securitypolicy are redundant with each other and semantically odd for a passive container. Proposed: Remove the redundant 'enforces' and 'governs' relationships (or keep at most one) from securityconstraints to securitypolicy.",
+          "claim_id": "node:security.securityconstraints#3"
+        },
+        {
+          "quote": "The enforces and governs relationships from security.securityconstraints to security.securitypolicy conflict with the definition of SecurityConstraints as a container with no decision logic. Proposed: Remove these links from the container or move them onto the individual duty rules (SeparationOfDuty, BindingOfDuty, NeedToKnow).",
+          "claim_id": "rel:security.securityconstraints#2"
+        },
+        {
+          "quote": "Sorting answers (node:security.securityconstraints#3): best source of 'governs security.securitypolicy': security.securitymodel (0.60), security.securityconstraints (0.18), none (0.12); best destination of 'security.securityconstraints governs': none (0.61), security.securitypolicy (0.17), security.bindingofduty (0.10); best predicate: none (0.67), realizes (0.08), governs (0.07). Outcome: alternative (source=security.securitymodel).",
+          "claim_id": "node:security.securityconstraints#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securityconstraints#1): best source of 'governs security.securitypolicy': security.securityconstraints (0.51), security.securitymodel (0.34), none (0.07); best destination of 'security.securityconstraints governs': security.securitypolicy (0.48), none (0.32), security.condition (0.05); best predicate: none (0.34), governs (0.24), enforces (0.12). Outcome: no_better.",
+          "claim_id": "rel:security.securityconstraints#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.securityconstraints#2): best source of 'governs security.securitypolicy': security.securitymodel (0.53), security.securityconstraints (0.21), none (0.11); best destination of 'security.securityconstraints governs': none (0.49), security.securitypolicy (0.24), security.bindingofduty (0.15); best predicate: none (0.72), governs (0.08), realizes (0.05). Outcome: alternative (source=security.securitymodel).",
+          "claim_id": "rel:security.securityconstraints#2"
+        }
+      ],
+      "probability": 0.533,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 41,
+        "plan_kind": "retarget",
+        "triple": "security.securityconstraints.governs.security.securitypolicy",
+        "replacement": [
+          "security.securitymodel.governs.security.securitypolicy"
+        ],
+        "claims": [
+          "node:security.securityconstraints#3",
+          "rel:security.securityconstraints#2"
+        ]
+      }
+    },
+    {
+      "seq": 42,
+      "op": "delete",
+      "target_id": "security.policyaction.mandates.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.policyaction.mandates.security.countermeasure: security.policyrule.mandates.security.countermeasure already exists and expresses it. Plan kind retarget, p 0.47; claims node:security.policyaction#5, rel:security.policyaction#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "mandates",
+        "source_spec_node_id": "security.policyaction",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.policyaction mandates security.countermeasure",
+        "description": "Defines relationship: security.policyaction mandates security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from PolicyAction to Countermeasure are redundant with each other. Proposed: Keep one of the two relationships and remove the other.",
+          "claim_id": "node:security.policyaction#5"
+        },
+        {
+          "quote": "The relationships security.policyaction mandates security.countermeasure and security.policyaction requires security.countermeasure overlap heavily in meaning, so only one should be kept. Proposed: Keep one of mandates or requires toward Countermeasure and remove the other.",
+          "claim_id": "rel:security.policyaction#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.policyaction#5): best source of 'mandates security.countermeasure': security.policyrule (0.47), security.securitypolicy (0.22), security.policyaction (0.18); best destination of 'security.policyaction mandates': security.countermeasure (0.78), none (0.13), security.accountabilityrequirement (0.02); best predicate: none (0.26), realizes (0.17), mandates (0.12). Outcome: alternative (source=security.policyrule).",
+          "claim_id": "node:security.policyaction#5"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyaction#1): best source of 'mandates security.countermeasure': security.policyrule (0.48), security.policyaction (0.21), security.securitypolicy (0.21); best destination of 'security.policyaction mandates': security.countermeasure (0.76), none (0.15), security.accountabilityrequirement (0.02); best predicate: mandates (0.23), realizes (0.16), depends-on (0.15). Outcome: alternative (source=security.policyrule).",
+          "claim_id": "rel:security.policyaction#1"
+        }
+      ],
+      "probability": 0.473,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 42,
+        "plan_kind": "retarget",
+        "triple": "security.policyaction.mandates.security.countermeasure",
+        "replacement": ["security.policyrule.mandates.security.countermeasure"],
+        "claims": [
+          "node:security.policyaction#5",
+          "rel:security.policyaction#1"
+        ]
+      }
+    },
+    {
+      "seq": 43,
+      "op": "delete",
+      "target_id": "security.role.accesses.security.secureresource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.role.accesses.security.secureresource: security.resourceoperation.accesses.security.secureresource already exists and expresses it. Plan kind retarget, p 0.40; claims rel:security.role#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "security.role",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.role accesses security.secureresource",
+        "description": "Defines relationship: security.role accesses security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.role accesses security.secureresource is derivable via Permission and is therefore redundant. Proposed: Remove the accesses relationship from security.role to security.secureresource.",
+          "claim_id": "rel:security.role#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.role#2): best source of 'accesses security.secureresource': security.resourceoperation (0.40), security.actor (0.25), security.role (0.13); best destination of 'security.role accesses': security.secureresource (0.66), none (0.26), security.accesscondition (0.02); best predicate: none (0.69), accesses (0.11), references (0.05). Outcome: alternative (source=security.resourceoperation).",
+          "claim_id": "rel:security.role#2"
+        }
+      ],
+      "probability": 0.404,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 43,
+        "plan_kind": "retarget",
+        "triple": "security.role.accesses.security.secureresource",
+        "replacement": [
+          "security.resourceoperation.accesses.security.secureresource"
+        ],
+        "claims": ["rel:security.role#2"]
+      }
+    },
+    {
+      "seq": 44,
+      "op": "update",
+      "target_id": "security.dataclassification.governs.security.secureresource",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "security.securitypolicy",
+        "destination_spec_node_id": "security.informationentity",
+        "title": "security.securitypolicy governs security.informationentity",
+        "description": "Defines relationship: security.securitypolicy governs security.informationentity"
+      },
+      "rationale": "Retarget of security.dataclassification.governs.security.secureresource to security.securitypolicy.governs.security.informationentity. Plan kind retarget, p 0.36; claims rel:security.dataclassification#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.dataclassification",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.dataclassification governs security.secureresource",
+        "description": "Defines relationship: security.dataclassification governs security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The governs relationships from security.dataclassification to security.secureresource and security.fieldaccesscontrol overlap with the label-to-asset relationship already held by security.informationentity, since classification applies to resources only indirectly through information entities. Proposed: Remove the governs relationships to secureresource and fieldaccesscontrol and rely on the informationentity relationship for indirect application to resources.",
+          "claim_id": "rel:security.dataclassification#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.dataclassification#1): best source of 'governs security.secureresource': security.securitypolicy (0.36), none (0.24), security.dataclassification (0.21); best destination of 'security.dataclassification governs': security.informationentity (0.54), security.secureresource (0.27), none (0.06); best predicate: none (0.78), governs (0.12), references (0.03). Outcome: alternative (source=security.securitypolicy; target=security.informationentity).",
+          "claim_id": "rel:security.dataclassification#1"
+        }
+      ],
+      "probability": 0.36,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 44,
+        "plan_kind": "retarget",
+        "triple": "security.dataclassification.governs.security.secureresource",
+        "replacement": [
+          "security.securitypolicy.governs.security.informationentity"
+        ],
+        "claims": ["rel:security.dataclassification#1"]
+      }
+    },
+    {
+      "seq": 45,
+      "op": "delete",
+      "target_id": "security.passwordpolicy.mandates.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.passwordpolicy.mandates.security.countermeasure: security.securitypolicy.mandates.security.countermeasure already exists and expresses it. Plan kind retarget, p 0.29; claims node:security.passwordpolicy#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "mandates",
+        "source_spec_node_id": "security.passwordpolicy",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.passwordpolicy mandates security.countermeasure",
+        "description": "Defines relationship: security.passwordpolicy mandates security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from security.passwordpolicy to security.countermeasure express the same meaning and duplicate each other. Proposed: Remove one of the two relationships, keeping a single predicate.",
+          "claim_id": "node:security.passwordpolicy#5"
+        },
+        {
+          "quote": "Sorting answers (node:security.passwordpolicy#5): best source of 'mandates security.countermeasure': security.securitypolicy (0.30), security.passwordpolicy (0.29), none (0.16); best destination of 'security.passwordpolicy mandates': security.countermeasure (0.65), none (0.21), security.authenticationconfig (0.07); best predicate: none (0.31), mandates (0.15), realizes (0.15). Outcome: alternative (source=security.securitypolicy).",
+          "claim_id": "node:security.passwordpolicy#5"
+        },
+        {
+          "quote": "Sorting answers (rel:security.passwordpolicy#1): best source of 'mandates security.countermeasure': security.passwordpolicy (0.60), security.securitypolicy (0.13), none (0.08); best destination of 'security.passwordpolicy mandates': security.countermeasure (0.69), none (0.19), security.auditconfig (0.04); best predicate: mandates (0.59), none (0.10), requires (0.08). Outcome: reproduced.",
+          "claim_id": "rel:security.passwordpolicy#1"
+        }
+      ],
+      "probability": 0.295,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 45,
+        "plan_kind": "retarget",
+        "triple": "security.passwordpolicy.mandates.security.countermeasure",
+        "replacement": [
+          "security.securitypolicy.mandates.security.countermeasure"
+        ],
+        "claims": ["node:security.passwordpolicy#5"]
+      }
+    },
+    {
+      "seq": 46,
+      "op": "update",
+      "target_id": "security.auditconfig.governs.security.secureresource",
+      "ref": null,
+      "fields": {
+        "predicate": "monitors",
+        "source_spec_node_id": "security.securitypolicy",
+        "title": "security.securitypolicy monitors security.secureresource",
+        "description": "Defines relationship: security.securitypolicy monitors security.secureresource"
+      },
+      "rationale": "Change of security.auditconfig.governs.security.secureresource to security.securitypolicy.monitors.security.secureresource. Plan kind compound, p 0.57; claims rel:security.auditconfig#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.auditconfig",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.auditconfig governs security.secureresource",
+        "description": "Defines relationship: security.auditconfig governs security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships security.auditconfig governs security.secureresource and security.auditconfig monitors security.secureresource overlap in meaning, and monitors fits better. Proposed: Drop governs to security.secureresource and keep monitors.",
+          "claim_id": "rel:security.auditconfig#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.auditconfig#2): best source of 'governs security.secureresource': security.securitypolicy (0.57), none (0.14), security.auditconfig (0.09); best destination of 'security.auditconfig governs': none (0.39), security.secureresource (0.32), security.retentionpolicy (0.17); best predicate: monitors (0.88), references (0.03), none (0.03). Outcome: alternative (source=security.securitypolicy; predicate=monitors).",
+          "claim_id": "rel:security.auditconfig#2"
+        }
+      ],
+      "probability": 0.572,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 46,
+        "plan_kind": "compound",
+        "triple": "security.auditconfig.governs.security.secureresource",
+        "replacement": [
+          "security.securitypolicy.monitors.security.secureresource"
+        ],
+        "claims": ["rel:security.auditconfig#2"]
+      }
+    },
+    {
+      "seq": 47,
+      "op": "update",
+      "target_id": "security.actor.requires.security.authenticationconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "authenticates",
+        "source_spec_node_id": "security.authenticationconfig",
+        "title": "security.authenticationconfig authenticates security.authenticationconfig",
+        "description": "Defines relationship: security.authenticationconfig authenticates security.authenticationconfig"
+      },
+      "rationale": "Change of security.actor.requires.security.authenticationconfig to security.authenticationconfig.authenticates.security.authenticationconfig. Plan kind compound, p 0.41; claims rel:security.actor#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.actor",
+        "destination_spec_node_id": "security.authenticationconfig",
+        "title": "security.actor requires security.authenticationconfig",
+        "description": "Defines relationship: security.actor requires security.authenticationconfig"
+      },
+      "evidence": [
+        {
+          "quote": "Actor has both governed-by and requires relationships to AuthenticationConfig, which overlap heavily. Proposed: Collapse governed-by and requires into a single relationship between Actor and AuthenticationConfig.",
+          "claim_id": "rel:security.actor#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.actor#2): best source of 'requires security.authenticationconfig': security.authenticationconfig (0.41), security.actor (0.26), none (0.13); best destination of 'security.actor requires': security.authenticationconfig (0.85), none (0.07), security.actor (0.02); best predicate: reverse:authenticates (0.64), governed-by (0.16), depends-on (0.06). Outcome: alternative (source=security.authenticationconfig; predicate=reverse:authenticates).",
+          "claim_id": "rel:security.actor#2"
+        }
+      ],
+      "probability": 0.405,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 47,
+        "plan_kind": "compound",
+        "triple": "security.actor.requires.security.authenticationconfig",
+        "replacement": [
+          "security.authenticationconfig.authenticates.security.authenticationconfig"
+        ],
+        "claims": ["rel:security.actor#2"]
+      }
+    },
+    {
+      "seq": 48,
+      "op": "update",
+      "target_id": "security.threat.accesses.security.secureresource",
+      "ref": null,
+      "fields": {
+        "predicate": "targets",
+        "source_spec_node_id": "security.actor",
+        "title": "security.actor targets security.secureresource",
+        "description": "Defines relationship: security.actor targets security.secureresource"
+      },
+      "rationale": "Change of security.threat.accesses.security.secureresource to security.actor.targets.security.secureresource. Plan kind compound, p 0.32; claims rel:security.threat#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "security.threat",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.threat accesses security.secureresource",
+        "description": "Defines relationship: security.threat accesses security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship security.threat accesses security.secureresource duplicates security.threat targets security.secureresource, so the two express the same meaning. Proposed: Remove the accesses relationship and keep targets.",
+          "claim_id": "rel:security.threat#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.threat#1): best source of 'accesses security.secureresource': security.actor (0.32), security.resourceoperation (0.32), application.applicationcomponent (0.11); best destination of 'security.threat accesses': security.secureresource (0.72), none (0.21), security.actor (0.01); best predicate: targets (0.94), none (0.02), accesses (0.01). Outcome: alternative (source=security.actor; predicate=targets).",
+          "claim_id": "rel:security.threat#1"
+        }
+      ],
+      "probability": 0.32,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 48,
+        "plan_kind": "compound",
+        "triple": "security.threat.accesses.security.secureresource",
+        "replacement": ["security.actor.targets.security.secureresource"],
+        "claims": ["rel:security.threat#1"]
+      }
+    },
+    {
+      "seq": 49,
+      "op": "update",
+      "target_id": "security.authenticationconfig.depends-on.security.auditconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "triggers",
+        "source_spec_node_id": "security.auditconfig",
+        "title": "security.auditconfig triggers security.auditconfig",
+        "description": "Defines relationship: security.auditconfig triggers security.auditconfig"
+      },
+      "rationale": "Change of security.authenticationconfig.depends-on.security.auditconfig to security.auditconfig.triggers.security.auditconfig. Plan kind compound, p 0.30; claims rel:security.authenticationconfig#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "security.authenticationconfig",
+        "destination_spec_node_id": "security.auditconfig",
+        "title": "security.authenticationconfig depends-on security.auditconfig",
+        "description": "Defines relationship: security.authenticationconfig depends-on security.auditconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The depends-on relationship from security.authenticationconfig to security.auditconfig is questionable because authentication usually emits events to audit rather than requiring audit in order to function. Proposed: Replace or remove depends-on to auditconfig in favor of a predicate expressing that authentication emits events to audit (e.g., reporting to audit).",
+          "claim_id": "rel:security.authenticationconfig#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.authenticationconfig#2): best source of 'depends-on security.auditconfig': security.auditconfig (0.31), none (0.24), security.authenticationconfig (0.16); best destination of 'security.authenticationconfig depends-on': none (0.54), security.auditconfig (0.34), security.authenticationconfig (0.03); best predicate: triggers (0.54), none (0.22), references (0.11). Outcome: alternative (source=security.auditconfig; predicate=triggers).",
+          "claim_id": "rel:security.authenticationconfig#2"
+        }
+      ],
+      "probability": 0.305,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 49,
+        "plan_kind": "compound",
+        "triple": "security.authenticationconfig.depends-on.security.auditconfig",
+        "replacement": ["security.auditconfig.triggers.security.auditconfig"],
+        "claims": ["rel:security.authenticationconfig#2"]
+      }
+    },
+    {
+      "seq": 50,
+      "op": "update",
+      "target_id": "security.resourceoperation.governs.security.secureresource",
+      "ref": null,
+      "fields": {
+        "predicate": "accesses",
+        "source_spec_node_id": "security.securitypolicy",
+        "title": "security.securitypolicy accesses security.secureresource",
+        "description": "Defines relationship: security.securitypolicy accesses security.secureresource"
+      },
+      "rationale": "Change of security.resourceoperation.governs.security.secureresource to security.securitypolicy.accesses.security.secureresource. Claims disagree on the replacement (security.securitypolicy.accesses.security.secureresource | security.secureresource.aggregates.security.securitypolicy); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.66; claims rel:security.resourceoperation#3, node:security.resourceoperation#1, rel:security.resourceoperation#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.resourceoperation",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.resourceoperation governs security.secureresource",
+        "description": "Defines relationship: security.resourceoperation governs security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The governs relationship from security.resourceoperation to security.secureresource is only weakly justified, via rate limits and conditions. Proposed: Remove the governs relationship from ResourceOperation to SecureResource.",
+          "claim_id": "rel:security.resourceoperation#3"
+        },
+        {
+          "quote": "The outgoing 'accesses' and 'governs' relationships from security.resourceoperation to security.secureresource, plus the incoming 'aggregates' relationship, express the same meaning and are redundant. Proposed: Keep only one of the accesses, governs and aggregates relationships and remove the others.",
+          "claim_id": "node:security.resourceoperation#1"
+        },
+        {
+          "quote": "The accesses and governs relationships from security.resourceoperation to security.secureresource overlap in meaning between the same pair of types. Proposed: Collapse accesses and governs into a single relationship between ResourceOperation and SecureResource.",
+          "claim_id": "rel:security.resourceoperation#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.resourceoperation#3): best source of 'governs security.secureresource': security.securitypolicy (0.63), none (0.15), security.resourceoperation (0.07); best destination of 'security.resourceoperation governs': none (0.46), security.secureresource (0.29), security.auditconfig (0.07); best predicate: accesses (0.35), reverse:aggregates (0.35), none (0.06). Outcome: alternative (source=security.securitypolicy; predicate=accesses).",
+          "claim_id": "rel:security.resourceoperation#3"
+        },
+        {
+          "quote": "Sorting answers (node:security.resourceoperation#1): best source of 'governs security.secureresource': security.securitypolicy (0.66), security.resourceoperation (0.10), none (0.09); best destination of 'security.resourceoperation governs': security.secureresource (0.40), none (0.32), security.accesscondition (0.10); best predicate: reverse:aggregates (0.71), references (0.05), none (0.04). Outcome: alternative (source=security.securitypolicy; predicate=reverse:aggregates).",
+          "claim_id": "node:security.resourceoperation#1"
+        },
+        {
+          "quote": "Sorting answers (rel:security.resourceoperation#1): best source of 'governs security.secureresource': security.securitypolicy (0.48), security.resourceoperation (0.18), none (0.17); best destination of 'security.resourceoperation governs': security.secureresource (0.59), none (0.27), security.auditconfig (0.03); best predicate: reverse:aggregates (0.40), accesses (0.19), references (0.13). Outcome: alternative (source=security.securitypolicy; predicate=reverse:aggregates).",
+          "claim_id": "rel:security.resourceoperation#1"
+        }
+      ],
+      "probability": 0.656,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 50,
+        "plan_kind": "conflict",
+        "triple": "security.resourceoperation.governs.security.secureresource",
+        "replacement": [
+          "security.securitypolicy.accesses.security.secureresource",
+          "security.secureresource.aggregates.security.securitypolicy"
+        ],
+        "claims": [
+          "rel:security.resourceoperation#3",
+          "node:security.resourceoperation#1",
+          "rel:security.resourceoperation#1"
+        ]
+      }
+    },
+    {
+      "seq": 51,
+      "op": "delete",
+      "target_id": "security.policyrule.requires.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.policyrule.requires.security.countermeasure: security.securitypolicy.mandates.security.countermeasure already exists and expresses it. Plan kind conflict, p 0.63; claims node:security.policyrule#3, rel:security.policyrule#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.policyrule",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.policyrule requires security.countermeasure",
+        "description": "Defines relationship: security.policyrule requires security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from PolicyRule to Countermeasure appear to express the same meaning and are redundant. Proposed: Consolidate 'mandates' and 'requires' into a single relationship between PolicyRule and Countermeasure.",
+          "claim_id": "node:security.policyrule#3"
+        },
+        {
+          "quote": "The relationships security.policyrule mandates security.countermeasure and security.policyrule requires security.countermeasure overlap in meaning. Proposed: Keep only the mandates relationship and remove requires.",
+          "claim_id": "rel:security.policyrule#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.policyrule#3): best source of 'requires security.countermeasure': security.securitypolicy (0.31), security.policyrule (0.30), none (0.17); best destination of 'security.policyrule requires': security.countermeasure (0.73), none (0.12), security.accountabilityrequirement (0.03); best predicate: mandates (0.56), none (0.13), depends-on (0.08). Outcome: alternative (source=security.securitypolicy; predicate=mandates).",
+          "claim_id": "node:security.policyrule#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyrule#1): best source of 'requires security.countermeasure': security.policyrule (0.34), security.securitypolicy (0.31), none (0.14); best destination of 'security.policyrule requires': security.countermeasure (0.72), none (0.15), security.bindingofduty (0.03); best predicate: mandates (0.63), none (0.07), realizes (0.07). Outcome: alternative (predicate=mandates).",
+          "claim_id": "rel:security.policyrule#1"
+        }
+      ],
+      "probability": 0.632,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 51,
+        "plan_kind": "conflict",
+        "triple": "security.policyrule.requires.security.countermeasure",
+        "replacement": [
+          "security.securitypolicy.mandates.security.countermeasure",
+          "security.policyrule.mandates.security.countermeasure"
+        ],
+        "claims": ["node:security.policyrule#3", "rel:security.policyrule#1"]
+      }
+    },
+    {
+      "seq": 52,
+      "op": "delete",
+      "target_id": "security.fieldaccesscontrol.governs.security.secureresource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.fieldaccesscontrol.governs.security.secureresource: security.fieldaccesscontrol.protects.security.secureresource already exists and expresses it. Plan kind conflict, p 0.45; claims node:security.fieldaccesscontrol#4, rel:security.fieldaccesscontrol#2, rel:security.fieldaccesscontrol#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "security.fieldaccesscontrol",
+        "destination_spec_node_id": "security.secureresource",
+        "title": "security.fieldaccesscontrol governs security.secureresource",
+        "description": "Defines relationship: security.fieldaccesscontrol governs security.secureresource"
+      },
+      "evidence": [
+        {
+          "quote": "The governs and protects relationships from security.fieldaccesscontrol to security.secureresource appear redundant with each other. Proposed: Keep only one of the governs or protects relationships to secureresource.",
+          "claim_id": "node:security.fieldaccesscontrol#4"
+        },
+        {
+          "quote": "SecureResource is described as owning its FieldAccessControls, so the governs relationship from FieldAccessControl to SecureResource has the wrong direction and predicate; a composition from the resource side would be more accurate. Proposed: Replace governs with a composes relationship from security.secureresource to security.fieldaccesscontrol.",
+          "claim_id": "rel:security.fieldaccesscontrol#2"
+        },
+        {
+          "quote": "The relationships security.fieldaccesscontrol governs security.secureresource and security.fieldaccesscontrol protects security.secureresource overlap, since both describe the field rule acting on the resource's field. Proposed: Keep only the protects relationship and remove governs from security.fieldaccesscontrol to security.secureresource.",
+          "claim_id": "rel:security.fieldaccesscontrol#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.fieldaccesscontrol#4): best source of 'governs security.secureresource': security.fieldaccesscontrol (0.57), security.securitypolicy (0.21), security.dataclassification (0.08); best destination of 'security.fieldaccesscontrol governs': security.secureresource (0.82), none (0.11), security.accesscondition (0.02); best predicate: protects (0.35), reverse:aggregates (0.33), governs (0.09). Outcome: alternative (predicate=protects).",
+          "claim_id": "node:security.fieldaccesscontrol#4"
+        },
+        {
+          "quote": "Sorting answers (rel:security.fieldaccesscontrol#2): best source of 'governs security.secureresource': none (0.37), security.securitypolicy (0.22), security.fieldaccesscontrol (0.14); best destination of 'security.fieldaccesscontrol governs': none (0.44), security.secureresource (0.42), security.accesscondition (0.05); best predicate: protects (0.37), reverse:aggregates (0.36), depends-on (0.07). Outcome: alternative (predicate=protects).",
+          "claim_id": "rel:security.fieldaccesscontrol#2"
+        },
+        {
+          "quote": "Sorting answers (rel:security.fieldaccesscontrol#1): best source of 'governs security.secureresource': security.securitypolicy (0.46), none (0.19), security.fieldaccesscontrol (0.09); best destination of 'security.fieldaccesscontrol governs': security.secureresource (0.64), none (0.29), security.authenticationconfig (0.02); best predicate: protects (0.45), reverse:aggregates (0.36), none (0.05). Outcome: alternative (source=security.securitypolicy; predicate=protects).",
+          "claim_id": "rel:security.fieldaccesscontrol#1"
+        }
+      ],
+      "probability": 0.447,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 52,
+        "plan_kind": "conflict",
+        "triple": "security.fieldaccesscontrol.governs.security.secureresource",
+        "replacement": [
+          "security.fieldaccesscontrol.protects.security.secureresource",
+          "security.securitypolicy.protects.security.secureresource"
+        ],
+        "claims": [
+          "node:security.fieldaccesscontrol#4",
+          "rel:security.fieldaccesscontrol#2",
+          "rel:security.fieldaccesscontrol#1"
+        ]
+      }
+    },
+    {
+      "seq": 53,
+      "op": "delete",
+      "target_id": "security.policyaction.requires.security.countermeasure",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.policyaction.requires.security.countermeasure: security.policyrule.requires.security.countermeasure already exists and expresses it. Plan kind conflict, p 0.37; claims node:security.policyaction#5, rel:security.policyaction#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "security.policyaction",
+        "destination_spec_node_id": "security.countermeasure",
+        "title": "security.policyaction requires security.countermeasure",
+        "description": "Defines relationship: security.policyaction requires security.countermeasure"
+      },
+      "evidence": [
+        {
+          "quote": "The 'mandates' and 'requires' relationships from PolicyAction to Countermeasure are redundant with each other. Proposed: Keep one of the two relationships and remove the other.",
+          "claim_id": "node:security.policyaction#5"
+        },
+        {
+          "quote": "The relationships security.policyaction mandates security.countermeasure and security.policyaction requires security.countermeasure overlap heavily in meaning, so only one should be kept. Proposed: Keep one of mandates or requires toward Countermeasure and remove the other.",
+          "claim_id": "rel:security.policyaction#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.policyaction#5): best source of 'requires security.countermeasure': security.policyrule (0.34), security.securitypolicy (0.19), none (0.17); best destination of 'security.policyaction requires': security.countermeasure (0.63), none (0.28), security.bindingofduty (0.02); best predicate: none (0.25), mandates (0.20), realizes (0.19). Outcome: alternative (source=security.policyrule).",
+          "claim_id": "node:security.policyaction#5"
+        },
+        {
+          "quote": "Sorting answers (rel:security.policyaction#1): best source of 'requires security.countermeasure': security.policyrule (0.37), security.policyaction (0.25), security.securitypolicy (0.17); best destination of 'security.policyaction requires': security.countermeasure (0.68), none (0.20), security.bindingofduty (0.02); best predicate: mandates (0.43), realizes (0.14), none (0.10). Outcome: alternative (source=security.policyrule; predicate=mandates).",
+          "claim_id": "rel:security.policyaction#1"
+        }
+      ],
+      "probability": 0.37,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 53,
+        "plan_kind": "conflict",
+        "triple": "security.policyaction.requires.security.countermeasure",
+        "replacement": [
+          "security.policyrule.requires.security.countermeasure",
+          "security.policyrule.mandates.security.countermeasure"
+        ],
+        "claims": [
+          "node:security.policyaction#5",
+          "rel:security.policyaction#1"
+        ]
+      }
+    },
+    {
+      "seq": 54,
+      "op": "delete",
+      "target_id": "security.informationright.accesses.security.informationentity",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove security.informationright.accesses.security.informationentity: security.informationright.governs.security.informationentity already exists and expresses it. Plan kind conflict, p 0.30; claims node:security.informationright#3, rel:security.informationright#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "security.informationright",
+        "destination_spec_node_id": "security.informationentity",
+        "title": "security.informationright accesses security.informationentity",
+        "description": "Defines relationship: security.informationright accesses security.informationentity"
+      },
+      "evidence": [
+        {
+          "quote": "The accesses and governs relationships from security.informationright to security.informationentity, plus the reverse governs edge from informationentity, are redundant with each other. Proposed: Remove the redundant edges, keeping a single relationship between informationright and informationentity.",
+          "claim_id": "node:security.informationright#3"
+        },
+        {
+          "quote": "The relationship security.informationright --[governs]--> security.informationentity largely duplicates security.informationright --[accesses]--> security.informationentity, since both state that the right targets one information category. Proposed: Remove one of the two relationships, most likely the 'governs' relationship, and keep 'accesses'.",
+          "claim_id": "rel:security.informationright#1"
+        },
+        {
+          "quote": "Sorting answers (node:security.informationright#3): best source of 'accesses security.informationentity': security.informationright (0.85), security.actor (0.11), none (0.02); best destination of 'security.informationright accesses': security.informationentity (0.93), none (0.03), security.actor (0.01); best predicate: governs (0.30), accesses (0.24), references (0.18). Outcome: alternative (predicate=governs).",
+          "claim_id": "node:security.informationright#3"
+        },
+        {
+          "quote": "Sorting answers (rel:security.informationright#1): best source of 'accesses security.informationentity': security.informationright (0.91), security.actor (0.04), none (0.02); best destination of 'security.informationright accesses': security.informationentity (0.96), none (0.02), security.actor (0.01); best predicate: reverse:governs (0.27), accesses (0.26), references (0.22). Outcome: alternative (predicate=reverse:governs).",
+          "claim_id": "rel:security.informationright#1"
+        }
+      ],
+      "probability": 0.301,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 54,
+        "plan_kind": "conflict",
+        "triple": "security.informationright.accesses.security.informationentity",
+        "replacement": [
+          "security.informationright.governs.security.informationentity",
+          "security.informationentity.governs.security.informationright"
+        ],
+        "claims": [
+          "node:security.informationright#3",
+          "rel:security.informationright#1"
+        ]
+      }
+    }
+  ]
+}

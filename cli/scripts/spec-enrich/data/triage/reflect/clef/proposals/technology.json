@@ -1,0 +1,1258 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: technology layer (28 relationship changes)",
+  "rationale": "Relationship schemas in the technology layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:06.063Z",
+  "layer": "technology",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "technology.technologyfunction.flows-to.technology.technologyprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyfunction.flows-to.technology.technologyprocess: technology.technologyfunction.triggers.technology.technologyprocess already exists and expresses it. Plan kind remove-duplicate, p 0.53; claims rel:technology.technologyfunction#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "technology.technologyfunction",
+        "destination_spec_node_id": "technology.technologyprocess",
+        "title": "technology.technologyfunction flows-to technology.technologyprocess",
+        "description": "Defines relationship: technology.technologyfunction flows-to technology.technologyprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship technology.technologyfunction triggers technology.technologyprocess partly overlaps with technology.technologyfunction flows-to technology.technologyprocess, so modelers may encode the same connection twice. Proposed: none stated",
+          "claim_id": "rel:technology.technologyfunction#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyfunction#1): best source of 'flows-to technology.technologyprocess': technology.technologyfunction (0.65), none (0.10), technology.artifact (0.07); best destination of 'technology.technologyfunction flows-to': technology.technologyprocess (0.82), none (0.09), technology.technologycollaboration (0.02); best predicate: triggers (0.53), flows-to (0.22), none (0.11). Outcome: alternative (predicate=triggers).",
+          "claim_id": "rel:technology.technologyfunction#1"
+        }
+      ],
+      "probability": 0.53,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "technology.technologyfunction.flows-to.technology.technologyprocess",
+        "replacement": [
+          "technology.technologyfunction.triggers.technology.technologyprocess"
+        ],
+        "claims": ["rel:technology.technologyfunction#1"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "delete",
+      "target_id": "technology.technologyfunction.triggers.technology.technologyprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyfunction.triggers.technology.technologyprocess: technology.technologyfunction.flows-to.technology.technologyprocess already exists and expresses it. Plan kind remove-duplicate, p 0.45; claims rel:technology.technologyfunction#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "technology.technologyfunction",
+        "destination_spec_node_id": "technology.technologyprocess",
+        "title": "technology.technologyfunction triggers technology.technologyprocess",
+        "description": "Defines relationship: technology.technologyfunction triggers technology.technologyprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The direct triggers relationship from technology.technologyfunction to technology.technologyprocess overlaps with the indirect path through technology.technologyevent (function triggers event, event triggers process), so modelers may double-encode the same triggering. Proposed: none stated",
+          "claim_id": "rel:technology.technologyfunction#2"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyfunction#1): best source of 'triggers technology.technologyprocess': technology.technologyfunction (0.57), technology.technologyevent (0.11), none (0.08); best destination of 'technology.technologyfunction triggers': technology.technologyprocess (0.84), none (0.06), technology.technologyevent (0.05); best predicate: triggers (0.53), flows-to (0.26), none (0.10). Outcome: reproduced.",
+          "claim_id": "rel:technology.technologyfunction#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyfunction#2): best source of 'triggers technology.technologyprocess': technology.technologyfunction (0.68), none (0.08), technology.node (0.06); best destination of 'technology.technologyfunction triggers': technology.technologyprocess (0.60), technology.technologyevent (0.30), none (0.05); best predicate: flows-to (0.45), triggers (0.31), none (0.15). Outcome: alternative (predicate=flows-to).",
+          "claim_id": "rel:technology.technologyfunction#2"
+        }
+      ],
+      "probability": 0.447,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "remove-duplicate",
+        "triple": "technology.technologyfunction.triggers.technology.technologyprocess",
+        "replacement": [
+          "technology.technologyfunction.flows-to.technology.technologyprocess"
+        ],
+        "claims": ["rel:technology.technologyfunction#2"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "delete",
+      "target_id": "technology.systemsoftware.serves.technology.technologyfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.systemsoftware.serves.technology.technologyfunction: technology.systemsoftware.assigned-to.technology.technologyfunction already exists and expresses it. Plan kind remove-duplicate, p 0.44; claims rel:technology.systemsoftware#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "technology.systemsoftware",
+        "destination_spec_node_id": "technology.technologyfunction",
+        "title": "technology.systemsoftware serves technology.technologyfunction",
+        "description": "Defines relationship: technology.systemsoftware serves technology.technologyfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships serves and assigned-to from technology.systemsoftware to technology.technologyfunction may confuse modelers about which to use. Proposed: Clarify the distinction between serves and assigned-to, or keep only one of them.",
+          "claim_id": "rel:technology.systemsoftware#5"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.systemsoftware#5): best source of 'serves technology.technologyfunction': technology.systemsoftware (0.57), technology.technologycollaboration (0.16), none (0.11); best destination of 'technology.systemsoftware serves': technology.technologyfunction (0.71), application.applicationcomponent (0.10), none (0.08); best predicate: assigned-to (0.44), serves (0.18), realizes (0.13). Outcome: alternative (predicate=assigned-to).",
+          "claim_id": "rel:technology.systemsoftware#5"
+        }
+      ],
+      "probability": 0.442,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "remove-duplicate",
+        "triple": "technology.systemsoftware.serves.technology.technologyfunction",
+        "replacement": [
+          "technology.systemsoftware.assigned-to.technology.technologyfunction"
+        ],
+        "claims": ["rel:technology.systemsoftware#5"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "update",
+      "target_id": "technology.technologyinteraction.flows-to.technology.technologyinteraction",
+      "ref": null,
+      "fields": {
+        "predicate": "triggers",
+        "title": "technology.technologyinteraction triggers technology.technologyinteraction",
+        "description": "Defines relationship: technology.technologyinteraction triggers technology.technologyinteraction"
+      },
+      "rationale": "Rename the predicate of technology.technologyinteraction.flows-to.technology.technologyinteraction to technology.technologyinteraction.triggers.technology.technologyinteraction. Plan kind rename-predicate, p 0.39; claims node:technology.technologyinteraction#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "technology.technologyinteraction",
+        "destination_spec_node_id": "technology.technologyinteraction",
+        "title": "technology.technologyinteraction flows-to technology.technologyinteraction",
+        "description": "Defines relationship: technology.technologyinteraction flows-to technology.technologyinteraction"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to self-relationship on technology.technologyinteraction is listed twice, creating a duplicate. Proposed: Remove the duplicate flows-to self-relationship entry.",
+          "claim_id": "node:technology.technologyinteraction#3"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologyinteraction#3): best source of 'flows-to technology.technologyinteraction': technology.technologyinteraction (0.55), none (0.12), technology.technologycollaboration (0.10); best destination of 'technology.technologyinteraction flows-to': technology.technologyinteraction (0.53), none (0.22), technology.path (0.06); best predicate: triggers (0.39), flows-to (0.20), none (0.15). Outcome: alternative (predicate=triggers).",
+          "claim_id": "node:technology.technologyinteraction#3"
+        }
+      ],
+      "probability": 0.385,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "rename-predicate",
+        "triple": "technology.technologyinteraction.flows-to.technology.technologyinteraction",
+        "replacement": [
+          "technology.technologyinteraction.triggers.technology.technologyinteraction"
+        ],
+        "claims": ["node:technology.technologyinteraction#3"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "technology.technologyinterface.uses.technology.communicationnetwork",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyinterface.uses.technology.communicationnetwork: technology.communicationnetwork.provides.technology.technologyinterface already exists and expresses it. Plan kind reverse, p 0.68; claims rel:technology.technologyinterface#3, rel:technology.technologyinterface#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "technology.technologyinterface",
+        "destination_spec_node_id": "technology.communicationnetwork",
+        "title": "technology.technologyinterface uses technology.communicationnetwork",
+        "description": "Defines relationship: technology.technologyinterface uses technology.communicationnetwork"
+      },
+      "evidence": [
+        {
+          "quote": "The 'uses' relationships from technologyinterface to communicationnetwork and to path duplicate ArchiMate Association/Realization semantics and do not fit. Proposed: Remove or replace the 'uses' relationships toward communicationnetwork and path with the appropriate ArchiMate relationship (association or realization).",
+          "claim_id": "rel:technology.technologyinterface#3"
+        },
+        {
+          "quote": "The two 'uses' relationships from technologyinterface (to communicationnetwork and to path) overlap when a path is realized by a network. Proposed: Consolidate the two 'uses' relationships into one or remove one of them.",
+          "claim_id": "rel:technology.technologyinterface#4"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinterface#3): best source of 'uses technology.communicationnetwork': none (0.25), technology.technologycollaboration (0.17), technology.node (0.15); best destination of 'technology.technologyinterface uses': none (0.44), technology.communicationnetwork (0.20), technology.path (0.17); best predicate: reverse:provides (0.68), none (0.14), uses (0.05). Outcome: alternative (predicate=reverse:provides).",
+          "claim_id": "rel:technology.technologyinterface#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinterface#4): best source of 'uses technology.communicationnetwork': technology.technologyinterface (0.33), technology.path (0.14), technology.node (0.14); best destination of 'technology.technologyinterface uses': technology.communicationnetwork (0.39), technology.path (0.31), none (0.16); best predicate: reverse:provides (0.68), depends-on (0.09), uses (0.08). Outcome: alternative (predicate=reverse:provides).",
+          "claim_id": "rel:technology.technologyinterface#4"
+        }
+      ],
+      "probability": 0.68,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "reverse",
+        "triple": "technology.technologyinterface.uses.technology.communicationnetwork",
+        "replacement": [
+          "technology.communicationnetwork.provides.technology.technologyinterface"
+        ],
+        "claims": [
+          "rel:technology.technologyinterface#3",
+          "rel:technology.technologyinterface#4"
+        ]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "technology.technologycollaboration.aggregates.technology.technologyinterface",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologycollaboration.aggregates.technology.technologyinterface: technology.technologyinterface.serves.technology.technologycollaboration already exists and expresses it. Plan kind reverse, p 0.67; claims rel:technology.technologycollaboration#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "technology.technologycollaboration",
+        "destination_spec_node_id": "technology.technologyinterface",
+        "title": "technology.technologycollaboration aggregates technology.technologyinterface",
+        "description": "Defines relationship: technology.technologycollaboration aggregates technology.technologyinterface"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates relationship from technology.technologycollaboration to technology.technologyinterface is unusual because interfaces normally compose a single active element, so the collaboration-level endpoint should be the explicit target. Proposed: Replace the aggregation of technologyinterface with an explicit collaboration-level interface endpoint as target, or drop the aggregation.",
+          "claim_id": "rel:technology.technologycollaboration#2"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologycollaboration#2): best source of 'aggregates technology.technologyinterface': technology.technologycollaboration (0.51), none (0.37), technology.node (0.03); best destination of 'technology.technologycollaboration aggregates': technology.technologyinterface (0.60), none (0.14), technology.node (0.07); best predicate: reverse:serves (0.67), none (0.13), uses (0.05). Outcome: alternative (predicate=reverse:serves).",
+          "claim_id": "rel:technology.technologycollaboration#2"
+        }
+      ],
+      "probability": 0.668,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "reverse",
+        "triple": "technology.technologycollaboration.aggregates.technology.technologyinterface",
+        "replacement": [
+          "technology.technologyinterface.serves.technology.technologycollaboration"
+        ],
+        "claims": ["rel:technology.technologycollaboration#2"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "technology.technologyinterface.uses.technology.path",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyinterface.uses.technology.path: technology.path.assigned-to.technology.technologyinterface already exists and expresses it. Plan kind reverse, p 0.58; claims rel:technology.technologyinterface#3, rel:technology.technologyinterface#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "technology.technologyinterface",
+        "destination_spec_node_id": "technology.path",
+        "title": "technology.technologyinterface uses technology.path",
+        "description": "Defines relationship: technology.technologyinterface uses technology.path"
+      },
+      "evidence": [
+        {
+          "quote": "The 'uses' relationships from technologyinterface to communicationnetwork and to path duplicate ArchiMate Association/Realization semantics and do not fit. Proposed: Remove or replace the 'uses' relationships toward communicationnetwork and path with the appropriate ArchiMate relationship (association or realization).",
+          "claim_id": "rel:technology.technologyinterface#3"
+        },
+        {
+          "quote": "The two 'uses' relationships from technologyinterface (to communicationnetwork and to path) overlap when a path is realized by a network. Proposed: Consolidate the two 'uses' relationships into one or remove one of them.",
+          "claim_id": "rel:technology.technologyinterface#4"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinterface#3): best source of 'uses technology.path': none (0.24), technology.technologycollaboration (0.19), technology.technologyprocess (0.14); best destination of 'technology.technologyinterface uses': technology.path (0.46), none (0.37), technology.communicationnetwork (0.07); best predicate: reverse:assigned-to (0.59), none (0.22), uses (0.06). Outcome: alternative (predicate=reverse:assigned-to).",
+          "claim_id": "rel:technology.technologyinterface#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinterface#4): best source of 'uses technology.path': technology.technologyinterface (0.41), none (0.16), technology.technologyprocess (0.11); best destination of 'technology.technologyinterface uses': technology.path (0.59), technology.communicationnetwork (0.17), none (0.15); best predicate: reverse:assigned-to (0.58), none (0.15), uses (0.09). Outcome: alternative (predicate=reverse:assigned-to).",
+          "claim_id": "rel:technology.technologyinterface#4"
+        }
+      ],
+      "probability": 0.577,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "reverse",
+        "triple": "technology.technologyinterface.uses.technology.path",
+        "replacement": [
+          "technology.path.assigned-to.technology.technologyinterface"
+        ],
+        "claims": [
+          "rel:technology.technologyinterface#3",
+          "rel:technology.technologyinterface#4"
+        ]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "technology.technologyservice.provides.technology.technologyinterface",
+      "ref": null,
+      "fields": {
+        "predicate": "assigned-to",
+        "source_spec_node_id": "technology.technologyinterface",
+        "destination_spec_node_id": "technology.technologyservice",
+        "title": "technology.technologyinterface assigned-to technology.technologyservice",
+        "description": "Defines relationship: technology.technologyinterface assigned-to technology.technologyservice"
+      },
+      "rationale": "Reverse the direction of technology.technologyservice.provides.technology.technologyinterface to technology.technologyinterface.assigned-to.technology.technologyservice. Plan kind reverse, p 0.44; claims node:technology.technologyinterface#4, rel:technology.technologyservice#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "provides",
+        "source_spec_node_id": "technology.technologyservice",
+        "destination_spec_node_id": "technology.technologyinterface",
+        "title": "technology.technologyservice provides technology.technologyinterface",
+        "description": "Defines relationship: technology.technologyservice provides technology.technologyinterface"
+      },
+      "evidence": [
+        {
+          "quote": "The service-provides-interface and service-serves-interface relationships between technologyservice and technologyinterface are redundant with each other. Proposed: Keep only one of the two relationships and remove the other.",
+          "claim_id": "node:technology.technologyinterface#4"
+        },
+        {
+          "quote": "The relationships technology.technologyservice provides technology.technologyinterface and technology.technologyservice serves technology.technologyinterface are inverted, since interfaces normally serve or are assigned to services. Proposed: Remove or invert these relationships so the interface serves or is assigned to the technology service (an assigned-to relationship already exists).",
+          "claim_id": "rel:technology.technologyservice#2"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologyinterface#4): best source of 'provides technology.technologyinterface': technology.technologyservice (0.70), none (0.08), technology.technologycollaboration (0.06); best destination of 'technology.technologyservice provides': technology.technologyinterface (0.91), none (0.04), technology.technologycollaboration (0.01); best predicate: reverse:assigned-to (0.44), provides (0.30), none (0.06). Outcome: alternative (predicate=reverse:assigned-to).",
+          "claim_id": "node:technology.technologyinterface#4"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyservice#2): best source of 'provides technology.technologyinterface': technology.technologyservice (0.73), none (0.14), technology.node (0.03); best destination of 'technology.technologyservice provides': technology.technologyinterface (0.80), none (0.08), technology.path (0.03); best predicate: reverse:assigned-to (0.73), provides (0.08), none (0.04). Outcome: alternative (predicate=reverse:assigned-to).",
+          "claim_id": "rel:technology.technologyservice#2"
+        }
+      ],
+      "probability": 0.444,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "reverse",
+        "triple": "technology.technologyservice.provides.technology.technologyinterface",
+        "replacement": [
+          "technology.technologyinterface.assigned-to.technology.technologyservice"
+        ],
+        "claims": [
+          "node:technology.technologyinterface#4",
+          "rel:technology.technologyservice#2"
+        ]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "technology.technologyservice.serves.technology.technologyinterface",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyservice.serves.technology.technologyinterface: technology.technologyinterface.assigned-to.technology.technologyservice is produced by an earlier operation in this proposal and expresses it. Reverse the direction of technology.technologyservice.serves.technology.technologyinterface to technology.technologyinterface.assigned-to.technology.technologyservice. Plan kind reverse, p 0.35; claims node:technology.technologyinterface#4, rel:technology.technologyservice#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "technology.technologyservice",
+        "destination_spec_node_id": "technology.technologyinterface",
+        "title": "technology.technologyservice serves technology.technologyinterface",
+        "description": "Defines relationship: technology.technologyservice serves technology.technologyinterface"
+      },
+      "evidence": [
+        {
+          "quote": "The service-provides-interface and service-serves-interface relationships between technologyservice and technologyinterface are redundant with each other. Proposed: Keep only one of the two relationships and remove the other.",
+          "claim_id": "node:technology.technologyinterface#4"
+        },
+        {
+          "quote": "The relationships technology.technologyservice provides technology.technologyinterface and technology.technologyservice serves technology.technologyinterface are inverted, since interfaces normally serve or are assigned to services. Proposed: Remove or invert these relationships so the interface serves or is assigned to the technology service (an assigned-to relationship already exists).",
+          "claim_id": "rel:technology.technologyservice#2"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologyinterface#4): best source of 'serves technology.technologyinterface': technology.technologyservice (0.63), none (0.15), technology.systemsoftware (0.07); best destination of 'technology.technologyservice serves': technology.technologyinterface (0.33), none (0.27), application.applicationcomponent (0.18); best predicate: reverse:assigned-to (0.35), provides (0.30), composes (0.07). Outcome: alternative (predicate=reverse:assigned-to).",
+          "claim_id": "node:technology.technologyinterface#4"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyservice#2): best source of 'serves technology.technologyinterface': none (0.52), technology.technologyservice (0.34), technology.technologycollaboration (0.03); best destination of 'technology.technologyservice serves': technology.technologyinterface (0.48), none (0.14), application.applicationcomponent (0.12); best predicate: reverse:assigned-to (0.71), provides (0.11), none (0.06). Outcome: alternative (predicate=reverse:assigned-to).",
+          "claim_id": "rel:technology.technologyservice#2"
+        }
+      ],
+      "probability": 0.346,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "reverse",
+        "triple": "technology.technologyservice.serves.technology.technologyinterface",
+        "replacement": [
+          "technology.technologyinterface.assigned-to.technology.technologyservice"
+        ],
+        "claims": [
+          "node:technology.technologyinterface#4",
+          "rel:technology.technologyservice#2"
+        ]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "delete",
+      "target_id": "technology.systemsoftware.mitigates.security.threat",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.systemsoftware.mitigates.security.threat: security.countermeasure.mitigates.security.threat already exists and expresses it. Plan kind retarget, p 0.89; claims rel:technology.systemsoftware#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "mitigates",
+        "source_spec_node_id": "technology.systemsoftware",
+        "destination_spec_node_id": "security.threat",
+        "title": "technology.systemsoftware mitigates security.threat",
+        "description": "Defines relationship: technology.systemsoftware mitigates security.threat"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships implements security.countermeasure and mitigates security.threat from technology.systemsoftware largely duplicate each other. Proposed: Consolidate into one of the two relationships.",
+          "claim_id": "rel:technology.systemsoftware#6"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.systemsoftware#6): best source of 'mitigates security.threat': security.countermeasure (0.89), technology.systemsoftware (0.03), none (0.03); best destination of 'technology.systemsoftware mitigates': security.threat (0.88), none (0.05), security.authenticationconfig (0.02); best predicate: mitigates (0.62), none (0.26), realizes (0.04). Outcome: alternative (source=security.countermeasure).",
+          "claim_id": "rel:technology.systemsoftware#6"
+        }
+      ],
+      "probability": 0.886,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "technology.systemsoftware.mitigates.security.threat",
+        "replacement": ["security.countermeasure.mitigates.security.threat"],
+        "claims": ["rel:technology.systemsoftware#6"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "delete",
+      "target_id": "technology.technologyfunction.serves.business.businessservice",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyfunction.serves.business.businessservice: technology.technologyservice.serves.business.businessservice already exists and expresses it. Plan kind retarget, p 0.84; claims rel:technology.technologyfunction#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "technology.technologyfunction",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "technology.technologyfunction serves business.businessservice",
+        "description": "Defines relationship: technology.technologyfunction serves business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship technology.technologyfunction serves business.businessservice skips the usual technology-service/application layering and may be better expressed by the function realizing a technology.technologyservice that serves the business layer. Proposed: Remove or discourage the direct serves relationship to business.businessservice and express it via realizes technology.technologyservice, which then serves the business layer.",
+          "claim_id": "rel:technology.technologyfunction#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyfunction#3): best source of 'serves business.businessservice': technology.technologyservice (0.84), none (0.06), technology.technologyfunction (0.04); best destination of 'technology.technologyfunction serves': business.businessservice (0.51), none (0.14), technology.technologyinteraction (0.10); best predicate: none (0.46), serves (0.32), realizes (0.13). Outcome: alternative (source=technology.technologyservice).",
+          "claim_id": "rel:technology.technologyfunction#3"
+        }
+      ],
+      "probability": 0.842,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "technology.technologyfunction.serves.business.businessservice",
+        "replacement": [
+          "technology.technologyservice.serves.business.businessservice"
+        ],
+        "claims": ["rel:technology.technologyfunction#3"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "delete",
+      "target_id": "technology.node.serves.business.businessprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.node.serves.business.businessprocess: application.applicationservice.serves.business.businessprocess already exists and expresses it. Plan kind retarget, p 0.67; claims rel:technology.node#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "technology.node",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "technology.node serves business.businessprocess",
+        "description": "Defines relationship: technology.node serves business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'technology.node serves business.businessprocess' skips the application layer and would be better expressed through ApplicationComponent or TechnologyService. Proposed: Remove the direct Node serves BusinessProcess relationship and express it via application.applicationcomponent or technology.technologyservice.",
+          "claim_id": "rel:technology.node#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.node#1): best source of 'serves business.businessprocess': application.applicationservice (0.67), technology.technologyservice (0.11), none (0.10); best destination of 'technology.node serves': business.businessprocess (0.43), application.applicationcomponent (0.27), business.businessfunction (0.07); best predicate: none (0.65), serves (0.25), realizes (0.05). Outcome: alternative (source=application.applicationservice).",
+          "claim_id": "rel:technology.node#1"
+        }
+      ],
+      "probability": 0.668,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "retarget",
+        "triple": "technology.node.serves.business.businessprocess",
+        "replacement": [
+          "application.applicationservice.serves.business.businessprocess"
+        ],
+        "claims": ["rel:technology.node#1"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "delete",
+      "target_id": "technology.device.serves.application.applicationcomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.device.serves.application.applicationcomponent: application.applicationservice.serves.application.applicationcomponent already exists and expresses it. Plan kind retarget, p 0.45; claims rel:technology.device#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "technology.device",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "technology.device serves application.applicationcomponent",
+        "description": "Defines relationship: technology.device serves application.applicationcomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship technology.device serves application.applicationcomponent bypasses technology.node, which would be the intermediate hosting element. Proposed: Route the relationship through technology.node, removing or replacing the direct device-to-applicationcomponent serves.",
+          "claim_id": "rel:technology.device#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.device#3): best source of 'serves application.applicationcomponent': application.applicationservice (0.45), none (0.29), technology.device (0.09); best destination of 'technology.device serves': application.applicationcomponent (0.33), none (0.32), application.applicationservice (0.12); best predicate: none (0.74), serves (0.11), realizes (0.05). Outcome: alternative (source=application.applicationservice).",
+          "claim_id": "rel:technology.device#3"
+        }
+      ],
+      "probability": 0.453,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "retarget",
+        "triple": "technology.device.serves.application.applicationcomponent",
+        "replacement": [
+          "application.applicationservice.serves.application.applicationcomponent"
+        ],
+        "claims": ["rel:technology.device#3"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "update",
+      "target_id": "technology.systemsoftware.realizes.motivation.goal",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessprocess",
+        "destination_spec_node_id": "technology.technologyservice",
+        "title": "business.businessprocess realizes technology.technologyservice",
+        "description": "Defines relationship: business.businessprocess realizes technology.technologyservice"
+      },
+      "rationale": "Retarget of technology.systemsoftware.realizes.motivation.goal to business.businessprocess.realizes.technology.technologyservice. Plan kind retarget, p 0.29; claims rel:technology.systemsoftware#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.systemsoftware",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "technology.systemsoftware realizes motivation.goal",
+        "description": "Defines relationship: technology.systemsoftware realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship technology.systemsoftware realizes motivation.goal skips layers and supports would suit a goal better. Proposed: Replace realizes with supports for the relationship to goal.",
+          "claim_id": "rel:technology.systemsoftware#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.systemsoftware#3): best source of 'realizes motivation.goal': business.businessprocess (0.29), application.applicationcomponent (0.14), technology.systemsoftware (0.14); best destination of 'technology.systemsoftware realizes': technology.technologyservice (0.42), motivation.goal (0.22), motivation.constraint (0.08); best predicate: none (0.54), serves (0.22), realizes (0.14). Outcome: alternative (source=business.businessprocess; target=technology.technologyservice).",
+          "claim_id": "rel:technology.systemsoftware#3"
+        }
+      ],
+      "probability": 0.293,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "retarget",
+        "triple": "technology.systemsoftware.realizes.motivation.goal",
+        "replacement": [
+          "business.businessprocess.realizes.technology.technologyservice"
+        ],
+        "claims": ["rel:technology.systemsoftware#3"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "update",
+      "target_id": "technology.path.flows-to.technology.technologyservice",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "technology.node",
+        "title": "technology.path flows-to technology.node",
+        "description": "Defines relationship: technology.path flows-to technology.node"
+      },
+      "rationale": "Retarget of technology.path.flows-to.technology.technologyservice to technology.path.flows-to.technology.node. Plan kind retarget, p 0.28; claims rel:technology.path#1, node:technology.path#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "technology.path",
+        "destination_spec_node_id": "technology.technologyservice",
+        "title": "technology.path flows-to technology.technologyservice",
+        "description": "Defines relationship: technology.path flows-to technology.technologyservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships technology.path flows-to technology.technologyservice and technology.path realizes technology.technologyservice overlap ambiguously in meaning. Proposed: Clarify or consolidate the two relationships so that only one expresses path-to-service traffic, keeping realizes only for connectivity services.",
+          "claim_id": "rel:technology.path#1"
+        },
+        {
+          "quote": "The relationships 'realizes technologyservice', 'flows-to technologyservice' and 'assigned-to technologyinterface' from technology.path are not ArchiMate-valid for a structure element. Proposed: Review these relationships and remove or replace those that are not ArchiMate-valid.",
+          "claim_id": "node:technology.path#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.path#1): best source of 'flows-to technology.technologyservice': technology.path (0.73), technology.communicationnetwork (0.06), technology.node (0.06); best destination of 'technology.path flows-to': technology.node (0.32), technology.communicationnetwork (0.16), technology.technologyservice (0.13); best predicate: flows-to (0.30), realizes (0.22), uses (0.18). Outcome: alternative (target=technology.node).",
+          "claim_id": "rel:technology.path#1"
+        },
+        {
+          "quote": "Sorting answers (node:technology.path#3): best source of 'flows-to technology.technologyservice': technology.path (0.24), none (0.16), technology.node (0.13); best destination of 'technology.path flows-to': technology.node (0.28), none (0.21), technology.communicationnetwork (0.16); best predicate: none (0.33), uses (0.18), flows-to (0.15). Outcome: alternative (target=technology.node).",
+          "claim_id": "node:technology.path#3"
+        }
+      ],
+      "probability": 0.276,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "retarget",
+        "triple": "technology.path.flows-to.technology.technologyservice",
+        "replacement": ["technology.path.flows-to.technology.node"],
+        "claims": ["rel:technology.path#1", "node:technology.path#3"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "update",
+      "target_id": "technology.technologyservice.realizes.motivation.goal",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessservice",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "business.businessservice realizes motivation.outcome",
+        "description": "Defines relationship: business.businessservice realizes motivation.outcome"
+      },
+      "rationale": "Retarget of technology.technologyservice.realizes.motivation.goal to business.businessservice.realizes.motivation.outcome. Plan kind retarget, p 0.20; claims rel:technology.technologyservice#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.technologyservice",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "technology.technologyservice realizes motivation.goal",
+        "description": "Defines relationship: technology.technologyservice realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships technology.technologyservice realizes motivation.goal and technology.technologyservice serves motivation.stakeholder are weak links; requirement or outcome targets are preferable. Proposed: Replace these with relationships to motivation.requirement or motivation outcome.",
+          "claim_id": "rel:technology.technologyservice#5"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyservice#5): best source of 'realizes motivation.goal': business.businessservice (0.20), business.businessprocess (0.18), application.applicationservice (0.18); best destination of 'technology.technologyservice realizes': motivation.outcome (0.28), product.capability (0.20), motivation.goal (0.15); best predicate: none (0.51), realizes (0.33), serves (0.04). Outcome: alternative (source=business.businessservice; target=motivation.outcome).",
+          "claim_id": "rel:technology.technologyservice#5"
+        }
+      ],
+      "probability": 0.204,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "retarget",
+        "triple": "technology.technologyservice.realizes.motivation.goal",
+        "replacement": ["business.businessservice.realizes.motivation.outcome"],
+        "claims": ["rel:technology.technologyservice#5"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "update",
+      "target_id": "technology.technologyservice.realizes.business.businessservice",
+      "ref": null,
+      "fields": {
+        "predicate": "serves",
+        "source_spec_node_id": "application.applicationservice",
+        "title": "application.applicationservice serves business.businessservice",
+        "description": "Defines relationship: application.applicationservice serves business.businessservice"
+      },
+      "rationale": "Change of technology.technologyservice.realizes.business.businessservice to application.applicationservice.serves.business.businessservice. Plan kind compound, p 0.47; claims rel:technology.technologyservice#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.technologyservice",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "technology.technologyservice realizes business.businessservice",
+        "description": "Defines relationship: technology.technologyservice realizes business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships technology.technologyservice realizes business.businessservice and technology.technologyservice serves business.businessservice overlap in meaning, and realizing a business service directly from a technology service is unusual. Proposed: Remove or restrict the realizes relationship to business.businessservice and keep serves.",
+          "claim_id": "rel:technology.technologyservice#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyservice#1): best source of 'realizes business.businessservice': application.applicationservice (0.47), application.applicationcomponent (0.17), none (0.14); best destination of 'technology.technologyservice realizes': business.businessservice (0.37), none (0.22), product.capability (0.20); best predicate: serves (0.84), none (0.06), realizes (0.04). Outcome: alternative (source=application.applicationservice; predicate=serves).",
+          "claim_id": "rel:technology.technologyservice#1"
+        }
+      ],
+      "probability": 0.466,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "compound",
+        "triple": "technology.technologyservice.realizes.business.businessservice",
+        "replacement": [
+          "application.applicationservice.serves.business.businessservice"
+        ],
+        "claims": ["rel:technology.technologyservice#1"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "update",
+      "target_id": "technology.communicationnetwork.provides.technology.technologyinterface",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "source_spec_node_id": "technology.technologyinterface",
+        "destination_spec_node_id": "technology.device",
+        "title": "technology.technologyinterface uses technology.device",
+        "description": "Defines relationship: technology.technologyinterface uses technology.device"
+      },
+      "rationale": "Change of technology.communicationnetwork.provides.technology.technologyinterface to technology.technologyinterface.uses.technology.device. Plan kind compound, p 0.36; claims rel:technology.communicationnetwork#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "provides",
+        "source_spec_node_id": "technology.communicationnetwork",
+        "destination_spec_node_id": "technology.technologyinterface",
+        "title": "technology.communicationnetwork provides technology.technologyinterface",
+        "description": "Defines relationship: technology.communicationnetwork provides technology.technologyinterface"
+      },
+      "evidence": [
+        {
+          "quote": "The provides relationship from technology.communicationnetwork to technology.technologyinterface conflicts with the interface definition, which says interfaces are located on nodes, devices or system software. Proposed: Remove or rework the provides relationship to technologyinterface.",
+          "claim_id": "rel:technology.communicationnetwork#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.communicationnetwork#3): best source of 'provides technology.technologyinterface': technology.device (0.36), none (0.17), technology.node (0.14); best destination of 'technology.communicationnetwork provides': technology.technologyinterface (0.41), none (0.19), technology.path (0.17); best predicate: reverse:uses (0.74), none (0.11), provides (0.04). Outcome: alternative (source=technology.device; predicate=reverse:uses).",
+          "claim_id": "rel:technology.communicationnetwork#3"
+        }
+      ],
+      "probability": 0.363,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "compound",
+        "triple": "technology.communicationnetwork.provides.technology.technologyinterface",
+        "replacement": [
+          "technology.technologyinterface.uses.technology.device"
+        ],
+        "claims": ["rel:technology.communicationnetwork#3"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "technology.technologyinterface.assigned-to.technology.systemsoftware",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyinterface.assigned-to.technology.systemsoftware: technology.technologyservice.provides.technology.technologyinterface already exists and expresses it. Plan kind compound, p 0.34; claims rel:technology.technologyinterface#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "assigned-to",
+        "source_spec_node_id": "technology.technologyinterface",
+        "destination_spec_node_id": "technology.systemsoftware",
+        "title": "technology.technologyinterface assigned-to technology.systemsoftware",
+        "description": "Defines relationship: technology.technologyinterface assigned-to technology.systemsoftware"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships technologyinterface assigned-to node and technologyinterface assigned-to systemsoftware invert the ArchiMate convention, in which nodes and system software are composed of or assigned their interfaces. Proposed: Replace the interface-to-node and interface-to-systemsoftware assigned-to relationships with composed-of (node/systemsoftware composes interface), or reverse their direction.",
+          "claim_id": "rel:technology.technologyinterface#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinterface#1): best source of 'assigned-to technology.systemsoftware': technology.technologyinterface (0.37), none (0.20), technology.systemsoftware (0.10); best destination of 'technology.technologyinterface assigned-to': technology.technologyservice (0.34), none (0.23), technology.systemsoftware (0.18); best predicate: reverse:provides (0.86), none (0.03), assigned-to (0.03). Outcome: alternative (target=technology.technologyservice; predicate=reverse:provides).",
+          "claim_id": "rel:technology.technologyinterface#1"
+        }
+      ],
+      "probability": 0.337,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "compound",
+        "triple": "technology.technologyinterface.assigned-to.technology.systemsoftware",
+        "replacement": [
+          "technology.technologyservice.provides.technology.technologyinterface"
+        ],
+        "claims": ["rel:technology.technologyinterface#1"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "update",
+      "target_id": "technology.communicationnetwork.associated-with.technology.systemsoftware",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "source_spec_node_id": "technology.systemsoftware",
+        "title": "technology.systemsoftware uses technology.systemsoftware",
+        "description": "Defines relationship: technology.systemsoftware uses technology.systemsoftware"
+      },
+      "rationale": "Change of technology.communicationnetwork.associated-with.technology.systemsoftware to technology.systemsoftware.uses.technology.systemsoftware. Plan kind compound, p 0.30; claims rel:technology.communicationnetwork#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "technology.communicationnetwork",
+        "destination_spec_node_id": "technology.systemsoftware",
+        "title": "technology.communicationnetwork associated-with technology.systemsoftware",
+        "description": "Defines relationship: technology.communicationnetwork associated-with technology.systemsoftware"
+      },
+      "evidence": [
+        {
+          "quote": "The associated-with relationship from technology.communicationnetwork to technology.systemsoftware is too vague to be useful. Proposed: Remove the associated-with relationship or replace it with a more specific one.",
+          "claim_id": "rel:technology.communicationnetwork#4"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.communicationnetwork#4): best source of 'associated-with technology.systemsoftware': technology.systemsoftware (0.30), none (0.21), technology.device (0.17); best destination of 'technology.communicationnetwork associated-with': none (0.36), technology.systemsoftware (0.30), technology.device (0.10); best predicate: reverse:uses (0.72), none (0.13), depends-on (0.04). Outcome: alternative (source=technology.systemsoftware; predicate=reverse:uses).",
+          "claim_id": "rel:technology.communicationnetwork#4"
+        }
+      ],
+      "probability": 0.298,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "compound",
+        "triple": "technology.communicationnetwork.associated-with.technology.systemsoftware",
+        "replacement": [
+          "technology.systemsoftware.uses.technology.systemsoftware"
+        ],
+        "claims": ["rel:technology.communicationnetwork#4"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "update",
+      "target_id": "technology.systemsoftware.composes.technology.artifact",
+      "ref": null,
+      "fields": {
+        "predicate": "accesses",
+        "source_spec_node_id": "technology.device",
+        "title": "technology.device accesses technology.artifact",
+        "description": "Defines relationship: technology.device accesses technology.artifact"
+      },
+      "rationale": "Change of technology.systemsoftware.composes.technology.artifact to technology.device.accesses.technology.artifact. Plan kind compound, p 0.28; claims rel:technology.systemsoftware#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "technology.systemsoftware",
+        "destination_spec_node_id": "technology.artifact",
+        "title": "technology.systemsoftware composes technology.artifact",
+        "description": "Defines relationship: technology.systemsoftware composes technology.artifact"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship technology.systemsoftware composes technology.artifact is questionable because in ArchiMate artifacts realize system software, and it overlaps with the accesses relationship to artifact. Proposed: Remove or reverse the composes relationship to artifact (artifact realizes system software) and clarify its boundary with accesses.",
+          "claim_id": "rel:technology.systemsoftware#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.systemsoftware#1): best source of 'composes technology.artifact': technology.device (0.28), none (0.26), technology.node (0.23); best destination of 'technology.systemsoftware composes': none (0.41), technology.artifact (0.30), technology.systemsoftware (0.07); best predicate: accesses (0.50), reverse:associated-with (0.18), uses (0.09). Outcome: alternative (source=technology.device; predicate=accesses).",
+          "claim_id": "rel:technology.systemsoftware#1"
+        }
+      ],
+      "probability": 0.283,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "compound",
+        "triple": "technology.systemsoftware.composes.technology.artifact",
+        "replacement": ["technology.device.accesses.technology.artifact"],
+        "claims": ["rel:technology.systemsoftware#1"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "update",
+      "target_id": "technology.artifact.realizes.technology.technologyservice",
+      "ref": null,
+      "fields": {
+        "predicate": "consumes",
+        "source_spec_node_id": "technology.technologyservice",
+        "destination_spec_node_id": "technology.systemsoftware",
+        "title": "technology.technologyservice consumes technology.systemsoftware",
+        "description": "Defines relationship: technology.technologyservice consumes technology.systemsoftware"
+      },
+      "rationale": "Change of technology.artifact.realizes.technology.technologyservice to technology.technologyservice.consumes.technology.systemsoftware. Plan kind compound, p 0.20; claims rel:technology.artifact#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.artifact",
+        "destination_spec_node_id": "technology.technologyservice",
+        "title": "technology.artifact realizes technology.technologyservice",
+        "description": "Defines relationship: technology.artifact realizes technology.technologyservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship technology.artifact realizes technology.technologyservice is semantically weak because in ArchiMate artifacts normally realize application components or data objects, while services are realized by node or system-software behavior. Proposed: Remove or rework the artifact realizes technologyservice relationship, so that services are realized by node or systemsoftware behavior instead.",
+          "claim_id": "rel:technology.artifact#2"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.artifact#2): best source of 'realizes technology.technologyservice': technology.systemsoftware (0.20), technology.technologycollaboration (0.16), technology.technologyprocess (0.15); best destination of 'technology.artifact realizes': technology.technologyservice (0.57), none (0.20), technology.node (0.07); best predicate: reverse:consumes (0.41), none (0.26), realizes (0.13). Outcome: alternative (source=technology.systemsoftware; predicate=reverse:consumes).",
+          "claim_id": "rel:technology.artifact#2"
+        }
+      ],
+      "probability": 0.196,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "compound",
+        "triple": "technology.artifact.realizes.technology.technologyservice",
+        "replacement": [
+          "technology.technologyservice.consumes.technology.systemsoftware"
+        ],
+        "claims": ["rel:technology.artifact#2"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "technology.technologyinteraction.realizes.technology.technologycollaboration",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.technologyinteraction.realizes.technology.technologycollaboration: technology.technologycollaboration.performs.technology.technologyinteraction already exists and expresses it. Plan kind conflict, p 0.87; claims node:technology.technologycollaboration#2, node:technology.technologyinteraction#1, rel:technology.technologyinteraction#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.technologyinteraction",
+        "destination_spec_node_id": "technology.technologycollaboration",
+        "title": "technology.technologyinteraction realizes technology.technologycollaboration",
+        "description": "Defines relationship: technology.technologyinteraction realizes technology.technologycollaboration"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'technologyinteraction realizes technologycollaboration' inverts ArchiMate, where a collaboration is assigned to an interaction. Proposed: Replace it with technologycollaboration assigned-to technologyinteraction.",
+          "claim_id": "node:technology.technologycollaboration#2"
+        },
+        {
+          "quote": "The 'realizes' relationship from technology.technologyinteraction to technology.technologycollaboration is not valid ArchiMate because behavior does not realize active structure; a collaboration is assigned to the interaction, which 'performs' already covers. Proposed: Remove the 'realizes' relationship from technologyinteraction to technologycollaboration and rely on 'performs'.",
+          "claim_id": "node:technology.technologyinteraction#1"
+        },
+        {
+          "quote": "The relationship technologyinteraction realizes technologycollaboration is semantically wrong because behavior does not realize active structure; in ArchiMate the collaboration is assigned to the interaction. Proposed: Remove the realizes relationship to technologycollaboration and rely on the collaboration-to-interaction assignment (the existing performs relationship, as the inverse of assigned-to).",
+          "claim_id": "rel:technology.technologyinteraction#1"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologycollaboration#2): best source of 'realizes technology.technologycollaboration': technology.technologyinteraction (0.75), none (0.14), technology.technologycollaboration (0.04); best destination of 'technology.technologyinteraction realizes': technology.technologycollaboration (0.53), none (0.22), technology.technologyservice (0.09); best predicate: reverse:performs (0.87), realizes (0.04), depends-on (0.02). Outcome: alternative (predicate=reverse:performs).",
+          "claim_id": "node:technology.technologycollaboration#2"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologyinteraction#1): best source of 'realizes technology.technologycollaboration': none (0.39), technology.technologyinteraction (0.29), technology.technologycollaboration (0.13); best destination of 'technology.technologyinteraction realizes': none (0.48), technology.technologycollaboration (0.23), technology.technologyservice (0.16); best predicate: reverse:performs (0.81), none (0.09), depends-on (0.03). Outcome: alternative (predicate=reverse:performs).",
+          "claim_id": "node:technology.technologyinteraction#1"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinteraction#1): best source of 'realizes technology.technologycollaboration': none (0.58), technology.technologyinteraction (0.20), technology.technologycollaboration (0.09); best destination of 'technology.technologyinteraction realizes': technology.technologyservice (0.64), none (0.17), technology.technologycollaboration (0.09); best predicate: reverse:performs (0.83), none (0.09), depends-on (0.02). Outcome: alternative (target=technology.technologyservice; predicate=reverse:performs).",
+          "claim_id": "rel:technology.technologyinteraction#1"
+        }
+      ],
+      "probability": 0.868,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "conflict",
+        "triple": "technology.technologyinteraction.realizes.technology.technologycollaboration",
+        "replacement": [
+          "technology.technologycollaboration.performs.technology.technologyinteraction",
+          "technology.technologyservice.performs.technology.technologyinteraction"
+        ],
+        "claims": [
+          "node:technology.technologycollaboration#2",
+          "node:technology.technologyinteraction#1",
+          "rel:technology.technologyinteraction#1"
+        ]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "technology.communicationnetwork.assigned-to.technology.technologycollaboration",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.communicationnetwork.assigned-to.technology.technologycollaboration: technology.technologycollaboration.uses.technology.communicationnetwork already exists and expresses it. Plan kind conflict, p 0.78; claims node:technology.technologycollaboration#3, rel:technology.communicationnetwork#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "assigned-to",
+        "source_spec_node_id": "technology.communicationnetwork",
+        "destination_spec_node_id": "technology.technologycollaboration",
+        "title": "technology.communicationnetwork assigned-to technology.technologycollaboration",
+        "description": "Defines relationship: technology.communicationnetwork assigned-to technology.technologycollaboration"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'communicationnetwork assigned-to technologycollaboration' is not valid ArchiMate. Proposed: Remove or replace this relationship with one that is valid in ArchiMate.",
+          "claim_id": "node:technology.technologycollaboration#3"
+        },
+        {
+          "quote": "The assigned-to relationship from technology.communicationnetwork to technology.technologycollaboration misuses Assignment, which is meant for active-structure-to-behavior/role, because a collaboration is itself active structure. Proposed: Replace assigned-to with aggregation or association for communicationnetwork to technologycollaboration.",
+          "claim_id": "rel:technology.communicationnetwork#2"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologycollaboration#3): best source of 'assigned-to technology.technologycollaboration': none (0.36), technology.systemsoftware (0.13), technology.device (0.13); best destination of 'technology.communicationnetwork assigned-to': technology.technologycollaboration (0.29), none (0.28), technology.node (0.13); best predicate: reverse:uses (0.78), none (0.08), serves (0.04). Outcome: alternative (predicate=reverse:uses).",
+          "claim_id": "node:technology.technologycollaboration#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.communicationnetwork#2): best source of 'assigned-to technology.technologycollaboration': technology.technologycollaboration (0.33), none (0.31), technology.path (0.08); best destination of 'technology.communicationnetwork assigned-to': none (0.33), technology.technologycollaboration (0.30), technology.technologyevent (0.27); best predicate: reverse:uses (0.85), none (0.04), uses (0.02). Outcome: alternative (source=technology.technologycollaboration; predicate=reverse:uses).",
+          "claim_id": "rel:technology.communicationnetwork#2"
+        }
+      ],
+      "probability": 0.783,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "conflict",
+        "triple": "technology.communicationnetwork.assigned-to.technology.technologycollaboration",
+        "replacement": [
+          "technology.technologycollaboration.uses.technology.communicationnetwork",
+          "technology.technologycollaboration.uses.technology.technologycollaboration"
+        ],
+        "claims": [
+          "node:technology.technologycollaboration#3",
+          "rel:technology.communicationnetwork#2"
+        ]
+      }
+    },
+    {
+      "seq": 25,
+      "op": "delete",
+      "target_id": "technology.path.realizes.technology.technologyservice",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.path.realizes.technology.technologyservice: technology.technologyprocess.realizes.technology.technologyservice already exists and expresses it. Plan kind conflict, p 0.74; claims node:technology.path#3, rel:technology.path#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.path",
+        "destination_spec_node_id": "technology.technologyservice",
+        "title": "technology.path realizes technology.technologyservice",
+        "description": "Defines relationship: technology.path realizes technology.technologyservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships 'realizes technologyservice', 'flows-to technologyservice' and 'assigned-to technologyinterface' from technology.path are not ArchiMate-valid for a structure element. Proposed: Review these relationships and remove or replace those that are not ArchiMate-valid.",
+          "claim_id": "node:technology.path#3"
+        },
+        {
+          "quote": "The relationships technology.path flows-to technology.technologyservice and technology.path realizes technology.technologyservice overlap ambiguously in meaning. Proposed: Clarify or consolidate the two relationships so that only one expresses path-to-service traffic, keeping realizes only for connectivity services.",
+          "claim_id": "rel:technology.path#1"
+        },
+        {
+          "quote": "Sorting answers (node:technology.path#3): best source of 'realizes technology.technologyservice': technology.technologyprocess (0.22), technology.node (0.17), none (0.12); best destination of 'technology.path realizes': none (0.31), technology.technologyservice (0.31), technology.communicationnetwork (0.16); best predicate: none (0.26), uses (0.21), realizes (0.17). Outcome: alternative (source=technology.technologyprocess).",
+          "claim_id": "node:technology.path#3"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.path#1): best source of 'realizes technology.technologyservice': technology.path (0.18), technology.technologyfunction (0.17), technology.technologyprocess (0.13); best destination of 'technology.path realizes': technology.technologyservice (0.44), none (0.21), technology.communicationnetwork (0.11); best predicate: flows-to (0.74), none (0.07), uses (0.06). Outcome: alternative (predicate=flows-to).",
+          "claim_id": "rel:technology.path#1"
+        }
+      ],
+      "probability": 0.736,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 25,
+        "plan_kind": "conflict",
+        "triple": "technology.path.realizes.technology.technologyservice",
+        "replacement": [
+          "technology.technologyprocess.realizes.technology.technologyservice",
+          "technology.path.flows-to.technology.technologyservice"
+        ],
+        "claims": ["node:technology.path#3", "rel:technology.path#1"]
+      }
+    },
+    {
+      "seq": 26,
+      "op": "delete",
+      "target_id": "technology.path.assigned-to.technology.technologyinterface",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove technology.path.assigned-to.technology.technologyinterface: technology.technologyinterface.uses.technology.path already exists and expresses it. Plan kind conflict, p 0.60; claims node:technology.technologyinterface#5, node:technology.path#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "assigned-to",
+        "source_spec_node_id": "technology.path",
+        "destination_spec_node_id": "technology.technologyinterface",
+        "title": "technology.path assigned-to technology.technologyinterface",
+        "description": "Defines relationship: technology.path assigned-to technology.technologyinterface"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'path assigned-to interface' is non-standard in ArchiMate. Proposed: Remove or replace the path assigned-to technologyinterface relationship with a standard one.",
+          "claim_id": "node:technology.technologyinterface#5"
+        },
+        {
+          "quote": "The relationships 'realizes technologyservice', 'flows-to technologyservice' and 'assigned-to technologyinterface' from technology.path are not ArchiMate-valid for a structure element. Proposed: Review these relationships and remove or replace those that are not ArchiMate-valid.",
+          "claim_id": "node:technology.path#3"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologyinterface#5): best source of 'assigned-to technology.technologyinterface': none (0.27), technology.path (0.20), technology.node (0.12); best destination of 'technology.path assigned-to': technology.technologyinterface (0.51), technology.node (0.12), none (0.11); best predicate: reverse:uses (0.60), none (0.11), uses (0.11). Outcome: alternative (predicate=reverse:uses).",
+          "claim_id": "node:technology.technologyinterface#5"
+        },
+        {
+          "quote": "Sorting answers (node:technology.path#3): best source of 'assigned-to technology.technologyinterface': technology.node (0.23), technology.device (0.23), none (0.18); best destination of 'technology.path assigned-to': technology.technologyinterface (0.54), none (0.18), technology.node (0.09); best predicate: reverse:uses (0.60), none (0.13), uses (0.12). Outcome: alternative (source=technology.node; predicate=reverse:uses).",
+          "claim_id": "node:technology.path#3"
+        }
+      ],
+      "probability": 0.602,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 26,
+        "plan_kind": "conflict",
+        "triple": "technology.path.assigned-to.technology.technologyinterface",
+        "replacement": [
+          "technology.technologyinterface.uses.technology.path",
+          "technology.technologyinterface.uses.technology.node"
+        ],
+        "claims": [
+          "node:technology.technologyinterface#5",
+          "node:technology.path#3"
+        ]
+      }
+    },
+    {
+      "seq": 27,
+      "op": "update",
+      "target_id": "technology.technologyinteraction.composes.technology.technologyfunction",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "technology.technologyinteraction uses technology.technologyfunction",
+        "description": "Defines relationship: technology.technologyinteraction uses technology.technologyfunction"
+      },
+      "rationale": "Change of technology.technologyinteraction.composes.technology.technologyfunction to technology.technologyinteraction.uses.technology.technologyfunction. Claims disagree on the replacement (technology.technologyinteraction.uses.technology.technologyfunction | technology.technologyfunction.serves.technology.technologyinteraction); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.55; claims node:technology.technologyinteraction#2, rel:technology.technologyinteraction#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "technology.technologyinteraction",
+        "destination_spec_node_id": "technology.technologyfunction",
+        "title": "technology.technologyinteraction composes technology.technologyfunction",
+        "description": "Defines relationship: technology.technologyinteraction composes technology.technologyfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The 'composes' relationship from technology.technologyinteraction to technology.technologyfunction is questionable. Proposed: Reconsider or remove the 'composes' relationship to technologyfunction.",
+          "claim_id": "node:technology.technologyinteraction#2"
+        },
+        {
+          "quote": "The relationship technologyinteraction composes technologyfunction is questionable because a function is performed by a single node, so a multi-participant interaction being part of a function conflicts with both definitions. Proposed: Replace composes with aggregation or flow-to between technologyinteraction and technologyfunction.",
+          "claim_id": "rel:technology.technologyinteraction#2"
+        },
+        {
+          "quote": "Sorting answers (node:technology.technologyinteraction#2): best source of 'composes technology.technologyfunction': technology.technologyinteraction (0.40), none (0.26), technology.systemsoftware (0.13); best destination of 'technology.technologyinteraction composes': none (0.59), technology.technologycollaboration (0.15), technology.technologyfunction (0.11); best predicate: uses (0.26), none (0.21), reverse:serves (0.17). Outcome: alternative (predicate=uses).",
+          "claim_id": "node:technology.technologyinteraction#2"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.technologyinteraction#2): best source of 'composes technology.technologyfunction': none (0.38), technology.technologyinteraction (0.30), technology.technologyfunction (0.08); best destination of 'technology.technologyinteraction composes': none (0.60), technology.technologycollaboration (0.16), technology.technologyfunction (0.08); best predicate: reverse:serves (0.54), none (0.13), depends-on (0.08). Outcome: alternative (predicate=reverse:serves).",
+          "claim_id": "rel:technology.technologyinteraction#2"
+        }
+      ],
+      "probability": 0.545,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 27,
+        "plan_kind": "conflict",
+        "triple": "technology.technologyinteraction.composes.technology.technologyfunction",
+        "replacement": [
+          "technology.technologyinteraction.uses.technology.technologyfunction",
+          "technology.technologyfunction.serves.technology.technologyinteraction"
+        ],
+        "claims": [
+          "node:technology.technologyinteraction#2",
+          "rel:technology.technologyinteraction#2"
+        ]
+      }
+    },
+    {
+      "seq": 28,
+      "op": "update",
+      "target_id": "technology.systemsoftware.realizes.business.businessservice",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessprocess",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "business.businessprocess realizes application.applicationservice",
+        "description": "Defines relationship: business.businessprocess realizes application.applicationservice"
+      },
+      "rationale": "Change of technology.systemsoftware.realizes.business.businessservice to business.businessprocess.realizes.application.applicationservice. Claims disagree on the replacement (business.businessprocess.realizes.application.applicationservice | application.applicationservice.realizes.technology.technologyservice); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.36; claims node:business.businessservice#4, rel:technology.systemsoftware#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "technology.systemsoftware",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "technology.systemsoftware realizes business.businessservice",
+        "description": "Defines relationship: technology.systemsoftware realizes business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships 'data-store.database realizes businessservice' and 'technology.systemsoftware realizes businessservice' skip the application layer. Proposed: Remove these direct edges or route realization through the application layer.",
+          "claim_id": "node:business.businessservice#4"
+        },
+        {
+          "quote": "The relationship technology.systemsoftware realizes business.businessservice skips the intermediate layers. Proposed: Remove the direct realizes relationship to business service, or route it via application or technology service.",
+          "claim_id": "rel:technology.systemsoftware#2"
+        },
+        {
+          "quote": "Sorting answers (rel:technology.systemsoftware#2): best source of 'realizes business.businessservice': application.applicationservice (0.25), none (0.22), business.businessprocess (0.18); best destination of 'technology.systemsoftware realizes': technology.technologyservice (0.39), application.applicationservice (0.21), business.businessservice (0.20); best predicate: none (0.76), serves (0.14), realizes (0.05). Outcome: alternative (source=application.applicationservice; target=technology.technologyservice).",
+          "claim_id": "rel:technology.systemsoftware#2"
+        }
+      ],
+      "probability": 0.359,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 28,
+        "plan_kind": "conflict",
+        "triple": "technology.systemsoftware.realizes.business.businessservice",
+        "replacement": [
+          "business.businessprocess.realizes.application.applicationservice",
+          "application.applicationservice.realizes.technology.technologyservice"
+        ],
+        "claims": [
+          "node:business.businessservice#4",
+          "rel:technology.systemsoftware#2"
+        ]
+      }
+    }
+  ]
+}

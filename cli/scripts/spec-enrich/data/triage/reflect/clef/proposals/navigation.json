@@ -1,0 +1,1051 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: navigation layer (24 relationship changes)",
+  "rationale": "Relationship schemas in the navigation layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.911Z",
+  "layer": "navigation",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "navigation.route.associated-with.navigation.routemeta",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.route.associated-with.navigation.routemeta: navigation.route.composes.navigation.routemeta already exists and expresses it. Plan kind remove-duplicate, p 0.53; claims rel:navigation.route#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "navigation.route",
+        "destination_spec_node_id": "navigation.routemeta",
+        "title": "navigation.route associated-with navigation.routemeta",
+        "description": "Defines relationship: navigation.route associated-with navigation.routemeta"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships navigation.route associated-with navigation.routemeta and navigation.route composes navigation.routemeta express the same meaning and are redundant. Proposed: Remove associated-with and keep composes between navigation.route and navigation.routemeta.",
+          "claim_id": "rel:navigation.route#1"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.route#1): best source of 'associated-with navigation.routemeta': navigation.route (0.80), none (0.13), navigation.navigationgraph (0.02); best destination of 'navigation.route associated-with': navigation.routemeta (0.75), none (0.16), navigation.breadcrumbconfig (0.02); best predicate: composes (0.53), reverse:serves (0.25), references (0.06). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:navigation.route#1"
+        }
+      ],
+      "probability": 0.526,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "navigation.route.associated-with.navigation.routemeta",
+        "replacement": ["navigation.route.composes.navigation.routemeta"],
+        "claims": ["rel:navigation.route#1"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "update",
+      "target_id": "navigation.navigationgraph.composes.navigation.route",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "title": "navigation.navigationgraph aggregates navigation.route",
+        "description": "Defines relationship: navigation.navigationgraph aggregates navigation.route"
+      },
+      "rationale": "Rename the predicate of navigation.navigationgraph.composes.navigation.route to navigation.navigationgraph.aggregates.navigation.route. Plan kind rename-predicate, p 0.55; claims rel:navigation.navigationgraph#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "navigation.navigationgraph",
+        "destination_spec_node_id": "navigation.route",
+        "title": "navigation.navigationgraph composes navigation.route",
+        "description": "Defines relationship: navigation.navigationgraph composes navigation.route"
+      },
+      "evidence": [
+        {
+          "quote": "navigation.navigationgraph has both aggregates and composes relationships to navigation.route, which gives contradictory lifecycle semantics for the same pair. Proposed: Keep only the composes relationship from navigationgraph to route and remove the aggregates relationship.",
+          "claim_id": "rel:navigation.navigationgraph#1"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.navigationgraph#1): best source of 'composes navigation.route': navigation.navigationgraph (0.70), navigation.navigationflow (0.12), none (0.06); best destination of 'navigation.navigationgraph composes': navigation.route (0.66), navigation.navigationtransition (0.14), none (0.10); best predicate: aggregates (0.55), composes (0.28), references (0.07). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "rel:navigation.navigationgraph#1"
+        }
+      ],
+      "probability": 0.546,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "rename-predicate",
+        "triple": "navigation.navigationgraph.composes.navigation.route",
+        "replacement": [
+          "navigation.navigationgraph.aggregates.navigation.route"
+        ],
+        "claims": ["rel:navigation.navigationgraph#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "update",
+      "target_id": "navigation.breadcrumbconfig.provides.navigation.routemeta",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "navigation.breadcrumbconfig uses navigation.routemeta",
+        "description": "Defines relationship: navigation.breadcrumbconfig uses navigation.routemeta"
+      },
+      "rationale": "Rename the predicate of navigation.breadcrumbconfig.provides.navigation.routemeta to navigation.breadcrumbconfig.uses.navigation.routemeta. Plan kind rename-predicate, p 0.43; claims rel:navigation.breadcrumbconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "provides",
+        "source_spec_node_id": "navigation.breadcrumbconfig",
+        "destination_spec_node_id": "navigation.routemeta",
+        "title": "navigation.breadcrumbconfig provides navigation.routemeta",
+        "description": "Defines relationship: navigation.breadcrumbconfig provides navigation.routemeta"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.breadcrumbconfig provides navigation.routemeta appears inverted, because RouteMeta normally supplies the breadcrumb label that BreadcrumbConfig consumes. Proposed: Reverse the relationship so RouteMeta provides to BreadcrumbConfig, or replace it with a consumes/reads-from relationship from BreadcrumbConfig to RouteMeta.",
+          "claim_id": "rel:navigation.breadcrumbconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.breadcrumbconfig#1): best source of 'provides navigation.routemeta': none (0.48), navigation.breadcrumbconfig (0.22), navigation.navigationgraph (0.12); best destination of 'navigation.breadcrumbconfig provides': navigation.routemeta (0.40), none (0.33), navigation.navigationgraph (0.14); best predicate: uses (0.43), references (0.16), depends-on (0.15). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:navigation.breadcrumbconfig#1"
+        }
+      ],
+      "probability": 0.432,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "rename-predicate",
+        "triple": "navigation.breadcrumbconfig.provides.navigation.routemeta",
+        "replacement": [
+          "navigation.breadcrumbconfig.uses.navigation.routemeta"
+        ],
+        "claims": ["rel:navigation.breadcrumbconfig#1"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "update",
+      "target_id": "navigation.navigationguard.requires.security.role",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "navigation.navigationguard references security.role",
+        "description": "Defines relationship: navigation.navigationguard references security.role"
+      },
+      "rationale": "Rename the predicate of navigation.navigationguard.requires.security.role to navigation.navigationguard.references.security.role. Plan kind rename-predicate, p 0.35; claims rel:navigation.navigationguard#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "requires",
+        "source_spec_node_id": "navigation.navigationguard",
+        "destination_spec_node_id": "security.role",
+        "title": "navigation.navigationguard requires security.role",
+        "description": "Defines relationship: navigation.navigationguard requires security.role"
+      },
+      "evidence": [
+        {
+          "quote": "The requires relationship from navigation.navigationguard to security.role overlaps with the references relationship to business.businessrole. Proposed: Clarify the boundary between the two role relationships or merge them.",
+          "claim_id": "rel:navigation.navigationguard#4"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.navigationguard#4): best source of 'requires security.role': navigation.navigationguard (0.70), navigation.guardcondition (0.12), none (0.05); best destination of 'navigation.navigationguard requires': security.role (0.73), security.actor (0.10), none (0.09); best predicate: references (0.35), requires (0.22), uses (0.21). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:navigation.navigationguard#4"
+        }
+      ],
+      "probability": 0.348,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "rename-predicate",
+        "triple": "navigation.navigationguard.requires.security.role",
+        "replacement": ["navigation.navigationguard.references.security.role"],
+        "claims": ["rel:navigation.navigationguard#4"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "navigation.flowstep.realizes.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.flowstep.realizes.business.businessfunction: navigation.flowstep.realizes.product.workflowstep already exists and expresses it. Plan kind retarget, p 0.68; claims rel:navigation.flowstep#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "navigation.flowstep",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "navigation.flowstep realizes business.businessfunction",
+        "description": "Defines relationship: navigation.flowstep realizes business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.flowstep realizes business.businessfunction is weak because a flow step is ordered while business functions are unordered. Proposed: Remove the realizes relationship from FlowStep to BusinessFunction.",
+          "claim_id": "rel:navigation.flowstep#5"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.flowstep#5): best source of 'realizes business.businessfunction': navigation.flowstep (0.71), none (0.11), application.applicationfunction (0.07); best destination of 'navigation.flowstep realizes': product.workflowstep (0.68), navigation.route (0.09), none (0.09); best predicate: none (0.46), realizes (0.27), references (0.06). Outcome: alternative (target=product.workflowstep).",
+          "claim_id": "rel:navigation.flowstep#5"
+        }
+      ],
+      "probability": 0.681,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "retarget",
+        "triple": "navigation.flowstep.realizes.business.businessfunction",
+        "replacement": ["navigation.flowstep.realizes.product.workflowstep"],
+        "claims": ["rel:navigation.flowstep#5"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "navigation.flowstep.maps-to.ux.view",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.flowstep.maps-to.ux.view: navigation.route.maps-to.ux.view already exists and expresses it. Plan kind retarget, p 0.66; claims rel:navigation.flowstep#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "navigation.flowstep",
+        "destination_spec_node_id": "ux.view",
+        "title": "navigation.flowstep maps-to ux.view",
+        "description": "Defines relationship: navigation.flowstep maps-to ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.flowstep maps-to ux.view is a data-mapping predicate and duplicates the Route to View rendering relationship. Proposed: Remove the maps-to relationship from FlowStep to View.",
+          "claim_id": "rel:navigation.flowstep#2"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.flowstep#2): best source of 'maps-to ux.view': navigation.route (0.65), none (0.18), navigation.flowstep (0.08); best destination of 'navigation.flowstep maps-to': none (0.52), ux.view (0.39), ux.componentreference (0.02); best predicate: none (0.51), references (0.17), realizes (0.10). Outcome: alternative (source=navigation.route).",
+          "claim_id": "rel:navigation.flowstep#2"
+        }
+      ],
+      "probability": 0.655,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "retarget",
+        "triple": "navigation.flowstep.maps-to.ux.view",
+        "replacement": ["navigation.route.maps-to.ux.view"],
+        "claims": ["rel:navigation.flowstep#2"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "update",
+      "target_id": "navigation.guardcondition.constrains.navigation.route",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "navigation.navigationguard",
+        "title": "navigation.navigationguard constrains navigation.route",
+        "description": "Defines relationship: navigation.navigationguard constrains navigation.route"
+      },
+      "rationale": "Retarget of navigation.guardcondition.constrains.navigation.route to navigation.navigationguard.constrains.navigation.route. Plan kind retarget, p 0.65; claims node:navigation.guardcondition#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrains",
+        "source_spec_node_id": "navigation.guardcondition",
+        "destination_spec_node_id": "navigation.route",
+        "title": "navigation.guardcondition constrains navigation.route",
+        "description": "Defines relationship: navigation.guardcondition constrains navigation.route"
+      },
+      "evidence": [
+        {
+          "quote": "The 'constrains' relationship from navigation.guardcondition to navigation.route duplicates the role already played by the guard. Proposed: Remove the constrains relationship from guardcondition to route.",
+          "claim_id": "node:navigation.guardcondition#2"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.guardcondition#2): best source of 'constrains navigation.route': navigation.navigationguard (0.64), navigation.guardcondition (0.18), none (0.06); best destination of 'navigation.guardcondition constrains': none (0.40), navigation.route (0.26), navigation.guardcondition (0.18); best predicate: none (0.57), constrains (0.23), references (0.07). Outcome: alternative (source=navigation.navigationguard).",
+          "claim_id": "node:navigation.guardcondition#2"
+        }
+      ],
+      "probability": 0.645,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "retarget",
+        "triple": "navigation.guardcondition.constrains.navigation.route",
+        "replacement": [
+          "navigation.navigationguard.constrains.navigation.route"
+        ],
+        "claims": ["node:navigation.guardcondition#2"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "delete",
+      "target_id": "navigation.route.uses.ux.layoutconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.route.uses.ux.layoutconfig: navigation.routemeta.uses.ux.layoutconfig already exists and expresses it. Plan kind retarget, p 0.62; claims rel:navigation.route#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "navigation.route",
+        "destination_spec_node_id": "ux.layoutconfig",
+        "title": "navigation.route uses ux.layoutconfig",
+        "description": "Defines relationship: navigation.route uses ux.layoutconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.route uses ux.layoutconfig is attached to the wrong source, since LayoutConfig is normally applied to the View rather than the Route. Proposed: Move the layoutconfig relationship to ux.view instead of navigation.route.",
+          "claim_id": "rel:navigation.route#6"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.route#6): best source of 'uses ux.layoutconfig': navigation.routemeta (0.62), ux.view (0.17), navigation.route (0.05); best destination of 'navigation.route uses': ux.layoutconfig (0.75), none (0.08), data-store.view (0.08); best predicate: uses (0.34), none (0.25), references (0.19). Outcome: alternative (source=navigation.routemeta).",
+          "claim_id": "rel:navigation.route#6"
+        }
+      ],
+      "probability": 0.618,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "retarget",
+        "triple": "navigation.route.uses.ux.layoutconfig",
+        "replacement": ["navigation.routemeta.uses.ux.layoutconfig"],
+        "claims": ["rel:navigation.route#6"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "navigation.navigationflow.realizes.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.navigationflow.realizes.motivation.goal: navigation.navigationflow.realizes.product.userworkflow already exists and expresses it. Plan kind retarget, p 0.55; claims rel:navigation.navigationflow#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "navigation.navigationflow",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "navigation.navigationflow realizes motivation.goal",
+        "description": "Defines relationship: navigation.navigationflow realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The realizes relationship from NavigationFlow to motivation.goal is questionable, since supports fits better than realizing a goal. Proposed: Replace realizes with supports for the NavigationFlow to Goal relationship.",
+          "claim_id": "rel:navigation.navigationflow#2"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.navigationflow#2): best source of 'realizes motivation.goal': navigation.navigationflow (0.46), business.businessprocess (0.25), none (0.07); best destination of 'navigation.navigationflow realizes': product.userworkflow (0.55), motivation.goal (0.25), business.businessprocess (0.06); best predicate: realizes (0.43), none (0.29), serves (0.14). Outcome: alternative (target=product.userworkflow).",
+          "claim_id": "rel:navigation.navigationflow#2"
+        }
+      ],
+      "probability": 0.552,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "retarget",
+        "triple": "navigation.navigationflow.realizes.motivation.goal",
+        "replacement": [
+          "navigation.navigationflow.realizes.product.userworkflow"
+        ],
+        "claims": ["rel:navigation.navigationflow#2"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "update",
+      "target_id": "navigation.navigationflow.accesses.ux.view",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "navigation.flowstep",
+        "title": "navigation.flowstep accesses ux.view",
+        "description": "Defines relationship: navigation.flowstep accesses ux.view"
+      },
+      "rationale": "Retarget of navigation.navigationflow.accesses.ux.view to navigation.flowstep.accesses.ux.view. Plan kind retarget, p 0.55; claims rel:navigation.navigationflow#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "navigation.navigationflow",
+        "destination_spec_node_id": "ux.view",
+        "title": "navigation.navigationflow accesses ux.view",
+        "description": "Defines relationship: navigation.navigationflow accesses ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "The accesses relationship from NavigationFlow to ux.view overlaps the existing step-to-route-to-view chain. Proposed: Remove the direct accesses relationship to ux.view and rely on the step-to-route-to-view chain.",
+          "claim_id": "rel:navigation.navigationflow#3"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.navigationflow#3): best source of 'accesses ux.view': navigation.flowstep (0.55), none (0.20), navigation.navigationflow (0.09); best destination of 'navigation.navigationflow accesses': none (0.39), ux.view (0.29), data-store.collection (0.10); best predicate: none (0.75), references (0.07), uses (0.05). Outcome: alternative (source=navigation.flowstep).",
+          "claim_id": "rel:navigation.navigationflow#3"
+        }
+      ],
+      "probability": 0.548,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "navigation.navigationflow.accesses.ux.view",
+        "replacement": ["navigation.flowstep.accesses.ux.view"],
+        "claims": ["rel:navigation.navigationflow#3"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "navigation.navigationflow.satisfies.security.securityconstraints",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "security.bindingofduty",
+        "title": "navigation.navigationflow satisfies security.bindingofduty",
+        "description": "Defines relationship: navigation.navigationflow satisfies security.bindingofduty"
+      },
+      "rationale": "Retarget of navigation.navigationflow.satisfies.security.securityconstraints to navigation.navigationflow.satisfies.security.bindingofduty. Plan kind retarget, p 0.51; claims node:security.securityconstraints#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "navigation.navigationflow",
+        "destination_spec_node_id": "security.securityconstraints",
+        "title": "navigation.navigationflow satisfies security.securityconstraints",
+        "description": "Defines relationship: navigation.navigationflow satisfies security.securityconstraints"
+      },
+      "evidence": [
+        {
+          "quote": "Incoming 'satisfies' relationships from apm.logprocessor, navigationflow and objectschema target the security.securityconstraints container rather than individual rules, which weakens traceability. Proposed: Redirect these 'satisfies' relationships to the aggregated rule types (e.g. separationofduty, bindingofduty, needtoknow) instead of the container.",
+          "claim_id": "node:security.securityconstraints#4"
+        }
+      ],
+      "probability": 0.506,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "navigation.navigationflow.satisfies.security.securityconstraints",
+        "replacement": [
+          "navigation.navigationflow.satisfies.security.bindingofduty"
+        ],
+        "claims": ["node:security.securityconstraints#4"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "update",
+      "target_id": "navigation.route.realizes.motivation.outcome",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessprocess",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "business.businessprocess realizes business.businessprocess",
+        "description": "Defines relationship: business.businessprocess realizes business.businessprocess"
+      },
+      "rationale": "Retarget of navigation.route.realizes.motivation.outcome to business.businessprocess.realizes.business.businessprocess. Plan kind retarget, p 0.47; claims rel:navigation.route#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "navigation.route",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "navigation.route realizes motivation.outcome",
+        "description": "Defines relationship: navigation.route realizes motivation.outcome"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.route realizes motivation.outcome uses a predicate that does not fit; supports-goals or delivers-value would be more appropriate. Proposed: Replace realizes with supports-goals or delivers-value.",
+          "claim_id": "rel:navigation.route#5"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.route#5): best source of 'realizes motivation.outcome': business.businessprocess (0.66), navigation.flowstep (0.13), navigation.route (0.11); best destination of 'navigation.route realizes': business.businessprocess (0.47), motivation.outcome (0.23), motivation.goal (0.12); best predicate: none (0.42), realizes (0.26), serves (0.19). Outcome: alternative (source=business.businessprocess; target=business.businessprocess).",
+          "claim_id": "rel:navigation.route#5"
+        }
+      ],
+      "probability": 0.468,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "retarget",
+        "triple": "navigation.route.realizes.motivation.outcome",
+        "replacement": [
+          "business.businessprocess.realizes.business.businessprocess"
+        ],
+        "claims": ["rel:navigation.route#5"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "navigation.navigationflow.flows-to.navigation.navigationtransition",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "navigation.flowstep",
+        "title": "navigation.flowstep flows-to navigation.navigationtransition",
+        "description": "Defines relationship: navigation.flowstep flows-to navigation.navigationtransition"
+      },
+      "rationale": "Retarget of navigation.navigationflow.flows-to.navigation.navigationtransition to navigation.flowstep.flows-to.navigation.navigationtransition. Plan kind retarget, p 0.47; claims rel:navigation.navigationflow#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "navigation.navigationflow",
+        "destination_spec_node_id": "navigation.navigationtransition",
+        "title": "navigation.navigationflow flows-to navigation.navigationtransition",
+        "description": "Defines relationship: navigation.navigationflow flows-to navigation.navigationtransition"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to predicate from NavigationFlow to NavigationTransition is odd, since a flow traverses or references transitions. Proposed: Change the predicate from flows-to to traverses or references.",
+          "claim_id": "rel:navigation.navigationflow#4"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.navigationflow#4): best source of 'flows-to navigation.navigationtransition': navigation.flowstep (0.46), navigation.navigationflow (0.19), navigation.navigationgraph (0.16); best destination of 'navigation.navigationflow flows-to': navigation.navigationtransition (0.43), none (0.26), navigation.flowstep (0.23); best predicate: none (0.30), references (0.25), uses (0.13). Outcome: alternative (source=navigation.flowstep).",
+          "claim_id": "rel:navigation.navigationflow#4"
+        }
+      ],
+      "probability": 0.465,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "retarget",
+        "triple": "navigation.navigationflow.flows-to.navigation.navigationtransition",
+        "replacement": [
+          "navigation.flowstep.flows-to.navigation.navigationtransition"
+        ],
+        "claims": ["rel:navigation.navigationflow#4"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "delete",
+      "target_id": "navigation.navigationtransition.triggers.navigation.guardaction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.navigationtransition.triggers.navigation.guardaction: navigation.navigationguard.triggers.navigation.guardaction already exists and expresses it. Plan kind retarget, p 0.45; claims rel:navigation.navigationtransition#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "navigation.navigationtransition",
+        "destination_spec_node_id": "navigation.guardaction",
+        "title": "navigation.navigationtransition triggers navigation.guardaction",
+        "description": "Defines relationship: navigation.navigationtransition triggers navigation.guardaction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.navigationtransition triggers navigation.guardaction is indirect, since the guard triggers its action on denial and the transition only causes it through requires NavigationGuard. Proposed: Remove the direct triggers relationship from navigationtransition to guardaction, relying on requires NavigationGuard instead.",
+          "claim_id": "rel:navigation.navigationtransition#2"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.navigationtransition#2): best source of 'triggers navigation.guardaction': navigation.navigationguard (0.45), navigation.guardaction (0.26), none (0.13); best destination of 'navigation.navigationtransition triggers': navigation.guardaction (0.62), ux.statetransition (0.14), none (0.12); best predicate: none (0.71), depends-on (0.10), triggers (0.08). Outcome: alternative (source=navigation.navigationguard).",
+          "claim_id": "rel:navigation.navigationtransition#2"
+        }
+      ],
+      "probability": 0.453,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "retarget",
+        "triple": "navigation.navigationtransition.triggers.navigation.guardaction",
+        "replacement": [
+          "navigation.navigationguard.triggers.navigation.guardaction"
+        ],
+        "claims": ["rel:navigation.navigationtransition#2"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "update",
+      "target_id": "navigation.contextvariable.consumes.navigation.route",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "navigation.flowstep",
+        "title": "navigation.flowstep consumes navigation.route",
+        "description": "Defines relationship: navigation.flowstep consumes navigation.route"
+      },
+      "rationale": "Retarget of navigation.contextvariable.consumes.navigation.route to navigation.flowstep.consumes.navigation.route. Plan kind retarget, p 0.39; claims rel:navigation.contextvariable#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "consumes",
+        "source_spec_node_id": "navigation.contextvariable",
+        "destination_spec_node_id": "navigation.route",
+        "title": "navigation.contextvariable consumes navigation.route",
+        "description": "Defines relationship: navigation.contextvariable consumes navigation.route"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship navigation.contextvariable consumes navigation.route gives agent-like behavior to passive runtime data and its direction is wrong; the route should provide or populate the variable. Proposed: Invert it so navigation.route provides or populates navigation.contextvariable, or remove the consumes relationship from contextvariable to route.",
+          "claim_id": "rel:navigation.contextvariable#1"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.contextvariable#1): best source of 'consumes navigation.route': navigation.flowstep (0.39), navigation.navigationflow (0.18), none (0.14); best destination of 'navigation.contextvariable consumes': none (0.57), navigation.route (0.19), navigation.flowstep (0.14); best predicate: none (0.65), references (0.14), consumes (0.06). Outcome: alternative (source=navigation.flowstep).",
+          "claim_id": "rel:navigation.contextvariable#1"
+        }
+      ],
+      "probability": 0.389,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "retarget",
+        "triple": "navigation.contextvariable.consumes.navigation.route",
+        "replacement": ["navigation.flowstep.consumes.navigation.route"],
+        "claims": ["rel:navigation.contextvariable#1"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "update",
+      "target_id": "navigation.guardcondition.triggers.navigation.guardaction",
+      "ref": null,
+      "fields": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "navigation.guardaction",
+        "destination_spec_node_id": "navigation.navigationguard",
+        "title": "navigation.guardaction depends-on navigation.navigationguard",
+        "description": "Defines relationship: navigation.guardaction depends-on navigation.navigationguard"
+      },
+      "rationale": "Change of navigation.guardcondition.triggers.navigation.guardaction to navigation.guardaction.depends-on.navigation.navigationguard. Plan kind compound, p 0.64; claims rel:navigation.guardcondition#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "navigation.guardcondition",
+        "destination_spec_node_id": "navigation.guardaction",
+        "title": "navigation.guardcondition triggers navigation.guardaction",
+        "description": "Defines relationship: navigation.guardcondition triggers navigation.guardaction"
+      },
+      "evidence": [
+        {
+          "quote": "The triggers relationship from navigation.guardcondition to navigation.guardaction is loosely modeled, because the NavigationGuard invokes the guard action on denial and the guard condition itself does not. Proposed: none stated",
+          "claim_id": "rel:navigation.guardcondition#2"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.guardcondition#2): best source of 'triggers navigation.guardaction': navigation.navigationguard (0.80), none (0.07), navigation.guardaction (0.03); best destination of 'navigation.guardcondition triggers': navigation.guardaction (0.46), navigation.navigationguard (0.36), none (0.11); best predicate: reverse:depends-on (0.64), none (0.19), triggers (0.07). Outcome: alternative (source=navigation.navigationguard; predicate=reverse:depends-on).",
+          "claim_id": "rel:navigation.guardcondition#2"
+        }
+      ],
+      "probability": 0.638,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "compound",
+        "triple": "navigation.guardcondition.triggers.navigation.guardaction",
+        "replacement": [
+          "navigation.guardaction.depends-on.navigation.navigationguard"
+        ],
+        "claims": ["rel:navigation.guardcondition#2"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "update",
+      "target_id": "navigation.guardaction.depends-on.navigation.guardcondition",
+      "ref": null,
+      "fields": {
+        "predicate": "triggers",
+        "source_spec_node_id": "navigation.guardcondition",
+        "destination_spec_node_id": "navigation.navigationguard",
+        "title": "navigation.guardcondition triggers navigation.navigationguard",
+        "description": "Defines relationship: navigation.guardcondition triggers navigation.navigationguard"
+      },
+      "rationale": "Change of navigation.guardaction.depends-on.navigation.guardcondition to navigation.guardcondition.triggers.navigation.navigationguard. Plan kind compound, p 0.43; claims rel:navigation.guardaction#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "navigation.guardaction",
+        "destination_spec_node_id": "navigation.guardcondition",
+        "title": "navigation.guardaction depends-on navigation.guardcondition",
+        "description": "Defines relationship: navigation.guardaction depends-on navigation.guardcondition"
+      },
+      "evidence": [
+        {
+          "quote": "The depends-on relationship from navigation.guardaction to navigation.guardcondition is indirect, because both attach to a NavigationGuard that evaluates the condition and then invokes the action, so it misrepresents the real dependency. Proposed: Remove or replace the direct GuardAction depends-on GuardCondition relationship with guard-level relationships mediated by NavigationGuard.",
+          "claim_id": "rel:navigation.guardaction#1"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.guardaction#1): best source of 'depends-on navigation.guardcondition': navigation.navigationguard (0.50), none (0.19), navigation.guardaction (0.18); best destination of 'navigation.guardaction depends-on': none (0.50), navigation.guardcondition (0.23), navigation.navigationguard (0.12); best predicate: reverse:triggers (0.43), none (0.43), depends-on (0.05). Outcome: alternative (source=navigation.navigationguard; predicate=reverse:triggers).",
+          "claim_id": "rel:navigation.guardaction#1"
+        }
+      ],
+      "probability": 0.432,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "compound",
+        "triple": "navigation.guardaction.depends-on.navigation.guardcondition",
+        "replacement": [
+          "navigation.guardcondition.triggers.navigation.navigationguard"
+        ],
+        "claims": ["rel:navigation.guardaction#1"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "update",
+      "target_id": "navigation.contextvariable.triggers.navigation.navigationtransition",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "source_spec_node_id": "navigation.navigationtransition",
+        "destination_spec_node_id": "navigation.flowstep",
+        "title": "navigation.navigationtransition uses navigation.flowstep",
+        "description": "Defines relationship: navigation.navigationtransition uses navigation.flowstep"
+      },
+      "rationale": "Change of navigation.contextvariable.triggers.navigation.navigationtransition to navigation.navigationtransition.uses.navigation.flowstep. Plan kind compound, p 0.33; claims node:navigation.contextvariable#7, rel:navigation.contextvariable#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "navigation.contextvariable",
+        "destination_spec_node_id": "navigation.navigationtransition",
+        "title": "navigation.contextvariable triggers navigation.navigationtransition",
+        "description": "Defines relationship: navigation.contextvariable triggers navigation.navigationtransition"
+      },
+      "evidence": [
+        {
+          "quote": "A 'triggers' relationship from the passive navigation.contextvariable to navigation.navigationtransition is questionable because passive state does not trigger transitions. Proposed: Remove the triggers edge or replace it with a more fitting predicate or direction.",
+          "claim_id": "node:navigation.contextvariable#7"
+        },
+        {
+          "quote": "The relationship navigation.contextvariable triggers navigation.navigationtransition attributes active behavior to passive data; it would be better modeled as a guard evaluating the variable. Proposed: Replace the triggers relationship with a guard (guardcondition or navigationguard) that evaluates the context variable.",
+          "claim_id": "rel:navigation.contextvariable#2"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.contextvariable#7): best source of 'triggers navigation.navigationtransition': navigation.flowstep (0.42), navigation.navigationflow (0.21), navigation.guardcondition (0.10); best destination of 'navigation.contextvariable triggers': navigation.navigationtransition (0.49), none (0.30), navigation.flowstep (0.09); best predicate: reverse:uses (0.87), none (0.06), uses (0.01). Outcome: alternative (source=navigation.flowstep; predicate=reverse:uses).",
+          "claim_id": "node:navigation.contextvariable#7"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.contextvariable#2): best source of 'triggers navigation.navigationtransition': navigation.flowstep (0.33), navigation.guardcondition (0.20), navigation.navigationflow (0.19); best destination of 'navigation.contextvariable triggers': navigation.navigationtransition (0.50), none (0.28), navigation.flowstep (0.09); best predicate: reverse:uses (0.79), none (0.10), triggers (0.03). Outcome: alternative (source=navigation.flowstep; predicate=reverse:uses).",
+          "claim_id": "rel:navigation.contextvariable#2"
+        }
+      ],
+      "probability": 0.333,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "compound",
+        "triple": "navigation.contextvariable.triggers.navigation.navigationtransition",
+        "replacement": [
+          "navigation.navigationtransition.uses.navigation.flowstep"
+        ],
+        "claims": [
+          "node:navigation.contextvariable#7",
+          "rel:navigation.contextvariable#2"
+        ]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "update",
+      "target_id": "navigation.route.uses.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "predicate": "resolves-with",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "navigation.route resolves-with application.applicationcomponent",
+        "description": "Defines relationship: navigation.route resolves-with application.applicationcomponent"
+      },
+      "rationale": "Change of navigation.route.uses.application.applicationservice to navigation.route.resolves-with.application.applicationcomponent. Plan kind compound, p 0.32; claims rel:navigation.route#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "navigation.route",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "navigation.route uses application.applicationservice",
+        "description": "Defines relationship: navigation.route uses application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships navigation.route uses application.applicationservice and navigation.route resolves-with application.applicationservice overlap in meaning. Proposed: Consolidate uses and resolves-with into one relationship between route and applicationservice.",
+          "claim_id": "rel:navigation.route#3"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.route#3): best source of 'uses application.applicationservice': navigation.route (0.56), navigation.navigationguard (0.22), navigation.navigationflow (0.06); best destination of 'navigation.route uses': application.applicationcomponent (0.32), application.applicationservice (0.28), none (0.13); best predicate: resolves-with (0.74), none (0.06), depends-on (0.06). Outcome: alternative (target=application.applicationcomponent; predicate=resolves-with).",
+          "claim_id": "rel:navigation.route#3"
+        }
+      ],
+      "probability": 0.322,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "compound",
+        "triple": "navigation.route.uses.application.applicationservice",
+        "replacement": [
+          "navigation.route.resolves-with.application.applicationcomponent"
+        ],
+        "claims": ["rel:navigation.route#3"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "update",
+      "target_id": "navigation.route.triggers.navigation.navigationtransition",
+      "ref": null,
+      "fields": {
+        "predicate": "navigates-to",
+        "source_spec_node_id": "navigation.navigationtransition",
+        "destination_spec_node_id": "navigation.flowstep",
+        "title": "navigation.navigationtransition navigates-to navigation.flowstep",
+        "description": "Defines relationship: navigation.navigationtransition navigates-to navigation.flowstep"
+      },
+      "rationale": "Change of navigation.route.triggers.navigation.navigationtransition to navigation.navigationtransition.navigates-to.navigation.flowstep. Plan kind compound, p 0.28; claims rel:navigation.route#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "navigation.route",
+        "destination_spec_node_id": "navigation.navigationtransition",
+        "title": "navigation.route triggers navigation.navigationtransition",
+        "description": "Defines relationship: navigation.route triggers navigation.navigationtransition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships navigation.route flows-to navigation.navigationtransition and navigation.route triggers navigation.navigationtransition overlap in meaning. Proposed: Consolidate flows-to and triggers into a single relationship between route and navigationtransition.",
+          "claim_id": "rel:navigation.route#2"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.route#2): best source of 'triggers navigation.navigationtransition': navigation.flowstep (0.40), navigation.route (0.18), none (0.13); best destination of 'navigation.route triggers': navigation.navigationtransition (0.83), none (0.06), navigation.flowstep (0.02); best predicate: reverse:navigates-to (0.28), reverse:flows-to (0.18), triggers (0.16). Outcome: alternative (source=navigation.flowstep; predicate=reverse:navigates-to).",
+          "claim_id": "rel:navigation.route#2"
+        }
+      ],
+      "probability": 0.28,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "compound",
+        "triple": "navigation.route.triggers.navigation.navigationtransition",
+        "replacement": [
+          "navigation.navigationtransition.navigates-to.navigation.flowstep"
+        ],
+        "claims": ["rel:navigation.route#2"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "navigation.route.flows-to.navigation.navigationtransition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.route.flows-to.navigation.navigationtransition: navigation.navigationtransition.navigates-to.navigation.flowstep is produced by an earlier operation in this proposal and expresses it. Change of navigation.route.flows-to.navigation.navigationtransition to navigation.navigationtransition.navigates-to.navigation.flowstep. Plan kind compound, p 0.23; claims rel:navigation.route#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "navigation.route",
+        "destination_spec_node_id": "navigation.navigationtransition",
+        "title": "navigation.route flows-to navigation.navigationtransition",
+        "description": "Defines relationship: navigation.route flows-to navigation.navigationtransition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships navigation.route flows-to navigation.navigationtransition and navigation.route triggers navigation.navigationtransition overlap in meaning. Proposed: Consolidate flows-to and triggers into a single relationship between route and navigationtransition.",
+          "claim_id": "rel:navigation.route#2"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.route#2): best source of 'flows-to navigation.navigationtransition': navigation.flowstep (0.23), navigation.route (0.20), none (0.16); best destination of 'navigation.route flows-to': navigation.navigationtransition (0.83), none (0.09), navigation.contextvariable (0.02); best predicate: reverse:navigates-to (0.38), triggers (0.19), reverse:flows-to (0.18). Outcome: alternative (source=navigation.flowstep; predicate=reverse:navigates-to).",
+          "claim_id": "rel:navigation.route#2"
+        }
+      ],
+      "probability": 0.231,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "compound",
+        "triple": "navigation.route.flows-to.navigation.navigationtransition",
+        "replacement": [
+          "navigation.navigationtransition.navigates-to.navigation.flowstep"
+        ],
+        "claims": ["rel:navigation.route#2"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "update",
+      "target_id": "navigation.flowstep.realizes.navigation.route",
+      "ref": null,
+      "fields": {
+        "predicate": "navigates-to",
+        "source_spec_node_id": "navigation.navigationflow",
+        "title": "navigation.navigationflow navigates-to navigation.route",
+        "description": "Defines relationship: navigation.navigationflow navigates-to navigation.route"
+      },
+      "rationale": "Change of navigation.flowstep.realizes.navigation.route to navigation.navigationflow.navigates-to.navigation.route. Claims disagree on the replacement (navigation.navigationflow.navigates-to.navigation.route | navigation.flowstep.navigates-to.navigation.route); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.75; claims node:navigation.flowstep#2, node:navigation.flowstep#1, rel:navigation.flowstep#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "navigation.flowstep",
+        "destination_spec_node_id": "navigation.route",
+        "title": "navigation.flowstep realizes navigation.route",
+        "description": "Defines relationship: navigation.flowstep realizes navigation.route"
+      },
+      "evidence": [
+        {
+          "quote": "The 'realizes' relationship from navigation.flowstep to navigation.route is semantically odd. Proposed: Remove or replace the realizes predicate with a more fitting one (e.g. keep navigates-to).",
+          "claim_id": "node:navigation.flowstep#2"
+        },
+        {
+          "quote": "The 'route' string attribute on navigation.flowstep duplicates the navigates-to and realizes relationships from flowstep to navigation.route, so only one representation should be kept. Proposed: Keep only one of the route attribute or the flowstep-to-route relationship and remove the duplicate.",
+          "claim_id": "node:navigation.flowstep#1"
+        },
+        {
+          "quote": "The relationships navigation.flowstep navigates-to navigation.route and navigation.flowstep realizes navigation.route both express the step's binding to one route, so they are redundant. Proposed: Keep only one of navigates-to or realizes between FlowStep and Route and remove the other.",
+          "claim_id": "rel:navigation.flowstep#1"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.flowstep#2): best source of 'realizes navigation.route': navigation.navigationflow (0.58), navigation.flowstep (0.24), none (0.10); best destination of 'navigation.flowstep realizes': none (0.51), navigation.route (0.23), product.workflowstep (0.16); best predicate: navigates-to (0.60), references (0.15), depends-on (0.10). Outcome: alternative (source=navigation.navigationflow; predicate=navigates-to).",
+          "claim_id": "node:navigation.flowstep#2"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.flowstep#1): best source of 'realizes navigation.route': navigation.flowstep (0.56), navigation.navigationflow (0.32), none (0.05); best destination of 'navigation.flowstep realizes': navigation.route (0.70), none (0.15), product.workflowstep (0.08); best predicate: navigates-to (0.56), references (0.14), depends-on (0.10). Outcome: alternative (predicate=navigates-to).",
+          "claim_id": "node:navigation.flowstep#1"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.flowstep#1): best source of 'realizes navigation.route': navigation.flowstep (0.73), navigation.navigationflow (0.17), none (0.04); best destination of 'navigation.flowstep realizes': navigation.route (0.41), product.workflowstep (0.36), none (0.09); best predicate: navigates-to (0.75), references (0.08), depends-on (0.06). Outcome: alternative (predicate=navigates-to).",
+          "claim_id": "rel:navigation.flowstep#1"
+        }
+      ],
+      "probability": 0.748,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "conflict",
+        "triple": "navigation.flowstep.realizes.navigation.route",
+        "replacement": [
+          "navigation.navigationflow.navigates-to.navigation.route",
+          "navigation.flowstep.navigates-to.navigation.route"
+        ],
+        "claims": [
+          "node:navigation.flowstep#2",
+          "node:navigation.flowstep#1",
+          "rel:navigation.flowstep#1"
+        ]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "navigation.guardcondition.uses.navigation.contextvariable",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.guardcondition.uses.navigation.contextvariable: navigation.guardcondition.consumes.navigation.contextvariable already exists and expresses it. Plan kind conflict, p 0.58; claims node:navigation.contextvariable#6, node:navigation.guardcondition#3, rel:navigation.guardcondition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "navigation.guardcondition",
+        "destination_spec_node_id": "navigation.contextvariable",
+        "title": "navigation.guardcondition uses navigation.contextvariable",
+        "description": "Defines relationship: navigation.guardcondition uses navigation.contextvariable"
+      },
+      "evidence": [
+        {
+          "quote": "navigation.guardcondition has both consumes and uses relationships to navigation.contextvariable, which express the same meaning and are redundant. Proposed: Keep only one of the consumes or uses edges between guardcondition and contextvariable.",
+          "claim_id": "node:navigation.contextvariable#6"
+        },
+        {
+          "quote": "The 'consumes' and 'uses' relationships from navigation.guardcondition to navigation.contextvariable are redundant with each other. Proposed: Keep only one of consumes or uses between guardcondition and contextvariable.",
+          "claim_id": "node:navigation.guardcondition#3"
+        },
+        {
+          "quote": "The consumes and uses relationships from navigation.guardcondition to navigation.contextvariable express the same meaning (the condition reads flow state), so they are redundant. Proposed: Keep only one of the two relationships, preferably consumes or references, and remove the other.",
+          "claim_id": "rel:navigation.guardcondition#1"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.contextvariable#6): best source of 'uses navigation.contextvariable': navigation.guardcondition (0.86), navigation.navigationflow (0.04), none (0.03); best destination of 'navigation.guardcondition uses': navigation.contextvariable (0.86), navigation.navigationguard (0.04), none (0.03); best predicate: consumes (0.38), references (0.23), uses (0.22). Outcome: alternative (predicate=consumes).",
+          "claim_id": "node:navigation.contextvariable#6"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.guardcondition#3): best source of 'uses navigation.contextvariable': navigation.guardcondition (0.86), none (0.03), navigation.navigationflow (0.02); best destination of 'navigation.guardcondition uses': navigation.contextvariable (0.74), none (0.09), navigation.guardcondition (0.05); best predicate: references (0.41), uses (0.34), consumes (0.11). Outcome: alternative (predicate=references).",
+          "claim_id": "node:navigation.guardcondition#3"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.guardcondition#1): best source of 'uses navigation.contextvariable': navigation.guardcondition (0.78), navigation.contextvariable (0.05), none (0.05); best destination of 'navigation.guardcondition uses': navigation.contextvariable (0.86), none (0.04), navigation.navigationguard (0.02); best predicate: references (0.58), consumes (0.16), uses (0.15). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:navigation.guardcondition#1"
+        }
+      ],
+      "probability": 0.579,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "conflict",
+        "triple": "navigation.guardcondition.uses.navigation.contextvariable",
+        "replacement": [
+          "navigation.guardcondition.consumes.navigation.contextvariable",
+          "navigation.guardcondition.references.navigation.contextvariable"
+        ],
+        "claims": [
+          "node:navigation.contextvariable#6",
+          "node:navigation.guardcondition#3",
+          "rel:navigation.guardcondition#1"
+        ]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "navigation.guardcondition.consumes.navigation.contextvariable",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove navigation.guardcondition.consumes.navigation.contextvariable: navigation.guardcondition.uses.navigation.contextvariable already exists and expresses it. Plan kind conflict, p 0.54; claims node:navigation.contextvariable#6, node:navigation.guardcondition#3, rel:navigation.guardcondition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "consumes",
+        "source_spec_node_id": "navigation.guardcondition",
+        "destination_spec_node_id": "navigation.contextvariable",
+        "title": "navigation.guardcondition consumes navigation.contextvariable",
+        "description": "Defines relationship: navigation.guardcondition consumes navigation.contextvariable"
+      },
+      "evidence": [
+        {
+          "quote": "navigation.guardcondition has both consumes and uses relationships to navigation.contextvariable, which express the same meaning and are redundant. Proposed: Keep only one of the consumes or uses edges between guardcondition and contextvariable.",
+          "claim_id": "node:navigation.contextvariable#6"
+        },
+        {
+          "quote": "The 'consumes' and 'uses' relationships from navigation.guardcondition to navigation.contextvariable are redundant with each other. Proposed: Keep only one of consumes or uses between guardcondition and contextvariable.",
+          "claim_id": "node:navigation.guardcondition#3"
+        },
+        {
+          "quote": "The consumes and uses relationships from navigation.guardcondition to navigation.contextvariable express the same meaning (the condition reads flow state), so they are redundant. Proposed: Keep only one of the two relationships, preferably consumes or references, and remove the other.",
+          "claim_id": "rel:navigation.guardcondition#1"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.contextvariable#6): best source of 'consumes navigation.contextvariable': navigation.guardcondition (0.83), navigation.navigationguard (0.07), navigation.navigationflow (0.03); best destination of 'navigation.guardcondition consumes': navigation.contextvariable (0.80), none (0.06), navigation.guardcondition (0.05); best predicate: uses (0.32), references (0.28), consumes (0.23). Outcome: alternative (predicate=uses).",
+          "claim_id": "node:navigation.contextvariable#6"
+        },
+        {
+          "quote": "Sorting answers (node:navigation.guardcondition#3): best source of 'consumes navigation.contextvariable': navigation.guardcondition (0.74), navigation.navigationguard (0.11), none (0.04); best destination of 'navigation.guardcondition consumes': navigation.contextvariable (0.66), none (0.12), navigation.guardcondition (0.09); best predicate: uses (0.39), references (0.37), consumes (0.11). Outcome: alternative (predicate=uses).",
+          "claim_id": "node:navigation.guardcondition#3"
+        },
+        {
+          "quote": "Sorting answers (rel:navigation.guardcondition#1): best source of 'consumes navigation.contextvariable': navigation.guardcondition (0.78), navigation.navigationguard (0.07), navigation.contextvariable (0.04); best destination of 'navigation.guardcondition consumes': navigation.contextvariable (0.82), none (0.06), navigation.guardcondition (0.03); best predicate: references (0.54), uses (0.19), consumes (0.16). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:navigation.guardcondition#1"
+        }
+      ],
+      "probability": 0.541,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "conflict",
+        "triple": "navigation.guardcondition.consumes.navigation.contextvariable",
+        "replacement": [
+          "navigation.guardcondition.uses.navigation.contextvariable",
+          "navigation.guardcondition.references.navigation.contextvariable"
+        ],
+        "claims": [
+          "node:navigation.contextvariable#6",
+          "node:navigation.guardcondition#3",
+          "rel:navigation.guardcondition#1"
+        ]
+      }
+    }
+  ]
+}

@@ -145,10 +145,15 @@ a target deleted by two rows keeps one delete operation with the other row's evi
 title. Rows already decided in the walk file carry the operations their decision implies, still
 pending, with the decision in `dr.walk_decision`.
 `proposal-import.ts --layer <id> --decisions <file>` joins Context Studio's decision export
-({seq, status, reason, ...}) to the proposal by seq and writes `walk-<layer>.jsonl` (applied
-delete -> delete, applied update -> rename / reverse / retarget by what changed, applied create
--> add, rejected -> keep; undecided skipped); `--simulate-walk` does the same from
-`dr.walk_decision` as a round-trip check. The contract is in the header of `proposal-export.ts`;
+({seq, status, fields?, reason, ...}) to the proposal by seq and writes `walk-<layer>.jsonl`
+(applied delete -> delete, applied update -> rename / reverse / retarget by what changed, applied
+create -> add, rejected -> keep; undecided skipped; failed, e.g. a delete refused because the
+property is in use, listed as still needing a DR-side decision). Accept-with-edit: a decision
+whose `fields` carry a replacement triple means the reviewer changed the operation before
+applying it, and the walk decision is derived from that triple instead (an edited delete becomes
+a rename / reverse / retarget); edited triples are checked against the node types and predicates
+before anything is written. `--simulate-walk` does the same from `dr.walk_decision` as a
+round-trip check. The contract is in the header of `proposal-export.ts`;
 the api layer is the fixture (`proposals/api.json`, 63 operations). A reversal only flips the
 type's domain and range in Context Studio; model relationships are re-pointed by `dr upgrade`.
 

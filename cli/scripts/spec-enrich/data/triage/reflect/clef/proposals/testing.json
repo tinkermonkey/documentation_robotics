@@ -1,0 +1,2276 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: testing layer (53 relationship changes)",
+  "rationale": "Relationship schemas in the testing layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:06.117Z",
+  "layer": "testing",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "testing.testcasesketch.references.testing.coveragerequirement",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcasesketch.references.testing.coveragerequirement: testing.testcasesketch.validates.testing.coveragerequirement already exists and expresses it. Plan kind remove-duplicate, p 0.58; claims rel:testing.testcasesketch#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.testcasesketch",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.testcasesketch references testing.coveragerequirement",
+        "description": "Defines relationship: testing.testcasesketch references testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships tests, validates and references from testcasesketch to CoverageRequirement overlap in meaning; only references and validates should be kept. Proposed: Remove the tests relationship to CoverageRequirement and keep references and validates.",
+          "claim_id": "rel:testing.testcasesketch#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcasesketch#1): best source of 'references testing.coveragerequirement': testing.testcasesketch (0.84), testing.coveragerequirement (0.05), testing.inputselection (0.03); best destination of 'testing.testcasesketch references': testing.coveragerequirement (0.81), testing.testcoveragetarget (0.08), none (0.02); best predicate: validates (0.59), reverse:flows-to (0.11), realizes (0.11). Outcome: alternative (predicate=validates).",
+          "claim_id": "rel:testing.testcasesketch#1"
+        }
+      ],
+      "probability": 0.585,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "testing.testcasesketch.references.testing.coveragerequirement",
+        "replacement": [
+          "testing.testcasesketch.validates.testing.coveragerequirement"
+        ],
+        "claims": ["rel:testing.testcasesketch#1"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "delete",
+      "target_id": "testing.coveragesummary.aggregates.testing.testcoveragemodel",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragesummary.aggregates.testing.testcoveragemodel: testing.coveragesummary.references.testing.testcoveragemodel already exists and expresses it. Plan kind remove-duplicate, p 0.34; claims rel:testing.coveragesummary#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.coveragesummary",
+        "destination_spec_node_id": "testing.testcoveragemodel",
+        "title": "testing.coveragesummary aggregates testing.testcoveragemodel",
+        "description": "Defines relationship: testing.coveragesummary aggregates testing.testcoveragemodel"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.coveragesummary aggregates testing.testcoveragemodel inverts the containment: the model is reported on by the summary, not part of it. Proposed: Remove the aggregates relationship from coveragesummary to testcoveragemodel.",
+          "claim_id": "rel:testing.coveragesummary#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragesummary#1): best source of 'aggregates testing.testcoveragemodel': none (0.49), testing.coveragesummary (0.45), testing.coveragerequirement (0.02); best destination of 'testing.coveragesummary aggregates': testing.testcoveragemodel (0.30), testing.targetcoveragesummary (0.23), testing.coveragerequirement (0.22); best predicate: references (0.34), reverse:composes (0.24), serves (0.15). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragesummary#1"
+        }
+      ],
+      "probability": 0.345,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "remove-duplicate",
+        "triple": "testing.coveragesummary.aggregates.testing.testcoveragemodel",
+        "replacement": [
+          "testing.coveragesummary.references.testing.testcoveragemodel"
+        ],
+        "claims": ["rel:testing.coveragesummary#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "update",
+      "target_id": "testing.testcasesketch.accesses.testing.inputpartitionselection",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.testcasesketch references testing.inputpartitionselection",
+        "description": "Defines relationship: testing.testcasesketch references testing.inputpartitionselection"
+      },
+      "rationale": "Rename the predicate of testing.testcasesketch.accesses.testing.inputpartitionselection to testing.testcasesketch.references.testing.inputpartitionselection. Plan kind rename-predicate, p 0.68; claims rel:testing.testcasesketch#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "testing.testcasesketch",
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.testcasesketch accesses testing.inputpartitionselection",
+        "description": "Defines relationship: testing.testcasesketch accesses testing.inputpartitionselection"
+      },
+      "evidence": [
+        {
+          "quote": "The accesses relationship from testcasesketch to InputPartitionSelection is a design-time lookup and is better expressed as references. Proposed: Replace accesses with references for InputPartitionSelection.",
+          "claim_id": "rel:testing.testcasesketch#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcasesketch#4): best source of 'accesses testing.inputpartitionselection': testing.testcasesketch (0.71), testing.inputpartitionselection (0.11), testing.coveragerequirement (0.07); best destination of 'testing.testcasesketch accesses': testing.inputpartitionselection (0.60), testing.inputselection (0.21), none (0.11); best predicate: references (0.68), uses (0.09), depends-on (0.08). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.testcasesketch#4"
+        }
+      ],
+      "probability": 0.682,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.testcasesketch.accesses.testing.inputpartitionselection",
+        "replacement": [
+          "testing.testcasesketch.references.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.testcasesketch#4"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "update",
+      "target_id": "testing.targetcoveragesummary.aggregates.testing.testcasesketch",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.targetcoveragesummary references testing.testcasesketch",
+        "description": "Defines relationship: testing.targetcoveragesummary references testing.testcasesketch"
+      },
+      "rationale": "Rename the predicate of testing.targetcoveragesummary.aggregates.testing.testcasesketch to testing.targetcoveragesummary.references.testing.testcasesketch. Plan kind rename-predicate, p 0.63; claims rel:testing.targetcoveragesummary#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.targetcoveragesummary",
+        "destination_spec_node_id": "testing.testcasesketch",
+        "title": "testing.targetcoveragesummary aggregates testing.testcasesketch",
+        "description": "Defines relationship: testing.targetcoveragesummary aggregates testing.testcasesketch"
+      },
+      "evidence": [
+        {
+          "quote": "The 'aggregates' relationship from testing.targetcoveragesummary to testing.testcasesketch is closer to counting than aggregation, so 'references' or 'measures' would fit better. Proposed: Change the predicate from 'aggregates' to 'references' or 'measures'.",
+          "claim_id": "rel:testing.targetcoveragesummary#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetcoveragesummary#4): best source of 'aggregates testing.testcasesketch': testing.targetcoveragesummary (0.49), testing.testcoveragemodel (0.20), testing.coveragesummary (0.14); best destination of 'testing.targetcoveragesummary aggregates': testing.testcasesketch (0.72), none (0.19), testing.coveragesummary (0.02); best predicate: references (0.63), aggregates (0.15), none (0.09). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.targetcoveragesummary#4"
+        }
+      ],
+      "probability": 0.634,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.targetcoveragesummary.aggregates.testing.testcasesketch",
+        "replacement": [
+          "testing.targetcoveragesummary.references.testing.testcasesketch"
+        ],
+        "claims": ["rel:testing.targetcoveragesummary#4"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "update",
+      "target_id": "testing.inputpartitionselection.aggregates.testing.partitionvalue",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.inputpartitionselection references testing.partitionvalue",
+        "description": "Defines relationship: testing.inputpartitionselection references testing.partitionvalue"
+      },
+      "rationale": "Rename the predicate of testing.inputpartitionselection.aggregates.testing.partitionvalue to testing.inputpartitionselection.references.testing.partitionvalue. Plan kind rename-predicate, p 0.56; claims node:testing.inputpartitionselection#2, rel:testing.inputpartitionselection#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.inputpartitionselection",
+        "destination_spec_node_id": "testing.partitionvalue",
+        "title": "testing.inputpartitionselection aggregates testing.partitionvalue",
+        "description": "Defines relationship: testing.inputpartitionselection aggregates testing.partitionvalue"
+      },
+      "evidence": [
+        {
+          "quote": "The coverValues and excludeValues attributes of testing.inputpartitionselection duplicate the aggregates relationship from inputpartitionselection to partitionvalue. Proposed: none stated",
+          "claim_id": "node:testing.inputpartitionselection#2"
+        },
+        {
+          "quote": "The relationship from testing.inputpartitionselection to testing.partitionvalue should use 'references' rather than 'aggregates', since values are owned by the InputSpacePartition and an exclude-form selection only points at them. Proposed: Change the predicate of the InputPartitionSelection to PartitionValue relationship from aggregates to references.",
+          "claim_id": "rel:testing.inputpartitionselection#2"
+        },
+        {
+          "quote": "Sorting answers (node:testing.inputpartitionselection#2): best source of 'aggregates testing.partitionvalue': testing.inputpartitionselection (0.43), none (0.30), testing.coveragerequirement (0.13); best destination of 'testing.inputpartitionselection aggregates': testing.partitionvalue (0.81), none (0.12), testing.inputpartitionselection (0.02); best predicate: references (0.56), none (0.23), uses (0.09). Outcome: alternative (predicate=references).",
+          "claim_id": "node:testing.inputpartitionselection#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputpartitionselection#2): best source of 'aggregates testing.partitionvalue': testing.inputpartitionselection (0.53), none (0.21), testing.coveragerequirement (0.16); best destination of 'testing.inputpartitionselection aggregates': testing.partitionvalue (0.81), none (0.08), testing.inputpartitionselection (0.06); best predicate: references (0.76), uses (0.10), aggregates (0.06). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.inputpartitionselection#2"
+        }
+      ],
+      "probability": 0.556,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.inputpartitionselection.aggregates.testing.partitionvalue",
+        "replacement": [
+          "testing.inputpartitionselection.references.testing.partitionvalue"
+        ],
+        "claims": [
+          "node:testing.inputpartitionselection#2",
+          "rel:testing.inputpartitionselection#2"
+        ]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "update",
+      "target_id": "testing.targetinputfield.maps-to.ux.actioncomponent",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.targetinputfield references ux.actioncomponent",
+        "description": "Defines relationship: testing.targetinputfield references ux.actioncomponent"
+      },
+      "rationale": "Rename the predicate of testing.targetinputfield.maps-to.ux.actioncomponent to testing.targetinputfield.references.ux.actioncomponent. Plan kind rename-predicate, p 0.49; claims node:testing.targetinputfield#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "testing.targetinputfield",
+        "destination_spec_node_id": "ux.actioncomponent",
+        "title": "testing.targetinputfield maps-to ux.actioncomponent",
+        "description": "Defines relationship: testing.targetinputfield maps-to ux.actioncomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The description of testing.targetinputfield.fieldRef mentions only API and Data Model layer fields and omits UX fields, although a maps-to relationship to ux.actioncomponent exists. Proposed: Extend the fieldRef description to include UX layer input fields such as ux.actioncomponent.",
+          "claim_id": "node:testing.targetinputfield#3"
+        },
+        {
+          "quote": "Sorting answers (node:testing.targetinputfield#3): best source of 'maps-to ux.actioncomponent': testing.targetinputfield (0.91), none (0.05), testing.coveragerequirement (0.01); best destination of 'testing.targetinputfield maps-to': ux.actioncomponent (0.44), none (0.40), ux.componentreference (0.05); best predicate: references (0.49), maps-to (0.27), none (0.13). Outcome: alternative (predicate=references).",
+          "claim_id": "node:testing.targetinputfield#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetinputfield#1): best source of 'maps-to ux.actioncomponent': none (0.45), testing.targetinputfield (0.45), testing.coveragerequirement (0.02); best destination of 'testing.targetinputfield maps-to': none (0.74), ux.actioncomponent (0.15), ux.componentreference (0.03); best predicate: none (0.46), references (0.32), maps-to (0.13). Outcome: no_better.",
+          "claim_id": "rel:testing.targetinputfield#1"
+        }
+      ],
+      "probability": 0.486,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.targetinputfield.maps-to.ux.actioncomponent",
+        "replacement": [
+          "testing.targetinputfield.references.ux.actioncomponent"
+        ],
+        "claims": ["node:testing.targetinputfield#3"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "update",
+      "target_id": "testing.coveragerequirement.depends-on.testing.contextvariation",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.coveragerequirement references testing.contextvariation",
+        "description": "Defines relationship: testing.coveragerequirement references testing.contextvariation"
+      },
+      "rationale": "Rename the predicate of testing.coveragerequirement.depends-on.testing.contextvariation to testing.coveragerequirement.references.testing.contextvariation. Plan kind rename-predicate, p 0.47; claims rel:testing.coveragerequirement#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.contextvariation",
+        "title": "testing.coveragerequirement depends-on testing.contextvariation",
+        "description": "Defines relationship: testing.coveragerequirement depends-on testing.contextvariation"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships aggregates and depends-on from testing.coveragerequirement to testing.contextvariation are redundant. Proposed: Keep one relationship between CoverageRequirement and ContextVariation and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#2): best source of 'depends-on testing.contextvariation': testing.coveragerequirement (0.75), none (0.09), testing.contextvariation (0.06); best destination of 'testing.coveragerequirement depends-on': testing.contextvariation (0.49), testing.inputspacepartition (0.17), testing.coveragerequirement (0.14); best predicate: references (0.47), uses (0.19), aggregates (0.17). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#2"
+        }
+      ],
+      "probability": 0.47,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.coveragerequirement.depends-on.testing.contextvariation",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.contextvariation"
+        ],
+        "claims": ["rel:testing.coveragerequirement#2"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "testing.coveragerequirement.composes.testing.inputpartitionselection",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.coveragerequirement references testing.inputpartitionselection",
+        "description": "Defines relationship: testing.coveragerequirement references testing.inputpartitionselection"
+      },
+      "rationale": "Rename the predicate of testing.coveragerequirement.composes.testing.inputpartitionselection to testing.coveragerequirement.references.testing.inputpartitionselection. Plan kind rename-predicate, p 0.43; claims rel:testing.coveragerequirement#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.coveragerequirement composes testing.inputpartitionselection",
+        "description": "Defines relationship: testing.coveragerequirement composes testing.inputpartitionselection"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships accesses and composes from testing.coveragerequirement to testing.inputpartitionselection express the same meaning and are redundant. Proposed: Keep one relationship between CoverageRequirement and InputPartitionSelection and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#1): best source of 'composes testing.inputpartitionselection': testing.coveragerequirement (0.38), testing.testcoveragemodel (0.37), none (0.11); best destination of 'testing.coveragerequirement composes': testing.inputpartitionselection (0.68), none (0.10), testing.outcomecategory (0.06); best predicate: references (0.43), uses (0.30), accesses (0.08). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#1"
+        }
+      ],
+      "probability": 0.435,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.coveragerequirement.composes.testing.inputpartitionselection",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.coveragerequirement#1"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "testing.coveragerequirement.aggregates.testing.contextvariation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragerequirement.aggregates.testing.contextvariation: testing.coveragerequirement.references.testing.contextvariation is produced by an earlier operation in this proposal and expresses it. Rename the predicate of testing.coveragerequirement.aggregates.testing.contextvariation to testing.coveragerequirement.references.testing.contextvariation. Plan kind rename-predicate, p 0.41; claims rel:testing.coveragerequirement#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.contextvariation",
+        "title": "testing.coveragerequirement aggregates testing.contextvariation",
+        "description": "Defines relationship: testing.coveragerequirement aggregates testing.contextvariation"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships aggregates and depends-on from testing.coveragerequirement to testing.contextvariation are redundant. Proposed: Keep one relationship between CoverageRequirement and ContextVariation and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#2): best source of 'aggregates testing.contextvariation': testing.coveragerequirement (0.50), testing.testcoveragemodel (0.36), none (0.05); best destination of 'testing.coveragerequirement aggregates': testing.contextvariation (0.69), none (0.11), testing.coverageexclusion (0.07); best predicate: references (0.41), depends-on (0.24), uses (0.24). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#2"
+        }
+      ],
+      "probability": 0.408,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.coveragerequirement.aggregates.testing.contextvariation",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.contextvariation"
+        ],
+        "claims": ["rel:testing.coveragerequirement#2"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "update",
+      "target_id": "testing.targetcoveragesummary.validates.testing.coveragerequirement",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.targetcoveragesummary references testing.coveragerequirement",
+        "description": "Defines relationship: testing.targetcoveragesummary references testing.coveragerequirement"
+      },
+      "rationale": "Rename the predicate of testing.targetcoveragesummary.validates.testing.coveragerequirement to testing.targetcoveragesummary.references.testing.coveragerequirement. Plan kind rename-predicate, p 0.38; claims rel:testing.targetcoveragesummary#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "validates",
+        "source_spec_node_id": "testing.targetcoveragesummary",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.targetcoveragesummary validates testing.coveragerequirement",
+        "description": "Defines relationship: testing.targetcoveragesummary validates testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The 'validates' relationship from testing.targetcoveragesummary to testing.coveragerequirement overstates the summary's role, since it only reports measured status and verifies nothing; 'measures' or 'tracks' would fit better. Proposed: Change the predicate from 'validates' to 'measures' or 'tracks'.",
+          "claim_id": "rel:testing.targetcoveragesummary#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetcoveragesummary#1): best source of 'validates testing.coveragerequirement': testing.targetcoveragesummary (0.32), testing.coveragesummary (0.22), testing.testcasesketch (0.20); best destination of 'testing.targetcoveragesummary validates': testing.coveragerequirement (0.40), testing.testcoveragetarget (0.20), none (0.19); best predicate: references (0.38), uses (0.17), validates (0.15). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.targetcoveragesummary#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetcoveragesummary#3): best source of 'validates testing.coveragerequirement': testing.targetcoveragesummary (0.76), testing.testcasesketch (0.08), testing.coveragesummary (0.06); best destination of 'testing.targetcoveragesummary validates': testing.coveragerequirement (0.76), testing.testcoveragetarget (0.11), none (0.04); best predicate: validates (0.82), references (0.04), none (0.04). Outcome: reproduced.",
+          "claim_id": "rel:testing.targetcoveragesummary#3"
+        }
+      ],
+      "probability": 0.378,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.targetcoveragesummary.validates.testing.coveragerequirement",
+        "replacement": [
+          "testing.targetcoveragesummary.references.testing.coveragerequirement"
+        ],
+        "claims": ["rel:testing.targetcoveragesummary#1"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "testing.partitiondependency.triggers.testing.partitionvalue",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.partitiondependency references testing.partitionvalue",
+        "description": "Defines relationship: testing.partitiondependency references testing.partitionvalue"
+      },
+      "rationale": "Rename the predicate of testing.partitiondependency.triggers.testing.partitionvalue to testing.partitiondependency.references.testing.partitionvalue. Plan kind rename-predicate, p 0.36; claims node:testing.partitiondependency#6, rel:testing.partitiondependency#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "testing.partitiondependency",
+        "destination_spec_node_id": "testing.partitionvalue",
+        "title": "testing.partitiondependency triggers testing.partitionvalue",
+        "description": "Defines relationship: testing.partitiondependency triggers testing.partitionvalue"
+      },
+      "evidence": [
+        {
+          "quote": "The dependsOnValue attribute of testing.partitiondependency duplicates the triggers edge to testing.partitionvalue. Proposed: Remove either the dependsOnValue attribute or the triggers→partitionvalue edge so the trigger value is expressed once.",
+          "claim_id": "node:testing.partitiondependency#6"
+        },
+        {
+          "quote": "The 'triggers' relationship from testing.partitiondependency to testing.partitionvalue conflates the trigger value that activates the dependency with the affected values. Proposed: Rework the 'triggers' relationship toward partitionvalue so it no longer conflates the trigger value with the affected values.",
+          "claim_id": "rel:testing.partitiondependency#3"
+        },
+        {
+          "quote": "Sorting answers (node:testing.partitiondependency#6): best source of 'triggers testing.partitionvalue': testing.partitiondependency (0.72), none (0.15), testing.coveragerequirement (0.04); best destination of 'testing.partitiondependency triggers': testing.partitionvalue (0.43), none (0.42), testing.inputpartitionselection (0.05); best predicate: references (0.36), none (0.19), uses (0.15). Outcome: alternative (predicate=references).",
+          "claim_id": "node:testing.partitiondependency#6"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.partitiondependency#3): best source of 'triggers testing.partitionvalue': testing.partitiondependency (0.79), none (0.11), testing.coveragerequirement (0.03); best destination of 'testing.partitiondependency triggers': testing.partitionvalue (0.37), none (0.33), testing.coveragerequirement (0.16); best predicate: references (0.58), none (0.18), uses (0.08). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.partitiondependency#3"
+        }
+      ],
+      "probability": 0.36,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.partitiondependency.triggers.testing.partitionvalue",
+        "replacement": [
+          "testing.partitiondependency.references.testing.partitionvalue"
+        ],
+        "claims": [
+          "node:testing.partitiondependency#6",
+          "rel:testing.partitiondependency#3"
+        ]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "update",
+      "target_id": "testing.coveragerequirement.depends-on.testing.outcomecategory",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "testing.coveragerequirement references testing.outcomecategory",
+        "description": "Defines relationship: testing.coveragerequirement references testing.outcomecategory"
+      },
+      "rationale": "Rename the predicate of testing.coveragerequirement.depends-on.testing.outcomecategory to testing.coveragerequirement.references.testing.outcomecategory. Plan kind rename-predicate, p 0.30; claims rel:testing.coveragerequirement#3, rel:testing.coveragerequirement#9.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.outcomecategory",
+        "title": "testing.coveragerequirement depends-on testing.outcomecategory",
+        "description": "Defines relationship: testing.coveragerequirement depends-on testing.outcomecategory"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships composes and depends-on from testing.coveragerequirement to testing.outcomecategory are redundant. Proposed: Keep one relationship between CoverageRequirement and OutcomeCategory and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#3"
+        },
+        {
+          "quote": "OutcomeCategory relationships belong to the TestCoverageTarget rather than to the CoverageRequirement, so the composes and depends-on relationships to outcomecategory are misplaced. Proposed: Move the outcome category association to TestCoverageTarget and remove it from CoverageRequirement.",
+          "claim_id": "rel:testing.coveragerequirement#9"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#3): best source of 'depends-on testing.outcomecategory': testing.coveragerequirement (0.71), none (0.09), testing.contextvariation (0.08); best destination of 'testing.coveragerequirement depends-on': testing.outcomecategory (0.71), testing.inputspacepartition (0.09), none (0.07); best predicate: references (0.36), reverse:serves (0.20), uses (0.17). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#9): best source of 'depends-on testing.outcomecategory': testing.coveragerequirement (0.38), testing.contextvariation (0.18), none (0.18); best destination of 'testing.coveragerequirement depends-on': testing.outcomecategory (0.63), testing.inputspacepartition (0.20), testing.contextvariation (0.07); best predicate: references (0.30), reverse:serves (0.20), none (0.17). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#9"
+        }
+      ],
+      "probability": 0.302,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.coveragerequirement.depends-on.testing.outcomecategory",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.outcomecategory"
+        ],
+        "claims": [
+          "rel:testing.coveragerequirement#3",
+          "rel:testing.coveragerequirement#9"
+        ]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "testing.coveragerequirement.accesses.testing.inputpartitionselection",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "testing.coveragerequirement uses testing.inputpartitionselection",
+        "description": "Defines relationship: testing.coveragerequirement uses testing.inputpartitionselection"
+      },
+      "rationale": "Rename the predicate of testing.coveragerequirement.accesses.testing.inputpartitionselection to testing.coveragerequirement.uses.testing.inputpartitionselection. Plan kind rename-predicate, p 0.29; claims rel:testing.coveragerequirement#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.coveragerequirement accesses testing.inputpartitionselection",
+        "description": "Defines relationship: testing.coveragerequirement accesses testing.inputpartitionselection"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships accesses and composes from testing.coveragerequirement to testing.inputpartitionselection express the same meaning and are redundant. Proposed: Keep one relationship between CoverageRequirement and InputPartitionSelection and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#1): best source of 'accesses testing.inputpartitionselection': testing.coveragerequirement (0.49), testing.testcasesketch (0.17), testing.inputpartitionselection (0.16); best destination of 'testing.coveragerequirement accesses': testing.inputpartitionselection (0.72), none (0.12), testing.inputselection (0.09); best predicate: uses (0.29), references (0.25), composes (0.24). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:testing.coveragerequirement#1"
+        }
+      ],
+      "probability": 0.289,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "rename-predicate",
+        "triple": "testing.coveragerequirement.accesses.testing.inputpartitionselection",
+        "replacement": [
+          "testing.coveragerequirement.uses.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.coveragerequirement#1"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "delete",
+      "target_id": "testing.targetinputfield.references.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.targetinputfield.references.testing.testcoveragetarget: testing.testcoveragetarget.composes.testing.targetinputfield already exists and expresses it. Plan kind reverse, p 0.69; claims rel:testing.targetinputfield#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.targetinputfield",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.targetinputfield references testing.testcoveragetarget",
+        "description": "Defines relationship: testing.targetinputfield references testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The references relationship from testing.targetinputfield to testing.testcoveragetarget understates what is really composition, duplicating the composes relationship from testcoveragetarget. Proposed: Replace the references relationship with composition, or drop it in favor of the existing composes relationship.",
+          "claim_id": "rel:testing.targetinputfield#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetinputfield#3): best source of 'references testing.testcoveragetarget': testing.targetinputfield (0.67), none (0.19), testing.coveragerequirement (0.04); best destination of 'testing.targetinputfield references': testing.testcoveragetarget (0.76), none (0.13), testing.coveragerequirement (0.02); best predicate: reverse:composes (0.69), none (0.10), references (0.07). Outcome: alternative (predicate=reverse:composes).",
+          "claim_id": "rel:testing.targetinputfield#3"
+        }
+      ],
+      "probability": 0.691,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "reverse",
+        "triple": "testing.targetinputfield.references.testing.testcoveragetarget",
+        "replacement": [
+          "testing.testcoveragetarget.composes.testing.targetinputfield"
+        ],
+        "claims": ["rel:testing.targetinputfield#3"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "delete",
+      "target_id": "testing.contextvariation.serves.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.contextvariation.serves.testing.testcoveragetarget: testing.testcoveragetarget.aggregates.testing.contextvariation already exists and expresses it. Plan kind reverse, p 0.68; claims rel:testing.contextvariation#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "testing.contextvariation",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.contextvariation serves testing.testcoveragetarget",
+        "description": "Defines relationship: testing.contextvariation serves testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The 'serves' relationship from testing.contextvariation to testing.testcoveragetarget uses a predicate that does not fit, because a context variation does not provide a service to the target but qualifies the conditions under which the target is tested. Proposed: Replace the 'serves' predicate with 'applies-to' or 'covers'.",
+          "claim_id": "rel:testing.contextvariation#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.contextvariation#1): best source of 'serves testing.testcoveragetarget': none (0.45), testing.coveragerequirement (0.35), testing.contextvariation (0.09); best destination of 'testing.contextvariation serves': testing.testcoveragetarget (0.64), testing.coveragerequirement (0.14), none (0.13); best predicate: reverse:aggregates (0.68), none (0.07), references (0.06). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "rel:testing.contextvariation#1"
+        }
+      ],
+      "probability": 0.675,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "reverse",
+        "triple": "testing.contextvariation.serves.testing.testcoveragetarget",
+        "replacement": [
+          "testing.testcoveragetarget.aggregates.testing.contextvariation"
+        ],
+        "claims": ["rel:testing.contextvariation#1"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "delete",
+      "target_id": "testing.coveragegap.flows-to.testing.coverageexclusion",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragegap.flows-to.testing.coverageexclusion: testing.coverageexclusion.references.testing.coveragegap already exists and expresses it. Plan kind reverse, p 0.63; claims rel:testing.coveragegap#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "testing.coveragegap",
+        "destination_spec_node_id": "testing.coverageexclusion",
+        "title": "testing.coveragegap flows-to testing.coverageexclusion",
+        "description": "Defines relationship: testing.coveragegap flows-to testing.coverageexclusion"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.coveragegap flows-to testing.coverageexclusion describes a lifecycle transition rather than a data or control flow, so the flows-to predicate does not fit. Proposed: Replace it with an inverse relationship such as coverageexclusion resolves coveragegap, or use a 'precedes' predicate.",
+          "claim_id": "rel:testing.coveragegap#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragegap#2): best source of 'flows-to testing.coverageexclusion': none (0.69), testing.coveragegap (0.16), testing.coverageexclusion (0.04); best destination of 'testing.coveragegap flows-to': none (0.45), testing.coverageexclusion (0.43), testing.coveragerequirement (0.04); best predicate: reverse:references (0.63), none (0.11), references (0.10). Outcome: alternative (predicate=reverse:references).",
+          "claim_id": "rel:testing.coveragegap#2"
+        }
+      ],
+      "probability": 0.63,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "reverse",
+        "triple": "testing.coveragegap.flows-to.testing.coverageexclusion",
+        "replacement": [
+          "testing.coverageexclusion.references.testing.coveragegap"
+        ],
+        "claims": ["rel:testing.coveragegap#2"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "delete",
+      "target_id": "testing.coveragerequirement.references.testing.partitionvalue",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragerequirement.references.testing.partitionvalue: testing.partitionvalue.constrained-by.testing.coveragerequirement already exists and expresses it. Plan kind reverse, p 0.62; claims rel:testing.coveragerequirement#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.partitionvalue",
+        "title": "testing.coveragerequirement references testing.partitionvalue",
+        "description": "Defines relationship: testing.coveragerequirement references testing.partitionvalue"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships aggregates and references from testing.coveragerequirement to testing.partitionvalue are redundant. Proposed: Keep one relationship between CoverageRequirement and PartitionValue and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#4): best source of 'references testing.partitionvalue': testing.coveragerequirement (0.65), testing.inputselection (0.11), none (0.09); best destination of 'testing.coveragerequirement references': testing.partitionvalue (0.77), none (0.08), testing.testcoveragetarget (0.06); best predicate: reverse:constrained-by (0.62), references (0.11), aggregates (0.07). Outcome: alternative (predicate=reverse:constrained-by).",
+          "claim_id": "rel:testing.coveragerequirement#4"
+        }
+      ],
+      "probability": 0.62,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "reverse",
+        "triple": "testing.coveragerequirement.references.testing.partitionvalue",
+        "replacement": [
+          "testing.partitionvalue.constrained-by.testing.coveragerequirement"
+        ],
+        "claims": ["rel:testing.coveragerequirement#4"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "delete",
+      "target_id": "testing.environmentfactor.composes.testing.contextvariation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.environmentfactor.composes.testing.contextvariation: testing.contextvariation.references.testing.environmentfactor already exists and expresses it. Plan kind reverse, p 0.51; claims node:testing.contextvariation#4, rel:testing.environmentfactor#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.environmentfactor",
+        "destination_spec_node_id": "testing.contextvariation",
+        "title": "testing.environmentfactor composes testing.contextvariation",
+        "description": "Defines relationship: testing.environmentfactor composes testing.contextvariation"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'EnvironmentFactor composes ContextVariation' conflicts in direction with the 'ContextVariation references EnvironmentFactor' relationship. Proposed: Make the direction consistent, e.g. remove or reverse the composes relationship.",
+          "claim_id": "node:testing.contextvariation#4"
+        },
+        {
+          "quote": "The relationship testing.environmentfactor composes testing.contextvariation should likely be aggregates, because factors are optionally bound to variations and can be shared among them. Proposed: Change the predicate from composes to aggregates.",
+          "claim_id": "rel:testing.environmentfactor#3"
+        },
+        {
+          "quote": "Sorting answers (node:testing.contextvariation#4): best source of 'composes testing.contextvariation': none (0.53), testing.coveragerequirement (0.19), testing.environmentfactor (0.15); best destination of 'testing.environmentfactor composes': testing.contextvariation (0.40), none (0.38), testing.coveragerequirement (0.12); best predicate: reverse:references (0.79), none (0.08), references (0.04). Outcome: alternative (predicate=reverse:references).",
+          "claim_id": "node:testing.contextvariation#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.environmentfactor#3): best source of 'composes testing.contextvariation': none (0.53), testing.environmentfactor (0.17), testing.contextvariation (0.16); best destination of 'testing.environmentfactor composes': testing.contextvariation (0.45), none (0.42), testing.coveragerequirement (0.04); best predicate: reverse:references (0.51), references (0.21), none (0.10). Outcome: alternative (predicate=reverse:references).",
+          "claim_id": "rel:testing.environmentfactor#3"
+        }
+      ],
+      "probability": 0.51,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "reverse",
+        "triple": "testing.environmentfactor.composes.testing.contextvariation",
+        "replacement": [
+          "testing.contextvariation.references.testing.environmentfactor"
+        ],
+        "claims": [
+          "node:testing.contextvariation#4",
+          "rel:testing.environmentfactor#3"
+        ]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "update",
+      "target_id": "testing.coverageexclusion.references.testing.coveragerequirement",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.coverageexclusion",
+        "title": "testing.coveragerequirement aggregates testing.coverageexclusion",
+        "description": "Defines relationship: testing.coveragerequirement aggregates testing.coverageexclusion"
+      },
+      "rationale": "Reverse the direction of testing.coverageexclusion.references.testing.coveragerequirement to testing.coveragerequirement.aggregates.testing.coverageexclusion. Plan kind reverse, p 0.50; claims rel:testing.coverageexclusion#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.coverageexclusion",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coverageexclusion references testing.coveragerequirement",
+        "description": "Defines relationship: testing.coverageexclusion references testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The generic 'references' predicate on testing.coverageexclusion relationships understates the waiver semantics; a dedicated 'excludes' predicate would be clearer. Proposed: Replace the 'references' predicate with a dedicated 'excludes' predicate for the exclusion's links to the excluded requirement or target.",
+          "claim_id": "rel:testing.coverageexclusion#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coverageexclusion#1): best source of 'references testing.coveragerequirement': testing.coverageexclusion (0.95), none (0.01), testing.coveragerequirement (0.01); best destination of 'testing.coverageexclusion references': testing.coveragerequirement (0.85), testing.testcoveragetarget (0.06), none (0.03); best predicate: references (0.82), reverse:aggregates (0.09), none (0.02). Outcome: reproduced.",
+          "claim_id": "rel:testing.coverageexclusion#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coverageexclusion#3): best source of 'references testing.coveragerequirement': testing.coverageexclusion (0.92), none (0.03), testing.coveragerequirement (0.01); best destination of 'testing.coverageexclusion references': testing.coveragerequirement (0.82), testing.testcoveragetarget (0.07), none (0.04); best predicate: reverse:aggregates (0.50), references (0.29), none (0.06). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "rel:testing.coverageexclusion#3"
+        }
+      ],
+      "probability": 0.496,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "reverse",
+        "triple": "testing.coverageexclusion.references.testing.coveragerequirement",
+        "replacement": [
+          "testing.coveragerequirement.aggregates.testing.coverageexclusion"
+        ],
+        "claims": ["rel:testing.coverageexclusion#3"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "delete",
+      "target_id": "testing.coveragerequirement.references.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragerequirement.references.testing.testcoveragetarget: testing.testcoveragetarget.composes.testing.coveragerequirement already exists and expresses it. Plan kind reverse, p 0.49; claims rel:testing.coveragerequirement#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.coveragerequirement references testing.testcoveragetarget",
+        "description": "Defines relationship: testing.coveragerequirement references testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships composes and references from testing.coveragerequirement to testing.testcoveragetarget are redundant. Proposed: Keep one relationship between CoverageRequirement and TestCoverageTarget and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#5"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#5): best source of 'references testing.testcoveragetarget': testing.coveragerequirement (0.59), none (0.10), testing.targetinputfield (0.08); best destination of 'testing.coveragerequirement references': testing.testcoveragetarget (0.82), none (0.09), testing.coveragerequirement (0.03); best predicate: reverse:composes (0.49), references (0.16), depends-on (0.11). Outcome: alternative (predicate=reverse:composes).",
+          "claim_id": "rel:testing.coveragerequirement#5"
+        }
+      ],
+      "probability": 0.49,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "reverse",
+        "triple": "testing.coveragerequirement.references.testing.testcoveragetarget",
+        "replacement": [
+          "testing.testcoveragetarget.composes.testing.coveragerequirement"
+        ],
+        "claims": ["rel:testing.coveragerequirement#5"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "testing.partitionvalue.depends-on.testing.environmentfactor",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.partitionvalue.depends-on.testing.environmentfactor: testing.environmentfactor.references.testing.partitionvalue already exists and expresses it. Plan kind reverse, p 0.43; claims rel:testing.partitionvalue#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "testing.partitionvalue",
+        "destination_spec_node_id": "testing.environmentfactor",
+        "title": "testing.partitionvalue depends-on testing.environmentfactor",
+        "description": "Defines relationship: testing.partitionvalue depends-on testing.environmentfactor"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.partitionvalue --[depends-on]--> testing.environmentfactor mixes input-space and environment concerns that the definitions keep separate. Proposed: Remove the depends-on relationship from PartitionValue to EnvironmentFactor.",
+          "claim_id": "rel:testing.partitionvalue#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.partitionvalue#3): best source of 'depends-on testing.environmentfactor': none (0.32), testing.contextvariation (0.21), testing.coveragerequirement (0.18); best destination of 'testing.partitionvalue depends-on': none (0.58), testing.contextvariation (0.14), testing.coveragerequirement (0.07); best predicate: reverse:references (0.43), none (0.42), references (0.07). Outcome: alternative (predicate=reverse:references).",
+          "claim_id": "rel:testing.partitionvalue#3"
+        }
+      ],
+      "probability": 0.43,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "reverse",
+        "triple": "testing.partitionvalue.depends-on.testing.environmentfactor",
+        "replacement": [
+          "testing.environmentfactor.references.testing.partitionvalue"
+        ],
+        "claims": ["rel:testing.partitionvalue#3"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "delete",
+      "target_id": "testing.testcoveragemodel.composes.testing.inputpartitionselection",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcoveragemodel.composes.testing.inputpartitionselection: testing.coveragerequirement.composes.testing.inputpartitionselection already exists and expresses it. Plan kind retarget, p 0.73; claims rel:testing.testcoveragemodel#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.testcoveragemodel",
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.testcoveragemodel composes testing.inputpartitionselection",
+        "description": "Defines relationship: testing.testcoveragemodel composes testing.inputpartitionselection"
+      },
+      "evidence": [
+        {
+          "quote": "TestCoverageModel composing InputPartitionSelection directly duplicates the composition that already occurs via CoverageRequirement. Proposed: Remove the direct composes relationship from testcoveragemodel to inputpartitionselection.",
+          "claim_id": "rel:testing.testcoveragemodel#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcoveragemodel#3): best source of 'composes testing.inputpartitionselection': testing.coveragerequirement (0.73), testing.testcoveragemodel (0.12), none (0.09); best destination of 'testing.testcoveragemodel composes': testing.inputpartitionselection (0.63), testing.coveragerequirement (0.25), testing.testcoveragetarget (0.05); best predicate: none (0.66), composes (0.17), references (0.08). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.testcoveragemodel#3"
+        }
+      ],
+      "probability": 0.727,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "retarget",
+        "triple": "testing.testcoveragemodel.composes.testing.inputpartitionselection",
+        "replacement": [
+          "testing.coveragerequirement.composes.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.testcoveragemodel#3"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "update",
+      "target_id": "testing.inputspacepartition.references.data-store.collection",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "data-store.field",
+        "title": "testing.inputspacepartition references data-store.field",
+        "description": "Defines relationship: testing.inputspacepartition references data-store.field"
+      },
+      "rationale": "Retarget of testing.inputspacepartition.references.data-store.collection to testing.inputspacepartition.references.data-store.field. Plan kind retarget, p 0.65; claims rel:testing.inputspacepartition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.inputspacepartition",
+        "destination_spec_node_id": "data-store.collection",
+        "title": "testing.inputspacepartition references data-store.collection",
+        "description": "Defines relationship: testing.inputspacepartition references data-store.collection"
+      },
+      "evidence": [
+        {
+          "quote": "The four references relationships from testing.inputspacepartition to data-store.collection, data-model.jsonschema, api.parameter and data-model.schemaproperty are alternative anchors for the single field, so a partition should reference exactly one of them, which the catalog does not express. Proposed: Document or enforce that a partition references exactly one of collection, jsonschema, parameter or schemaproperty.",
+          "claim_id": "rel:testing.inputspacepartition#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputspacepartition#1): best source of 'references data-store.collection': testing.inputspacepartition (0.89), none (0.03), testing.coveragerequirement (0.02); best destination of 'testing.inputspacepartition references': data-store.field (0.65), data-store.collection (0.24), data-model.schemaproperty (0.04); best predicate: references (0.82), none (0.08), depends-on (0.04). Outcome: alternative (target=data-store.field).",
+          "claim_id": "rel:testing.inputspacepartition#1"
+        }
+      ],
+      "probability": 0.649,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "retarget",
+        "triple": "testing.inputspacepartition.references.data-store.collection",
+        "replacement": [
+          "testing.inputspacepartition.references.data-store.field"
+        ],
+        "claims": ["rel:testing.inputspacepartition#1"]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "testing.inputpartitionselection.aggregates.testing.contextvariation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.inputpartitionselection.aggregates.testing.contextvariation: testing.coveragerequirement.aggregates.testing.partitionvalue already exists and expresses it. Plan kind retarget, p 0.62; claims rel:testing.inputpartitionselection#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.inputpartitionselection",
+        "destination_spec_node_id": "testing.contextvariation",
+        "title": "testing.inputpartitionselection aggregates testing.contextvariation",
+        "description": "Defines relationship: testing.inputpartitionselection aggregates testing.contextvariation"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates relationship from testing.inputpartitionselection to testing.contextvariation looks misplaced, because a selection names one partition and its values and contexts belong to the CoverageRequirement, not the selection. Proposed: Remove the aggregates relationship from InputPartitionSelection to ContextVariation and attach contexts to CoverageRequirement instead.",
+          "claim_id": "rel:testing.inputpartitionselection#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputpartitionselection#1): best source of 'aggregates testing.contextvariation': testing.coveragerequirement (0.62), testing.testcoveragemodel (0.21), none (0.05); best destination of 'testing.inputpartitionselection aggregates': testing.partitionvalue (0.73), none (0.10), testing.contextvariation (0.06); best predicate: none (0.73), aggregates (0.10), references (0.07). Outcome: alternative (source=testing.coveragerequirement; target=testing.partitionvalue).",
+          "claim_id": "rel:testing.inputpartitionselection#1"
+        }
+      ],
+      "probability": 0.616,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "retarget",
+        "triple": "testing.inputpartitionselection.aggregates.testing.contextvariation",
+        "replacement": [
+          "testing.coveragerequirement.aggregates.testing.partitionvalue"
+        ],
+        "claims": ["rel:testing.inputpartitionselection#1"]
+      }
+    },
+    {
+      "seq": 25,
+      "op": "delete",
+      "target_id": "testing.inputspacepartition.references.data-model.jsonschema",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.inputspacepartition.references.data-model.jsonschema: testing.inputspacepartition.references.data-model.schemaproperty already exists and expresses it. Plan kind retarget, p 0.60; claims rel:testing.inputspacepartition#2, rel:testing.inputspacepartition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.inputspacepartition",
+        "destination_spec_node_id": "data-model.jsonschema",
+        "title": "testing.inputspacepartition references data-model.jsonschema",
+        "description": "Defines relationship: testing.inputspacepartition references data-model.jsonschema"
+      },
+      "evidence": [
+        {
+          "quote": "The references relationship from testing.inputspacepartition to data-model.jsonschema targets a whole schema document, which is coarser than a field-level reference and overlaps with the reference to data-model.schemaproperty. Proposed: Remove the references relationship to data-model.jsonschema in favour of the schemaproperty reference.",
+          "claim_id": "rel:testing.inputspacepartition#2"
+        },
+        {
+          "quote": "The four references relationships from testing.inputspacepartition to data-store.collection, data-model.jsonschema, api.parameter and data-model.schemaproperty are alternative anchors for the single field, so a partition should reference exactly one of them, which the catalog does not express. Proposed: Document or enforce that a partition references exactly one of collection, jsonschema, parameter or schemaproperty.",
+          "claim_id": "rel:testing.inputspacepartition#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputspacepartition#2): best source of 'references data-model.jsonschema': testing.inputspacepartition (0.50), none (0.31), testing.coveragerequirement (0.10); best destination of 'testing.inputspacepartition references': data-model.schemaproperty (0.81), data-model.jsonschema (0.06), data-model.objectschema (0.03); best predicate: references (0.55), none (0.33), uses (0.03). Outcome: alternative (target=data-model.schemaproperty).",
+          "claim_id": "rel:testing.inputspacepartition#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputspacepartition#1): best source of 'references data-model.jsonschema': testing.inputspacepartition (0.84), none (0.05), testing.coveragerequirement (0.04); best destination of 'testing.inputspacepartition references': data-model.schemaproperty (0.61), data-model.jsonschema (0.21), data-model.objectschema (0.05); best predicate: references (0.85), none (0.05), uses (0.03). Outcome: alternative (target=data-model.schemaproperty).",
+          "claim_id": "rel:testing.inputspacepartition#1"
+        }
+      ],
+      "probability": 0.605,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 25,
+        "plan_kind": "retarget",
+        "triple": "testing.inputspacepartition.references.data-model.jsonschema",
+        "replacement": [
+          "testing.inputspacepartition.references.data-model.schemaproperty"
+        ],
+        "claims": [
+          "rel:testing.inputspacepartition#2",
+          "rel:testing.inputspacepartition#1"
+        ]
+      }
+    },
+    {
+      "seq": 26,
+      "op": "update",
+      "target_id": "testing.environmentfactor.serves.testing.testcoveragemodel",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.contextvariation",
+        "title": "testing.contextvariation serves testing.testcoveragemodel",
+        "description": "Defines relationship: testing.contextvariation serves testing.testcoveragemodel"
+      },
+      "rationale": "Retarget of testing.environmentfactor.serves.testing.testcoveragemodel to testing.contextvariation.serves.testing.testcoveragemodel. Plan kind retarget, p 0.54; claims rel:testing.environmentfactor#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "testing.environmentfactor",
+        "destination_spec_node_id": "testing.testcoveragemodel",
+        "title": "testing.environmentfactor serves testing.testcoveragemodel",
+        "description": "Defines relationship: testing.environmentfactor serves testing.testcoveragemodel"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.environmentfactor serves testing.testcoveragemodel likely should be expressed as composed-by or aggregated-by, reversing its direction or predicate. Proposed: Replace serves with a composed-by or aggregated-by relationship between testcoveragemodel and environmentfactor.",
+          "claim_id": "rel:testing.environmentfactor#5"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.environmentfactor#5): best source of 'serves testing.testcoveragemodel': testing.contextvariation (0.54), testing.coveragerequirement (0.17), testing.environmentfactor (0.15); best destination of 'testing.environmentfactor serves': testing.testcoveragemodel (0.33), testing.contextvariation (0.32), testing.coveragerequirement (0.15); best predicate: none (0.28), composes (0.20), references (0.16). Outcome: alternative (source=testing.contextvariation).",
+          "claim_id": "rel:testing.environmentfactor#5"
+        }
+      ],
+      "probability": 0.542,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 26,
+        "plan_kind": "retarget",
+        "triple": "testing.environmentfactor.serves.testing.testcoveragemodel",
+        "replacement": [
+          "testing.contextvariation.serves.testing.testcoveragemodel"
+        ],
+        "claims": ["rel:testing.environmentfactor#5"]
+      }
+    },
+    {
+      "seq": 27,
+      "op": "delete",
+      "target_id": "testing.testcoveragetarget.tests.api.operation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcoveragetarget.tests.api.operation: testing.testcasesketch.tests.api.operation already exists and expresses it. Plan kind retarget, p 0.54; claims rel:testing.testcoveragetarget#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "tests",
+        "source_spec_node_id": "testing.testcoveragetarget",
+        "destination_spec_node_id": "api.operation",
+        "title": "testing.testcoveragetarget tests api.operation",
+        "description": "Defines relationship: testing.testcoveragetarget tests api.operation"
+      },
+      "evidence": [
+        {
+          "quote": "The covers and tests relationships from testing.testcoveragetarget to the artifacts it exercises overlap in meaning. Proposed: Pick one of covers or tests and drop the other.",
+          "claim_id": "rel:testing.testcoveragetarget#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcoveragetarget#3): best source of 'tests api.operation': testing.testcasesketch (0.54), testing.testcoveragetarget (0.23), testing.coveragerequirement (0.08); best destination of 'testing.testcoveragetarget tests': api.operation (0.80), application.applicationcomponent (0.06), none (0.06); best predicate: tests (0.70), none (0.11), references (0.09). Outcome: alternative (source=testing.testcasesketch).",
+          "claim_id": "rel:testing.testcoveragetarget#3"
+        }
+      ],
+      "probability": 0.539,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 27,
+        "plan_kind": "retarget",
+        "triple": "testing.testcoveragetarget.tests.api.operation",
+        "replacement": ["testing.testcasesketch.tests.api.operation"],
+        "claims": ["rel:testing.testcoveragetarget#3"]
+      }
+    },
+    {
+      "seq": 28,
+      "op": "delete",
+      "target_id": "testing.testcoveragetarget.composes.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcoveragetarget.composes.testing.testcoveragetarget: testing.testcoveragemodel.composes.testing.testcoveragetarget already exists and expresses it. Plan kind retarget, p 0.52; claims rel:testing.testcoveragetarget#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.testcoveragetarget",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.testcoveragetarget composes testing.testcoveragetarget",
+        "description": "Defines relationship: testing.testcoveragetarget composes testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The self-composition edge testing.testcoveragetarget composes testing.testcoveragetarget has no defined meaning. Proposed: Define the meaning of self-composition (e.g. nested targets) or remove the edge.",
+          "claim_id": "rel:testing.testcoveragetarget#5"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcoveragetarget#5): best source of 'composes testing.testcoveragetarget': testing.testcoveragemodel (0.52), testing.testcoveragetarget (0.26), none (0.07); best destination of 'testing.testcoveragetarget composes': testing.testcoveragetarget (0.33), none (0.26), testing.targetinputfield (0.13); best predicate: none (0.50), composes (0.23), references (0.11). Outcome: alternative (source=testing.testcoveragemodel).",
+          "claim_id": "rel:testing.testcoveragetarget#5"
+        }
+      ],
+      "probability": 0.517,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 28,
+        "plan_kind": "retarget",
+        "triple": "testing.testcoveragetarget.composes.testing.testcoveragetarget",
+        "replacement": [
+          "testing.testcoveragemodel.composes.testing.testcoveragetarget"
+        ],
+        "claims": ["rel:testing.testcoveragetarget#5"]
+      }
+    },
+    {
+      "seq": 29,
+      "op": "delete",
+      "target_id": "testing.testcoveragetarget.composes.testing.inputpartitionselection",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcoveragetarget.composes.testing.inputpartitionselection: testing.coveragerequirement.composes.testing.inputpartitionselection already exists and expresses it. Plan kind retarget, p 0.50; claims rel:testing.testcoveragetarget#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.testcoveragetarget",
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.testcoveragetarget composes testing.inputpartitionselection",
+        "description": "Defines relationship: testing.testcoveragetarget composes testing.inputpartitionselection"
+      },
+      "evidence": [
+        {
+          "quote": "The composes edge from testing.testcoveragetarget to testing.inputpartitionselection conflicts with the definition of InputPartitionSelection as part of a CoverageRequirement. Proposed: Remove the composes edge from testcoveragetarget to inputpartitionselection or reconcile it with the definition.",
+          "claim_id": "rel:testing.testcoveragetarget#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcoveragetarget#1): best source of 'composes testing.inputpartitionselection': testing.coveragerequirement (0.50), testing.testcoveragemodel (0.31), none (0.09); best destination of 'testing.testcoveragetarget composes': testing.inputpartitionselection (0.61), testing.coveragerequirement (0.17), testing.targetinputfield (0.10); best predicate: none (0.42), references (0.23), composes (0.17). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.testcoveragetarget#1"
+        }
+      ],
+      "probability": 0.5,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 29,
+        "plan_kind": "retarget",
+        "triple": "testing.testcoveragetarget.composes.testing.inputpartitionselection",
+        "replacement": [
+          "testing.coveragerequirement.composes.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.testcoveragetarget#1"]
+      }
+    },
+    {
+      "seq": 30,
+      "op": "delete",
+      "target_id": "testing.inputselection.references.testing.coveragerequirement",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.inputselection.references.testing.coveragerequirement: testing.testcasesketch.references.testing.partitionvalue already exists and expresses it. Plan kind retarget, p 0.46; claims rel:testing.inputselection#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.inputselection",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.inputselection references testing.coveragerequirement",
+        "description": "Defines relationship: testing.inputselection references testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The CoverageRequirement reference should sit on TestCaseSketch rather than InputSelection, because requirements apply to combinations of selections, not to single bindings. Proposed: Remove the references relationship from testing.inputselection to testing.coveragerequirement and add an equivalent relationship from testing.testcasesketch to testing.coveragerequirement.",
+          "claim_id": "rel:testing.inputselection#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputselection#2): best source of 'references testing.coveragerequirement': testing.testcasesketch (0.76), testing.coveragerequirement (0.07), testing.inputselection (0.06); best destination of 'testing.inputselection references': testing.partitionvalue (0.46), testing.coveragerequirement (0.26), none (0.11); best predicate: references (0.34), none (0.26), reverse:accesses (0.19). Outcome: alternative (source=testing.testcasesketch; target=testing.partitionvalue).",
+          "claim_id": "rel:testing.inputselection#2"
+        }
+      ],
+      "probability": 0.464,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 30,
+        "plan_kind": "retarget",
+        "triple": "testing.inputselection.references.testing.coveragerequirement",
+        "replacement": [
+          "testing.testcasesketch.references.testing.partitionvalue"
+        ],
+        "claims": ["rel:testing.inputselection#2"]
+      }
+    },
+    {
+      "seq": 31,
+      "op": "update",
+      "target_id": "testing.partitionvalue.references.testing.coverageexclusion",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coveragerequirement references testing.coverageexclusion",
+        "description": "Defines relationship: testing.coveragerequirement references testing.coverageexclusion"
+      },
+      "rationale": "Retarget of testing.partitionvalue.references.testing.coverageexclusion to testing.coveragerequirement.references.testing.coverageexclusion. Plan kind retarget, p 0.44; claims rel:testing.partitionvalue#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.partitionvalue",
+        "destination_spec_node_id": "testing.coverageexclusion",
+        "title": "testing.partitionvalue references testing.coverageexclusion",
+        "description": "Defines relationship: testing.partitionvalue references testing.coverageexclusion"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.partitionvalue --[references]--> testing.coverageexclusion is questionable because exclusions apply to coverage targets or requirements, not to partition values. Proposed: Remove the references relationship from PartitionValue to CoverageExclusion.",
+          "claim_id": "rel:testing.partitionvalue#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.partitionvalue#1): best source of 'references testing.coverageexclusion': testing.coveragerequirement (0.44), testing.coverageexclusion (0.35), none (0.11); best destination of 'testing.partitionvalue references': none (0.44), testing.coverageexclusion (0.31), testing.coveragerequirement (0.12); best predicate: none (0.88), references (0.08), depends-on (0.01). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.partitionvalue#1"
+        }
+      ],
+      "probability": 0.439,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 31,
+        "plan_kind": "retarget",
+        "triple": "testing.partitionvalue.references.testing.coverageexclusion",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.coverageexclusion"
+        ],
+        "claims": ["rel:testing.partitionvalue#1"]
+      }
+    },
+    {
+      "seq": 32,
+      "op": "update",
+      "target_id": "testing.outcomecategory.flows-to.testing.coveragesummary",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coveragerequirement flows-to testing.coveragesummary",
+        "description": "Defines relationship: testing.coveragerequirement flows-to testing.coveragesummary"
+      },
+      "rationale": "Retarget of testing.outcomecategory.flows-to.testing.coveragesummary to testing.coveragerequirement.flows-to.testing.coveragesummary. Plan kind retarget, p 0.44; claims rel:testing.outcomecategory#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "testing.outcomecategory",
+        "destination_spec_node_id": "testing.coveragesummary",
+        "title": "testing.outcomecategory flows-to testing.coveragesummary",
+        "description": "Defines relationship: testing.outcomecategory flows-to testing.coveragesummary"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.outcomecategory flows-to testing.coveragesummary is weak because the coverage summary totals targets, requirements and sketches, not outcome categories. Proposed: none stated",
+          "claim_id": "rel:testing.outcomecategory#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.outcomecategory#2): best source of 'flows-to testing.coveragesummary': testing.coveragerequirement (0.44), testing.outcomecategory (0.17), testing.coveragesummary (0.14); best destination of 'testing.outcomecategory flows-to': testing.coveragesummary (0.45), testing.coveragegap (0.21), none (0.17); best predicate: none (0.58), flows-to (0.23), serves (0.04). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.outcomecategory#2"
+        }
+      ],
+      "probability": 0.438,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 32,
+        "plan_kind": "retarget",
+        "triple": "testing.outcomecategory.flows-to.testing.coveragesummary",
+        "replacement": [
+          "testing.coveragerequirement.flows-to.testing.coveragesummary"
+        ],
+        "claims": ["rel:testing.outcomecategory#2"]
+      }
+    },
+    {
+      "seq": 33,
+      "op": "delete",
+      "target_id": "testing.testcasesketch.validates.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcasesketch.validates.testing.testcoveragetarget: testing.testcasesketch.validates.testing.coveragerequirement already exists and expresses it. Plan kind retarget, p 0.43; claims rel:testing.testcasesketch#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "validates",
+        "source_spec_node_id": "testing.testcasesketch",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.testcasesketch validates testing.testcoveragetarget",
+        "description": "Defines relationship: testing.testcasesketch validates testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The references and validates relationships from testcasesketch to TestCoverageTarget overlap in meaning. Proposed: Collapse the two into a single relationship (one of references or validates).",
+          "claim_id": "rel:testing.testcasesketch#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcasesketch#2): best source of 'validates testing.testcoveragetarget': testing.testcasesketch (0.76), testing.targetcoveragesummary (0.05), testing.coveragesummary (0.05); best destination of 'testing.testcasesketch validates': testing.coveragerequirement (0.43), testing.testcoveragetarget (0.37), none (0.06); best predicate: validates (0.54), reverse:flows-to (0.16), references (0.10). Outcome: alternative (target=testing.coveragerequirement).",
+          "claim_id": "rel:testing.testcasesketch#2"
+        }
+      ],
+      "probability": 0.434,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 33,
+        "plan_kind": "retarget",
+        "triple": "testing.testcasesketch.validates.testing.testcoveragetarget",
+        "replacement": [
+          "testing.testcasesketch.validates.testing.coveragerequirement"
+        ],
+        "claims": ["rel:testing.testcasesketch#2"]
+      }
+    },
+    {
+      "seq": 34,
+      "op": "delete",
+      "target_id": "testing.inputselection.references.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.inputselection.references.testing.testcoveragetarget: testing.targetinputfield.references.testing.testcoveragetarget already exists and expresses it. Plan kind retarget, p 0.40; claims rel:testing.inputselection#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.inputselection",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.inputselection references testing.testcoveragetarget",
+        "description": "Defines relationship: testing.inputselection references testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.inputselection references testing.testcoveragetarget is redundant because the owning TestCaseSketch already attaches to exactly one target and PartitionValue reaches the target via InputSpacePartition, so the link is derivable and risks inconsistency. Proposed: Remove the references relationship from testing.inputselection to testing.testcoveragetarget.",
+          "claim_id": "rel:testing.inputselection#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputselection#1): best source of 'references testing.testcoveragetarget': testing.targetinputfield (0.40), testing.coveragerequirement (0.16), testing.testcasesketch (0.16); best destination of 'testing.inputselection references': testing.testcoveragetarget (0.48), none (0.28), testing.coveragerequirement (0.07); best predicate: none (0.52), references (0.36), realizes (0.04). Outcome: alternative (source=testing.targetinputfield).",
+          "claim_id": "rel:testing.inputselection#1"
+        }
+      ],
+      "probability": 0.396,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 34,
+        "plan_kind": "retarget",
+        "triple": "testing.inputselection.references.testing.testcoveragetarget",
+        "replacement": [
+          "testing.targetinputfield.references.testing.testcoveragetarget"
+        ],
+        "claims": ["rel:testing.inputselection#1"]
+      }
+    },
+    {
+      "seq": 35,
+      "op": "update",
+      "target_id": "testing.inputspacepartition.serves.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coveragerequirement serves testing.testcoveragetarget",
+        "description": "Defines relationship: testing.coveragerequirement serves testing.testcoveragetarget"
+      },
+      "rationale": "Retarget of testing.inputspacepartition.serves.testing.testcoveragetarget to testing.coveragerequirement.serves.testing.testcoveragetarget. Plan kind retarget, p 0.38; claims rel:testing.inputspacepartition#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "testing.inputspacepartition",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.inputspacepartition serves testing.testcoveragetarget",
+        "description": "Defines relationship: testing.inputspacepartition serves testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The serves relationship from testing.inputspacepartition to testing.testcoveragetarget would read more naturally as composed-of or aggregated-by. Proposed: Replace the serves predicate with composes or aggregates (composed-of or aggregated-by).",
+          "claim_id": "rel:testing.inputspacepartition#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.inputspacepartition#3): best source of 'serves testing.testcoveragetarget': testing.coveragerequirement (0.38), testing.inputspacepartition (0.29), testing.inputpartitionselection (0.13); best destination of 'testing.inputspacepartition serves': testing.testcoveragetarget (0.49), testing.coveragerequirement (0.31), none (0.12); best predicate: serves (0.26), none (0.19), references (0.17). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.inputspacepartition#3"
+        }
+      ],
+      "probability": 0.378,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 35,
+        "plan_kind": "retarget",
+        "triple": "testing.inputspacepartition.serves.testing.testcoveragetarget",
+        "replacement": [
+          "testing.coveragerequirement.serves.testing.testcoveragetarget"
+        ],
+        "claims": ["rel:testing.inputspacepartition#3"]
+      }
+    },
+    {
+      "seq": 36,
+      "op": "update",
+      "target_id": "testing.environmentfactor.composes.testing.inputspacepartition",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.contextvariation",
+        "destination_spec_node_id": "testing.contextvariation",
+        "title": "testing.contextvariation composes testing.contextvariation",
+        "description": "Defines relationship: testing.contextvariation composes testing.contextvariation"
+      },
+      "rationale": "Retarget of testing.environmentfactor.composes.testing.inputspacepartition to testing.contextvariation.composes.testing.contextvariation. Plan kind retarget, p 0.36; claims rel:testing.environmentfactor#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.environmentfactor",
+        "destination_spec_node_id": "testing.inputspacepartition",
+        "title": "testing.environmentfactor composes testing.inputspacepartition",
+        "description": "Defines relationship: testing.environmentfactor composes testing.inputspacepartition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.environmentfactor composes testing.inputspacepartition contradicts the EnvironmentFactor definition, since a factor describes the environment, not input to the system under test. Proposed: Remove the composes relationship from environmentfactor to inputspacepartition.",
+          "claim_id": "rel:testing.environmentfactor#1"
+        },
+        {
+          "quote": "Sorting answers (node:testing.environmentfactor#2): best source of 'composes testing.inputspacepartition': none (0.34), testing.contextvariation (0.27), testing.coveragerequirement (0.19); best destination of 'testing.environmentfactor composes': none (0.57), testing.contextvariation (0.33), testing.inputspacepartition (0.02); best predicate: none (0.89), composes (0.04), uses (0.02). Outcome: no_better.",
+          "claim_id": "node:testing.environmentfactor#2"
+        },
+        {
+          "quote": "Sorting answers (node:testing.inputspacepartition#5): best source of 'composes testing.inputspacepartition': none (0.38), testing.coveragerequirement (0.21), testing.contextvariation (0.14); best destination of 'testing.environmentfactor composes': none (0.66), testing.inputspacepartition (0.07), testing.contextvariation (0.07); best predicate: none (0.77), uses (0.05), references (0.05). Outcome: no_better.",
+          "claim_id": "node:testing.inputspacepartition#5"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.environmentfactor#1): best source of 'composes testing.inputspacepartition': testing.contextvariation (0.36), none (0.28), testing.coveragerequirement (0.21); best destination of 'testing.environmentfactor composes': testing.contextvariation (0.47), none (0.38), testing.coveragerequirement (0.04); best predicate: none (0.80), references (0.06), depends-on (0.04). Outcome: alternative (source=testing.contextvariation; target=testing.contextvariation).",
+          "claim_id": "rel:testing.environmentfactor#1"
+        }
+      ],
+      "probability": 0.362,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 36,
+        "plan_kind": "retarget",
+        "triple": "testing.environmentfactor.composes.testing.inputspacepartition",
+        "replacement": [
+          "testing.contextvariation.composes.testing.contextvariation"
+        ],
+        "claims": ["rel:testing.environmentfactor#1"]
+      }
+    },
+    {
+      "seq": 37,
+      "op": "update",
+      "target_id": "testing.outcomecategory.references.testing.targetinputfield",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coveragerequirement references testing.targetinputfield",
+        "description": "Defines relationship: testing.coveragerequirement references testing.targetinputfield"
+      },
+      "rationale": "Retarget of testing.outcomecategory.references.testing.targetinputfield to testing.coveragerequirement.references.testing.targetinputfield. Plan kind retarget, p 0.35; claims rel:testing.outcomecategory#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.outcomecategory",
+        "destination_spec_node_id": "testing.targetinputfield",
+        "title": "testing.outcomecategory references testing.targetinputfield",
+        "description": "Defines relationship: testing.outcomecategory references testing.targetinputfield"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.outcomecategory references testing.targetinputfield is plausible but loose, since outcomes are classified per target rather than per input field. Proposed: none stated",
+          "claim_id": "rel:testing.outcomecategory#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.outcomecategory#4): best source of 'references testing.targetinputfield': testing.coveragerequirement (0.35), testing.outcomecategory (0.23), none (0.23); best destination of 'testing.outcomecategory references': testing.targetinputfield (0.55), none (0.26), testing.coveragerequirement (0.08); best predicate: none (0.65), references (0.23), depends-on (0.03). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.outcomecategory#4"
+        }
+      ],
+      "probability": 0.352,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 37,
+        "plan_kind": "retarget",
+        "triple": "testing.outcomecategory.references.testing.targetinputfield",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.targetinputfield"
+        ],
+        "claims": ["rel:testing.outcomecategory#4"]
+      }
+    },
+    {
+      "seq": 38,
+      "op": "update",
+      "target_id": "testing.outcomecategory.constrained-by.testing.environmentfactor",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coveragerequirement constrained-by testing.environmentfactor",
+        "description": "Defines relationship: testing.coveragerequirement constrained-by testing.environmentfactor"
+      },
+      "rationale": "Retarget of testing.outcomecategory.constrained-by.testing.environmentfactor to testing.coveragerequirement.constrained-by.testing.environmentfactor. Plan kind retarget, p 0.33; claims rel:testing.outcomecategory#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "constrained-by",
+        "source_spec_node_id": "testing.outcomecategory",
+        "destination_spec_node_id": "testing.environmentfactor",
+        "title": "testing.outcomecategory constrained-by testing.environmentfactor",
+        "description": "Defines relationship: testing.outcomecategory constrained-by testing.environmentfactor"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.outcomecategory constrained-by testing.environmentfactor is plausible but loose, since outcomes are classified per target rather than per environment factor. Proposed: none stated",
+          "claim_id": "rel:testing.outcomecategory#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.outcomecategory#3): best source of 'constrained-by testing.environmentfactor': testing.coveragerequirement (0.33), none (0.23), testing.outcomecategory (0.19); best destination of 'testing.outcomecategory constrained-by': testing.environmentfactor (0.39), testing.contextvariation (0.35), none (0.15); best predicate: none (0.63), constrained-by (0.15), references (0.09). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.outcomecategory#3"
+        }
+      ],
+      "probability": 0.33,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 38,
+        "plan_kind": "retarget",
+        "triple": "testing.outcomecategory.constrained-by.testing.environmentfactor",
+        "replacement": [
+          "testing.coveragerequirement.constrained-by.testing.environmentfactor"
+        ],
+        "claims": ["rel:testing.outcomecategory#3"]
+      }
+    },
+    {
+      "seq": 39,
+      "op": "update",
+      "target_id": "testing.partitionvalue.triggers.testing.coveragegap",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.coveragerequirement triggers testing.coveragegap",
+        "description": "Defines relationship: testing.coveragerequirement triggers testing.coveragegap"
+      },
+      "rationale": "Retarget of testing.partitionvalue.triggers.testing.coveragegap to testing.coveragerequirement.triggers.testing.coveragegap. Plan kind retarget, p 0.33; claims rel:testing.partitionvalue#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "testing.partitionvalue",
+        "destination_spec_node_id": "testing.coveragegap",
+        "title": "testing.partitionvalue triggers testing.coveragegap",
+        "description": "Defines relationship: testing.partitionvalue triggers testing.coveragegap"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship testing.partitionvalue --[triggers]--> testing.coveragegap is loose because gaps are defined against requirements or targets and are produced by an analysis process, not by the partition value itself. Proposed: Remove or replace the triggers relationship from PartitionValue to CoverageGap with one tied to requirements or targets.",
+          "claim_id": "rel:testing.partitionvalue#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.partitionvalue#2): best source of 'triggers testing.coveragegap': testing.coveragerequirement (0.33), testing.coveragegap (0.21), none (0.20); best destination of 'testing.partitionvalue triggers': testing.coveragegap (0.50), none (0.33), testing.coveragesummary (0.05); best predicate: none (0.60), reverse:triggers (0.15), references (0.09). Outcome: alternative (source=testing.coveragerequirement).",
+          "claim_id": "rel:testing.partitionvalue#2"
+        }
+      ],
+      "probability": 0.329,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 39,
+        "plan_kind": "retarget",
+        "triple": "testing.partitionvalue.triggers.testing.coveragegap",
+        "replacement": [
+          "testing.coveragerequirement.triggers.testing.coveragegap"
+        ],
+        "claims": ["rel:testing.partitionvalue#2"]
+      }
+    },
+    {
+      "seq": 40,
+      "op": "delete",
+      "target_id": "testing.testcasesketch.supports.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcasesketch.supports.motivation.goal: testing.testcoveragemodel.supports.motivation.goal already exists and expresses it. Plan kind retarget, p 0.31; claims rel:testing.testcasesketch#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "supports",
+        "source_spec_node_id": "testing.testcasesketch",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "testing.testcasesketch supports motivation.goal",
+        "description": "Defines relationship: testing.testcasesketch supports motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The references relationship to apm.logconfiguration and the supports-goals relationship to motivation.goal are weak links of little value. Proposed: Remove the references LogConfiguration and supports-goals relationships.",
+          "claim_id": "rel:testing.testcasesketch#6"
+        }
+      ],
+      "probability": 0.309,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 40,
+        "plan_kind": "retarget",
+        "triple": "testing.testcasesketch.supports.motivation.goal",
+        "replacement": ["testing.testcoveragemodel.supports.motivation.goal"],
+        "claims": ["rel:testing.testcasesketch#6"]
+      }
+    },
+    {
+      "seq": 41,
+      "op": "update",
+      "target_id": "testing.partitiondependency.triggers.testing.coveragerequirement",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.partitiondependency triggers testing.inputpartitionselection",
+        "description": "Defines relationship: testing.partitiondependency triggers testing.inputpartitionselection"
+      },
+      "rationale": "Retarget of testing.partitiondependency.triggers.testing.coveragerequirement to testing.partitiondependency.triggers.testing.inputpartitionselection. Plan kind retarget, p 0.29; claims rel:testing.partitiondependency#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "testing.partitiondependency",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.partitiondependency triggers testing.coveragerequirement",
+        "description": "Defines relationship: testing.partitiondependency triggers testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The 'triggers' relationship from testing.partitiondependency to testing.coveragerequirement is semantically weak, and 'constrains' would be more accurate. Proposed: Replace 'triggers' with 'constrains' for the relationship from partitiondependency to coveragerequirement.",
+          "claim_id": "rel:testing.partitiondependency#2"
+        },
+        {
+          "quote": "Sorting answers (node:testing.partitiondependency#4): best source of 'triggers testing.coveragerequirement': testing.partitiondependency (0.42), testing.coveragerequirement (0.21), none (0.13); best destination of 'testing.partitiondependency triggers': none (0.40), testing.inputpartitionselection (0.25), testing.coveragerequirement (0.16); best predicate: none (0.56), uses (0.08), references (0.08). Outcome: no_better.",
+          "claim_id": "node:testing.partitiondependency#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.partitiondependency#2): best source of 'triggers testing.coveragerequirement': testing.partitiondependency (0.39), testing.contextvariation (0.18), testing.coveragerequirement (0.15); best destination of 'testing.partitiondependency triggers': testing.inputpartitionselection (0.29), testing.partitionvalue (0.26), testing.coveragerequirement (0.20); best predicate: none (0.53), references (0.12), realizes (0.09). Outcome: alternative (target=testing.inputpartitionselection).",
+          "claim_id": "rel:testing.partitiondependency#2"
+        }
+      ],
+      "probability": 0.288,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 41,
+        "plan_kind": "retarget",
+        "triple": "testing.partitiondependency.triggers.testing.coveragerequirement",
+        "replacement": [
+          "testing.partitiondependency.triggers.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.partitiondependency#2"]
+      }
+    },
+    {
+      "seq": 42,
+      "op": "delete",
+      "target_id": "testing.testcoveragetarget.supports.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcoveragetarget.supports.motivation.goal: testing.testcoveragemodel.supports.motivation.goal already exists and expresses it. Plan kind retarget, p 0.28; claims rel:testing.testcoveragetarget#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "supports",
+        "source_spec_node_id": "testing.testcoveragetarget",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "testing.testcoveragetarget supports motivation.goal",
+        "description": "Defines relationship: testing.testcoveragetarget supports motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The fulfills-requirements and supports-goals edges from testing.testcoveragetarget are semantically dubious because a test target verifies requirements rather than fulfilling them. Proposed: Replace fulfills-requirements (and supports-goals) with a validates relationship.",
+          "claim_id": "rel:testing.testcoveragetarget#4"
+        }
+      ],
+      "probability": 0.283,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 42,
+        "plan_kind": "retarget",
+        "triple": "testing.testcoveragetarget.supports.motivation.goal",
+        "replacement": ["testing.testcoveragemodel.supports.motivation.goal"],
+        "claims": ["rel:testing.testcoveragetarget#4"]
+      }
+    },
+    {
+      "seq": 43,
+      "op": "delete",
+      "target_id": "testing.targetcoveragesummary.validates.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.targetcoveragesummary.validates.testing.testcoveragetarget: testing.targetcoveragesummary.references.testing.coveragerequirement is produced by an earlier operation in this proposal and expresses it. Change of testing.targetcoveragesummary.validates.testing.testcoveragetarget to testing.targetcoveragesummary.references.testing.coveragerequirement. Plan kind compound, p 0.47; claims rel:testing.targetcoveragesummary#2, rel:testing.targetcoveragesummary#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "validates",
+        "source_spec_node_id": "testing.targetcoveragesummary",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.targetcoveragesummary validates testing.testcoveragetarget",
+        "description": "Defines relationship: testing.targetcoveragesummary validates testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The 'validates' relationship from testing.targetcoveragesummary to testing.testcoveragetarget overstates the summary's role, since it only reports measured status and verifies nothing; 'measures' or 'tracks' would fit better. Proposed: Change the predicate from 'validates' to 'measures' or 'tracks'.",
+          "claim_id": "rel:testing.targetcoveragesummary#2"
+        },
+        {
+          "quote": "The validates edge from testing.targetcoveragesummary to testing.testcoveragetarget is redundant with the edge to testing.coveragerequirement, because requirements attach to the target. Proposed: Remove the target edge and keep the requirement edge.",
+          "claim_id": "rel:testing.targetcoveragesummary#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetcoveragesummary#2): best source of 'validates testing.testcoveragetarget': testing.targetcoveragesummary (0.50), testing.coveragesummary (0.14), testing.testcasesketch (0.10); best destination of 'testing.targetcoveragesummary validates': testing.coveragerequirement (0.47), testing.testcoveragetarget (0.26), none (0.17); best predicate: references (0.60), validates (0.11), depends-on (0.09). Outcome: alternative (target=testing.coveragerequirement; predicate=references).",
+          "claim_id": "rel:testing.targetcoveragesummary#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.targetcoveragesummary#3): best source of 'validates testing.testcoveragetarget': testing.targetcoveragesummary (0.69), testing.testcasesketch (0.07), none (0.07); best destination of 'testing.targetcoveragesummary validates': testing.coveragerequirement (0.81), testing.testcoveragetarget (0.09), none (0.04); best predicate: references (0.52), validates (0.17), depends-on (0.12). Outcome: alternative (target=testing.coveragerequirement; predicate=references).",
+          "claim_id": "rel:testing.targetcoveragesummary#3"
+        }
+      ],
+      "probability": 0.475,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 43,
+        "plan_kind": "compound",
+        "triple": "testing.targetcoveragesummary.validates.testing.testcoveragetarget",
+        "replacement": [
+          "testing.targetcoveragesummary.references.testing.coveragerequirement"
+        ],
+        "claims": [
+          "rel:testing.targetcoveragesummary#2",
+          "rel:testing.targetcoveragesummary#3"
+        ]
+      }
+    },
+    {
+      "seq": 44,
+      "op": "update",
+      "target_id": "testing.testcoveragetarget.flows-to.testing.coveragerequirement",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "destination_spec_node_id": "testing.testcasesketch",
+        "title": "testing.testcoveragetarget composes testing.testcasesketch",
+        "description": "Defines relationship: testing.testcoveragetarget composes testing.testcasesketch"
+      },
+      "rationale": "Change of testing.testcoveragetarget.flows-to.testing.coveragerequirement to testing.testcoveragetarget.composes.testing.testcasesketch. Plan kind compound, p 0.47; claims rel:testing.testcoveragetarget#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "testing.testcoveragetarget",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.testcoveragetarget flows-to testing.coveragerequirement",
+        "description": "Defines relationship: testing.testcoveragetarget flows-to testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to edge from testing.testcoveragetarget to testing.coveragerequirement duplicates the composes edge between the same types. Proposed: Remove the flows-to edge to coveragerequirement and keep composes.",
+          "claim_id": "rel:testing.testcoveragetarget#2"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcoveragetarget#2): best source of 'flows-to testing.coveragerequirement': testing.testcoveragetarget (0.35), none (0.22), testing.coveragerequirement (0.16); best destination of 'testing.testcoveragetarget flows-to': testing.testcasesketch (0.47), testing.coveragerequirement (0.21), none (0.14); best predicate: composes (0.51), reverse:composes (0.26), reverse:references (0.08). Outcome: alternative (target=testing.testcasesketch; predicate=composes).",
+          "claim_id": "rel:testing.testcoveragetarget#2"
+        }
+      ],
+      "probability": 0.47,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 44,
+        "plan_kind": "compound",
+        "triple": "testing.testcoveragetarget.flows-to.testing.coveragerequirement",
+        "replacement": [
+          "testing.testcoveragetarget.composes.testing.testcasesketch"
+        ],
+        "claims": ["rel:testing.testcoveragetarget#2"]
+      }
+    },
+    {
+      "seq": 45,
+      "op": "update",
+      "target_id": "testing.testcoveragetarget.fulfills.motivation.requirement",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "testing.testcasesketch",
+        "title": "testing.testcasesketch references motivation.requirement",
+        "description": "Defines relationship: testing.testcasesketch references motivation.requirement"
+      },
+      "rationale": "Change of testing.testcoveragetarget.fulfills.motivation.requirement to testing.testcasesketch.references.motivation.requirement. Plan kind compound, p 0.45; claims rel:testing.testcoveragetarget#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "fulfills",
+        "source_spec_node_id": "testing.testcoveragetarget",
+        "destination_spec_node_id": "motivation.requirement",
+        "title": "testing.testcoveragetarget fulfills motivation.requirement",
+        "description": "Defines relationship: testing.testcoveragetarget fulfills motivation.requirement"
+      },
+      "evidence": [
+        {
+          "quote": "The fulfills-requirements and supports-goals edges from testing.testcoveragetarget are semantically dubious because a test target verifies requirements rather than fulfilling them. Proposed: Replace fulfills-requirements (and supports-goals) with a validates relationship.",
+          "claim_id": "rel:testing.testcoveragetarget#4"
+        }
+      ],
+      "probability": 0.447,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 45,
+        "plan_kind": "compound",
+        "triple": "testing.testcoveragetarget.fulfills.motivation.requirement",
+        "replacement": [
+          "testing.testcasesketch.references.motivation.requirement"
+        ],
+        "claims": ["rel:testing.testcoveragetarget#4"]
+      }
+    },
+    {
+      "seq": 46,
+      "op": "update",
+      "target_id": "testing.coveragerequirement.aggregates.testing.partitionvalue",
+      "ref": null,
+      "fields": {
+        "predicate": "constrained-by",
+        "source_spec_node_id": "testing.inputpartitionselection",
+        "destination_spec_node_id": "testing.inputpartitionselection",
+        "title": "testing.inputpartitionselection constrained-by testing.inputpartitionselection",
+        "description": "Defines relationship: testing.inputpartitionselection constrained-by testing.inputpartitionselection"
+      },
+      "rationale": "Change of testing.coveragerequirement.aggregates.testing.partitionvalue to testing.inputpartitionselection.constrained-by.testing.inputpartitionselection. Plan kind compound, p 0.42; claims rel:testing.coveragerequirement#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.partitionvalue",
+        "title": "testing.coveragerequirement aggregates testing.partitionvalue",
+        "description": "Defines relationship: testing.coveragerequirement aggregates testing.partitionvalue"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships aggregates and references from testing.coveragerequirement to testing.partitionvalue are redundant. Proposed: Keep one relationship between CoverageRequirement and PartitionValue and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#4): best source of 'aggregates testing.partitionvalue': testing.inputpartitionselection (0.42), testing.coveragerequirement (0.28), none (0.19); best destination of 'testing.coveragerequirement aggregates': testing.inputpartitionselection (0.50), testing.partitionvalue (0.35), none (0.10); best predicate: reverse:constrained-by (0.47), references (0.18), none (0.12). Outcome: alternative (source=testing.inputpartitionselection; target=testing.inputpartitionselection; predicate=reverse:constrained-by).",
+          "claim_id": "rel:testing.coveragerequirement#4"
+        }
+      ],
+      "probability": 0.42,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 46,
+        "plan_kind": "compound",
+        "triple": "testing.coveragerequirement.aggregates.testing.partitionvalue",
+        "replacement": [
+          "testing.inputpartitionselection.constrained-by.testing.inputpartitionselection"
+        ],
+        "claims": ["rel:testing.coveragerequirement#4"]
+      }
+    },
+    {
+      "seq": 47,
+      "op": "update",
+      "target_id": "testing.testcasesketch.tests.testing.coveragerequirement",
+      "ref": null,
+      "fields": {
+        "predicate": "validates",
+        "destination_spec_node_id": "api.operation",
+        "title": "testing.testcasesketch validates api.operation",
+        "description": "Defines relationship: testing.testcasesketch validates api.operation"
+      },
+      "rationale": "Change of testing.testcasesketch.tests.testing.coveragerequirement to testing.testcasesketch.validates.api.operation. Plan kind compound, p 0.32; claims rel:testing.testcasesketch#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "tests",
+        "source_spec_node_id": "testing.testcasesketch",
+        "destination_spec_node_id": "testing.coveragerequirement",
+        "title": "testing.testcasesketch tests testing.coveragerequirement",
+        "description": "Defines relationship: testing.testcasesketch tests testing.coveragerequirement"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships tests, validates and references from testcasesketch to CoverageRequirement overlap in meaning; only references and validates should be kept. Proposed: Remove the tests relationship to CoverageRequirement and keep references and validates.",
+          "claim_id": "rel:testing.testcasesketch#1"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.testcasesketch#1): best source of 'tests testing.coveragerequirement': testing.testcasesketch (0.75), none (0.08), testing.coveragerequirement (0.07); best destination of 'testing.testcasesketch tests': api.operation (0.32), testing.coveragerequirement (0.24), application.applicationfunction (0.18); best predicate: validates (0.54), realizes (0.16), reverse:flows-to (0.09). Outcome: alternative (target=api.operation; predicate=validates).",
+          "claim_id": "rel:testing.testcasesketch#1"
+        }
+      ],
+      "probability": 0.323,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 47,
+        "plan_kind": "compound",
+        "triple": "testing.testcasesketch.tests.testing.coveragerequirement",
+        "replacement": ["testing.testcasesketch.validates.api.operation"],
+        "claims": ["rel:testing.testcasesketch#1"]
+      }
+    },
+    {
+      "seq": 48,
+      "op": "delete",
+      "target_id": "testing.testcoveragemodel.fulfills.motivation.requirement",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.testcoveragemodel.fulfills.motivation.requirement: testing.testcasesketch.references.motivation.requirement is produced by an earlier operation in this proposal and expresses it. Change of testing.testcoveragemodel.fulfills.motivation.requirement to testing.testcasesketch.references.motivation.requirement. Plan kind compound, p 0.25; claims rel:testing.testcoveragemodel#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "fulfills",
+        "source_spec_node_id": "testing.testcoveragemodel",
+        "destination_spec_node_id": "motivation.requirement",
+        "title": "testing.testcoveragemodel fulfills motivation.requirement",
+        "description": "Defines relationship: testing.testcoveragemodel fulfills motivation.requirement"
+      },
+      "evidence": [
+        {
+          "quote": "The 'fulfills-requirements' predicate to motivation.requirement does not fit since a test plan verifies rather than fulfills requirements; 'validates' is more apt. Proposed: Replace the 'fulfills-requirements' predicate with 'validates'.",
+          "claim_id": "rel:testing.testcoveragemodel#5"
+        }
+      ],
+      "probability": 0.253,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 48,
+        "plan_kind": "compound",
+        "triple": "testing.testcoveragemodel.fulfills.motivation.requirement",
+        "replacement": [
+          "testing.testcasesketch.references.motivation.requirement"
+        ],
+        "claims": ["rel:testing.testcoveragemodel#5"]
+      }
+    },
+    {
+      "seq": 49,
+      "op": "update",
+      "target_id": "testing.outcomecategory.aggregates.testing.testcasesketch",
+      "ref": null,
+      "fields": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "testing.testcasesketch",
+        "destination_spec_node_id": "testing.testcoveragemodel",
+        "title": "testing.testcasesketch depends-on testing.testcoveragemodel",
+        "description": "Defines relationship: testing.testcasesketch depends-on testing.testcoveragemodel"
+      },
+      "rationale": "Change of testing.outcomecategory.aggregates.testing.testcasesketch to testing.testcasesketch.depends-on.testing.testcoveragemodel. Claims disagree on the replacement (testing.testcasesketch.depends-on.testing.testcoveragemodel | testing.testcasesketch.depends-on.testing.outcomecategory); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.63; claims node:testing.outcomecategory#6, rel:testing.outcomecategory#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "testing.outcomecategory",
+        "destination_spec_node_id": "testing.testcasesketch",
+        "title": "testing.outcomecategory aggregates testing.testcasesketch",
+        "description": "Defines relationship: testing.outcomecategory aggregates testing.testcasesketch"
+      },
+      "evidence": [
+        {
+          "quote": "The 'outcomecategory aggregates testcasesketch' relationship duplicates 'testcasesketch depends-on outcomecategory' in the opposite direction. Proposed: Remove one of the two relationships, keeping a single direction.",
+          "claim_id": "node:testing.outcomecategory#6"
+        },
+        {
+          "quote": "The relationship testing.outcomecategory aggregates testing.testcasesketch overlaps with the sketch's own depends-on reference to the outcome category, and is likely redundant with the inverse testcasesketch-to-outcomecategory link. Proposed: Remove one of the two relationships, likely the outcomecategory aggregates testcasesketch relationship, keeping the sketch-to-outcome link.",
+          "claim_id": "rel:testing.outcomecategory#1"
+        },
+        {
+          "quote": "Sorting answers (node:testing.outcomecategory#6): best source of 'aggregates testing.testcasesketch': testing.testcoveragemodel (0.34), testing.outcomecategory (0.31), testing.coveragerequirement (0.15); best destination of 'testing.outcomecategory aggregates': testing.testcasesketch (0.79), none (0.11), testing.coveragerequirement (0.03); best predicate: reverse:depends-on (0.64), aggregates (0.10), none (0.09). Outcome: alternative (source=testing.testcoveragemodel; predicate=reverse:depends-on).",
+          "claim_id": "node:testing.outcomecategory#6"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.outcomecategory#1): best source of 'aggregates testing.testcasesketch': none (0.38), testing.testcoveragemodel (0.23), testing.outcomecategory (0.20); best destination of 'testing.outcomecategory aggregates': testing.testcasesketch (0.67), none (0.23), testing.coveragerequirement (0.03); best predicate: reverse:depends-on (0.62), none (0.22), aggregates (0.05). Outcome: alternative (predicate=reverse:depends-on).",
+          "claim_id": "rel:testing.outcomecategory#1"
+        }
+      ],
+      "probability": 0.625,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 49,
+        "plan_kind": "conflict",
+        "triple": "testing.outcomecategory.aggregates.testing.testcasesketch",
+        "replacement": [
+          "testing.testcasesketch.depends-on.testing.testcoveragemodel",
+          "testing.testcasesketch.depends-on.testing.outcomecategory"
+        ],
+        "claims": [
+          "node:testing.outcomecategory#6",
+          "rel:testing.outcomecategory#1"
+        ]
+      }
+    },
+    {
+      "seq": 50,
+      "op": "update",
+      "target_id": "testing.coveragerequirement.composes.testing.testcoveragetarget",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.inputpartitionselection",
+        "destination_spec_node_id": "testing.testcoveragemodel",
+        "title": "testing.inputpartitionselection composes testing.testcoveragemodel",
+        "description": "Defines relationship: testing.inputpartitionselection composes testing.testcoveragemodel"
+      },
+      "rationale": "Change of testing.coveragerequirement.composes.testing.testcoveragetarget to testing.inputpartitionselection.composes.testing.testcoveragemodel. Claims disagree on the replacement (testing.inputpartitionselection.composes.testing.testcoveragemodel | testing.testcoveragetarget.composes.testing.testcoveragemodel); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.48; claims rel:testing.coveragerequirement#6, rel:testing.coveragerequirement#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.testcoveragetarget",
+        "title": "testing.coveragerequirement composes testing.testcoveragetarget",
+        "description": "Defines relationship: testing.coveragerequirement composes testing.testcoveragetarget"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationship from testing.coveragerequirement to testing.testcoveragetarget is inverted, because the target owns the requirement (the reverse composition already exists). Proposed: Remove the composes relationship from CoverageRequirement to TestCoverageTarget and rely on TestCoverageTarget composes CoverageRequirement.",
+          "claim_id": "rel:testing.coveragerequirement#6"
+        },
+        {
+          "quote": "The relationships composes and references from testing.coveragerequirement to testing.testcoveragetarget are redundant. Proposed: Keep one relationship between CoverageRequirement and TestCoverageTarget and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#5"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#6): best source of 'composes testing.testcoveragetarget': testing.testcoveragemodel (0.36), testing.testcoveragetarget (0.33), none (0.22); best destination of 'testing.coveragerequirement composes': testing.inputpartitionselection (0.24), testing.outcomecategory (0.18), testing.testcoveragetarget (0.16); best predicate: reverse:composes (0.66), references (0.17), depends-on (0.06). Outcome: alternative (source=testing.testcoveragemodel; target=testing.inputpartitionselection; predicate=reverse:composes).",
+          "claim_id": "rel:testing.coveragerequirement#6"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#5): best source of 'composes testing.testcoveragetarget': testing.testcoveragemodel (0.48), testing.testcoveragetarget (0.19), testing.coveragerequirement (0.13); best destination of 'testing.coveragerequirement composes': testing.testcoveragetarget (0.47), none (0.15), testing.outcomecategory (0.14); best predicate: reverse:composes (0.52), references (0.12), depends-on (0.12). Outcome: alternative (source=testing.testcoveragemodel; predicate=reverse:composes).",
+          "claim_id": "rel:testing.coveragerequirement#5"
+        }
+      ],
+      "probability": 0.482,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 50,
+        "plan_kind": "conflict",
+        "triple": "testing.coveragerequirement.composes.testing.testcoveragetarget",
+        "replacement": [
+          "testing.inputpartitionselection.composes.testing.testcoveragemodel",
+          "testing.testcoveragetarget.composes.testing.testcoveragemodel"
+        ],
+        "claims": [
+          "rel:testing.coveragerequirement#6",
+          "rel:testing.coveragerequirement#5"
+        ]
+      }
+    },
+    {
+      "seq": 51,
+      "op": "delete",
+      "target_id": "testing.coveragerequirement.accesses.testing.inputselection",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragerequirement.accesses.testing.inputselection: testing.testcasesketch.accesses.testing.inputpartitionselection already exists and expresses it. Plan kind conflict, p 0.44; claims node:testing.inputselection#4, rel:testing.coveragerequirement#8.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.inputselection",
+        "title": "testing.coveragerequirement accesses testing.inputselection",
+        "description": "Defines relationship: testing.coveragerequirement accesses testing.inputselection"
+      },
+      "evidence": [
+        {
+          "quote": "The coveragerequirement-accesses-inputselection relationship mixes design-level (coverage requirement) and case-level (input selection) concerns. Proposed: none stated",
+          "claim_id": "node:testing.inputselection#4"
+        },
+        {
+          "quote": "The accesses relationship from testing.coveragerequirement to testing.inputselection crosses into test-case data, which is outside the scope of a coverage requirement. Proposed: Remove the accesses relationship from CoverageRequirement to InputSelection.",
+          "claim_id": "rel:testing.coveragerequirement#8"
+        },
+        {
+          "quote": "Sorting answers (node:testing.inputselection#4): best source of 'accesses testing.inputselection': testing.testcasesketch (0.44), testing.inputpartitionselection (0.24), testing.coveragerequirement (0.12); best destination of 'testing.coveragerequirement accesses': testing.inputpartitionselection (0.74), none (0.08), testing.inputselection (0.07); best predicate: none (0.51), reverse:references (0.26), references (0.06). Outcome: alternative (source=testing.testcasesketch; target=testing.inputpartitionselection).",
+          "claim_id": "node:testing.inputselection#4"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#8): best source of 'accesses testing.inputselection': none (0.34), testing.testcasesketch (0.25), testing.coveragerequirement (0.19); best destination of 'testing.coveragerequirement accesses': testing.inputselection (0.66), testing.inputpartitionselection (0.20), none (0.11); best predicate: reverse:references (0.38), none (0.36), references (0.07). Outcome: alternative (predicate=reverse:references).",
+          "claim_id": "rel:testing.coveragerequirement#8"
+        }
+      ],
+      "probability": 0.443,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 51,
+        "plan_kind": "conflict",
+        "triple": "testing.coveragerequirement.accesses.testing.inputselection",
+        "replacement": [
+          "testing.testcasesketch.accesses.testing.inputpartitionselection",
+          "testing.inputselection.references.testing.coveragerequirement"
+        ],
+        "claims": [
+          "node:testing.inputselection#4",
+          "rel:testing.coveragerequirement#8"
+        ]
+      }
+    },
+    {
+      "seq": 52,
+      "op": "delete",
+      "target_id": "testing.coveragerequirement.composes.testing.outcomecategory",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove testing.coveragerequirement.composes.testing.outcomecategory: testing.coveragerequirement.references.testing.outcomecategory is produced by an earlier operation in this proposal and expresses it. Change of testing.coveragerequirement.composes.testing.outcomecategory to testing.coveragerequirement.references.testing.outcomecategory. Claims disagree on the replacement (testing.coveragerequirement.references.testing.outcomecategory | testing.testcoveragetarget.references.testing.outcomecategory); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.37; claims rel:testing.coveragerequirement#3, rel:testing.coveragerequirement#9.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "testing.coveragerequirement",
+        "destination_spec_node_id": "testing.outcomecategory",
+        "title": "testing.coveragerequirement composes testing.outcomecategory",
+        "description": "Defines relationship: testing.coveragerequirement composes testing.outcomecategory"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships composes and depends-on from testing.coveragerequirement to testing.outcomecategory are redundant. Proposed: Keep one relationship between CoverageRequirement and OutcomeCategory and remove the other.",
+          "claim_id": "rel:testing.coveragerequirement#3"
+        },
+        {
+          "quote": "OutcomeCategory relationships belong to the TestCoverageTarget rather than to the CoverageRequirement, so the composes and depends-on relationships to outcomecategory are misplaced. Proposed: Move the outcome category association to TestCoverageTarget and remove it from CoverageRequirement.",
+          "claim_id": "rel:testing.coveragerequirement#9"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#3): best source of 'composes testing.outcomecategory': testing.coveragerequirement (0.46), testing.testcoveragemodel (0.25), none (0.13); best destination of 'testing.coveragerequirement composes': testing.outcomecategory (0.65), testing.inputpartitionselection (0.10), none (0.09); best predicate: references (0.37), reverse:serves (0.24), uses (0.15). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.coveragerequirement#9): best source of 'composes testing.outcomecategory': testing.testcoveragetarget (0.47), testing.testcoveragemodel (0.23), none (0.10); best destination of 'testing.coveragerequirement composes': testing.outcomecategory (0.70), testing.testcoveragetarget (0.17), testing.inputpartitionselection (0.05); best predicate: references (0.36), uses (0.17), reverse:serves (0.15). Outcome: alternative (source=testing.testcoveragetarget; predicate=references).",
+          "claim_id": "rel:testing.coveragerequirement#9"
+        }
+      ],
+      "probability": 0.369,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 52,
+        "plan_kind": "conflict",
+        "triple": "testing.coveragerequirement.composes.testing.outcomecategory",
+        "replacement": [
+          "testing.coveragerequirement.references.testing.outcomecategory",
+          "testing.testcoveragetarget.references.testing.outcomecategory"
+        ],
+        "claims": [
+          "rel:testing.coveragerequirement#3",
+          "rel:testing.coveragerequirement#9"
+        ]
+      }
+    },
+    {
+      "seq": 53,
+      "op": "update",
+      "target_id": "testing.environmentfactor.flows-to.testing.coveragesummary",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "testing.contextvariation",
+        "destination_spec_node_id": "testing.contextvariation",
+        "title": "testing.contextvariation flows-to testing.contextvariation",
+        "description": "Defines relationship: testing.contextvariation flows-to testing.contextvariation"
+      },
+      "rationale": "Change of testing.environmentfactor.flows-to.testing.coveragesummary to testing.contextvariation.flows-to.testing.contextvariation. Claims disagree on the replacement (testing.contextvariation.flows-to.testing.contextvariation | testing.contextvariation.flows-to.testing.coveragesummary); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.34; claims node:testing.environmentfactor#3, rel:testing.environmentfactor#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "testing.environmentfactor",
+        "destination_spec_node_id": "testing.coveragesummary",
+        "title": "testing.environmentfactor flows-to testing.coveragesummary",
+        "description": "Defines relationship: testing.environmentfactor flows-to testing.coveragesummary"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'flows-to' from testing.environmentfactor to testing.coveragesummary looks semantically doubtful for an environmental variable. Proposed: none stated",
+          "claim_id": "node:testing.environmentfactor#3"
+        },
+        {
+          "quote": "The relationship testing.environmentfactor flows-to testing.coveragesummary is odd, since coverage summaries total targets, requirements and sketches, not environment factors. Proposed: Remove the flows-to relationship from environmentfactor to coveragesummary.",
+          "claim_id": "rel:testing.environmentfactor#4"
+        },
+        {
+          "quote": "Sorting answers (node:testing.environmentfactor#3): best source of 'flows-to testing.coveragesummary': testing.contextvariation (0.33), testing.coveragerequirement (0.23), none (0.16); best destination of 'testing.environmentfactor flows-to': testing.contextvariation (0.42), none (0.42), testing.coveragerequirement (0.05); best predicate: none (0.87), flows-to (0.04), references (0.03). Outcome: alternative (source=testing.contextvariation; target=testing.contextvariation).",
+          "claim_id": "node:testing.environmentfactor#3"
+        },
+        {
+          "quote": "Sorting answers (rel:testing.environmentfactor#4): best source of 'flows-to testing.coveragesummary': testing.contextvariation (0.34), testing.coveragerequirement (0.19), none (0.16); best destination of 'testing.environmentfactor flows-to': none (0.61), testing.contextvariation (0.18), testing.coveragesummary (0.10); best predicate: none (0.81), flows-to (0.08), serves (0.03). Outcome: alternative (source=testing.contextvariation).",
+          "claim_id": "rel:testing.environmentfactor#4"
+        }
+      ],
+      "probability": 0.343,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 53,
+        "plan_kind": "conflict",
+        "triple": "testing.environmentfactor.flows-to.testing.coveragesummary",
+        "replacement": [
+          "testing.contextvariation.flows-to.testing.contextvariation",
+          "testing.contextvariation.flows-to.testing.coveragesummary"
+        ],
+        "claims": [
+          "node:testing.environmentfactor#3",
+          "rel:testing.environmentfactor#4"
+        ]
+      }
+    }
+  ]
+}
