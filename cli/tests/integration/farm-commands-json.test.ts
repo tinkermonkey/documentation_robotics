@@ -303,10 +303,12 @@ describe("Farm Commands - JSON Output Format Support", () => {
     await farmRemoveCommand("evil-project", { deleteModel: true, format: "json" });
     console.log = originalLog;
 
-    // Parse output and verify error
+    // The project is deregistered, but nothing outside the farm root is ever deleted
     const output = JSON.parse(capturedOutput);
-    expect(output.status).toBe("error");
-    expect(output.message).toContain("Invalid model path");
+    expect(output.status).toBe("ok");
+    expect(output.modelDeleted).toBe(false);
+    expect(output.model_kept_reason).toMatch(/outside the farm root/);
+    expect((await FarmManifest.load(farmYamlPath)).getProject("evil-project")).toBeUndefined();
 
     // Verify the target directory outside farm was NOT deleted
     expect(await fileExists(targetDir)).toBe(true);
@@ -715,6 +717,254 @@ describe("Farm Commands - JSON Output Format Support", () => {
       expect(await fileExists(jsonReport)).toBe(true);
       const report = JSON.parse(await fs.readFile(jsonReport, "utf-8"));
       expect(report.projects[0].project).toBe("svc");
+    });
+  });
+
+  describe("adopting self-hosted models (#962)", () => {
+    /** Create a codebase that self-hosts a model at <dir>/documentation-robotics/model */
+    async function createSelfHostedCodebase(
+      dir: string,
+      options: { git?: boolean; sourceFile?: string } = {}
+    ): Promise<void> {
+      const { Model } = await import("../../src/core/model.js");
+      if (options.git) {
+        await createGitRepo(dir, { [options.sourceFile ?? "src/main.ts"]: "export class MainService {}\n" });
+      } else {
+        await ensureDir(dir);
+      }
+      await Model.init(dir, {
+        name: path.basename(dir),
+        version: "0.1.0",
+        specVersion: "0.9.0",
+        created: new Date().toISOString(),
+      });
+    }
+
+    /** Give the self-hosted model one element whose source reference maps to `file` */
+    async function addMappedElement(dir: string, file: string): Promise<void> {
+      const { Model } = await import("../../src/core/model.js");
+      const { Element } = await import("../../src/core/element.js");
+      const { Layer } = await import("../../src/core/layer.js");
+      const model = await Model.load(dir);
+      const appLayer = new Layer("application");
+      model.layers.set("application", appLayer);
+      appLayer.addElement(
+        new Element({
+          id: "application.service.main-service",
+          path: "application.service.main-service",
+          name: "Main Service",
+          description: "Main service",
+          type: "service",
+          layer_id: "application",
+          source_reference: {
+            type: "github",
+            repository: "test-repo",
+            locations: [{ file, symbol: "MainService" }],
+          },
+        })
+      );
+      await model.saveLayer("application");
+    }
+
+    function commitChange(repo: string, file: string, content: string): void {
+      execSync("git add -A", { cwd: repo, stdio: "pipe" });
+      // Nothing to commit on a clean tree is fine; the file write below creates the change
+      try {
+        execSync("git commit -q -m 'wip'", { cwd: repo, stdio: "pipe" });
+      } catch {
+        // clean tree
+      }
+      execSync(`printf '%s' "${content}" > ${JSON.stringify(path.join(repo, file))}`, { stdio: "pipe" });
+      execSync("git add -A", { cwd: repo, stdio: "pipe" });
+      execSync("git commit -q -m 'Change source'", { cwd: repo, stdio: "pipe" });
+    }
+
+    const lastJson = (logs: string[]) => JSON.parse([...logs].reverse().find((l) => l.startsWith("{"))!);
+
+    let siblingDir: string;
+    let siblingName: string;
+
+    beforeEach(async () => {
+      await FarmManifest.create("Test Farm").save(farmYamlPath);
+      siblingName = `adopt-sibling-${Date.now()}`;
+      siblingDir = path.join(path.dirname(farmDir), siblingName);
+    });
+
+    afterEach(async () => {
+      await fs.rm(siblingDir, { recursive: true, force: true });
+    });
+
+    it("adopts a sibling codebase's model in place instead of scaffolding a duplicate", async () => {
+      await createSelfHostedCodebase(siblingDir);
+
+      const { json } = await captureCommand(() =>
+        farmAddCommand("heimdall", { codebase: `../${siblingName}`, format: "json" })
+      );
+
+      expect(json.status).toBe("ok");
+      expect(json.model_adopted).toBe(true);
+      expect(json.model).toBe(`../${siblingName}/documentation-robotics/model`);
+      // The farm root comes from process.cwd(), which has symlinks resolved (/private/tmp on macOS)
+      expect(json.model_path).toBe(path.join(await fs.realpath(siblingDir), "documentation-robotics", "model"));
+      expect(json.ignored_model).toBeUndefined();
+
+      // farm.yaml points at the adopted model; no duplicate was created
+      const project = (await FarmManifest.load(farmYamlPath)).getProject("heimdall")!;
+      expect(project.source).toBe(`../${siblingName}`);
+      expect(project.model).toBe(`../${siblingName}/documentation-robotics/model`);
+      expect(await fileExists(path.join(farmDir, "heimdall-model"))).toBe(false);
+      expect(await fileExists(path.join(siblingDir, "documentation-robotics", "model", "manifest.yaml"))).toBe(true);
+    });
+
+    it("adopts a model from a codebase inside the farm root and says so in text mode", async () => {
+      await createSelfHostedCodebase(path.join(farmDir, "svc"));
+
+      const { logs, warnings, exitCode } = await captureCommand(() => farmAddCommand("svc", { format: "text" }));
+
+      expect(exitCode).toBeUndefined();
+      expect(warnings).toEqual([]);
+      expect(logs.join("\n")).toMatch(/Using existing model at .*svc\/documentation-robotics\/model; nothing was created/);
+      expect(logs.join("\n")).toMatch(/Model: svc\/documentation-robotics\/model \(existing model, adopted in place\)/);
+
+      const project = (await FarmManifest.load(farmYamlPath)).getProject("svc")!;
+      expect(project.model).toBe("svc/documentation-robotics/model");
+      expect(await fileExists(path.join(farmDir, "svc-model"))).toBe(false);
+    });
+
+    it("--new-model scaffolds a separate model and warns that the codebase's own model is ignored", async () => {
+      await createSelfHostedCodebase(path.join(farmDir, "svc"));
+
+      const { json, warnings } = await captureCommand(() => farmAddCommand("svc", { newModel: true, format: "json" }));
+
+      expect(json.status).toBe("ok");
+      expect(json.model_adopted).toBe(false);
+      expect(json.model).toBe("svc-model");
+      expect(json.ignored_model).toBe("svc/documentation-robotics/model");
+      expect(json.warning).toMatch(/already has a model at svc\/documentation-robotics\/model; ignoring it/);
+      expect(warnings).toEqual([]); // JSON mode keeps stderr quiet
+      expect(await fileExists(path.join(farmDir, "svc-model", "documentation-robotics", "model", "manifest.yaml"))).toBe(true);
+
+      // Text mode prints the same warning on stderr
+      await createSelfHostedCodebase(path.join(farmDir, "other"));
+      const text = await captureCommand(() => farmAddCommand("other", { newModel: true, format: "text" }));
+      expect(text.warnings.join("\n")).toMatch(/Warning: Codebase 'other' already has a model at other\/documentation-robotics\/model; ignoring it and scaffolding a new model at other-model/);
+    });
+
+    it("--model registers the given model path without creating anything", async () => {
+      const { Model } = await import("../../src/core/model.js");
+      await Model.init(path.join(farmDir, "shared-models", "svc"), {
+        name: "svc",
+        version: "0.1.0",
+        specVersion: "0.9.0",
+        created: new Date().toISOString(),
+      });
+
+      const { json } = await captureCommand(() => farmAddCommand("svc", { model: "shared-models/svc", format: "json" }));
+
+      expect(json.status).toBe("ok");
+      expect(json.model_adopted).toBe(true);
+      expect(json.model).toBe("shared-models/svc/documentation-robotics/model");
+      expect(await fileExists(path.join(farmDir, "svc-model"))).toBe(false);
+
+      // A path without a model is an error, not a scaffold
+      const missing = await captureCommand(() => farmAddCommand("nope", { model: "shared-models/nope", format: "json" }));
+      expect(missing.exitCode).toBe(1);
+      expect(missing.json.message).toMatch(/No model found at 'shared-models\/nope'/);
+
+      // --model and --new-model contradict each other
+      const both = await captureCommand(() => farmAddCommand("x", { model: "shared-models/svc", newModel: true, format: "json" }));
+      expect(both.exitCode).toBe(1);
+      expect(both.json.message).toMatch(/--model and --new-model cannot be combined/);
+    });
+
+    it("remove --delete-model leaves an adopted model untouched", async () => {
+      // Sibling (outside the farm root)
+      await createSelfHostedCodebase(siblingDir);
+      await captureCommand(() => farmAddCommand("heimdall", { codebase: `../${siblingName}`, format: "json" }));
+
+      const sibling = await captureCommand(() => farmRemoveCommand("heimdall", { deleteModel: true, format: "json" }));
+      expect(sibling.json.status).toBe("ok");
+      expect(sibling.json.modelDeleted).toBe(false);
+      expect(sibling.json.model_kept_reason).toMatch(/outside the farm root/);
+      expect(await fileExists(path.join(siblingDir, "documentation-robotics", "model", "manifest.yaml"))).toBe(true);
+      expect((await FarmManifest.load(farmYamlPath)).getProject("heimdall")).toBeUndefined();
+
+      // In-farm codebase with its own model: the model is the codebase's, so it stays too
+      await createSelfHostedCodebase(path.join(farmDir, "svc"));
+      await captureCommand(() => farmAddCommand("svc", { format: "json" }));
+      const inFarm = await captureCommand(() => farmRemoveCommand("svc", { deleteModel: true, format: "text" }));
+      expect(inFarm.exitCode).toBeUndefined();
+      expect(inFarm.warnings.join("\n")).toMatch(/Model folder not deleted: model 'svc\/documentation-robotics\/model' is the codebase's own model/);
+      expect(await fileExists(path.join(farmDir, "svc", "documentation-robotics", "model", "manifest.yaml"))).toBe(true);
+
+      // A model the farm scaffolded itself is still deleted on request
+      await captureCommand(() => farmAddCommand("plain", { format: "json" }));
+      const scaffolded = await captureCommand(() => farmRemoveCommand("plain", { deleteModel: true, format: "json" }));
+      expect(scaffolded.json.modelDeleted).toBe(true);
+      expect(await fileExists(path.join(farmDir, "plain-model"))).toBe(false);
+    });
+
+    it("status, validate and sync --auto-commit work on an adopted model outside the farm repository", async () => {
+      // The farm is its own git repository; the sibling checkout is another one
+      execSync("git init -q", { cwd: farmDir, stdio: "pipe" });
+      execSync("git config user.email 'test@example.com'", { cwd: farmDir, stdio: "pipe" });
+      execSync("git config user.name 'Test User'", { cwd: farmDir, stdio: "pipe" });
+
+      await createSelfHostedCodebase(siblingDir, { git: true, sourceFile: "src/services/main.ts" });
+      execSync("git add -A && git commit -q -m 'Add model'", { cwd: siblingDir, stdio: "pipe" });
+
+      const added = await captureCommand(() => farmAddCommand("heimdall", { codebase: `../${siblingName}`, format: "json" }));
+      expect(added.json.model_adopted).toBe(true);
+      expect(added.json.git_committed).toBe(true);
+
+      // status reads the adopted model's sync state and the sibling's HEAD
+      const status = await captureCommand(() => farmStatusCommand({ format: "json" }));
+      expect(status.json.status).toBe("ok");
+      expect(status.json.projects[0].model).toBe(`../${siblingName}/documentation-robotics/model`);
+      expect(status.json.projects[0].codebase_error).toBeUndefined();
+
+      // validate loads the (still empty, hence valid) model in place
+      const validate = await captureCommand(() => farmValidateCommand({ format: "json", quiet: true }));
+      expect(lastJson(validate.logs).status).toBe("ok");
+      expect(lastJson(validate.logs).all_valid).toBe(true);
+
+      // An element whose source reference maps to the sibling's source file (the same
+      // fixture the auto-commit tests above use; it is not schema-complete, so validate ran first)
+      await addMappedElement(siblingDir, "src/services/main.ts");
+      execSync("git add -A && git commit -q -m 'Add element'", { cwd: siblingDir, stdio: "pipe" });
+
+      // Baseline sync records the sibling's HEAD in the adopted model folder
+      const baseline = await captureCommand(() => farmSyncCommand({ format: "json" }));
+      expect(baseline.json.status).toBe("ok");
+      const syncStatePath = path.join(siblingDir, "documentation-robotics", "model", ".farm-sync.yaml");
+      expect(await fileExists(syncStatePath)).toBe(true);
+      expect(await fileExists(path.join(farmDir, "heimdall-model"))).toBe(false);
+
+      // A source change is synced and auto-committed into the sibling's staging area, but the
+      // farm-level git commit is skipped with a warning: the model is in another repository
+      commitChange(siblingDir, "src/services/main.ts", "export class MainService { run() {} }");
+      const synced = await captureCommand(() => farmSyncCommand({ format: "json", autoCommit: true }));
+      expect(synced.json.status).toBe("ok");
+      const entry = synced.json.projects.find((p: any) => p.project === "heimdall");
+      expect(entry.status).toBe("success");
+      expect(entry.change_count).toBeGreaterThan(0);
+      expect(entry.auto_committed).toBe(true);
+      expect(entry.git_committed).toBe(false);
+      expect(entry.git_warning).toMatch(
+        new RegExp(`Model '\\.\\./${siblingName}/documentation-robotics/model' is outside the farm git repository`)
+      );
+      expect(await fileExists(path.join(siblingDir, "documentation-robotics", "changesets"))).toBe(true);
+      expect(await fileExists(path.join(siblingDir, "documentation-robotics", "model", "documentation-robotics"))).toBe(false);
+      // The farm repository only ever saw farm.yaml
+      const farmLog = execSync("git log --oneline", { cwd: farmDir, encoding: "utf-8" });
+      expect(farmLog).not.toMatch(/Sync:/);
+      expect(farmLog).toMatch(/Add project: heimdall/);
+
+      // Text mode reports the same through handleWarning on stderr
+      commitChange(siblingDir, "src/services/main.ts", "export class MainService { run() {} stop() {} }");
+      const text = await captureCommand(() => farmSyncCommand({ format: "text", autoCommit: true }));
+      expect(text.exitCode).toBeUndefined();
+      expect(text.warnings.join("\n")).toMatch(/Warning: heimdall: Model '.*' is outside the farm git repository/);
     });
   });
 });

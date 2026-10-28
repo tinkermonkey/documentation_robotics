@@ -7,6 +7,7 @@ import { promises as fs, Dirent, Stats } from "fs";
 import path from "path";
 import { parse as parseYAML } from "yaml";
 import { FarmManifest } from "../core/farm-manifest.js";
+import { resolveModelDirectory } from "../utils/project-paths.js";
 
 interface ResolvedExternalModel {
   modelName: string;
@@ -170,46 +171,11 @@ export class ComposedReferenceValidator {
         return;
       }
 
-      // Try standard layout first: {modelPath}/documentation-robotics/model/
-      let modelDir = path.join(modelPath, "documentation-robotics", "model");
-      let stats: Stats | undefined;
-      try {
-        stats = await fs.stat(modelDir);
-      } catch (err) {
-        const errorCode = (err as NodeJS.ErrnoException)?.code;
-        if (errorCode !== "ENOENT") {
-          throw err;
-        }
-      }
+      // Standard ({modelPath}/documentation-robotics/model/), legacy ({modelPath}/model/)
+      // and detached (modelPath itself holds the layer directories) layouts, in that order
+      const resolved = await resolveModelDirectory(modelPath);
 
-      // Fall back to legacy layout: {modelPath}/model/
-      if (!stats) {
-        modelDir = path.join(modelPath, "model");
-        try {
-          stats = await fs.stat(modelDir);
-        } catch (err) {
-          const errorCode = (err as NodeJS.ErrnoException)?.code;
-          if (errorCode !== "ENOENT") {
-            throw err;
-          }
-        }
-      }
-
-      // Fall back to detached layout: modelPath itself is the model directory
-      // (contains layer directories like 01_motivation, 07_api, etc.)
-      if (!stats) {
-        modelDir = modelPath;
-        try {
-          stats = await fs.stat(modelDir);
-        } catch (err) {
-          const errorCode = (err as NodeJS.ErrnoException)?.code;
-          if (errorCode !== "ENOENT") {
-            throw err;
-          }
-        }
-      }
-
-      if (!stats) {
+      if (!resolved) {
         this.addResolutionDiagnostic(
           modelName,
           new Error("Model directory not found"),
@@ -219,7 +185,9 @@ export class ComposedReferenceValidator {
         return;
       }
 
-      if (!stats.isDirectory()) {
+      const modelDir = resolved.modelDir;
+
+      if (!resolved.isDirectory) {
         this.resolutionDiagnostics.addWarning({
           layer: "manifest",
           message: `External model '${modelName}' path is not a directory: ${modelDir}`,

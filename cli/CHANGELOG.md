@@ -56,6 +56,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr farm add` adopts a codebase's own model instead of scaffolding a duplicate.** Before
+  creating `<name>-model`, the command looks for a model at the codebase path using the same
+  lookup order as composed validation (`documentation-robotics/model`, `model`, then the path
+  itself; the resolver now lives in `resolveModelDirectory` in `utils/project-paths.ts`, shared
+  with `ComposedReferenceValidator`). When one is found it is registered in place: `farm.yaml`
+  records its path relative to the farm root (which may leave it, e.g.
+  `../heimdall/documentation-robotics/model`), nothing is created, text output says
+  `(existing model, adopted in place)` and JSON carries `model_adopted: true` plus the absolute
+  `model_path`. A team that adopted DR per repository therefore no longer gets a silent, empty
+  duplicate that `farm sync` writes to forever. `--new-model` forces the old scaffold even when
+  the codebase holds a model, warning that it is being ignored (`ignored_model` and `warning` in
+  JSON); `--model <path>` registers a model explicitly (resolved with the same lookup order, and
+  an error if nothing is there). The rest of the farm copes with an adopted model: `dr farm
+  remove --delete-model` deregisters a project whose model lies outside the farm root or inside
+  its own codebase without deleting anything (`modelDeleted: false` with a `model_kept_reason`;
+  the traversal guard still applies to in-farm deletes, which are no longer an error for an
+  outside path), `dr farm sync --auto-commit` skips the farm-level git commit for a model that
+  belongs to another repository and reports it as `git_committed: false` with a `git_warning`
+  (a warning on stderr in text mode) instead of failing, and `status`, `validate` and `sync` read
+  and write the adopted model where it is. Staged changesets for any model now go under the
+  model's own project root (`Model.rootPath`) rather than `<farm>/<model>`, which is the same
+  place for farm-scaffolded models. (#962)
+
 - **`dr relationship prune [--dry-run] [--layers <layers...>] [--format text|json]`** removes
   every `relationships.yaml` row whose `source` or `target` matches neither the UUID `id` nor the
   dotted `path` of any current element (both forms are legal in the file, so matching on only one

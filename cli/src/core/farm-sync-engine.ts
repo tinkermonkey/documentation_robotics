@@ -305,8 +305,10 @@ export class FarmSyncEngine {
       throw new Error("Model is required for changeset generation");
     }
 
-    const projectModelPath = path.join(this.farmRoot, project.model);
-    const stagingManager = new StagingAreaManager(projectModelPath, this.model);
+    // The staging area lives under the model's project root. For a model the farm
+    // scaffolded that is <farm>/<model>; for one adopted from a codebase it is the codebase
+    // itself, so farm.yaml's `model` (the model directory) must not be used here.
+    const stagingManager = new StagingAreaManager(this.model.rootPath, this.model);
 
     // Create a new changeset
     const changesetName = `farm-sync-${project.name}-${Date.now()}`;
