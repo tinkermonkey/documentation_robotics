@@ -175,7 +175,7 @@ If your source code lives in a different directory than your model (common in mo
 **In `documentation-robotics/model/manifest.yaml`:**
 
 ```yaml
-codebase_path: ../src # Path relative to model root
+codebase_path: src # Relative to the directory that contains documentation-robotics/
 ```
 
 Then proceed with indexing.

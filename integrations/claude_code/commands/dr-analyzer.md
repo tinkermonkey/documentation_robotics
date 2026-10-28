@@ -15,7 +15,7 @@ Analyzers are optional but powerful: they enable verification of your architectu
 
 Your Documentation Robotics project has two roots:
 
-- **Model Root**: Where your `documentation-robotics/` directory lives (contains manifest, changesets, layers)
+- **Model Root** (project root): The directory that **contains** your `documentation-robotics/` folder (manifest, changesets, layers live under `documentation-robotics/model/`)
 - **Codebase Root**: Where your actual source code is located
 
 These can be the **same directory** (typical case) or **different directories** (useful for monorepos, federated architectures, or farms).
@@ -25,18 +25,23 @@ These can be the **same directory** (typical case) or **different directories** 
 When you run analyzer commands, the codebase root is resolved in this order:
 
 1. **`--codebase-path` CLI flag** — Global option that overrides all other resolution methods
-2. **`manifest.codebase_path`** — Relative path from model root (configured in `documentation-robotics/model/manifest.yaml`)
+2. **`manifest.codebase_path`** — Path relative to the model root, i.e. the directory that contains `documentation-robotics/`, **not** the `documentation-robotics/model/` folder the manifest sits in (configured in `documentation-robotics/model/manifest.yaml`; an absolute path also works)
 3. **Farm auto-resolution** — If your model is inside a farm, resolved from farm configuration
 4. **Default** — Uses the model root itself
 
 **Example Resolution:**
 
 ```
-Model root:    /workspace/documentation-robotics/
-Codebase root: /workspace/  (source code lives here)
+Model root:    /workspace/my-app-model/           (contains documentation-robotics/model/manifest.yaml)
+Codebase root: /workspace/my-app/                 (source code lives here)
 
-Configure in manifest.yaml:
-  codebase_path: ../
+Configure in /workspace/my-app-model/documentation-robotics/model/manifest.yaml:
+  codebase_path: ../my-app
+
+Resolved as /workspace/my-app-model/../my-app = /workspace/my-app
+
+Monorepo variant: model root /workspace/monorepo/, code in /workspace/monorepo/services/api/
+  codebase_path: services/api
 
 Or configure via farm (auto-detected if model is in a farm)
 ```
@@ -475,8 +480,8 @@ For detailed verification workflow and reconciliation options, see `/dr-verify` 
 # documentation-robotics/model/manifest.yaml
 version: 0.1.0
 schema: documentation-robotics-v1
-...
-codebase_path: ../ # Relative to model root
+---
+codebase_path: ../my-app # Relative to the directory that contains documentation-robotics/
 ```
 
 Then re-index:

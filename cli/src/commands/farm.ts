@@ -212,17 +212,21 @@ export async function farmAddCommand(
     // Determine codebase path
     let codebasePath = options.codebase || name;
 
-    // Validate path traversal: ensure codebasePath resolves within farmRoot
     const codebaseFullPath = path.resolve(path.join(farmRoot, codebasePath));
     const farmRootResolved = path.resolve(farmRoot);
-    if (!codebaseFullPath.startsWith(farmRootResolved + path.sep)) {
-      throw new Error(
-        `Invalid codebase path: would escape farm root. Path: ${codebasePath}`
-      );
-    }
 
     // Clone if remote URL provided
     if (options.remote) {
+      // Validate path traversal: `git clone` writes to codebaseFullPath, so it must resolve
+      // within farmRoot. Without --remote nothing is written to the codebase path (it is only
+      // recorded in farm.yaml), so a sibling checkout such as `--codebase ../my-service` is
+      // allowed and resolved later by FarmSyncEngine.
+      if (!codebaseFullPath.startsWith(farmRootResolved + path.sep)) {
+        throw new Error(
+          `Invalid codebase path: would escape farm root. Path: ${codebasePath}`
+        );
+      }
+
       if (await fileExists(codebaseFullPath)) {
         throw new Error(`Codebase directory '${codebasePath}' already exists`);
       }
@@ -1340,7 +1344,10 @@ Notes:
     .command("add <name>")
     .description("Add a project to the farm")
     .option("--remote <url>", "Git remote URL to clone")
-    .option("--codebase <path>", "Path to codebase folder (defaults to project name)")
+    .option(
+      "--codebase <path>",
+      "Path to codebase folder, relative to the farm root (defaults to project name; may point outside the farm root unless --remote is used)"
+    )
     .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
@@ -1349,6 +1356,7 @@ Examples:
   $ dr farm add my-service
   $ dr farm add my-service --remote https://github.com/org/my-service.git
   $ dr farm add my-service --codebase ./services/my-service
+  $ dr farm add my-service --codebase ../my-service   # sibling checkout outside the farm root
   $ dr farm add my-service --format json`
     )
     .action(async (name, options) => {

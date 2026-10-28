@@ -198,7 +198,7 @@ These can be the same directory (typical) or different directories (useful for m
 The codebase root is resolved in this order:
 
 1. **`--codebase-path` CLI flag** — Global option that overrides all other resolution methods
-2. **`manifest.codebase_path`** — Configured in `documentation-robotics/model/manifest.yaml`
+2. **`manifest.codebase_path`** — Configured in `documentation-robotics/model/manifest.yaml`; resolved relative to the model root, the directory that contains `documentation-robotics/`
 3. **Farm auto-resolution** — If your model is in a farm, resolved from farm configuration
 4. **Default** — Uses the model root itself
 
@@ -206,7 +206,7 @@ The codebase root is resolved in this order:
 
 ```yaml
 # documentation-robotics/model/manifest.yaml
-codebase_path: ../ # Relative to model root, points to actual source code
+codebase_path: ../my-app # Relative to the directory that contains documentation-robotics/, points to actual source code
 ```
 
 After configuration, re-index for changes to take effect:

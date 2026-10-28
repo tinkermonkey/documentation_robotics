@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A corrupt active changeset now fails `Model.load`.** When
+  `documentation-robotics/changesets/.active` names a changeset whose files cannot be read or
+  parsed, `Model.load` used to fall back silently to the base model, so every command ran as if
+  no changeset were active. It now throws `Failed to load active changeset '<id>': ...`, which
+  means every command that loads the model fails until the changeset is repaired or the
+  `.active` file is removed. A missing `.active` file is still treated as "no active changeset".
+- **`dr farm add --remote` refuses a `--codebase` path outside the farm root.** `git clone` writes
+  to that path, so a value such as `../elsewhere` is rejected before anything runs. Without
+  `--remote` nothing is written to the codebase path (it is only recorded in `farm.yaml`), so a
+  sibling checkout, `dr farm add my-service --codebase ../my-service`, is still accepted. The
+  model folder `<name>-model` is always required to resolve inside the farm root.
 - **CI runs on pull requests.** `cli-tests.yml` now triggers on `pull_request` against `main`
   (build, smoke suite and spec validation); the comprehensive job still runs on manual dispatch
   only. Previously every workflow was dispatch-only, so pull requests carried no checks.
@@ -58,6 +69,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr analyzer` resolves the codebase separately from the model (#953).** The
+  codebase-memory-mcp analyzer used to index, query and run `git rev-parse` in the model root, so
+  a model kept apart from its source code (a farm `<name>-model` folder, or a monorepo whose
+  `documentation-robotics/` sits above the code) was indexed in the wrong directory or failed
+  with "parent directory must be a git repository". Every analyzer subcommand now loads the model
+  and passes its `codebaseRoot`, resolved in this order: the global `--codebase-path` flag,
+  `manifest.codebase_path` (relative to the model root, the directory that contains
+  `documentation-robotics/`), the farm manifest when the model lives in a farm, and otherwise the
+  model root. Index metadata under `.dr/analyzers/` stays keyed to the model root. Models indexed
+  before this change should be re-indexed with `dr analyzer index --force`. The new
+  `/dr-analyzer` Claude Code command documents the workflow.
+- **Commands honour `DR_MODEL_PATH` (#967).** Sixteen commands passed `process.cwd()` to
+  `Model.load` when `--model` was not given, bypassing the environment variable; they now let
+  `Model.load` resolve the model path.
 - **Staged changesets no longer need `--force` to commit after `dr upgrade`.** An upgrade writes a
   new spec version into the manifest (and its migrations may rewrite element files), which changed
   the model snapshot every staged changeset is checked against, so `dr changeset commit` reported

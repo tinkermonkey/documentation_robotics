@@ -185,7 +185,7 @@ dr analyzer index
 - **Pre-Briefs:** Analyzer provides summaries of endpoints, services, datastores that `/dr-map` uses for high-confidence extraction
 - **Three Buckets:** Verification shows **matched** (good), **graph-only** (gaps), **model-only** (drift)
 - **Interactive Reconciliation:** `/dr-verify` prompts you to add gaps or remove drift one by one
-- **Dual-Root Architecture:** Your model (metadata) and codebase (source code) can be in different directories. Configure via `codebase_path` in `manifest.yaml` if needed.
+- **Dual-Root Architecture:** Your model (metadata) and codebase (source code) can be in different directories. Configure via `codebase_path` in `manifest.yaml` if needed (relative to the directory that contains `documentation-robotics/`).
 
 ---
 
@@ -198,9 +198,11 @@ If your source code and model are in **separate directories** (common in monorep
 ```yaml
 version: 0.1.0
 schema: documentation-robotics-v1
-...
-codebase_path: ../src # Path relative to model root
+---
+codebase_path: src # Relative to the directory that contains documentation-robotics/
 ```
+
+`codebase_path` is resolved against the model root: the directory that **contains** `documentation-robotics/`, not the `documentation-robotics/model/` folder the manifest sits in. So `src` points at `<model-root>/src`, and a sibling checkout at `<model-root>/../my-app` is `codebase_path: ../my-app`.
 
 **Then re-index:**
 
