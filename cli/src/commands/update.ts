@@ -80,7 +80,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     validateUpdateSourceReferenceOptions(options);
 
     // Load model
-    const model = await Model.load(options.model || process.cwd());
+    const model = await Model.load(options.model);
 
     // Find element
     const layerName = await findElementLayer(model, id);

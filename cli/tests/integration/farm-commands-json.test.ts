@@ -8,7 +8,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
 import { FarmManifest } from "../../src/core/farm-manifest.js";
-import { farmStatusCommand, farmValidateCommand, farmSyncCommand, farmRemoveCommand } from "../../src/commands/farm.js";
+import { farmStatusCommand, farmValidateCommand, farmSyncCommand, farmRemoveCommand, farmAddCommand } from "../../src/commands/farm.js";
 
 describe("Farm Commands - JSON Output Format Support", () => {
   let farmDir: string;
@@ -303,6 +303,119 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     // Clean up
     await fs.rm(externalDir, { recursive: true, force: true });
+  });
+
+  it("should prevent path traversal in codebase path during farm add --remote", async () => {
+    // Create a farm
+    const manifest = FarmManifest.create("Test Farm");
+    await manifest.save(farmYamlPath);
+
+    // Use consistent timestamp for all path constructions
+    const timestamp = Date.now();
+
+    // Create a directory outside the farm to check we don't clone over it
+    const parentDir = path.join("/tmp", `parent-add-${timestamp}`);
+    const targetDir = path.join(parentDir, "target");
+    await ensureDir(targetDir);
+    await fs.writeFile(path.join(targetDir, "protected.txt"), "protected content");
+
+    // Capture console output
+    const originalLog = console.log;
+    const originalError = console.error;
+    let capturedOutput = "";
+    console.log = (msg: string) => {
+      if (typeof msg === "string") {
+        capturedOutput = msg;
+      }
+    };
+    console.error = () => {
+      // Suppress error output
+    };
+
+    // Try to clone into a path that escapes the farm root. --remote is what makes farm add
+    // write to the codebase path, so the guard must reject it before any git clone runs.
+    await farmAddCommand("evil-service", {
+      codebase: `../parent-add-${timestamp}/target`, // Path traversal attempt
+      remote: "https://example.invalid/evil-service.git",
+      format: "json",
+    });
+
+    console.log = originalLog;
+    console.error = originalError;
+
+    // Parse output and verify error
+    const output = JSON.parse(capturedOutput);
+    expect(output.status).toBe("error");
+    expect(output.message).toContain("Invalid codebase path");
+
+    // Verify the target directory outside farm still exists and is intact
+    // (validation rejects the path before any filesystem operations)
+    expect(await fileExists(targetDir)).toBe(true);
+    const content = await fs.readFile(path.join(targetDir, "protected.txt"), "utf-8");
+    expect(content).toBe("protected content");
+
+    // Nothing was recorded in farm.yaml and no model folder was scaffolded
+    const reloaded = await FarmManifest.load(farmYamlPath);
+    expect(reloaded.getProject("evil-service")).toBeUndefined();
+    expect(await fileExists(path.join(farmDir, "evil-service-model"))).toBe(false);
+
+    // Clean up
+    await fs.rm(parentDir, { recursive: true, force: true });
+  });
+
+  it("should accept a sibling codebase path outside the farm root without --remote", async () => {
+    // Create a farm
+    const manifest = FarmManifest.create("Test Farm");
+    await manifest.save(farmYamlPath);
+
+    // A checkout that lives next to the farm, not inside it (the layout from issue #962)
+    const siblingName = `sibling-repo-${Date.now()}`;
+    const siblingDir = path.join(path.dirname(farmDir), siblingName);
+    await ensureDir(siblingDir);
+    await fs.writeFile(path.join(siblingDir, "README.md"), "sibling");
+
+    const originalLog = console.log;
+    const originalError = console.error;
+    let capturedOutput = "";
+    console.log = (msg: string) => {
+      if (typeof msg === "string") {
+        capturedOutput = msg;
+      }
+    };
+    console.error = () => {
+      // Suppress error output
+    };
+
+    try {
+      // Without --remote nothing is written to the codebase path, so a sibling is fine
+      await farmAddCommand("sibling-service", {
+        codebase: `../${siblingName}`,
+        format: "json",
+      });
+
+      console.log = originalLog;
+      console.error = originalError;
+
+      const output = JSON.parse(capturedOutput);
+      expect(output.status).toBe("ok");
+
+      // The project is recorded with the sibling path as its source
+      const reloaded = await FarmManifest.load(farmYamlPath);
+      const project = reloaded.getProject("sibling-service");
+      expect(project).toBeDefined();
+      expect(project!.source).toBe(`../${siblingName}`);
+
+      // The model folder is still created inside the farm root
+      expect(await fileExists(path.join(farmDir, "sibling-service-model"))).toBe(true);
+
+      // The sibling checkout is untouched
+      const content = await fs.readFile(path.join(siblingDir, "README.md"), "utf-8");
+      expect(content).toBe("sibling");
+    } finally {
+      console.log = originalLog;
+      console.error = originalError;
+      await fs.rm(siblingDir, { recursive: true, force: true });
+    }
   });
 
   it("should verify farmRemoveCommand accepts format option", () => {

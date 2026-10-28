@@ -707,7 +707,7 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load(options.model || process.cwd());
+        const model = await Model.load(options.model);
 
         // Find source element for constraints info
         const sourceLayerName = await findElementLayer(model, source);
@@ -858,7 +858,7 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load(options.model || process.cwd());
+        const model = await Model.load(options.model);
 
         // Find relationships to delete (to show confirmation count). Endpoints are
         // matched by the value recorded in the row, so a row whose source or target
@@ -1012,7 +1012,7 @@ Examples:
     .action(async (id, options) => {
       try {
         // Load model
-        const model = await Model.load(options.model || process.cwd());
+        const model = await Model.load(options.model);
         const layerName = await findElementLayer(model, id);
 
         if (!layerName) {
@@ -1098,7 +1098,7 @@ Examples:
     .action(async (source, target, options) => {
       try {
         // Load model
-        const model = await Model.load(options.model || process.cwd());
+        const model = await Model.load(options.model);
         const sourceLayerName = await findElementLayer(model, source);
 
         if (!sourceLayerName) {

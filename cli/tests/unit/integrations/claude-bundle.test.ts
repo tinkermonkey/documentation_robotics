@@ -14,6 +14,7 @@ const commandFiles = readdirSync(commandsDir)
 describe("Claude Code integration bundle — commands", () => {
   it("ships exactly the expected set of dr-* commands", () => {
     expect(commandFiles.map((f) => f.replace(".md", ""))).toEqual([
+      "dr-analyzer",
       "dr-changeset",
       "dr-design",
       "dr-info",

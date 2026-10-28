@@ -34,6 +34,17 @@ interface FarmSyncResultEntry {
   message?: string;
 }
 
+interface ProjectStatus {
+  name: string;
+  source: string;
+  model: string;
+  remote?: string;
+  last_sync_commit: string | undefined;
+  current_commit: string | undefined;
+  has_pending_changes: boolean | undefined;
+  sync_state_error?: string;
+}
+
 /**
  * Check if a directory is a git repository.
  * Returns true if git rev-parse succeeds, false if the directory is not a git repo
@@ -201,9 +212,21 @@ export async function farmAddCommand(
     // Determine codebase path
     let codebasePath = options.codebase || name;
 
+    const codebaseFullPath = path.resolve(path.join(farmRoot, codebasePath));
+    const farmRootResolved = path.resolve(farmRoot);
+
     // Clone if remote URL provided
     if (options.remote) {
-      const codebaseFullPath = path.join(farmRoot, codebasePath);
+      // Validate path traversal: `git clone` writes to codebaseFullPath, so it must resolve
+      // within farmRoot. Without --remote nothing is written to the codebase path (it is only
+      // recorded in farm.yaml), so a sibling checkout such as `--codebase ../my-service` is
+      // allowed and resolved later by FarmSyncEngine.
+      if (!codebaseFullPath.startsWith(farmRootResolved + path.sep)) {
+        throw new Error(
+          `Invalid codebase path: would escape farm root. Path: ${codebasePath}`
+        );
+      }
+
       if (await fileExists(codebaseFullPath)) {
         throw new Error(`Codebase directory '${codebasePath}' already exists`);
       }
@@ -223,7 +246,14 @@ export async function farmAddCommand(
 
     // Create and scaffold model folder
     const modelFolder = `${name}-model`;
-    const modelFullPath = path.join(farmRoot, modelFolder);
+    const modelFullPath = path.resolve(path.join(farmRoot, modelFolder));
+
+    // Validate path traversal for model folder
+    if (!modelFullPath.startsWith(farmRootResolved + path.sep)) {
+      throw new Error(
+        `Invalid model path: would escape farm root. Path: ${modelFolder}`
+      );
+    }
 
     if (!(await fileExists(modelFullPath))) {
       // Initialize model with manifest and layer structure
@@ -453,7 +483,7 @@ export async function farmStatusCommand(options: {
           const lastSyncCommit = syncState.lastSyncCommit;
           const hasPendingChanges = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
 
-          return {
+          const result: ProjectStatus = {
             name: p.name,
             source: p.source,
             model: p.model,
@@ -462,27 +492,37 @@ export async function farmStatusCommand(options: {
             current_commit: currentCommit,
             has_pending_changes: hasPendingChanges,
           };
+          return result;
         } catch (error) {
           // If sync state doesn't exist yet, that's expected - treat as no sync yet
           // For unexpected errors (YAML parse, git permission, etc), always log them
           const errorMsg = getErrorMessage(error);
-          if (
-            !errorMsg.includes("not found") &&
-            !errorMsg.includes("does not exist") &&
-            !errorMsg.includes("ENOENT")
-          ) {
-            // Unexpected error - always log it to surface issues to users
+          const isMissingFile =
+            errorMsg.includes("not found") ||
+            errorMsg.includes("does not exist") ||
+            errorMsg.includes("ENOENT");
+
+          if (!isMissingFile) {
+            // Unexpected error (corrupt YAML, permission denied, etc) - always log it to surface issues
             console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
           }
-          return {
+
+          const result: ProjectStatus = {
             name: p.name,
             source: p.source,
             model: p.model,
             remote: p.remote,
             last_sync_commit: undefined,
             current_commit: undefined,
-            has_pending_changes: false,
+            has_pending_changes: isMissingFile ? false : undefined,
           };
+
+          // Track sync state errors separately from missing files
+          if (!isMissingFile) {
+            result.sync_state_error = errorMsg;
+          }
+
+          return result;
         }
       })
     );
@@ -521,7 +561,10 @@ export async function farmStatusCommand(options: {
           if (project.remote) {
             console.log(`    Remote:   ${project.remote}`);
           }
-          if (project.has_pending_changes) {
+          if (project.sync_state_error) {
+            console.log(`    Status:   ${ansis.red("✗ Sync state corrupted")}`);
+            console.log(`    Error:    ${project.sync_state_error}`);
+          } else if (project.has_pending_changes) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
           } else if (project.last_sync_commit) {
             console.log(`    Status:   ${ansis.green("✓ Up to date")}`);
@@ -1301,7 +1344,10 @@ Notes:
     .command("add <name>")
     .description("Add a project to the farm")
     .option("--remote <url>", "Git remote URL to clone")
-    .option("--codebase <path>", "Path to codebase folder (defaults to project name)")
+    .option(
+      "--codebase <path>",
+      "Path to codebase folder, relative to the farm root (defaults to project name; may point outside the farm root unless --remote is used)"
+    )
     .option("--format <format>", "Output format: text, json", "text")
     .addHelpText(
       "after",
@@ -1310,6 +1356,7 @@ Examples:
   $ dr farm add my-service
   $ dr farm add my-service --remote https://github.com/org/my-service.git
   $ dr farm add my-service --codebase ./services/my-service
+  $ dr farm add my-service --codebase ../my-service   # sibling checkout outside the farm root
   $ dr farm add my-service --format json`
     )
     .action(async (name, options) => {

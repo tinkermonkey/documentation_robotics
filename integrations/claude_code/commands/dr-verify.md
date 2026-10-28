@@ -18,6 +18,15 @@ Cross-reference the Documentation Robotics model against an external code analyz
 
 4. Offers actionable next steps: add missing routes, remove orphaned operations, or ignore entries
 
+## Important: Dual-Root Configuration
+
+The verification process respects your project's dual-root configuration. If your codebase root (source code location) differs from your model root (metadata location), ensure:
+
+1. **Configure in manifest**: Set `codebase_path` in `documentation-robotics/model/manifest.yaml` if needed
+2. **Re-index if needed**: If you recently updated `codebase_path`, run `dr analyzer index --force` before verifying
+
+See [dr-analyzer.md](dr-analyzer.md) for complete dual-root documentation.
+
 ## Usage
 
 ```

@@ -20,42 +20,58 @@ export interface FarmProject {
 }
 
 // Validate project object has required fields and key/name consistency
-function validateFarmProject(project: any, projectKey: string): FarmProject {
+function validateFarmProject(project: unknown, projectKey: string): FarmProject {
   if (!project || typeof project !== "object") {
     throw new Error(
       `Invalid project entry "${projectKey}": expected object, got ${typeof project}`
     );
   }
 
-  if (typeof project.name !== "string" || project.name === "") {
+  const p = project as Record<string, unknown>;
+
+  if (typeof p.name !== "string" || p.name === "") {
     throw new Error(
       `Project "${projectKey}" is missing required 'name' field. ` +
       `Each project must have name, source, and model fields.`
     );
   }
 
-  if (typeof project.source !== "string" || project.source === "") {
+  if (typeof p.source !== "string" || p.source === "") {
     throw new Error(
       `Project "${projectKey}" is missing required 'source' field. ` +
       `Each project must have name, source, and model fields.`
     );
   }
 
-  if (typeof project.model !== "string" || project.model === "") {
+  if (typeof p.model !== "string" || p.model === "") {
     throw new Error(
       `Project "${projectKey}" is missing required 'model' field. ` +
       `Each project must have name, source, and model fields.`
     );
   }
 
-  if (project.name !== projectKey) {
+  if (p.name !== projectKey) {
     throw new Error(
-      `Project name mismatch: key is "${projectKey}" but project.name is "${project.name}". ` +
+      `Project name mismatch: key is "${projectKey}" but project.name is "${p.name}". ` +
       `They must match for consistent sync state tracking.`
     );
   }
 
-  return project as FarmProject;
+  const validatedProject: FarmProject = {
+    name: p.name,
+    source: p.source,
+    model: p.model,
+  };
+
+  if (typeof p.remote === "string") {
+    validatedProject.remote = p.remote;
+  }
+
+  if (typeof p.branch === "string") {
+    validatedProject.branch = p.branch;
+  }
+
+  return validatedProject;
 }
 
 /**

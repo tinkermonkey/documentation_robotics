@@ -15,7 +15,7 @@ import { spawnSync } from "child_process";
 import * as path from "path";
 import { readFile } from "fs/promises";
 import { CLIError, ErrorCategory, handleWarning } from "../utils/errors.js";
-import type { AnalyzerBackend } from "./base-analyzer.js";
+import type { AnalyzerBackend, AnalyzerCodebaseOptions } from "./base-analyzer.js";
 import type {
   AnalyzerStatus,
   DetectionResult,
@@ -330,12 +330,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Checks if the project is indexed and whether the index is fresh relative to git HEAD.
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Current status including detection, index state, and freshness
    */
-  async status(projectRoot: string): Promise<AnalyzerStatus> {
+  async status(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<AnalyzerStatus> {
     const detected = await this.detect(projectRoot);
 
-    // Read index metadata if it exists
+    // Resolve the effective codebase root for git operations
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
+    // Read index metadata if it exists (keyed to model root)
     const analyzerName = this.mapper.getAnalyzerName();
     const indexMeta = await readIndexMeta(projectRoot, analyzerName);
 
@@ -351,10 +355,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
     }
 
     // Check freshness: compare stored git HEAD to current HEAD
+    // Run git in the effective codebase root, not the model root
     let fresh = false;
     try {
       const currentHeadResult = spawnSync("git", ["rev-parse", "HEAD"], {
-        cwd: projectRoot,
+        cwd: effectiveCodebaseRoot,
         stdio: "pipe",
         encoding: "utf-8",
       });
@@ -363,12 +368,20 @@ export class CbmAnalyzer implements AnalyzerBackend {
         const currentHead = currentHeadResult.stdout.trim();
         fresh = currentHead === indexMeta.git_head;
       } else {
-        // Git command failed - log diagnostic info
+        // Git command failed - log diagnostic info but don't fail if codebaseRoot was provided
         const gitError = currentHeadResult.stderr?.trim() || "git returned non-zero status";
-        handleWarning("Failed to check git freshness", [
-          `Git error: ${gitError}`,
-          "Index freshness cannot be determined - treating as stale",
-        ]);
+        if (options?.codebaseRoot) {
+          handleWarning("Failed to check git freshness in codebase root", [
+            `Codebase root: ${effectiveCodebaseRoot}`,
+            `Git error: ${gitError}`,
+            "Index freshness cannot be determined - treating as stale",
+          ]);
+        } else {
+          handleWarning("Failed to check git freshness", [
+            `Git error: ${gitError}`,
+            "Index freshness cannot be determined - treating as stale",
+          ]);
+        }
         fresh = false;
       }
     } catch (error) {
@@ -399,15 +412,18 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Skips indexing if the index is fresh (git HEAD matches) unless --force is set.
    *
    * @param projectRoot Absolute path to the project root
-   * @param options Optional configuration
+   * @param options Optional configuration including force flag and codebase root
    * @returns Index result with counts and metadata
    */
   async index(
     projectRoot: string,
-    options?: { force?: boolean }
+    options?: { force?: boolean } & AnalyzerCodebaseOptions
   ): Promise<IndexResult> {
-    // Get current status
-    const status = await this.status(projectRoot);
+    // Resolve the effective codebase root for git and indexing operations
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
+    // Get current status (passing codebaseRoot option)
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
 
     // Skip if fresh and not forced
     if (status.indexed && status.fresh && !options?.force) {
@@ -471,7 +487,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
             root_path: string;
           }>)
         : [];
-      const projectExists = projects.some((p) => p.root_path === projectRoot);
+      const projectExists = projects.some((p) => p.root_path === effectiveCodebaseRoot);
 
       // Prevent duplicate CBM entries if project exists and index is fresh.
       // Per FR-3.3, --force is only needed to override a fresh index, not for stale re-indexing.
@@ -504,10 +520,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
         };
       }
 
-      // Get current git HEAD - fail if git is not available
+      // Get current git HEAD from the effective codebase root
       // This must happen before index_repository to avoid inconsistent state
       const headResult = spawnSync("git", ["rev-parse", "HEAD"], {
-        cwd: projectRoot,
+        cwd: effectiveCodebaseRoot,
         stdio: "pipe",
         encoding: "utf-8",
       });
@@ -517,7 +533,8 @@ export class CbmAnalyzer implements AnalyzerBackend {
           "Failed to get git HEAD",
           ErrorCategory.SYSTEM,
           [
-            "Ensure the project is a git repository",
+            "Ensure the codebase root is a git repository",
+            `Codebase root: ${effectiveCodebaseRoot}`,
             "Verify git is installed and functional",
             `Error: ${headResult.stderr?.trim() || "unknown error"}`,
           ]
@@ -542,9 +559,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
         );
       }
 
-      // Index the repository
+      // Index the repository using the effective codebase root
       const indexResponse = (await client.invokeTool("index_repository", {
-        repo_path: projectRoot,
+        repo_path: effectiveCodebaseRoot,
       })) as {
         nodes?: number;
         edges?: number;
@@ -657,22 +674,22 @@ export class CbmAnalyzer implements AnalyzerBackend {
    */
   private async resolveProjectName(
     client: StdioClient,
-    projectRoot: string
+    codebaseRoot: string
   ): Promise<string> {
     const listResponse = (await client.invokeTool("list_projects")) as {
       projects?: Array<{ name: string; root_path: string }>;
     };
     const projects = Array.isArray(listResponse?.projects) ? listResponse.projects : [];
-    const match = projects.find((p) => p.root_path === projectRoot);
+    const match = projects.find((p) => p.root_path === codebaseRoot);
     if (!match) {
       handleWarning(
         "Project not found in CBM backend; using absolute path as project identifier",
         [
-          `Project root: ${projectRoot}`,
+          `Codebase root: ${codebaseRoot}`,
           "Run `dr analyzer index` to ensure the project is indexed",
         ]
       );
-      return projectRoot;
+      return codebaseRoot;
     }
     return match.name;
   }
@@ -684,12 +701,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * the analyzer's mapping, and filters based on test code exclusion rules.
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Array of endpoint candidates with confidence and source info
    * @throws CLIError if the project is not indexed
    */
-  async endpoints(projectRoot: string): Promise<EndpointCandidate[]> {
+  async endpoints(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<EndpointCandidate[]> {
+    // Resolve the effective codebase root
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
     // Check that the project is indexed
-    const status = await this.status(projectRoot);
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(
         `Project not indexed: ${projectRoot}`,
@@ -733,7 +754,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Resolve internal project name for search_graph (requires name, not absolute path)
-      const projectName = await this.resolveProjectName(client, projectRoot);
+      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
 
       // Search for Route nodes using the CBM label from the mapping
       const searchResponse = await client.invokeTool("search_graph", {
@@ -757,7 +778,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         const candidate = await this.transformNodeToEndpoint(
           node,
           routeMapping,
-          projectRoot
+          effectiveCodebaseRoot
         );
 
         // Skip unattributable candidates — empty source_file means the graph
@@ -801,7 +822,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
             for (const record of records) {
               const node = record.n;
               if (!node || !node.file_path) continue;
-              const candidate = this.shapeClientSideEndpoint(node, projectRoot);
+              const candidate = this.shapeClientSideEndpoint(node, effectiveCodebaseRoot);
               if (candidate && !this.isTestCode(candidate)) {
                 candidates.push(candidate);
               }
@@ -832,12 +853,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
    *
    * @param projectRoot Absolute path to the project root
    * @param rawQuery Raw Cypher query string
+   * @param options Optional codebase configuration
    * @returns Raw result from query_graph tool
    * @throws CLIError if project not indexed or query_graph tool unavailable
    */
-  async query(projectRoot: string, rawQuery: string): Promise<unknown> {
+  async query(projectRoot: string, rawQuery: string, options?: AnalyzerCodebaseOptions): Promise<unknown> {
+    // Resolve the effective codebase root
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
     // Check that the project is indexed (same pre-flight checks as endpoints)
-    const status = await this.status(projectRoot);
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(
         `Project not indexed: ${projectRoot}`,
@@ -871,7 +896,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Resolve internal project name — query_graph requires the CBM name, not the absolute path
-      const projectName = await this.resolveProjectName(client, projectRoot);
+      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
 
       // Call query_graph tool
       try {
@@ -951,7 +976,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
   private async transformNodeToEndpoint(
     node: CbmGraphNode,
     mapping: AnalyzerNodeMapping,
-    projectRoot: string
+    codebaseRoot: string
   ): Promise<EndpointCandidate> {
     const properties = node.properties ?? {};
     // Node identifier for display — actual codebase-memory-mcp nodes use 'name', not 'id'
@@ -1031,9 +1056,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
     // Extract source file — check both node-level and properties-level fields
     let sourceFile = String(node.file_path ?? properties.file_path ?? properties.source_file ?? "");
-    if (sourceFile && projectRoot) {
+    if (sourceFile && codebaseRoot) {
       try {
-        sourceFile = path.relative(projectRoot, sourceFile);
+        sourceFile = path.relative(codebaseRoot, sourceFile);
       } catch (error) {
         // Log warning if relative path fails but continue with absolute path
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1093,14 +1118,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Build a low-confidence EndpointCandidate from a client-side API function node.
    * Used as a fallback when no server-side Route nodes are found (ISSUE-003).
    */
-  private shapeClientSideEndpoint(node: CbmGraphNode, projectRoot: string): EndpointCandidate | null {
+  private shapeClientSideEndpoint(node: CbmGraphNode, codebaseRoot: string): EndpointCandidate | null {
     const name = String(node.name ?? node.id ?? "");
     if (!name) return null;
 
     let sourceFile = String(node.file_path ?? "");
-    if (sourceFile && projectRoot) {
+    if (sourceFile && codebaseRoot) {
       try {
-        sourceFile = path.relative(projectRoot, sourceFile);
+        sourceFile = path.relative(codebaseRoot, sourceFile);
       } catch {
         // keep absolute path on failure
       }
@@ -1182,12 +1207,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * at "medium" and excludes test files.
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Array of service candidates with qualifying heuristics populated
    * @throws CLIError if the project is not indexed
    */
-  async services(projectRoot: string): Promise<ServiceCandidate[]> {
+  async services(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<ServiceCandidate[]> {
+    // Resolve the effective codebase root
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
     // Check that the project is indexed
-    const status = await this.status(projectRoot);
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(
         `Project not indexed: ${projectRoot}`,
@@ -1248,7 +1277,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const candidates: ServiceCandidate[] = [];
 
       // Resolve internal project name once before the label search loop
-      const projectName = await this.resolveProjectName(client, projectRoot);
+      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
 
       // Process high-fidelity node types first so the source_file dedup (below) retains
       // class/module level entries over method-level entries from the same file.
@@ -1278,7 +1307,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           const candidate = await this.transformNodeToService(
             node,
             nodeMapping,
-            projectRoot,
+            effectiveCodebaseRoot,
             promotionHeuristicNames
           );
 
@@ -1323,7 +1352,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
   private async transformNodeToService(
     node: CbmGraphNode,
     mapping: AnalyzerNodeMapping,
-    projectRoot: string,
+    codebaseRoot: string,
     promotionHeuristicNames: string[]
   ): Promise<ServiceCandidate> {
     const properties = node.properties ?? {};
@@ -1334,11 +1363,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
     // Suggested ID fragment (same as name for services)
     const suggestedIdFragment = suggestedName;
 
-    // Extract source file (relative to project root)
+    // Extract source file (relative to codebase root)
     let sourceFile = node.file_path ?? "";
-    if (sourceFile && projectRoot) {
+    if (sourceFile && codebaseRoot) {
       try {
-        sourceFile = path.relative(projectRoot, sourceFile);
+        sourceFile = path.relative(codebaseRoot, sourceFile);
       } catch (error) {
         // Log warning if relative path fails but continue with absolute path
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1504,12 +1533,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * naming_indicators from the heuristic parameters. All candidates have confidence "low".
    *
    * @param projectRoot Absolute path to the project root
+   * @param options Optional codebase configuration
    * @returns Array of datastore candidates aggregated by inferred datastore
    * @throws CLIError if the project is not indexed
    */
-  async datastores(projectRoot: string): Promise<DatastoreCandidate[]> {
+  async datastores(projectRoot: string, options?: AnalyzerCodebaseOptions): Promise<DatastoreCandidate[]> {
+    // Resolve the effective codebase root
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
     // Check that the project is indexed
-    const status = await this.status(projectRoot);
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(
         `Project not indexed: ${projectRoot}`,
@@ -1572,7 +1605,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const datastoreFirstSource = new Map<string, string>();
 
       // Resolve internal project name once (search_graph and query_graph require name, not path)
-      const projectName = await this.resolveProjectName(client, projectRoot);
+      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
 
       // Try to use query_graph to traverse IMPORTS edges (1 call instead of many)
       // This implements the spec algorithm requirement for IMPORTS edge traversal
@@ -1688,9 +1721,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
         // Convert file path to relative
         let relativeFile = filePath;
-        if (filePath && projectRoot) {
+        if (filePath && effectiveCodebaseRoot) {
           try {
-            relativeFile = path.relative(projectRoot, filePath);
+            relativeFile = path.relative(effectiveCodebaseRoot, filePath);
           } catch (error) {
             // Log warning if relative path fails but continue with absolute path
             const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1809,7 +1842,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
             if (!node?.file_path) continue;
 
             let relFile = node.file_path;
-            try { relFile = path.relative(projectRoot, node.file_path); } catch { /* keep absolute */ }
+            try { relFile = path.relative(effectiveCodebaseRoot, node.file_path); } catch { /* keep absolute */ }
 
             // Heuristic: files with 'session' in name likely use sessionStorage;
             // otherwise assume localStorage (more common pattern).
@@ -1927,15 +1960,17 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @param projectRoot Absolute path to the project root
    * @param qualifiedName Fully qualified symbol name (e.g., "com.example.UserService.getUser")
    * @param depth Maximum traversal depth (default 3, clamped to max 10)
+   * @param options Optional codebase configuration
    * @returns Array of callers in the call graph
    * @throws CLIError if project not indexed or analyzer not installed
    */
   async callers(
     projectRoot: string,
     qualifiedName: string,
-    depth?: number
+    depth?: number,
+    options?: AnalyzerCodebaseOptions
   ): Promise<CallGraphNode[]> {
-    return this.traceCallPath(projectRoot, qualifiedName, depth, "inbound");
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "inbound", options);
   }
 
   /**
@@ -1949,15 +1984,17 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * @param projectRoot Absolute path to the project root
    * @param qualifiedName Fully qualified symbol name (e.g., "com.example.UserService.getUser")
    * @param depth Maximum traversal depth (default 3, clamped to max 10)
+   * @param options Optional codebase configuration
    * @returns Array of callees in the call graph
    * @throws CLIError if project not indexed or analyzer not installed
    */
   async callees(
     projectRoot: string,
     qualifiedName: string,
-    depth?: number
+    depth?: number,
+    options?: AnalyzerCodebaseOptions
   ): Promise<CallGraphNode[]> {
-    return this.traceCallPath(projectRoot, qualifiedName, depth, "outbound");
+    return this.traceCallPath(projectRoot, qualifiedName, depth, "outbound", options);
   }
 
   /**
@@ -1974,7 +2011,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     qualifiedName: string,
     direction: "outbound" | "inbound",
     depth: number,
-    projectRoot: string
+    codebaseRoot: string
   ): Promise<CallGraphNode[]> {
     // Escape single quotes for Cypher string literals (ISO SQL-style doubling)
     const safeQN = qualifiedName.replace(/'/g, "''");
@@ -2012,7 +2049,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           const key = col.includes(".") ? col.slice(col.lastIndexOf(".") + 1) : col;
           obj[key] = row[i];
         });
-        return shapeCallGraphNode(obj, projectRoot);
+        return shapeCallGraphNode(obj, codebaseRoot);
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -2041,10 +2078,14 @@ export class CbmAnalyzer implements AnalyzerBackend {
     projectRoot: string,
     qualifiedName: string,
     depth: number | undefined,
-    direction: "outbound" | "inbound"
+    direction: "outbound" | "inbound",
+    options?: AnalyzerCodebaseOptions
   ): Promise<CallGraphNode[]> {
+    // Resolve the effective codebase root
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
     // Check that the project is indexed (same pre-flight checks as endpoints)
-    const status = await this.status(projectRoot);
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(
         `Project not indexed: ${projectRoot}`,
@@ -2081,7 +2122,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Resolve internal project name — trace_path requires the CBM name, not the absolute path
-      const projectName = await this.resolveProjectName(client, projectRoot);
+      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
 
       // Call trace_path with the clamped depth
       const traceResponse = (await client.invokeTool("trace_path", {
@@ -2122,7 +2163,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       if (!Array.isArray(traceResponse.nodes)) {
         // trace_path not implemented — fall back to Cypher CALLS query.
         // Pass binary_path (not client): the binary closes the pipe after an unimplemented call.
-        return this.callGraphViaCypher(detection.binary_path, projectName, qualifiedName, direction, clampedDepth, projectRoot);
+        return this.callGraphViaCypher(detection.binary_path, projectName, qualifiedName, direction, clampedDepth, effectiveCodebaseRoot);
       }
 
       if (!Array.isArray(traceResponse.edges)) {
@@ -2163,7 +2204,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         const nodeQualifiedName = node.qualified_name || node.id;
 
         // Shape the node using utility function
-        let callGraphNode = shapeCallGraphNode(node, projectRoot);
+        let callGraphNode = shapeCallGraphNode(node, effectiveCodebaseRoot);
 
         // Determine edge type using utility function
         const nodeDepth = typeof node.depth === "number" ? node.depth : 0;
@@ -2253,16 +2294,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * and delegates comparison to VerifyEngine. Entirely read-only.
    *
    * @param projectRoot Absolute path to the project root
-   * @param options Verification options
+   * @param options Verification options including codebase root
    * @returns Comprehensive verification report
    * @throws CLIError if project not indexed or analyzer not installed
    */
   async verify(
     projectRoot: string,
-    options: VerifyOptions
+    options: VerifyOptions & AnalyzerCodebaseOptions
   ): Promise<VerifyReport> {
+    // Resolve the effective codebase root
+    const effectiveCodebaseRoot = options?.codebaseRoot ?? projectRoot;
+
     // Check that the project is indexed
-    const status = await this.status(projectRoot);
+    const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(
         `Project not indexed: ${projectRoot}`,
@@ -2306,7 +2350,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       });
 
       // Resolve internal project name for search_graph (requires name, not absolute path)
-      const projectName = await this.resolveProjectName(client, projectRoot);
+      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
 
       // Search for Route nodes using the CBM label from the mapping
       const searchResponse = await client.invokeTool("search_graph", {
