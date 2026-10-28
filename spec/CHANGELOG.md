@@ -9,6 +9,14 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Added
 
+- **UX library components reach the application layer** (closes #960). The catalog had eight
+  relationships from UX views, subviews, action components and component instances to application
+  types, but none from `ux.librarycomponent`, so a UI component library was stranded from the rest
+  of the model at the type level. Added `ux.librarycomponent realizes application.applicationcomponent`
+  (the library component is the presentation implementation of the component) and
+  `ux.librarycomponent uses application.applicationfunction` (it invokes the function to load,
+  validate or submit what it shows), the same shape as `ux.view realizes applicationinterface` and
+  `ux.actioncomponent uses applicationfunction`. Additive; no model migration.
 - **`product.workflowstep` node type** — UserWorkflow previously carried only a `complexity` enum and
   free-text documentation, so the steps of a workflow could not be modelled. WorkflowStep is a
   product-level, implementation-independent step (`sequence`, `action`, `outcome`, `optional`) that a

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Librarycomponent realizes Applicationcomponent",
+  "description": "A reusable UI component in a library is the concrete presentation implementation of an application component: the library component is how that component exists in the user interface.",
+  "x-dr-evidence": [
+    "A UI library module (React/Vue/Angular component, design-system entry) whose name or documented purpose matches an application component in the same codebase, or that is the only presentation code of that component."
+  ],
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.librarycomponent.realizes.application.applicationcomponent"
+    },
+    "source_spec_node_id": {
+      "const": "ux.librarycomponent"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "realizes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

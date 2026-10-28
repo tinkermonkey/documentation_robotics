@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Librarycomponent uses Applicationfunction",
+  "description": "A reusable UI component invokes an application function to do its work, for example to load, validate or submit the data it presents.",
+  "x-dr-evidence": [
+    "The component's source calls a service method, store action, hook or client function that is modelled as the application function (an import plus a call in an event handler or effect)."
+  ],
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.librarycomponent.uses.application.applicationfunction"
+    },
+    "source_spec_node_id": {
+      "const": "ux.librarycomponent"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "uses"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}
