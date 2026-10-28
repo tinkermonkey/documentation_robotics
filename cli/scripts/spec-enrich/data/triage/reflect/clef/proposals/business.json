@@ -1,0 +1,970 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: business layer (22 relationship changes)",
+  "rationale": "Relationship schemas in the business layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.730Z",
+  "layer": "business",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "update",
+      "target_id": "business.businessrole.assigned-to.business.businessprocess",
+      "ref": null,
+      "fields": {
+        "predicate": "performs",
+        "title": "business.businessrole performs business.businessprocess",
+        "description": "Defines relationship: business.businessrole performs business.businessprocess"
+      },
+      "rationale": "Rename the predicate of business.businessrole.assigned-to.business.businessprocess to business.businessrole.performs.business.businessprocess. Plan kind rename-predicate, p 0.82; claims node:business.businessprocess#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "assigned-to",
+        "source_spec_node_id": "business.businessrole",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "business.businessrole assigned-to business.businessprocess",
+        "description": "Defines relationship: business.businessrole assigned-to business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The businessrole relationships 'assigned-to' and 'performs' toward businessprocess are duplicates expressing the same meaning. Proposed: Keep one of the two relationships and remove the other.",
+          "claim_id": "node:business.businessprocess#3"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessprocess#3): best source of 'assigned-to business.businessprocess': business.businessrole (0.65), business.businessactor (0.19), business.businesscollaboration (0.06); best destination of 'business.businessrole assigned-to': business.businessprocess (0.69), business.businessfunction (0.08), none (0.06); best predicate: performs (0.82), assigned-to (0.10), none (0.03). Outcome: alternative (predicate=performs).",
+          "claim_id": "node:business.businessprocess#3"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessrole#2): best source of 'assigned-to business.businessprocess': business.businessrole (0.87), business.businessactor (0.04), business.businesscollaboration (0.03); best destination of 'business.businessrole assigned-to': business.businessprocess (0.76), none (0.06), business.businessinteraction (0.05); best predicate: assigned-to (0.74), performs (0.16), none (0.04). Outcome: reproduced.",
+          "claim_id": "rel:business.businessrole#2"
+        }
+      ],
+      "probability": 0.819,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "rename-predicate",
+        "triple": "business.businessrole.assigned-to.business.businessprocess",
+        "replacement": [
+          "business.businessrole.performs.business.businessprocess"
+        ],
+        "claims": ["node:business.businessprocess#3"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "update",
+      "target_id": "business.businessinteraction.serves.business.businessservice",
+      "ref": null,
+      "fields": {
+        "predicate": "realizes",
+        "title": "business.businessinteraction realizes business.businessservice",
+        "description": "Defines relationship: business.businessinteraction realizes business.businessservice"
+      },
+      "rationale": "Rename the predicate of business.businessinteraction.serves.business.businessservice to business.businessinteraction.realizes.business.businessservice. Plan kind rename-predicate, p 0.65; claims node:business.businessinteraction#2, rel:business.businessinteraction#1, rel:business.businessinteraction#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "business.businessinteraction",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "business.businessinteraction serves business.businessservice",
+        "description": "Defines relationship: business.businessinteraction serves business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The 'serves' relationship from business.businessinteraction to business.businessservice is non-standard because in ArchiMate behavior elements realize services. Proposed: Remove or replace the serves relationship to businessservice with a realizes relationship.",
+          "claim_id": "node:business.businessinteraction#2"
+        },
+        {
+          "quote": "The relationship 'business.businessinteraction serves business.businessservice' is semantically off, because in ArchiMate a business interaction realizes a business service and the service then serves consumers. Proposed: Replace the 'serves' relationship from BusinessInteraction to BusinessService with a 'realizes' relationship.",
+          "claim_id": "rel:business.businessinteraction#1"
+        },
+        {
+          "quote": "If a 'realizes' relationship from business.businessinteraction to business.businessservice exists or is intended, the 'serves' relationship between the same pair is redundant with it. Proposed: Remove the 'serves' relationship from BusinessInteraction to BusinessService if a 'realizes' relationship is added.",
+          "claim_id": "rel:business.businessinteraction#2"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessinteraction#2): best source of 'serves business.businessservice': none (0.28), business.businessactor (0.24), business.businessinteraction (0.19); best destination of 'business.businessinteraction serves': business.businessservice (0.44), business.businesscollaboration (0.21), none (0.12); best predicate: realizes (0.65), none (0.17), serves (0.05). Outcome: alternative (predicate=realizes).",
+          "claim_id": "node:business.businessinteraction#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinteraction#1): best source of 'serves business.businessservice': none (0.30), business.businessinteraction (0.25), business.businessactor (0.21); best destination of 'business.businessinteraction serves': business.businessservice (0.48), none (0.28), business.businessinterface (0.08); best predicate: realizes (0.76), none (0.09), serves (0.05). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:business.businessinteraction#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinteraction#2): best source of 'serves business.businessservice': business.businessinteraction (0.34), none (0.24), business.businessactor (0.16); best destination of 'business.businessinteraction serves': business.businessservice (0.68), none (0.10), business.businessinterface (0.06); best predicate: realizes (0.65), serves (0.12), none (0.12). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:business.businessinteraction#2"
+        }
+      ],
+      "probability": 0.648,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "rename-predicate",
+        "triple": "business.businessinteraction.serves.business.businessservice",
+        "replacement": [
+          "business.businessinteraction.realizes.business.businessservice"
+        ],
+        "claims": [
+          "node:business.businessinteraction#2",
+          "rel:business.businessinteraction#1",
+          "rel:business.businessinteraction#2"
+        ]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "update",
+      "target_id": "business.businesscollaboration.composes.business.businessrole",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "business.businesscollaboration uses business.businessrole",
+        "description": "Defines relationship: business.businesscollaboration uses business.businessrole"
+      },
+      "rationale": "Rename the predicate of business.businesscollaboration.composes.business.businessrole to business.businesscollaboration.uses.business.businessrole. Plan kind rename-predicate, p 0.29; claims node:business.businesscollaboration#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "business.businesscollaboration",
+        "destination_spec_node_id": "business.businessrole",
+        "title": "business.businesscollaboration composes business.businessrole",
+        "description": "Defines relationship: business.businesscollaboration composes business.businessrole"
+      },
+      "evidence": [
+        {
+          "quote": "The 'composes' relationship from business.businesscollaboration to BusinessRole conflicts with ArchiMate, which uses aggregation because roles exist independently of the collaboration. Proposed: Replace the 'composes' relationship to BusinessRole with an aggregation relationship.",
+          "claim_id": "node:business.businesscollaboration#1"
+        },
+        {
+          "quote": "Sorting answers (node:business.businesscollaboration#1): best source of 'composes business.businessrole': business.businesscollaboration (0.38), none (0.35), business.businessinteraction (0.09); best destination of 'business.businesscollaboration composes': business.businessrole (0.68), none (0.14), business.businesscollaboration (0.12); best predicate: uses (0.29), references (0.28), composes (0.22). Outcome: alternative (predicate=uses).",
+          "claim_id": "node:business.businesscollaboration#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businesscollaboration#1): best source of 'composes business.businessrole': business.businesscollaboration (0.73), none (0.10), business.businessinteraction (0.06); best destination of 'business.businesscollaboration composes': business.businessrole (0.55), business.businesscollaboration (0.21), none (0.17); best predicate: composes (0.51), uses (0.17), depends-on (0.14). Outcome: reproduced.",
+          "claim_id": "rel:business.businesscollaboration#1"
+        }
+      ],
+      "probability": 0.288,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "rename-predicate",
+        "triple": "business.businesscollaboration.composes.business.businessrole",
+        "replacement": [
+          "business.businesscollaboration.uses.business.businessrole"
+        ],
+        "claims": ["node:business.businesscollaboration#1"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "business.businessrole.assigned-to.business.businessinterface",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessrole.assigned-to.business.businessinterface: business.businessinterface.serves.business.businessrole already exists and expresses it. Plan kind reverse, p 0.68; claims rel:business.businessrole#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "assigned-to",
+        "source_spec_node_id": "business.businessrole",
+        "destination_spec_node_id": "business.businessinterface",
+        "title": "business.businessrole assigned-to business.businessinterface",
+        "description": "Defines relationship: business.businessrole assigned-to business.businessinterface"
+      },
+      "evidence": [
+        {
+          "quote": "BusinessRole assigned-to BusinessInterface has the wrong direction compared with ArchiMate, where the interface is assigned to the role or the role composes the interface. Proposed: Reverse the direction to BusinessInterface assigned-to BusinessRole, or replace it with BusinessRole composes BusinessInterface.",
+          "claim_id": "rel:business.businessrole#3"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessrole#3): best source of 'assigned-to business.businessinterface': business.businessrole (0.30), none (0.21), business.businessinteraction (0.16); best destination of 'business.businessrole assigned-to': business.businessinterface (0.31), business.businessprocess (0.21), business.businessfunction (0.18); best predicate: reverse:serves (0.68), assigned-to (0.08), uses (0.07). Outcome: alternative (predicate=reverse:serves).",
+          "claim_id": "rel:business.businessrole#3"
+        }
+      ],
+      "probability": 0.68,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "reverse",
+        "triple": "business.businessrole.assigned-to.business.businessinterface",
+        "replacement": [
+          "business.businessinterface.serves.business.businessrole"
+        ],
+        "claims": ["rel:business.businessrole#3"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "business.contract.serves.business.businessrole",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.contract.serves.business.businessrole: business.businessrole.accesses.business.contract already exists and expresses it. Plan kind reverse, p 0.67; claims rel:business.contract#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "business.contract",
+        "destination_spec_node_id": "business.businessrole",
+        "title": "business.contract serves business.businessrole",
+        "description": "Defines relationship: business.contract serves business.businessrole"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship business.contract serves business.businessrole is invalid because a passive object cannot serve; it could be expressed as associated-with. Proposed: Replace serves with associated-with between contract and businessrole.",
+          "claim_id": "rel:business.contract#3"
+        },
+        {
+          "quote": "Sorting answers (rel:business.contract#3): best source of 'serves business.businessrole': none (0.45), business.businessinterface (0.21), application.applicationcomponent (0.12); best destination of 'business.contract serves': none (0.44), business.businessrole (0.25), business.businessactor (0.09); best predicate: reverse:accesses (0.67), none (0.17), references (0.06). Outcome: alternative (predicate=reverse:accesses).",
+          "claim_id": "rel:business.contract#3"
+        }
+      ],
+      "probability": 0.672,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "reverse",
+        "triple": "business.contract.serves.business.businessrole",
+        "replacement": ["business.businessrole.accesses.business.contract"],
+        "claims": ["rel:business.contract#3"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "business.businessfunction.serves.business.businessrole",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessfunction.serves.business.businessrole: business.businessrole.performs.business.businessfunction already exists and expresses it. Plan kind reverse, p 0.65; claims rel:business.businessfunction#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "business.businessfunction",
+        "destination_spec_node_id": "business.businessrole",
+        "title": "business.businessfunction serves business.businessrole",
+        "description": "Defines relationship: business.businessfunction serves business.businessrole"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship business.businessfunction serves business.businessrole is valid but weak, since roles are typically assigned to functions rather than served by them. Proposed: none stated",
+          "claim_id": "rel:business.businessfunction#3"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessfunction#3): best source of 'serves business.businessrole': none (0.61), business.businessinterface (0.11), business.contract (0.07); best destination of 'business.businessfunction serves': none (0.35), business.businessrole (0.26), business.businessactor (0.12); best predicate: reverse:performs (0.65), reverse:assigned-to (0.26), none (0.03). Outcome: alternative (predicate=reverse:performs).",
+          "claim_id": "rel:business.businessfunction#3"
+        }
+      ],
+      "probability": 0.649,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "reverse",
+        "triple": "business.businessfunction.serves.business.businessrole",
+        "replacement": [
+          "business.businessrole.performs.business.businessfunction"
+        ],
+        "claims": ["rel:business.businessfunction#3"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "business.businesscollaboration.accesses.business.businessobject",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businesscollaboration.accesses.business.businessobject: business.businessinteraction.accesses.business.businessobject already exists and expresses it. Plan kind retarget, p 0.78; claims rel:business.businesscollaboration#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "business.businesscollaboration",
+        "destination_spec_node_id": "business.businessobject",
+        "title": "business.businesscollaboration accesses business.businessobject",
+        "description": "Defines relationship: business.businesscollaboration accesses business.businessobject"
+      },
+      "evidence": [
+        {
+          "quote": "The accesses relationship from business.businesscollaboration to business.businessobject is a derived shortcut, since in ArchiMate access normally belongs to the BusinessInteraction the collaboration performs rather than to the active structure itself. Proposed: Remove the direct accesses relationship and model access on BusinessInteraction instead.",
+          "claim_id": "rel:business.businesscollaboration#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businesscollaboration#2): best source of 'accesses business.businessobject': business.businessinteraction (0.78), business.businessprocess (0.07), business.businesscollaboration (0.05); best destination of 'business.businesscollaboration accesses': business.businessobject (0.63), none (0.15), business.businessinteraction (0.10); best predicate: none (0.48), accesses (0.31), uses (0.06). Outcome: alternative (source=business.businessinteraction).",
+          "claim_id": "rel:business.businesscollaboration#2"
+        }
+      ],
+      "probability": 0.779,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "retarget",
+        "triple": "business.businesscollaboration.accesses.business.businessobject",
+        "replacement": [
+          "business.businessinteraction.accesses.business.businessobject"
+        ],
+        "claims": ["rel:business.businesscollaboration#2"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "delete",
+      "target_id": "business.businessevent.triggers.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessevent.triggers.business.businessfunction: business.businessevent.triggers.business.businessprocess already exists and expresses it. Plan kind retarget, p 0.66; claims rel:business.businessevent#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "business.businessevent",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "business.businessevent triggers business.businessfunction",
+        "description": "Defines relationship: business.businessevent triggers business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The triggers relationship from business.businessevent to business.businessfunction is semantically weak because a BusinessFunction has no defined start or sequence, so it should be read as initiating behavior within the function rather than starting the function itself. Proposed: Document that the event triggers behavior within the function, or model the triggered behavior as a process the function contains instead of triggering the function directly.",
+          "claim_id": "rel:business.businessevent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessevent#1): best source of 'triggers business.businessfunction': business.businessevent (0.55), business.businessprocess (0.17), none (0.07); best destination of 'business.businessevent triggers': business.businessprocess (0.66), business.businessinteraction (0.14), business.businessfunction (0.10); best predicate: triggers (0.55), reverse:triggers (0.17), none (0.16). Outcome: alternative (target=business.businessprocess).",
+          "claim_id": "rel:business.businessevent#1"
+        }
+      ],
+      "probability": 0.661,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "retarget",
+        "triple": "business.businessevent.triggers.business.businessfunction",
+        "replacement": [
+          "business.businessevent.triggers.business.businessprocess"
+        ],
+        "claims": ["rel:business.businessevent#1"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "business.businessfunction.realizes.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessfunction.realizes.motivation.goal: business.businessprocess.realizes.motivation.goal already exists and expresses it. Plan kind retarget, p 0.56; claims rel:business.businessfunction#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "business.businessfunction",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "business.businessfunction realizes motivation.goal",
+        "description": "Defines relationship: business.businessfunction realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship business.businessfunction realizes motivation.goal is questionable because ArchiMate lets core elements realize requirements and influence goals, so 'supports' or 'influence' fits better. Proposed: Replace the realizes predicate to motivation.goal with 'supports' or 'influences'.",
+          "claim_id": "rel:business.businessfunction#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessfunction#1): best source of 'realizes motivation.goal': business.businessprocess (0.56), business.businessservice (0.17), application.applicationservice (0.08); best destination of 'business.businessfunction realizes': motivation.goal (0.29), motivation.outcome (0.27), business.businessservice (0.20); best predicate: realizes (0.38), none (0.34), serves (0.13). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "rel:business.businessfunction#1"
+        }
+      ],
+      "probability": 0.561,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "retarget",
+        "triple": "business.businessfunction.realizes.motivation.goal",
+        "replacement": ["business.businessprocess.realizes.motivation.goal"],
+        "claims": ["rel:business.businessfunction#1"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "delete",
+      "target_id": "business.businessinterface.triggers.business.businessprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessinterface.triggers.business.businessprocess: business.businessevent.triggers.business.businessprocess already exists and expresses it. Plan kind retarget, p 0.53; claims rel:business.businessinterface#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "business.businessinterface",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "business.businessinterface triggers business.businessprocess",
+        "description": "Defines relationship: business.businessinterface triggers business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The triggers relationships from business.businessinterface to behavior elements are not valid ArchiMate, because triggering holds between behaviors or events, not from an interface. Proposed: Remove the triggers relationships from business.businessinterface or replace them with serves or assigned-to via the service.",
+          "claim_id": "rel:business.businessinterface#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinterface#2): best source of 'triggers business.businessprocess': business.businessevent (0.53), business.businessactor (0.16), none (0.08); best destination of 'business.businessinterface triggers': none (0.54), business.businessprocess (0.11), business.businessevent (0.10); best predicate: none (0.81), triggers (0.05), serves (0.03). Outcome: alternative (source=business.businessevent).",
+          "claim_id": "rel:business.businessinterface#2"
+        }
+      ],
+      "probability": 0.532,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "business.businessinterface.triggers.business.businessprocess",
+        "replacement": [
+          "business.businessevent.triggers.business.businessprocess"
+        ],
+        "claims": ["rel:business.businessinterface#2"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "business.businessprocess.realizes.motivation.goal",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessservice",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "business.businessservice realizes motivation.outcome",
+        "description": "Defines relationship: business.businessservice realizes motivation.outcome"
+      },
+      "rationale": "Retarget of business.businessprocess.realizes.motivation.goal to business.businessservice.realizes.motivation.outcome. Plan kind retarget, p 0.36; claims rel:business.businessprocess#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "business.businessprocess",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "business.businessprocess realizes motivation.goal",
+        "description": "Defines relationship: business.businessprocess realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship business.businessprocess realizes motivation.goal skips the Outcome/Requirement chain and overlaps with realizes Outcome and satisfies Requirement. Proposed: Remove realizes Goal and route goal contribution through Outcome and Requirement.",
+          "claim_id": "rel:business.businessprocess#3"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessprocess#3): best source of 'realizes motivation.goal': business.businessservice (0.36), none (0.26), business.businessprocess (0.25); best destination of 'business.businessprocess realizes': motivation.outcome (0.46), business.businessservice (0.25), motivation.goal (0.14); best predicate: none (0.58), realizes (0.29), serves (0.05). Outcome: alternative (source=business.businessservice; target=motivation.outcome).",
+          "claim_id": "rel:business.businessprocess#3"
+        }
+      ],
+      "probability": 0.36,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "business.businessprocess.realizes.motivation.goal",
+        "replacement": ["business.businessservice.realizes.motivation.outcome"],
+        "claims": ["rel:business.businessprocess#3"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "delete",
+      "target_id": "business.businessinterface.accesses.business.businessobject",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessinterface.accesses.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. Plan kind retarget, p 0.32; claims rel:business.businessinterface#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "business.businessinterface",
+        "destination_spec_node_id": "business.businessobject",
+        "title": "business.businessinterface accesses business.businessobject",
+        "description": "Defines relationship: business.businessinterface accesses business.businessobject"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to relationship from business.businessinterface to business.businessobject is non-standard ArchiMate, since flow links behavior or active elements rather than passive objects, and it largely duplicates the accesses relationship. Proposed: Remove the flows-to relationship from business.businessinterface to business.businessobject and keep accesses.",
+          "claim_id": "rel:business.businessinterface#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinterface#1): best source of 'accesses business.businessobject': business.businessprocess (0.32), business.businessinterface (0.25), business.businessinteraction (0.09); best destination of 'business.businessinterface accesses': business.businessobject (0.69), none (0.18), business.businessprocess (0.05); best predicate: none (0.28), accesses (0.24), references (0.15). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "rel:business.businessinterface#1"
+        }
+      ],
+      "probability": 0.321,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "retarget",
+        "triple": "business.businessinterface.accesses.business.businessobject",
+        "replacement": [
+          "business.businessprocess.accesses.business.businessobject"
+        ],
+        "claims": ["rel:business.businessinterface#1"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "delete",
+      "target_id": "business.businessrole.triggers.business.businessevent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessrole.triggers.business.businessevent: business.businessprocess.triggers.business.businessevent already exists and expresses it. Plan kind retarget, p 0.32; claims node:business.businessevent#1, rel:business.businessrole#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "business.businessrole",
+        "destination_spec_node_id": "business.businessevent",
+        "title": "business.businessrole triggers business.businessevent",
+        "description": "Defines relationship: business.businessrole triggers business.businessevent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship businessrole --triggers--> businessevent is invalid in ArchiMate because triggers links only behavior elements, so a role cannot trigger an event. Proposed: Replace the triggers relationship with assignment, or remove it.",
+          "claim_id": "node:business.businessevent#1"
+        },
+        {
+          "quote": "BusinessRole triggers BusinessEvent is non-standard in ArchiMate. Proposed: Remove the triggers relationship from BusinessRole to BusinessEvent.",
+          "claim_id": "rel:business.businessrole#5"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessevent#1): best source of 'triggers business.businessevent': business.businessprocess (0.32), business.businessrole (0.19), business.businessactor (0.14); best destination of 'business.businessrole triggers': business.businessevent (0.40), none (0.29), business.businessprocess (0.16); best predicate: none (0.50), triggers (0.38), realizes (0.03). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "node:business.businessevent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessrole#5): best source of 'triggers business.businessevent': business.businessprocess (0.56), business.businessinteraction (0.22), none (0.05); best destination of 'business.businessrole triggers': business.businessevent (0.47), business.businessprocess (0.21), none (0.16); best predicate: triggers (0.47), none (0.38), realizes (0.03). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "rel:business.businessrole#5"
+        }
+      ],
+      "probability": 0.315,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "retarget",
+        "triple": "business.businessrole.triggers.business.businessevent",
+        "replacement": [
+          "business.businessprocess.triggers.business.businessevent"
+        ],
+        "claims": [
+          "node:business.businessevent#1",
+          "rel:business.businessrole#5"
+        ]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "delete",
+      "target_id": "business.businessactor.accesses.business.businessobject",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessactor.accesses.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. Plan kind retarget, p 0.29; claims rel:business.businessactor#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "business.businessactor",
+        "destination_spec_node_id": "business.businessobject",
+        "title": "business.businessactor accesses business.businessobject",
+        "description": "Defines relationship: business.businessactor accesses business.businessobject"
+      },
+      "evidence": [
+        {
+          "quote": "The accesses relationships from business.businessactor to business objects are only shortcuts, because ArchiMate permits access only from behavior elements (or derived via roles), not directly from active structure. Proposed: none stated",
+          "claim_id": "rel:business.businessactor#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessactor#1): best source of 'accesses business.businessobject': business.businessprocess (0.29), business.businessfunction (0.25), business.businessinteraction (0.16); best destination of 'business.businessactor accesses': business.businessobject (0.40), none (0.25), business.contract (0.23); best predicate: none (0.42), accesses (0.29), uses (0.11). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "rel:business.businessactor#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessactor#2): best source of 'accesses business.businessobject': business.businessactor (0.68), business.businessprocess (0.09), business.businessrole (0.06); best destination of 'business.businessactor accesses': business.businessobject (0.72), business.contract (0.20), none (0.03); best predicate: accesses (0.79), uses (0.08), references (0.04). Outcome: reproduced.",
+          "claim_id": "rel:business.businessactor#2"
+        }
+      ],
+      "probability": 0.291,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "retarget",
+        "triple": "business.businessactor.accesses.business.businessobject",
+        "replacement": [
+          "business.businessprocess.accesses.business.businessobject"
+        ],
+        "claims": ["rel:business.businessactor#1"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "update",
+      "target_id": "business.businessactor.accesses.business.contract",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "business.businessfunction",
+        "title": "business.businessfunction accesses business.contract",
+        "description": "Defines relationship: business.businessfunction accesses business.contract"
+      },
+      "rationale": "Retarget of business.businessactor.accesses.business.contract to business.businessfunction.accesses.business.contract. Plan kind retarget, p 0.24; claims rel:business.businessactor#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "business.businessactor",
+        "destination_spec_node_id": "business.contract",
+        "title": "business.businessactor accesses business.contract",
+        "description": "Defines relationship: business.businessactor accesses business.contract"
+      },
+      "evidence": [
+        {
+          "quote": "The accesses relationships from business.businessactor to business objects are only shortcuts, because ArchiMate permits access only from behavior elements (or derived via roles), not directly from active structure. Proposed: none stated",
+          "claim_id": "rel:business.businessactor#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessactor#2): best source of 'accesses business.contract': business.businessactor (0.33), business.businessprocess (0.18), business.businessrole (0.11); best destination of 'business.businessactor accesses': business.contract (0.45), business.businessobject (0.44), none (0.05); best predicate: accesses (0.49), none (0.22), references (0.07). Outcome: reproduced.",
+          "claim_id": "rel:business.businessactor#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessactor#1): best source of 'accesses business.contract': business.businessfunction (0.24), business.businessprocess (0.18), business.businessrole (0.16); best destination of 'business.businessactor accesses': business.contract (0.42), business.businessobject (0.27), none (0.22); best predicate: none (0.49), accesses (0.19), references (0.10). Outcome: alternative (source=business.businessfunction).",
+          "claim_id": "rel:business.businessactor#1"
+        }
+      ],
+      "probability": 0.236,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "retarget",
+        "triple": "business.businessactor.accesses.business.contract",
+        "replacement": ["business.businessfunction.accesses.business.contract"],
+        "claims": ["rel:business.businessactor#1"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "update",
+      "target_id": "business.contract.triggers.business.businessprocess",
+      "ref": null,
+      "fields": {
+        "predicate": "accesses",
+        "source_spec_node_id": "business.businessprocess",
+        "destination_spec_node_id": "business.businessevent",
+        "title": "business.businessprocess accesses business.businessevent",
+        "description": "Defines relationship: business.businessprocess accesses business.businessevent"
+      },
+      "rationale": "Change of business.contract.triggers.business.businessprocess to business.businessprocess.accesses.business.businessevent. Plan kind compound, p 0.73; claims rel:business.contract#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "business.contract",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "business.contract triggers business.businessprocess",
+        "description": "Defines relationship: business.contract triggers business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship business.contract triggers business.businessprocess is invalid because a passive object cannot trigger; triggers should originate from a BusinessEvent such as 'Contract Signed'. Proposed: Remove the triggers relationship from contract and have businessevent trigger the process instead.",
+          "claim_id": "rel:business.contract#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.contract#2): best source of 'triggers business.businessprocess': business.businessevent (0.89), business.businessactor (0.03), application.applicationevent (0.03); best destination of 'business.contract triggers': business.businessprocess (0.66), none (0.15), business.businessinteraction (0.07); best predicate: reverse:accesses (0.73), none (0.13), references (0.04). Outcome: alternative (source=business.businessevent; predicate=reverse:accesses).",
+          "claim_id": "rel:business.contract#2"
+        }
+      ],
+      "probability": 0.735,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "compound",
+        "triple": "business.contract.triggers.business.businessprocess",
+        "replacement": [
+          "business.businessprocess.accesses.business.businessevent"
+        ],
+        "claims": ["rel:business.contract#2"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "delete",
+      "target_id": "business.businessrole.performs.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessrole.performs.business.businessfunction: business.businessrole.assigned-to.business.businessprocess already exists and expresses it. Plan kind compound, p 0.41; claims rel:business.businessrole#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "performs",
+        "source_spec_node_id": "business.businessrole",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "business.businessrole performs business.businessfunction",
+        "description": "Defines relationship: business.businessrole performs business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "BusinessRole assigned-to BusinessFunction and BusinessRole performs BusinessFunction express the same meaning, since ArchiMate expresses both via Assignment. Proposed: Remove one of the two relationships (likely performs) and keep a single assignment relationship from BusinessRole to BusinessFunction.",
+          "claim_id": "rel:business.businessrole#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessrole#1): best source of 'performs business.businessfunction': business.businessrole (0.63), business.businessactor (0.13), none (0.09); best destination of 'business.businessrole performs': business.businessprocess (0.41), business.businessfunction (0.29), none (0.11); best predicate: assigned-to (0.62), reverse:serves (0.17), performs (0.09). Outcome: alternative (target=business.businessprocess; predicate=assigned-to).",
+          "claim_id": "rel:business.businessrole#1"
+        }
+      ],
+      "probability": 0.407,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "compound",
+        "triple": "business.businessrole.performs.business.businessfunction",
+        "replacement": [
+          "business.businessrole.assigned-to.business.businessprocess"
+        ],
+        "claims": ["rel:business.businessrole#1"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "update",
+      "target_id": "business.businessprocess.triggers.business.businessprocess",
+      "ref": null,
+      "fields": {
+        "predicate": "flows-to",
+        "destination_spec_node_id": "business.businessevent",
+        "title": "business.businessprocess flows-to business.businessevent",
+        "description": "Defines relationship: business.businessprocess flows-to business.businessevent"
+      },
+      "rationale": "Change of business.businessprocess.triggers.business.businessprocess to business.businessprocess.flows-to.business.businessevent. Plan kind compound, p 0.40; claims rel:business.businessprocess#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "business.businessprocess",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "business.businessprocess triggers business.businessprocess",
+        "description": "Defines relationship: business.businessprocess triggers business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to and triggers relationships between business processes are distinct but often conflated, so their semantics need to be kept clear. Proposed: none stated",
+          "claim_id": "rel:business.businessprocess#4"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessprocess#4): best source of 'triggers business.businessprocess': business.businessprocess (0.50), business.businessevent (0.28), business.businessactor (0.05); best destination of 'business.businessprocess triggers': business.businessevent (0.44), business.businessprocess (0.44), business.businessfunction (0.03); best predicate: flows-to (0.40), triggers (0.26), reverse:triggers (0.13). Outcome: alternative (target=business.businessevent; predicate=flows-to).",
+          "claim_id": "rel:business.businessprocess#4"
+        }
+      ],
+      "probability": 0.398,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "compound",
+        "triple": "business.businessprocess.triggers.business.businessprocess",
+        "replacement": [
+          "business.businessprocess.flows-to.business.businessevent"
+        ],
+        "claims": ["rel:business.businessprocess#4"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "business.businessinterface.flows-to.business.businessobject",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessinterface.flows-to.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. Plan kind compound, p 0.33; claims rel:business.businessinterface#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "business.businessinterface",
+        "destination_spec_node_id": "business.businessobject",
+        "title": "business.businessinterface flows-to business.businessobject",
+        "description": "Defines relationship: business.businessinterface flows-to business.businessobject"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to relationship from business.businessinterface to business.businessobject is non-standard ArchiMate, since flow links behavior or active elements rather than passive objects, and it largely duplicates the accesses relationship. Proposed: Remove the flows-to relationship from business.businessinterface to business.businessobject and keep accesses.",
+          "claim_id": "rel:business.businessinterface#1"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinterface#1): best source of 'flows-to business.businessobject': business.businessprocess (0.33), none (0.16), business.businessinteraction (0.12); best destination of 'business.businessinterface flows-to': none (0.41), business.businessactor (0.16), business.businessobject (0.13); best predicate: accesses (0.78), flows-to (0.06), none (0.05). Outcome: alternative (source=business.businessprocess; predicate=accesses).",
+          "claim_id": "rel:business.businessinterface#1"
+        }
+      ],
+      "probability": 0.326,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "compound",
+        "triple": "business.businessinterface.flows-to.business.businessobject",
+        "replacement": [
+          "business.businessprocess.accesses.business.businessobject"
+        ],
+        "claims": ["rel:business.businessinterface#1"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "delete",
+      "target_id": "business.businessservice.realizes.business.businessprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessservice.realizes.business.businessprocess: business.businessprocess.realizes.business.businessservice already exists and expresses it. Plan kind conflict, p 0.88; claims node:business.businessprocess#1, node:business.businessservice#1, node:business.businessservice#2, rel:business.businessservice#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "business.businessservice",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "business.businessservice realizes business.businessprocess",
+        "description": "Defines relationship: business.businessservice realizes business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The incoming relationship 'businessservice realizes businessprocess' is inverted relative to the outgoing 'businessprocess realizes businessservice', so only the outgoing one should be kept. Proposed: Remove 'businessservice realizes businessprocess' and keep 'businessprocess realizes businessservice'.",
+          "claim_id": "node:business.businessprocess#1"
+        },
+        {
+          "quote": "The outgoing relationship 'business.businessservice realizes business.businessprocess' inverts ArchiMate, where the process realizes the service. Proposed: Remove or reverse the edge so businessprocess realizes businessservice.",
+          "claim_id": "node:business.businessservice#1"
+        },
+        {
+          "quote": "The outgoing 'businessservice realizes businessprocess' relationship duplicates the existing incoming edge between the same pair. Proposed: Remove the outgoing realizes edge and keep the incoming businessprocess realizes businessservice edge.",
+          "claim_id": "node:business.businessservice#2"
+        },
+        {
+          "quote": "The relationship business.businessservice realizes business.businessprocess is inverted, since in ArchiMate processes realize services, and the reverse relationship business.businessprocess realizes business.businessservice already exists. Proposed: Remove or invert the businessservice realizes businessprocess relationship, keeping businessprocess realizes businessservice.",
+          "claim_id": "rel:business.businessservice#1"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessprocess#1): best source of 'realizes business.businessprocess': none (0.28), business.businessservice (0.26), application.applicationprocess (0.17); best destination of 'business.businessservice realizes': business.businessprocess (0.59), none (0.12), business.businessfunction (0.11); best predicate: reverse:realizes (0.79), realizes (0.06), none (0.05). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "node:business.businessprocess#1"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessservice#1): best source of 'realizes business.businessprocess': application.applicationprocess (0.27), none (0.20), business.businessservice (0.19); best destination of 'business.businessservice realizes': business.businessprocess (0.62), none (0.13), business.businessfunction (0.06); best predicate: reverse:realizes (0.90), realizes (0.02), none (0.02). Outcome: alternative (source=application.applicationprocess; predicate=reverse:realizes).",
+          "claim_id": "node:business.businessservice#1"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessservice#2): best source of 'realizes business.businessprocess': none (0.30), application.applicationprocess (0.23), business.businessservice (0.17); best destination of 'business.businessservice realizes': business.businessprocess (0.63), none (0.15), business.businessfunction (0.06); best predicate: reverse:realizes (0.87), none (0.03), realizes (0.03). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "node:business.businessservice#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessservice#1): best source of 'realizes business.businessprocess': none (0.64), business.businessservice (0.11), application.applicationprocess (0.07); best destination of 'business.businessservice realizes': none (0.37), motivation.goal (0.23), business.businessprocess (0.19); best predicate: reverse:realizes (0.78), none (0.10), depends-on (0.02). Outcome: alternative (predicate=reverse:realizes).",
+          "claim_id": "rel:business.businessservice#1"
+        }
+      ],
+      "probability": 0.875,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "conflict",
+        "triple": "business.businessservice.realizes.business.businessprocess",
+        "replacement": [
+          "business.businessprocess.realizes.business.businessservice",
+          "business.businessprocess.realizes.application.applicationprocess"
+        ],
+        "claims": [
+          "node:business.businessprocess#1",
+          "node:business.businessservice#1",
+          "node:business.businessservice#2",
+          "rel:business.businessservice#1"
+        ]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "business.businessinterface.triggers.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.businessinterface.triggers.business.businessfunction: business.businessevent.triggers.business.businessfunction already exists and expresses it. Plan kind conflict, p 0.47; claims rel:business.businessinterface#2, rel:business.businessinterface#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "business.businessinterface",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "business.businessinterface triggers business.businessfunction",
+        "description": "Defines relationship: business.businessinterface triggers business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The triggers relationships from business.businessinterface to behavior elements are not valid ArchiMate, because triggering holds between behaviors or events, not from an interface. Proposed: Remove the triggers relationships from business.businessinterface or replace them with serves or assigned-to via the service.",
+          "claim_id": "rel:business.businessinterface#2"
+        },
+        {
+          "quote": "The triggers relationship from business.businessinterface to business.businessfunction is especially doubtful because a BusinessFunction has no defined start. Proposed: Replace it with serves, or with assigned-to via the service.",
+          "claim_id": "rel:business.businessinterface#3"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinterface#2): best source of 'triggers business.businessfunction': business.businessevent (0.47), business.businessinteraction (0.15), none (0.08); best destination of 'business.businessinterface triggers': none (0.54), business.businessevent (0.21), business.businessprocess (0.08); best predicate: none (0.82), triggers (0.06), uses (0.02). Outcome: alternative (source=business.businessevent).",
+          "claim_id": "rel:business.businessinterface#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.businessinterface#3): best source of 'triggers business.businessfunction': business.businessevent (0.45), none (0.15), business.businessinterface (0.09); best destination of 'business.businessinterface triggers': business.businessprocess (0.34), none (0.25), business.businessevent (0.19); best predicate: none (0.68), triggers (0.14), serves (0.05). Outcome: alternative (source=business.businessevent; target=business.businessprocess).",
+          "claim_id": "rel:business.businessinterface#3"
+        }
+      ],
+      "probability": 0.473,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "conflict",
+        "triple": "business.businessinterface.triggers.business.businessfunction",
+        "replacement": [
+          "business.businessevent.triggers.business.businessfunction",
+          "business.businessevent.triggers.business.businessprocess"
+        ],
+        "claims": [
+          "rel:business.businessinterface#2",
+          "rel:business.businessinterface#3"
+        ]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "delete",
+      "target_id": "business.contract.accesses.business.businessobject",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove business.contract.accesses.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. Plan kind conflict, p 0.38; claims node:business.businessobject#2, rel:business.contract#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "accesses",
+        "source_spec_node_id": "business.contract",
+        "destination_spec_node_id": "business.businessobject",
+        "title": "business.contract accesses business.businessobject",
+        "description": "Defines relationship: business.contract accesses business.businessobject"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'contract accesses businessobject' is invalid because it connects a passive structure element to another passive element via accesses; it should be aggregation or specialization. Proposed: Replace the accesses relationship with aggregation or specialization.",
+          "claim_id": "node:business.businessobject#2"
+        },
+        {
+          "quote": "The relationship business.contract accesses business.businessobject is invalid because accesses must originate from behavior, not from a passive object like Contract; it was likely meant as associated-with or aggregates. Proposed: Replace the accesses relationship from contract to businessobject with associated-with or aggregates.",
+          "claim_id": "rel:business.contract#1"
+        },
+        {
+          "quote": "Sorting answers (node:business.businessobject#2): best source of 'accesses business.businessobject': business.businessprocess (0.30), business.businessactor (0.18), business.businessfunction (0.16); best destination of 'business.contract accesses': business.businessobject (0.70), none (0.17), business.businessinterface (0.03); best predicate: none (0.34), references (0.33), composes (0.11). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "node:business.businessobject#2"
+        },
+        {
+          "quote": "Sorting answers (rel:business.contract#1): best source of 'accesses business.businessobject': business.businessprocess (0.38), business.businessactor (0.19), business.businessfunction (0.11); best destination of 'business.contract accesses': none (0.57), business.businessobject (0.34), business.businessprocess (0.03); best predicate: references (0.39), none (0.30), composes (0.10). Outcome: alternative (source=business.businessprocess; predicate=references).",
+          "claim_id": "rel:business.contract#1"
+        }
+      ],
+      "probability": 0.378,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "conflict",
+        "triple": "business.contract.accesses.business.businessobject",
+        "replacement": [
+          "business.businessprocess.accesses.business.businessobject",
+          "business.businessprocess.references.business.businessobject"
+        ],
+        "claims": ["node:business.businessobject#2", "rel:business.contract#1"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1042 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: data-store layer (24 relationship changes)",
+  "rationale": "Relationship schemas in the data-store layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.821Z",
+  "layer": "data-store",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "data-store.storedlogic.validates.data-store.collection",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.storedlogic.validates.data-store.collection: data-store.storedlogic.accesses.data-store.collection already exists and expresses it. Plan kind remove-duplicate, p 0.56; claims rel:data-store.storedlogic#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "validates",
+        "source_spec_node_id": "data-store.storedlogic",
+        "destination_spec_node_id": "data-store.collection",
+        "title": "data-store.storedlogic validates data-store.collection",
+        "description": "Defines relationship: data-store.storedlogic validates data-store.collection"
+      },
+      "evidence": [
+        {
+          "quote": "The validates relationship from data-store.storedlogic to data-store.collection is a testing predicate that overlaps with accesses, and imperative triggers are excluded from ValidationRule. Proposed: Remove the validates relationship from storedlogic to collection, relying on accesses.",
+          "claim_id": "rel:data-store.storedlogic#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.storedlogic#3): best source of 'validates data-store.collection': none (0.69), data-store.storedlogic (0.11), data-store.eventhandler (0.07); best destination of 'data-store.storedlogic validates': none (0.45), data-store.collection (0.38), data-store.field (0.09); best predicate: accesses (0.56), validates (0.13), migrates (0.11). Outcome: alternative (predicate=accesses).",
+          "claim_id": "rel:data-store.storedlogic#3"
+        }
+      ],
+      "probability": 0.558,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "data-store.storedlogic.validates.data-store.collection",
+        "replacement": [
+          "data-store.storedlogic.accesses.data-store.collection"
+        ],
+        "claims": ["rel:data-store.storedlogic#3"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "update",
+      "target_id": "data-store.accesspattern.aggregates.data-store.field",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "data-store.accesspattern references data-store.field",
+        "description": "Defines relationship: data-store.accesspattern references data-store.field"
+      },
+      "rationale": "Rename the predicate of data-store.accesspattern.aggregates.data-store.field to data-store.accesspattern.references.data-store.field. Plan kind rename-predicate, p 0.69; claims rel:data-store.accesspattern#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-store.accesspattern",
+        "destination_spec_node_id": "data-store.field",
+        "title": "data-store.accesspattern aggregates data-store.field",
+        "description": "Defines relationship: data-store.accesspattern aggregates data-store.field"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.accesspattern aggregates data-store.field is better expressed with the references predicate. Proposed: Replace aggregates with references for accesspattern to field.",
+          "claim_id": "rel:data-store.accesspattern#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.accesspattern#3): best source of 'aggregates data-store.field': none (0.34), data-store.collection (0.21), data-store.view (0.20); best destination of 'data-store.accesspattern aggregates': data-store.field (0.48), none (0.31), data-store.collection (0.15); best predicate: references (0.69), uses (0.14), none (0.08). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:data-store.accesspattern#3"
+        }
+      ],
+      "probability": 0.691,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "rename-predicate",
+        "triple": "data-store.accesspattern.aggregates.data-store.field",
+        "replacement": ["data-store.accesspattern.references.data-store.field"],
+        "claims": ["rel:data-store.accesspattern#3"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "update",
+      "target_id": "data-store.field.satisfies.security.dataclassification",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "data-store.field references security.dataclassification",
+        "description": "Defines relationship: data-store.field references security.dataclassification"
+      },
+      "rationale": "Rename the predicate of data-store.field.satisfies.security.dataclassification to data-store.field.references.security.dataclassification. Plan kind rename-predicate, p 0.31; claims rel:data-store.field#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "data-store.field",
+        "destination_spec_node_id": "security.dataclassification",
+        "title": "data-store.field satisfies security.dataclassification",
+        "description": "Defines relationship: data-store.field satisfies security.dataclassification"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.field satisfies security.dataclassification conflates labelling a field with complying with a classification tier; a classified-as predicate would be clearer. Proposed: Replace the 'satisfies' predicate with 'classified-as' for the field to dataclassification relationship.",
+          "claim_id": "rel:data-store.field#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.field#3): best source of 'satisfies security.dataclassification': data-store.field (0.64), data-store.collection (0.10), none (0.09); best destination of 'data-store.field satisfies': security.dataclassification (0.63), none (0.28), security.accesscondition (0.03); best predicate: references (0.31), none (0.26), satisfies (0.19). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:data-store.field#3"
+        }
+      ],
+      "probability": 0.313,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "rename-predicate",
+        "triple": "data-store.field.satisfies.security.dataclassification",
+        "replacement": [
+          "data-store.field.references.security.dataclassification"
+        ],
+        "claims": ["rel:data-store.field#3"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "data-store.accesspattern.uses.data-store.index",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.accesspattern.uses.data-store.index: data-store.index.optimizes.data-store.accesspattern already exists and expresses it. Plan kind reverse, p 0.56; claims node:data-store.index#5, rel:data-store.accesspattern#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "data-store.accesspattern",
+        "destination_spec_node_id": "data-store.index",
+        "title": "data-store.accesspattern uses data-store.index",
+        "description": "Defines relationship: data-store.accesspattern uses data-store.index"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from AccessPattern to Index include redundant 'aggregates' and 'uses' relationships expressing the same meaning. Proposed: Collapse the two relationships into one (keep uses) and remove the redundant aggregates.",
+          "claim_id": "node:data-store.index#5"
+        },
+        {
+          "quote": "The relationship data-store.accesspattern aggregates data-store.index overlaps with the uses relationship to index, and uses is the correct predicate. Proposed: Remove the aggregates relationship from accesspattern to index and keep uses.",
+          "claim_id": "rel:data-store.accesspattern#2"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.index#5): best source of 'uses data-store.index': data-store.accesspattern (0.79), data-store.collection (0.07), none (0.06); best destination of 'data-store.accesspattern uses': data-store.index (0.78), data-store.collection (0.09), none (0.04); best predicate: reverse:optimizes (0.57), uses (0.28), references (0.06). Outcome: alternative (predicate=reverse:optimizes).",
+          "claim_id": "node:data-store.index#5"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.accesspattern#2): best source of 'uses data-store.index': data-store.accesspattern (0.78), data-store.collection (0.07), none (0.07); best destination of 'data-store.accesspattern uses': data-store.index (0.83), none (0.06), data-store.collection (0.03); best predicate: reverse:optimizes (0.56), uses (0.29), references (0.05). Outcome: alternative (predicate=reverse:optimizes).",
+          "claim_id": "rel:data-store.accesspattern#2"
+        }
+      ],
+      "probability": 0.562,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "reverse",
+        "triple": "data-store.accesspattern.uses.data-store.index",
+        "replacement": ["data-store.index.optimizes.data-store.accesspattern"],
+        "claims": ["node:data-store.index#5", "rel:data-store.accesspattern#2"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "data-store.eventhandler.triggers.business.businessevent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.eventhandler.triggers.business.businessevent: data-store.eventhandler.triggers.application.applicationevent already exists and expresses it. Plan kind retarget, p 0.76; claims rel:data-store.eventhandler#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "data-store.eventhandler",
+        "destination_spec_node_id": "business.businessevent",
+        "title": "data-store.eventhandler triggers business.businessevent",
+        "description": "Defines relationship: data-store.eventhandler triggers business.businessevent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.eventhandler --[triggers]--> business.businessevent crosses abstraction levels, because a data-store handler should reach a BusinessEvent only via an ApplicationEvent (handler → ApplicationEvent → realizes/flows to BusinessEvent). Proposed: Remove the direct triggers relationship to business.businessevent or mark it as derived/optional, relying on the path through application.applicationevent.",
+          "claim_id": "rel:data-store.eventhandler#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.eventhandler#1): best source of 'triggers business.businessevent': data-store.eventhandler (0.59), none (0.21), business.businessprocess (0.06); best destination of 'data-store.eventhandler triggers': application.applicationevent (0.76), business.businessevent (0.11), data-store.storedlogic (0.09); best predicate: none (0.63), triggers (0.27), realizes (0.04). Outcome: alternative (target=application.applicationevent).",
+          "claim_id": "rel:data-store.eventhandler#1"
+        }
+      ],
+      "probability": 0.76,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "retarget",
+        "triple": "data-store.eventhandler.triggers.business.businessevent",
+        "replacement": [
+          "data-store.eventhandler.triggers.application.applicationevent"
+        ],
+        "claims": ["rel:data-store.eventhandler#1"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "data-store.view.serves.business.businessservice",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.view.serves.business.businessservice: data-store.view.serves.application.applicationservice already exists and expresses it. Plan kind retarget, p 0.70; claims rel:data-store.view#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-store.view",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "data-store.view serves business.businessservice",
+        "description": "Defines relationship: data-store.view serves business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.view serves business.businessservice skips intermediate layers and is weak, whereas serves application.applicationservice is the more defensible link. Proposed: Remove the serves relationship to business.businessservice and keep serves to application.applicationservice.",
+          "claim_id": "rel:data-store.view#4"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.view#4): best source of 'serves business.businessservice': none (0.42), data-store.view (0.16), business.businessinteraction (0.09); best destination of 'data-store.view serves': application.applicationservice (0.70), none (0.10), business.businessservice (0.06); best predicate: none (0.85), serves (0.09), realizes (0.03). Outcome: alternative (target=application.applicationservice).",
+          "claim_id": "rel:data-store.view#4"
+        }
+      ],
+      "probability": 0.705,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "retarget",
+        "triple": "data-store.view.serves.business.businessservice",
+        "replacement": [
+          "data-store.view.serves.application.applicationservice"
+        ],
+        "claims": ["rel:data-store.view#4"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "data-store.namespace.composes.data-store.index",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.namespace.composes.data-store.index: data-store.collection.composes.data-store.index already exists and expresses it. Plan kind retarget, p 0.62; claims rel:data-store.namespace#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.namespace",
+        "destination_spec_node_id": "data-store.index",
+        "title": "data-store.namespace composes data-store.index",
+        "description": "Defines relationship: data-store.namespace composes data-store.index"
+      },
+      "evidence": [
+        {
+          "quote": "The namespace composes index and namespace composes validationrule relationships partly overlap with collection-level ownership of indexes and validation rules. Proposed: none stated",
+          "claim_id": "rel:data-store.namespace#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.namespace#2): best source of 'composes data-store.index': data-store.collection (0.62), none (0.15), data-store.namespace (0.14); best destination of 'data-store.namespace composes': data-store.index (0.49), data-store.collection (0.24), data-store.validationrule (0.06); best predicate: composes (0.51), none (0.25), references (0.08). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "rel:data-store.namespace#2"
+        }
+      ],
+      "probability": 0.617,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "retarget",
+        "triple": "data-store.namespace.composes.data-store.index",
+        "replacement": ["data-store.collection.composes.data-store.index"],
+        "claims": ["rel:data-store.namespace#2"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "data-store.field.triggers.data-store.storedlogic",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-store.eventhandler",
+        "destination_spec_node_id": "data-store.eventhandler",
+        "title": "data-store.eventhandler triggers data-store.eventhandler",
+        "description": "Defines relationship: data-store.eventhandler triggers data-store.eventhandler"
+      },
+      "rationale": "Retarget of data-store.field.triggers.data-store.storedlogic to data-store.eventhandler.triggers.data-store.eventhandler. Plan kind retarget, p 0.60; claims rel:data-store.field#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "data-store.field",
+        "destination_spec_node_id": "data-store.storedlogic",
+        "title": "data-store.field triggers data-store.storedlogic",
+        "description": "Defines relationship: data-store.field triggers data-store.storedlogic"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.field triggers data-store.storedlogic partly duplicates the path through data-store.eventhandler, which by definition is the activation wiring that invokes stored logic. Proposed: Remove the direct field triggers storedlogic relationship and rely on the path through eventhandler.",
+          "claim_id": "rel:data-store.field#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.field#2): best source of 'triggers data-store.storedlogic': data-store.eventhandler (0.60), data-store.field (0.17), none (0.11); best destination of 'data-store.field triggers': data-store.eventhandler (0.75), data-store.storedlogic (0.08), none (0.08); best predicate: none (0.37), reverse:aggregates (0.30), triggers (0.23). Outcome: alternative (source=data-store.eventhandler; target=data-store.eventhandler).",
+          "claim_id": "rel:data-store.field#2"
+        }
+      ],
+      "probability": 0.604,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "retarget",
+        "triple": "data-store.field.triggers.data-store.storedlogic",
+        "replacement": [
+          "data-store.eventhandler.triggers.data-store.eventhandler"
+        ],
+        "claims": ["rel:data-store.field#2"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "data-store.accesspattern.serves.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.accesspattern.serves.business.businessfunction: data-store.accesspattern.serves.application.applicationfunction already exists and expresses it. Plan kind retarget, p 0.57; claims rel:data-store.accesspattern#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-store.accesspattern",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "data-store.accesspattern serves business.businessfunction",
+        "description": "Defines relationship: data-store.accesspattern serves business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.accesspattern serves business.businessfunction skips the application layer. Proposed: Remove the direct serves link to businessfunction and route through application.applicationfunction.",
+          "claim_id": "rel:data-store.accesspattern#5"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.accesspattern#5): best source of 'serves business.businessfunction': none (0.59), technology.technologyservice (0.19), data-store.accesspattern (0.09); best destination of 'data-store.accesspattern serves': application.applicationfunction (0.57), business.businessfunction (0.14), none (0.13); best predicate: none (0.67), serves (0.16), realizes (0.09). Outcome: alternative (target=application.applicationfunction).",
+          "claim_id": "rel:data-store.accesspattern#5"
+        }
+      ],
+      "probability": 0.574,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "retarget",
+        "triple": "data-store.accesspattern.serves.business.businessfunction",
+        "replacement": [
+          "data-store.accesspattern.serves.application.applicationfunction"
+        ],
+        "claims": ["rel:data-store.accesspattern#5"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "delete",
+      "target_id": "data-store.storedlogic.composes.data-store.validationrule",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.storedlogic.composes.data-store.validationrule: data-store.storedlogic.composes.data-store.storedlogic already exists and expresses it. Plan kind retarget, p 0.56; claims rel:data-store.storedlogic#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.storedlogic",
+        "destination_spec_node_id": "data-store.validationrule",
+        "title": "data-store.storedlogic composes data-store.validationrule",
+        "description": "Defines relationship: data-store.storedlogic composes data-store.validationrule"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationship from data-store.storedlogic to data-store.validationrule contradicts the ValidationRule definition, since a validation rule is a declarative schema constraint and not part of procedural code. Proposed: Remove the composes relationship from storedlogic to validationrule.",
+          "claim_id": "rel:data-store.storedlogic#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.storedlogic#2): best source of 'composes data-store.validationrule': none (0.60), data-store.collection (0.14), data-store.namespace (0.12); best destination of 'data-store.storedlogic composes': data-store.storedlogic (0.56), none (0.25), data-store.validationrule (0.09); best predicate: none (0.70), triggers (0.08), uses (0.05). Outcome: alternative (target=data-store.storedlogic).",
+          "claim_id": "rel:data-store.storedlogic#2"
+        }
+      ],
+      "probability": 0.561,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "data-store.storedlogic.composes.data-store.validationrule",
+        "replacement": [
+          "data-store.storedlogic.composes.data-store.storedlogic"
+        ],
+        "claims": ["rel:data-store.storedlogic#2"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "data-store.view.aggregates.data-store.field",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "data-store.collection",
+        "title": "data-store.collection aggregates data-store.field",
+        "description": "Defines relationship: data-store.collection aggregates data-store.field"
+      },
+      "rationale": "Retarget of data-store.view.aggregates.data-store.field to data-store.collection.aggregates.data-store.field. Plan kind retarget, p 0.52; claims rel:data-store.view#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-store.view",
+        "destination_spec_node_id": "data-store.field",
+        "title": "data-store.view aggregates data-store.field",
+        "description": "Defines relationship: data-store.view aggregates data-store.field"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.view aggregates data-store.field is odd because fields belong to persisted collections, not to views. Proposed: Remove the aggregates relationship from data-store.view to data-store.field.",
+          "claim_id": "rel:data-store.view#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.view#2): best source of 'aggregates data-store.field': data-store.collection (0.52), none (0.28), data-store.view (0.15); best destination of 'data-store.view aggregates': none (0.46), data-store.collection (0.28), data-store.field (0.18); best predicate: none (0.61), references (0.10), uses (0.10). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "rel:data-store.view#2"
+        }
+      ],
+      "probability": 0.524,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "data-store.view.aggregates.data-store.field",
+        "replacement": ["data-store.collection.aggregates.data-store.field"],
+        "claims": ["rel:data-store.view#2"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "delete",
+      "target_id": "data-store.namespace.composes.data-store.validationrule",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.namespace.composes.data-store.validationrule: data-store.collection.composes.data-store.validationrule already exists and expresses it. Plan kind retarget, p 0.46; claims rel:data-store.namespace#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.namespace",
+        "destination_spec_node_id": "data-store.validationrule",
+        "title": "data-store.namespace composes data-store.validationrule",
+        "description": "Defines relationship: data-store.namespace composes data-store.validationrule"
+      },
+      "evidence": [
+        {
+          "quote": "The namespace composes index and namespace composes validationrule relationships partly overlap with collection-level ownership of indexes and validation rules. Proposed: none stated",
+          "claim_id": "rel:data-store.namespace#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.namespace#2): best source of 'composes data-store.validationrule': data-store.collection (0.46), data-store.namespace (0.37), none (0.12); best destination of 'data-store.namespace composes': data-store.validationrule (0.78), data-store.collection (0.08), data-store.field (0.03); best predicate: composes (0.58), none (0.20), depends-on (0.06). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "rel:data-store.namespace#2"
+        }
+      ],
+      "probability": 0.455,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "retarget",
+        "triple": "data-store.namespace.composes.data-store.validationrule",
+        "replacement": [
+          "data-store.collection.composes.data-store.validationrule"
+        ],
+        "claims": ["rel:data-store.namespace#2"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "delete",
+      "target_id": "data-store.storedlogic.realizes.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.storedlogic.realizes.business.businessfunction: application.applicationfunction.realizes.business.businessfunction already exists and expresses it. Plan kind retarget, p 0.38; claims rel:data-store.storedlogic#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "data-store.storedlogic",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "data-store.storedlogic realizes business.businessfunction",
+        "description": "Defines relationship: data-store.storedlogic realizes business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The realizes relationship from data-store.storedlogic to business.businessfunction skips the application layer, so implements to application.applicationfunction is preferable. Proposed: Remove the realizes relationship to business.businessfunction and keep implements to application.applicationfunction.",
+          "claim_id": "rel:data-store.storedlogic#4"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.storedlogic#4): best source of 'realizes business.businessfunction': application.applicationfunction (0.38), none (0.28), data-store.storedlogic (0.13); best destination of 'data-store.storedlogic realizes': none (0.35), business.businessfunction (0.27), business.businessprocess (0.15); best predicate: none (0.55), realizes (0.29), serves (0.05). Outcome: alternative (source=application.applicationfunction).",
+          "claim_id": "rel:data-store.storedlogic#4"
+        }
+      ],
+      "probability": 0.384,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "retarget",
+        "triple": "data-store.storedlogic.realizes.business.businessfunction",
+        "replacement": [
+          "application.applicationfunction.realizes.business.businessfunction"
+        ],
+        "claims": ["rel:data-store.storedlogic#4"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "delete",
+      "target_id": "data-store.collection.serves.application.applicationcomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.collection.serves.application.applicationcomponent: application.applicationservice.serves.application.applicationcomponent already exists and expresses it. Plan kind retarget, p 0.34; claims rel:data-store.collection#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-store.collection",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "data-store.collection serves application.applicationcomponent",
+        "description": "Defines relationship: data-store.collection serves application.applicationcomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships data-store.collection serves application.applicationcomponent and data-store.collection serves application.applicationservice partly duplicate each other. Proposed: Consolidate the two serves relationships into one or clarify the distinction between them.",
+          "claim_id": "rel:data-store.collection#5"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.collection#5): best source of 'serves application.applicationcomponent': application.applicationservice (0.33), none (0.27), data-store.collection (0.25); best destination of 'data-store.collection serves': application.applicationcomponent (0.40), application.applicationservice (0.18), application.applicationcollaboration (0.13); best predicate: none (0.42), serves (0.34), realizes (0.08). Outcome: alternative (source=application.applicationservice).",
+          "claim_id": "rel:data-store.collection#5"
+        }
+      ],
+      "probability": 0.335,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "retarget",
+        "triple": "data-store.collection.serves.application.applicationcomponent",
+        "replacement": [
+          "application.applicationservice.serves.application.applicationcomponent"
+        ],
+        "claims": ["rel:data-store.collection#5"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "delete",
+      "target_id": "data-store.accesspattern.satisfies.security.accesscondition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.accesspattern.satisfies.security.accesscondition: data-store.accesspattern.satisfies.motivation.requirement already exists and expresses it. Plan kind retarget, p 0.33; claims rel:data-store.accesspattern#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "data-store.accesspattern",
+        "destination_spec_node_id": "security.accesscondition",
+        "title": "data-store.accesspattern satisfies security.accesscondition",
+        "description": "Defines relationship: data-store.accesspattern satisfies security.accesscondition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.accesspattern satisfies security.accesscondition is semantically odd, because access conditions are evaluated by policy checks, not realized by queries. Proposed: Remove the satisfies relationship from accesspattern to security.accesscondition.",
+          "claim_id": "rel:data-store.accesspattern#4"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.accesspattern#4): best source of 'satisfies security.accesscondition': none (0.57), data-store.collection (0.11), data-store.accesspattern (0.10); best destination of 'data-store.accesspattern satisfies': motivation.requirement (0.33), none (0.29), security.accesscondition (0.16); best predicate: none (0.81), satisfies (0.06), depends-on (0.03). Outcome: alternative (target=motivation.requirement).",
+          "claim_id": "rel:data-store.accesspattern#4"
+        }
+      ],
+      "probability": 0.332,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "retarget",
+        "triple": "data-store.accesspattern.satisfies.security.accesscondition",
+        "replacement": [
+          "data-store.accesspattern.satisfies.motivation.requirement"
+        ],
+        "claims": ["rel:data-store.accesspattern#4"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "update",
+      "target_id": "data-store.view.serves.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "application.applicationinterface",
+        "title": "application.applicationinterface serves application.applicationservice",
+        "description": "Defines relationship: application.applicationinterface serves application.applicationservice"
+      },
+      "rationale": "Retarget of data-store.view.serves.application.applicationservice to application.applicationinterface.serves.application.applicationservice. Plan kind retarget, p 0.29; claims rel:data-store.view#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "data-store.view",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "data-store.view serves application.applicationservice",
+        "description": "Defines relationship: data-store.view serves application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.view serves business.businessservice skips intermediate layers and is weak, whereas serves application.applicationservice is the more defensible link. Proposed: Remove the serves relationship to business.businessservice and keep serves to application.applicationservice.",
+          "claim_id": "rel:data-store.view#4"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.view#4): best source of 'serves application.applicationservice': application.applicationinterface (0.29), none (0.20), data-store.view (0.20); best destination of 'data-store.view serves': application.applicationservice (0.31), application.applicationcomponent (0.23), application.applicationinterface (0.11); best predicate: none (0.43), serves (0.36), realizes (0.12). Outcome: alternative (source=application.applicationinterface).",
+          "claim_id": "rel:data-store.view#4"
+        }
+      ],
+      "probability": 0.292,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "retarget",
+        "triple": "data-store.view.serves.application.applicationservice",
+        "replacement": [
+          "application.applicationinterface.serves.application.applicationservice"
+        ],
+        "claims": ["rel:data-store.view#4"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "delete",
+      "target_id": "data-store.field.triggers.data-store.validationrule",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.field.triggers.data-store.validationrule: data-store.storedlogic.aggregates.data-store.field already exists and expresses it. Plan kind compound, p 0.41; claims rel:data-store.field#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "data-store.field",
+        "destination_spec_node_id": "data-store.validationrule",
+        "title": "data-store.field triggers data-store.validationrule",
+        "description": "Defines relationship: data-store.field triggers data-store.validationrule"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship data-store.field triggers data-store.validationrule uses a predicate that does not fit, because declarative constraints restrict field values rather than being initiated by them; constrained-by would model it better. Proposed: Replace the 'triggers' predicate with 'constrained-by' for the field to validationrule relationship.",
+          "claim_id": "rel:data-store.field#1"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.field#1): best source of 'triggers data-store.validationrule': none (0.57), data-store.field (0.15), data-store.collection (0.10); best destination of 'data-store.field triggers': data-store.storedlogic (0.41), data-store.eventhandler (0.32), data-store.validationrule (0.10); best predicate: reverse:aggregates (0.71), none (0.09), depends-on (0.05). Outcome: alternative (target=data-store.storedlogic; predicate=reverse:aggregates).",
+          "claim_id": "rel:data-store.field#1"
+        }
+      ],
+      "probability": 0.41,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "compound",
+        "triple": "data-store.field.triggers.data-store.validationrule",
+        "replacement": ["data-store.storedlogic.aggregates.data-store.field"],
+        "claims": ["rel:data-store.field#1"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "delete",
+      "target_id": "data-store.namespace.composes.data-store.field",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.namespace.composes.data-store.field: data-store.collection.composes.data-store.collection already exists and expresses it. Plan kind conflict, p 0.73; claims node:data-store.namespace#3, rel:data-store.namespace#1, node:data-store.field#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.namespace",
+        "destination_spec_node_id": "data-store.field",
+        "title": "data-store.namespace composes data-store.field",
+        "description": "Defines relationship: data-store.namespace composes data-store.field"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'namespace composes field' appears to skip a level, because fields belong to collections rather than directly to namespaces. Proposed: Remove the direct namespace-to-field composition and route it through collection.",
+          "claim_id": "node:data-store.namespace#3"
+        },
+        {
+          "quote": "The relationship data-store.namespace composes data-store.field is redundant and transitive, since fields belong to collections, which already compose them. Proposed: Remove the namespace composes field relationship.",
+          "claim_id": "rel:data-store.namespace#1"
+        },
+        {
+          "quote": "Composition of data-store.field by database and namespace should probably be restricted so that only collection composes field. Proposed: Remove the database-composes-field and namespace-composes-field relationships, keeping only collection-composes-field.",
+          "claim_id": "node:data-store.field#5"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.namespace#3): best source of 'composes data-store.field': data-store.collection (0.80), data-store.field (0.10), none (0.06); best destination of 'data-store.namespace composes': data-store.collection (0.30), none (0.25), data-store.namespace (0.16); best predicate: none (0.81), composes (0.12), references (0.01). Outcome: alternative (source=data-store.collection; target=data-store.collection).",
+          "claim_id": "node:data-store.namespace#3"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.namespace#1): best source of 'composes data-store.field': data-store.collection (0.70), data-store.field (0.14), none (0.10); best destination of 'data-store.namespace composes': data-store.field (0.43), data-store.collection (0.19), data-store.view (0.14); best predicate: none (0.73), composes (0.19), references (0.02). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "rel:data-store.namespace#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.field#5): best source of 'composes data-store.field': data-store.collection (0.87), data-store.field (0.05), data-store.namespace (0.03); best destination of 'data-store.namespace composes': data-store.collection (0.73), none (0.11), data-store.field (0.07); best predicate: none (0.77), composes (0.13), references (0.03). Outcome: alternative (source=data-store.collection; target=data-store.collection).",
+          "claim_id": "node:data-store.field#5"
+        }
+      ],
+      "probability": 0.729,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "conflict",
+        "triple": "data-store.namespace.composes.data-store.field",
+        "replacement": [
+          "data-store.collection.composes.data-store.collection",
+          "data-store.collection.composes.data-store.field"
+        ],
+        "claims": [
+          "node:data-store.namespace#3",
+          "rel:data-store.namespace#1",
+          "node:data-store.field#5"
+        ]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "data-store.database.composes.data-store.index",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.database.composes.data-store.index: data-store.collection.composes.data-store.index already exists and expresses it. Plan kind conflict, p 0.69; claims node:data-store.database#2, rel:data-store.database#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.database",
+        "destination_spec_node_id": "data-store.index",
+        "title": "data-store.database composes data-store.index",
+        "description": "Defines relationship: data-store.database composes data-store.index"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationships from data-store.database to field, index and validationrule bypass collection and duplicate containment already expressed through collection. Proposed: Remove the direct composes edges from database to field, index and validationrule, keeping containment via collection.",
+          "claim_id": "node:data-store.database#2"
+        },
+        {
+          "quote": "The direct composes relationships from data-store.database to data-store.field, data-store.index and data-store.validationrule are redundant with the composition path database→namespace→collection. Proposed: Remove the direct composes relationships from database to field, index and validationrule.",
+          "claim_id": "rel:data-store.database#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.database#2): best source of 'composes data-store.index': data-store.collection (0.68), data-store.namespace (0.09), none (0.08); best destination of 'data-store.database composes': none (0.43), data-store.collection (0.22), data-store.namespace (0.17); best predicate: none (0.62), composes (0.24), uses (0.05). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "node:data-store.database#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.database#1): best source of 'composes data-store.index': data-store.collection (0.55), data-store.namespace (0.17), none (0.10); best destination of 'data-store.database composes': data-store.namespace (0.48), data-store.collection (0.27), data-store.view (0.08); best predicate: none (0.55), composes (0.32), uses (0.04). Outcome: alternative (source=data-store.collection; target=data-store.namespace).",
+          "claim_id": "rel:data-store.database#1"
+        }
+      ],
+      "probability": 0.685,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "conflict",
+        "triple": "data-store.database.composes.data-store.index",
+        "replacement": [
+          "data-store.collection.composes.data-store.index",
+          "data-store.collection.composes.data-store.namespace"
+        ],
+        "claims": ["node:data-store.database#2", "rel:data-store.database#1"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "delete",
+      "target_id": "data-store.database.composes.data-store.field",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.database.composes.data-store.field: data-store.collection.composes.data-store.collection already exists and expresses it. Plan kind conflict, p 0.65; claims node:data-store.field#5, node:data-store.database#2, rel:data-store.database#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.database",
+        "destination_spec_node_id": "data-store.field",
+        "title": "data-store.database composes data-store.field",
+        "description": "Defines relationship: data-store.database composes data-store.field"
+      },
+      "evidence": [
+        {
+          "quote": "Composition of data-store.field by database and namespace should probably be restricted so that only collection composes field. Proposed: Remove the database-composes-field and namespace-composes-field relationships, keeping only collection-composes-field.",
+          "claim_id": "node:data-store.field#5"
+        },
+        {
+          "quote": "The composes relationships from data-store.database to field, index and validationrule bypass collection and duplicate containment already expressed through collection. Proposed: Remove the direct composes edges from database to field, index and validationrule, keeping containment via collection.",
+          "claim_id": "node:data-store.database#2"
+        },
+        {
+          "quote": "The direct composes relationships from data-store.database to data-store.field, data-store.index and data-store.validationrule are redundant with the composition path database→namespace→collection. Proposed: Remove the direct composes relationships from database to field, index and validationrule.",
+          "claim_id": "rel:data-store.database#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.field#5): best source of 'composes data-store.field': data-store.collection (0.82), data-store.field (0.11), none (0.02); best destination of 'data-store.database composes': data-store.collection (0.44), data-store.namespace (0.30), none (0.13); best predicate: none (0.68), composes (0.22), references (0.03). Outcome: alternative (source=data-store.collection; target=data-store.collection).",
+          "claim_id": "node:data-store.field#5"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.database#2): best source of 'composes data-store.field': data-store.collection (0.65), none (0.11), data-store.namespace (0.10); best destination of 'data-store.database composes': none (0.30), data-store.namespace (0.30), data-store.collection (0.23); best predicate: none (0.69), composes (0.23), depends-on (0.02). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "node:data-store.database#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.database#1): best source of 'composes data-store.field': data-store.collection (0.62), data-store.field (0.19), none (0.07); best destination of 'data-store.database composes': data-store.namespace (0.43), data-store.collection (0.32), data-store.field (0.09); best predicate: none (0.59), composes (0.33), references (0.02). Outcome: alternative (source=data-store.collection; target=data-store.namespace).",
+          "claim_id": "rel:data-store.database#1"
+        }
+      ],
+      "probability": 0.653,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "conflict",
+        "triple": "data-store.database.composes.data-store.field",
+        "replacement": [
+          "data-store.collection.composes.data-store.collection",
+          "data-store.collection.composes.data-store.field",
+          "data-store.collection.composes.data-store.namespace"
+        ],
+        "claims": [
+          "node:data-store.field#5",
+          "node:data-store.database#2",
+          "rel:data-store.database#1"
+        ]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "data-store.collection.composes.data-store.namespace",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.collection.composes.data-store.namespace: data-store.namespace.composes.data-store.namespace already exists and expresses it. Plan kind conflict, p 0.65; claims node:data-store.collection#4, node:data-store.namespace#2, rel:data-store.collection#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.collection",
+        "destination_spec_node_id": "data-store.namespace",
+        "title": "data-store.collection composes data-store.namespace",
+        "description": "Defines relationship: data-store.collection composes data-store.namespace"
+      },
+      "evidence": [
+        {
+          "quote": "The outgoing relationship 'collection composes namespace' appears inverted, since a namespace should compose collections. Proposed: Reverse the direction so namespace composes collection.",
+          "claim_id": "node:data-store.collection#4"
+        },
+        {
+          "quote": "The relationship 'collection composes namespace' appears inverted, since a namespace should contain collections, or it skips a level. Proposed: Reverse the relationship so namespace composes collection, or remove it.",
+          "claim_id": "node:data-store.namespace#2"
+        },
+        {
+          "quote": "The relationship data-store.collection composes data-store.namespace is inverted, because namespaces contain collections (a reverse namespace-composes-collection already exists). Proposed: Remove collection-composes-namespace and keep only namespace-composes-collection.",
+          "claim_id": "rel:data-store.collection#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.collection#4): best source of 'composes data-store.namespace': data-store.namespace (0.65), none (0.21), data-store.collection (0.06); best destination of 'data-store.collection composes': none (0.36), data-store.collection (0.30), data-store.namespace (0.18); best predicate: reverse:composes (0.85), composes (0.03), none (0.02). Outcome: alternative (source=data-store.namespace; predicate=reverse:composes).",
+          "claim_id": "node:data-store.collection#4"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.namespace#2): best source of 'composes data-store.namespace': data-store.namespace (0.48), none (0.28), data-store.database (0.09); best destination of 'data-store.collection composes': data-store.namespace (0.62), none (0.15), data-store.collection (0.09); best predicate: reverse:composes (0.85), composes (0.04), none (0.03). Outcome: alternative (source=data-store.namespace; predicate=reverse:composes).",
+          "claim_id": "node:data-store.namespace#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.collection#1): best source of 'composes data-store.namespace': none (0.61), data-store.namespace (0.26), data-store.collection (0.05); best destination of 'data-store.collection composes': data-store.field (0.50), none (0.12), data-store.namespace (0.09); best predicate: reverse:composes (0.83), none (0.06), references (0.04). Outcome: alternative (target=data-store.field; predicate=reverse:composes).",
+          "claim_id": "rel:data-store.collection#1"
+        }
+      ],
+      "probability": 0.645,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "conflict",
+        "triple": "data-store.collection.composes.data-store.namespace",
+        "replacement": [
+          "data-store.namespace.composes.data-store.namespace",
+          "data-store.field.composes.data-store.collection"
+        ],
+        "claims": [
+          "node:data-store.collection#4",
+          "node:data-store.namespace#2",
+          "rel:data-store.collection#1"
+        ]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "delete",
+      "target_id": "data-store.database.composes.data-store.validationrule",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.database.composes.data-store.validationrule: data-store.collection.composes.data-store.validationrule already exists and expresses it. Plan kind conflict, p 0.58; claims node:data-store.database#2, rel:data-store.database#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "data-store.database",
+        "destination_spec_node_id": "data-store.validationrule",
+        "title": "data-store.database composes data-store.validationrule",
+        "description": "Defines relationship: data-store.database composes data-store.validationrule"
+      },
+      "evidence": [
+        {
+          "quote": "The composes relationships from data-store.database to field, index and validationrule bypass collection and duplicate containment already expressed through collection. Proposed: Remove the direct composes edges from database to field, index and validationrule, keeping containment via collection.",
+          "claim_id": "node:data-store.database#2"
+        },
+        {
+          "quote": "The direct composes relationships from data-store.database to data-store.field, data-store.index and data-store.validationrule are redundant with the composition path database→namespace→collection. Proposed: Remove the direct composes relationships from database to field, index and validationrule.",
+          "claim_id": "rel:data-store.database#1"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.database#2): best source of 'composes data-store.validationrule': data-store.collection (0.58), data-store.namespace (0.17), none (0.11); best destination of 'data-store.database composes': data-store.validationrule (0.34), data-store.namespace (0.25), none (0.16); best predicate: none (0.45), composes (0.42), uses (0.04). Outcome: alternative (source=data-store.collection).",
+          "claim_id": "node:data-store.database#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.database#1): best source of 'composes data-store.validationrule': data-store.collection (0.56), data-store.namespace (0.18), data-store.database (0.12); best destination of 'data-store.database composes': data-store.namespace (0.51), data-store.validationrule (0.29), data-store.collection (0.08); best predicate: none (0.44), composes (0.43), uses (0.03). Outcome: alternative (source=data-store.collection; target=data-store.namespace).",
+          "claim_id": "rel:data-store.database#1"
+        }
+      ],
+      "probability": 0.578,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "conflict",
+        "triple": "data-store.database.composes.data-store.validationrule",
+        "replacement": [
+          "data-store.collection.composes.data-store.validationrule",
+          "data-store.collection.composes.data-store.namespace"
+        ],
+        "claims": ["node:data-store.database#2", "rel:data-store.database#1"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "data-store.database.realizes.business.businessservice",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.database.realizes.business.businessservice: business.businessprocess.realizes.business.businessservice already exists and expresses it. Plan kind conflict, p 0.50; claims node:business.businessservice#4, rel:data-store.database#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "data-store.database",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "data-store.database realizes business.businessservice",
+        "description": "Defines relationship: data-store.database realizes business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships 'data-store.database realizes businessservice' and 'technology.systemsoftware realizes businessservice' skip the application layer. Proposed: Remove these direct edges or route realization through the application layer.",
+          "claim_id": "node:business.businessservice#4"
+        },
+        {
+          "quote": "The realizes relationship from data-store.database to business.businessservice is doubtful because a data store serves rather than realizes business behavior. Proposed: Remove or replace the realizes relationship with a serves relationship.",
+          "claim_id": "rel:data-store.database#2"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.database#2): best source of 'realizes business.businessservice': application.applicationcomponent (0.24), business.businessprocess (0.22), none (0.18); best destination of 'data-store.database realizes': none (0.63), business.businessservice (0.11), business.businessobject (0.09); best predicate: serves (0.52), none (0.33), realizes (0.05). Outcome: alternative (source=application.applicationcomponent; predicate=serves).",
+          "claim_id": "rel:data-store.database#2"
+        }
+      ],
+      "probability": 0.504,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "conflict",
+        "triple": "data-store.database.realizes.business.businessservice",
+        "replacement": [
+          "business.businessprocess.realizes.business.businessservice",
+          "application.applicationcomponent.serves.business.businessservice"
+        ],
+        "claims": [
+          "node:business.businessservice#4",
+          "rel:data-store.database#2"
+        ]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "data-store.accesspattern.aggregates.data-store.index",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove data-store.accesspattern.aggregates.data-store.index: data-store.accesspattern.uses.data-store.index already exists and expresses it. Plan kind conflict, p 0.47; claims node:data-store.index#5, rel:data-store.accesspattern#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "data-store.accesspattern",
+        "destination_spec_node_id": "data-store.index",
+        "title": "data-store.accesspattern aggregates data-store.index",
+        "description": "Defines relationship: data-store.accesspattern aggregates data-store.index"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships from AccessPattern to Index include redundant 'aggregates' and 'uses' relationships expressing the same meaning. Proposed: Collapse the two relationships into one (keep uses) and remove the redundant aggregates.",
+          "claim_id": "node:data-store.index#5"
+        },
+        {
+          "quote": "The relationship data-store.accesspattern aggregates data-store.index overlaps with the uses relationship to index, and uses is the correct predicate. Proposed: Remove the aggregates relationship from accesspattern to index and keep uses.",
+          "claim_id": "rel:data-store.accesspattern#2"
+        },
+        {
+          "quote": "Sorting answers (node:data-store.index#5): best source of 'aggregates data-store.index': none (0.72), data-store.collection (0.13), data-store.accesspattern (0.06); best destination of 'data-store.accesspattern aggregates': none (0.56), data-store.index (0.24), data-store.collection (0.10); best predicate: uses (0.47), reverse:optimizes (0.40), depends-on (0.06). Outcome: alternative (predicate=uses).",
+          "claim_id": "node:data-store.index#5"
+        },
+        {
+          "quote": "Sorting answers (rel:data-store.accesspattern#2): best source of 'aggregates data-store.index': none (0.84), data-store.collection (0.05), data-store.accesspattern (0.03); best destination of 'data-store.accesspattern aggregates': none (0.43), data-store.index (0.20), data-store.field (0.19); best predicate: reverse:optimizes (0.46), uses (0.40), depends-on (0.05). Outcome: alternative (predicate=reverse:optimizes).",
+          "claim_id": "rel:data-store.accesspattern#2"
+        }
+      ],
+      "probability": 0.468,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "conflict",
+        "triple": "data-store.accesspattern.aggregates.data-store.index",
+        "replacement": [
+          "data-store.accesspattern.uses.data-store.index",
+          "data-store.index.optimizes.data-store.accesspattern"
+        ],
+        "claims": ["node:data-store.index#5", "rel:data-store.accesspattern#2"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,2405 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: ux layer (58 relationship changes)",
+  "rationale": "Relationship schemas in the ux layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:06.166Z",
+  "layer": "ux",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "ux.uxlibrary.aggregates.ux.librarycomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.uxlibrary.aggregates.ux.librarycomponent: ux.uxlibrary.provides.ux.librarycomponent already exists and expresses it. Plan kind remove-duplicate, p 0.57; claims rel:ux.uxlibrary#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.uxlibrary",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.uxlibrary aggregates ux.librarycomponent",
+        "description": "Defines relationship: ux.uxlibrary aggregates ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "ux.uxlibrary has both 'aggregates' and 'provides' relationships to ux.librarycomponent, which overlap because membership and export usually coincide; keep 'aggregates' only if it covers internal, unexported members, otherwise drop one. Proposed: Drop one of aggregates/provides for librarycomponent, keeping aggregates only if it is meant to cover internal unexported members.",
+          "claim_id": "rel:ux.uxlibrary#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.uxlibrary#1): best source of 'aggregates ux.librarycomponent': ux.uxlibrary (0.84), none (0.07), ux.componentreference (0.02); best destination of 'ux.uxlibrary aggregates': ux.librarycomponent (0.78), ux.librarysubview (0.09), none (0.08); best predicate: provides (0.57), aggregates (0.21), none (0.06). Outcome: alternative (predicate=provides).",
+          "claim_id": "rel:ux.uxlibrary#1"
+        }
+      ],
+      "probability": 0.574,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.uxlibrary.aggregates.ux.librarycomponent",
+        "replacement": ["ux.uxlibrary.provides.ux.librarycomponent"],
+        "claims": ["rel:ux.uxlibrary#1"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "delete",
+      "target_id": "ux.librarysubview.composes.ux.componentinstance",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.librarysubview.composes.ux.componentinstance: ux.librarysubview.aggregates.ux.componentinstance already exists and expresses it. Plan kind remove-duplicate, p 0.55; claims node:ux.librarysubview#1, rel:ux.librarysubview#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "ux.librarysubview",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.librarysubview composes ux.componentinstance",
+        "description": "Defines relationship: ux.librarysubview composes ux.componentinstance"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships 'aggregates' and 'composes' from ux.librarysubview to ux.componentinstance express the same meaning and are redundant. Proposed: Keep only one of 'aggregates' or 'composes' between librarysubview and componentinstance.",
+          "claim_id": "node:ux.librarysubview#1"
+        },
+        {
+          "quote": "The relationships ux.librarysubview aggregates ux.componentinstance and ux.librarysubview composes ux.componentinstance are contradictory; the ComponentInstance definition implies composition, so the aggregates relationship is redundant or wrong. Proposed: Remove the aggregates relationship from ux.librarysubview to ux.componentinstance and keep composes.",
+          "claim_id": "rel:ux.librarysubview#1"
+        },
+        {
+          "quote": "Sorting answers (node:ux.librarysubview#1): best source of 'composes ux.componentinstance': ux.librarysubview (0.55), ux.componentreference (0.19), ux.componentinstance (0.11); best destination of 'ux.librarysubview composes': ux.componentinstance (0.81), ux.componentreference (0.09), none (0.05); best predicate: aggregates (0.67), uses (0.11), references (0.09). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "node:ux.librarysubview#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.librarysubview#1): best source of 'composes ux.componentinstance': ux.librarysubview (0.65), ux.componentreference (0.12), ux.componentinstance (0.10); best destination of 'ux.librarysubview composes': ux.componentinstance (0.82), none (0.07), ux.componentreference (0.06); best predicate: aggregates (0.55), references (0.16), composes (0.13). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "rel:ux.librarysubview#1"
+        }
+      ],
+      "probability": 0.551,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.librarysubview.composes.ux.componentinstance",
+        "replacement": ["ux.librarysubview.aggregates.ux.componentinstance"],
+        "claims": ["node:ux.librarysubview#1", "rel:ux.librarysubview#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "delete",
+      "target_id": "ux.componentinstance.provides.ux.componentinstance",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.componentinstance.provides.ux.componentinstance: ux.componentinstance.renders.ux.componentinstance already exists and expresses it. Plan kind remove-duplicate, p 0.51; claims rel:ux.componentinstance#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "provides",
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.componentinstance provides ux.componentinstance",
+        "description": "Defines relationship: ux.componentinstance provides ux.componentinstance"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.componentinstance provides ux.componentinstance is a self-reference whose meaning is vague. Proposed: none stated",
+          "claim_id": "rel:ux.componentinstance#5"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentinstance#5): best source of 'provides ux.componentinstance': ux.componentinstance (0.34), none (0.28), ux.componentreference (0.22); best destination of 'ux.componentinstance provides': none (0.32), ux.componentinstance (0.30), ux.componentreference (0.23); best predicate: renders (0.51), composes (0.11), reverse:renders (0.10). Outcome: alternative (predicate=renders).",
+          "claim_id": "rel:ux.componentinstance#5"
+        }
+      ],
+      "probability": 0.509,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.componentinstance.provides.ux.componentinstance",
+        "replacement": ["ux.componentinstance.renders.ux.componentinstance"],
+        "claims": ["rel:ux.componentinstance#5"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "ux.subview.uses.ux.librarysubview",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.subview.uses.ux.librarysubview: ux.subview.realizes.ux.librarysubview already exists and expresses it. Plan kind remove-duplicate, p 0.51; claims rel:ux.subview#1, node:ux.librarysubview#2, node:ux.subview#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "ux.librarysubview",
+        "title": "ux.subview uses ux.librarysubview",
+        "description": "Defines relationship: ux.subview uses ux.librarysubview"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.subview uses ux.librarysubview duplicates ux.subview realizes ux.librarysubview, since both express the ref placement of a library sub-view. Proposed: Remove the uses relationship to ux.librarysubview and keep realizes.",
+          "claim_id": "rel:ux.subview#1"
+        },
+        {
+          "quote": "The relationships 'subview realizes librarysubview' and 'subview uses librarysubview' are redundant with each other. Proposed: Keep only one of 'realizes' or 'uses' between subview and librarysubview.",
+          "claim_id": "node:ux.librarysubview#2"
+        },
+        {
+          "quote": "ux.subview has redundant relationships to librarysubview: ref, realizes and uses express the same meaning. Proposed: Keep a single relationship (or the ref attribute) to librarysubview and remove the others.",
+          "claim_id": "node:ux.subview#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.subview#1): best source of 'uses ux.librarysubview': ux.subview (0.46), none (0.27), ux.componentinstance (0.08); best destination of 'ux.subview uses': ux.librarysubview (0.45), none (0.23), ux.layoutconfig (0.11); best predicate: realizes (0.86), references (0.07), none (0.02). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:ux.subview#1"
+        },
+        {
+          "quote": "Sorting answers (node:ux.librarysubview#2): best source of 'uses ux.librarysubview': ux.subview (0.59), ux.componentreference (0.14), none (0.10); best destination of 'ux.subview uses': ux.librarysubview (0.82), none (0.07), ux.componentinstance (0.04); best predicate: realizes (0.50), references (0.25), uses (0.11). Outcome: alternative (predicate=realizes).",
+          "claim_id": "node:ux.librarysubview#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.subview#3): best source of 'uses ux.librarysubview': ux.subview (0.59), none (0.17), ux.componentinstance (0.08); best destination of 'ux.subview uses': ux.librarysubview (0.83), none (0.08), ux.componentreference (0.02); best predicate: realizes (0.63), references (0.21), uses (0.06). Outcome: alternative (predicate=realizes).",
+          "claim_id": "node:ux.subview#3"
+        }
+      ],
+      "probability": 0.505,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.subview.uses.ux.librarysubview",
+        "replacement": ["ux.subview.realizes.ux.librarysubview"],
+        "claims": [
+          "rel:ux.subview#1",
+          "node:ux.librarysubview#2",
+          "node:ux.subview#3"
+        ]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "delete",
+      "target_id": "ux.statepattern.governs.ux.experiencestate",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.statepattern.governs.ux.experiencestate: ux.statepattern.aggregates.ux.experiencestate already exists and expresses it. Plan kind remove-duplicate, p 0.42; claims rel:ux.statepattern#2, rel:ux.statepattern#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.statepattern",
+        "destination_spec_node_id": "ux.experiencestate",
+        "title": "ux.statepattern governs ux.experiencestate",
+        "description": "Defines relationship: ux.statepattern governs ux.experiencestate"
+      },
+      "evidence": [
+        {
+          "quote": "The 'governs' predicate on ux.statepattern to ux.experiencestate is a motivation-layer influence predicate and fits poorly for UX structural relationships. Proposed: Drop 'governs' and use composes instead if states are defined inline in the pattern.",
+          "claim_id": "rel:ux.statepattern#2"
+        },
+        {
+          "quote": "The relationships ux.statepattern aggregates ux.experiencestate and ux.statepattern governs ux.experiencestate overlap on the same pattern-to-state pair, since both express membership/rule-setting. Proposed: Remove one of the two relationships, keeping a single membership relationship between ux.statepattern and ux.experiencestate.",
+          "claim_id": "rel:ux.statepattern#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.statepattern#2): best source of 'governs ux.experiencestate': ux.statepattern (0.55), none (0.25), ux.dataconfig (0.08); best destination of 'ux.statepattern governs': none (0.40), ux.experiencestate (0.25), ux.dataconfig (0.13); best predicate: aggregates (0.42), composes (0.36), references (0.06). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "rel:ux.statepattern#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.statepattern#1): best source of 'governs ux.experiencestate': ux.statepattern (0.83), none (0.07), ux.dataconfig (0.03); best destination of 'ux.statepattern governs': ux.experiencestate (0.51), none (0.18), ux.dataconfig (0.14); best predicate: aggregates (0.43), composes (0.27), reverse:specializes (0.10). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "rel:ux.statepattern#1"
+        }
+      ],
+      "probability": 0.421,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.statepattern.governs.ux.experiencestate",
+        "replacement": ["ux.statepattern.aggregates.ux.experiencestate"],
+        "claims": ["rel:ux.statepattern#2", "rel:ux.statepattern#1"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "ux.uxlibrary.provides.ux.librarycomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.uxlibrary.provides.ux.librarycomponent: ux.uxlibrary.aggregates.ux.librarycomponent already exists and expresses it. Plan kind remove-duplicate, p 0.40; claims rel:ux.uxlibrary#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "provides",
+        "source_spec_node_id": "ux.uxlibrary",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.uxlibrary provides ux.librarycomponent",
+        "description": "Defines relationship: ux.uxlibrary provides ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "ux.uxlibrary has both 'aggregates' and 'provides' relationships to ux.librarycomponent, which overlap because membership and export usually coincide; keep 'aggregates' only if it covers internal, unexported members, otherwise drop one. Proposed: Drop one of aggregates/provides for librarycomponent, keeping aggregates only if it is meant to cover internal unexported members.",
+          "claim_id": "rel:ux.uxlibrary#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.uxlibrary#1): best source of 'provides ux.librarycomponent': ux.uxlibrary (0.86), none (0.07), ux.componentreference (0.02); best destination of 'ux.uxlibrary provides': ux.librarycomponent (0.84), ux.librarysubview (0.07), none (0.04); best predicate: aggregates (0.40), provides (0.37), references (0.06). Outcome: alternative (predicate=aggregates).",
+          "claim_id": "rel:ux.uxlibrary#1"
+        }
+      ],
+      "probability": 0.4,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.uxlibrary.provides.ux.librarycomponent",
+        "replacement": ["ux.uxlibrary.aggregates.ux.librarycomponent"],
+        "claims": ["rel:ux.uxlibrary#1"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "ux.librarycomponent.composes.ux.librarycomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.librarycomponent.composes.ux.librarycomponent: ux.librarycomponent.specializes.ux.librarycomponent already exists and expresses it. Plan kind remove-duplicate, p 0.34; claims node:ux.librarycomponent#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "ux.librarycomponent",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.librarycomponent composes ux.librarycomponent",
+        "description": "Defines relationship: ux.librarycomponent composes ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The renders and composes self-relationships on ux.librarycomponent overlap in meaning. Proposed: Consolidate renders and composes into a single self-relationship or define a clear distinction.",
+          "claim_id": "node:ux.librarycomponent#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.librarycomponent#2): best source of 'composes ux.librarycomponent': ux.librarycomponent (0.56), ux.componentreference (0.23), none (0.11); best destination of 'ux.librarycomponent composes': ux.librarycomponent (0.41), ux.componentreference (0.25), none (0.17); best predicate: composes (0.35), specializes (0.22), renders (0.11). Outcome: reproduced.",
+          "claim_id": "rel:ux.librarycomponent#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.librarycomponent#2): best source of 'composes ux.librarycomponent': ux.librarycomponent (0.53), none (0.18), ux.componentreference (0.17); best destination of 'ux.librarycomponent composes': ux.librarycomponent (0.46), none (0.26), ux.componentreference (0.16); best predicate: specializes (0.33), composes (0.21), none (0.12). Outcome: alternative (predicate=specializes).",
+          "claim_id": "node:ux.librarycomponent#2"
+        }
+      ],
+      "probability": 0.335,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.librarycomponent.composes.ux.librarycomponent",
+        "replacement": ["ux.librarycomponent.specializes.ux.librarycomponent"],
+        "claims": ["node:ux.librarycomponent#2"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "delete",
+      "target_id": "ux.view.aggregates.ux.subview",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.view.aggregates.ux.subview: ux.view.composes.ux.subview already exists and expresses it. Plan kind remove-duplicate, p 0.33; claims node:ux.subview#4, node:ux.view#4, rel:ux.view#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.view",
+        "destination_spec_node_id": "ux.subview",
+        "title": "ux.view aggregates ux.subview",
+        "description": "Defines relationship: ux.view aggregates ux.subview"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships view aggregates subview and view composes subview are redundant. Proposed: Keep one of aggregates/composes between view and subview and remove the other.",
+          "claim_id": "node:ux.subview#4"
+        },
+        {
+          "quote": "The aggregates and composes relationships from ux.view to ux.subview express the same meaning and are redundant. Proposed: Keep one of aggregates or composes and drop the other.",
+          "claim_id": "node:ux.view#4"
+        },
+        {
+          "quote": "The relationships ux.view aggregates ux.subview and ux.view composes ux.subview overlap and need a distinction between referenced sets and inline composition. Proposed: Define aggregates as a reference-set of subviews and composes as inline subviews, documenting the distinction.",
+          "claim_id": "rel:ux.view#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.subview#4): best source of 'aggregates ux.subview': ux.view (0.43), none (0.28), ux.componentreference (0.08); best destination of 'ux.view aggregates': ux.subview (0.74), none (0.10), ux.componentinstance (0.04); best predicate: composes (0.82), aggregates (0.07), none (0.05). Outcome: alternative (predicate=composes).",
+          "claim_id": "node:ux.subview#4"
+        },
+        {
+          "quote": "Sorting answers (node:ux.view#4): best source of 'aggregates ux.subview': ux.view (0.58), none (0.19), ux.componentreference (0.07); best destination of 'ux.view aggregates': ux.subview (0.80), none (0.09), ux.componentinstance (0.03); best predicate: composes (0.71), aggregates (0.09), uses (0.07). Outcome: alternative (predicate=composes).",
+          "claim_id": "node:ux.view#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.view#2): best source of 'aggregates ux.subview': ux.view (0.59), none (0.26), ux.componentreference (0.06); best destination of 'ux.view aggregates': ux.subview (0.72), none (0.15), ux.componentreference (0.03); best predicate: composes (0.33), aggregates (0.28), references (0.23). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:ux.view#2"
+        }
+      ],
+      "probability": 0.326,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "remove-duplicate",
+        "triple": "ux.view.aggregates.ux.subview",
+        "replacement": ["ux.view.composes.ux.subview"],
+        "claims": ["node:ux.subview#4", "node:ux.view#4", "rel:ux.view#2"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "update",
+      "target_id": "ux.errorconfig.maps-to.api.response",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "ux.errorconfig references api.response",
+        "description": "Defines relationship: ux.errorconfig references api.response"
+      },
+      "rationale": "Rename the predicate of ux.errorconfig.maps-to.api.response to ux.errorconfig.references.api.response. Plan kind rename-predicate, p 0.70; claims rel:ux.errorconfig#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "ux.errorconfig",
+        "destination_spec_node_id": "api.response",
+        "title": "ux.errorconfig maps-to api.response",
+        "description": "Defines relationship: ux.errorconfig maps-to api.response"
+      },
+      "evidence": [
+        {
+          "quote": "The 'maps-to' relationship from ux.errorconfig to api.response uses a predicate classed as schema/table mapping, which does not fit a response link; 'associated-with' or 'references' may suit better. Proposed: Change the predicate of the ux.errorconfig to api.response relationship from 'maps-to' to 'associated-with' or 'references'.",
+          "claim_id": "rel:ux.errorconfig#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.errorconfig#2): best source of 'maps-to api.response': ux.errorconfig (0.33), none (0.21), ux.dataconfig (0.20); best destination of 'ux.errorconfig maps-to': api.response (0.61), none (0.29), api.components (0.06); best predicate: references (0.70), none (0.13), uses (0.06). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:ux.errorconfig#2"
+        }
+      ],
+      "probability": 0.699,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.errorconfig.maps-to.api.response",
+        "replacement": ["ux.errorconfig.references.api.response"],
+        "claims": ["rel:ux.errorconfig#2"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "update",
+      "target_id": "ux.componentinstance.renders.ux.layoutconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "ux.componentinstance uses ux.layoutconfig",
+        "description": "Defines relationship: ux.componentinstance uses ux.layoutconfig"
+      },
+      "rationale": "Rename the predicate of ux.componentinstance.renders.ux.layoutconfig to ux.componentinstance.uses.ux.layoutconfig. Plan kind rename-predicate, p 0.66; claims rel:ux.componentinstance#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "ux.layoutconfig",
+        "title": "ux.componentinstance renders ux.layoutconfig",
+        "description": "Defines relationship: ux.componentinstance renders ux.layoutconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.componentinstance renders ux.layoutconfig uses a wrong predicate because a layout config renders nothing; applies fits better. Proposed: Change the predicate from renders to applies for the layoutconfig relationship.",
+          "claim_id": "rel:ux.componentinstance#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentinstance#3): best source of 'renders ux.layoutconfig': none (0.46), ux.componentinstance (0.26), ux.componentreference (0.10); best destination of 'ux.componentinstance renders': ux.layoutconfig (0.72), none (0.08), ux.componentreference (0.06); best predicate: uses (0.66), none (0.12), depends-on (0.06). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:ux.componentinstance#3"
+        }
+      ],
+      "probability": 0.663,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.componentinstance.renders.ux.layoutconfig",
+        "replacement": ["ux.componentinstance.uses.ux.layoutconfig"],
+        "claims": ["rel:ux.componentinstance#3"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "update",
+      "target_id": "ux.view.maps-to.business.businessobject",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "ux.view references business.businessobject",
+        "description": "Defines relationship: ux.view references business.businessobject"
+      },
+      "rationale": "Rename the predicate of ux.view.maps-to.business.businessobject to ux.view.references.business.businessobject. Plan kind rename-predicate, p 0.65; claims rel:ux.view#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "ux.view",
+        "destination_spec_node_id": "business.businessobject",
+        "title": "ux.view maps-to business.businessobject",
+        "description": "Defines relationship: ux.view maps-to business.businessobject"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to predicate is a data-mapping predicate and is misused for ux.view relationships to motivation.outcome and business.businessobject. Proposed: Replace maps-to with a more appropriate predicate for these relationships.",
+          "claim_id": "rel:ux.view#5"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.view#5): best source of 'maps-to business.businessobject': none (0.27), ux.componentinstance (0.26), ux.view (0.16); best destination of 'ux.view maps-to': business.businessobject (0.45), none (0.42), motivation.outcome (0.05); best predicate: references (0.65), maps-to (0.09), none (0.09). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:ux.view#5"
+        }
+      ],
+      "probability": 0.653,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.view.maps-to.business.businessobject",
+        "replacement": ["ux.view.references.business.businessobject"],
+        "claims": ["rel:ux.view#5"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "update",
+      "target_id": "ux.actioncomponent.uses.application.applicationfunction",
+      "ref": null,
+      "fields": {
+        "predicate": "triggers",
+        "title": "ux.actioncomponent triggers application.applicationfunction",
+        "description": "Defines relationship: ux.actioncomponent triggers application.applicationfunction"
+      },
+      "rationale": "Rename the predicate of ux.actioncomponent.uses.application.applicationfunction to ux.actioncomponent.triggers.application.applicationfunction. Plan kind rename-predicate, p 0.59; claims rel:ux.actioncomponent#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "ux.actioncomponent",
+        "destination_spec_node_id": "application.applicationfunction",
+        "title": "ux.actioncomponent uses application.applicationfunction",
+        "description": "Defines relationship: ux.actioncomponent uses application.applicationfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.actioncomponent uses application.applicationfunction conflicts with the application function definition that it is invoked internally. Proposed: Remove the uses relationship to applicationfunction.",
+          "claim_id": "rel:ux.actioncomponent#5"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actioncomponent#5): best source of 'uses application.applicationfunction': none (0.34), ux.actioncomponent (0.21), ux.actionpattern (0.20); best destination of 'ux.actioncomponent uses': application.applicationfunction (0.34), none (0.27), ux.errorconfig (0.13); best predicate: triggers (0.60), none (0.20), realizes (0.07). Outcome: alternative (predicate=triggers).",
+          "claim_id": "rel:ux.actioncomponent#5"
+        }
+      ],
+      "probability": 0.595,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.actioncomponent.uses.application.applicationfunction",
+        "replacement": [
+          "ux.actioncomponent.triggers.application.applicationfunction"
+        ],
+        "claims": ["rel:ux.actioncomponent#5"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "update",
+      "target_id": "ux.uxlibrary.aggregates.ux.librarysubview",
+      "ref": null,
+      "fields": {
+        "predicate": "provides",
+        "title": "ux.uxlibrary provides ux.librarysubview",
+        "description": "Defines relationship: ux.uxlibrary provides ux.librarysubview"
+      },
+      "rationale": "Rename the predicate of ux.uxlibrary.aggregates.ux.librarysubview to ux.uxlibrary.provides.ux.librarysubview. Plan kind rename-predicate, p 0.57; claims rel:ux.uxlibrary#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.uxlibrary",
+        "destination_spec_node_id": "ux.librarysubview",
+        "title": "ux.uxlibrary aggregates ux.librarysubview",
+        "description": "Defines relationship: ux.uxlibrary aggregates ux.librarysubview"
+      },
+      "evidence": [
+        {
+          "quote": "ux.uxlibrary has both 'aggregates' and 'provides' relationships to ux.librarysubview, which overlap because membership and export usually coincide; keep 'aggregates' only if it covers internal, unexported members, otherwise drop one. Proposed: Drop one of aggregates/provides for librarysubview, keeping aggregates only if it is meant to cover internal unexported members.",
+          "claim_id": "rel:ux.uxlibrary#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.librarysubview#3): best source of 'aggregates ux.librarysubview': ux.uxlibrary (0.82), none (0.13), ux.componentinstance (0.01); best destination of 'ux.uxlibrary aggregates': ux.librarysubview (0.88), none (0.06), ux.librarycomponent (0.02); best predicate: aggregates (0.39), provides (0.34), composes (0.08). Outcome: reproduced.",
+          "claim_id": "node:ux.librarysubview#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.uxlibrary#2): best source of 'aggregates ux.librarysubview': ux.uxlibrary (0.83), none (0.10), ux.componentreference (0.02); best destination of 'ux.uxlibrary aggregates': ux.librarysubview (0.83), none (0.08), ux.librarycomponent (0.04); best predicate: provides (0.57), aggregates (0.18), none (0.07). Outcome: alternative (predicate=provides).",
+          "claim_id": "rel:ux.uxlibrary#2"
+        }
+      ],
+      "probability": 0.57,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.uxlibrary.aggregates.ux.librarysubview",
+        "replacement": ["ux.uxlibrary.provides.ux.librarysubview"],
+        "claims": ["rel:ux.uxlibrary#2"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "update",
+      "target_id": "ux.view.maps-to.motivation.outcome",
+      "ref": null,
+      "fields": {
+        "predicate": "realizes",
+        "title": "ux.view realizes motivation.outcome",
+        "description": "Defines relationship: ux.view realizes motivation.outcome"
+      },
+      "rationale": "Rename the predicate of ux.view.maps-to.motivation.outcome to ux.view.realizes.motivation.outcome. Plan kind rename-predicate, p 0.49; claims rel:ux.view#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "ux.view",
+        "destination_spec_node_id": "motivation.outcome",
+        "title": "ux.view maps-to motivation.outcome",
+        "description": "Defines relationship: ux.view maps-to motivation.outcome"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to predicate is a data-mapping predicate and is misused for ux.view relationships to motivation.outcome and business.businessobject. Proposed: Replace maps-to with a more appropriate predicate for these relationships.",
+          "claim_id": "rel:ux.view#5"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.view#5): best source of 'maps-to motivation.outcome': none (0.49), ux.dataconfig (0.21), ux.view (0.13); best destination of 'ux.view maps-to': none (0.39), motivation.outcome (0.26), business.businessobject (0.15); best predicate: realizes (0.49), none (0.35), references (0.04). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:ux.view#5"
+        }
+      ],
+      "probability": 0.493,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.view.maps-to.motivation.outcome",
+        "replacement": ["ux.view.realizes.motivation.outcome"],
+        "claims": ["rel:ux.view#5"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "update",
+      "target_id": "ux.subview.realizes.ux.librarysubview",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "ux.subview references ux.librarysubview",
+        "description": "Defines relationship: ux.subview references ux.librarysubview"
+      },
+      "rationale": "Rename the predicate of ux.subview.realizes.ux.librarysubview to ux.subview.references.ux.librarysubview. Plan kind rename-predicate, p 0.45; claims node:ux.subview#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "ux.librarysubview",
+        "title": "ux.subview realizes ux.librarysubview",
+        "description": "Defines relationship: ux.subview realizes ux.librarysubview"
+      },
+      "evidence": [
+        {
+          "quote": "ux.subview has redundant relationships to librarysubview: ref, realizes and uses express the same meaning. Proposed: Keep a single relationship (or the ref attribute) to librarysubview and remove the others.",
+          "claim_id": "node:ux.subview#3"
+        },
+        {
+          "quote": "Sorting answers (node:ux.librarysubview#2): best source of 'realizes ux.librarysubview': ux.subview (0.62), none (0.20), ux.componentinstance (0.09); best destination of 'ux.subview realizes': ux.librarysubview (0.83), none (0.08), ux.componentreference (0.03); best predicate: realizes (0.40), references (0.23), uses (0.22). Outcome: reproduced.",
+          "claim_id": "node:ux.librarysubview#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.subview#3): best source of 'realizes ux.librarysubview': ux.subview (0.54), none (0.23), ux.componentinstance (0.14); best destination of 'ux.subview realizes': ux.librarysubview (0.84), none (0.10), ux.componentreference (0.01); best predicate: references (0.45), realizes (0.32), uses (0.09). Outcome: alternative (predicate=references).",
+          "claim_id": "node:ux.subview#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.subview#1): best source of 'realizes ux.librarysubview': ux.subview (0.86), none (0.05), ux.componentinstance (0.02); best destination of 'ux.subview realizes': ux.librarysubview (0.91), none (0.04), ux.componentinstance (0.01); best predicate: realizes (0.82), references (0.06), uses (0.05). Outcome: reproduced.",
+          "claim_id": "rel:ux.subview#1"
+        }
+      ],
+      "probability": 0.447,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.subview.realizes.ux.librarysubview",
+        "replacement": ["ux.subview.references.ux.librarysubview"],
+        "claims": ["node:ux.subview#3"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "update",
+      "target_id": "ux.statetransition.navigates-to.ux.experiencestate",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "ux.statetransition references ux.experiencestate",
+        "description": "Defines relationship: ux.statetransition references ux.experiencestate"
+      },
+      "rationale": "Rename the predicate of ux.statetransition.navigates-to.ux.experiencestate to ux.statetransition.references.ux.experiencestate. Plan kind rename-predicate, p 0.37; claims rel:ux.statetransition#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "navigates-to",
+        "source_spec_node_id": "ux.statetransition",
+        "destination_spec_node_id": "ux.experiencestate",
+        "title": "ux.statetransition navigates-to ux.experiencestate",
+        "description": "Defines relationship: ux.statetransition navigates-to ux.experiencestate"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.statetransition --[navigates-to]--> ux.experiencestate uses a predicate catalogued as UI navigation between screens or routes, but ExperienceState is explicitly not a screen or route, so the predicate does not fit. Proposed: Replace navigates-to with a dedicated 'targets-state' predicate, or with flows-to.",
+          "claim_id": "rel:ux.statetransition#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.statetransition#1): best source of 'navigates-to ux.experiencestate': ux.statetransition (0.68), none (0.18), ux.experiencestate (0.07); best destination of 'ux.statetransition navigates-to': ux.experiencestate (0.81), none (0.13), ux.dataconfig (0.02); best predicate: references (0.37), reverse:flows-to (0.22), triggers (0.11). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:ux.statetransition#1"
+        }
+      ],
+      "probability": 0.374,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.statetransition.navigates-to.ux.experiencestate",
+        "replacement": ["ux.statetransition.references.ux.experiencestate"],
+        "claims": ["rel:ux.statetransition#1"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "update",
+      "target_id": "ux.view.serves.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "ux.view uses application.applicationservice",
+        "description": "Defines relationship: ux.view uses application.applicationservice"
+      },
+      "rationale": "Rename the predicate of ux.view.serves.application.applicationservice to ux.view.uses.application.applicationservice. Plan kind rename-predicate, p 0.32; claims rel:ux.view#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "ux.view",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "ux.view serves application.applicationservice",
+        "description": "Defines relationship: ux.view serves application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.view serves application.applicationservice is inverted, since application services serve the UI rather than the view serving them. Proposed: Reverse the direction so application.applicationservice serves ux.view.",
+          "claim_id": "rel:ux.view#6"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.view#6): best source of 'serves application.applicationservice': none (0.34), application.applicationinterface (0.27), ux.view (0.21); best destination of 'ux.view serves': application.applicationservice (0.46), business.businessrole (0.12), motivation.stakeholder (0.10); best predicate: uses (0.32), accesses (0.22), realizes (0.12). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:ux.view#6"
+        }
+      ],
+      "probability": 0.324,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.view.serves.application.applicationservice",
+        "replacement": ["ux.view.uses.application.applicationservice"],
+        "claims": ["rel:ux.view#6"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "update",
+      "target_id": "ux.componentreference.renders.ux.componentreference",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "ux.componentreference references ux.componentreference",
+        "description": "Defines relationship: ux.componentreference references ux.componentreference"
+      },
+      "rationale": "Rename the predicate of ux.componentreference.renders.ux.componentreference to ux.componentreference.references.ux.componentreference. Plan kind rename-predicate, p 0.32; claims node:ux.componentreference#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.componentreference",
+        "destination_spec_node_id": "ux.componentreference",
+        "title": "ux.componentreference renders ux.componentreference",
+        "description": "Defines relationship: ux.componentreference renders ux.componentreference"
+      },
+      "evidence": [
+        {
+          "quote": "The self-referential 'renders' relationship on ux.componentreference is listed twice, once as outgoing and once as incoming. Proposed: Keep a single listing of the self-referential 'renders' relationship.",
+          "claim_id": "node:ux.componentreference#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.componentreference#2): best source of 'renders ux.componentreference': ux.componentreference (0.74), none (0.11), ux.librarycomponent (0.07); best destination of 'ux.componentreference renders': ux.componentreference (0.51), none (0.30), ux.componentinstance (0.08); best predicate: references (0.32), none (0.22), renders (0.14). Outcome: alternative (predicate=references).",
+          "claim_id": "node:ux.componentreference#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentreference#3): best source of 'renders ux.componentreference': ux.componentreference (0.65), ux.librarycomponent (0.19), ux.componentinstance (0.06); best destination of 'ux.componentreference renders': ux.componentreference (0.54), none (0.23), ux.componentinstance (0.12); best predicate: none (0.44), references (0.20), composes (0.11). Outcome: no_better.",
+          "claim_id": "rel:ux.componentreference#3"
+        }
+      ],
+      "probability": 0.322,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.componentreference.renders.ux.componentreference",
+        "replacement": [
+          "ux.componentreference.references.ux.componentreference"
+        ],
+        "claims": ["node:ux.componentreference#2"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "update",
+      "target_id": "ux.componentreference.renders.ux.librarycomponent",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "ux.componentreference references ux.librarycomponent",
+        "description": "Defines relationship: ux.componentreference references ux.librarycomponent"
+      },
+      "rationale": "Rename the predicate of ux.componentreference.renders.ux.librarycomponent to ux.componentreference.references.ux.librarycomponent. Plan kind rename-predicate, p 0.30; claims rel:ux.componentreference#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.componentreference",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.componentreference renders ux.librarycomponent",
+        "description": "Defines relationship: ux.componentreference renders ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.componentreference implements ux.librarycomponent overlaps with ux.componentreference renders ux.librarycomponent, as both express the same link between a reference and a library component. Proposed: Remove the implements relationship and keep renders to ux.librarycomponent.",
+          "claim_id": "rel:ux.componentreference#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentreference#1): best source of 'renders ux.librarycomponent': ux.componentreference (0.91), none (0.03), ux.librarycomponent (0.02); best destination of 'ux.componentreference renders': ux.librarycomponent (0.43), ux.componentreference (0.35), none (0.10); best predicate: references (0.30), reverse:renders (0.26), renders (0.16). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:ux.componentreference#1"
+        }
+      ],
+      "probability": 0.296,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.componentreference.renders.ux.librarycomponent",
+        "replacement": ["ux.componentreference.references.ux.librarycomponent"],
+        "claims": ["rel:ux.componentreference#1"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "update",
+      "target_id": "ux.subview.serves.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "title": "ux.subview uses application.applicationservice",
+        "description": "Defines relationship: ux.subview uses application.applicationservice"
+      },
+      "rationale": "Rename the predicate of ux.subview.serves.application.applicationservice to ux.subview.uses.application.applicationservice. Plan kind rename-predicate, p 0.26; claims rel:ux.subview#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "ux.subview serves application.applicationservice",
+        "description": "Defines relationship: ux.subview serves application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.subview serves application.applicationservice reverses the usual direction, since the application service serves the UI. Proposed: Reverse the direction so application.applicationservice serves ux.subview, or remove the relationship.",
+          "claim_id": "rel:ux.subview#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.subview#4): best source of 'serves application.applicationservice': none (0.36), application.applicationinterface (0.25), ux.view (0.18); best destination of 'ux.subview serves': application.applicationservice (0.48), application.applicationinterface (0.18), application.applicationcomponent (0.11); best predicate: uses (0.26), none (0.18), realizes (0.18). Outcome: alternative (predicate=uses).",
+          "claim_id": "rel:ux.subview#4"
+        }
+      ],
+      "probability": 0.263,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "rename-predicate",
+        "triple": "ux.subview.serves.application.applicationservice",
+        "replacement": ["ux.subview.uses.application.applicationservice"],
+        "claims": ["rel:ux.subview#4"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "delete",
+      "target_id": "ux.subview.uses.ux.layoutconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.subview.uses.ux.layoutconfig: ux.layoutconfig.provides.ux.subview already exists and expresses it. Plan kind reverse, p 0.59; claims rel:ux.subview#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "ux.layoutconfig",
+        "title": "ux.subview uses ux.layoutconfig",
+        "description": "Defines relationship: ux.subview uses ux.layoutconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.subview uses ux.layoutconfig would fit better with the predicate applies than uses. Proposed: Replace the uses predicate with applies for the relationship to ux.layoutconfig.",
+          "claim_id": "rel:ux.subview#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.subview#3): best source of 'uses ux.layoutconfig': ux.subview (0.48), ux.view (0.22), none (0.11); best destination of 'ux.subview uses': ux.layoutconfig (0.84), none (0.06), ux.librarysubview (0.04); best predicate: reverse:provides (0.60), uses (0.14), depends-on (0.09). Outcome: alternative (predicate=reverse:provides).",
+          "claim_id": "rel:ux.subview#3"
+        }
+      ],
+      "probability": 0.595,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "reverse",
+        "triple": "ux.subview.uses.ux.layoutconfig",
+        "replacement": ["ux.layoutconfig.provides.ux.subview"],
+        "claims": ["rel:ux.subview#3"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "delete",
+      "target_id": "ux.chartseries.binds-to.ux.dataconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.chartseries.binds-to.ux.dataconfig: ux.dataconfig.composes.ux.chartseries already exists and expresses it. Plan kind reverse, p 0.57; claims rel:ux.chartseries#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "binds-to",
+        "source_spec_node_id": "ux.chartseries",
+        "destination_spec_node_id": "ux.dataconfig",
+        "title": "ux.chartseries binds-to ux.dataconfig",
+        "description": "Defines relationship: ux.chartseries binds-to ux.dataconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.chartseries accesses data-store.collection bypasses layering, since DataConfig says endpoints and entities belong to other layers; it duplicates the binds-to path via ux.dataconfig and should be derived through it. Proposed: Remove the direct accesses relationship to data-store.collection and derive it through the binds-to ux.dataconfig path.",
+          "claim_id": "rel:ux.chartseries#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.chartseries#1): best source of 'binds-to ux.dataconfig': ux.chartseries (0.55), ux.tablecolumn (0.12), none (0.11); best destination of 'ux.chartseries binds-to': ux.dataconfig (0.80), none (0.08), ux.componentinstance (0.04); best predicate: reverse:composes (0.57), binds-to (0.12), references (0.09). Outcome: alternative (predicate=reverse:composes).",
+          "claim_id": "rel:ux.chartseries#1"
+        }
+      ],
+      "probability": 0.566,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "reverse",
+        "triple": "ux.chartseries.binds-to.ux.dataconfig",
+        "replacement": ["ux.dataconfig.composes.ux.chartseries"],
+        "claims": ["rel:ux.chartseries#1"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "ux.errorconfig.governs.ux.view",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.errorconfig.governs.ux.view: ux.view.requires.ux.errorconfig already exists and expresses it. Plan kind reverse, p 0.57; claims rel:ux.errorconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.errorconfig",
+        "destination_spec_node_id": "ux.view",
+        "title": "ux.errorconfig governs ux.view",
+        "description": "Defines relationship: ux.errorconfig governs ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "The four 'governs' relationships from ux.errorconfig (to actioncomponent, componentinstance, experiencestate, view) express one attachment idea, and 'governs' is a motivation-layer predicate that fits the ux predicate family poorly; 'applies' would fit better. Proposed: Replace the 'governs' predicate with 'applies' on the four ux.errorconfig relationships.",
+          "claim_id": "rel:ux.errorconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.errorconfig#1): best source of 'governs ux.view': ux.errorconfig (0.56), none (0.28), ux.experiencestate (0.03); best destination of 'ux.errorconfig governs': none (0.28), ux.view (0.25), ux.componentinstance (0.17); best predicate: reverse:requires (0.57), governs (0.17), none (0.09). Outcome: alternative (predicate=reverse:requires).",
+          "claim_id": "rel:ux.errorconfig#1"
+        }
+      ],
+      "probability": 0.566,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "reverse",
+        "triple": "ux.errorconfig.governs.ux.view",
+        "replacement": ["ux.view.requires.ux.errorconfig"],
+        "claims": ["rel:ux.errorconfig#1"]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "update",
+      "target_id": "ux.actioncomponent.triggers.ux.statetransition",
+      "ref": null,
+      "fields": {
+        "predicate": "associated-with",
+        "source_spec_node_id": "ux.statetransition",
+        "destination_spec_node_id": "ux.actioncomponent",
+        "title": "ux.statetransition associated-with ux.actioncomponent",
+        "description": "Defines relationship: ux.statetransition associated-with ux.actioncomponent"
+      },
+      "rationale": "Reverse the direction of ux.actioncomponent.triggers.ux.statetransition to ux.statetransition.associated-with.ux.actioncomponent. Plan kind reverse, p 0.54; claims rel:ux.actioncomponent#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "ux.actioncomponent",
+        "destination_spec_node_id": "ux.statetransition",
+        "title": "ux.actioncomponent triggers ux.statetransition",
+        "description": "Defines relationship: ux.actioncomponent triggers ux.statetransition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.actioncomponent triggers ux.stateaction and ux.actioncomponent triggers ux.statetransition overlap, since state actions run from lifecycle hooks. Proposed: Remove or merge one of the two triggers relationships, likely dropping triggers stateaction.",
+          "claim_id": "rel:ux.actioncomponent#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actioncomponent#4): best source of 'triggers ux.statetransition': ux.actioncomponent (0.53), none (0.19), navigation.navigationtransition (0.12); best destination of 'ux.actioncomponent triggers': ux.statetransition (0.60), ux.stateaction (0.28), business.businessevent (0.05); best predicate: reverse:associated-with (0.54), triggers (0.20), none (0.16). Outcome: alternative (predicate=reverse:associated-with).",
+          "claim_id": "rel:ux.actioncomponent#4"
+        }
+      ],
+      "probability": 0.543,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "reverse",
+        "triple": "ux.actioncomponent.triggers.ux.statetransition",
+        "replacement": [
+          "ux.statetransition.associated-with.ux.actioncomponent"
+        ],
+        "claims": ["rel:ux.actioncomponent#4"]
+      }
+    },
+    {
+      "seq": 25,
+      "op": "delete",
+      "target_id": "ux.layoutconfig.governs.ux.view",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.layoutconfig.governs.ux.view: ux.view.applies.ux.layoutconfig already exists and expresses it. Plan kind reverse, p 0.54; claims rel:ux.layoutconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.layoutconfig",
+        "destination_spec_node_id": "ux.view",
+        "title": "ux.layoutconfig governs ux.view",
+        "description": "Defines relationship: ux.layoutconfig governs ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.layoutconfig governs ux.view and ux.layoutconfig provides ux.view express essentially the same fact (the view uses this layout), so they are redundant; one should be kept, preferably using 'applies'. Proposed: Remove one of governs/provides between LayoutConfig and View and keep a single relationship using the 'applies' predicate.",
+          "claim_id": "rel:ux.layoutconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.layoutconfig#1): best source of 'governs ux.view': ux.layoutconfig (0.90), none (0.06), ux.componentreference (0.01); best destination of 'ux.layoutconfig governs': ux.view (0.43), none (0.32), ux.componentinstance (0.10); best predicate: reverse:applies (0.54), reverse:uses (0.19), governs (0.16). Outcome: alternative (predicate=reverse:applies).",
+          "claim_id": "rel:ux.layoutconfig#1"
+        }
+      ],
+      "probability": 0.537,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 25,
+        "plan_kind": "reverse",
+        "triple": "ux.layoutconfig.governs.ux.view",
+        "replacement": ["ux.view.applies.ux.layoutconfig"],
+        "claims": ["rel:ux.layoutconfig#1"]
+      }
+    },
+    {
+      "seq": 26,
+      "op": "delete",
+      "target_id": "ux.tablecolumn.binds-to.ux.dataconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.tablecolumn.binds-to.ux.dataconfig: ux.dataconfig.provides.ux.tablecolumn already exists and expresses it. Plan kind reverse, p 0.54; claims rel:ux.tablecolumn#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "binds-to",
+        "source_spec_node_id": "ux.tablecolumn",
+        "destination_spec_node_id": "ux.dataconfig",
+        "title": "ux.tablecolumn binds-to ux.dataconfig",
+        "description": "Defines relationship: ux.tablecolumn binds-to ux.dataconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The maps-to relationships from ux.tablecolumn to data-store.field and to data-model.schemaproperty, plus binds-to dataconfig, all describe the column's data source redundantly; the column should usually map only to the schema property. Proposed: Keep only the maps-to relationship to data-model.schemaproperty and remove the maps-to data-store.field and binds-to dataconfig relationships.",
+          "claim_id": "rel:ux.tablecolumn#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.tablecolumn#1): best source of 'binds-to ux.dataconfig': ux.tablecolumn (0.32), ux.componentinstance (0.24), none (0.17); best destination of 'ux.tablecolumn binds-to': ux.dataconfig (0.47), none (0.30), ux.chartseries (0.07); best predicate: reverse:provides (0.54), none (0.17), references (0.10). Outcome: alternative (predicate=reverse:provides).",
+          "claim_id": "rel:ux.tablecolumn#1"
+        }
+      ],
+      "probability": 0.537,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 26,
+        "plan_kind": "reverse",
+        "triple": "ux.tablecolumn.binds-to.ux.dataconfig",
+        "replacement": ["ux.dataconfig.provides.ux.tablecolumn"],
+        "claims": ["rel:ux.tablecolumn#1"]
+      }
+    },
+    {
+      "seq": 27,
+      "op": "delete",
+      "target_id": "ux.stateaction.uses.ux.actionpattern",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.stateaction.uses.ux.actionpattern: ux.actionpattern.governs.ux.stateaction already exists and expresses it. Plan kind reverse, p 0.49; claims node:ux.actionpattern#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "ux.stateaction",
+        "destination_spec_node_id": "ux.actionpattern",
+        "title": "ux.stateaction uses ux.actionpattern",
+        "description": "Defines relationship: ux.stateaction uses ux.actionpattern"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.actionpattern governs ux.stateaction and ux.stateaction uses ux.actionpattern are redundant, expressing the same meaning in opposite directions. Proposed: Keep only one direction of the relationship and remove the other.",
+          "claim_id": "node:ux.actionpattern#4"
+        },
+        {
+          "quote": "Sorting answers (node:ux.actionpattern#4): best source of 'uses ux.actionpattern': ux.stateaction (0.49), ux.actioncomponent (0.29), none (0.09); best destination of 'ux.stateaction uses': ux.actionpattern (0.71), none (0.14), ux.actioncomponent (0.04); best predicate: reverse:governs (0.49), uses (0.14), realizes (0.13). Outcome: alternative (predicate=reverse:governs).",
+          "claim_id": "node:ux.actionpattern#4"
+        }
+      ],
+      "probability": 0.486,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 27,
+        "plan_kind": "reverse",
+        "triple": "ux.stateaction.uses.ux.actionpattern",
+        "replacement": ["ux.actionpattern.governs.ux.stateaction"],
+        "claims": ["node:ux.actionpattern#4"]
+      }
+    },
+    {
+      "seq": 28,
+      "op": "delete",
+      "target_id": "ux.componentreference.renders.ux.actioncomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.componentreference.renders.ux.actioncomponent: ux.actioncomponent.renders.ux.componentreference already exists and expresses it. Plan kind reverse, p 0.45; claims rel:ux.componentreference#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.componentreference",
+        "destination_spec_node_id": "ux.actioncomponent",
+        "title": "ux.componentreference renders ux.actioncomponent",
+        "description": "Defines relationship: ux.componentreference renders ux.actioncomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.componentreference renders ux.actioncomponent may be redundant if action components are library components or instances. Proposed: Remove renders to ux.actioncomponent if action components are covered as library components or instances.",
+          "claim_id": "rel:ux.componentreference#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentreference#4): best source of 'renders ux.actioncomponent': none (0.29), ux.actioncomponent (0.28), ux.componentreference (0.27); best destination of 'ux.componentreference renders': ux.actioncomponent (0.38), ux.componentinstance (0.18), ux.componentreference (0.17); best predicate: reverse:renders (0.45), none (0.17), renders (0.17). Outcome: alternative (predicate=reverse:renders).",
+          "claim_id": "rel:ux.componentreference#4"
+        }
+      ],
+      "probability": 0.453,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 28,
+        "plan_kind": "reverse",
+        "triple": "ux.componentreference.renders.ux.actioncomponent",
+        "replacement": ["ux.actioncomponent.renders.ux.componentreference"],
+        "claims": ["rel:ux.componentreference#4"]
+      }
+    },
+    {
+      "seq": 29,
+      "op": "delete",
+      "target_id": "ux.librarycomponent.composes.ux.actioncomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.librarycomponent.composes.ux.actioncomponent: ux.actioncomponent.renders.ux.librarycomponent already exists and expresses it. Plan kind reverse, p 0.34; claims rel:ux.librarycomponent#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "ux.librarycomponent",
+        "destination_spec_node_id": "ux.actioncomponent",
+        "title": "ux.librarycomponent composes ux.actioncomponent",
+        "description": "Defines relationship: ux.librarycomponent composes ux.actioncomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.librarycomponent composes ux.actioncomponent and ux.librarycomponent renders ux.actioncomponent overlap heavily in meaning, so only one predicate should be kept. Proposed: Keep only one of composes or renders between ux.librarycomponent and ux.actioncomponent.",
+          "claim_id": "rel:ux.librarycomponent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.librarycomponent#1): best source of 'composes ux.actioncomponent': ux.librarycomponent (0.43), ux.componentreference (0.22), none (0.16); best destination of 'ux.librarycomponent composes': ux.actioncomponent (0.31), ux.componentreference (0.26), none (0.18); best predicate: reverse:renders (0.34), composes (0.28), renders (0.15). Outcome: alternative (predicate=reverse:renders).",
+          "claim_id": "rel:ux.librarycomponent#1"
+        }
+      ],
+      "probability": 0.338,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 29,
+        "plan_kind": "reverse",
+        "triple": "ux.librarycomponent.composes.ux.actioncomponent",
+        "replacement": ["ux.actioncomponent.renders.ux.librarycomponent"],
+        "claims": ["rel:ux.librarycomponent#1"]
+      }
+    },
+    {
+      "seq": 30,
+      "op": "delete",
+      "target_id": "ux.componentinstance.maps-to.data-model.objectschema",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.componentinstance.maps-to.data-model.objectschema: ux.dataconfig.maps-to.data-model.objectschema already exists and expresses it. Plan kind retarget, p 0.90; claims rel:ux.componentinstance#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "data-model.objectschema",
+        "title": "ux.componentinstance maps-to data-model.objectschema",
+        "description": "Defines relationship: ux.componentinstance maps-to data-model.objectschema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.componentinstance maps-to data-model.objectschema arguably belongs on ux.dataconfig rather than on the component instance. Proposed: Move the maps-to objectschema relationship from componentinstance to dataconfig.",
+          "claim_id": "rel:ux.componentinstance#6"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentinstance#6): best source of 'maps-to data-model.objectschema': ux.dataconfig (0.89), none (0.05), ux.chartseries (0.03); best destination of 'ux.componentinstance maps-to': data-model.objectschema (0.84), none (0.05), data-model.jsonschema (0.03); best predicate: maps-to (0.44), none (0.26), references (0.10). Outcome: alternative (source=ux.dataconfig).",
+          "claim_id": "rel:ux.componentinstance#6"
+        }
+      ],
+      "probability": 0.895,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 30,
+        "plan_kind": "retarget",
+        "triple": "ux.componentinstance.maps-to.data-model.objectschema",
+        "replacement": ["ux.dataconfig.maps-to.data-model.objectschema"],
+        "claims": ["rel:ux.componentinstance#6"]
+      }
+    },
+    {
+      "seq": 31,
+      "op": "delete",
+      "target_id": "ux.actionpattern.triggers.ux.statetransition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.actionpattern.triggers.ux.statetransition: ux.actioncomponent.triggers.ux.statetransition already exists and expresses it. Plan kind retarget, p 0.71; claims rel:ux.actionpattern#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "ux.actionpattern",
+        "destination_spec_node_id": "ux.statetransition",
+        "title": "ux.actionpattern triggers ux.statetransition",
+        "description": "Defines relationship: ux.actionpattern triggers ux.statetransition"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.actionpattern triggers ux.statetransition is questionable because a reusable pattern should not directly trigger a StateTransition; instance-level ActionComponents usually emit the triggering event, so 'triggers' may belong on ActionComponent. Proposed: Move the 'triggers' relationship to ux.actioncomponent (ux.actioncomponent triggers ux.statetransition) and remove it from ux.actionpattern.",
+          "claim_id": "rel:ux.actionpattern#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actionpattern#2): best source of 'triggers ux.statetransition': ux.actioncomponent (0.71), none (0.09), ux.componentinstance (0.07); best destination of 'ux.actionpattern triggers': ux.statetransition (0.66), none (0.21), ux.dataconfig (0.04); best predicate: none (0.36), triggers (0.31), uses (0.08). Outcome: alternative (source=ux.actioncomponent).",
+          "claim_id": "rel:ux.actionpattern#2"
+        }
+      ],
+      "probability": 0.707,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 31,
+        "plan_kind": "retarget",
+        "triple": "ux.actionpattern.triggers.ux.statetransition",
+        "replacement": ["ux.actioncomponent.triggers.ux.statetransition"],
+        "claims": ["rel:ux.actionpattern#2"]
+      }
+    },
+    {
+      "seq": 32,
+      "op": "delete",
+      "target_id": "ux.transitiontemplate.triggers.ux.stateaction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.transitiontemplate.triggers.ux.stateaction: ux.statetransition.triggers.ux.stateaction already exists and expresses it. Plan kind retarget, p 0.66; claims rel:ux.transitiontemplate#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "ux.transitiontemplate",
+        "destination_spec_node_id": "ux.stateaction",
+        "title": "ux.transitiontemplate triggers ux.stateaction",
+        "description": "Defines relationship: ux.transitiontemplate triggers ux.stateaction"
+      },
+      "evidence": [
+        {
+          "quote": "The triggers relationship from ux.transitiontemplate to ux.stateaction conflicts with StateAction being executed by state/transition lifecycle hooks rather than by animations. Proposed: Remove the triggers relationship to StateAction.",
+          "claim_id": "rel:ux.transitiontemplate#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.transitiontemplate#3): best source of 'triggers ux.stateaction': ux.statetransition (0.66), none (0.09), ux.actioncomponent (0.08); best destination of 'ux.transitiontemplate triggers': none (0.67), ux.stateaction (0.20), ux.actionpattern (0.02); best predicate: none (0.83), triggers (0.06), references (0.03). Outcome: alternative (source=ux.statetransition).",
+          "claim_id": "rel:ux.transitiontemplate#3"
+        }
+      ],
+      "probability": 0.659,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 32,
+        "plan_kind": "retarget",
+        "triple": "ux.transitiontemplate.triggers.ux.stateaction",
+        "replacement": ["ux.statetransition.triggers.ux.stateaction"],
+        "claims": ["rel:ux.transitiontemplate#3"]
+      }
+    },
+    {
+      "seq": 33,
+      "op": "update",
+      "target_id": "ux.uxspec.governs.ux.errorconfig",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "ux.errorconfig",
+        "title": "ux.errorconfig governs ux.errorconfig",
+        "description": "Defines relationship: ux.errorconfig governs ux.errorconfig"
+      },
+      "rationale": "Retarget of ux.uxspec.governs.ux.errorconfig to ux.errorconfig.governs.ux.errorconfig. Plan kind retarget, p 0.53; claims rel:ux.uxspec#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.uxspec",
+        "destination_spec_node_id": "ux.errorconfig",
+        "title": "ux.uxspec governs ux.errorconfig",
+        "description": "Defines relationship: ux.uxspec governs ux.errorconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.uxspec governs ux.errorconfig is only plausible if specs define default error policies; otherwise error configs attach to views, components, routes and bindings, making the link from uxspec indirect. Proposed: Remove or justify the uxspec governs errorconfig relationship, or ensure uxspec defines default error policies; otherwise attach errorconfig to views, components, routes and bindings.",
+          "claim_id": "rel:ux.uxspec#1"
+        },
+        {
+          "quote": "Sorting answers (node:ux.uxspec#3): best source of 'governs ux.errorconfig': ux.uxspec (0.50), ux.errorconfig (0.26), none (0.16); best destination of 'ux.uxspec governs': ux.errorconfig (0.81), none (0.10), ux.experiencestate (0.02); best predicate: governs (0.32), none (0.23), references (0.15). Outcome: reproduced.",
+          "claim_id": "node:ux.uxspec#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.uxspec#1): best source of 'governs ux.errorconfig': ux.errorconfig (0.53), none (0.24), ux.uxspec (0.11); best destination of 'ux.uxspec governs': ux.errorconfig (0.71), none (0.16), ux.experiencestate (0.04); best predicate: none (0.69), governs (0.14), references (0.05). Outcome: alternative (source=ux.errorconfig).",
+          "claim_id": "rel:ux.uxspec#1"
+        }
+      ],
+      "probability": 0.527,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 33,
+        "plan_kind": "retarget",
+        "triple": "ux.uxspec.governs.ux.errorconfig",
+        "replacement": ["ux.errorconfig.governs.ux.errorconfig"],
+        "claims": ["rel:ux.uxspec#1"]
+      }
+    },
+    {
+      "seq": 34,
+      "op": "delete",
+      "target_id": "ux.subview.realizes.business.businessprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.subview.realizes.business.businessprocess: navigation.navigationflow.realizes.business.businessprocess already exists and expresses it. Plan kind retarget, p 0.49; claims node:ux.subview#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "ux.subview realizes business.businessprocess",
+        "description": "Defines relationship: ux.subview realizes business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.subview realizes business.businessprocess bypasses the application layer and looks misplaced. Proposed: Remove it or route through the application layer.",
+          "claim_id": "node:ux.subview#6"
+        },
+        {
+          "quote": "Sorting answers (node:ux.subview#6): best source of 'realizes business.businessprocess': navigation.navigationflow (0.49), application.applicationprocess (0.12), none (0.10); best destination of 'ux.subview realizes': none (0.44), business.businessprocess (0.29), business.businessfunction (0.07); best predicate: none (0.79), realizes (0.08), serves (0.03). Outcome: alternative (source=navigation.navigationflow).",
+          "claim_id": "node:ux.subview#6"
+        }
+      ],
+      "probability": 0.49,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 34,
+        "plan_kind": "retarget",
+        "triple": "ux.subview.realizes.business.businessprocess",
+        "replacement": [
+          "navigation.navigationflow.realizes.business.businessprocess"
+        ],
+        "claims": ["node:ux.subview#6"]
+      }
+    },
+    {
+      "seq": 35,
+      "op": "update",
+      "target_id": "ux.experiencestate.governs.ux.view",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.experiencestate governs ux.componentinstance",
+        "description": "Defines relationship: ux.experiencestate governs ux.componentinstance"
+      },
+      "rationale": "Retarget of ux.experiencestate.governs.ux.view to ux.experiencestate.governs.ux.componentinstance. Plan kind retarget, p 0.49; claims node:ux.experiencestate#4, rel:ux.experiencestate#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.experiencestate",
+        "destination_spec_node_id": "ux.view",
+        "title": "ux.experiencestate governs ux.view",
+        "description": "Defines relationship: ux.experiencestate governs ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "ux.experiencestate has three outgoing relationships to ux.view (associated-with, governs, renders) that overlap in meaning. Proposed: Keep only one of associated-with, governs or renders from experiencestate to view and remove the others.",
+          "claim_id": "node:ux.experiencestate#4"
+        },
+        {
+          "quote": "The relationships associated-with, governs and renders from ux.experiencestate to ux.view overlap in meaning, and governs (component enablement) is the only meaningful one. Proposed: Keep governs and remove associated-with and renders between ux.experiencestate and ux.view.",
+          "claim_id": "rel:ux.experiencestate#1"
+        },
+        {
+          "quote": "Sorting answers (node:ux.experiencestate#4): best source of 'governs ux.view': ux.experiencestate (0.52), none (0.23), ux.layoutconfig (0.07); best destination of 'ux.experiencestate governs': ux.componentinstance (0.49), none (0.20), ux.view (0.15); best predicate: governs (0.42), none (0.23), associated-with (0.13). Outcome: alternative (target=ux.componentinstance).",
+          "claim_id": "node:ux.experiencestate#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.experiencestate#1): best source of 'governs ux.view': ux.experiencestate (0.42), none (0.25), ux.componentinstance (0.11); best destination of 'ux.experiencestate governs': ux.componentinstance (0.60), ux.actioncomponent (0.16), none (0.10); best predicate: governs (0.37), none (0.31), associated-with (0.10). Outcome: alternative (target=ux.componentinstance).",
+          "claim_id": "rel:ux.experiencestate#1"
+        }
+      ],
+      "probability": 0.487,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 35,
+        "plan_kind": "retarget",
+        "triple": "ux.experiencestate.governs.ux.view",
+        "replacement": ["ux.experiencestate.governs.ux.componentinstance"],
+        "claims": ["node:ux.experiencestate#4", "rel:ux.experiencestate#1"]
+      }
+    },
+    {
+      "seq": 36,
+      "op": "update",
+      "target_id": "ux.dataconfig.binds-to.ux.librarycomponent",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.componentinstance binds-to ux.componentinstance",
+        "description": "Defines relationship: ux.componentinstance binds-to ux.componentinstance"
+      },
+      "rationale": "Retarget of ux.dataconfig.binds-to.ux.librarycomponent to ux.componentinstance.binds-to.ux.componentinstance. Plan kind retarget, p 0.42; claims rel:ux.dataconfig#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "binds-to",
+        "source_spec_node_id": "ux.dataconfig",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.dataconfig binds-to ux.librarycomponent",
+        "description": "Defines relationship: ux.dataconfig binds-to ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.dataconfig binds-to ux.librarycomponent conflicts with the type-versus-instance distinction, since bindings should attach to component instances rather than library component definitions. Proposed: Remove the binds-to relationship to ux.librarycomponent and keep binding to componentinstance.",
+          "claim_id": "rel:ux.dataconfig#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.dataconfig#4): best source of 'binds-to ux.librarycomponent': ux.componentinstance (0.42), none (0.22), ux.dataconfig (0.15); best destination of 'ux.dataconfig binds-to': ux.componentinstance (0.87), ux.librarycomponent (0.05), none (0.03); best predicate: none (0.44), binds-to (0.14), references (0.14). Outcome: alternative (source=ux.componentinstance; target=ux.componentinstance).",
+          "claim_id": "rel:ux.dataconfig#4"
+        }
+      ],
+      "probability": 0.423,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 36,
+        "plan_kind": "retarget",
+        "triple": "ux.dataconfig.binds-to.ux.librarycomponent",
+        "replacement": ["ux.componentinstance.binds-to.ux.componentinstance"],
+        "claims": ["rel:ux.dataconfig#4"]
+      }
+    },
+    {
+      "seq": 37,
+      "op": "delete",
+      "target_id": "ux.dataconfig.maps-to.api.schema",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.dataconfig.maps-to.api.schema: ux.dataconfig.maps-to.api.response already exists and expresses it. Plan kind retarget, p 0.41; claims rel:ux.dataconfig#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "ux.dataconfig",
+        "destination_spec_node_id": "api.schema",
+        "title": "ux.dataconfig maps-to api.schema",
+        "description": "Defines relationship: ux.dataconfig maps-to api.schema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.dataconfig maps-to api.schema and ux.dataconfig maps-to api.response overlap in meaning. Proposed: Consolidate the two maps-to relationships into one or define a clear distinction between them.",
+          "claim_id": "rel:ux.dataconfig#6"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.dataconfig#6): best source of 'maps-to api.schema': ux.dataconfig (0.80), none (0.06), data-model.schemadefinition (0.05); best destination of 'ux.dataconfig maps-to': api.response (0.40), api.schema (0.32), api.components (0.08); best predicate: maps-to (0.51), references (0.21), none (0.10). Outcome: alternative (target=api.response).",
+          "claim_id": "rel:ux.dataconfig#6"
+        }
+      ],
+      "probability": 0.405,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 37,
+        "plan_kind": "retarget",
+        "triple": "ux.dataconfig.maps-to.api.schema",
+        "replacement": ["ux.dataconfig.maps-to.api.response"],
+        "claims": ["rel:ux.dataconfig#6"]
+      }
+    },
+    {
+      "seq": 38,
+      "op": "delete",
+      "target_id": "ux.actioncomponent.triggers.ux.stateaction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.actioncomponent.triggers.ux.stateaction: ux.statetransition.triggers.ux.stateaction already exists and expresses it. Plan kind retarget, p 0.40; claims rel:ux.actioncomponent#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "triggers",
+        "source_spec_node_id": "ux.actioncomponent",
+        "destination_spec_node_id": "ux.stateaction",
+        "title": "ux.actioncomponent triggers ux.stateaction",
+        "description": "Defines relationship: ux.actioncomponent triggers ux.stateaction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.actioncomponent triggers ux.stateaction and ux.actioncomponent triggers ux.statetransition overlap, since state actions run from lifecycle hooks. Proposed: Remove or merge one of the two triggers relationships, likely dropping triggers stateaction.",
+          "claim_id": "rel:ux.actioncomponent#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actioncomponent#4): best source of 'triggers ux.stateaction': ux.statetransition (0.40), ux.actioncomponent (0.22), none (0.16); best destination of 'ux.actioncomponent triggers': ux.stateaction (0.53), ux.statetransition (0.40), business.businessevent (0.02); best predicate: triggers (0.47), none (0.36), uses (0.04). Outcome: alternative (source=ux.statetransition).",
+          "claim_id": "rel:ux.actioncomponent#4"
+        }
+      ],
+      "probability": 0.396,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 38,
+        "plan_kind": "retarget",
+        "triple": "ux.actioncomponent.triggers.ux.stateaction",
+        "replacement": ["ux.statetransition.triggers.ux.stateaction"],
+        "claims": ["rel:ux.actioncomponent#4"]
+      }
+    },
+    {
+      "seq": 39,
+      "op": "update",
+      "target_id": "ux.chartseries.maps-to.data-model.arrayschema",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "data-model.schemaproperty",
+        "title": "ux.chartseries maps-to data-model.schemaproperty",
+        "description": "Defines relationship: ux.chartseries maps-to data-model.schemaproperty"
+      },
+      "rationale": "Retarget of ux.chartseries.maps-to.data-model.arrayschema to ux.chartseries.maps-to.data-model.schemaproperty. Plan kind retarget, p 0.33; claims rel:ux.chartseries#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "maps-to",
+        "source_spec_node_id": "ux.chartseries",
+        "destination_spec_node_id": "data-model.arrayschema",
+        "title": "ux.chartseries maps-to data-model.arrayschema",
+        "description": "Defines relationship: ux.chartseries maps-to data-model.arrayschema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.chartseries maps-to data-model.arrayschema overlaps with the binding's field path (dataField/categoryField). Proposed: none stated",
+          "claim_id": "rel:ux.chartseries#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.chartseries#2): best source of 'maps-to data-model.arrayschema': ux.chartseries (0.72), none (0.15), ux.dataconfig (0.06); best destination of 'ux.chartseries maps-to': data-model.schemaproperty (0.33), data-model.objectschema (0.30), data-model.arrayschema (0.22); best predicate: maps-to (0.41), references (0.28), none (0.12). Outcome: alternative (target=data-model.schemaproperty).",
+          "claim_id": "rel:ux.chartseries#2"
+        }
+      ],
+      "probability": 0.329,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 39,
+        "plan_kind": "retarget",
+        "triple": "ux.chartseries.maps-to.data-model.arrayschema",
+        "replacement": ["ux.chartseries.maps-to.data-model.schemaproperty"],
+        "claims": ["rel:ux.chartseries#2"]
+      }
+    },
+    {
+      "seq": 40,
+      "op": "delete",
+      "target_id": "ux.actioncomponent.realizes.business.businessfunction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.actioncomponent.realizes.business.businessfunction: application.applicationfunction.realizes.business.businessfunction already exists and expresses it. Plan kind retarget, p 0.30; claims rel:ux.actioncomponent#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "ux.actioncomponent",
+        "destination_spec_node_id": "business.businessfunction",
+        "title": "ux.actioncomponent realizes business.businessfunction",
+        "description": "Defines relationship: ux.actioncomponent realizes business.businessfunction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.actioncomponent realizes business.businessfunction is weak because a control rarely realizes a function. Proposed: Remove or replace the realizes relationship to businessfunction with a more suitable predicate.",
+          "claim_id": "rel:ux.actioncomponent#6"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actioncomponent#6): best source of 'realizes business.businessfunction': application.applicationfunction (0.30), none (0.30), ux.actioncomponent (0.13); best destination of 'ux.actioncomponent realizes': none (0.42), business.businessprocess (0.22), business.businessfunction (0.17); best predicate: none (0.41), triggers (0.25), serves (0.09). Outcome: alternative (source=application.applicationfunction).",
+          "claim_id": "rel:ux.actioncomponent#6"
+        }
+      ],
+      "probability": 0.3,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 40,
+        "plan_kind": "retarget",
+        "triple": "ux.actioncomponent.realizes.business.businessfunction",
+        "replacement": [
+          "application.applicationfunction.realizes.business.businessfunction"
+        ],
+        "claims": ["rel:ux.actioncomponent#6"]
+      }
+    },
+    {
+      "seq": 41,
+      "op": "update",
+      "target_id": "ux.chartseries.uses.ux.experiencestate",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "ux.dataconfig",
+        "title": "ux.dataconfig uses ux.experiencestate",
+        "description": "Defines relationship: ux.dataconfig uses ux.experiencestate"
+      },
+      "rationale": "Retarget of ux.chartseries.uses.ux.experiencestate to ux.dataconfig.uses.ux.experiencestate. Plan kind retarget, p 0.22; claims rel:ux.chartseries#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "ux.chartseries",
+        "destination_spec_node_id": "ux.experiencestate",
+        "title": "ux.chartseries uses ux.experiencestate",
+        "description": "Defines relationship: ux.chartseries uses ux.experiencestate"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.chartseries uses ux.experiencestate is inverted in meaning, because states govern components rather than series using states. Proposed: Reverse the direction or replace the 'uses' predicate so experiencestate governs chartseries.",
+          "claim_id": "rel:ux.chartseries#3"
+        },
+        {
+          "quote": "Sorting answers (node:ux.experiencestate#6): best source of 'uses ux.experiencestate': none (0.40), ux.chartseries (0.21), ux.dataconfig (0.12); best destination of 'ux.chartseries uses': none (0.55), ux.dataconfig (0.22), ux.experiencestate (0.09); best predicate: none (0.82), uses (0.05), references (0.05). Outcome: no_better.",
+          "claim_id": "node:ux.experiencestate#6"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.chartseries#3): best source of 'uses ux.experiencestate': ux.dataconfig (0.22), ux.chartseries (0.21), none (0.21); best destination of 'ux.chartseries uses': none (0.40), ux.dataconfig (0.33), ux.experiencestate (0.13); best predicate: none (0.63), uses (0.11), references (0.11). Outcome: alternative (source=ux.dataconfig).",
+          "claim_id": "rel:ux.chartseries#3"
+        }
+      ],
+      "probability": 0.217,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 41,
+        "plan_kind": "retarget",
+        "triple": "ux.chartseries.uses.ux.experiencestate",
+        "replacement": ["ux.dataconfig.uses.ux.experiencestate"],
+        "claims": ["rel:ux.chartseries#3"]
+      }
+    },
+    {
+      "seq": 42,
+      "op": "delete",
+      "target_id": "ux.actioncomponent.renders.ux.componentreference",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.actioncomponent.renders.ux.componentreference: ux.componentreference.renders.ux.componentreference already exists and expresses it. Plan kind compound, p 0.55; claims rel:ux.actioncomponent#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.actioncomponent",
+        "destination_spec_node_id": "ux.componentreference",
+        "title": "ux.actioncomponent renders ux.componentreference",
+        "description": "Defines relationship: ux.actioncomponent renders ux.componentreference"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.actioncomponent renders ux.componentreference contradicts the componentreference definition, which says a reference is not a rendered occurrence. Proposed: Remove the renders relationship from actioncomponent to componentreference or redefine it.",
+          "claim_id": "rel:ux.actioncomponent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actioncomponent#1): best source of 'renders ux.componentreference': ux.componentreference (0.77), none (0.11), ux.componentinstance (0.05); best destination of 'ux.actioncomponent renders': ux.componentreference (0.70), ux.componentinstance (0.14), none (0.08); best predicate: reverse:renders (0.55), none (0.16), references (0.09). Outcome: alternative (source=ux.componentreference; predicate=reverse:renders).",
+          "claim_id": "rel:ux.actioncomponent#1"
+        }
+      ],
+      "probability": 0.548,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 42,
+        "plan_kind": "compound",
+        "triple": "ux.actioncomponent.renders.ux.componentreference",
+        "replacement": ["ux.componentreference.renders.ux.componentreference"],
+        "claims": ["rel:ux.actioncomponent#1"]
+      }
+    },
+    {
+      "seq": 43,
+      "op": "update",
+      "target_id": "ux.uxspec.aggregates.ux.experiencestate",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "source_spec_node_id": "ux.statepattern",
+        "title": "ux.statepattern composes ux.experiencestate",
+        "description": "Defines relationship: ux.statepattern composes ux.experiencestate"
+      },
+      "rationale": "Change of ux.uxspec.aggregates.ux.experiencestate to ux.statepattern.composes.ux.experiencestate. Plan kind compound, p 0.49; claims rel:ux.uxspec#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.uxspec",
+        "destination_spec_node_id": "ux.experiencestate",
+        "title": "ux.uxspec aggregates ux.experiencestate",
+        "description": "Defines relationship: ux.uxspec aggregates ux.experiencestate"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.uxspec aggregates ux.experiencestate may use the wrong predicate, because experience states are usually composed within a state machine and do not exist independently, so composes may fit better than aggregates. Proposed: Change the predicate from aggregates to composes for the uxspec to experiencestate relationship.",
+          "claim_id": "rel:ux.uxspec#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.uxspec#2): best source of 'aggregates ux.experiencestate': ux.statepattern (0.49), ux.uxspec (0.41), none (0.06); best destination of 'ux.uxspec aggregates': ux.experiencestate (0.84), none (0.08), ux.view (0.03); best predicate: composes (0.61), aggregates (0.17), references (0.10). Outcome: alternative (source=ux.statepattern; predicate=composes).",
+          "claim_id": "rel:ux.uxspec#2"
+        }
+      ],
+      "probability": 0.495,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 43,
+        "plan_kind": "compound",
+        "triple": "ux.uxspec.aggregates.ux.experiencestate",
+        "replacement": ["ux.statepattern.composes.ux.experiencestate"],
+        "claims": ["rel:ux.uxspec#2"]
+      }
+    },
+    {
+      "seq": 44,
+      "op": "delete",
+      "target_id": "ux.componentinstance.renders.ux.componentreference",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.componentinstance.renders.ux.componentreference: ux.componentreference.renders.ux.componentreference already exists and expresses it. Plan kind compound, p 0.45; claims rel:ux.componentinstance#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "ux.componentreference",
+        "title": "ux.componentinstance renders ux.componentreference",
+        "description": "Defines relationship: ux.componentinstance renders ux.componentreference"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.componentinstance aggregates ux.componentreference and ux.componentinstance renders ux.componentreference overlap in meaning. Proposed: Keep only one of aggregates or renders between componentinstance and componentreference.",
+          "claim_id": "rel:ux.componentinstance#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentinstance#4): best source of 'renders ux.componentreference': ux.componentreference (0.75), ux.componentinstance (0.11), none (0.06); best destination of 'ux.componentinstance renders': ux.componentreference (0.87), none (0.04), ux.componentinstance (0.03); best predicate: reverse:renders (0.45), aggregates (0.11), references (0.10). Outcome: alternative (source=ux.componentreference; predicate=reverse:renders).",
+          "claim_id": "rel:ux.componentinstance#4"
+        }
+      ],
+      "probability": 0.448,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 44,
+        "plan_kind": "compound",
+        "triple": "ux.componentinstance.renders.ux.componentreference",
+        "replacement": ["ux.componentreference.renders.ux.componentreference"],
+        "claims": ["rel:ux.componentinstance#4"]
+      }
+    },
+    {
+      "seq": 45,
+      "op": "update",
+      "target_id": "ux.librarycomponent.renders.ux.actioncomponent",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "source_spec_node_id": "ux.componentreference",
+        "destination_spec_node_id": "ux.componentreference",
+        "title": "ux.componentreference composes ux.componentreference",
+        "description": "Defines relationship: ux.componentreference composes ux.componentreference"
+      },
+      "rationale": "Change of ux.librarycomponent.renders.ux.actioncomponent to ux.componentreference.composes.ux.componentreference. Plan kind compound, p 0.41; claims rel:ux.librarycomponent#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.librarycomponent",
+        "destination_spec_node_id": "ux.actioncomponent",
+        "title": "ux.librarycomponent renders ux.actioncomponent",
+        "description": "Defines relationship: ux.librarycomponent renders ux.actioncomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.librarycomponent composes ux.actioncomponent and ux.librarycomponent renders ux.actioncomponent overlap heavily in meaning, so only one predicate should be kept. Proposed: Keep only one of composes or renders between ux.librarycomponent and ux.actioncomponent.",
+          "claim_id": "rel:ux.librarycomponent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.librarycomponent#1): best source of 'renders ux.actioncomponent': ux.componentreference (0.43), ux.librarycomponent (0.18), ux.actioncomponent (0.12); best destination of 'ux.librarycomponent renders': ux.componentreference (0.45), ux.actioncomponent (0.31), ux.librarycomponent (0.07); best predicate: composes (0.41), reverse:renders (0.28), renders (0.12). Outcome: alternative (source=ux.componentreference; target=ux.componentreference; predicate=composes).",
+          "claim_id": "rel:ux.librarycomponent#1"
+        }
+      ],
+      "probability": 0.414,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 45,
+        "plan_kind": "compound",
+        "triple": "ux.librarycomponent.renders.ux.actioncomponent",
+        "replacement": ["ux.componentreference.composes.ux.componentreference"],
+        "claims": ["rel:ux.librarycomponent#1"]
+      }
+    },
+    {
+      "seq": 46,
+      "op": "update",
+      "target_id": "ux.layoutconfig.provides.ux.view",
+      "ref": null,
+      "fields": {
+        "predicate": "applies",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "ux.layoutconfig",
+        "title": "ux.subview applies ux.layoutconfig",
+        "description": "Defines relationship: ux.subview applies ux.layoutconfig"
+      },
+      "rationale": "Change of ux.layoutconfig.provides.ux.view to ux.subview.applies.ux.layoutconfig. Plan kind compound, p 0.41; claims rel:ux.layoutconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "provides",
+        "source_spec_node_id": "ux.layoutconfig",
+        "destination_spec_node_id": "ux.view",
+        "title": "ux.layoutconfig provides ux.view",
+        "description": "Defines relationship: ux.layoutconfig provides ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.layoutconfig governs ux.view and ux.layoutconfig provides ux.view express essentially the same fact (the view uses this layout), so they are redundant; one should be kept, preferably using 'applies'. Proposed: Remove one of governs/provides between LayoutConfig and View and keep a single relationship using the 'applies' predicate.",
+          "claim_id": "rel:ux.layoutconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.layoutconfig#1): best source of 'provides ux.view': ux.layoutconfig (0.75), none (0.17), ux.componentreference (0.02); best destination of 'ux.layoutconfig provides': ux.subview (0.49), none (0.22), ux.view (0.20); best predicate: reverse:applies (0.41), governs (0.38), reverse:uses (0.12). Outcome: alternative (target=ux.subview; predicate=reverse:applies).",
+          "claim_id": "rel:ux.layoutconfig#1"
+        }
+      ],
+      "probability": 0.407,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 46,
+        "plan_kind": "compound",
+        "triple": "ux.layoutconfig.provides.ux.view",
+        "replacement": ["ux.subview.applies.ux.layoutconfig"],
+        "claims": ["rel:ux.layoutconfig#1"]
+      }
+    },
+    {
+      "seq": 47,
+      "op": "update",
+      "target_id": "ux.librarycomponent.renders.ux.componentreference",
+      "ref": null,
+      "fields": {
+        "predicate": "implements",
+        "source_spec_node_id": "ux.componentreference",
+        "title": "ux.componentreference implements ux.componentreference",
+        "description": "Defines relationship: ux.componentreference implements ux.componentreference"
+      },
+      "rationale": "Change of ux.librarycomponent.renders.ux.componentreference to ux.componentreference.implements.ux.componentreference. Plan kind compound, p 0.40; claims rel:ux.librarycomponent#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.librarycomponent",
+        "destination_spec_node_id": "ux.componentreference",
+        "title": "ux.librarycomponent renders ux.componentreference",
+        "description": "Defines relationship: ux.librarycomponent renders ux.componentreference"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.librarycomponent renders ux.componentreference is semantically odd because a component reference is a declaration rather than a rendered occurrence. Proposed: Remove or replace the renders predicate to ux.componentreference with one that fits a declaration.",
+          "claim_id": "rel:ux.librarycomponent#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.librarycomponent#3): best source of 'renders ux.componentreference': ux.componentreference (0.81), none (0.06), ux.componentinstance (0.06); best destination of 'ux.librarycomponent renders': ux.componentreference (0.81), ux.componentinstance (0.07), none (0.05); best predicate: reverse:implements (0.40), none (0.16), reverse:renders (0.10). Outcome: alternative (source=ux.componentreference; predicate=reverse:implements).",
+          "claim_id": "rel:ux.librarycomponent#3"
+        }
+      ],
+      "probability": 0.396,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 47,
+        "plan_kind": "compound",
+        "triple": "ux.librarycomponent.renders.ux.componentreference",
+        "replacement": [
+          "ux.componentreference.implements.ux.componentreference"
+        ],
+        "claims": ["rel:ux.librarycomponent#3"]
+      }
+    },
+    {
+      "seq": 48,
+      "op": "delete",
+      "target_id": "ux.componentinstance.aggregates.ux.componentreference",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.componentinstance.aggregates.ux.componentreference: ux.componentreference.renders.ux.componentreference already exists and expresses it. Plan kind compound, p 0.35; claims rel:ux.componentinstance#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "ux.componentreference",
+        "title": "ux.componentinstance aggregates ux.componentreference",
+        "description": "Defines relationship: ux.componentinstance aggregates ux.componentreference"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.componentinstance aggregates ux.componentreference and ux.componentinstance renders ux.componentreference overlap in meaning. Proposed: Keep only one of aggregates or renders between componentinstance and componentreference.",
+          "claim_id": "rel:ux.componentinstance#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentinstance#4): best source of 'aggregates ux.componentreference': ux.componentreference (0.58), ux.componentinstance (0.25), none (0.12); best destination of 'ux.componentinstance aggregates': ux.componentreference (0.90), none (0.04), ux.tablecolumn (0.02); best predicate: reverse:renders (0.35), renders (0.21), references (0.13). Outcome: alternative (source=ux.componentreference; predicate=reverse:renders).",
+          "claim_id": "rel:ux.componentinstance#4"
+        }
+      ],
+      "probability": 0.347,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 48,
+        "plan_kind": "compound",
+        "triple": "ux.componentinstance.aggregates.ux.componentreference",
+        "replacement": ["ux.componentreference.renders.ux.componentreference"],
+        "claims": ["rel:ux.componentinstance#4"]
+      }
+    },
+    {
+      "seq": 49,
+      "op": "update",
+      "target_id": "ux.dataconfig.composes.ux.chartseries",
+      "ref": null,
+      "fields": {
+        "predicate": "binds-to",
+        "source_spec_node_id": "ux.chartseries",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.chartseries binds-to ux.componentinstance",
+        "description": "Defines relationship: ux.chartseries binds-to ux.componentinstance"
+      },
+      "rationale": "Change of ux.dataconfig.composes.ux.chartseries to ux.chartseries.binds-to.ux.componentinstance. Plan kind compound, p 0.29; claims rel:ux.dataconfig#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "ux.dataconfig",
+        "destination_spec_node_id": "ux.chartseries",
+        "title": "ux.dataconfig composes ux.chartseries",
+        "description": "Defines relationship: ux.dataconfig composes ux.chartseries"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship ux.dataconfig composes ux.chartseries arguably belongs to the chart component rather than to the data binding. Proposed: Remove the composes relationship from dataconfig to chartseries and rely on chartseries binds-to dataconfig or a chart-component-owned composition.",
+          "claim_id": "rel:ux.dataconfig#3"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.dataconfig#3): best source of 'composes ux.chartseries': ux.componentinstance (0.29), none (0.28), ux.chartseries (0.27); best destination of 'ux.dataconfig composes': ux.chartseries (0.67), none (0.21), ux.componentinstance (0.05); best predicate: reverse:binds-to (0.78), none (0.14), composes (0.02). Outcome: alternative (source=ux.componentinstance; predicate=reverse:binds-to).",
+          "claim_id": "rel:ux.dataconfig#3"
+        }
+      ],
+      "probability": 0.291,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 49,
+        "plan_kind": "compound",
+        "triple": "ux.dataconfig.composes.ux.chartseries",
+        "replacement": ["ux.chartseries.binds-to.ux.componentinstance"],
+        "claims": ["rel:ux.dataconfig#3"]
+      }
+    },
+    {
+      "seq": 50,
+      "op": "delete",
+      "target_id": "ux.actioncomponent.renders.ux.librarycomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.actioncomponent.renders.ux.librarycomponent: ux.componentinstance.realizes.ux.librarycomponent already exists and expresses it. Plan kind compound, p 0.28; claims node:ux.actioncomponent#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.actioncomponent",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.actioncomponent renders ux.librarycomponent",
+        "description": "Defines relationship: ux.actioncomponent renders ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The renders relationship from ux.actioncomponent to ux.librarycomponent blurs the boundary between type (library definition) and instance (concrete control). Proposed: none stated",
+          "claim_id": "node:ux.actioncomponent#4"
+        },
+        {
+          "quote": "Sorting answers (node:ux.actioncomponent#4): best source of 'renders ux.librarycomponent': ux.componentinstance (0.28), none (0.27), ux.componentreference (0.22); best destination of 'ux.actioncomponent renders': ux.librarycomponent (0.42), none (0.23), ux.componentinstance (0.16); best predicate: realizes (0.47), uses (0.12), renders (0.08). Outcome: alternative (source=ux.componentinstance; predicate=realizes).",
+          "claim_id": "node:ux.actioncomponent#4"
+        }
+      ],
+      "probability": 0.281,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 50,
+        "plan_kind": "compound",
+        "triple": "ux.actioncomponent.renders.ux.librarycomponent",
+        "replacement": ["ux.componentinstance.realizes.ux.librarycomponent"],
+        "claims": ["node:ux.actioncomponent#4"]
+      }
+    },
+    {
+      "seq": 51,
+      "op": "update",
+      "target_id": "ux.experiencestate.specializes.ux.statepattern",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.statepattern",
+        "title": "ux.statepattern aggregates ux.statepattern",
+        "description": "Defines relationship: ux.statepattern aggregates ux.statepattern"
+      },
+      "rationale": "Change of ux.experiencestate.specializes.ux.statepattern to ux.statepattern.aggregates.ux.statepattern. Claims disagree on the replacement (ux.statepattern.aggregates.ux.statepattern | ux.statepattern.aggregates.ux.experiencestate); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.74; claims node:ux.experiencestate#5, node:ux.statepattern#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "specializes",
+        "source_spec_node_id": "ux.experiencestate",
+        "destination_spec_node_id": "ux.statepattern",
+        "title": "ux.experiencestate specializes ux.statepattern",
+        "description": "Defines relationship: ux.experiencestate specializes ux.statepattern"
+      },
+      "evidence": [
+        {
+          "quote": "The 'specializes' relationship from ux.experiencestate to ux.statepattern is semantically wrong because a state is a member of a pattern, not a subtype of it. Proposed: Remove the specializes relationship, or replace it with a membership/composition relationship (statepattern composes experiencestate).",
+          "claim_id": "node:ux.experiencestate#5"
+        },
+        {
+          "quote": "The relationship ExperienceState specializes StatePattern is semantically odd because a state is not a specialization of a pattern. Proposed: Replace or remove the specializes relationship from ExperienceState to StatePattern, e.g. with a composition/membership relationship.",
+          "claim_id": "node:ux.statepattern#5"
+        },
+        {
+          "quote": "Sorting answers (node:ux.experiencestate#5): best source of 'specializes ux.statepattern': ux.statepattern (0.46), none (0.40), ux.experiencestate (0.07); best destination of 'ux.experiencestate specializes': none (0.60), ux.statepattern (0.34), ux.componentinstance (0.02); best predicate: reverse:aggregates (0.63), reverse:governs (0.12), none (0.08). Outcome: alternative (source=ux.statepattern; predicate=reverse:aggregates).",
+          "claim_id": "node:ux.experiencestate#5"
+        },
+        {
+          "quote": "Sorting answers (node:ux.statepattern#5): best source of 'specializes ux.statepattern': none (0.63), ux.experiencestate (0.15), ux.statepattern (0.12); best destination of 'ux.experiencestate specializes': none (0.68), ux.statepattern (0.20), ux.componentreference (0.02); best predicate: reverse:aggregates (0.74), reverse:governs (0.10), realizes (0.04). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "node:ux.statepattern#5"
+        }
+      ],
+      "probability": 0.741,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 51,
+        "plan_kind": "conflict",
+        "triple": "ux.experiencestate.specializes.ux.statepattern",
+        "replacement": [
+          "ux.statepattern.aggregates.ux.statepattern",
+          "ux.statepattern.aggregates.ux.experiencestate"
+        ],
+        "claims": ["node:ux.experiencestate#5", "node:ux.statepattern#5"]
+      }
+    },
+    {
+      "seq": 52,
+      "op": "delete",
+      "target_id": "ux.actionpattern.governs.ux.stateaction",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.actionpattern.governs.ux.stateaction: ux.stateaction.uses.ux.actionpattern already exists and expresses it. Plan kind conflict, p 0.59; claims node:ux.actionpattern#4, rel:ux.actionpattern#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.actionpattern",
+        "destination_spec_node_id": "ux.stateaction",
+        "title": "ux.actionpattern governs ux.stateaction",
+        "description": "Defines relationship: ux.actionpattern governs ux.stateaction"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.actionpattern governs ux.stateaction and ux.stateaction uses ux.actionpattern are redundant, expressing the same meaning in opposite directions. Proposed: Keep only one direction of the relationship and remove the other.",
+          "claim_id": "node:ux.actionpattern#4"
+        },
+        {
+          "quote": "The relationship ux.actionpattern governs ux.stateaction blurs the scope of ActionPattern, because the pattern is described as applied to action components while StateActions are automatic lifecycle effects. Proposed: Remove the 'governs' relationship from ux.actionpattern to ux.stateaction.",
+          "claim_id": "rel:ux.actionpattern#1"
+        },
+        {
+          "quote": "Sorting answers (node:ux.actionpattern#4): best source of 'governs ux.stateaction': ux.actionpattern (0.66), none (0.16), ux.experiencestate (0.05); best destination of 'ux.actionpattern governs': ux.stateaction (0.46), ux.actioncomponent (0.28), none (0.15); best predicate: reverse:uses (0.59), governs (0.17), none (0.15). Outcome: alternative (predicate=reverse:uses).",
+          "claim_id": "node:ux.actionpattern#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.actionpattern#1): best source of 'governs ux.stateaction': none (0.56), ux.experiencestate (0.15), ux.actionpattern (0.12); best destination of 'ux.actionpattern governs': ux.actioncomponent (0.40), none (0.27), ux.stateaction (0.20); best predicate: reverse:uses (0.74), none (0.17), governs (0.03). Outcome: alternative (target=ux.actioncomponent; predicate=reverse:uses).",
+          "claim_id": "rel:ux.actionpattern#1"
+        }
+      ],
+      "probability": 0.588,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 52,
+        "plan_kind": "conflict",
+        "triple": "ux.actionpattern.governs.ux.stateaction",
+        "replacement": [
+          "ux.stateaction.uses.ux.actionpattern",
+          "ux.actioncomponent.uses.ux.actionpattern"
+        ],
+        "claims": ["node:ux.actionpattern#4", "rel:ux.actionpattern#1"]
+      }
+    },
+    {
+      "seq": 53,
+      "op": "delete",
+      "target_id": "ux.subview.aggregates.ux.componentinstance",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.subview.aggregates.ux.componentinstance: ux.subview.renders.ux.componentinstance already exists and expresses it. Plan kind conflict, p 0.53; claims node:ux.subview#2, rel:ux.subview#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.subview aggregates ux.componentinstance",
+        "description": "Defines relationship: ux.subview aggregates ux.componentinstance"
+      },
+      "evidence": [
+        {
+          "quote": "ux.subview has duplicate relationships to componentinstance: aggregates and renders express the same meaning. Proposed: Keep one of aggregates/renders to componentinstance and remove the other.",
+          "claim_id": "node:ux.subview#2"
+        },
+        {
+          "quote": "The relationships ux.subview renders ux.componentinstance and ux.subview aggregates ux.componentinstance overlap in meaning. Proposed: Collapse the renders and aggregates relationships to componentinstance, preferring composes for inline sub-views.",
+          "claim_id": "rel:ux.subview#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.subview#2): best source of 'aggregates ux.componentinstance': ux.subview (0.63), ux.librarysubview (0.22), none (0.06); best destination of 'ux.subview aggregates': ux.componentinstance (0.72), none (0.12), ux.componentreference (0.07); best predicate: renders (0.53), aggregates (0.18), composes (0.18). Outcome: alternative (predicate=renders).",
+          "claim_id": "node:ux.subview#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.subview#2): best source of 'aggregates ux.componentinstance': ux.librarysubview (0.39), ux.subview (0.39), none (0.08); best destination of 'ux.subview aggregates': ux.componentinstance (0.67), none (0.16), ux.componentreference (0.07); best predicate: composes (0.54), renders (0.20), aggregates (0.13). Outcome: alternative (source=ux.librarysubview; predicate=composes).",
+          "claim_id": "rel:ux.subview#2"
+        }
+      ],
+      "probability": 0.528,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 53,
+        "plan_kind": "conflict",
+        "triple": "ux.subview.aggregates.ux.componentinstance",
+        "replacement": [
+          "ux.subview.renders.ux.componentinstance",
+          "ux.librarysubview.composes.ux.componentinstance"
+        ],
+        "claims": ["node:ux.subview#2", "rel:ux.subview#2"]
+      }
+    },
+    {
+      "seq": 54,
+      "op": "update",
+      "target_id": "ux.subview.renders.ux.componentinstance",
+      "ref": null,
+      "fields": {
+        "predicate": "composes",
+        "title": "ux.subview composes ux.componentinstance",
+        "description": "Defines relationship: ux.subview composes ux.componentinstance"
+      },
+      "rationale": "Change of ux.subview.renders.ux.componentinstance to ux.subview.composes.ux.componentinstance. Claims disagree on the replacement (ux.subview.composes.ux.componentinstance | ux.view.composes.ux.componentinstance); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.51; claims rel:ux.subview#2, node:ux.subview#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.subview",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.subview renders ux.componentinstance",
+        "description": "Defines relationship: ux.subview renders ux.componentinstance"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships ux.subview renders ux.componentinstance and ux.subview aggregates ux.componentinstance overlap in meaning. Proposed: Collapse the renders and aggregates relationships to componentinstance, preferring composes for inline sub-views.",
+          "claim_id": "rel:ux.subview#2"
+        },
+        {
+          "quote": "ux.subview has duplicate relationships to componentinstance: aggregates and renders express the same meaning. Proposed: Keep one of aggregates/renders to componentinstance and remove the other.",
+          "claim_id": "node:ux.subview#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.subview#2): best source of 'renders ux.componentinstance': ux.subview (0.41), ux.view (0.27), none (0.10); best destination of 'ux.subview renders': ux.componentinstance (0.70), none (0.12), ux.componentreference (0.10); best predicate: composes (0.51), aggregates (0.30), renders (0.07). Outcome: alternative (predicate=composes).",
+          "claim_id": "rel:ux.subview#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.subview#2): best source of 'renders ux.componentinstance': ux.view (0.41), ux.subview (0.34), none (0.09); best destination of 'ux.subview renders': ux.componentinstance (0.52), none (0.21), ux.componentreference (0.16); best predicate: composes (0.35), renders (0.27), aggregates (0.23). Outcome: alternative (source=ux.view; predicate=composes).",
+          "claim_id": "node:ux.subview#2"
+        }
+      ],
+      "probability": 0.51,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 54,
+        "plan_kind": "conflict",
+        "triple": "ux.subview.renders.ux.componentinstance",
+        "replacement": [
+          "ux.subview.composes.ux.componentinstance",
+          "ux.view.composes.ux.componentinstance"
+        ],
+        "claims": ["rel:ux.subview#2", "node:ux.subview#2"]
+      }
+    },
+    {
+      "seq": 55,
+      "op": "delete",
+      "target_id": "ux.tablecolumn.renders.ux.componentinstance",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.tablecolumn.renders.ux.componentinstance: ux.componentinstance.aggregates.ux.componentreference already exists and expresses it. Plan kind conflict, p 0.48; claims node:ux.tablecolumn#5, rel:ux.tablecolumn#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.tablecolumn",
+        "destination_spec_node_id": "ux.componentinstance",
+        "title": "ux.tablecolumn renders ux.componentinstance",
+        "description": "Defines relationship: ux.tablecolumn renders ux.componentinstance"
+      },
+      "evidence": [
+        {
+          "quote": "The renders relationship from ux.tablecolumn to ux.componentinstance overlaps with the displayType attribute for custom cell renderers, and precedence between them is unclear. Proposed: Document a precedence rule between the renders relationship and displayType for custom cell renderers.",
+          "claim_id": "node:ux.tablecolumn#5"
+        },
+        {
+          "quote": "The renders relationship from ux.tablecolumn to ux.componentinstance is odd because the column is itself part of a table ComponentInstance. Proposed: none stated",
+          "claim_id": "rel:ux.tablecolumn#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.tablecolumn#5): best source of 'renders ux.componentinstance': ux.componentreference (0.42), ux.tablecolumn (0.20), ux.componentinstance (0.20); best destination of 'ux.tablecolumn renders': ux.componentinstance (0.41), ux.componentreference (0.36), none (0.17); best predicate: reverse:aggregates (0.30), renders (0.17), references (0.17). Outcome: alternative (source=ux.componentreference; predicate=reverse:aggregates).",
+          "claim_id": "node:ux.tablecolumn#5"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.tablecolumn#2): best source of 'renders ux.componentinstance': ux.componentreference (0.48), ux.tablecolumn (0.15), ux.componentinstance (0.14); best destination of 'ux.tablecolumn renders': ux.componentreference (0.62), none (0.17), ux.componentinstance (0.12); best predicate: reverse:aggregates (0.55), none (0.16), references (0.10). Outcome: alternative (source=ux.componentreference; target=ux.componentreference; predicate=reverse:aggregates).",
+          "claim_id": "rel:ux.tablecolumn#2"
+        }
+      ],
+      "probability": 0.479,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 55,
+        "plan_kind": "conflict",
+        "triple": "ux.tablecolumn.renders.ux.componentinstance",
+        "replacement": [
+          "ux.componentinstance.aggregates.ux.componentreference",
+          "ux.componentreference.aggregates.ux.componentreference"
+        ],
+        "claims": ["node:ux.tablecolumn#5", "rel:ux.tablecolumn#2"]
+      }
+    },
+    {
+      "seq": 56,
+      "op": "delete",
+      "target_id": "ux.librarycomponent.renders.ux.librarycomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.librarycomponent.renders.ux.librarycomponent: ux.componentreference.composes.ux.componentreference is produced by an earlier operation in this proposal and expresses it. Change of ux.librarycomponent.renders.ux.librarycomponent to ux.componentreference.composes.ux.componentreference. Claims disagree on the replacement (ux.componentreference.composes.ux.componentreference | ux.componentreference.specializes.ux.componentreference); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.36; claims node:ux.librarycomponent#2, rel:ux.librarycomponent#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.librarycomponent",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.librarycomponent renders ux.librarycomponent",
+        "description": "Defines relationship: ux.librarycomponent renders ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The renders and composes self-relationships on ux.librarycomponent overlap in meaning. Proposed: Consolidate renders and composes into a single self-relationship or define a clear distinction.",
+          "claim_id": "node:ux.librarycomponent#2"
+        },
+        {
+          "quote": "The relationships ux.librarycomponent composes ux.librarycomponent and ux.librarycomponent renders ux.librarycomponent overlap heavily in meaning, so only one predicate should be kept. Proposed: Keep only one of composes or renders between ux.librarycomponent and ux.librarycomponent.",
+          "claim_id": "rel:ux.librarycomponent#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.librarycomponent#2): best source of 'renders ux.librarycomponent': ux.componentreference (0.43), ux.librarycomponent (0.29), ux.componentinstance (0.12); best destination of 'ux.librarycomponent renders': ux.componentreference (0.36), ux.librarycomponent (0.23), none (0.18); best predicate: composes (0.47), specializes (0.14), reverse:composes (0.10). Outcome: alternative (source=ux.componentreference; target=ux.componentreference; predicate=composes).",
+          "claim_id": "node:ux.librarycomponent#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.librarycomponent#2): best source of 'renders ux.librarycomponent': ux.componentreference (0.56), ux.librarycomponent (0.20), ux.componentinstance (0.13); best destination of 'ux.librarycomponent renders': ux.componentreference (0.47), ux.librarycomponent (0.21), none (0.13); best predicate: specializes (0.31), composes (0.28), renders (0.11). Outcome: alternative (source=ux.componentreference; target=ux.componentreference; predicate=specializes).",
+          "claim_id": "rel:ux.librarycomponent#2"
+        }
+      ],
+      "probability": 0.362,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 56,
+        "plan_kind": "conflict",
+        "triple": "ux.librarycomponent.renders.ux.librarycomponent",
+        "replacement": [
+          "ux.componentreference.composes.ux.componentreference",
+          "ux.componentreference.specializes.ux.componentreference"
+        ],
+        "claims": ["node:ux.librarycomponent#2", "rel:ux.librarycomponent#2"]
+      }
+    },
+    {
+      "seq": 57,
+      "op": "delete",
+      "target_id": "ux.componentinstance.renders.ux.librarycomponent",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove ux.componentinstance.renders.ux.librarycomponent: ux.componentinstance.realizes.ux.librarycomponent already exists and expresses it. Plan kind conflict, p 0.33; claims node:ux.componentinstance#2, rel:ux.componentinstance#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.componentinstance",
+        "destination_spec_node_id": "ux.librarycomponent",
+        "title": "ux.componentinstance renders ux.librarycomponent",
+        "description": "Defines relationship: ux.componentinstance renders ux.librarycomponent"
+      },
+      "evidence": [
+        {
+          "quote": "The renders relationship from ux.componentinstance to ux.librarycomponent duplicates the information carried by the ref attribute. Proposed: Keep only one of the renders relationship or the ref attribute.",
+          "claim_id": "node:ux.componentinstance#2"
+        },
+        {
+          "quote": "The relationship ux.componentinstance renders ux.librarycomponent also overlaps with implements and realizes to librarycomponent. Proposed: Remove renders to librarycomponent and keep only realizes.",
+          "claim_id": "rel:ux.componentinstance#2"
+        },
+        {
+          "quote": "Sorting answers (node:ux.componentinstance#2): best source of 'renders ux.librarycomponent': ux.componentinstance (0.36), none (0.33), ux.librarycomponent (0.13); best destination of 'ux.componentinstance renders': ux.librarycomponent (0.46), none (0.30), ux.componentinstance (0.11); best predicate: realizes (0.30), implements (0.21), uses (0.18). Outcome: alternative (predicate=realizes).",
+          "claim_id": "node:ux.componentinstance#2"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.componentinstance#2): best source of 'renders ux.librarycomponent': ux.librarycomponent (0.33), none (0.25), ux.componentreference (0.20); best destination of 'ux.componentinstance renders': ux.librarycomponent (0.28), ux.componentreference (0.23), ux.componentinstance (0.19); best predicate: realizes (0.69), implements (0.06), reverse:renders (0.06). Outcome: alternative (source=ux.librarycomponent; predicate=realizes).",
+          "claim_id": "rel:ux.componentinstance#2"
+        }
+      ],
+      "probability": 0.326,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 57,
+        "plan_kind": "conflict",
+        "triple": "ux.componentinstance.renders.ux.librarycomponent",
+        "replacement": [
+          "ux.componentinstance.realizes.ux.librarycomponent",
+          "ux.librarycomponent.realizes.ux.librarycomponent"
+        ],
+        "claims": ["node:ux.componentinstance#2", "rel:ux.componentinstance#2"]
+      }
+    },
+    {
+      "seq": 58,
+      "op": "update",
+      "target_id": "ux.experiencestate.renders.ux.view",
+      "ref": null,
+      "fields": {
+        "predicate": "governs",
+        "source_spec_node_id": "ux.componentreference",
+        "title": "ux.componentreference governs ux.view",
+        "description": "Defines relationship: ux.componentreference governs ux.view"
+      },
+      "rationale": "Change of ux.experiencestate.renders.ux.view to ux.componentreference.governs.ux.view. Claims disagree on the replacement (ux.componentreference.governs.ux.view | ux.componentinstance.governs.ux.componentinstance); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.27; claims node:ux.experiencestate#4, rel:ux.experiencestate#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "renders",
+        "source_spec_node_id": "ux.experiencestate",
+        "destination_spec_node_id": "ux.view",
+        "title": "ux.experiencestate renders ux.view",
+        "description": "Defines relationship: ux.experiencestate renders ux.view"
+      },
+      "evidence": [
+        {
+          "quote": "ux.experiencestate has three outgoing relationships to ux.view (associated-with, governs, renders) that overlap in meaning. Proposed: Keep only one of associated-with, governs or renders from experiencestate to view and remove the others.",
+          "claim_id": "node:ux.experiencestate#4"
+        },
+        {
+          "quote": "The relationships associated-with, governs and renders from ux.experiencestate to ux.view overlap in meaning, and governs (component enablement) is the only meaningful one. Proposed: Keep governs and remove associated-with and renders between ux.experiencestate and ux.view.",
+          "claim_id": "rel:ux.experiencestate#1"
+        },
+        {
+          "quote": "Sorting answers (node:ux.experiencestate#4): best source of 'renders ux.view': ux.componentreference (0.24), none (0.23), ux.componentinstance (0.22); best destination of 'ux.experiencestate renders': ux.view (0.33), ux.componentinstance (0.30), none (0.23); best predicate: governs (0.63), none (0.16), associated-with (0.08). Outcome: alternative (source=ux.componentreference; predicate=governs).",
+          "claim_id": "node:ux.experiencestate#4"
+        },
+        {
+          "quote": "Sorting answers (rel:ux.experiencestate#1): best source of 'renders ux.view': ux.componentinstance (0.27), none (0.26), ux.componentreference (0.17); best destination of 'ux.experiencestate renders': ux.componentinstance (0.34), none (0.33), ux.view (0.16); best predicate: governs (0.59), none (0.20), associated-with (0.06). Outcome: alternative (source=ux.componentinstance; target=ux.componentinstance; predicate=governs).",
+          "claim_id": "rel:ux.experiencestate#1"
+        }
+      ],
+      "probability": 0.274,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 58,
+        "plan_kind": "conflict",
+        "triple": "ux.experiencestate.renders.ux.view",
+        "replacement": [
+          "ux.componentreference.governs.ux.view",
+          "ux.componentinstance.governs.ux.componentinstance"
+        ],
+        "claims": ["node:ux.experiencestate#4", "rel:ux.experiencestate#1"]
+      }
+    }
+  ]
+}

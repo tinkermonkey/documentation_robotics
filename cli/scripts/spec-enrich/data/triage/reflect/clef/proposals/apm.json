@@ -1,0 +1,1610 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: apm layer (39 relationship changes)",
+  "rationale": "Relationship schemas in the apm layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.668Z",
+  "layer": "apm",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "delete",
+      "target_id": "apm.metricconfiguration.serves.apm.resource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.metricconfiguration.serves.apm.resource: apm.metricconfiguration.depends-on.apm.resource already exists and expresses it. Plan kind remove-duplicate, p 0.28; claims node:apm.metricconfiguration#5, rel:apm.metricconfiguration#1, rel:apm.metricconfiguration#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "apm.metricconfiguration",
+        "destination_spec_node_id": "apm.resource",
+        "title": "apm.metricconfiguration serves apm.resource",
+        "description": "Defines relationship: apm.metricconfiguration serves apm.resource"
+      },
+      "evidence": [
+        {
+          "quote": "The 'serves' relationship from apm.metricconfiguration to apm.resource appears to point in the wrong direction. Proposed: Invert the relationship direction or replace it with a predicate that fits, such as having the configuration reference or use the resource.",
+          "claim_id": "node:apm.metricconfiguration#5"
+        },
+        {
+          "quote": "The relationship apm.metricconfiguration --serves--> apm.resource is semantically inverted, since the resource is a passive identity input consumed by the MeterProvider rather than a consumer served by it. Proposed: Drop the serves relationship from apm.metricconfiguration to apm.resource.",
+          "claim_id": "rel:apm.metricconfiguration#1"
+        },
+        {
+          "quote": "The relationship apm.metricconfiguration --serves--> apm.resource is redundant with apm.metricconfiguration --depends-on--> apm.resource, as both express the same meaning. Proposed: Remove serves.apm.resource and keep depends-on.apm.resource.",
+          "claim_id": "rel:apm.metricconfiguration#2"
+        },
+        {
+          "quote": "Sorting answers (node:apm.metricconfiguration#5): best source of 'serves apm.resource': none (0.30), apm.metricconfiguration (0.28), apm.instrumentationscope (0.18); best destination of 'apm.metricconfiguration serves': apm.resource (0.41), none (0.33), apm.instrumentationscope (0.09); best predicate: depends-on (0.28), uses (0.24), none (0.18). Outcome: alternative (predicate=depends-on).",
+          "claim_id": "node:apm.metricconfiguration#5"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricconfiguration#1): best source of 'serves apm.resource': none (0.54), apm.metricconfiguration (0.15), apm.instrumentationscope (0.10); best destination of 'apm.metricconfiguration serves': apm.resource (0.36), none (0.21), apm.instrumentationconfig (0.13); best predicate: depends-on (0.66), uses (0.12), none (0.07). Outcome: alternative (predicate=depends-on).",
+          "claim_id": "rel:apm.metricconfiguration#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricconfiguration#2): best source of 'serves apm.resource': none (0.30), apm.metricconfiguration (0.26), apm.instrumentationscope (0.21); best destination of 'apm.metricconfiguration serves': apm.resource (0.43), apm.instrumentationscope (0.26), none (0.13); best predicate: depends-on (0.69), uses (0.13), references (0.06). Outcome: alternative (predicate=depends-on).",
+          "claim_id": "rel:apm.metricconfiguration#2"
+        }
+      ],
+      "probability": 0.283,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "remove-duplicate",
+        "triple": "apm.metricconfiguration.serves.apm.resource",
+        "replacement": ["apm.metricconfiguration.depends-on.apm.resource"],
+        "claims": [
+          "node:apm.metricconfiguration#5",
+          "rel:apm.metricconfiguration#1",
+          "rel:apm.metricconfiguration#2"
+        ]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "update",
+      "target_id": "apm.resource.monitors.technology.systemsoftware",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "apm.resource references technology.systemsoftware",
+        "description": "Defines relationship: apm.resource references technology.systemsoftware"
+      },
+      "rationale": "Rename the predicate of apm.resource.monitors.technology.systemsoftware to apm.resource.references.technology.systemsoftware. Plan kind rename-predicate, p 0.63; claims rel:apm.resource#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.resource",
+        "destination_spec_node_id": "technology.systemsoftware",
+        "title": "apm.resource monitors technology.systemsoftware",
+        "description": "Defines relationship: apm.resource monitors technology.systemsoftware"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships apm.resource monitors technology.node and technology.systemsoftware use the wrong predicate, since a Resource passively identifies its host or runtime rather than observing it. Proposed: Replace monitors with references or associated-with for Node and SystemSoftware.",
+          "claim_id": "rel:apm.resource#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.resource#1): best source of 'monitors technology.systemsoftware': apm.resource (0.31), none (0.24), apm.dashboard (0.12); best destination of 'apm.resource monitors': technology.systemsoftware (0.63), none (0.19), technology.node (0.06); best predicate: references (0.63), none (0.14), depends-on (0.08). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:apm.resource#1"
+        }
+      ],
+      "probability": 0.625,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "rename-predicate",
+        "triple": "apm.resource.monitors.technology.systemsoftware",
+        "replacement": ["apm.resource.references.technology.systemsoftware"],
+        "claims": ["rel:apm.resource#1"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "update",
+      "target_id": "apm.dashboard.monitors.apm.alert",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "apm.dashboard references apm.alert",
+        "description": "Defines relationship: apm.dashboard references apm.alert"
+      },
+      "rationale": "Rename the predicate of apm.dashboard.monitors.apm.alert to apm.dashboard.references.apm.alert. Plan kind rename-predicate, p 0.59; claims node:apm.dashboard#4, rel:apm.dashboard#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.dashboard",
+        "destination_spec_node_id": "apm.alert",
+        "title": "apm.dashboard monitors apm.alert",
+        "description": "Defines relationship: apm.dashboard monitors apm.alert"
+      },
+      "evidence": [
+        {
+          "quote": "The 'monitors' relationship from apm.dashboard to apm.alert is semantically odd; 'displays' fits better. Proposed: Replace the 'monitors' predicate with 'displays' for the dashboard to alert relationship.",
+          "claim_id": "node:apm.dashboard#4"
+        },
+        {
+          "quote": "The predicate monitors for apm.dashboard to apm.alert does not fit, because the dashboard displays alert state rather than observing a running system; references or associated-with is closer. Proposed: Change the predicate from monitors to references or associated-with for the dashboard-to-alert relationship.",
+          "claim_id": "rel:apm.dashboard#3"
+        },
+        {
+          "quote": "Sorting answers (node:apm.dashboard#4): best source of 'monitors apm.alert': none (0.53), apm.dashboard (0.29), apm.alert (0.10); best destination of 'apm.dashboard monitors': apm.alert (0.44), none (0.40), apm.metricinstrument (0.07); best predicate: references (0.59), none (0.20), composes (0.06). Outcome: alternative (predicate=references).",
+          "claim_id": "node:apm.dashboard#4"
+        },
+        {
+          "quote": "Sorting answers (node:apm.alert#7): best source of 'monitors apm.alert': apm.dashboard (0.71), none (0.22), apm.alert (0.03); best destination of 'apm.dashboard monitors': none (0.36), apm.alert (0.36), apm.dashboard (0.15); best predicate: none (0.48), references (0.24), monitors (0.15). Outcome: no_better.",
+          "claim_id": "node:apm.alert#7"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.dashboard#3): best source of 'monitors apm.alert': none (0.56), apm.dashboard (0.20), apm.alert (0.09); best destination of 'apm.dashboard monitors': apm.alert (0.41), none (0.35), apm.metricinstrument (0.08); best predicate: references (0.84), none (0.06), monitors (0.04). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:apm.dashboard#3"
+        }
+      ],
+      "probability": 0.594,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "rename-predicate",
+        "triple": "apm.dashboard.monitors.apm.alert",
+        "replacement": ["apm.dashboard.references.apm.alert"],
+        "claims": ["node:apm.dashboard#4", "rel:apm.dashboard#3"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "update",
+      "target_id": "apm.exporterconfig.serves.data-store.database",
+      "ref": null,
+      "fields": {
+        "predicate": "depends-on",
+        "title": "apm.exporterconfig depends-on data-store.database",
+        "description": "Defines relationship: apm.exporterconfig depends-on data-store.database"
+      },
+      "rationale": "Rename the predicate of apm.exporterconfig.serves.data-store.database to apm.exporterconfig.depends-on.data-store.database. Plan kind rename-predicate, p 0.39; claims rel:apm.exporterconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "apm.exporterconfig",
+        "destination_spec_node_id": "data-store.database",
+        "title": "apm.exporterconfig serves data-store.database",
+        "description": "Defines relationship: apm.exporterconfig serves data-store.database"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.exporterconfig serves data-store.database is inverted: the exporter writes to the database, so depends-on or flows-to would fit better than serves. Proposed: Replace the serves relationship to data-store.database with flows-to or depends-on.",
+          "claim_id": "rel:apm.exporterconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.exporterconfig#1): best source of 'serves data-store.database': apm.exporterconfig (0.37), none (0.33), apm.instrumentationscope (0.07); best destination of 'apm.exporterconfig serves': none (0.59), data-store.database (0.16), apm.resource (0.09); best predicate: depends-on (0.39), none (0.23), uses (0.14). Outcome: alternative (predicate=depends-on).",
+          "claim_id": "rel:apm.exporterconfig#1"
+        }
+      ],
+      "probability": 0.394,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "rename-predicate",
+        "triple": "apm.exporterconfig.serves.data-store.database",
+        "replacement": ["apm.exporterconfig.depends-on.data-store.database"],
+        "claims": ["rel:apm.exporterconfig#1"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "update",
+      "target_id": "apm.logprocessor.satisfies.security.securityconstraints",
+      "ref": null,
+      "fields": {
+        "predicate": "realizes",
+        "title": "apm.logprocessor realizes security.securityconstraints",
+        "description": "Defines relationship: apm.logprocessor realizes security.securityconstraints"
+      },
+      "rationale": "Rename the predicate of apm.logprocessor.satisfies.security.securityconstraints to apm.logprocessor.realizes.security.securityconstraints. Plan kind rename-predicate, p 0.35; claims rel:apm.logprocessor#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "apm.logprocessor",
+        "destination_spec_node_id": "security.securityconstraints",
+        "title": "apm.logprocessor satisfies security.securityconstraints",
+        "description": "Defines relationship: apm.logprocessor satisfies security.securityconstraints"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.logprocessor satisfies security.securityconstraints is a weak fit because separation and binding of duty are workflow rules a log processor cannot fulfil; only NeedToKnow-driven redaction plausibly applies. Proposed: Narrow or remove the satisfies relationship so it only covers NeedToKnow-driven redaction.",
+          "claim_id": "rel:apm.logprocessor#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logprocessor#2): best source of 'satisfies security.securityconstraints': apm.logprocessor (0.72), apm.exporterconfig (0.09), none (0.05); best destination of 'apm.logprocessor satisfies': none (0.38), security.securityconstraints (0.25), security.auditconfig (0.23); best predicate: realizes (0.35), none (0.29), satisfies (0.18). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:apm.logprocessor#2"
+        }
+      ],
+      "probability": 0.355,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "rename-predicate",
+        "triple": "apm.logprocessor.satisfies.security.securityconstraints",
+        "replacement": [
+          "apm.logprocessor.realizes.security.securityconstraints"
+        ],
+        "claims": ["rel:apm.logprocessor#2"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "update",
+      "target_id": "apm.logconfiguration.aggregates.apm.exporterconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "apm.logconfiguration references apm.exporterconfig",
+        "description": "Defines relationship: apm.logconfiguration references apm.exporterconfig"
+      },
+      "rationale": "Rename the predicate of apm.logconfiguration.aggregates.apm.exporterconfig to apm.logconfiguration.references.apm.exporterconfig. Plan kind rename-predicate, p 0.25; claims rel:apm.logconfiguration#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "apm.logconfiguration",
+        "destination_spec_node_id": "apm.exporterconfig",
+        "title": "apm.logconfiguration aggregates apm.exporterconfig",
+        "description": "Defines relationship: apm.logconfiguration aggregates apm.exporterconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to and aggregates relationships from apm.logconfiguration to apm.exporterconfig overlap in meaning. Proposed: Keep only one of flows-to or aggregates between logconfiguration and exporterconfig.",
+          "claim_id": "rel:apm.logconfiguration#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logconfiguration#2): best source of 'aggregates apm.exporterconfig': apm.logconfiguration (0.81), none (0.07), apm.exporterconfig (0.04); best destination of 'apm.logconfiguration aggregates': apm.exporterconfig (0.34), apm.logconfiguration (0.32), apm.logprocessor (0.20); best predicate: references (0.25), flows-to (0.24), aggregates (0.23). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:apm.logconfiguration#2"
+        }
+      ],
+      "probability": 0.253,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "rename-predicate",
+        "triple": "apm.logconfiguration.aggregates.apm.exporterconfig",
+        "replacement": ["apm.logconfiguration.references.apm.exporterconfig"],
+        "claims": ["rel:apm.logconfiguration#2"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "delete",
+      "target_id": "apm.resource.aggregates.apm.span",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.resource.aggregates.apm.span: apm.span.depends-on.apm.resource already exists and expresses it. Plan kind reverse, p 0.59; claims node:apm.resource#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "apm.resource",
+        "destination_spec_node_id": "apm.span",
+        "title": "apm.resource aggregates apm.span",
+        "description": "Defines relationship: apm.resource aggregates apm.span"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships where apm.resource aggregates exporterconfig, metricinstrument and span misstate the model, because exporters attach to providers and signals reference resources rather than being owned by them. Proposed: Remove the aggregates relationships from resource to exporterconfig, metricinstrument and span, and model signals as referencing the resource and exporters as attached to providers.",
+          "claim_id": "node:apm.resource#3"
+        },
+        {
+          "quote": "Sorting answers (node:apm.resource#3): best source of 'aggregates apm.span': none (0.42), apm.traceconfiguration (0.23), apm.instrumentationscope (0.10); best destination of 'apm.resource aggregates': none (0.75), apm.span (0.12), apm.instrumentationscope (0.06); best predicate: reverse:depends-on (0.59), none (0.25), references (0.04). Outcome: alternative (predicate=reverse:depends-on).",
+          "claim_id": "node:apm.resource#3"
+        }
+      ],
+      "probability": 0.591,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "reverse",
+        "triple": "apm.resource.aggregates.apm.span",
+        "replacement": ["apm.span.depends-on.apm.resource"],
+        "claims": ["node:apm.resource#3"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "delete",
+      "target_id": "apm.resource.aggregates.apm.exporterconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.resource.aggregates.apm.exporterconfig: apm.exporterconfig.serves.apm.resource already exists and expresses it. Plan kind reverse, p 0.59; claims rel:apm.resource#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "apm.resource",
+        "destination_spec_node_id": "apm.exporterconfig",
+        "title": "apm.resource aggregates apm.exporterconfig",
+        "description": "Defines relationship: apm.resource aggregates apm.exporterconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.resource aggregates apm.exporterconfig is questionable because exporters belong to providers, not to the Resource. Proposed: Remove the aggregates relationship to ExporterConfig.",
+          "claim_id": "rel:apm.resource#3"
+        },
+        {
+          "quote": "Sorting answers (node:apm.resource#3): best source of 'aggregates apm.exporterconfig': none (0.47), apm.logconfiguration (0.16), apm.traceconfiguration (0.13); best destination of 'apm.resource aggregates': none (0.74), apm.instrumentationscope (0.06), apm.span (0.05); best predicate: none (0.72), reverse:serves (0.18), references (0.03). Outcome: no_better.",
+          "claim_id": "node:apm.resource#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.resource#3): best source of 'aggregates apm.exporterconfig': none (0.43), apm.logconfiguration (0.15), apm.traceconfiguration (0.13); best destination of 'apm.resource aggregates': none (0.32), apm.metricinstrument (0.24), apm.exporterconfig (0.17); best predicate: reverse:serves (0.59), none (0.30), uses (0.03). Outcome: alternative (predicate=reverse:serves).",
+          "claim_id": "rel:apm.resource#3"
+        }
+      ],
+      "probability": 0.588,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "reverse",
+        "triple": "apm.resource.aggregates.apm.exporterconfig",
+        "replacement": ["apm.exporterconfig.serves.apm.resource"],
+        "claims": ["rel:apm.resource#3"]
+      }
+    },
+    {
+      "seq": 9,
+      "op": "delete",
+      "target_id": "apm.exporterconfig.serves.apm.resource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.exporterconfig.serves.apm.resource: apm.resource.aggregates.apm.exporterconfig already exists and expresses it. Plan kind reverse, p 0.54; claims rel:apm.exporterconfig#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "apm.exporterconfig",
+        "destination_spec_node_id": "apm.resource",
+        "title": "apm.exporterconfig serves apm.resource",
+        "description": "Defines relationship: apm.exporterconfig serves apm.resource"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.exporterconfig serves apm.resource is questionable because providers attach the Resource and the exporter merely transports it, so associated-with may fit better. Proposed: Replace the serves relationship to apm.resource with associated-with.",
+          "claim_id": "rel:apm.exporterconfig#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.exporterconfig#2): best source of 'serves apm.resource': none (0.48), apm.instrumentationscope (0.17), apm.exporterconfig (0.14); best destination of 'apm.exporterconfig serves': apm.resource (0.36), none (0.28), apm.dashboard (0.11); best predicate: reverse:aggregates (0.54), none (0.17), references (0.10). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "rel:apm.exporterconfig#2"
+        }
+      ],
+      "probability": 0.537,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "reverse",
+        "triple": "apm.exporterconfig.serves.apm.resource",
+        "replacement": ["apm.resource.aggregates.apm.exporterconfig"],
+        "claims": ["rel:apm.exporterconfig#2"]
+      }
+    },
+    {
+      "seq": 10,
+      "op": "delete",
+      "target_id": "apm.spanevent.depends-on.apm.instrumentationscope",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.spanevent.depends-on.apm.instrumentationscope: apm.span.depends-on.apm.instrumentationscope already exists and expresses it. Plan kind retarget, p 0.66; claims rel:apm.spanevent#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "apm.spanevent",
+        "destination_spec_node_id": "apm.instrumentationscope",
+        "title": "apm.spanevent depends-on apm.instrumentationscope",
+        "description": "Defines relationship: apm.spanevent depends-on apm.instrumentationscope"
+      },
+      "evidence": [
+        {
+          "quote": "The depends-on relationships from apm.spanevent to apm.instrumentationscope and apm.resource are indirect, because both attach to the parent span or batch rather than to the event, so the semantics should be 'inherits via span'. Proposed: Remove these direct depends-on links or replace them with an 'inherits via span' relationship.",
+          "claim_id": "rel:apm.spanevent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.spanevent#1): best source of 'depends-on apm.instrumentationscope': apm.span (0.66), apm.spanevent (0.08), apm.instrumentationconfig (0.07); best destination of 'apm.spanevent depends-on': apm.instrumentationscope (0.56), none (0.18), apm.resource (0.11); best predicate: none (0.72), references (0.12), depends-on (0.07). Outcome: alternative (source=apm.span).",
+          "claim_id": "rel:apm.spanevent#1"
+        }
+      ],
+      "probability": 0.661,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 10,
+        "plan_kind": "retarget",
+        "triple": "apm.spanevent.depends-on.apm.instrumentationscope",
+        "replacement": ["apm.span.depends-on.apm.instrumentationscope"],
+        "claims": ["rel:apm.spanevent#1"]
+      }
+    },
+    {
+      "seq": 11,
+      "op": "delete",
+      "target_id": "apm.spanevent.depends-on.apm.resource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.spanevent.depends-on.apm.resource: apm.span.depends-on.apm.resource already exists and expresses it. Plan kind retarget, p 0.66; claims rel:apm.spanevent#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "apm.spanevent",
+        "destination_spec_node_id": "apm.resource",
+        "title": "apm.spanevent depends-on apm.resource",
+        "description": "Defines relationship: apm.spanevent depends-on apm.resource"
+      },
+      "evidence": [
+        {
+          "quote": "The depends-on relationships from apm.spanevent to apm.instrumentationscope and apm.resource are indirect, because both attach to the parent span or batch rather than to the event, so the semantics should be 'inherits via span'. Proposed: Remove these direct depends-on links or replace them with an 'inherits via span' relationship.",
+          "claim_id": "rel:apm.spanevent#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.spanevent#1): best source of 'depends-on apm.resource': apm.span (0.66), none (0.11), apm.spanevent (0.10); best destination of 'apm.spanevent depends-on': apm.resource (0.36), apm.instrumentationscope (0.26), none (0.23); best predicate: none (0.85), references (0.06), depends-on (0.04). Outcome: alternative (source=apm.span).",
+          "claim_id": "rel:apm.spanevent#1"
+        }
+      ],
+      "probability": 0.661,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 11,
+        "plan_kind": "retarget",
+        "triple": "apm.spanevent.depends-on.apm.resource",
+        "replacement": ["apm.span.depends-on.apm.resource"],
+        "claims": ["rel:apm.spanevent#1"]
+      }
+    },
+    {
+      "seq": 12,
+      "op": "delete",
+      "target_id": "apm.resource.serves.business.businessprocess",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.resource.serves.business.businessprocess: application.applicationservice.serves.business.businessprocess already exists and expresses it. Plan kind retarget, p 0.65; claims rel:apm.resource#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "apm.resource",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "apm.resource serves business.businessprocess",
+        "description": "Defines relationship: apm.resource serves business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.resource serves business.businessprocess is dubious because a Resource is an attribute set and does not serve a business process. Proposed: Remove the serves relationship to BusinessProcess.",
+          "claim_id": "rel:apm.resource#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.resource#2): best source of 'serves business.businessprocess': application.applicationservice (0.65), none (0.12), apm.dashboard (0.08); best destination of 'apm.resource serves': business.businessprocess (0.39), none (0.37), business.businessfunction (0.07); best predicate: none (0.79), serves (0.08), references (0.04). Outcome: alternative (source=application.applicationservice).",
+          "claim_id": "rel:apm.resource#2"
+        }
+      ],
+      "probability": 0.651,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 12,
+        "plan_kind": "retarget",
+        "triple": "apm.resource.serves.business.businessprocess",
+        "replacement": [
+          "application.applicationservice.serves.business.businessprocess"
+        ],
+        "claims": ["rel:apm.resource#2"]
+      }
+    },
+    {
+      "seq": 13,
+      "op": "delete",
+      "target_id": "apm.logconfiguration.depends-on.data-store.database",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.logconfiguration.depends-on.data-store.database: apm.exporterconfig.depends-on.data-store.database is produced by an earlier operation in this proposal and expresses it. Retarget of apm.logconfiguration.depends-on.data-store.database to apm.exporterconfig.depends-on.data-store.database. Plan kind retarget, p 0.58; claims rel:apm.logconfiguration#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "apm.logconfiguration",
+        "destination_spec_node_id": "data-store.database",
+        "title": "apm.logconfiguration depends-on data-store.database",
+        "description": "Defines relationship: apm.logconfiguration depends-on data-store.database"
+      },
+      "evidence": [
+        {
+          "quote": "The depends-on relationship from apm.logconfiguration to data-store.database duplicates what should be expressed through exporterconfig. Proposed: Remove the depends-on database relationship and express the dependency via exporterconfig.",
+          "claim_id": "rel:apm.logconfiguration#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logconfiguration#3): best source of 'depends-on data-store.database': apm.exporterconfig (0.58), none (0.17), apm.logconfiguration (0.11); best destination of 'apm.logconfiguration depends-on': none (0.41), apm.resource (0.18), data-store.database (0.16); best predicate: none (0.77), depends-on (0.10), references (0.05). Outcome: alternative (source=apm.exporterconfig).",
+          "claim_id": "rel:apm.logconfiguration#3"
+        }
+      ],
+      "probability": 0.579,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 13,
+        "plan_kind": "retarget",
+        "triple": "apm.logconfiguration.depends-on.data-store.database",
+        "replacement": ["apm.exporterconfig.depends-on.data-store.database"],
+        "claims": ["rel:apm.logconfiguration#3"]
+      }
+    },
+    {
+      "seq": 14,
+      "op": "delete",
+      "target_id": "apm.metricinstrument.monitors.api.pathitem",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.metricinstrument.monitors.api.pathitem: apm.metricinstrument.monitors.api.operation already exists and expresses it. Plan kind retarget, p 0.58; claims rel:apm.metricinstrument#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.metricinstrument",
+        "destination_spec_node_id": "api.pathitem",
+        "title": "apm.metricinstrument monitors api.pathitem",
+        "description": "Defines relationship: apm.metricinstrument monitors api.pathitem"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.metricinstrument monitors api.pathitem is redundant with monitors api.operation. Proposed: Remove the monitors relationship to api.pathitem and keep the one to api.operation.",
+          "claim_id": "rel:apm.metricinstrument#5"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricinstrument#5): best source of 'monitors api.pathitem': apm.metricinstrument (0.67), none (0.13), apm.dashboard (0.05); best destination of 'apm.metricinstrument monitors': api.operation (0.58), api.pathitem (0.31), application.applicationservice (0.03); best predicate: monitors (0.74), none (0.16), references (0.03). Outcome: alternative (target=api.operation).",
+          "claim_id": "rel:apm.metricinstrument#5"
+        }
+      ],
+      "probability": 0.579,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 14,
+        "plan_kind": "retarget",
+        "triple": "apm.metricinstrument.monitors.api.pathitem",
+        "replacement": ["apm.metricinstrument.monitors.api.operation"],
+        "claims": ["rel:apm.metricinstrument#5"]
+      }
+    },
+    {
+      "seq": 15,
+      "op": "delete",
+      "target_id": "apm.instrumentationconfig.serves.apm.resource",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.instrumentationconfig.serves.apm.resource: apm.instrumentationconfig.serves.apm.instrumentationscope already exists and expresses it. Plan kind retarget, p 0.51; claims rel:apm.instrumentationconfig#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "apm.instrumentationconfig",
+        "destination_spec_node_id": "apm.resource",
+        "title": "apm.instrumentationconfig serves apm.resource",
+        "description": "Defines relationship: apm.instrumentationconfig serves apm.resource"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.instrumentationconfig serves apm.resource is weak because the Resource is per-process and attached by providers, not served by an instrumentation entry. Proposed: Remove the serves relationship from apm.instrumentationconfig to apm.resource.",
+          "claim_id": "rel:apm.instrumentationconfig#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.instrumentationconfig#2): best source of 'serves apm.resource': none (0.51), apm.instrumentationscope (0.22), apm.instrumentationconfig (0.06); best destination of 'apm.instrumentationconfig serves': apm.instrumentationscope (0.51), apm.resource (0.31), none (0.11); best predicate: none (0.68), references (0.08), serves (0.07). Outcome: alternative (target=apm.instrumentationscope).",
+          "claim_id": "rel:apm.instrumentationconfig#2"
+        }
+      ],
+      "probability": 0.509,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 15,
+        "plan_kind": "retarget",
+        "triple": "apm.instrumentationconfig.serves.apm.resource",
+        "replacement": [
+          "apm.instrumentationconfig.serves.apm.instrumentationscope"
+        ],
+        "claims": ["rel:apm.instrumentationconfig#2"]
+      }
+    },
+    {
+      "seq": 16,
+      "op": "delete",
+      "target_id": "apm.instrumentationconfig.references.apm.exporterconfig",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.instrumentationconfig.references.apm.exporterconfig: apm.logconfiguration.references.apm.exporterconfig is produced by an earlier operation in this proposal and expresses it. Retarget of apm.instrumentationconfig.references.apm.exporterconfig to apm.logconfiguration.references.apm.exporterconfig. Plan kind retarget, p 0.50; claims rel:apm.instrumentationconfig#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "apm.instrumentationconfig",
+        "destination_spec_node_id": "apm.exporterconfig",
+        "title": "apm.instrumentationconfig references apm.exporterconfig",
+        "description": "Defines relationship: apm.instrumentationconfig references apm.exporterconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.instrumentationconfig references apm.exporterconfig conflicts with the type's definition, which excludes where telemetry is sent; the link is only indirect via providers. Proposed: Remove the references relationship from apm.instrumentationconfig to apm.exporterconfig.",
+          "claim_id": "rel:apm.instrumentationconfig#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.instrumentationconfig#1): best source of 'references apm.exporterconfig': apm.logconfiguration (0.50), none (0.18), apm.logprocessor (0.10); best destination of 'apm.instrumentationconfig references': none (0.57), apm.exporterconfig (0.30), apm.instrumentationscope (0.04); best predicate: none (0.78), references (0.14), depends-on (0.02). Outcome: alternative (source=apm.logconfiguration).",
+          "claim_id": "rel:apm.instrumentationconfig#1"
+        }
+      ],
+      "probability": 0.496,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 16,
+        "plan_kind": "retarget",
+        "triple": "apm.instrumentationconfig.references.apm.exporterconfig",
+        "replacement": ["apm.logconfiguration.references.apm.exporterconfig"],
+        "claims": ["rel:apm.instrumentationconfig#1"]
+      }
+    },
+    {
+      "seq": 17,
+      "op": "update",
+      "target_id": "apm.traceconfiguration.aggregates.apm.metricinstrument",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "apm.metricconfiguration",
+        "destination_spec_node_id": "apm.span",
+        "title": "apm.metricconfiguration aggregates apm.span",
+        "description": "Defines relationship: apm.metricconfiguration aggregates apm.span"
+      },
+      "rationale": "Retarget of apm.traceconfiguration.aggregates.apm.metricinstrument to apm.metricconfiguration.aggregates.apm.span. Plan kind retarget, p 0.46; claims rel:apm.traceconfiguration#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "apm.traceconfiguration",
+        "destination_spec_node_id": "apm.metricinstrument",
+        "title": "apm.traceconfiguration aggregates apm.metricinstrument",
+        "description": "Defines relationship: apm.traceconfiguration aggregates apm.metricinstrument"
+      },
+      "evidence": [
+        {
+          "quote": "The aggregates relationship from apm.traceconfiguration to apm.metricinstrument is questionable because TraceConfiguration governs a TracerProvider, not a MeterProvider. Proposed: Remove the aggregates relationship from apm.traceconfiguration to apm.metricinstrument.",
+          "claim_id": "rel:apm.traceconfiguration#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.traceconfiguration#1): best source of 'aggregates apm.metricinstrument': apm.metricconfiguration (0.51), none (0.24), apm.instrumentationscope (0.13); best destination of 'apm.traceconfiguration aggregates': apm.span (0.46), apm.metricinstrument (0.17), apm.exporterconfig (0.14); best predicate: none (0.91), references (0.03), aggregates (0.02). Outcome: alternative (source=apm.metricconfiguration; target=apm.span).",
+          "claim_id": "rel:apm.traceconfiguration#1"
+        },
+        {
+          "quote": "Sorting answers (node:apm.traceconfiguration#3): best source of 'aggregates apm.metricinstrument': none (0.71), apm.instrumentationscope (0.11), apm.metricconfiguration (0.09); best destination of 'apm.traceconfiguration aggregates': none (0.50), apm.exporterconfig (0.17), apm.metricinstrument (0.16); best predicate: none (0.89), aggregates (0.03), references (0.02). Outcome: no_better.",
+          "claim_id": "node:apm.traceconfiguration#3"
+        }
+      ],
+      "probability": 0.458,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 17,
+        "plan_kind": "retarget",
+        "triple": "apm.traceconfiguration.aggregates.apm.metricinstrument",
+        "replacement": ["apm.metricconfiguration.aggregates.apm.span"],
+        "claims": ["rel:apm.traceconfiguration#1"]
+      }
+    },
+    {
+      "seq": 18,
+      "op": "delete",
+      "target_id": "apm.logprocessor.flows-to.apm.span",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.logprocessor.flows-to.apm.span: apm.logprocessor.flows-to.apm.logprocessor already exists and expresses it. Plan kind retarget, p 0.43; claims node:apm.logprocessor#3, rel:apm.logprocessor#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "apm.logprocessor",
+        "destination_spec_node_id": "apm.span",
+        "title": "apm.logprocessor flows-to apm.span",
+        "description": "Defines relationship: apm.logprocessor flows-to apm.span"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to relationship from apm.logprocessor to apm.span is semantically wrong. Proposed: Remove or correct the flows-to relationship between apm.logprocessor and apm.span.",
+          "claim_id": "node:apm.logprocessor#3"
+        },
+        {
+          "quote": "The relationship apm.logprocessor flows-to apm.span is doubtful because log records carry span context for correlation rather than flowing into spans, so 'references' would fit better unless log-to-span-event bridging is intended. Proposed: Replace the flows-to predicate with 'references' (or remove it) unless log-to-span-event bridging is intended.",
+          "claim_id": "rel:apm.logprocessor#1"
+        },
+        {
+          "quote": "Sorting answers (node:apm.logprocessor#3): best source of 'flows-to apm.span': none (0.38), apm.instrumentationscope (0.20), apm.logprocessor (0.17); best destination of 'apm.logprocessor flows-to': apm.logprocessor (0.71), none (0.16), apm.logconfiguration (0.04); best predicate: none (0.93), flows-to (0.01), reverse:flows-to (0.01). Outcome: alternative (target=apm.logprocessor).",
+          "claim_id": "node:apm.logprocessor#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logprocessor#1): best source of 'flows-to apm.span': none (0.36), apm.logprocessor (0.23), apm.span (0.19); best destination of 'apm.logprocessor flows-to': apm.logprocessor (0.43), apm.exporterconfig (0.23), none (0.16); best predicate: none (0.35), reverse:flows-to (0.30), references (0.20). Outcome: alternative (target=apm.logprocessor).",
+          "claim_id": "rel:apm.logprocessor#1"
+        }
+      ],
+      "probability": 0.434,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 18,
+        "plan_kind": "retarget",
+        "triple": "apm.logprocessor.flows-to.apm.span",
+        "replacement": ["apm.logprocessor.flows-to.apm.logprocessor"],
+        "claims": ["node:apm.logprocessor#3", "rel:apm.logprocessor#1"]
+      }
+    },
+    {
+      "seq": 19,
+      "op": "delete",
+      "target_id": "apm.traceconfiguration.depends-on.data-store.database",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.traceconfiguration.depends-on.data-store.database: apm.exporterconfig.depends-on.data-store.database is produced by an earlier operation in this proposal and expresses it. Retarget of apm.traceconfiguration.depends-on.data-store.database to apm.exporterconfig.depends-on.data-store.database. Plan kind retarget, p 0.42; claims rel:apm.traceconfiguration#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "depends-on",
+        "source_spec_node_id": "apm.traceconfiguration",
+        "destination_spec_node_id": "data-store.database",
+        "title": "apm.traceconfiguration depends-on data-store.database",
+        "description": "Defines relationship: apm.traceconfiguration depends-on data-store.database"
+      },
+      "evidence": [
+        {
+          "quote": "The depends-on relationship from apm.traceconfiguration to data-store.database is indirect, since the dependency really sits with the tracing backend. Proposed: Remove the depends-on Database relationship, or move the dependency to the backend.",
+          "claim_id": "rel:apm.traceconfiguration#4"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.traceconfiguration#4): best source of 'depends-on data-store.database': apm.exporterconfig (0.42), none (0.32), apm.traceconfiguration (0.13); best destination of 'apm.traceconfiguration depends-on': none (0.72), technology.technologyservice (0.15), data-store.database (0.07); best predicate: none (0.73), depends-on (0.12), references (0.07). Outcome: alternative (source=apm.exporterconfig).",
+          "claim_id": "rel:apm.traceconfiguration#4"
+        }
+      ],
+      "probability": 0.421,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 19,
+        "plan_kind": "retarget",
+        "triple": "apm.traceconfiguration.depends-on.data-store.database",
+        "replacement": ["apm.exporterconfig.depends-on.data-store.database"],
+        "claims": ["rel:apm.traceconfiguration#4"]
+      }
+    },
+    {
+      "seq": 20,
+      "op": "delete",
+      "target_id": "apm.exporterconfig.satisfies.security.retentionpolicy",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.exporterconfig.satisfies.security.retentionpolicy: data-store.retentionpolicy.satisfies.security.retentionpolicy already exists and expresses it. Plan kind retarget, p 0.41; claims rel:apm.exporterconfig#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "satisfies",
+        "source_spec_node_id": "apm.exporterconfig",
+        "destination_spec_node_id": "security.retentionpolicy",
+        "title": "apm.exporterconfig satisfies security.retentionpolicy",
+        "description": "Defines relationship: apm.exporterconfig satisfies security.retentionpolicy"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.exporterconfig satisfies security.retentionpolicy is weak because the backend, not the exporter, enforces retention. Proposed: Remove the satisfies relationship to security.retentionpolicy.",
+          "claim_id": "rel:apm.exporterconfig#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.exporterconfig#3): best source of 'satisfies security.retentionpolicy': data-store.retentionpolicy (0.41), none (0.33), apm.exporterconfig (0.15); best destination of 'apm.exporterconfig satisfies': security.retentionpolicy (0.66), security.auditconfig (0.17), motivation.requirement (0.09); best predicate: none (0.68), satisfies (0.12), references (0.07). Outcome: alternative (source=data-store.retentionpolicy).",
+          "claim_id": "rel:apm.exporterconfig#3"
+        }
+      ],
+      "probability": 0.413,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 20,
+        "plan_kind": "retarget",
+        "triple": "apm.exporterconfig.satisfies.security.retentionpolicy",
+        "replacement": [
+          "data-store.retentionpolicy.satisfies.security.retentionpolicy"
+        ],
+        "claims": ["rel:apm.exporterconfig#3"]
+      }
+    },
+    {
+      "seq": 21,
+      "op": "update",
+      "target_id": "apm.traceconfiguration.monitors.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "apm.traceconfiguration monitors application.applicationcomponent",
+        "description": "Defines relationship: apm.traceconfiguration monitors application.applicationcomponent"
+      },
+      "rationale": "Retarget of apm.traceconfiguration.monitors.application.applicationservice to apm.traceconfiguration.monitors.application.applicationcomponent. Plan kind retarget, p 0.41; claims rel:apm.traceconfiguration#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.traceconfiguration",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "apm.traceconfiguration monitors application.applicationservice",
+        "description": "Defines relationship: apm.traceconfiguration monitors application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The monitors relationships from apm.traceconfiguration to application.applicationservice and to business.businessservice overlap with each other. Proposed: none stated",
+          "claim_id": "rel:apm.traceconfiguration#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.traceconfiguration#3): best source of 'monitors application.applicationservice': apm.traceconfiguration (0.36), none (0.17), apm.span (0.13); best destination of 'apm.traceconfiguration monitors': application.applicationcomponent (0.41), application.applicationservice (0.37), application.applicationcollaboration (0.09); best predicate: monitors (0.62), none (0.12), reverse:references (0.10). Outcome: alternative (target=application.applicationcomponent).",
+          "claim_id": "rel:apm.traceconfiguration#3"
+        }
+      ],
+      "probability": 0.408,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 21,
+        "plan_kind": "retarget",
+        "triple": "apm.traceconfiguration.monitors.application.applicationservice",
+        "replacement": [
+          "apm.traceconfiguration.monitors.application.applicationcomponent"
+        ],
+        "claims": ["rel:apm.traceconfiguration#3"]
+      }
+    },
+    {
+      "seq": 22,
+      "op": "delete",
+      "target_id": "apm.metricinstrument.monitors.data-model.objectschema",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.metricinstrument.monitors.data-model.objectschema: apm.metricinstrument.monitors.application.applicationcomponent already exists and expresses it. Plan kind retarget, p 0.39; claims rel:apm.metricinstrument#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.metricinstrument",
+        "destination_spec_node_id": "data-model.objectschema",
+        "title": "apm.metricinstrument monitors data-model.objectschema",
+        "description": "Defines relationship: apm.metricinstrument monitors data-model.objectschema"
+      },
+      "evidence": [
+        {
+          "quote": "The monitors relationships from apm.metricinstrument to ux.errorconfig, security.threat, data-model.objectschema and data-model.schemadefinition are only indirect at best. Proposed: Remove these indirect monitors relationships from apm.metricinstrument.",
+          "claim_id": "rel:apm.metricinstrument#6"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricinstrument#6): best source of 'monitors data-model.objectschema': none (0.58), apm.metricinstrument (0.11), apm.alert (0.10); best destination of 'apm.metricinstrument monitors': application.applicationcomponent (0.39), data-model.objectschema (0.18), application.applicationservice (0.12); best predicate: none (0.91), monitors (0.03), references (0.02). Outcome: alternative (target=application.applicationcomponent).",
+          "claim_id": "rel:apm.metricinstrument#6"
+        }
+      ],
+      "probability": 0.386,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 22,
+        "plan_kind": "retarget",
+        "triple": "apm.metricinstrument.monitors.data-model.objectschema",
+        "replacement": [
+          "apm.metricinstrument.monitors.application.applicationcomponent"
+        ],
+        "claims": ["rel:apm.metricinstrument#6"]
+      }
+    },
+    {
+      "seq": 23,
+      "op": "delete",
+      "target_id": "apm.dashboard.monitors.api.operation",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.dashboard.monitors.api.operation: apm.dashboard.monitors.apm.span already exists and expresses it. Plan kind retarget, p 0.36; claims rel:apm.dashboard#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.dashboard",
+        "destination_spec_node_id": "api.operation",
+        "title": "apm.dashboard monitors api.operation",
+        "description": "Defines relationship: apm.dashboard monitors api.operation"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.dashboard --[monitors]--> api.operation is indirect: dashboards observe telemetry (spans, metrics) about the operation rather than the API contract itself. Proposed: Replace the monitors predicate to api.operation with a weaker predicate such as references or associated-with, or remove it in favor of the telemetry relationships.",
+          "claim_id": "rel:apm.dashboard#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.dashboard#1): best source of 'monitors api.operation': apm.dashboard (0.39), none (0.32), apm.instrumentationscope (0.09); best destination of 'apm.dashboard monitors': apm.span (0.36), api.operation (0.22), apm.metricinstrument (0.17); best predicate: none (0.57), references (0.26), monitors (0.11). Outcome: alternative (target=apm.span).",
+          "claim_id": "rel:apm.dashboard#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.dashboard#2): best source of 'monitors api.operation': apm.dashboard (0.61), none (0.23), apm.span (0.05); best destination of 'apm.dashboard monitors': api.operation (0.38), apm.span (0.31), apm.metricinstrument (0.15); best predicate: none (0.55), monitors (0.29), references (0.09). Outcome: no_better.",
+          "claim_id": "rel:apm.dashboard#2"
+        }
+      ],
+      "probability": 0.361,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 23,
+        "plan_kind": "retarget",
+        "triple": "apm.dashboard.monitors.api.operation",
+        "replacement": ["apm.dashboard.monitors.apm.span"],
+        "claims": ["rel:apm.dashboard#1"]
+      }
+    },
+    {
+      "seq": 24,
+      "op": "delete",
+      "target_id": "apm.alert.monitors.apm.span",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.alert.monitors.apm.span: apm.alert.monitors.apm.metricinstrument already exists and expresses it. Plan kind retarget, p 0.36; claims rel:apm.alert#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.alert",
+        "destination_spec_node_id": "apm.span",
+        "title": "apm.alert monitors apm.span",
+        "description": "Defines relationship: apm.alert monitors apm.span"
+      },
+      "evidence": [
+        {
+          "quote": "The predicate 'monitors' on apm.alert relationships may not fit rule-over-telemetry semantics, and 'evaluates' might fit better. Proposed: Consider renaming the 'monitors' predicate to 'evaluates' for alert relationships to telemetry.",
+          "claim_id": "rel:apm.alert#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.alert#2): best source of 'monitors apm.span': apm.alert (0.78), apm.dashboard (0.10), none (0.05); best destination of 'apm.alert monitors': apm.metricinstrument (0.36), apm.span (0.32), none (0.16); best predicate: monitors (0.54), none (0.16), references (0.12). Outcome: alternative (target=apm.metricinstrument).",
+          "claim_id": "rel:apm.alert#2"
+        }
+      ],
+      "probability": 0.361,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 24,
+        "plan_kind": "retarget",
+        "triple": "apm.alert.monitors.apm.span",
+        "replacement": ["apm.alert.monitors.apm.metricinstrument"],
+        "claims": ["rel:apm.alert#2"]
+      }
+    },
+    {
+      "seq": 25,
+      "op": "delete",
+      "target_id": "apm.span.flows-to.apm.logprocessor",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.span.flows-to.apm.logprocessor: apm.logprocessor.flows-to.apm.exporterconfig already exists and expresses it. Plan kind retarget, p 0.36; claims rel:apm.span#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "apm.span",
+        "destination_spec_node_id": "apm.logprocessor",
+        "title": "apm.span flows-to apm.logprocessor",
+        "description": "Defines relationship: apm.span flows-to apm.logprocessor"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.span flows-to apm.logprocessor is a weak cross-signal path. Proposed: Remove the span flows-to logprocessor relationship.",
+          "claim_id": "rel:apm.span#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.span#3): best source of 'flows-to apm.logprocessor': apm.logprocessor (0.36), none (0.29), apm.span (0.16); best destination of 'apm.span flows-to': apm.exporterconfig (0.46), apm.logprocessor (0.23), apm.span (0.13); best predicate: none (0.57), reverse:flows-to (0.16), flows-to (0.13). Outcome: alternative (source=apm.logprocessor; target=apm.exporterconfig).",
+          "claim_id": "rel:apm.span#3"
+        }
+      ],
+      "probability": 0.359,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 25,
+        "plan_kind": "retarget",
+        "triple": "apm.span.flows-to.apm.logprocessor",
+        "replacement": ["apm.logprocessor.flows-to.apm.exporterconfig"],
+        "claims": ["rel:apm.span#3"]
+      }
+    },
+    {
+      "seq": 26,
+      "op": "delete",
+      "target_id": "apm.alert.monitors.apm.logrecord",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.alert.monitors.apm.logrecord: apm.alert.monitors.apm.metricinstrument already exists and expresses it. Plan kind retarget, p 0.35; claims rel:apm.alert#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.alert",
+        "destination_spec_node_id": "apm.logrecord",
+        "title": "apm.alert monitors apm.logrecord",
+        "description": "Defines relationship: apm.alert monitors apm.logrecord"
+      },
+      "evidence": [
+        {
+          "quote": "The predicate 'monitors' on apm.alert relationships may not fit rule-over-telemetry semantics, and 'evaluates' might fit better. Proposed: Consider renaming the 'monitors' predicate to 'evaluates' for alert relationships to telemetry.",
+          "claim_id": "rel:apm.alert#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.alert#2): best source of 'monitors apm.logrecord': apm.alert (0.81), none (0.07), apm.dashboard (0.05); best destination of 'apm.alert monitors': apm.metricinstrument (0.35), apm.logrecord (0.25), none (0.20); best predicate: monitors (0.46), none (0.26), uses (0.09). Outcome: alternative (target=apm.metricinstrument).",
+          "claim_id": "rel:apm.alert#2"
+        }
+      ],
+      "probability": 0.351,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 26,
+        "plan_kind": "retarget",
+        "triple": "apm.alert.monitors.apm.logrecord",
+        "replacement": ["apm.alert.monitors.apm.metricinstrument"],
+        "claims": ["rel:apm.alert#2"]
+      }
+    },
+    {
+      "seq": 27,
+      "op": "delete",
+      "target_id": "apm.metricinstrument.monitors.security.threat",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.metricinstrument.monitors.security.threat: apm.metricinstrument.monitors.application.applicationcomponent already exists and expresses it. Plan kind retarget, p 0.30; claims rel:apm.metricinstrument#6.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.metricinstrument",
+        "destination_spec_node_id": "security.threat",
+        "title": "apm.metricinstrument monitors security.threat",
+        "description": "Defines relationship: apm.metricinstrument monitors security.threat"
+      },
+      "evidence": [
+        {
+          "quote": "The monitors relationships from apm.metricinstrument to ux.errorconfig, security.threat, data-model.objectschema and data-model.schemadefinition are only indirect at best. Proposed: Remove these indirect monitors relationships from apm.metricinstrument.",
+          "claim_id": "rel:apm.metricinstrument#6"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricinstrument#6): best source of 'monitors security.threat': none (0.70), apm.alert (0.17), apm.dashboard (0.04); best destination of 'apm.metricinstrument monitors': application.applicationcomponent (0.30), security.threat (0.17), none (0.16); best predicate: none (0.82), monitors (0.11), references (0.02). Outcome: alternative (target=application.applicationcomponent).",
+          "claim_id": "rel:apm.metricinstrument#6"
+        }
+      ],
+      "probability": 0.299,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 27,
+        "plan_kind": "retarget",
+        "triple": "apm.metricinstrument.monitors.security.threat",
+        "replacement": [
+          "apm.metricinstrument.monitors.application.applicationcomponent"
+        ],
+        "claims": ["rel:apm.metricinstrument#6"]
+      }
+    },
+    {
+      "seq": 28,
+      "op": "update",
+      "target_id": "apm.instrumentationscope.aggregates.apm.exporterconfig",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "apm.logconfiguration",
+        "destination_spec_node_id": "apm.metricinstrument",
+        "title": "apm.logconfiguration aggregates apm.metricinstrument",
+        "description": "Defines relationship: apm.logconfiguration aggregates apm.metricinstrument"
+      },
+      "rationale": "Retarget of apm.instrumentationscope.aggregates.apm.exporterconfig to apm.logconfiguration.aggregates.apm.metricinstrument. Plan kind retarget, p 0.29; claims rel:apm.instrumentationscope#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "apm.instrumentationscope",
+        "destination_spec_node_id": "apm.exporterconfig",
+        "title": "apm.instrumentationscope aggregates apm.exporterconfig",
+        "description": "Defines relationship: apm.instrumentationscope aggregates apm.exporterconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.instrumentationscope aggregates apm.exporterconfig is questionable because exporters attach to providers or pipelines rather than scopes, so the link is only indirect. Proposed: Remove or rework the aggregates link from apm.instrumentationscope to apm.exporterconfig, since exporters attach to providers or pipelines.",
+          "claim_id": "rel:apm.instrumentationscope#1"
+        },
+        {
+          "quote": "Sorting answers (node:apm.instrumentationscope#3): best source of 'aggregates apm.exporterconfig': none (0.38), apm.exporterconfig (0.19), apm.logconfiguration (0.18); best destination of 'apm.instrumentationscope aggregates': none (0.64), apm.metricinstrument (0.13), apm.span (0.07); best predicate: none (0.90), references (0.02), uses (0.02). Outcome: no_better.",
+          "claim_id": "node:apm.instrumentationscope#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.instrumentationscope#1): best source of 'aggregates apm.exporterconfig': apm.logconfiguration (0.29), none (0.19), apm.exporterconfig (0.14); best destination of 'apm.instrumentationscope aggregates': apm.metricinstrument (0.37), apm.span (0.34), apm.exporterconfig (0.11); best predicate: none (0.83), aggregates (0.04), references (0.04). Outcome: alternative (source=apm.logconfiguration; target=apm.metricinstrument).",
+          "claim_id": "rel:apm.instrumentationscope#1"
+        }
+      ],
+      "probability": 0.292,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 28,
+        "plan_kind": "retarget",
+        "triple": "apm.instrumentationscope.aggregates.apm.exporterconfig",
+        "replacement": ["apm.logconfiguration.aggregates.apm.metricinstrument"],
+        "claims": ["rel:apm.instrumentationscope#1"]
+      }
+    },
+    {
+      "seq": 29,
+      "op": "delete",
+      "target_id": "apm.logrecord.references.data-model.schemadefinition",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.logrecord.references.data-model.schemadefinition: data-model.schemadefinition.references.data-model.schemadefinition already exists and expresses it. Plan kind retarget, p 0.28; claims rel:apm.logrecord#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "apm.logrecord",
+        "destination_spec_node_id": "data-model.schemadefinition",
+        "title": "apm.logrecord references data-model.schemadefinition",
+        "description": "Defines relationship: apm.logrecord references data-model.schemadefinition"
+      },
+      "evidence": [
+        {
+          "quote": "The 'references' relationships from apm.logrecord to data-model.objectschema and data-model.schemadefinition overlap heavily in meaning. Proposed: Consolidate the two relationships into one, or define a clear distinction between them.",
+          "claim_id": "rel:apm.logrecord#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logrecord#1): best source of 'references data-model.schemadefinition': apm.logrecord (0.80), none (0.05), data-model.schemadefinition (0.04); best destination of 'apm.logrecord references': none (0.38), data-model.schemadefinition (0.24), apm.span (0.18); best predicate: references (0.61), none (0.29), uses (0.02). Outcome: no_better.",
+          "claim_id": "rel:apm.logrecord#1"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logrecord#3): best source of 'references data-model.schemadefinition': data-model.schemadefinition (0.28), apm.logrecord (0.28), none (0.17); best destination of 'apm.logrecord references': data-model.schemadefinition (0.44), data-model.objectschema (0.20), none (0.16); best predicate: none (0.46), references (0.43), uses (0.03). Outcome: alternative (source=data-model.schemadefinition).",
+          "claim_id": "rel:apm.logrecord#3"
+        }
+      ],
+      "probability": 0.283,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 29,
+        "plan_kind": "retarget",
+        "triple": "apm.logrecord.references.data-model.schemadefinition",
+        "replacement": [
+          "data-model.schemadefinition.references.data-model.schemadefinition"
+        ],
+        "claims": ["rel:apm.logrecord#3"]
+      }
+    },
+    {
+      "seq": 30,
+      "op": "delete",
+      "target_id": "apm.span.monitors.data-model.objectschema",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.span.monitors.data-model.objectschema: apm.span.monitors.application.applicationcomponent already exists and expresses it. Plan kind retarget, p 0.25; claims rel:apm.span#5.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.span",
+        "destination_spec_node_id": "data-model.objectschema",
+        "title": "apm.span monitors data-model.objectschema",
+        "description": "Defines relationship: apm.span monitors data-model.objectschema"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.span monitors data-model.objectschema is a stretch because spans observe operations, not schemas. Proposed: Remove the span monitors objectschema relationship.",
+          "claim_id": "rel:apm.span#5"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.span#5): best source of 'monitors data-model.objectschema': none (0.42), apm.span (0.28), apm.alert (0.07); best destination of 'apm.span monitors': application.applicationcomponent (0.25), data-model.objectschema (0.18), data-store.database (0.14); best predicate: none (0.61), references (0.16), monitors (0.14). Outcome: alternative (target=application.applicationcomponent).",
+          "claim_id": "rel:apm.span#5"
+        }
+      ],
+      "probability": 0.246,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 30,
+        "plan_kind": "retarget",
+        "triple": "apm.span.monitors.data-model.objectschema",
+        "replacement": ["apm.span.monitors.application.applicationcomponent"],
+        "claims": ["rel:apm.span#5"]
+      }
+    },
+    {
+      "seq": 31,
+      "op": "delete",
+      "target_id": "apm.metricinstrument.realizes.motivation.goal",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.metricinstrument.realizes.motivation.goal: business.businessprocess.realizes.motivation.goal already exists and expresses it. Plan kind retarget, p 0.23; claims rel:apm.metricinstrument#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "apm.metricinstrument",
+        "destination_spec_node_id": "motivation.goal",
+        "title": "apm.metricinstrument realizes motivation.goal",
+        "description": "Defines relationship: apm.metricinstrument realizes motivation.goal"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.metricinstrument realizes motivation.goal uses a predicate that does not fit; it should be supports-goals. Proposed: Replace the realizes predicate with supports-goals for the relationship to motivation.goal.",
+          "claim_id": "rel:apm.metricinstrument#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricinstrument#3): best source of 'realizes motivation.goal': business.businessprocess (0.23), none (0.20), application.applicationcomponent (0.17); best destination of 'apm.metricinstrument realizes': none (0.37), motivation.goal (0.25), motivation.requirement (0.14); best predicate: none (0.63), serves (0.12), realizes (0.09). Outcome: alternative (source=business.businessprocess).",
+          "claim_id": "rel:apm.metricinstrument#3"
+        }
+      ],
+      "probability": 0.231,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 31,
+        "plan_kind": "retarget",
+        "triple": "apm.metricinstrument.realizes.motivation.goal",
+        "replacement": ["business.businessprocess.realizes.motivation.goal"],
+        "claims": ["rel:apm.metricinstrument#3"]
+      }
+    },
+    {
+      "seq": 32,
+      "op": "update",
+      "target_id": "apm.metricinstrument.flows-to.apm.span",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "destination_spec_node_id": "apm.exporterconfig",
+        "title": "apm.metricinstrument references apm.exporterconfig",
+        "description": "Defines relationship: apm.metricinstrument references apm.exporterconfig"
+      },
+      "rationale": "Change of apm.metricinstrument.flows-to.apm.span to apm.metricinstrument.references.apm.exporterconfig. Plan kind compound, p 0.81; claims rel:apm.metricinstrument#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "apm.metricinstrument",
+        "destination_spec_node_id": "apm.span",
+        "title": "apm.metricinstrument flows-to apm.span",
+        "description": "Defines relationship: apm.metricinstrument flows-to apm.span"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.metricinstrument flows-to apm.span is semantically wrong because metrics flow to readers or exporters, not to spans, and exemplar links are already covered by references span. Proposed: Remove the flows-to relationship from apm.metricinstrument to apm.span and rely on references span for exemplar links.",
+          "claim_id": "rel:apm.metricinstrument#2"
+        },
+        {
+          "quote": "Sorting answers (node:apm.metricinstrument#6): best source of 'flows-to apm.span': none (0.44), apm.instrumentationscope (0.19), apm.span (0.16); best destination of 'apm.metricinstrument flows-to': none (0.73), apm.exporterconfig (0.07), apm.instrumentationscope (0.07); best predicate: none (0.76), references (0.10), reverse:composes (0.04). Outcome: no_better.",
+          "claim_id": "node:apm.metricinstrument#6"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricinstrument#2): best source of 'flows-to apm.span': none (0.30), apm.span (0.25), apm.metricinstrument (0.11); best destination of 'apm.metricinstrument flows-to': apm.exporterconfig (0.84), apm.dashboard (0.03), none (0.03); best predicate: references (0.81), reverse:composes (0.08), none (0.05). Outcome: alternative (target=apm.exporterconfig; predicate=references).",
+          "claim_id": "rel:apm.metricinstrument#2"
+        }
+      ],
+      "probability": 0.806,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 32,
+        "plan_kind": "compound",
+        "triple": "apm.metricinstrument.flows-to.apm.span",
+        "replacement": ["apm.metricinstrument.references.apm.exporterconfig"],
+        "claims": ["rel:apm.metricinstrument#2"]
+      }
+    },
+    {
+      "seq": 33,
+      "op": "update",
+      "target_id": "apm.span.references.apm.span",
+      "ref": null,
+      "fields": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "apm.spanlink",
+        "title": "apm.spanlink flows-to apm.span",
+        "description": "Defines relationship: apm.spanlink flows-to apm.span"
+      },
+      "rationale": "Change of apm.span.references.apm.span to apm.spanlink.flows-to.apm.span. Plan kind compound, p 0.48; claims rel:apm.span#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "references",
+        "source_spec_node_id": "apm.span",
+        "destination_spec_node_id": "apm.span",
+        "title": "apm.span references apm.span",
+        "description": "Defines relationship: apm.span references apm.span"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.span references apm.span duplicates the apm.span aggregates apm.spanlink relationship in meaning. Proposed: Remove the span references span relationship, keeping aggregates spanlink.",
+          "claim_id": "rel:apm.span#4"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.span#4): best source of 'references apm.span': apm.spanlink (0.69), apm.span (0.19), apm.logrecord (0.04); best destination of 'apm.span references': apm.span (0.56), none (0.27), data-model.schemadefinition (0.08); best predicate: flows-to (0.48), references (0.17), none (0.11). Outcome: alternative (source=apm.spanlink; predicate=flows-to).",
+          "claim_id": "rel:apm.span#4"
+        }
+      ],
+      "probability": 0.481,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 33,
+        "plan_kind": "compound",
+        "triple": "apm.span.references.apm.span",
+        "replacement": ["apm.spanlink.flows-to.apm.span"],
+        "claims": ["rel:apm.span#4"]
+      }
+    },
+    {
+      "seq": 34,
+      "op": "update",
+      "target_id": "apm.logconfiguration.flows-to.apm.exporterconfig",
+      "ref": null,
+      "fields": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "apm.logprocessor",
+        "destination_spec_node_id": "apm.logprocessor",
+        "title": "apm.logprocessor aggregates apm.logprocessor",
+        "description": "Defines relationship: apm.logprocessor aggregates apm.logprocessor"
+      },
+      "rationale": "Change of apm.logconfiguration.flows-to.apm.exporterconfig to apm.logprocessor.aggregates.apm.logprocessor. Plan kind compound, p 0.44; claims rel:apm.logconfiguration#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "apm.logconfiguration",
+        "destination_spec_node_id": "apm.exporterconfig",
+        "title": "apm.logconfiguration flows-to apm.exporterconfig",
+        "description": "Defines relationship: apm.logconfiguration flows-to apm.exporterconfig"
+      },
+      "evidence": [
+        {
+          "quote": "The flows-to and aggregates relationships from apm.logconfiguration to apm.exporterconfig overlap in meaning. Proposed: Keep only one of flows-to or aggregates between logconfiguration and exporterconfig.",
+          "claim_id": "rel:apm.logconfiguration#2"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logconfiguration#2): best source of 'flows-to apm.exporterconfig': apm.logprocessor (0.44), apm.logconfiguration (0.42), apm.exporterconfig (0.05); best destination of 'apm.logconfiguration flows-to': apm.logprocessor (0.55), apm.exporterconfig (0.17), none (0.11); best predicate: aggregates (0.50), references (0.14), uses (0.12). Outcome: alternative (source=apm.logprocessor; target=apm.logprocessor; predicate=aggregates).",
+          "claim_id": "rel:apm.logconfiguration#2"
+        }
+      ],
+      "probability": 0.441,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 34,
+        "plan_kind": "compound",
+        "triple": "apm.logconfiguration.flows-to.apm.exporterconfig",
+        "replacement": ["apm.logprocessor.aggregates.apm.logprocessor"],
+        "claims": ["rel:apm.logconfiguration#2"]
+      }
+    },
+    {
+      "seq": 35,
+      "op": "update",
+      "target_id": "apm.logrecord.monitors.application.applicationservice",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "apm.dashboard",
+        "title": "apm.dashboard references application.applicationservice",
+        "description": "Defines relationship: apm.dashboard references application.applicationservice"
+      },
+      "rationale": "Change of apm.logrecord.monitors.application.applicationservice to apm.dashboard.references.application.applicationservice. Plan kind compound, p 0.39; claims rel:apm.logrecord#4.",
+      "kind": "property",
+      "base": {
+        "predicate": "monitors",
+        "source_spec_node_id": "apm.logrecord",
+        "destination_spec_node_id": "application.applicationservice",
+        "title": "apm.logrecord monitors application.applicationservice",
+        "description": "Defines relationship: apm.logrecord monitors application.applicationservice"
+      },
+      "evidence": [
+        {
+          "quote": "The 'monitors' relationship from apm.logrecord to application.applicationservice is a weak fit, since a single log record records events rather than actively observing a service. Proposed: Replace or remove the 'monitors' predicate for logrecord to applicationservice, e.g. with a weaker predicate like 'references' or 'emitted-by'.",
+          "claim_id": "rel:apm.logrecord#4"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.logrecord#4): best source of 'monitors application.applicationservice': apm.dashboard (0.39), apm.alert (0.39), none (0.05); best destination of 'apm.logrecord monitors': none (0.41), application.applicationcomponent (0.27), application.applicationservice (0.19); best predicate: references (0.39), none (0.35), monitors (0.10). Outcome: alternative (source=apm.dashboard; predicate=references).",
+          "claim_id": "rel:apm.logrecord#4"
+        }
+      ],
+      "probability": 0.393,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 35,
+        "plan_kind": "compound",
+        "triple": "apm.logrecord.monitors.application.applicationservice",
+        "replacement": [
+          "apm.dashboard.references.application.applicationservice"
+        ],
+        "claims": ["rel:apm.logrecord#4"]
+      }
+    },
+    {
+      "seq": 36,
+      "op": "update",
+      "target_id": "apm.instrumentationconfig.serves.apm.instrumentationscope",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "apm.instrumentationscope",
+        "title": "apm.instrumentationscope references apm.instrumentationscope",
+        "description": "Defines relationship: apm.instrumentationscope references apm.instrumentationscope"
+      },
+      "rationale": "Change of apm.instrumentationconfig.serves.apm.instrumentationscope to apm.instrumentationscope.references.apm.instrumentationscope. Plan kind compound, p 0.38; claims rel:apm.instrumentationconfig#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "apm.instrumentationconfig",
+        "destination_spec_node_id": "apm.instrumentationscope",
+        "title": "apm.instrumentationconfig serves apm.instrumentationscope",
+        "description": "Defines relationship: apm.instrumentationconfig serves apm.instrumentationscope"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship apm.instrumentationconfig serves apm.instrumentationscope uses a predicate that does not fit; 'uses' or 'generates' is closer than 'serves'. Proposed: Replace the serves predicate with 'uses' or 'generates' for the relationship to apm.instrumentationscope.",
+          "claim_id": "rel:apm.instrumentationconfig#3"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.instrumentationconfig#3): best source of 'serves apm.instrumentationscope': apm.instrumentationscope (0.38), apm.instrumentationconfig (0.35), none (0.17); best destination of 'apm.instrumentationconfig serves': apm.instrumentationscope (0.51), none (0.29), apm.resource (0.08); best predicate: references (0.48), uses (0.23), depends-on (0.07). Outcome: alternative (source=apm.instrumentationscope; predicate=references).",
+          "claim_id": "rel:apm.instrumentationconfig#3"
+        }
+      ],
+      "probability": 0.38,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 36,
+        "plan_kind": "compound",
+        "triple": "apm.instrumentationconfig.serves.apm.instrumentationscope",
+        "replacement": [
+          "apm.instrumentationscope.references.apm.instrumentationscope"
+        ],
+        "claims": ["rel:apm.instrumentationconfig#3"]
+      }
+    },
+    {
+      "seq": 37,
+      "op": "delete",
+      "target_id": "apm.span.composes.apm.traceconfiguration",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.span.composes.apm.traceconfiguration: apm.traceconfiguration.aggregates.apm.span already exists and expresses it. Plan kind conflict, p 0.65; claims node:apm.span#4, rel:apm.span#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "apm.span",
+        "destination_spec_node_id": "apm.traceconfiguration",
+        "title": "apm.span composes apm.traceconfiguration",
+        "description": "Defines relationship: apm.span composes apm.traceconfiguration"
+      },
+      "evidence": [
+        {
+          "quote": "The 'composes' relationships between apm.span and apm.traceconfiguration and between apm.span and apm.metricinstrument appear to point in the wrong direction. Proposed: Invert the direction of the composes relationships for traceconfiguration and metricinstrument.",
+          "claim_id": "node:apm.span#4"
+        },
+        {
+          "quote": "The relationship apm.span composes apm.traceconfiguration is inverted because a trace configuration governs many spans rather than being owned by one span. Proposed: Replace with a governed-by relationship from span to traceconfiguration.",
+          "claim_id": "rel:apm.span#2"
+        },
+        {
+          "quote": "Sorting answers (node:apm.span#4): best source of 'composes apm.traceconfiguration': none (0.30), apm.instrumentationscope (0.28), apm.span (0.17); best destination of 'apm.span composes': apm.traceconfiguration (0.49), none (0.27), apm.metricinstrument (0.07); best predicate: reverse:aggregates (0.64), none (0.11), uses (0.06). Outcome: alternative (predicate=reverse:aggregates).",
+          "claim_id": "node:apm.span#4"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.span#2): best source of 'composes apm.traceconfiguration': none (0.67), apm.span (0.12), apm.instrumentationscope (0.10); best destination of 'apm.span composes': apm.spanevent (0.55), apm.traceconfiguration (0.20), none (0.09); best predicate: reverse:aggregates (0.60), depends-on (0.12), none (0.10). Outcome: alternative (target=apm.spanevent; predicate=reverse:aggregates).",
+          "claim_id": "rel:apm.span#2"
+        },
+        {
+          "quote": "Sorting answers (node:apm.traceconfiguration#3): best source of 'composes apm.traceconfiguration': none (0.49), apm.span (0.21), apm.instrumentationscope (0.16); best destination of 'apm.span composes': none (0.60), apm.instrumentationscope (0.18), apm.traceconfiguration (0.07); best predicate: none (0.67), reverse:aggregates (0.08), realizes (0.07). Outcome: no_better.",
+          "claim_id": "node:apm.traceconfiguration#3"
+        }
+      ],
+      "probability": 0.645,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 37,
+        "plan_kind": "conflict",
+        "triple": "apm.span.composes.apm.traceconfiguration",
+        "replacement": [
+          "apm.traceconfiguration.aggregates.apm.span",
+          "apm.spanevent.aggregates.apm.span"
+        ],
+        "claims": ["node:apm.span#4", "rel:apm.span#2"]
+      }
+    },
+    {
+      "seq": 38,
+      "op": "delete",
+      "target_id": "apm.metricinstrument.flows-to.apm.logprocessor",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove apm.metricinstrument.flows-to.apm.logprocessor: apm.logprocessor.flows-to.apm.logprocessor already exists and expresses it. Plan kind conflict, p 0.40; claims node:apm.logprocessor#4, rel:apm.metricinstrument#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "flows-to",
+        "source_spec_node_id": "apm.metricinstrument",
+        "destination_spec_node_id": "apm.logprocessor",
+        "title": "apm.metricinstrument flows-to apm.logprocessor",
+        "description": "Defines relationship: apm.metricinstrument flows-to apm.logprocessor"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship from apm.metricinstrument to apm.logprocessor is semantically wrong. Proposed: Remove or correct the relationship between apm.metricinstrument and apm.logprocessor.",
+          "claim_id": "node:apm.logprocessor#4"
+        },
+        {
+          "quote": "The relationship apm.metricinstrument flows-to apm.logprocessor is semantically wrong because metrics flow to readers or exporters, not to log processors. Proposed: Remove the flows-to relationship from apm.metricinstrument to apm.logprocessor.",
+          "claim_id": "rel:apm.metricinstrument#1"
+        },
+        {
+          "quote": "Sorting answers (node:apm.logprocessor#4): best source of 'flows-to apm.logprocessor': apm.logprocessor (0.37), none (0.29), apm.logrecord (0.16); best destination of 'apm.metricinstrument flows-to': none (0.61), apm.instrumentationscope (0.15), apm.logconfiguration (0.07); best predicate: none (0.95), flows-to (0.01), triggers (0.01). Outcome: alternative (source=apm.logprocessor).",
+          "claim_id": "node:apm.logprocessor#4"
+        },
+        {
+          "quote": "Sorting answers (node:apm.metricinstrument#5): best source of 'flows-to apm.logprocessor': none (0.32), apm.logprocessor (0.29), apm.logrecord (0.29); best destination of 'apm.metricinstrument flows-to': none (0.57), apm.instrumentationscope (0.11), apm.exporterconfig (0.10); best predicate: none (0.96), flows-to (0.01), references (0.01). Outcome: no_better.",
+          "claim_id": "node:apm.metricinstrument#5"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.metricinstrument#1): best source of 'flows-to apm.logprocessor': apm.logprocessor (0.40), none (0.28), apm.logrecord (0.25); best destination of 'apm.metricinstrument flows-to': apm.exporterconfig (0.74), apm.logconfiguration (0.06), apm.logprocessor (0.05); best predicate: none (0.94), flows-to (0.02), depends-on (0.01). Outcome: alternative (source=apm.logprocessor; target=apm.exporterconfig).",
+          "claim_id": "rel:apm.metricinstrument#1"
+        }
+      ],
+      "probability": 0.399,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 38,
+        "plan_kind": "conflict",
+        "triple": "apm.metricinstrument.flows-to.apm.logprocessor",
+        "replacement": [
+          "apm.logprocessor.flows-to.apm.logprocessor",
+          "apm.logprocessor.flows-to.apm.exporterconfig"
+        ],
+        "claims": ["node:apm.logprocessor#4", "rel:apm.metricinstrument#1"]
+      }
+    },
+    {
+      "seq": 39,
+      "op": "update",
+      "target_id": "apm.span.composes.apm.metricinstrument",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "apm.instrumentationscope",
+        "destination_spec_node_id": "apm.spanevent",
+        "title": "apm.instrumentationscope composes apm.spanevent",
+        "description": "Defines relationship: apm.instrumentationscope composes apm.spanevent"
+      },
+      "rationale": "Change of apm.span.composes.apm.metricinstrument to apm.instrumentationscope.composes.apm.spanevent. Claims disagree on the replacement (apm.instrumentationscope.composes.apm.spanevent | apm.spanevent.references.apm.span); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.40; claims node:apm.metricinstrument#7, rel:apm.span#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "apm.span",
+        "destination_spec_node_id": "apm.metricinstrument",
+        "title": "apm.span composes apm.metricinstrument",
+        "description": "Defines relationship: apm.span composes apm.metricinstrument"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship span composes metricinstrument is semantically wrong for the OTel model, since spans do not contain metric instruments. Proposed: Remove or rework the composes relationship from span to metricinstrument.",
+          "claim_id": "node:apm.metricinstrument#7"
+        },
+        {
+          "quote": "The relationship apm.span composes apm.metricinstrument is questionable because metric instruments exist independently of spans. Proposed: Replace composes with a generates or measures relationship between span and metricinstrument.",
+          "claim_id": "rel:apm.span#1"
+        },
+        {
+          "quote": "Sorting answers (node:apm.metricinstrument#7): best source of 'composes apm.metricinstrument': apm.instrumentationscope (0.40), none (0.37), apm.span (0.10); best destination of 'apm.span composes': apm.spanevent (0.75), none (0.11), apm.instrumentationscope (0.05); best predicate: none (0.52), reverse:references (0.11), uses (0.10). Outcome: alternative (source=apm.instrumentationscope; target=apm.spanevent).",
+          "claim_id": "node:apm.metricinstrument#7"
+        },
+        {
+          "quote": "Sorting answers (rel:apm.span#1): best source of 'composes apm.metricinstrument': none (0.43), apm.instrumentationscope (0.32), apm.span (0.11); best destination of 'apm.span composes': apm.spanevent (0.60), apm.metricinstrument (0.20), none (0.09); best predicate: reverse:references (0.27), none (0.23), reverse:flows-to (0.19). Outcome: alternative (target=apm.spanevent; predicate=reverse:references).",
+          "claim_id": "rel:apm.span#1"
+        },
+        {
+          "quote": "Sorting answers (node:apm.span#4): best source of 'composes apm.metricinstrument': none (0.40), apm.instrumentationscope (0.35), apm.instrumentationconfig (0.09); best destination of 'apm.span composes': none (0.38), apm.metricinstrument (0.31), apm.traceconfiguration (0.12); best predicate: none (0.52), references (0.14), reverse:references (0.09). Outcome: no_better.",
+          "claim_id": "node:apm.span#4"
+        }
+      ],
+      "probability": 0.396,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 39,
+        "plan_kind": "conflict",
+        "triple": "apm.span.composes.apm.metricinstrument",
+        "replacement": [
+          "apm.instrumentationscope.composes.apm.spanevent",
+          "apm.spanevent.references.apm.span"
+        ],
+        "claims": ["node:apm.metricinstrument#7", "rel:apm.span#1"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,339 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR reflection plan: product layer (8 relationship changes)",
+  "rationale": "Relationship schemas in the product layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T20:58:05.955Z",
+  "layer": "product",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "update",
+      "target_id": "product.userworkflow.aggregates.business.businessprocess",
+      "ref": null,
+      "fields": {
+        "predicate": "realizes",
+        "title": "product.userworkflow realizes business.businessprocess",
+        "description": "Defines relationship: product.userworkflow realizes business.businessprocess"
+      },
+      "rationale": "Rename the predicate of product.userworkflow.aggregates.business.businessprocess to product.userworkflow.realizes.business.businessprocess. Plan kind rename-predicate, p 0.68; claims rel:product.userworkflow#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "aggregates",
+        "source_spec_node_id": "product.userworkflow",
+        "destination_spec_node_id": "business.businessprocess",
+        "title": "product.userworkflow aggregates business.businessprocess",
+        "description": "Defines relationship: product.userworkflow aggregates business.businessprocess"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship product.userworkflow aggregates business.businessprocess looks inverted; a user journey more naturally supports or realizes part of a business process. Proposed: Replace aggregates with supports or realizes, with the workflow supporting or realizing the business process.",
+          "claim_id": "rel:product.userworkflow#2"
+        },
+        {
+          "quote": "Sorting answers (rel:product.userworkflow#2): best source of 'aggregates business.businessprocess': product.userworkflow (0.58), none (0.16), product.capability (0.07); best destination of 'product.userworkflow aggregates': business.businessprocess (0.62), none (0.16), business.businessevent (0.10); best predicate: realizes (0.68), triggers (0.06), none (0.06). Outcome: alternative (predicate=realizes).",
+          "claim_id": "rel:product.userworkflow#2"
+        }
+      ],
+      "probability": 0.679,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "rename-predicate",
+        "triple": "product.userworkflow.aggregates.business.businessprocess",
+        "replacement": [
+          "product.userworkflow.realizes.business.businessprocess"
+        ],
+        "claims": ["rel:product.userworkflow#2"]
+      }
+    },
+    {
+      "seq": 2,
+      "op": "update",
+      "target_id": "product.persona.realizes.motivation.stakeholder",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "title": "product.persona references motivation.stakeholder",
+        "description": "Defines relationship: product.persona references motivation.stakeholder"
+      },
+      "rationale": "Rename the predicate of product.persona.realizes.motivation.stakeholder to product.persona.references.motivation.stakeholder. Plan kind rename-predicate, p 0.52; claims rel:product.persona#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "product.persona",
+        "destination_spec_node_id": "motivation.stakeholder",
+        "title": "product.persona realizes motivation.stakeholder",
+        "description": "Defines relationship: product.persona realizes motivation.stakeholder"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'product.persona realizes motivation.stakeholder' is questionable because a fictional archetype does not implement a stakeholder. Proposed: Replace 'realizes' with 'associated-with' or introduce a dedicated 'represents' predicate.",
+          "claim_id": "rel:product.persona#2"
+        },
+        {
+          "quote": "Sorting answers (rel:product.persona#2): best source of 'realizes motivation.stakeholder': none (0.37), product.persona (0.34), product.feature (0.09); best destination of 'product.persona realizes': motivation.stakeholder (0.47), none (0.33), motivation.goal (0.07); best predicate: references (0.51), none (0.18), realizes (0.14). Outcome: alternative (predicate=references).",
+          "claim_id": "rel:product.persona#2"
+        }
+      ],
+      "probability": 0.515,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "rename-predicate",
+        "triple": "product.persona.realizes.motivation.stakeholder",
+        "replacement": ["product.persona.references.motivation.stakeholder"],
+        "claims": ["rel:product.persona#2"]
+      }
+    },
+    {
+      "seq": 3,
+      "op": "delete",
+      "target_id": "product.workflowstep.uses.product.capability",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove product.workflowstep.uses.product.capability: product.workflowstep.uses.product.feature already exists and expresses it. Plan kind retarget, p 0.77; claims rel:product.workflowstep#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "product.workflowstep",
+        "destination_spec_node_id": "product.capability",
+        "title": "product.workflowstep uses product.capability",
+        "description": "Defines relationship: product.workflowstep uses product.capability"
+      },
+      "evidence": [
+        {
+          "quote": "The relationships product.workflowstep uses product.capability and product.workflowstep uses product.feature overlap, because features realise capabilities and the step-to-capability link can be derived via step-to-feature-to-capability. Proposed: Keep the workflowstep-uses-capability relationship only for steps whose feature is not yet defined, treating it otherwise as derived from the feature link.",
+          "claim_id": "rel:product.workflowstep#1"
+        },
+        {
+          "quote": "Sorting answers (rel:product.workflowstep#1): best source of 'uses product.capability': product.workflowstep (0.60), product.feature (0.21), none (0.07); best destination of 'product.workflowstep uses': product.feature (0.77), product.capability (0.11), none (0.06); best predicate: uses (0.40), none (0.27), depends-on (0.14). Outcome: alternative (target=product.feature).",
+          "claim_id": "rel:product.workflowstep#1"
+        }
+      ],
+      "probability": 0.767,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "retarget",
+        "triple": "product.workflowstep.uses.product.capability",
+        "replacement": ["product.workflowstep.uses.product.feature"],
+        "claims": ["rel:product.workflowstep#1"]
+      }
+    },
+    {
+      "seq": 4,
+      "op": "delete",
+      "target_id": "product.feature.realizes.business.businessservice",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove product.feature.realizes.business.businessservice: application.applicationservice.realizes.business.businessservice already exists and expresses it. Plan kind retarget, p 0.62; claims rel:product.feature#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "realizes",
+        "source_spec_node_id": "product.feature",
+        "destination_spec_node_id": "business.businessservice",
+        "title": "product.feature realizes business.businessservice",
+        "description": "Defines relationship: product.feature realizes business.businessservice"
+      },
+      "evidence": [
+        {
+          "quote": "The cross-layer product.feature realizes business.businessservice relationship may be redundant because application services usually realize business services, so the link is already implied via capability. Proposed: Consider removing the feature realizes businessservice relationship or relying on the path via capability.",
+          "claim_id": "rel:product.feature#3"
+        },
+        {
+          "quote": "Sorting answers (rel:product.feature#3): best source of 'realizes business.businessservice': application.applicationservice (0.62), application.applicationcomponent (0.14), business.businessprocess (0.12); best destination of 'product.feature realizes': business.businessservice (0.44), product.capability (0.27), none (0.10); best predicate: none (0.34), realizes (0.31), uses (0.13). Outcome: alternative (source=application.applicationservice).",
+          "claim_id": "rel:product.feature#3"
+        }
+      ],
+      "probability": 0.623,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "retarget",
+        "triple": "product.feature.realizes.business.businessservice",
+        "replacement": [
+          "application.applicationservice.realizes.business.businessservice"
+        ],
+        "claims": ["rel:product.feature#3"]
+      }
+    },
+    {
+      "seq": 5,
+      "op": "update",
+      "target_id": "product.userworkflow.uses.product.capability",
+      "ref": null,
+      "fields": {
+        "source_spec_node_id": "product.feature",
+        "title": "product.feature uses product.capability",
+        "description": "Defines relationship: product.feature uses product.capability"
+      },
+      "rationale": "Retarget of product.userworkflow.uses.product.capability to product.feature.uses.product.capability. Plan kind retarget, p 0.53; claims rel:product.userworkflow#3.",
+      "kind": "property",
+      "base": {
+        "predicate": "uses",
+        "source_spec_node_id": "product.userworkflow",
+        "destination_spec_node_id": "product.capability",
+        "title": "product.userworkflow uses product.capability",
+        "description": "Defines relationship: product.userworkflow uses product.capability"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship product.userworkflow uses product.capability is largely derivable via workflow steps to features to capabilities, so it is partly redundant. Proposed: Consider removing the direct uses relationship to capability since it is derivable through steps and features.",
+          "claim_id": "rel:product.userworkflow#3"
+        },
+        {
+          "quote": "Sorting answers (rel:product.userworkflow#3): best source of 'uses product.capability': product.feature (0.53), product.workflowstep (0.22), product.userworkflow (0.16); best destination of 'product.userworkflow uses': product.capability (0.41), product.feature (0.23), none (0.21); best predicate: none (0.34), uses (0.28), depends-on (0.14). Outcome: alternative (source=product.feature).",
+          "claim_id": "rel:product.userworkflow#3"
+        }
+      ],
+      "probability": 0.526,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "retarget",
+        "triple": "product.userworkflow.uses.product.capability",
+        "replacement": ["product.feature.uses.product.capability"],
+        "claims": ["rel:product.userworkflow#3"]
+      }
+    },
+    {
+      "seq": 6,
+      "op": "delete",
+      "target_id": "product.workflowstep.serves.product.persona",
+      "ref": null,
+      "fields": {},
+      "rationale": "Remove product.workflowstep.serves.product.persona: product.userworkflow.serves.product.persona already exists and expresses it. Plan kind retarget, p 0.47; claims rel:product.workflowstep#2.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "product.workflowstep",
+        "destination_spec_node_id": "product.persona",
+        "title": "product.workflowstep serves product.persona",
+        "description": "Defines relationship: product.workflowstep serves product.persona"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship product.workflowstep serves product.persona uses a loose predicate, since the persona performs the step; 'performed-by' would read more naturally. Proposed: Replace 'serves' with a 'performed-by' predicate for the workflowstep-to-persona relationship.",
+          "claim_id": "rel:product.workflowstep#2"
+        },
+        {
+          "quote": "Sorting answers (rel:product.workflowstep#2): best source of 'serves product.persona': product.userworkflow (0.47), product.feature (0.16), product.workflowstep (0.15); best destination of 'product.workflowstep serves': product.persona (0.60), product.userworkflow (0.19), none (0.14); best predicate: serves (0.55), none (0.21), references (0.08). Outcome: alternative (source=product.userworkflow).",
+          "claim_id": "rel:product.workflowstep#2"
+        }
+      ],
+      "probability": 0.475,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "retarget",
+        "triple": "product.workflowstep.serves.product.persona",
+        "replacement": ["product.userworkflow.serves.product.persona"],
+        "claims": ["rel:product.workflowstep#2"]
+      }
+    },
+    {
+      "seq": 7,
+      "op": "update",
+      "target_id": "product.persona.serves.business.businessrole",
+      "ref": null,
+      "fields": {
+        "predicate": "references",
+        "source_spec_node_id": "business.businessfunction",
+        "title": "business.businessfunction references business.businessrole",
+        "description": "Defines relationship: business.businessfunction references business.businessrole"
+      },
+      "rationale": "Change of product.persona.serves.business.businessrole to business.businessfunction.references.business.businessrole. Plan kind compound, p 0.24; claims rel:product.persona#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "serves",
+        "source_spec_node_id": "product.persona",
+        "destination_spec_node_id": "business.businessrole",
+        "title": "product.persona serves business.businessrole",
+        "description": "Defines relationship: product.persona serves business.businessrole"
+      },
+      "evidence": [
+        {
+          "quote": "The relationship 'product.persona serves business.businessrole' is semantically wrong because a persona does not provide service to a role; it describes the people who fill the role. Proposed: Replace the 'serves' predicate with 'associated-with' or 'references'.",
+          "claim_id": "rel:product.persona#1"
+        },
+        {
+          "quote": "Sorting answers (rel:product.persona#1): best source of 'serves business.businessrole': business.businessfunction (0.25), none (0.22), business.businessinterface (0.15); best destination of 'product.persona serves': business.businessrole (0.38), none (0.36), business.businessactor (0.13); best predicate: references (0.53), none (0.21), realizes (0.16). Outcome: alternative (source=business.businessfunction; predicate=references).",
+          "claim_id": "rel:product.persona#1"
+        }
+      ],
+      "probability": 0.245,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "compound",
+        "triple": "product.persona.serves.business.businessrole",
+        "replacement": [
+          "business.businessfunction.references.business.businessrole"
+        ],
+        "claims": ["rel:product.persona#1"]
+      }
+    },
+    {
+      "seq": 8,
+      "op": "update",
+      "target_id": "product.userworkflow.composes.product.feature",
+      "ref": null,
+      "fields": {
+        "predicate": "uses",
+        "destination_spec_node_id": "product.workflowstep",
+        "title": "product.userworkflow uses product.workflowstep",
+        "description": "Defines relationship: product.userworkflow uses product.workflowstep"
+      },
+      "rationale": "Change of product.userworkflow.composes.product.feature to product.userworkflow.uses.product.workflowstep. Claims disagree on the replacement (product.userworkflow.uses.product.workflowstep | product.workflowstep.uses.product.workflowstep); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.56; claims node:product.userworkflow#1, rel:product.userworkflow#1.",
+      "kind": "property",
+      "base": {
+        "predicate": "composes",
+        "source_spec_node_id": "product.userworkflow",
+        "destination_spec_node_id": "product.feature",
+        "title": "product.userworkflow composes product.feature",
+        "description": "Defines relationship: product.userworkflow composes product.feature"
+      },
+      "evidence": [
+        {
+          "quote": "The 'composes' relationship from product.userworkflow to product.feature is questionable because a workflow exercises features through its steps rather than owning them. Proposed: Replace 'composes' with 'uses' or route the connection through product.workflowstep.",
+          "claim_id": "node:product.userworkflow#1"
+        },
+        {
+          "quote": "The relationship product.userworkflow composes product.feature is semantically wrong because features exist independently of any workflow and are shared across journeys. Proposed: Replace composes with aggregates or uses for the userworkflow-to-feature relationship.",
+          "claim_id": "rel:product.userworkflow#1"
+        },
+        {
+          "quote": "Sorting answers (node:product.userworkflow#1): best source of 'composes product.feature': none (0.23), product.userworkflow (0.22), product.milestone (0.20); best destination of 'product.userworkflow composes': product.workflowstep (0.84), none (0.09), product.userworkflow (0.05); best predicate: uses (0.56), none (0.16), depends-on (0.07). Outcome: alternative (target=product.workflowstep; predicate=uses).",
+          "claim_id": "node:product.userworkflow#1"
+        },
+        {
+          "quote": "Sorting answers (rel:product.userworkflow#1): best source of 'composes product.feature': product.workflowstep (0.28), none (0.24), product.userworkflow (0.19); best destination of 'product.userworkflow composes': product.workflowstep (0.76), product.feature (0.11), none (0.07); best predicate: uses (0.72), depends-on (0.07), references (0.07). Outcome: alternative (source=product.workflowstep; target=product.workflowstep; predicate=uses).",
+          "claim_id": "rel:product.userworkflow#1"
+        }
+      ],
+      "probability": 0.565,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "conflict",
+        "triple": "product.userworkflow.composes.product.feature",
+        "replacement": [
+          "product.userworkflow.uses.product.workflowstep",
+          "product.workflowstep.uses.product.workflowstep"
+        ],
+        "claims": ["node:product.userworkflow#1", "rel:product.userworkflow#1"]
+      }
+    }
+  ]
+}
