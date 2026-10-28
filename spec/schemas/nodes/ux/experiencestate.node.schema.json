@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExperienceState",
-  "description": "Distinct state that the experience can be in (works across all channels)",
+  "description": "A named, mutually exclusive condition of a user experience's state machine (e.g. idle, loading, editing, submitted, error) that fixes which components are enabled, disabled or hidden while it is active and owns the entry/exit actions and outgoing transitions for that condition. It is a node in the machine, not a screen, route or event. Use StatePattern instead when the thing is a reusable template made of several named states and their transitions (e.g. 'wizard', 'optimistic-update'), rather than one state within a machine. Use StateTransition instead when the thing is the event-driven edge that moves the experience from one state to another, with a trigger, guard and destination. Use View instead when the thing is a routable screen, modal or panel with its own URL or display mode; a state is a condition within or across views, not the container being shown. Use StateAction instead when the thing is a side effect (focus, scroll, dispatch, navigate) executed on entering, exiting or transitioning out of a state, not the state itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -25,7 +25,8 @@
           "description": "When true, marks this as the starting state of the state machine. Only one ExperienceState per state machine should have initial: true."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what condition this state represents and what the user sees or can do while it is active; set it whenever the state name alone does not make the condition clear."
         },
         "channel": {
           "type": "string",
@@ -83,5 +84,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "W3C SCXML 1.0 §3.3 <state> element (no direct HTML 5.3 equivalent; component effects map to ARIA aria-disabled/aria-hidden)",
+  "x-dr-evidence": [
+    "a key under 'states' in an XState/Robot/Zag machine config (e.g. states: { loading: { entry: ..., on: { SUCCESS: 'done' } } }) or a state class in a State-pattern implementation",
+    "a member of a status union or enum (e.g. type Status = 'idle' | 'loading' | 'error') held in useState, useReducer, a Redux/Pinia store or component data and switched on in render logic",
+    "conditional rendering or prop toggles keyed on that status value, such as `if (status === 'error') return <ErrorPanel/>` or `disabled={status === 'submitting'}` or `hidden={state.matches('editing')}`"
+  ],
+  "x-dr-distinguish": {
+    "ux.statepattern": "the thing is a reusable template made of several named states and their transitions (e.g. 'wizard', 'optimistic-update'), rather than one state within a machine",
+    "ux.statetransition": "the thing is the event-driven edge that moves the experience from one state to another, with a trigger, guard and destination",
+    "ux.view": "the thing is a routable screen, modal or panel with its own URL or display mode; a state is a condition within or across views, not the container being shown",
+    "ux.stateaction": "the thing is a side effect (focus, scroll, dispatch, navigate) executed on entering, exiting or transitioning out of a state, not the state itself"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TableColumn",
-  "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+  "description": "A declarative configuration entry for one column of a tabular data component, binding a header label to a single field of each row record and specifying that column's width, alignment, cell rendering type, default sort direction and filter operation. It describes column structure, not a rendered component, and exists only as part of a table-type ComponentInstance or LibraryComponent. Use ChartSeries instead when the field binding drives a plotted data series (line, bar, pie) in a chart rather than a column of cells in a table. Use ComponentInstance instead when the symbol is the table itself or a component rendered inside a cell (e.g. a badge or action menu), rather than the column definition that hosts it. Use DataConfig instead when the configuration describes where the table's row data comes from (API, state, static) and how it is selected, not how one field is displayed as a column. Use ActionComponent instead when the element is an interactive control (button, link, icon-button) placed in an actions column, rather than the column definition containing it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,19 +21,24 @@
       "type": "object",
       "properties": {
         "header": {
-          "type": "string"
+          "type": "string",
+          "description": "User-visible text rendered in the column's header cell (the th content), e.g. 'Order Date'; set for every column, using an empty string or accessible label for icon-only or actions columns."
         },
         "field": {
-          "type": "string"
+          "type": "string",
+          "description": "Key or dot-notation path of the property in each row record whose value populates this column's cells (e.g. 'customer.name'); set for every column and formalize via maps-to relationships to data-model or data-store fields."
         },
         "width": {
-          "type": "string"
+          "type": "string",
+          "description": "Preferred column width as a CSS length or percentage (e.g. '160px', '20%', 'auto'); set when the column should not size automatically from content."
         },
         "minWidth": {
-          "type": "string"
+          "type": "string",
+          "description": "Minimum CSS width the column may shrink to during resizing or responsive layout (e.g. '80px'); set when content would become unreadable below a threshold."
         },
         "maxWidth": {
-          "type": "string"
+          "type": "string",
+          "description": "Maximum CSS width the column may grow to during resizing or flexible layout (e.g. '400px'); set to stop long text columns from dominating the table."
         },
         "filterType": {
           "type": "string",
@@ -77,5 +82,17 @@
       "required": ["header", "field"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 §4.9 Tabular data: th element (column header cell) with col/colgroup elements",
+  "x-dr-evidence": [
+    "An object literal in a columns array passed to a table/grid component, e.g. { header: 'Name', accessorKey: 'name', size: 200 } for TanStack Table or { field: 'price', headerName: 'Price', width: 120 } for MUI DataGrid/AG Grid columnDefs.",
+    "A declarative column child element in a template, such as <el-table-column prop=\"date\" label=\"Date\" sortable>, <mat-header-cell *matHeaderCellDef> paired with matColumnDef=\"status\", or <Column field=\"code\" header=\"Code\"> in PrimeReact.",
+    "A column definition carrying cell rendering or sort/filter options, e.g. a cellRenderer/render function returning a badge, sortable: true with sortingOrder, or filter: 'agNumberColumnFilter' on a single field."
+  ],
+  "x-dr-distinguish": {
+    "ux.chartseries": "the field binding drives a plotted data series (line, bar, pie) in a chart rather than a column of cells in a table.",
+    "ux.componentinstance": "the symbol is the table itself or a component rendered inside a cell (e.g. a badge or action menu), rather than the column definition that hosts it.",
+    "ux.dataconfig": "the configuration describes where the table's row data comes from (API, state, static) and how it is selected, not how one field is displayed as a column.",
+    "ux.actioncomponent": "the element is an interactive control (button, link, icon-button) placed in an actions column, rather than the column definition containing it."
   }
 }

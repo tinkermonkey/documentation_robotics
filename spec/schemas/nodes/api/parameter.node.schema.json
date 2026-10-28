@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Parameter",
-  "description": "Defines an input to an API operation by location, name, and schema. Parameters can appear in four locations: 'path' (always required, name must match the {placeholder} in the path template), 'query' (case-sensitive name, appended to the URL), 'header' (case-insensitive name), and 'cookie'. The 'schema' and 'content' attributes are mutually exclusive; 'content' requires exactly one map entry.",
+  "description": "A named input to an API operation or path item that is carried outside the request body, in the URL path, the query string, a request header or a cookie. It is identified by the pair (name, in) and constrained by either a schema or a single-entry content map. Use RequestBody instead when the input is carried in the HTTP message body, including form fields of application/x-www-form-urlencoded or multipart/form-data payloads. Use Header instead when the header describes a response header, or a multipart part header under an Encoding, where the name comes from a map key and no 'in' location is given. Use ServerVariable instead when the {placeholder} is substituted in a Server URL (host, base path, tenant) rather than in a Paths key template. Use Schema instead when you are modelling the data type or constraints of the value itself rather than the named input slot that carries it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,16 +26,20 @@
           "description": "Location of the parameter. Path parameters must always have required: true. Default serialization style: 'form' for query/cookie, 'simple' for path/header."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable explanation of the parameter's meaning and accepted values, in CommonMark; set it whenever the name alone does not convey semantics or units."
         },
         "required": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the client must supply the parameter. It must be true when in is 'path' and defaults to false otherwise; set it to true for mandatory query, header or cookie inputs."
         },
         "deprecated": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Marks the parameter as scheduled for removal so that consumers stop sending it. Defaults to false; set it to true when the handler still accepts the parameter but it is slated for removal."
         },
         "allowEmptyValue": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when style is set, and is discouraged in OpenAPI 3.0.3."
         },
         "style": {
           "type": "string",
@@ -77,5 +81,17 @@
       "required": ["in"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Parameter Object",
+  "x-dr-evidence": [
+    "Framework parameter bindings on handler arguments, such as Spring @PathVariable/@RequestParam/@RequestHeader/@CookieValue, FastAPI Path()/Query()/Header()/Cookie(), or ASP.NET [FromRoute]/[FromQuery]/[FromHeader].",
+    "Handler code reading req.params.<name>, req.query.<name>, req.get('<Header>') or req.cookies.<name> in an Express/Koa-style route registered on a router.",
+    "An entry under a 'parameters:' list in an OpenAPI YAML/JSON file, at operation, path-item or components level, containing 'name:' and 'in: path|query|header|cookie'."
+  ],
+  "x-dr-distinguish": {
+    "api.requestbody": "the input is carried in the HTTP message body, including form fields of application/x-www-form-urlencoded or multipart/form-data payloads.",
+    "api.header": "the header describes a response header, or a multipart part header under an Encoding, where the name comes from a map key and no 'in' location is given.",
+    "api.servervariable": "the {placeholder} is substituted in a Server URL (host, base path, tenant) rather than in a Paths key template.",
+    "api.schema": "you are modelling the data type or constraints of the value itself rather than the named input slot that carries it."
   }
 }

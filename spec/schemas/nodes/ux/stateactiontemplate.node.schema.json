@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StateActionTemplate",
-  "description": "A parameterizable, reusable definition of an action to execute during state transitions. StateActionTemplate is the definition; StateAction is the concrete usage bound to a specific ExperienceState and lifecycle hook. Example: a 'scroll-to-top' template with a 'targetId' parameter, instantiated as a StateAction on multiple states.",
+  "description": "A reusable, parameterized definition of a state-machine side-effect operation that is not bound to any particular ExperienceState or lifecycle hook. It declares the operation kind and its named input parameters, and StateActions instantiate it with concrete values on specific states. Use StateAction instead when the action is attached to a specific ExperienceState or StateTransition with a lifecycle hook (on-enter, on-exit, on-transition) and concrete argument values, even if it reuses a template. Use ActionPattern instead when the reusable thing is a user-initiated interaction recipe defined by input trigger (click, swipe, voice, keyboard) and user-facing feedback (toast, modal), not a side effect run by the state machine. Use TransitionTemplate instead when the reusable definition describes motion or animation (fade, slide, duration, easing) applied during a state or page change rather than an operation executed. Use StatePattern instead when the reusable unit is a whole state machine of ExperienceStates and transitions rather than a single action used inside one.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,7 +33,8 @@
           "description": "Operation this template encapsulates. Must match a value from the StateAction action enum."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what the templated action does and what each parameter controls; set it whenever the template name alone does not make its behaviour and side effects clear."
         },
         "parameters": {
           "type": "array",
@@ -63,5 +64,16 @@
       "required": ["action"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "Named, parameterized actions declared once in a state-machine options block (e.g. XState setup({ actions: { scrollTo: (_, params) => ... } })) and referenced by name from the entry/exit arrays of several states.",
+    "An action-creator or effect factory taking arguments (e.g. focusField(fieldId), trackEvent(eventName)) exported from a shared module and called from the lifecycle hooks of multiple steps, screens or states.",
+    "A design-system or state-library catalogue entry (JSON/YAML or docs page) listing a reusable state action with a parameter table of name, type and default value."
+  ],
+  "x-dr-distinguish": {
+    "ux.stateaction": "the action is attached to a specific ExperienceState or StateTransition with a lifecycle hook (on-enter, on-exit, on-transition) and concrete argument values, even if it reuses a template.",
+    "ux.actionpattern": "the reusable thing is a user-initiated interaction recipe defined by input trigger (click, swipe, voice, keyboard) and user-facing feedback (toast, modal), not a side effect run by the state machine.",
+    "ux.transitiontemplate": "the reusable definition describes motion or animation (fade, slide, duration, easing) applied during a state or page change rather than an operation executed.",
+    "ux.statepattern": "the reusable unit is a whole state machine of ExperienceStates and transitions rather than a single action used inside one."
   }
 }

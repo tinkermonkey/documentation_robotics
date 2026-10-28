@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contact",
-  "description": "Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration.",
+  "description": "A metadata object nested in an API document's Info section that identifies the person or organisation responsible for the exposed API by name, email address and/or URL. It describes who maintains the API contract, not the server it is deployed on or the documentation it links to. Use Info instead when the element carries the API's title, version, description or terms of service rather than only the maintainer's name, email and URL. Use ExternalDocumentation instead when the URL points to a guide, wiki or reference material for the API rather than to a support or maintainer contact page. Use License instead when the name and URL identify the legal licence terms under which the API is offered rather than the party to contact.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,14 +21,27 @@
       "type": "object",
       "properties": {
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Absolute URL of the maintainer's support or contact page, e.g. https://example.com/support. Set it when consumers should reach the owner through a web page rather than, or as well as, by email."
         },
         "email": {
-          "type": "string"
+          "type": "string",
+          "description": "Email address of the contact person or team, in RFC 5322 mailbox format, e.g. api-team@example.com. Set it when there is a monitored mailbox for API support or questions."
         }
       },
       "required": [],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Contact Object",
+  "x-dr-evidence": [
+    "An info.contact block with name, email or url keys in an openapi.yaml or openapi.json file.",
+    "A framework OpenAPI configuration passing a contact argument, e.g. FastAPI(contact={...}), Springdoc new Contact().name(...).email(...), or a swagger-jsdoc definition.info.contact entry.",
+    "An @contact or @Contact annotation or docblock tag in API annotations, such as swag's // @contact.email comment or the MicroProfile @Contact(...) annotation inside @Info."
+  ],
+  "x-dr-distinguish": {
+    "api.info": "the element carries the API's title, version, description or terms of service rather than only the maintainer's name, email and URL.",
+    "api.externaldocumentation": "the URL points to a guide, wiki or reference material for the API rather than to a support or maintainer contact page.",
+    "api.license": "the name and URL identify the legal licence terms under which the API is offered rather than the party to contact."
   }
 }

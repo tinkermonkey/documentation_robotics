@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schema",
-  "description": "Inline data type definition using a subset of JSON Schema Draft 7, used within API operations to describe request/response data shapes. For reusable canonical types, reference data-model layer entities instead. OpenAPI 3.0 restriction: a '$ref' within a Schema ignores all sibling keywords \u2014 unlike JSON Schema where $ref can be merged with other constraints.",
+  "description": "A data-shape definition, expressed as an OpenAPI 3.0 Schema Object, that constrains the type and structure of a value exchanged over the API, such as a request body, response body, parameter or header value. It is either a named entry under components/schemas or an inline schema nested in a media type, parameter, header or another schema. Use MediaType instead when the element is the MIME-type-keyed content entry (e.g. application/json) that wraps a schema together with examples and encoding, rather than the shape definition itself. Use Parameter instead when the element is a named operation input with a location (path, query, header or cookie), whose value type is merely described by a referenced schema. Use Components instead when the element is the registry that holds reusable schemas, responses and parameters, not an individual type definition. Use Example instead when the element is a concrete sample value illustrating data, rather than the constraints the data must satisfy.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,25 +21,32 @@
       "type": "object",
       "properties": {
         "type": {
-          "type": "string"
+          "type": "string",
+          "description": "The JSON data type of the value: one of string, number, integer, boolean, array or object. OpenAPI 3.0 does not allow type arrays or 'null'. Set it on every non-$ref, non-composed schema."
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "A short human-readable label for the schema, typically the model or DTO name. Set it when documentation tooling should display a name other than the component key."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Explanatory text for the schema or property, in CommonMark. Set it whenever the meaning of the value is not obvious from its name and type."
         },
         "format": {
-          "type": "string"
+          "type": "string",
+          "description": "A modifier refining 'type', such as int32, int64, float, double, byte, binary, date, date-time, password, email or uuid. Set it when the base type alone does not convey the value's encoding or semantics."
         },
         "default": {
-          "type": "string"
+          "type": "string",
+          "description": "The value the server assumes when the consumer omits this property or parameter. It must conform to the schema's type. Set it only when an actual server-side default exists."
         },
         "enum": {
-          "type": "string"
+          "type": "string",
+          "description": "The closed list of literal values the data may take, each valid against the schema's type. Set it for fixed vocabularies such as status codes or modes."
         },
         "nullable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean, default false. When true, null is an accepted value in addition to the declared type (the OpenAPI 3.0 substitute for type: [T, null]). Set it when the API may send or accept explicit nulls."
         },
         "properties": {
           "type": "object",
@@ -97,5 +104,17 @@
       "required": [],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Schema Object",
+  "x-dr-evidence": [
+    "A DTO or model class used as a route's request or response type and annotated for OpenAPI generation, such as a Pydantic model passed as response_model in FastAPI, a NestJS class with @ApiProperty fields, or a Java class with @Schema.",
+    "An entry under '#/components/schemas/' or a 'schema:' block beneath 'content' in an openapi.yaml/json file, containing keywords such as type, properties, required, items, allOf or $ref.",
+    "A validation schema object attached to a route definition, such as a Fastify route 'schema: { body, response }', a zod/joi schema converted to OpenAPI, or a model class emitted by openapi-generator."
+  ],
+  "x-dr-distinguish": {
+    "api.mediatype": "the element is the MIME-type-keyed content entry (e.g. application/json) that wraps a schema together with examples and encoding, rather than the shape definition itself",
+    "api.parameter": "the element is a named operation input with a location (path, query, header or cookie), whose value type is merely described by a referenced schema",
+    "api.components": "the element is the registry that holds reusable schemas, responses and parameters, not an individual type definition",
+    "api.example": "the element is a concrete sample value illustrating data, rather than the constraints the data must satisfy"
   }
 }

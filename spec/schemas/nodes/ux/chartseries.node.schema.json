@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ChartSeries",
-  "description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
+  "description": "A per-series configuration within a chart component that maps one value field (and optionally one category field) of the chart's bound data to a plotted mark set, with its own legend label, visualization type, color and line style. One chart instance aggregates one or more such series. Use TableColumn instead when the field binding configures a column of a tabular data grid (header, sort, filter, cell rendering) rather than a plotted series in a chart. Use DataConfig instead when the element describes where the chart's data comes from (api, state, storage) and how it is selected, rather than how one field of that data is drawn. Use ComponentInstance instead when the element is the chart component itself placed in a view with its props, rather than one series configured inside it. Use LibraryComponent instead when the element is the reusable chart component definition (e.g. a BarChart wrapper) with its prop schema, not a series configuration passed to it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "label": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable series name shown in the chart legend and tooltips (e.g. 'Revenue 2024'). Set it on every series; it is required even when only one series is plotted, so the legend and screen readers can identify the series."
         },
         "type": {
           "type": "string",
@@ -59,5 +60,16 @@
       "required": ["label", "dataField"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "An entry in a chart library's series array, such as Chart.js `datasets: [{ label, data, borderColor }]`, ECharts `series: [{ type: 'bar', encode }]` or Highcharts `series: [...]`.",
+    "A series child element in JSX, such as Recharts `<Line dataKey=\"revenue\" stroke=\"#3B82F6\" />`, `<Bar dataKey=...>` or Victory `<VictoryLine x=\"month\" y=\"count\" />`, nested inside a chart container.",
+    "A typed config object or constant, such as `SeriesConfig` or `ChartSeries[]`, that pairs a value key and x/category key with a display name and color and is passed as a prop to a chart component."
+  ],
+  "x-dr-distinguish": {
+    "ux.tablecolumn": "the field binding configures a column of a tabular data grid (header, sort, filter, cell rendering) rather than a plotted series in a chart.",
+    "ux.dataconfig": "the element describes where the chart's data comes from (api, state, storage) and how it is selected, rather than how one field of that data is drawn.",
+    "ux.componentinstance": "the element is the chart component itself placed in a view with its props, rather than one series configured inside it.",
+    "ux.librarycomponent": "the element is the reusable chart component definition (e.g. a BarChart wrapper) with its prop schema, not a series configuration passed to it."
   }
 }

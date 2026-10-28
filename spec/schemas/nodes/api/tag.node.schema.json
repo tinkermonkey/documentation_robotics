@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Tag",
-  "description": "A metadata label used to group and categorize API operations for documentation organization. Root-level Tag objects provide supplementary metadata (description, externalDocs) for tag names referenced in operations \u2014 they do not control which tags are permitted. Tags used in operations but not declared at root level are implicitly valid in OpenAPI 3.0 but will lack descriptions and externalDocs. Duplicate tag names at root level are invalid per OpenAPI 3.0.",
+  "description": "A named label in an OpenAPI document, declared in the root 'tags' array or listed in an Operation's 'tags' field, that groups operations into categories for documentation and tooling. It carries only descriptive metadata and has no effect on routing, validation or security. Use PathItem instead when the grouping is defined by a shared URL path pattern, such as all methods on /users/{id}, rather than by a free-form category name. Use ExternalDocumentation instead when the element is the URL and description of an outside documentation resource, even one attached to a tag. Use Components instead when the element is a registry of reusable objects referenced via $ref rather than a categorisation label for operations. Use Info instead when the metadata describes the API as a whole (title, version, terms) rather than one category of operations.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,23 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A human-readable explanation of the category of operations this tag groups, in CommonMark per OpenAPI 3.0. Set it when the tag is declared at root level so documentation renderers can display a section introduction."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Tag Object",
+  "x-dr-evidence": [
+    "Controller or router annotations naming a category, e.g. NestJS @ApiTags('users'), springdoc @Tag(name = \"Orders\"), or Swagger 2 @Api(tags = \"...\")",
+    "Router or decorator arguments listing tag names, e.g. FastAPI APIRouter(tags=[\"billing\"]) or @app.get(..., tags=[\"items\"])",
+    "A root-level 'tags:' array in openapi.yaml or openapi.json whose entries have 'name' and 'description' fields, or generated client classes named after tags, such as UsersApi"
+  ],
+  "x-dr-distinguish": {
+    "api.pathitem": "the grouping is defined by a shared URL path pattern, such as all methods on /users/{id}, rather than by a free-form category name",
+    "api.externaldocumentation": "the element is the URL and description of an outside documentation resource, even one attached to a tag",
+    "api.components": "the element is a registry of reusable objects referenced via $ref rather than a categorisation label for operations",
+    "api.info": "the metadata describes the API as a whole (title, version, terms) rather than one category of operations"
   }
 }

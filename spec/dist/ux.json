@@ -39,7 +39,7 @@
     "actioncomponent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ActionComponent",
-      "description": "Interactive element that triggers actions (button, menu, link, voice command)",
+      "description": "A user-operable control (button, hyperlink, menu entry, icon button or spoken command) whose activation starts an operation, a navigation or a state change. It is the trigger point that user input reaches, as opposed to the input fields, display components or layout containers around it. Use ActionPattern instead when you are modelling the reusable trigger-plus-feedback behaviour (e.g. confirm-and-delete) that many controls share, rather than one concrete control in the interface. Use LibraryComponent instead when the symbol is the generic, reusable Button/Link/Menu definition in a design system with a props schema, rather than a specific control that triggers a specific action. Use ComponentInstance instead when the element is a configured placement of a non-action library component (table, chart, display, input) inside a View or SubView. Use StateTransition instead when you are modelling the state-machine edge that the activation causes (trigger event, destination state, guard), not the control the user operates.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -59,7 +59,8 @@
           "type": "object",
           "properties": {
             "label": {
-              "type": "string"
+              "type": "string",
+              "description": "The visible text or accessible name of the control (the button text, link text or spoken phrase). Set it whenever the control is not icon-only; for icon-only controls, set it to the aria-label value."
             },
             "type": {
               "type": "string",
@@ -73,13 +74,16 @@
               "description": "Interactive element kind, per HTML 5.3 button, anchor, and menu element semantics."
             },
             "icon": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the icon displayed on the control, as a design-system icon name or asset path (e.g. 'trash', 'mdi-plus'). Set it when the control shows a glyph."
             },
             "disabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "When true, the control is rendered but cannot be activated, corresponding to the HTML disabled attribute or aria-disabled. Set it only when the control is statically disabled; state-dependent disabling belongs on ExperienceState.disabledComponents."
             },
             "tooltip": {
-              "type": "string"
+              "type": "string",
+              "description": "Short helper text shown on hover or focus, corresponding to the HTML title attribute or a tooltip component. Set it when the control's purpose is not obvious from its label or icon."
             },
             "channel": {
               "type": "string",
@@ -136,12 +140,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 interactive content: the button element, the a element with href, and the menu element",
+      "x-dr-evidence": [
+        "A <button>, <a href> or design-system <Button>/<IconButton>/<Link> element rendered in a template with an onClick/onSelect/@click handler or a router 'to' target",
+        "A menu or toolbar configuration array whose entries carry a label, icon and handler or command id (e.g. items: [{label:'Delete', icon:'trash', onClick: ...}])",
+        "A voice or chat intent or command registration (e.g. an Alexa intent handler or a slash-command definition) that maps an utterance to an action invocation"
+      ],
+      "x-dr-distinguish": {
+        "ux.actionpattern": "you are modelling the reusable trigger-plus-feedback behaviour (e.g. confirm-and-delete) that many controls share, rather than one concrete control in the interface",
+        "ux.librarycomponent": "the symbol is the generic, reusable Button/Link/Menu definition in a design system with a props schema, rather than a specific control that triggers a specific action",
+        "ux.componentinstance": "the element is a configured placement of a non-action library component (table, chart, display, input) inside a View or SubView",
+        "ux.statetransition": "you are modelling the state-machine edge that the activation causes (trigger event, destination state, guard), not the control the user operates"
+      },
       "$id": "urn:dr:spec:node:ux.actioncomponent"
     },
     "actionpattern": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ActionPattern",
-      "description": "Reusable action configuration for common user interactions. Defines the trigger, feedback mechanism, and optional target for recurring UX patterns. Example: 'confirm-and-delete' pattern — trigger: click on delete button, feedback: confirmation modal then success toast, targetRef: the item being deleted.",
+      "description": "A reusable interaction recipe that pairs a user input modality with a prescribed feedback sequence (toast, modal, route change, etc.) and is applied across multiple action components. It is not tied to one rendered control or one state, and is defined once to be reused wherever the same interaction recurs. Use ActionComponent instead when the element is a single concrete button, link, menu or voice command rendered in a view, rather than the shared interaction convention it follows. Use StateAction instead when the element is one operation (navigate, submit, dispatch…) bound to a specific ExperienceState lifecycle hook, not a user-triggered interaction with feedback reused across components. Use StatePattern instead when the reusable thing is a multi-state machine (wizard, optimistic-update, tab-panel) with states and transitions, rather than a single trigger-and-feedback interaction. Use StateActionTemplate instead when the reusable definition is a parameterized system-side operation executed during state transitions, with no user trigger or feedback mechanism.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -161,7 +177,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the interaction sequence: what the user does, what feedback follows and in what order, and when the pattern applies. Set it whenever the name alone does not convey the steps, e.g. 'click delete → confirm modal → success toast'."
             },
             "category": {
               "type": "string",
@@ -193,12 +210,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A shared hook or higher-order helper (e.g. useConfirmDelete, withConfirmation, useOptimisticAction) that wraps a click/keyboard handler with a confirmation modal and a success or error toast, and is imported by several components.",
+        "A design-system document or Storybook 'Patterns' page describing an interaction such as 'confirm-and-delete' or 'bulk select then act', with its trigger and the feedback the user sees.",
+        "A configuration map or registry of named interaction behaviours (e.g. actions: { delete: { confirm: true, toast: 'Deleted' } }) that buttons, table row actions or menus look up by key."
+      ],
+      "x-dr-distinguish": {
+        "ux.actioncomponent": "the element is a single concrete button, link, menu or voice command rendered in a view, rather than the shared interaction convention it follows.",
+        "ux.stateaction": "the element is one operation (navigate, submit, dispatch…) bound to a specific ExperienceState lifecycle hook, not a user-triggered interaction with feedback reused across components.",
+        "ux.statepattern": "the reusable thing is a multi-state machine (wizard, optimistic-update, tab-panel) with states and transitions, rather than a single trigger-and-feedback interaction.",
+        "ux.stateactiontemplate": "the reusable definition is a parameterized system-side operation executed during state transitions, with no user trigger or feedback mechanism."
+      },
       "$id": "urn:dr:spec:node:ux.actionpattern"
     },
     "chartseries": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChartSeries",
-      "description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
+      "description": "A per-series configuration within a chart component that maps one value field (and optionally one category field) of the chart's bound data to a plotted mark set, with its own legend label, visualization type, color and line style. One chart instance aggregates one or more such series. Use TableColumn instead when the field binding configures a column of a tabular data grid (header, sort, filter, cell rendering) rather than a plotted series in a chart. Use DataConfig instead when the element describes where the chart's data comes from (api, state, storage) and how it is selected, rather than how one field of that data is drawn. Use ComponentInstance instead when the element is the chart component itself placed in a view with its props, rather than one series configured inside it. Use LibraryComponent instead when the element is the reusable chart component definition (e.g. a BarChart wrapper) with its prop schema, not a series configuration passed to it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -218,7 +246,8 @@
           "type": "object",
           "properties": {
             "label": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable series name shown in the chart legend and tooltips (e.g. 'Revenue 2024'). Set it on every series; it is required even when only one series is plotted, so the legend and screen readers can identify the series."
             },
             "type": {
               "type": "string",
@@ -257,12 +286,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "An entry in a chart library's series array, such as Chart.js `datasets: [{ label, data, borderColor }]`, ECharts `series: [{ type: 'bar', encode }]` or Highcharts `series: [...]`.",
+        "A series child element in JSX, such as Recharts `<Line dataKey=\"revenue\" stroke=\"#3B82F6\" />`, `<Bar dataKey=...>` or Victory `<VictoryLine x=\"month\" y=\"count\" />`, nested inside a chart container.",
+        "A typed config object or constant, such as `SeriesConfig` or `ChartSeries[]`, that pairs a value key and x/category key with a display name and color and is passed as a prop to a chart component."
+      ],
+      "x-dr-distinguish": {
+        "ux.tablecolumn": "the field binding configures a column of a tabular data grid (header, sort, filter, cell rendering) rather than a plotted series in a chart.",
+        "ux.dataconfig": "the element describes where the chart's data comes from (api, state, storage) and how it is selected, rather than how one field of that data is drawn.",
+        "ux.componentinstance": "the element is the chart component itself placed in a view with its props, rather than one series configured inside it.",
+        "ux.librarycomponent": "the element is the reusable chart component definition (e.g. a BarChart wrapper) with its prop schema, not a series configuration passed to it."
+      },
       "$id": "urn:dr:spec:node:ux.chartseries"
     },
     "componentinstance": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ComponentInstance",
-      "description": "Instance of a LibraryComponent with application-specific configuration",
+      "description": "A single concrete occurrence of a library component placed inside a specific View, SubView or LibrarySubView, carrying the prop values and render position that configure that one usage. It is identified by its reference to exactly one ux.librarycomponent definition, not by declaring props, slots or events of its own. Use LibraryComponent instead when the symbol defines the reusable component itself (its prop schema, slots, events, implementation) rather than one configured use of it on a screen. Use ComponentReference instead when the element only declares which component fills a named slot of a parent component (a slot or children placeholder), without its own configured props or render order. Use ActionComponent instead when the element's identity is an interactive trigger (button, link, menu, voice command) modelled by its action semantics rather than as a configured usage of a library component. Use SubView instead when the element is a non-routable fragment grouping several components within a View, rather than a single component usage.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -298,12 +338,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 §4.13 Custom elements: an element occurrence in the document tree created from a custom element definition, with attributes set per usage",
+      "x-dr-evidence": [
+        "a JSX/TSX, Vue or Angular template tag for an imported design-system component (e.g. <DataTable columns={cols} pageSize={20} />) inside a page or screen component",
+        "a declarative layout or page-config entry such as { \"component\": \"Chart\", \"props\": { ... } } in a low-code, CMS or server-driven-UI JSON/YAML file",
+        "a component tag inside a parent's render list whose position or explicit order key determines where it appears among sibling components on the screen"
+      ],
+      "x-dr-distinguish": {
+        "ux.librarycomponent": "the symbol defines the reusable component itself (its prop schema, slots, events, implementation) rather than one configured use of it on a screen",
+        "ux.componentreference": "the element only declares which component fills a named slot of a parent component (a slot or children placeholder), without its own configured props or render order",
+        "ux.actioncomponent": "the element's identity is an interactive trigger (button, link, menu, voice command) modelled by its action semantics rather than as a configured usage of a library component",
+        "ux.subview": "the element is a non-routable fragment grouping several components within a View, rather than a single component usage"
+      },
       "$id": "urn:dr:spec:node:ux.componentinstance"
     },
     "componentreference": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ComponentReference",
-      "description": "A declarative placeholder in a parent component's named slot, pointing to another component to be rendered there. Unlike ComponentInstance (a concrete rendered occurrence), ComponentReference is a composition declaration that says 'render this component in this slot of the parent', analogous to the HTML slot element.",
+      "description": "A composition declaration attached to a parent component that names one of the parent's slots and identifies, by specNodeId, the library component or component instance to be rendered into that slot. It records the slot-filling relationship only; it carries no props of its own and is not itself a rendered occurrence. Use ComponentInstance instead when the element is a concrete, configured usage of a library component with its own props and render order inside a View or SubView, rather than a pointer filling a parent's named slot. Use LibraryComponent instead when the element defines a reusable component's props, slots and events schema, rather than declaring what fills one slot of a parent. Use SubView instead when the embedded content is a grouping of several components placed in a View's subViews list, not a single component placed into a named slot of a parent component.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -339,12 +391,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 §4.12.4 The slot element (Web Components named slots)",
+      "x-dr-evidence": [
+        "A child element carrying a slot=\"header\"/slot=\"actions\" attribute, a Vue <template #footer> / v-slot directive, or an Angular <ng-content select=...> projection target being filled.",
+        "A React prop typed as ReactNode or render-prop (e.g. header={<Toolbar/>}, actions={<Button variant=\"compact\"/>}) passed to a layout or container component.",
+        "A Storybook or design-system doc listing a component's slots together with the allowed child components for each slot (e.g. 'Card.footer accepts Button | Link')."
+      ],
+      "x-dr-distinguish": {
+        "ux.componentinstance": "the element is a concrete, configured usage of a library component with its own props and render order inside a View or SubView, rather than a pointer filling a parent's named slot.",
+        "ux.librarycomponent": "the element defines a reusable component's props, slots and events schema, rather than declaring what fills one slot of a parent.",
+        "ux.subview": "the embedded content is a grouping of several components placed in a View's subViews list, not a single component placed into a named slot of a parent component."
+      },
       "$id": "urn:dr:spec:node:ux.componentreference"
     },
     "dataconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DataConfig",
-      "description": "Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow.",
+      "description": "A data-binding declaration attached to a view, sub-view or component that names where the UI obtains its data (remote API, client state store, local storage, mock or static value) and, optionally, the field path selected from that data. It describes the binding only. The fetching logic belongs to the application layer, and the endpoint or entity it points at belongs to the api or data-model layer. Use ErrorConfig instead when the element describes how a failed load or submit is shown to the user (message, notification type, retry or fallback), rather than where the data comes from. Use ChartSeries instead when the element specifies how one field of already-bound data is drawn in a chart (series label, chart type, color, line style), rather than the origin of the data. Use TableColumn instead when the element specifies the header, field, width, sorting or rendering of a single table column that consumes bound data. Use ComponentInstance instead when the values are fixed, author-supplied prop overrides on a library component placed in a view, rather than values resolved at runtime from a data source.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -381,12 +444,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A data-fetching hook or service call inside a component, such as useQuery(['orders'], fetchOrders), useSWR('/api/user') or an Angular route resolver, whose result is passed straight into rendered props or a template.",
+        "A state-store selector or mapping that wires a store slice into a component, such as useSelector(s => s.user.profile.name), mapStateToProps, or Pinia/Vuex computed getters. These indicate a state source and give the path.",
+        "A component whose data is fed from localStorage/sessionStorage (getItem, a useLocalStorage hook) or from imported fixture/mock JSON (MSW handlers, Storybook args, a static constants file)."
+      ],
+      "x-dr-distinguish": {
+        "ux.errorconfig": "the element describes how a failed load or submit is shown to the user (message, notification type, retry or fallback), rather than where the data comes from.",
+        "ux.chartseries": "the element specifies how one field of already-bound data is drawn in a chart (series label, chart type, color, line style), rather than the origin of the data.",
+        "ux.tablecolumn": "the element specifies the header, field, width, sorting or rendering of a single table column that consumes bound data.",
+        "ux.componentinstance": "the values are fixed, author-supplied prop overrides on a library component placed in a view, rather than values resolved at runtime from a data source."
+      },
       "$id": "urn:dr:spec:node:ux.dataconfig"
     },
     "errorconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ErrorConfig",
-      "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
+      "description": "A display configuration attached to a view, component, route or data binding that specifies how a failure is surfaced to the user: whether a notification appears, its severity, and the specific and fallback message text shown. Use DataConfig instead when the element describes where data comes from and how it is bound (source, target, path), not how a failure to load or save it is presented. Use ExperienceState instead when the error condition is modelled as a distinct state of the experience with its own transitions, enabled/disabled/hidden components and lifecycle actions, rather than as message and notification settings. Use ActionPattern instead when the element describes a reusable trigger-plus-feedback interaction (e.g. confirm-and-delete with a success toast) rather than the failure-specific messaging of a component or view. Use StatePattern instead when the element is a reusable state machine such as optimistic-update with loading, success, error and retry states, rather than the message settings applied in the error case.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -406,7 +480,8 @@
           "type": "object",
           "properties": {
             "showNotification": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean that, when true, surfaces the error as a transient notification (toast, snackbar or ARIA alert) in addition to or instead of inline display; set it when the failure should be announced outside the component's own area."
             },
             "notificationType": {
               "type": "string",
@@ -414,21 +489,35 @@
               "description": "Severity category of the notification, aligned with ARIA live region and alert role semantics."
             },
             "errorMessage": {
-              "type": "string"
+              "type": "string",
+              "description": "The specific user-facing message text, or i18n message key, shown for the error condition this configuration handles; set it when the failure has a known cause and tailored wording."
             },
             "defaultErrorMessage": {
-              "type": "string"
+              "type": "string",
+              "description": "Fallback user-facing message text, or i18n message key, shown when no specific errorMessage applies or the underlying error carries no displayable message; set it to guarantee every failure shows some text."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "WAI-ARIA 1.2 alert role and aria-live regions (as used by HTML 5.3 for status and error announcements)",
+      "x-dr-evidence": [
+        "A catch block or onError callback (e.g. a react-query onError or axios interceptor) that calls a toast, snackbar or notification API with a severity such as 'error' or 'warning' and a message string.",
+        "An error boundary or fallback component (e.g. React ErrorBoundary, Angular ErrorHandler, Vue errorCaptured) that renders a configured message or generic fallback text when a child component throws.",
+        "A component prop or config object with keys such as errorMessage, defaultErrorMessage, showNotification or onErrorNotify, or an i18n message map keyed by error code supplying user-facing failure text."
+      ],
+      "x-dr-distinguish": {
+        "ux.dataconfig": "the element describes where data comes from and how it is bound (source, target, path), not how a failure to load or save it is presented.",
+        "ux.experiencestate": "the error condition is modelled as a distinct state of the experience with its own transitions, enabled/disabled/hidden components and lifecycle actions, rather than as message and notification settings.",
+        "ux.actionpattern": "the element describes a reusable trigger-plus-feedback interaction (e.g. confirm-and-delete with a success toast) rather than the failure-specific messaging of a component or view.",
+        "ux.statepattern": "the element is a reusable state machine such as optimistic-update with loading, success, error and retry states, rather than the message settings applied in the error case."
       },
       "$id": "urn:dr:spec:node:ux.errorconfig"
     },
     "experiencestate": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExperienceState",
-      "description": "Distinct state that the experience can be in (works across all channels)",
+      "description": "A named, mutually exclusive condition of a user experience's state machine (e.g. idle, loading, editing, submitted, error) that fixes which components are enabled, disabled or hidden while it is active and owns the entry/exit actions and outgoing transitions for that condition. It is a node in the machine, not a screen, route or event. Use StatePattern instead when the thing is a reusable template made of several named states and their transitions (e.g. 'wizard', 'optimistic-update'), rather than one state within a machine. Use StateTransition instead when the thing is the event-driven edge that moves the experience from one state to another, with a trigger, guard and destination. Use View instead when the thing is a routable screen, modal or panel with its own URL or display mode; a state is a condition within or across views, not the container being shown. Use StateAction instead when the thing is a side effect (focus, scroll, dispatch, navigate) executed on entering, exiting or transitioning out of a state, not the state itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -452,7 +541,8 @@
               "description": "When true, marks this as the starting state of the state machine. Only one ExperienceState per state machine should have initial: true."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what condition this state represents and what the user sees or can do while it is active; set it whenever the state name alone does not make the condition clear."
             },
             "channel": {
               "type": "string",
@@ -511,12 +601,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "W3C SCXML 1.0 §3.3 <state> element (no direct HTML 5.3 equivalent; component effects map to ARIA aria-disabled/aria-hidden)",
+      "x-dr-evidence": [
+        "a key under 'states' in an XState/Robot/Zag machine config (e.g. states: { loading: { entry: ..., on: { SUCCESS: 'done' } } }) or a state class in a State-pattern implementation",
+        "a member of a status union or enum (e.g. type Status = 'idle' | 'loading' | 'error') held in useState, useReducer, a Redux/Pinia store or component data and switched on in render logic",
+        "conditional rendering or prop toggles keyed on that status value, such as `if (status === 'error') return <ErrorPanel/>` or `disabled={status === 'submitting'}` or `hidden={state.matches('editing')}`"
+      ],
+      "x-dr-distinguish": {
+        "ux.statepattern": "the thing is a reusable template made of several named states and their transitions (e.g. 'wizard', 'optimistic-update'), rather than one state within a machine",
+        "ux.statetransition": "the thing is the event-driven edge that moves the experience from one state to another, with a trigger, guard and destination",
+        "ux.view": "the thing is a routable screen, modal or panel with its own URL or display mode; a state is a condition within or across views, not the container being shown",
+        "ux.stateaction": "the thing is a side effect (focus, scroll, dispatch, navigate) executed on entering, exiting or transitioning out of a state, not the state itself"
+      },
       "$id": "urn:dr:spec:node:ux.experiencestate"
     },
     "layoutconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LayoutConfig",
-      "description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
+      "description": "A declarative set of container arrangement rules (CSS layout mode, grid track counts, spacing, alignment and width constraints) applied to a View, SubView or component to position its children. It renders no content of its own and is identified by its layout properties, not by any markup it emits. Use LibraryComponent instead when the layout is a reusable rendered component with its own props, slots or events (e.g. an exported <Grid> or <Stack> primitive of type 'layout'), rather than a set of arrangement values. Use ComponentInstance instead when the symbol is a concrete usage of a layout library component in a particular view, even if the props it receives are layout values. Use LibrarySubView instead when the reusable thing is a grouping of component instances, such as a sidebar-plus-content fragment, rather than the spacing and alignment rules that arrange them. Use View instead when the symbol is a routable screen or page shell, even one named like a layout (e.g. a framework layout.tsx that renders header and outlet).",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -541,28 +643,36 @@
               "description": "CSS layout mode governing element positioning and flow, per CSS Flexbox/Grid specification."
             },
             "columns": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of explicit grid column tracks (the repeat count in grid-template-columns), as a positive integer; set when type is 'grid' or style is 'grid'/'masonry'."
             },
             "rows": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of explicit grid row tracks (the repeat count in grid-template-rows), as a positive integer; set only when the grid has a fixed row count rather than auto-flowing rows."
             },
             "gap": {
-              "type": "string"
+              "type": "string",
+              "description": "CSS gap shorthand giving uniform spacing between children as a CSS length or design token (e.g. '16px', '1rem', 'var(--space-md)'); set when row and column spacing are equal."
             },
             "rowGap": {
-              "type": "string"
+              "type": "string",
+              "description": "CSS row-gap length giving vertical spacing between rows or wrapped flex lines (e.g. '24px'); set only to override gap for the row axis."
             },
             "columnGap": {
-              "type": "string"
+              "type": "string",
+              "description": "CSS column-gap length giving horizontal spacing between columns or flex items (e.g. '12px'); set only to override gap for the column axis."
             },
             "padding": {
-              "type": "string"
+              "type": "string",
+              "description": "CSS padding shorthand for inner spacing between the container edge and its children (e.g. '16px 24px'); set when the container defines its own inset."
             },
             "margin": {
-              "type": "string"
+              "type": "string",
+              "description": "CSS margin shorthand for outer spacing around the container (e.g. '0 auto' for centring); set when the layout controls its own offset from siblings or parent."
             },
             "maxWidth": {
-              "type": "string"
+              "type": "string",
+              "description": "CSS max-width value capping the container width (e.g. '1200px', '80ch', '100%'); set for constrained or centred content containers."
             },
             "alignContent": {
               "type": "string",
@@ -630,12 +740,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "CSS Grid Layout Module Level 1 and CSS Flexible Box Layout Module Level 1 (no direct HTML 5.3 element; applied to HTML 5.3 sectioning containers)",
+      "x-dr-evidence": [
+        "A CSS/SCSS rule, CSS module or styled-component on a page or container class that sets display:grid or display:flex together with grid-template-columns, gap, justify-content or max-width.",
+        "Layout primitives invoked with arrangement-only props, e.g. <Grid columns={3} gap=\"md\">, <Stack direction=\"row\" align=\"center\">, or Tailwind classes such as 'grid grid-cols-3 gap-4 max-w-screen-xl'.",
+        "A named layout entry in theme or route configuration, e.g. a layouts map, container maxWidth and spacing tokens in tailwind.config or theme.ts, or route meta { layout: 'two-column' }."
+      ],
+      "x-dr-distinguish": {
+        "ux.librarycomponent": "the layout is a reusable rendered component with its own props, slots or events (e.g. an exported <Grid> or <Stack> primitive of type 'layout'), rather than a set of arrangement values.",
+        "ux.componentinstance": "the symbol is a concrete usage of a layout library component in a particular view, even if the props it receives are layout values.",
+        "ux.librarysubview": "the reusable thing is a grouping of component instances, such as a sidebar-plus-content fragment, rather than the spacing and alignment rules that arrange them.",
+        "ux.view": "the symbol is a routable screen or page shell, even one named like a layout (e.g. a framework layout.tsx that renders header and outlet)."
+      },
       "$id": "urn:dr:spec:node:ux.layoutconfig"
     },
     "librarycomponent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LibraryComponent",
-      "description": "Reusable UI component definition that can be instantiated in multiple UXSpecs",
+      "description": "A reusable UI component definition that declares an accepted property schema, named content slots and emitted events independently of any particular screen, so it can be instantiated with different configuration in many views or UXSpecs. It is the component type, not a placed, configured occurrence of it. Use ComponentInstance instead when the symbol is a specific usage of a component inside a View, SubView or LibrarySubView with concrete prop values, such as a <DataTable columns={...}/> call site, rather than the component's definition. Use ActionComponent instead when the element is a single interactive trigger, such as a button, link, menu item or voice command, modelled for the action it fires rather than as a reusable component with its own props, slots and events. Use LibrarySubView instead when the reusable unit is an ordered arrangement of several component instances, such as a filter bar plus a table, rather than one component with its own prop schema. Use View instead when the component is a routable page, modal or screen reached via a navigation route rather than a building block embedded by other components or views.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -669,10 +791,12 @@
               "description": "UI component category used for library organization and component lookup."
             },
             "label": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable display name of the component as shown in the library catalogue or Storybook, such as 'Data Table'; set it when the specNodeId slug is not presentation-friendly."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the component's purpose, intended usage and notable behaviour, written for library consumers; set it for every published component."
             },
             "category": {
               "type": "string",
@@ -765,12 +889,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 Custom Elements (autonomous custom element definition) with the template and slot elements of Web Components",
+      "x-dr-evidence": [
+        "A component exported from a shared design-system or components package index, such as packages/ui/src/index.ts, with a typed props contract (TypeScript Props interface, PropTypes, Vue defineProps or an Angular @Input set) and imported by several screens.",
+        "A Storybook story file (*.stories.tsx or *.stories.mdx) or design-system documentation page that catalogues the component and its prop, slot and event variants.",
+        "A customElements.define('x-foo', ...) registration, or a component declaring <slot name=...>, children or render props and emitting custom events (emit, dispatchEvent, onXxx callback props) without registering any route."
+      ],
+      "x-dr-distinguish": {
+        "ux.componentinstance": "the symbol is a specific usage of a component inside a View, SubView or LibrarySubView with concrete prop values, such as a <DataTable columns={...}/> call site, rather than the component's definition.",
+        "ux.actioncomponent": "the element is a single interactive trigger, such as a button, link, menu item or voice command, modelled for the action it fires rather than as a reusable component with its own props, slots and events.",
+        "ux.librarysubview": "the reusable unit is an ordered arrangement of several component instances, such as a filter bar plus a table, rather than one component with its own prop schema.",
+        "ux.view": "the component is a routable page, modal or screen reached via a navigation route rather than a building block embedded by other components or views."
+      },
       "$id": "urn:dr:spec:node:ux.librarycomponent"
     },
     "librarysubview": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LibrarySubView",
-      "description": "Reusable, non-routable grouping of components intended to be composed into Views or other SubViews. Unlike View, LibrarySubView has no route and cannot be navigated to directly. It exists purely as a reusable composition unit, analogous to an HTML template element.",
+      "description": "A reusable, non-routable composition of configured component instances, published in a UX library and embedded by reference into multiple Views or SubViews. It is distinguished from a SubView by being the shared definition rather than its placement in a particular parent, and from a LibraryComponent by being an assembly of existing components rather than a primitive with its own prop, slot and event contract. Use SubView instead when the fragment is a specific placement inside one parent View (with an order), either referencing a library sub-view via 'ref' or defined inline and not reused elsewhere. Use LibraryComponent instead when the unit is a single primitive or widget with its own declared props, slots and events, rather than an arrangement of several already-configured component instances. Use View instead when the grouping is reachable by a route or URL, or is opened as a page, modal, dialog or drawer in its own right. Use StatePattern instead when what is being reused is a sequence of states and transitions (wizard, optimistic update) rather than a visual arrangement of components.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -790,10 +926,12 @@
           "type": "object",
           "properties": {
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable display name of the reusable sub-view as shown in library catalogues or Storybook (e.g. 'Address Form Section'); set it whenever the sub-view is published in a UXLibrary."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Plain-text summary of the sub-view's purpose, its contained components and its intended embedding contexts; set it to help consumers choose between similar library sub-views."
             },
             "category": {
               "type": "string",
@@ -811,12 +949,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 §4.12.3 The template element",
+      "x-dr-evidence": [
+        "A component file in a shared or design-system package (e.g. src/shared/sections/, packages/ui/patterns/) that renders a fixed arrangement of several other library components, has no route registration and is imported by two or more page components.",
+        "A Storybook story grouped under a 'Patterns', 'Sections' or 'Compositions' heading, as opposed to 'Components', that renders a multi-component block such as a FiltersWithTable or AddressFormSection.",
+        "A reusable template partial (e.g. Angular ng-template, Django {% include %} partial, Rails shared partial, Blade @include, or HTML <template> element) that contains several component tags and is included from multiple page templates."
+      ],
+      "x-dr-distinguish": {
+        "ux.subview": "the fragment is a specific placement inside one parent View (with an order), either referencing a library sub-view via 'ref' or defined inline and not reused elsewhere.",
+        "ux.librarycomponent": "the unit is a single primitive or widget with its own declared props, slots and events, rather than an arrangement of several already-configured component instances.",
+        "ux.view": "the grouping is reachable by a route or URL, or is opened as a page, modal, dialog or drawer in its own right.",
+        "ux.statepattern": "what is being reused is a sequence of states and transitions (wizard, optimistic update) rather than a visual arrangement of components."
+      },
       "$id": "urn:dr:spec:node:ux.librarysubview"
     },
     "stateaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StateAction",
-      "description": "A concrete action bound to a specific ExperienceState lifecycle event. Instances are bound to a state and lifecycle hook; for reusable parameterizable definitions use StateActionTemplate. Examples: scroll-to-top (lifecycle: on-enter), focus-first-field (lifecycle: on-enter), dispatch-analytics-event (lifecycle: on-exit).",
+      "description": "A side-effect operation (navigate, submit, open, close, dispatch, validate) bound to one specific ExperienceState or StateTransition and executed automatically by that element's lifecycle hook (on-enter, on-exit, on-transition), rather than invoked directly as a user-facing control. Use StateActionTemplate instead when the action is a parameterized, reusable definition that is not yet bound to a particular state and lifecycle hook. Use ActionPattern instead when describing a recurring user-initiated interaction recipe (input trigger plus feedback such as toast or modal) rather than an effect fired by a state lifecycle. Use StateTransition instead when modelling the edge itself, meaning its trigger event, destination state and guard, rather than the effect executed while it fires. Use ActionComponent instead when the element is the rendered button, link or menu the user activates, not the effect run as part of a state's entry, exit or transition.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -848,7 +998,8 @@
               "description": "Operation executed during the state lifecycle."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what this bound action does in context (e.g. 'moves keyboard focus to the first invalid field after entering the review step'); set it whenever the action enum value and name alone do not convey the effect."
             },
             "lifecycle": {
               "type": "string",
@@ -865,12 +1016,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "Named actions listed in a state-machine config's entry/exit arrays or in a transition's actions array (e.g. XState `entry: ['scrollToTop','focusFirstField']`, `exit: 'trackStepExit'`).",
+        "A useEffect, watch or ngOnInit/ngOnDestroy handler keyed on the current step or state value that calls router.push, form.submit, store.dispatch, element.focus or window.scrollTo.",
+        "Wizard or step components whose onEnter/onLeave callbacks, or route-leave guards such as beforeRouteLeave, emit analytics events or run form validation when the step changes."
+      ],
+      "x-dr-distinguish": {
+        "ux.stateactiontemplate": "the action is a parameterized, reusable definition that is not yet bound to a particular state and lifecycle hook",
+        "ux.actionpattern": "describing a recurring user-initiated interaction recipe (input trigger plus feedback such as toast or modal) rather than an effect fired by a state lifecycle",
+        "ux.statetransition": "modelling the edge itself, meaning its trigger event, destination state and guard, rather than the effect executed while it fires",
+        "ux.actioncomponent": "the element is the rendered button, link or menu the user activates, not the effect run as part of a state's entry, exit or transition"
+      },
       "$id": "urn:dr:spec:node:ux.stateaction"
     },
     "stateactiontemplate": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StateActionTemplate",
-      "description": "A parameterizable, reusable definition of an action to execute during state transitions. StateActionTemplate is the definition; StateAction is the concrete usage bound to a specific ExperienceState and lifecycle hook. Example: a 'scroll-to-top' template with a 'targetId' parameter, instantiated as a StateAction on multiple states.",
+      "description": "A reusable, parameterized definition of a state-machine side-effect operation that is not bound to any particular ExperienceState or lifecycle hook. It declares the operation kind and its named input parameters, and StateActions instantiate it with concrete values on specific states. Use StateAction instead when the action is attached to a specific ExperienceState or StateTransition with a lifecycle hook (on-enter, on-exit, on-transition) and concrete argument values, even if it reuses a template. Use ActionPattern instead when the reusable thing is a user-initiated interaction recipe defined by input trigger (click, swipe, voice, keyboard) and user-facing feedback (toast, modal), not a side effect run by the state machine. Use TransitionTemplate instead when the reusable definition describes motion or animation (fade, slide, duration, easing) applied during a state or page change rather than an operation executed. Use StatePattern instead when the reusable unit is a whole state machine of ExperienceStates and transitions rather than a single action used inside one.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -902,7 +1064,8 @@
               "description": "Operation this template encapsulates. Must match a value from the StateAction action enum."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what the templated action does and what each parameter controls; set it whenever the template name alone does not make its behaviour and side effects clear."
             },
             "parameters": {
               "type": "array",
@@ -933,12 +1096,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "Named, parameterized actions declared once in a state-machine options block (e.g. XState setup({ actions: { scrollTo: (_, params) => ... } })) and referenced by name from the entry/exit arrays of several states.",
+        "An action-creator or effect factory taking arguments (e.g. focusField(fieldId), trackEvent(eventName)) exported from a shared module and called from the lifecycle hooks of multiple steps, screens or states.",
+        "A design-system or state-library catalogue entry (JSON/YAML or docs page) listing a reusable state action with a parameter table of name, type and default value."
+      ],
+      "x-dr-distinguish": {
+        "ux.stateaction": "the action is attached to a specific ExperienceState or StateTransition with a lifecycle hook (on-enter, on-exit, on-transition) and concrete argument values, even if it reuses a template.",
+        "ux.actionpattern": "the reusable thing is a user-initiated interaction recipe defined by input trigger (click, swipe, voice, keyboard) and user-facing feedback (toast, modal), not a side effect run by the state machine.",
+        "ux.transitiontemplate": "the reusable definition describes motion or animation (fade, slide, duration, easing) applied during a state or page change rather than an operation executed.",
+        "ux.statepattern": "the reusable unit is a whole state machine of ExperienceStates and transitions rather than a single action used inside one."
+      },
       "$id": "urn:dr:spec:node:ux.stateactiontemplate"
     },
     "statepattern": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StatePattern",
-      "description": "Reusable state machine template for common UX interaction flows, composed of named ExperienceStates and transitions. Canonical examples: 'wizard' — multi-step form with back/next/submit transitions; 'optimistic-update' — loading → success/error with retry; 'tab-panel' — N peer states with tab-driven transitions; 'authenticated-route' — unauthenticated → redirect/login → authenticated.",
+      "description": "A reusable, named state machine definition: an ordered set of ExperienceStates and the transitions between them that encodes a recurring interaction flow (e.g. wizard, loading/success/error, tab panel, auth gate). It is not bound to any single View or component and is meant to be applied by several of them. Use ExperienceState instead when the symbol represents one state node (e.g. 'loading' or 'step-2') rather than the whole reusable machine that contains it. Use StateTransition instead when the symbol is a single trigger→destination edge with an optional guard, not a complete set of states. Use ActionPattern instead when the reusable thing is one trigger-plus-feedback interaction (e.g. confirm-and-delete) with no states of its own. Use UXSpec instead when the states are the top-level, one-off state machine of a single experience rather than a template reused across experiences.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -958,7 +1132,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "A plain-text summary of the flow the pattern encodes: its states, the main transitions and the situations it fits. Set it whenever the pattern name alone does not make its behaviour clear."
             },
             "category": {
               "type": "string",
@@ -983,12 +1158,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A state machine factory or definition (e.g. XState createMachine, a createWizardMachine(steps) function) exported from a shared module and imported by multiple views or components",
+        "A generic hook or store (e.g. useAsync, useWizard, useTabs) exposing a finite status union such as 'idle' | 'loading' | 'success' | 'error' plus transition functions (next, back, retry), reused across features",
+        "A shared reducer typed with a discriminated union of states, or a design-system doc page describing the flow and its states (e.g. 'Optimistic update pattern')"
+      ],
+      "x-dr-distinguish": {
+        "ux.experiencestate": "the symbol represents one state node (e.g. 'loading' or 'step-2') rather than the whole reusable machine that contains it",
+        "ux.statetransition": "the symbol is a single trigger→destination edge with an optional guard, not a complete set of states",
+        "ux.actionpattern": "the reusable thing is one trigger-plus-feedback interaction (e.g. confirm-and-delete) with no states of its own",
+        "ux.uxspec": "the states are the top-level, one-off state machine of a single experience rather than a template reused across experiences"
+      },
       "$id": "urn:dr:spec:node:ux.statepattern"
     },
     "statetransition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StateTransition",
-      "description": "A directed edge in the ExperienceState machine, owned by its source ExperienceState. Specifies the trigger event, destination state, optional guard condition, and side-effect actions. The 'from' state is implicitly the ExperienceState that contains this transition via relationship.",
+      "description": "A directed edge in an ExperienceState machine that moves the experience from its owning source ExperienceState to one destination ExperienceState when a named UI event occurs. It may carry a guard condition that must hold and an ordered list of StateActions run as side effects when it fires. Use TransitionTemplate instead when the element describes reusable motion or animation (fade, slide, duration, easing) applied to a state or page change, not which state the event leads to. Use StateAction instead when the element is the side-effect operation itself (navigate, submit, dispatch, validate) bound to a lifecycle hook, rather than the edge between two states. Use ExperienceState instead when the element is a node the experience can rest in (loading, error, confirmed), with entry and exit actions and component visibility, rather than the move between such nodes. Use ActionPattern instead when the element is a reusable trigger-plus-feedback interaction recipe (e.g. confirm-and-delete) applied to components, not a specific source-to-destination edge in one state machine.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1027,7 +1213,8 @@
               "description": "DOM or UX event that initiates this state transition, per HTML 5.3 event model."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "A plain-language sentence saying what user event moves the experience from the source state to the destination and why. Example: 'User submits valid payment form; moves to processing'. Set it whenever the trigger, guard or destination does not make the transition's intent obvious on its own."
             },
             "actions": {
               "type": "array",
@@ -1059,12 +1246,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "W3C SCXML <transition> element (event, cond, target, executable content) for state-machine semantics; trigger values follow the HTML 5.3 event handler / DOM event model",
+      "x-dr-evidence": [
+        "An XState or similar statechart config entry such as `on: { SUBMIT: { target: 'confirmed', guard: 'isValid', actions: ['track'] } }` inside a state node",
+        "A reducer or useReducer case that switches on the current status together with an event or action type and returns a different status value (e.g. `case 'editing': if (action.type === 'SAVE') return 'saving'`)",
+        "A transitions table or map literal of `{ from, event, to }` records, or a `canTransition(from, event)` / `transition(state, event)` helper that a component's onClick or onSubmit handler calls"
+      ],
+      "x-dr-distinguish": {
+        "ux.transitiontemplate": "the element describes reusable motion or animation (fade, slide, duration, easing) applied to a state or page change, not which state the event leads to",
+        "ux.stateaction": "the element is the side-effect operation itself (navigate, submit, dispatch, validate) bound to a lifecycle hook, rather than the edge between two states",
+        "ux.experiencestate": "the element is a node the experience can rest in (loading, error, confirmed), with entry and exit actions and component visibility, rather than the move between such nodes",
+        "ux.actionpattern": "the element is a reusable trigger-plus-feedback interaction recipe (e.g. confirm-and-delete) applied to components, not a specific source-to-destination edge in one state machine"
+      },
       "$id": "urn:dr:spec:node:ux.statetransition"
     },
     "subview": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubView",
-      "description": "A non-routable UI fragment embedded within a parent View. Two usage modes: (1) Library instance — 'ref' is populated with a ux.librarysubview specNodeId, rendering that reusable fragment; (2) Inline definition — 'ref' is absent and the SubView defines its own composition inline. SubViews are not independently routable; use View for routable pages.",
+      "description": "A non-routable region of a parent View that groups several component instances and is rendered only as part of that View. It is either a placement of a reusable LibrarySubView (ref set) or a one-off composition defined inline (ref absent). Use View instead when the fragment has its own route or URL, or is opened independently as a page, modal, dialog or drawer. Use LibrarySubView instead when you are modelling the reusable fragment definition exported from a UX library, not its placement inside a particular View. Use ComponentInstance instead when the element is a single configured library component with props, not a grouping of several components. Use ComponentReference instead when the element only declares which component fills a named slot of a parent component, rather than being a rendered region of a View.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1084,10 +1283,12 @@
           "type": "object",
           "properties": {
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable heading or name of the fragment as shown to users or designers (e.g. 'Order Filters'). Set it when the region has a visible heading or a recognisable name in design artifacts."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what the fragment displays and what it is for within its parent View. Set it when the title alone does not make the region's content or behaviour clear."
             },
             "order": {
               "type": "integer",
@@ -1101,12 +1302,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 §4.3 Sections (section/aside elements as sectioning content within a document)",
+      "x-dr-evidence": [
+        "A component file under a page's local folder (e.g. pages/Orders/components/OrderFiltersPanel.tsx) that is imported and rendered only by that route-level page and has no route registration of its own.",
+        "A template partial or include inside a page template, e.g. {% include 'orders/_summary.html' %}, @Html.Partial(\"_Summary\"), or <ng-container *ngTemplateOutlet=\"summary\">.",
+        "A named section of a page's render tree, e.g. <SidebarSection/> or a renderSidebar() helper, that composes several library components such as Table, Button and Input. A shared-fragment import from a design-system package indicates the library-instance mode."
+      ],
+      "x-dr-distinguish": {
+        "ux.view": "the fragment has its own route or URL, or is opened independently as a page, modal, dialog or drawer.",
+        "ux.librarysubview": "you are modelling the reusable fragment definition exported from a UX library, not its placement inside a particular View.",
+        "ux.componentinstance": "the element is a single configured library component with props, not a grouping of several components.",
+        "ux.componentreference": "the element only declares which component fills a named slot of a parent component, rather than being a rendered region of a View."
+      },
       "$id": "urn:dr:spec:node:ux.subview"
     },
     "tablecolumn": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TableColumn",
-      "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+      "description": "A declarative configuration entry for one column of a tabular data component, binding a header label to a single field of each row record and specifying that column's width, alignment, cell rendering type, default sort direction and filter operation. It describes column structure, not a rendered component, and exists only as part of a table-type ComponentInstance or LibraryComponent. Use ChartSeries instead when the field binding drives a plotted data series (line, bar, pie) in a chart rather than a column of cells in a table. Use ComponentInstance instead when the symbol is the table itself or a component rendered inside a cell (e.g. a badge or action menu), rather than the column definition that hosts it. Use DataConfig instead when the configuration describes where the table's row data comes from (API, state, static) and how it is selected, not how one field is displayed as a column. Use ActionComponent instead when the element is an interactive control (button, link, icon-button) placed in an actions column, rather than the column definition containing it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1126,19 +1339,24 @@
           "type": "object",
           "properties": {
             "header": {
-              "type": "string"
+              "type": "string",
+              "description": "User-visible text rendered in the column's header cell (the th content), e.g. 'Order Date'; set for every column, using an empty string or accessible label for icon-only or actions columns."
             },
             "field": {
-              "type": "string"
+              "type": "string",
+              "description": "Key or dot-notation path of the property in each row record whose value populates this column's cells (e.g. 'customer.name'); set for every column and formalize via maps-to relationships to data-model or data-store fields."
             },
             "width": {
-              "type": "string"
+              "type": "string",
+              "description": "Preferred column width as a CSS length or percentage (e.g. '160px', '20%', 'auto'); set when the column should not size automatically from content."
             },
             "minWidth": {
-              "type": "string"
+              "type": "string",
+              "description": "Minimum CSS width the column may shrink to during resizing or responsive layout (e.g. '80px'); set when content would become unreadable below a threshold."
             },
             "maxWidth": {
-              "type": "string"
+              "type": "string",
+              "description": "Maximum CSS width the column may grow to during resizing or flexible layout (e.g. '400px'); set to stop long text columns from dominating the table."
             },
             "filterType": {
               "type": "string",
@@ -1183,12 +1401,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 §4.9 Tabular data: th element (column header cell) with col/colgroup elements",
+      "x-dr-evidence": [
+        "An object literal in a columns array passed to a table/grid component, e.g. { header: 'Name', accessorKey: 'name', size: 200 } for TanStack Table or { field: 'price', headerName: 'Price', width: 120 } for MUI DataGrid/AG Grid columnDefs.",
+        "A declarative column child element in a template, such as <el-table-column prop=\"date\" label=\"Date\" sortable>, <mat-header-cell *matHeaderCellDef> paired with matColumnDef=\"status\", or <Column field=\"code\" header=\"Code\"> in PrimeReact.",
+        "A column definition carrying cell rendering or sort/filter options, e.g. a cellRenderer/render function returning a badge, sortable: true with sortingOrder, or filter: 'agNumberColumnFilter' on a single field."
+      ],
+      "x-dr-distinguish": {
+        "ux.chartseries": "the field binding drives a plotted data series (line, bar, pie) in a chart rather than a column of cells in a table.",
+        "ux.componentinstance": "the symbol is the table itself or a component rendered inside a cell (e.g. a badge or action menu), rather than the column definition that hosts it.",
+        "ux.dataconfig": "the configuration describes where the table's row data comes from (API, state, static) and how it is selected, not how one field is displayed as a column.",
+        "ux.actioncomponent": "the element is an interactive control (button, link, icon-button) placed in an actions column, rather than the column definition containing it."
+      },
       "$id": "urn:dr:spec:node:ux.tablecolumn"
     },
     "transitiontemplate": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TransitionTemplate",
-      "description": "Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application.",
+      "description": "A reusable motion definition specifying the animation type, duration and easing applied when a UI change occurs, such as a state change, route change, or component enter/leave. It describes how the change is animated, not which change occurs, and can be shared by many state transitions, patterns and views. Use StateTransition instead when the element is a concrete edge in an ExperienceState machine with a source state, destination state, trigger and guard, whether or not it is animated. Use ActionPattern instead when the reusable artifact describes the interaction itself (trigger modality, feedback such as toast or modal, target), rather than the motion curve and duration of the visual change. Use StateActionTemplate instead when the reusable definition is an operation executed during a transition (navigate, submit, dispatch, validate), not an animation. Use StatePattern instead when the reusable artifact is a whole state machine of named states and transitions, such as a wizard or optimistic update.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1208,13 +1438,16 @@
           "type": "object",
           "properties": {
             "to": {
-              "type": "string"
+              "type": "string",
+              "description": "The target end state of the animation: a specNodeId of the ExperienceState, View or SubView being entered, or a generic lifecycle target such as 'enter' or 'leave'. Set it to the narrowest target the template is meant for."
             },
             "trigger": {
-              "type": "string"
+              "type": "string",
+              "description": "The event or change that starts the animation, e.g. 'route-change', 'state-change', 'mount', 'unmount', or a DOM event name such as 'click'. Set it so the template can be matched to the transitions it governs."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the motion's intent and visual effect (e.g. 'modal slides up from bottom and fades in'). Set it whenever the name alone does not convey the effect."
             },
             "animationType": {
               "type": "string",
@@ -1234,12 +1467,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "CSS Transitions Module Level 1 (transition-duration, transition-timing-function); Web Animations API",
+      "x-dr-evidence": [
+        "Named, shared animation definitions such as Angular `trigger('fadeIn', [transition(':enter', [animate('300ms ease-in')])])` or exported Framer Motion `variants` objects imported by several components",
+        "CSS classes or @keyframes reused across components for enter/leave or route changes (e.g. `.fade-enter-active { transition: opacity 300ms ease-in-out }` used with Vue `<Transition name=\"fade\">` or react-transition-group `CSSTransition classNames=\"slide\"`)",
+        "Motion design tokens or theme entries defining duration and easing values (e.g. `motion.duration.medium: 300ms`, `motion.easing.standard: cubic-bezier(0.4,0,0.2,1)`) referenced by page-transition or modal-open animations"
+      ],
+      "x-dr-distinguish": {
+        "ux.statetransition": "the element is a concrete edge in an ExperienceState machine with a source state, destination state, trigger and guard, whether or not it is animated.",
+        "ux.actionpattern": "the reusable artifact describes the interaction itself (trigger modality, feedback such as toast or modal, target), rather than the motion curve and duration of the visual change.",
+        "ux.stateactiontemplate": "the reusable definition is an operation executed during a transition (navigate, submit, dispatch, validate), not an animation.",
+        "ux.statepattern": "the reusable artifact is a whole state machine of named states and transitions, such as a wizard or optimistic update."
+      },
       "$id": "urn:dr:spec:node:ux.transitiontemplate"
     },
     "uxapplication": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UXApplication",
-      "description": "Application-level UX configuration that groups UXSpecs and defines shared settings",
+      "description": "A top-level, independently deployable user-facing client for one delivery channel that aggregates one or more UXSpecs and fixes the settings they share: theme, design system, and default locale. It corresponds to a single front-end app root, such as an SPA bundle, mobile app, or voice skill, not to a reusable package or a single experience. Use UXSpec instead when the artifact describes a single experience (its views and state machine) within an app rather than the deployable app root that bundles experiences and carries app-wide theme, locale and design-system settings. Use UXLibrary instead when the artifact is a versioned package of reusable components, sub-views or patterns consumed by applications (e.g. a published npm design-system package) rather than an end-user application itself. Use View instead when the artifact is a single routable screen, page, modal or dialog rather than the whole application containing many screens.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1259,10 +1504,12 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Release version of the application as shipped to users, typically a semantic version string (e.g. '2.3.1') taken from package.json, the app manifest or store listing; set it when the app is versioned independently of its UXSpecs."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the application's purpose and audience (e.g. 'Customer self-service web portal'); set it to distinguish this application from others on the same channel."
             },
             "channel": {
               "type": "string",
@@ -1294,12 +1541,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "HTML 5.3 §4.1.1 the html element (document root) with Web Application Manifest (W3C) application-level metadata",
+      "x-dr-evidence": [
+        "A front-end entry point that mounts the root component and wires app-wide providers, e.g. ReactDOM.createRoot(...).render(<ThemeProvider><IntlProvider locale=...><App/>), createApp(App).use(router).mount('#app'), or an Angular bootstrapApplication/AppModule",
+        "An application manifest or build descriptor defining a distinct deliverable, e.g. manifest.json/manifest.webmanifest with name and start_url, AndroidManifest.xml or Info.plist, an Alexa skill.json, or a separate app package in a monorepo apps/ folder",
+        "App-level configuration declaring shared settings, such as a theme/design-token selection, i18n config with defaultLocale (next.config.js i18n, i18next init), and a dependency on an internal design-system package"
+      ],
+      "x-dr-distinguish": {
+        "ux.uxspec": "the artifact describes a single experience (its views and state machine) within an app rather than the deployable app root that bundles experiences and carries app-wide theme, locale and design-system settings",
+        "ux.uxlibrary": "the artifact is a versioned package of reusable components, sub-views or patterns consumed by applications (e.g. a published npm design-system package) rather than an end-user application itself",
+        "ux.view": "the artifact is a single routable screen, page, modal or dialog rather than the whole application containing many screens"
+      },
       "$id": "urn:dr:spec:node:ux.uxapplication"
     },
     "uxlibrary": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UXLibrary",
-      "description": "Collection of reusable UI components and sub-views that can be shared across applications",
+      "description": "A versioned, distributable package of UI building blocks that exports library components, library sub-views, state patterns and action patterns for consumption by one or more UX applications or specs. It is identified by its package boundary (manifest, version, export index), not by any rendered screen or route of its own. Use UXApplication instead when the artifact is a deployable product that consumes components, targets a delivery channel and groups UXSpecs, rather than a package exporting reusable parts. Use LibraryComponent instead when the symbol is a single reusable component definition with props, slots and events, not the package or index that exports many of them. Use LibrarySubView instead when the symbol is one reusable composition of component instances, not the collection that publishes it. Use UXSpec instead when the artifact describes the views and states of one concrete experience instead of exporting reusable parts for others to assemble.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1319,16 +1577,20 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Release version of the library package, normally a semantic version string (e.g. '2.4.1') matching the package manifest; always set, and update it whenever the exported set or its contracts change."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Short plain-text summary of the library's scope and intended consumers (e.g. 'Internal admin design system'); set it when the name alone does not convey what the library covers."
             },
             "author": {
-              "type": "string"
+              "type": "string",
+              "description": "Person, team or organisation that owns and maintains the library, as recorded in the package manifest or ownership file; set it to identify who to contact for changes."
             },
             "license": {
-              "type": "string"
+              "type": "string",
+              "description": "License under which the library is distributed, preferably as an SPDX identifier (e.g. 'MIT', 'Apache-2.0', or 'UNLICENSED' for proprietary); set it when the library is shared beyond a single codebase or sourced from a third party."
             },
             "components": {
               "type": "array",
@@ -1383,12 +1645,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A package.json (or equivalent manifest) for a UI package with name, version, license and author fields whose main/exports entry is a barrel index re-exporting many components (e.g. `export * from './Button'`).",
+        "A Storybook configuration or design-system documentation site cataloguing components of a single package, or a monorepo workspace such as packages/ui or @org/design-system that is imported by multiple apps.",
+        "Consumer code importing components from a shared package specifier (e.g. `import { DataTable } from '@acme/ui'`) rather than a relative path, often with the package listed as a peer or regular dependency in several applications."
+      ],
+      "x-dr-distinguish": {
+        "ux.uxapplication": "the artifact is a deployable product that consumes components, targets a delivery channel and groups UXSpecs, rather than a package exporting reusable parts.",
+        "ux.librarycomponent": "the symbol is a single reusable component definition with props, slots and events, not the package or index that exports many of them.",
+        "ux.librarysubview": "the symbol is one reusable composition of component instances, not the collection that publishes it.",
+        "ux.uxspec": "the artifact describes the views and states of one concrete experience instead of exporting reusable parts for others to assemble."
+      },
       "$id": "urn:dr:spec:node:ux.uxlibrary"
     },
     "uxspec": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UXSpec",
-      "description": "Complete UX specification for a single experience (visual, voice, chat, SMS)",
+      "description": "A specification artifact that groups the routable views and top-level experience states making up one user experience (a feature area or user journey) delivered in a single modality: visual, voice, chat or SMS. It is aggregated by a UXApplication and is the unit that satisfies UX requirements. Use UXApplication instead when the element groups several experiences and carries application-wide settings such as theme, design system, default locale or target channel. Use View instead when the element is a single routable screen, page, modal or dialog rather than the collection of screens and states for a whole experience. Use StatePattern instead when the state machine is a reusable template (wizard, optimistic-update, tab-panel) meant to be applied across experiences rather than the top-level states of one concrete experience. Use UXLibrary instead when the element is a shareable package of library components, sub-views and patterns with no routes or experience-specific states of its own.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1408,7 +1681,8 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version identifier of this experience specification, preferably semantic versioning (e.g. '1.2.0'); set it when the spec is released or revised independently of the application."
             },
             "experience": {
               "type": "string",
@@ -1416,10 +1690,12 @@
               "description": "Delivery modality this spec describes. 'visual': screen-based UI; 'voice': voice assistant interface; 'chat': conversational messaging UI; 'sms': text message-based interaction."
             },
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable name of the experience (e.g. 'Checkout', 'Account Onboarding') used in documentation and diagrams; set it on every spec."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the user goal and scope this experience covers, including which journeys are in or out of scope; set it whenever the title alone does not make the boundary clear."
             },
             "source": {
               "type": "object",
@@ -1457,12 +1733,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A feature module or route-group directory (e.g. Angular module calling RouterModule.forChild, Next.js app/(checkout)/ group, React Router nested route tree) that bundles the routes and screens of one user journey.",
+        "A top-level flow state machine (e.g. XState createMachine or a Redux slice for a flow) whose states correspond to the screens or steps of a single experience such as onboarding or checkout.",
+        "A per-experience design or interaction artifact: a Figma page or Storybook section named for a journey, or for non-visual modalities a voice skill interaction model (Alexa/Dialogflow JSON) or chatbot flow definition."
+      ],
+      "x-dr-distinguish": {
+        "ux.uxapplication": "the element groups several experiences and carries application-wide settings such as theme, design system, default locale or target channel.",
+        "ux.view": "the element is a single routable screen, page, modal or dialog rather than the collection of screens and states for a whole experience.",
+        "ux.statepattern": "the state machine is a reusable template (wizard, optimistic-update, tab-panel) meant to be applied across experiences rather than the top-level states of one concrete experience.",
+        "ux.uxlibrary": "the element is a shareable package of library components, sub-views and patterns with no routes or experience-specific states of its own."
+      },
       "$id": "urn:dr:spec:node:ux.uxspec"
     },
     "view": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "View",
-      "description": "Routable grouping of components (a complete user experience)",
+      "description": "A top-level UI surface (page, screen, modal, dialog, drawer, panel or overlay) that composes component instances and sub-views into one complete display unit. It is either the target of a navigation route or opened as a standalone surface, not embedded as a fragment within another view. Use SubView instead when the fragment is rendered inside a parent view's region, cannot be shown on its own, and has no route or independent open/close lifecycle. Use LibrarySubView instead when the grouping is a reusable, non-routable composition unit meant to be embedded in many views rather than a destination screen. Use UXSpec instead when the element describes an entire experience (a set of views and its state machine) rather than one screen within it. Use LibraryComponent instead when the code is a generic modal, drawer or dialog widget definition with props and slots, not a specific application screen built from it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1496,16 +1783,20 @@
               "description": "View display mode, per HTML 5.3 sectioning and dialog element semantics."
             },
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable title shown to users for this view, typically the document <title>, page heading, or dialog header; set it whenever the screen displays or announces a title."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the view's purpose and main content for modellers and reviewers; set it when the name and title alone do not convey what the screen is for."
             },
             "routable": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when the view can be reached directly through a URL or navigation route; false for views such as modals or overlays that only open programmatically from another view."
             },
             "layout": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier or name of the layout template or shell (e.g. 'two-column', 'dashboard-shell') this view renders within; set it when the view uses a named layout, and prefer an applies relationship to a ux.layoutconfig for formal binding."
             },
             "source": {
               "type": "object",
@@ -1515,6 +1806,18 @@
           "required": ["type"],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "HTML 5.3 §4.3 Sections (body/main document content) and §4.11.4 The dialog element",
+      "x-dr-evidence": [
+        "A component or template file registered as the target of a router entry, for example a React Router <Route element={...}>, a Next.js app/**/page.tsx, a Vue Router `component:` entry, or an Angular Routes `component` property.",
+        "A server-side controller action that renders a full template or page (Django render(request, 'orders/list.html'), Rails `render :index`, a Spring MVC @Controller method returning a view name).",
+        "A file under a pages/, views/, screens/ or modals/ directory, or a mobile Activity, Fragment or UIViewController destination in a navigation graph, that sets a page or dialog title and mounts several child components."
+      ],
+      "x-dr-distinguish": {
+        "ux.subview": "the fragment is rendered inside a parent view's region, cannot be shown on its own, and has no route or independent open/close lifecycle.",
+        "ux.librarysubview": "the grouping is a reusable, non-routable composition unit meant to be embedded in many views rather than a destination screen.",
+        "ux.uxspec": "the element describes an entire experience (a set of views and its state machine) rather than one screen within it.",
+        "ux.librarycomponent": "the code is a generic modal, drawer or dialog widget definition with props and slots, not a specific application screen built from it."
       },
       "$id": "urn:dr:spec:node:ux.view"
     }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LayoutConfig",
-  "description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
+  "description": "A declarative set of container arrangement rules (CSS layout mode, grid track counts, spacing, alignment and width constraints) applied to a View, SubView or component to position its children. It renders no content of its own and is identified by its layout properties, not by any markup it emits. Use LibraryComponent instead when the layout is a reusable rendered component with its own props, slots or events (e.g. an exported <Grid> or <Stack> primitive of type 'layout'), rather than a set of arrangement values. Use ComponentInstance instead when the symbol is a concrete usage of a layout library component in a particular view, even if the props it receives are layout values. Use LibrarySubView instead when the reusable thing is a grouping of component instances, such as a sidebar-plus-content fragment, rather than the spacing and alignment rules that arrange them. Use View instead when the symbol is a routable screen or page shell, even one named like a layout (e.g. a framework layout.tsx that renders header and outlet).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,28 +26,36 @@
           "description": "CSS layout mode governing element positioning and flow, per CSS Flexbox/Grid specification."
         },
         "columns": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of explicit grid column tracks (the repeat count in grid-template-columns), as a positive integer; set when type is 'grid' or style is 'grid'/'masonry'."
         },
         "rows": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of explicit grid row tracks (the repeat count in grid-template-rows), as a positive integer; set only when the grid has a fixed row count rather than auto-flowing rows."
         },
         "gap": {
-          "type": "string"
+          "type": "string",
+          "description": "CSS gap shorthand giving uniform spacing between children as a CSS length or design token (e.g. '16px', '1rem', 'var(--space-md)'); set when row and column spacing are equal."
         },
         "rowGap": {
-          "type": "string"
+          "type": "string",
+          "description": "CSS row-gap length giving vertical spacing between rows or wrapped flex lines (e.g. '24px'); set only to override gap for the row axis."
         },
         "columnGap": {
-          "type": "string"
+          "type": "string",
+          "description": "CSS column-gap length giving horizontal spacing between columns or flex items (e.g. '12px'); set only to override gap for the column axis."
         },
         "padding": {
-          "type": "string"
+          "type": "string",
+          "description": "CSS padding shorthand for inner spacing between the container edge and its children (e.g. '16px 24px'); set when the container defines its own inset."
         },
         "margin": {
-          "type": "string"
+          "type": "string",
+          "description": "CSS margin shorthand for outer spacing around the container (e.g. '0 auto' for centring); set when the layout controls its own offset from siblings or parent."
         },
         "maxWidth": {
-          "type": "string"
+          "type": "string",
+          "description": "CSS max-width value capping the container width (e.g. '1200px', '80ch', '100%'); set for constrained or centred content containers."
         },
         "alignContent": {
           "type": "string",
@@ -102,5 +110,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "CSS Grid Layout Module Level 1 and CSS Flexible Box Layout Module Level 1 (no direct HTML 5.3 element; applied to HTML 5.3 sectioning containers)",
+  "x-dr-evidence": [
+    "A CSS/SCSS rule, CSS module or styled-component on a page or container class that sets display:grid or display:flex together with grid-template-columns, gap, justify-content or max-width.",
+    "Layout primitives invoked with arrangement-only props, e.g. <Grid columns={3} gap=\"md\">, <Stack direction=\"row\" align=\"center\">, or Tailwind classes such as 'grid grid-cols-3 gap-4 max-w-screen-xl'.",
+    "A named layout entry in theme or route configuration, e.g. a layouts map, container maxWidth and spacing tokens in tailwind.config or theme.ts, or route meta { layout: 'two-column' }."
+  ],
+  "x-dr-distinguish": {
+    "ux.librarycomponent": "the layout is a reusable rendered component with its own props, slots or events (e.g. an exported <Grid> or <Stack> primitive of type 'layout'), rather than a set of arrangement values.",
+    "ux.componentinstance": "the symbol is a concrete usage of a layout library component in a particular view, even if the props it receives are layout values.",
+    "ux.librarysubview": "the reusable thing is a grouping of component instances, such as a sidebar-plus-content fragment, rather than the spacing and alignment rules that arrange them.",
+    "ux.view": "the symbol is a routable screen or page shell, even one named like a layout (e.g. a framework layout.tsx that renders header and outlet)."
   }
 }

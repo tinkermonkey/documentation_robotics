@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View",
-  "description": "Routable grouping of components (a complete user experience)",
+  "description": "A top-level UI surface (page, screen, modal, dialog, drawer, panel or overlay) that composes component instances and sub-views into one complete display unit. It is either the target of a navigation route or opened as a standalone surface, not embedded as a fragment within another view. Use SubView instead when the fragment is rendered inside a parent view's region, cannot be shown on its own, and has no route or independent open/close lifecycle. Use LibrarySubView instead when the grouping is a reusable, non-routable composition unit meant to be embedded in many views rather than a destination screen. Use UXSpec instead when the element describes an entire experience (a set of views and its state machine) rather than one screen within it. Use LibraryComponent instead when the code is a generic modal, drawer or dialog widget definition with props and slots, not a specific application screen built from it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -35,16 +35,20 @@
           "description": "View display mode, per HTML 5.3 sectioning and dialog element semantics."
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable title shown to users for this view, typically the document <title>, page heading, or dialog header; set it whenever the screen displays or announces a title."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the view's purpose and main content for modellers and reviewers; set it when the name and title alone do not convey what the screen is for."
         },
         "routable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "True when the view can be reached directly through a URL or navigation route; false for views such as modals or overlays that only open programmatically from another view."
         },
         "layout": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier or name of the layout template or shell (e.g. 'two-column', 'dashboard-shell') this view renders within; set it when the view uses a named layout, and prefer an applies relationship to a ux.layoutconfig for formal binding."
         },
         "source": {
           "type": "object",
@@ -54,5 +58,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 §4.3 Sections (body/main document content) and §4.11.4 The dialog element",
+  "x-dr-evidence": [
+    "A component or template file registered as the target of a router entry, for example a React Router <Route element={...}>, a Next.js app/**/page.tsx, a Vue Router `component:` entry, or an Angular Routes `component` property.",
+    "A server-side controller action that renders a full template or page (Django render(request, 'orders/list.html'), Rails `render :index`, a Spring MVC @Controller method returning a view name).",
+    "A file under a pages/, views/, screens/ or modals/ directory, or a mobile Activity, Fragment or UIViewController destination in a navigation graph, that sets a page or dialog title and mounts several child components."
+  ],
+  "x-dr-distinguish": {
+    "ux.subview": "the fragment is rendered inside a parent view's region, cannot be shown on its own, and has no route or independent open/close lifecycle.",
+    "ux.librarysubview": "the grouping is a reusable, non-routable composition unit meant to be embedded in many views rather than a destination screen.",
+    "ux.uxspec": "the element describes an entire experience (a set of views and its state machine) rather than one screen within it.",
+    "ux.librarycomponent": "the code is a generic modal, drawer or dialog widget definition with props and slots, not a specific application screen built from it."
   }
 }

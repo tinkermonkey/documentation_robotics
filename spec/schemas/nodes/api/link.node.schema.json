@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Link",
-  "description": "Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns.",
+  "description": "A response-scoped descriptor that names a target operation, by operationId or operationRef, and maps values from the current response or request (via runtime expressions or literals) onto that operation's parameters or request body. It is a design-time statement of how one call can follow another. It is not a hyperlink carried in the response payload. Use Callback instead when the API itself sends an outbound request to a consumer-supplied URL, rather than describing a follow-up call the consumer may make to an operation in this API. Use Schema instead when the 'links' are runtime data inside the response body (e.g. HAL _links, JSON:API links objects) whose shape is being described, not an OpenAPI Link Object. Use Header instead when the relationship is conveyed by an actual HTTP Link response header (RFC 8288) declared on the response. Use Parameter instead when you are defining the input the target operation accepts, rather than mapping a value from a prior response into that input.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,14 +22,15 @@
       "properties": {
         "operationId": {
           "type": "string",
-          "description": "The operationId of the target operation within this document. Mutually exclusive with 'operationRef' \u2014 only one may be specified per Link."
+          "description": "The operationId of the target operation within this document. Mutually exclusive with 'operationRef' — only one may be specified per Link."
         },
         "operationRef": {
           "type": "string",
-          "description": "A relative or absolute URL reference to an operation. Mutually exclusive with 'operationId' \u2014 only one may be specified per Link."
+          "description": "A relative or absolute URL reference to an operation. Mutually exclusive with 'operationId' — only one may be specified per Link."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable explanation of the link's purpose and when a client should follow it; CommonMark is allowed, and it should be set whenever the target or parameter mapping is not self-evident."
         },
         "parameters": {
           "type": "object",
@@ -43,5 +44,17 @@
       "required": [],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Link Object",
+  "x-dr-evidence": [
+    "A 'links:' map under a response in an OpenAPI YAML/JSON file whose entries carry operationId or operationRef plus parameters using runtime expressions such as '$response.body#/id'",
+    "A springdoc/swagger-core @Link annotation inside @ApiResponse(links = ...), or a swagger-php @OA\\Link / NestJS equivalent attached to a response definition",
+    "Entries under components.links referenced from responses via $ref '#/components/links/<Name>'"
+  ],
+  "x-dr-distinguish": {
+    "api.callback": "the API itself sends an outbound request to a consumer-supplied URL, rather than describing a follow-up call the consumer may make to an operation in this API",
+    "api.schema": "the 'links' are runtime data inside the response body (e.g. HAL _links, JSON:API links objects) whose shape is being described, not an OpenAPI Link Object",
+    "api.header": "the relationship is conveyed by an actual HTTP Link response header (RFC 8288) declared on the response",
+    "api.parameter": "you are defining the input the target operation accepts, rather than mapping a value from a prior response into that input"
   }
 }

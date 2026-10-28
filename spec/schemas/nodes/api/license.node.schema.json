@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "License",
-  "description": "Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers.",
+  "description": "A metadata object, nested under an API's Info object, that identifies by name the legal license governing use of the API and optionally gives a URL to the full license text. It describes terms of use for the API contract itself, not the license of the implementing source code. Use Info instead when the element is the overall API metadata block (title, version, description, termsOfService) rather than only the license name and URL inside it. Use ExternalDocumentation instead when the URL points to guides, wikis or reference docs that explain the API rather than to the legal license terms. Use Contact instead when the information identifies who owns or supports the API (name, email, URL) rather than the legal terms under which it may be used.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,11 +21,23 @@
       "type": "object",
       "properties": {
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Absolute URL (OpenAPI 3.0 requires URL format) pointing to the full text of the license; set it whenever the license terms are published at a resolvable location."
         }
       },
       "required": ["name"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 License Object",
+  "x-dr-evidence": [
+    "an info.license block with name (e.g. 'Apache 2.0', 'MIT') and url fields in an openapi.yaml/openapi.json file",
+    "a framework OpenAPI config call setting license metadata, e.g. springdoc new License().name(\"Apache 2.0\").url(...), FastAPI(license_info={...}) or swagger-jsdoc definition.info.license",
+    "an @OpenAPIDefinition(info = @Info(license = @License(name=..., url=...))) or equivalent annotation on an application or config class"
+  ],
+  "x-dr-distinguish": {
+    "api.info": "the element is the overall API metadata block (title, version, description, termsOfService) rather than only the license name and URL inside it.",
+    "api.externaldocumentation": "the URL points to guides, wikis or reference docs that explain the API rather than to the legal license terms.",
+    "api.contact": "the information identifies who owns or supports the API (name, email, URL) rather than the legal terms under which it may be used."
   }
 }

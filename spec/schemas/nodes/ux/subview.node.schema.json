@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SubView",
-  "description": "A non-routable UI fragment embedded within a parent View. Two usage modes: (1) Library instance \u2014 'ref' is populated with a ux.librarysubview specNodeId, rendering that reusable fragment; (2) Inline definition \u2014 'ref' is absent and the SubView defines its own composition inline. SubViews are not independently routable; use View for routable pages.",
+  "description": "A non-routable region of a parent View that groups several component instances and is rendered only as part of that View. It is either a placement of a reusable LibrarySubView (ref set) or a one-off composition defined inline (ref absent). Use View instead when the fragment has its own route or URL, or is opened independently as a page, modal, dialog or drawer. Use LibrarySubView instead when you are modelling the reusable fragment definition exported from a UX library, not its placement inside a particular View. Use ComponentInstance instead when the element is a single configured library component with props, not a grouping of several components. Use ComponentReference instead when the element only declares which component fills a named slot of a parent component, rather than being a rendered region of a View.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable heading or name of the fragment as shown to users or designers (e.g. 'Order Filters'). Set it when the region has a visible heading or a recognisable name in design artifacts."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what the fragment displays and what it is for within its parent View. Set it when the title alone does not make the region's content or behaviour clear."
         },
         "order": {
           "type": "integer",
@@ -37,5 +39,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 §4.3 Sections (section/aside elements as sectioning content within a document)",
+  "x-dr-evidence": [
+    "A component file under a page's local folder (e.g. pages/Orders/components/OrderFiltersPanel.tsx) that is imported and rendered only by that route-level page and has no route registration of its own.",
+    "A template partial or include inside a page template, e.g. {% include 'orders/_summary.html' %}, @Html.Partial(\"_Summary\"), or <ng-container *ngTemplateOutlet=\"summary\">.",
+    "A named section of a page's render tree, e.g. <SidebarSection/> or a renderSidebar() helper, that composes several library components such as Table, Button and Input. A shared-fragment import from a design-system package indicates the library-instance mode."
+  ],
+  "x-dr-distinguish": {
+    "ux.view": "the fragment has its own route or URL, or is opened independently as a page, modal, dialog or drawer.",
+    "ux.librarysubview": "you are modelling the reusable fragment definition exported from a UX library, not its placement inside a particular View.",
+    "ux.componentinstance": "the element is a single configured library component with props, not a grouping of several components.",
+    "ux.componentreference": "the element only declares which component fills a named slot of a parent component, rather than being a rendered region of a View."
   }
 }

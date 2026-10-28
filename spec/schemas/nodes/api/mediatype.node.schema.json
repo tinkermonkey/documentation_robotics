@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MediaType",
-  "description": "Describes the schema, examples, and encoding for a specific MIME type within a request body or response content map. Keyed by media type string (e.g., application/json).",
+  "description": "An entry in the 'content' map of a request body, response, or content-style parameter, keyed by one MIME type or media range (e.g. application/json, text/*), that binds the payload schema, examples, and (for multipart or form-urlencoded bodies) per-property encoding used when the payload has that type. Use Schema instead when the element is the data-shape definition itself (type, properties, items), independent of which MIME type carries it. Use Encoding instead when the element describes serialization of a single property within a multipart or form-urlencoded body rather than the whole payload for a MIME type. Use RequestBody instead when the element is the container holding the description, the required flag and the full content map across all MIME types for an operation's input. Use Response instead when the element is an outcome for a status code, with its description, headers and links, rather than one MIME-typed representation within it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,15 +21,28 @@
       "type": "object",
       "properties": {
         "contentType": {
-          "type": "string"
+          "type": "string",
+          "description": "The media type or media range string that keys this entry in the parent content map, per RFC 6838 (e.g. 'application/json', 'text/*', 'application/vnd.acme+json'); always set it, and keep it unique within the parent's content map."
         },
         "example": {
           "type": "string",
-          "description": "An inline example value. Mutually exclusive with 'examples' \u2014 only one may be specified per MediaType."
+          "description": "An inline example value. Mutually exclusive with 'examples' — only one may be specified per MediaType."
         }
       },
       "required": ["contentType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Media Type Object",
+  "x-dr-evidence": [
+    "An OpenAPI YAML/JSON 'content:' block under a requestBody or response with a key such as 'application/json' or 'multipart/form-data' carrying 'schema:' and 'example(s):'.",
+    "A framework annotation declaring a produced or consumed MIME type with a payload schema, e.g. Spring @Content(mediaType=\"application/json\", schema=@Schema(...)) or @Produces/@Consumes on a JAX-RS resource method.",
+    "FastAPI/NestJS response declarations naming a MIME type with a model, e.g. responses={200: {\"content\": {\"image/png\": {}}}} or @ApiProduces('text/csv') paired with @ApiResponse({type: Dto})."
+  ],
+  "x-dr-distinguish": {
+    "api.schema": "the element is the data-shape definition itself (type, properties, items), independent of which MIME type carries it.",
+    "api.encoding": "the element describes serialization of a single property within a multipart or form-urlencoded body rather than the whole payload for a MIME type.",
+    "api.requestbody": "the element is the container holding the description, the required flag and the full content map across all MIME types for an operation's input.",
+    "api.response": "the element is an outcome for a status code, with its description, headers and links, rather than one MIME-typed representation within it."
   }
 }

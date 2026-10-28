@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Components",
-  "description": "A named registry for reusable API definition objects (schemas, responses, parameters, examples, requestBodies, headers, securitySchemes, links, callbacks) that enables $ref referencing throughout the specification. Component entries are not rendered directly \u2014 they must be referenced by operations, parameters, or schemas to take effect. Component name keys must match the pattern ^[a-zA-Z0-9.\\-_]+$ per OpenAPI 3.0 \u2014 arbitrary strings are not valid component identifiers.",
+  "description": "The single container object within an OpenAPI document that holds named, reusable definitions (schemas, responses, parameters, examples, request bodies, headers, security schemes, links and callbacks), each addressable by a '#/components/<kind>/<name>' $ref pointer. It defines no paths or operations itself; its entries take effect only when referenced. Use OpenAPIDocument instead when the element is the root object carrying openapi, info, paths and servers, of which the components section is only one child. Use Schema instead when the element is an individual data-shape definition, whether inline or stored under components.schemas, rather than the registry that holds it. Use Responses instead when the element is an operation's map of HTTP status codes to Response objects, not the components.responses registry of named reusable responses. Use Paths instead when the element maps URL path templates to PathItem objects that define live API surface, rather than holding unreferenced reusable definitions.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,5 +22,17 @@
       "properties": {},
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Components Object",
+  "x-dr-evidence": [
+    "A top-level 'components:' key in an openapi.yaml/openapi.json with sub-maps such as schemas, securitySchemes, parameters or responses",
+    "JSON Reference strings of the form \"$ref: '#/components/schemas/User'\" or '#/components/responses/NotFound' elsewhere in the spec",
+    "Programmatic spec builders populating the section, e.g. springdoc 'new OpenAPI().components(new Components().addSecuritySchemes(...))', NestJS DocumentBuilder().addBearerAuth(), or drf-spectacular/FastAPI registering models under components.schemas"
+  ],
+  "x-dr-distinguish": {
+    "api.openapidocument": "the element is the root object carrying openapi, info, paths and servers, of which the components section is only one child.",
+    "api.schema": "the element is an individual data-shape definition, whether inline or stored under components.schemas, rather than the registry that holds it.",
+    "api.responses": "the element is an operation's map of HTTP status codes to Response objects, not the components.responses registry of named reusable responses.",
+    "api.paths": "the element maps URL path templates to PathItem objects that define live API surface, rather than holding unreferenced reusable definitions."
   }
 }

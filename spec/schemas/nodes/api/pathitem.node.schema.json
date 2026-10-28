@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PathItem",
-  "description": "Groups all HTTP operations available under a single URL path pattern (e.g., /users/{userId}). Path-level parameters apply to all operations under the path and can be overridden by matching name+in at the operation level, but cannot be removed. Individual HTTP methods are represented as operation references. Supports $ref at the PathItem level, enabling shared path definitions to be reused across multiple OpenAPI specifications.",
+  "description": "An OpenAPI path-level object that groups the HTTP operations exposed under exactly one URL path template (e.g. /users/{userId}), or under one callback runtime expression. It carries parameters and servers shared by all of those operations. It describes the whole path, not any single method. Use Operation instead when the element is one HTTP method on the path (e.g. GET /users/{userId}) with its own operationId, request body and responses. Use Paths instead when the element is the document-wide map from every path template to its PathItem, not a single path entry. Use Callback instead when the element is the runtime-expression key (e.g. $request.body#/callbackUrl) naming where an asynchronous notification is sent, rather than the PathItem that key maps to. Use Parameter instead when the element is a single named input (path, query, header or cookie), even if it is declared at path level and shared by all operations.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,14 +21,28 @@
       "type": "object",
       "properties": {
         "summary": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional short one-line plain-text summary intended to apply to all operations under this path; set it when the path as a whole has a single clear purpose (e.g. 'Single user resource')."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional longer explanation, in CommonMark Markdown, of the resource or behaviour shared by all operations under this path; set it when path-wide context (semantics, constraints) is not captured by individual operation descriptions."
         }
       },
       "required": [],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Path Item Object",
+  "x-dr-evidence": [
+    "a key beginning with '/' directly under 'paths:' in an OpenAPI YAML/JSON file, whose children are HTTP-method keys (get, post, put, delete) and optionally a shared 'parameters' or 'servers' list",
+    "a router chain bound to one path string with several verb handlers, e.g. Express router.route('/users/:id').get(...).put(...).delete(...)",
+    "a class-based view bound to a single URL pattern whose methods are named after HTTP verbs, e.g. a Flask MethodView or Django APIView registered at path('users/<int:id>/', ...)"
+  ],
+  "x-dr-distinguish": {
+    "api.operation": "the element is one HTTP method on the path (e.g. GET /users/{userId}) with its own operationId, request body and responses",
+    "api.paths": "the element is the document-wide map from every path template to its PathItem, not a single path entry",
+    "api.callback": "the element is the runtime-expression key (e.g. $request.body#/callbackUrl) naming where an asynchronous notification is sent, rather than the PathItem that key maps to",
+    "api.parameter": "the element is a single named input (path, query, header or cookie), even if it is declared at path level and shared by all operations"
   }
 }

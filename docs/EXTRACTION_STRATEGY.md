@@ -341,15 +341,87 @@ reject alone would have rejected every one of these 18 rows; and conflicts betwe
 the same pair should be shown together, since the plan's split rows are how tier 1 kept the wrong
 twin. The spreadsheet remains the interim queue (`sheet-export.py`, `sheet-import.py`).
 
+**API and UX layers applied (2026-10-28).** The node proposals for all 27 api and all 22 ux
+types were applied with `apply.ts --layer api --nodes-only` and `--layer ux --nodes-only`
+(definitions with sibling distinctions, `x-dr-standard`, `x-dr-evidence`, `x-dr-distinguish`,
+and 55 api plus 49 ux attribute descriptions filled where missing); the relationship proposals
+for both layers were deliberately left out because the relationship schemas are being reworked
+separately. The spec and the CLI bundle were rebuilt and Clef rerun on all three corpora as
+`clef@enriched-v2`, with the kind rule as `clef@enriched-v2-kind`:
+
+```bash
+cd cli/scripts/spec-enrich
+bun apply.ts --layer api --nodes-only && bun apply.ts --layer ux --nodes-only
+cd ../../.. && npm run build:spec && (cd cli && npm run build)
+cd cli/scripts/classify-eval
+for c in fastapi petclinic dr-cli; do
+  bun classify.ts --corpus $c --backend clef --tag enriched-v2 --force
+  bun classify.ts --corpus $c --backend clef --tag enriched-v2-kind --kind-narrow --force
+  bun report.ts --corpus $c
+done
+```
+
+Type-given-layer as `report.ts` defines it (layer-correct cards, `none` included):
+
+| corpus    | before (clef) | application only (enriched-v1) | api + ux applied (enriched-v2) | enriched-v2 + kind narrowing |
+| --------- | ------------- | ------------------------------ | ------------------------------ | ---------------------------- |
+| dr-cli    | 68.5%         | 78.9%                          | 78.0%                          | 83.2%                        |
+| fastapi   | 88.2%         | 88.2%                          | 88.9%                          | 89.5%                        |
+| petclinic | 90.2%         | 89.1%                          | 89.1%                          | 88.0%                        |
+
+The same runs restricted to the layers the change touched, counting only cards whose gold
+layer is not `none` and whose layer Clef got right (so the denominator is the cards on which
+the element-type question was actually asked):
+
+| corpus / layer       | cards | before (clef) | enriched-v1 | enriched-v2 | enriched-v2 + kind |
+| -------------------- | ----- | ------------- | ----------- | ----------- | ------------------ |
+| fastapi / ux         | 44    | 72.7%         | 72.7%       | 72.7%       | 72.7%              |
+| fastapi / api        | 29    | 86.2%         | 86.2%       | 89.7%       | 89.7%              |
+| petclinic / api      | 23    | 100%          | 100%        | 100%        | 100%               |
+| dr-cli / application | 135   | 47.4%         | 65.2%       | 63.7%       | 72.6%              |
+
+Reading the numbers:
+
+- **The application result reproduces.** The application criteria did not change between
+  enriched-v1 and enriched-v2, so the dr-cli movement (78.9% to 78.0% plain, 82.3% to 83.2%
+  with kind narrowing; two cards of 135 each way) is Clef's run-to-run variance. Treat about
+  one point as the noise floor for every table in this section.
+- **api was close to saturated already.** PetClinic's 23 api cards were all right before and
+  after. On fastapi the four misses were all route modules filed as `paths` instead of
+  `pathitem`; with the new definitions they become three misses spread over `operation` and
+  `tag`, one card gained. The kind rule has no entries for api or ux (`KIND_CANDIDATES` in
+  `backends/clef.ts` covers application only), so the "+ kind" columns differ from the plain
+  ones only through application cards.
+- **ux did not move, but the errors changed shape.** Twelve of 44 ux cards are wrong under
+  every configuration, not the same twelve. Before enrichment the misses were concrete versus
+  reusable (`actioncomponent` to `librarycomponent` three times, `subview` to
+  `librarycomponent`); after it they are placement versus definition (`librarysubview` to
+  `subview` or `view`, `subview` to `view`). The gold tells those apart by facts of routing
+  and reuse (is the component the target of a route; is it embedded in one parent or imported
+  from several), which the new definitions state as the boundary and the state card does not
+  surface as a fact. Same conclusion as for application: once the definition names the
+  boundary, the classifier needs the structural fact, which is a Tier-0 rule for the card
+  builder (routed or not, reused or placed once), not more prose.
+- **Longer criteria flatten Clef's type confidence.** The criteria text per layer went from
+  about 16K characters for application's 10 options to 39K for api's 28 and 36K for ux's 23.
+  Accuracy held, but the mean element-type probability on layer-correct cards fell from 0.46
+  to 0.12 on fastapi ux, 0.31 to 0.17 on fastapi api, 0.33 to 0.23 on PetClinic api, and
+  0.25 to 0.13 on dr-cli application (0.09 without the kind rule). A type-level auto-accept
+  threshold is therefore meaningless under the enriched criteria. The sibling sentences are
+  what grew the text; the harness could send Clef the definition and evidence only and keep the
+  "Use X instead when ..." sentences for `x-dr-distinguish` and for Claude-tier reasoning. That
+  is a harness experiment, not a spec change, and it is the next thing to measure. Cost per
+  card rose with the text: $0.0010 to $0.0017 on fastapi, $0.0009 to $0.0014 on PetClinic.
+
 ## Sequencing
 
-| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                              | Status                   |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above. | done 2026-10-25          |
-| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; applied to the application layer only (type-given-layer on dr-cli 68.5% to 82.3%); 1,462 maintainer-note claims triaged. See "Phase 1 status".                                                                                   | in progress (2026-10-25) |
-| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`.                                                                                                                                                                                                                                         | planned                  |
-| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                 | planned                  |
-| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                | after phase 1            |
+| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                            | Status                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                               | done 2026-10-25          |
+| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node definitions applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged. See "Phase 1 status". | in progress (2026-10-28) |
+| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`.                                                                                                                                                                                                                                                                       | planned                  |
+| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                               | planned                  |
+| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                              | after phase 1            |
 
 Preconditions: land PR #961 before any farm-mode use of the pipeline; fix #963 before
 any automated pipeline is allowed to delete elements.
