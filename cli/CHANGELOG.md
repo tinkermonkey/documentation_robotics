@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`dr farm status` no longer reports a deleted codebase as "Not synced yet".** The status
+  command used to treat any error whose message contained "not found" as a missing sync state,
+  so a project whose codebase folder had been removed showed `has_pending_changes: false`. The
+  missing-sync-state case is now identified by a typed `FarmSyncStateNotFoundError` from
+  `FarmSyncState.load` (exposing `code: "FARM_SYNC_STATE_NOT_FOUND"`), and a codebase that cannot
+  be read is reported on the project as `codebase_error` with `has_pending_changes` unset. A
+  project with `codebase_error` or `sync_state_error` prints a warning on stderr in text mode, the
+  JSON envelope carries `status: "error"` and `code: 1`, and the command exits 1. (#971)
+- **Farm auto-commits no longer fail silently when git itself cannot run.** The git-repository
+  check used by `dr farm add`, `dr farm remove` and `dr farm sync --auto-commit` returned "not a
+  repository" for every error, so a missing git binary, a permission problem or a corrupt `.git`
+  left `farm.yaml` or the model modified on disk and never committed, with nothing visible outside
+  `DEBUG`. Only git's own "not a git repository" answer skips the commit quietly now. Any other
+  failure prints `Warning: ... was saved but not committed: ...` on stderr in text mode, and the
+  JSON result carries `git_committed: false` plus a `git_warning` (on the `add`/`remove` envelope
+  and on each sync project entry). (#971)
+- **`dr farm sync --auto-commit` reports a failed commit as a warning on stderr.** The message
+  went through `handleInfo` on stdout; it now goes through `handleWarning`. The JSON entry already
+  carried `status: "error"` and `commit_error`, unchanged. (#971)
+- **`dr farm sync --output <file>` rejects unsupported extensions before syncing.** Any extension
+  other than `.json` used to run the whole sync and then write nothing without a word. It now
+  fails fast with `Unsupported output format: <ext>. Use .json` (exit 2), matching
+  `dr farm validate`. Only `.json` reports are supported; the help text says so. (#972)
+
 ### Changed
 
 - **A corrupt active changeset now fails `Model.load`.** When

@@ -7,7 +7,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { fileExists, ensureDir, writeFile } from "../../src/utils/file-io.js";
 import { FarmManifest } from "../../src/core/farm-manifest.js";
-import { FarmSyncState } from "../../src/core/farm-sync-state.js";
+import { FarmSyncState, FarmSyncStateNotFoundError } from "../../src/core/farm-sync-state.js";
 import { FarmSyncEngine } from "../../src/core/farm-sync-engine.js";
 import { execSync } from "child_process";
 
@@ -71,6 +71,24 @@ describe("FarmSyncState", () => {
     expect(loaded.projectName).toBe("test-project");
     expect(loaded.lastSyncCommit).toBe("abc123def456");
     expect(loaded.lastSyncTimestamp).toBeDefined();
+  });
+
+  it("should throw a typed error when the sync state file is missing", async () => {
+    const missing = path.join(testDir, "missing", ".farm-sync.yaml");
+    let caught: unknown;
+    try {
+      await FarmSyncState.load(missing);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(FarmSyncStateNotFoundError);
+    expect((caught as FarmSyncStateNotFoundError).code).toBe("FARM_SYNC_STATE_NOT_FOUND");
+    expect((caught as Error).message).toBe(`Farm sync state file not found: ${missing}`);
+
+    // loadOrCreate still returns a fresh state for a missing file
+    const created = await FarmSyncState.loadOrCreate(missing, "test-project");
+    expect(created.projectName).toBe("test-project");
+    expect(created.lastSyncCommit).toBeUndefined();
   });
 
   it("should record sync operations", async () => {
