@@ -137,15 +137,20 @@ proposal in Context Studio's shape (format `dr-reflection-plan/1`): one operatio
 delete / update / create on the relationship's property definition (identified by the DR
 relationship id), the claims and sorting answers as evidence (`claim_id`), the plan's p as
 probability, status always pending and scope null (Context Studio computes it), and a `dr`
-block Context Studio ignores. A row whose replacement already exists as a schema is exported as a
-delete, since Context Studio has no merge. Rows already decided in the walk file carry the
-operations their decision implies, still pending, with the decision in `dr.walk_decision`.
+block Context Studio ignores. A row whose replacement already exists as a schema, or is produced
+by an earlier operation in the same file, is exported as a delete naming the twin, since Context
+Studio has no merge (checked against the live catalog, not the plan's stale `replacement_exists`);
+a target deleted by two rows keeps one delete operation with the other row's evidence merged
+(`dr.merged_plan_rows`); an update whose triple changes carries the new description as well as the
+title. Rows already decided in the walk file carry the operations their decision implies, still
+pending, with the decision in `dr.walk_decision`.
 `proposal-import.ts --layer <id> --decisions <file>` joins Context Studio's decision export
 ({seq, status, reason, ...}) to the proposal by seq and writes `walk-<layer>.jsonl` (applied
 delete -> delete, applied update -> rename / reverse / retarget by what changed, applied create
 -> add, rejected -> keep; undecided skipped); `--simulate-walk` does the same from
 `dr.walk_decision` as a round-trip check. The contract is in the header of `proposal-export.ts`;
-the api layer is the fixture (`proposals/api.json`, 64 operations).
+the api layer is the fixture (`proposals/api.json`, 63 operations). A reversal only flips the
+type's domain and range in Context Studio; model relationships are re-pointed by `dr upgrade`.
 
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
