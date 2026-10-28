@@ -1,0 +1,116 @@
+{
+  "source": "application.applicationcomponent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:24:55.465Z",
+  "relationships": [
+    {
+      "id": "application.applicationcomponent.accesses.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationcomponent accesses application.dataobject",
+      "description": "The component creates, reads, updates or deletes instances of the data structure while performing its behaviour, so the data object is part of the state it handles.",
+      "evidence": "The component's class or module instantiates, deserializes, mutates or returns the data object's type, for example as a repository method parameter or return type."
+    },
+    {
+      "id": "application.applicationcomponent.accesses.security.secureresource",
+      "previous_description": "Defines relationship: application.applicationcomponent accesses security.secureresource",
+      "description": "The component performs operations on the protected resource at runtime, which makes it a subject whose actions on that resource are checked by access control.",
+      "evidence": "The component's code calls the resource's protected operations, such as a guarded API path, table or file, or the security configuration lists the component's service identity as a principal on that resource."
+    },
+    {
+      "id": "application.applicationcomponent.assigned-to.application.applicationfunction",
+      "previous_description": "Defines relationship: application.applicationcomponent assigned-to application.applicationfunction",
+      "description": "The component is the active element responsible for executing the internal function, so the function's work is carried out by this component and by no other.",
+      "evidence": "The methods implementing the function are defined on the component's class or within its module and are invoked only from inside the component's deployment unit."
+    },
+    {
+      "id": "application.applicationcomponent.assigned-to.application.applicationinterface",
+      "previous_description": "Defines relationship: application.applicationcomponent assigned-to application.applicationinterface",
+      "description": "The component is the active element behind the access point, handling every request that arrives through that controller, endpoint or listener.",
+      "evidence": "The controller, gRPC binding or message listener is registered in the component's bootstrap or routing configuration and delegates directly to the component's handlers."
+    },
+    {
+      "id": "application.applicationcomponent.composes.application.applicationfunction",
+      "previous_description": "Defines relationship: application.applicationcomponent composes application.applicationfunction",
+      "description": "The function is an integral part of the component and is not defined, deployed or meaningful outside it, so removing the component removes the function.",
+      "evidence": "The function's code lives only within the component's package or source tree and is not exported or reused by any other deployable unit."
+    },
+    {
+      "id": "application.applicationcomponent.constrained-by.security.securitypolicy",
+      "previous_description": "Defines relationship: application.applicationcomponent constrained-by security.securitypolicy",
+      "description": "The component's permitted operations and data access are limited by the rules of the security policy, so its behaviour must stay within what the policy allows.",
+      "evidence": "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
+    },
+    {
+      "id": "application.applicationcomponent.implements.security.countermeasure",
+      "previous_description": "Defines relationship: application.applicationcomponent implements security.countermeasure",
+      "description": "The component contains the working code of the security control, turning the documented countermeasure into executing behaviour.",
+      "evidence": "The component's source contains the control logic, such as input sanitization, rate limiting, encryption or token validation, and the countermeasure record points to that module as its implementation."
+    },
+    {
+      "id": "application.applicationcomponent.mitigates.security.threat",
+      "previous_description": "Defines relationship: application.applicationcomponent mitigates security.threat",
+      "description": "The component's behaviour lowers the likelihood or impact of the identified threat, reducing the residual risk recorded against it.",
+      "evidence": "The threat model or risk register lists the component as a mitigating element for the threat, backed by code that blocks or detects the attack vector."
+    },
+    {
+      "id": "application.applicationcomponent.provides.application.applicationinterface",
+      "previous_description": "Defines relationship: application.applicationcomponent provides application.applicationinterface",
+      "description": "The component offers the access point to users or other components, making its services reachable through that controller, endpoint or channel.",
+      "evidence": "The component's codebase declares and exposes the interface, for example by mounting the route, publishing the gRPC service definition or subscribing the listener at startup."
+    },
+    {
+      "id": "application.applicationcomponent.realizes.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationcomponent realizes application.applicationservice",
+      "description": "The component's internal behaviour is what concretely delivers the operations that the service promises to its consumers.",
+      "evidence": "The component's class implements the service's interface or contract, such as an OpenAPI or protobuf service definition, with method bodies backing each operation."
+    },
+    {
+      "id": "application.applicationcomponent.realizes.business.businessservice",
+      "previous_description": "Defines relationship: application.applicationcomponent realizes business.businessservice",
+      "description": "The component is the automated system that concretely delivers the business service to its customers or stakeholders.",
+      "evidence": "Architecture documentation or a service catalog maps the business service to the component, and the component's operations carry out the service's core transactions."
+    },
+    {
+      "id": "application.applicationcomponent.realizes.product.capability",
+      "previous_description": "Defines relationship: application.applicationcomponent realizes product.capability",
+      "description": "The component supplies the concrete implementation that gives the product the stated ability.",
+      "evidence": "A capability map or product documentation links the capability to the component, and the component's code implements the behaviour the capability describes."
+    },
+    {
+      "id": "application.applicationcomponent.realizes.product.feature",
+      "previous_description": "Defines relationship: application.applicationcomponent realizes product.feature",
+      "description": "The component implements the user-visible functionality that makes up the feature, so shipping the component delivers the feature.",
+      "evidence": "The feature's tickets, feature flag or release notes reference changes in the component's repository, and the component's code contains the feature's logic."
+    },
+    {
+      "id": "application.applicationcomponent.realizes.motivation.goal",
+      "previous_description": "Defines relationship: application.applicationcomponent realizes motivation.goal",
+      "description": "Building and operating the component directly brings about the desired end state that the goal expresses.",
+      "evidence": "Architecture decision records or roadmap documents cite the component as the delivery vehicle for the goal, with metrics attributing goal progress to it."
+    },
+    {
+      "id": "application.applicationcomponent.realizes.motivation.principle",
+      "previous_description": "Defines relationship: application.applicationcomponent realizes motivation.principle",
+      "description": "The component's design is a concrete embodiment of the architectural principle, demonstrating how that principle is applied in practice.",
+      "evidence": "An architecture decision record or design document for the component explicitly cites the principle, and its structure reflects it, for example statelessness or API-first design."
+    },
+    {
+      "id": "application.applicationcomponent.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: application.applicationcomponent satisfies motivation.requirement",
+      "description": "The component meets the stated need, so the requirement is considered fulfilled by its delivered behaviour or qualities.",
+      "evidence": "A traceability matrix links the requirement ID to the component, and acceptance tests for that requirement pass against the component."
+    },
+    {
+      "id": "application.applicationcomponent.serves.business.businessrole",
+      "previous_description": "Defines relationship: application.applicationcomponent serves business.businessrole",
+      "description": "The component supports the people holding the business role in carrying out their responsibilities, acting as a tool they rely on.",
+      "evidence": "The component's role-based access configuration or user documentation grants the business role access to screens or operations designed for its tasks."
+    },
+    {
+      "id": "application.applicationcomponent.uses.application.applicationcomponent",
+      "previous_description": "Defines relationship: application.applicationcomponent uses application.applicationcomponent",
+      "description": "The source component relies on the target component's functionality at runtime, so the target is a dependency the source needs to do its work.",
+      "evidence": "The source component injects, imports or calls the target, for example through a dependency-injection binding, package dependency or HTTP/gRPC client configured with the target's address."
+    }
+  ],
+  "notes": "assigned-to and composes toward ApplicationFunction overlap; composition between active structure and behaviour is not valid ArchiMate. assigned-to and provides toward ApplicationInterface are redundant; ArchiMate uses composition for component-to-interface. Realizing Goal and Principle directly is questionable, since core elements normally realize Requirements, which in turn realize goals and principles."
+}

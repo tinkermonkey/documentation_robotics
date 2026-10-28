@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcollaboration depends-on Applicationinterface",
-  "description": "Defines relationship: application.applicationcollaboration depends-on application.applicationinterface",
+  "description": "The collaboration's members must reach the interface, such as an external API endpoint or message channel, to carry out their joint behaviour.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Client configuration in the member components, such as a base URL, generated gRPC stub, or queue subscription, targets that interface."
+  ]
 }

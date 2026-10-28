@@ -1,0 +1,74 @@
+{
+  "source": "apm.logconfiguration",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.074Z",
+  "relationships": [
+    {
+      "id": "apm.logconfiguration.aggregates.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.logconfiguration aggregates apm.exporterconfig",
+      "description": "The service's logging pipeline bundles one or more log record exporter configurations as its delivery endpoints, while each exporter definition remains an independently defined, reusable configuration.",
+      "evidence": "The LoggerProvider bootstrap code or Collector logs pipeline lists a named LogRecordExporter (e.g. an OTLPLogExporter with endpoint and protocol) that is also declared as a standalone exporter block."
+    },
+    {
+      "id": "apm.logconfiguration.aggregates.apm.logprocessor",
+      "previous_description": "Defines relationship: apm.logconfiguration aggregates apm.logprocessor",
+      "description": "The logging pipeline assembles the ordered chain of log processors (batching, filtering, redacting, enriching) that every emitted log record passes through, each processor being a separately defined stage.",
+      "evidence": "The LoggerProvider builder calls addLogRecordProcessor (or the Collector logs pipeline lists processors) referencing the specific processor instances in order."
+    },
+    {
+      "id": "apm.logconfiguration.depends-on.data-store.database",
+      "previous_description": "Defines relationship: apm.logconfiguration depends-on data-store.database",
+      "description": "The logging pipeline needs the database to be reachable because it is the store into which the service's log records are ultimately written, so log delivery fails if the database is unavailable.",
+      "evidence": "The logging configuration declares a database appender or exporter (e.g. JDBC, Elasticsearch, ClickHouse) whose connection string or endpoint points to that database deployment."
+    },
+    {
+      "id": "apm.logconfiguration.depends-on.apm.resource",
+      "previous_description": "Defines relationship: apm.logconfiguration depends-on apm.resource",
+      "description": "The logging pipeline cannot be constructed without the process's resource identity, which it stamps onto every log record so the backend can attribute logs to the emitting service, host and container.",
+      "evidence": "The LoggerProvider is built with setResource(...) or relies on OTEL_SERVICE_NAME/OTEL_RESOURCE_ATTRIBUTES and resource detectors configured for the same process."
+    },
+    {
+      "id": "apm.logconfiguration.depends-on.technology.technologyservice",
+      "previous_description": "Defines relationship: apm.logconfiguration depends-on technology.technologyservice",
+      "description": "The logging pipeline requires an infrastructure log-ingestion or monitoring capability (such as a managed logging service or collector platform) to accept the records it exports.",
+      "evidence": "The exporter endpoint, credentials or IAM permissions in the logging configuration target the managed logging/monitoring service provisioned in infrastructure code."
+    },
+    {
+      "id": "apm.logconfiguration.flows-to.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.logconfiguration flows-to apm.exporterconfig",
+      "description": "Log records admitted by the pipeline's severity threshold and processors are handed off at runtime to the configured exporter, which sends them out of the process.",
+      "evidence": "The processor registered on the LoggerProvider is constructed with the exporter instance, and exporter metrics or debug output show log batches being sent to its endpoint."
+    },
+    {
+      "id": "apm.logconfiguration.monitors.business.businessservice",
+      "previous_description": "Defines relationship: apm.logconfiguration monitors business.businessservice",
+      "description": "The logging pipeline captures the operational log stream of the software realizing the business service, giving operators observational insight into that service's health and outcomes.",
+      "evidence": "Resource or log attributes set by the configuration (e.g. service.name, business.service tags) map to the business service, and log dashboards or alerts are labeled for it."
+    },
+    {
+      "id": "apm.logconfiguration.references.apm.traceconfiguration",
+      "previous_description": "Defines relationship: apm.logconfiguration references apm.traceconfiguration",
+      "description": "The logging pipeline points to the service's tracing configuration so that log records carry the active trace and span identifiers for correlation, without depending on it to function.",
+      "evidence": "The logging setup enables trace-context injection (MDC/log correlation) using the same OpenTelemetrySdk instance or shared configuration file that defines the TracerProvider."
+    },
+    {
+      "id": "apm.logconfiguration.satisfies.security.auditconfig",
+      "previous_description": "Defines relationship: apm.logconfiguration satisfies security.auditconfig",
+      "description": "The logging pipeline provides the concrete mechanism that meets the audit configuration's demands, ensuring security-relevant events are emitted at the required severity, sanitized and delivered to the audit trail.",
+      "evidence": "The logging configuration defines an audit logger category or processor with the required minimum severity, redaction rules and an exporter to the audit sink named by the audit config."
+    },
+    {
+      "id": "apm.logconfiguration.serves.apm.logrecord",
+      "previous_description": "Defines relationship: apm.logconfiguration serves apm.logrecord",
+      "description": "The logging pipeline is the service that accepts the log records produced by call sites, applying the severity threshold and routing them through processors to exporters.",
+      "evidence": "Application code obtains its Logger from the configured LoggerProvider (or logging bridge) and emits the record through it, subject to the configured minimum severity."
+    },
+    {
+      "id": "apm.logconfiguration.serves.apm.resource",
+      "previous_description": "Defines relationship: apm.logconfiguration serves apm.resource",
+      "description": "The logging pipeline is the channel through which the process's resource identity is propagated to log backends by attaching it to every exported log record.",
+      "evidence": "Exported log payloads (e.g. OTLP ResourceLogs) produced by this provider contain the resource attributes built for the process."
+    }
+  ],
+  "notes": "serves apm.resource inverts the natural direction and conflicts with depends-on apm.resource; resource serves the configuration, not vice versa. flows-to and aggregates on exporterconfig overlap. depends-on database duplicates what exporterconfig should express. monitors businessservice skips layers; logs observe application components, not business services."
+}

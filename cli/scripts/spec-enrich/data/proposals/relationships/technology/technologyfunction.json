@@ -1,0 +1,74 @@
+{
+  "source": "technology.technologyfunction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.077Z",
+  "relationships": [
+    {
+      "id": "technology.technologyfunction.accesses.technology.artifact",
+      "previous_description": "Defines relationship: technology.technologyfunction accesses technology.artifact",
+      "description": "The infrastructure function reads or writes a concrete file, image or configuration document as part of its ongoing behavior, as log rotation rewrites log files or a load balancer reads its routing configuration.",
+      "evidence": "The daemon or system software configuration declares the artifact's path as an input or output (e.g. a logrotate stanza naming the log file, or an nginx include pointing at the config file)."
+    },
+    {
+      "id": "technology.technologyfunction.composes.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.technologyfunction composes technology.technologyfunction",
+      "description": "The broader infrastructure capability is made up of a narrower sub-function that exists only as part of it, as health checking forms part of a load-balancing function.",
+      "evidence": "The system software's configuration or module structure defines the sub-capability inside the parent capability's block (e.g. a health_check directive nested in an upstream definition) with no standalone deployment."
+    },
+    {
+      "id": "technology.technologyfunction.flows-to.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyfunction flows-to technology.technologyprocess",
+      "description": "Data or results produced by the continuous infrastructure function are handed on as input to a stepwise technology process, as replication output feeds a scheduled backup job.",
+      "evidence": "The process definition (pipeline, cron job or workflow file) consumes a location, queue or snapshot that the function's configuration declares as its output."
+    },
+    {
+      "id": "technology.technologyfunction.implements.security.countermeasure",
+      "previous_description": "Defines relationship: technology.technologyfunction implements security.countermeasure",
+      "description": "The infrastructure function is the automated mechanism that puts a recorded security control into effect against its threats, as rate limiting at a proxy implements a denial-of-service countermeasure.",
+      "evidence": "The threat model or control register cites the function, and the infrastructure configuration enables the corresponding setting (e.g. WAF rules, rate-limit or TLS enforcement directives)."
+    },
+    {
+      "id": "technology.technologyfunction.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyfunction realizes technology.technologyservice",
+      "description": "The internal infrastructure behavior is what actually delivers the externally visible technology service that consumers rely on, as data replication realizes a highly available storage service.",
+      "evidence": "The service catalog or platform documentation for the service names the function, and the hosting node's configuration enables that function behind the service's interface."
+    },
+    {
+      "id": "technology.technologyfunction.serves.application.applicationfunction",
+      "previous_description": "Defines relationship: technology.technologyfunction serves application.applicationfunction",
+      "description": "The infrastructure function supports an application component's internal behavior, as caching or load balancing serves an application's request-handling function.",
+      "evidence": "The application function's code or deployment config depends on the behavior the infrastructure function provides (e.g. client config pointing at the load-balanced pool or relying on the replicated store)."
+    },
+    {
+      "id": "technology.technologyfunction.serves.business.businessservice",
+      "previous_description": "Defines relationship: technology.technologyfunction serves business.businessservice",
+      "description": "The infrastructure function directly underpins delivery of a business service to its consumers, as automated failover keeps an order-delivery service available.",
+      "evidence": "Service-level documentation or a dependency map for the business service lists the infrastructure function as a supporting capability, often with an SLA linking the two."
+    },
+    {
+      "id": "technology.technologyfunction.serves.technology.technologyinteraction",
+      "previous_description": "Defines relationship: technology.technologyfunction serves technology.technologyinteraction",
+      "description": "A single node's infrastructure function supports a collaborative behavior performed jointly by several nodes, as local health checking serves a cluster failover handover.",
+      "evidence": "The cluster or consensus software configuration shows the interaction consuming the function's output (e.g. failover settings referencing the local health-check or heartbeat mechanism)."
+    },
+    {
+      "id": "technology.technologyfunction.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.technologyfunction triggers technology.technologyevent",
+      "description": "The ongoing infrastructure function emits a discrete state change when a condition is met, as a health check raises a node-down alert.",
+      "evidence": "The function's configuration defines thresholds or hooks that emit the named event, and logs or alerting rules show the event originating from that function."
+    },
+    {
+      "id": "technology.technologyfunction.triggers.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyfunction triggers technology.technologyprocess",
+      "description": "The infrastructure function directly initiates a stepwise technology process, as a health-check failure starts a container restart or rollout sequence.",
+      "evidence": "The process's trigger definition (orchestrator restart policy, webhook or workflow trigger) names the function or its output as the start condition."
+    },
+    {
+      "id": "technology.technologyfunction.uses.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.technologyfunction uses technology.technologyinterface",
+      "description": "The infrastructure function connects to another component's protocol endpoint to do its work, as a replication function connects to a peer database's replication port.",
+      "evidence": "The function's configuration specifies the interface's host, port, socket or URL (e.g. a primary_conninfo string or a health-check probe endpoint)."
+    }
+  ],
+  "notes": "triggers→TechnologyProcess partly overlaps flows-to→TechnologyProcess and the TechnologyEvent path (function triggers event, event triggers process); modelers may double-encode. serves→BusinessService skips the usual technology-service/application layering and may be better expressed via realizes TechnologyService serving the business layer."
+}

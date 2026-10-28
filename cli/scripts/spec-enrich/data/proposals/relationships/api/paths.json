@@ -1,0 +1,50 @@
+{
+  "source": "api.paths",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.059Z",
+  "relationships": [
+    {
+      "id": "api.paths.aggregates.api.pathitem",
+      "previous_description": "Defines relationship: api.paths aggregates api.pathitem",
+      "description": "The document's path map gathers path items that may also be defined independently, such as reusable entries in components/pathItems pulled in by $ref, into the set of endpoints the API exposes.",
+      "evidence": "A key under the document's 'paths' object holds a $ref pointing to a PathItem defined in components/pathItems or in an external file."
+    },
+    {
+      "id": "api.paths.aggregates.api.server",
+      "previous_description": "Defines relationship: api.paths aggregates api.server",
+      "description": "The path map collects the server base-URL overrides declared on its path items, so that the full set of network locations used by the document's endpoints can be found from this one container.",
+      "evidence": "A PathItem listed under 'paths' declares its own 'servers' array whose URLs differ from the root-level servers."
+    },
+    {
+      "id": "api.paths.associated-with.api.ratelimit",
+      "previous_description": "Defines relationship: api.paths associated-with api.ratelimit",
+      "description": "A throttling policy applies across the document's endpoint map as a whole, capping requests to every path the API exposes rather than to one path or method.",
+      "evidence": "A vendor extension such as x-rate-limit attached to the paths object, or a gateway configuration that applies a quota to every route imported from the OpenAPI document."
+    },
+    {
+      "id": "api.paths.composes.api.pathitem",
+      "previous_description": "Defines relationship: api.paths composes api.pathitem",
+      "description": "Each path item is an entry owned by the document's path map, keyed by its URL template, and has no place in the API surface outside that container.",
+      "evidence": "The OpenAPI document's 'paths' object contains a key such as '/users/{id}' whose value is an inline PathItem object."
+    },
+    {
+      "id": "api.paths.references.api.externaldocumentation",
+      "previous_description": "Defines relationship: api.paths references api.externaldocumentation",
+      "description": "The endpoint map points readers to externally hosted documentation that describes the API's resource paths as a whole.",
+      "evidence": "An x-externalDocs-style extension on the paths object, or the root externalDocs URL, describes the path structure of the API."
+    },
+    {
+      "id": "api.paths.references.api.tag",
+      "previous_description": "Defines relationship: api.paths references api.tag",
+      "description": "The endpoint map draws on the document's tag labels to group the operations under its paths into categories for documentation and tooling.",
+      "evidence": "Operations nested under 'paths' list tag names in their 'tags' field that match entries in the root 'tags' array."
+    },
+    {
+      "id": "api.paths.serves.api.operation",
+      "previous_description": "Defines relationship: api.paths serves api.operation",
+      "description": "The path map makes each HTTP method-path operation reachable by resolving a request URL to the path item that holds the operation.",
+      "evidence": "An operation such as 'get' appears under a path key in 'paths', and a router generated from the document dispatches requests for that path and method to the operation's handler."
+    }
+  ],
+  "notes": "Paths aggregates and composes PathItem redundantly; keep composes, using aggregates only for $ref'd components/pathItems. Paths has no servers, externalDocs or tags fields: those belong to PathItem, Operation or root, so those links are transitive at best. 'serves Operation' misstates containment; Operations belong to PathItem."
+}

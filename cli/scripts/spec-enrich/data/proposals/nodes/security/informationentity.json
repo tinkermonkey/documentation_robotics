@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "security.informationentity",
+  "previous_description": "Named information asset subject to fine-grained access rights and data classification. Represents a logical grouping of data (e.g., customer PII, financial records) whose access is governed by associated InformationRight grants and AccountabilityRequirements, per NIST SP 800-53 AC-3 and IP-1.",
+  "definition": "A named logical category of information (e.g. customer PII, payment card data, medical records) defined independently of where or how it is stored, which carries a sensitivity classification and is the object to which InformationRights grant actors access. It names *what* the data is, not the endpoint, table or field that holds it.",
+  "distinguish_from": [
+    {
+      "type": "security.secureresource",
+      "when": "the protected thing is a concrete technical artefact (an API endpoint, database table, file store, service or UI) with operations performed on it, rather than a storage-independent category of data."
+    },
+    {
+      "type": "security.dataclassification",
+      "when": "you are modelling the classification scheme itself (levels, encryption obligations) rather than a specific data category that is assigned one of those levels."
+    },
+    {
+      "type": "security.fieldaccesscontrol",
+      "when": "the control applies to one named field and its masking or redaction strategy, rather than to a whole logical grouping of data that may span many fields and stores."
+    }
+  ],
+  "standard_reference": "STS-ml Information entity; NIST SP 800-53 Rev. 5 RA-2 (Security Categorization) and AC-3 (Access Enforcement)",
+  "code_evidence": [
+    "A data inventory, record-of-processing (ROPA) or data-catalog document listing named data categories such as 'Customer PII' or 'Cardholder Data', each with a sensitivity level.",
+    "An enum or constant set of data categories (e.g. DataCategory.PII, DataCategory.PHI, DataCategory.PCI) referenced by authorization checks or masking logic across several classes.",
+    "Marker annotations or catalog tags (e.g. @PersonalData(category=\"contact\"), BigQuery policy tags, AWS Macie or Purview classifications) applied consistently to fields in multiple models or tables to group them into one asset."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what data this information asset comprises (example fields, data subjects, and systems where it appears); set it whenever the entity name alone does not make the boundary of the asset clear."
+    }
+  ],
+  "notes": "IP-1 is a Rev. 3 Appendix J control, superseded by the PT family in Rev. 5, so the definition reference should be updated. classification is a free string that duplicates the DataClassification enum and the constrained-by relationship; make it an enum or a reference. authorizationRequirements duplicates the bidirectional governs relationships with InformationRight.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.228Z"
+}

@@ -4,7 +4,7 @@
     "id": "ux",
     "number": 10,
     "name": "UX Layer",
-    "description": "Layer 10: UX Layer",
+    "description": "Models the user interface: views and screens, library components and their application-specific instances, forms, action and state patterns, component properties and the visual hierarchy they compose (HTML 5.3 vocabulary with component-library conventions). Rendered components, templates and view classes are evidence for elements here; the logic they call belongs to the application layer and the paths that reach them to the navigation layer.",
     "inspired_by": {
       "standard": "HTML 5.3",
       "version": "5.3",
@@ -1542,17 +1542,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.actioncomponent.implements.ux.actionpattern": {
-      "id": "ux.actioncomponent.implements.ux.actionpattern",
-      "source_spec_node_id": "ux.actioncomponent",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.actionpattern",
-      "destination_layer": "ux",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.actioncomponent.navigates-to.ux.view": {
       "id": "ux.actioncomponent.navigates-to.ux.view",
       "source_spec_node_id": "ux.actioncomponent",
@@ -1560,6 +1549,17 @@
       "destination_spec_node_id": "ux.view",
       "destination_layer": "ux",
       "predicate": "navigates-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.realizes.ux.actionpattern": {
+      "id": "ux.actioncomponent.realizes.ux.actionpattern",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1916,17 +1916,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.componentinstance.implements.ux.librarycomponent": {
-      "id": "ux.componentinstance.implements.ux.librarycomponent",
-      "source_spec_node_id": "ux.componentinstance",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.librarycomponent",
-      "destination_layer": "ux",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.componentinstance.maps-to.data-model.objectschema": {
       "id": "ux.componentinstance.maps-to.data-model.objectschema",
       "source_spec_node_id": "ux.componentinstance",
@@ -2026,13 +2015,13 @@
       "strength": "medium",
       "required": false
     },
-    "ux.componentreference.implements.ux.librarycomponent": {
-      "id": "ux.componentreference.implements.ux.librarycomponent",
+    "ux.componentreference.realizes.ux.librarycomponent": {
+      "id": "ux.componentreference.realizes.ux.librarycomponent",
       "source_spec_node_id": "ux.componentreference",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.librarycomponent",
       "destination_layer": "ux",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2257,28 +2246,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.errorconfig.governs.ux.actioncomponent": {
-      "id": "ux.errorconfig.governs.ux.actioncomponent",
-      "source_spec_node_id": "ux.errorconfig",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.actioncomponent",
-      "destination_layer": "ux",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.errorconfig.governs.ux.componentinstance": {
-      "id": "ux.errorconfig.governs.ux.componentinstance",
-      "source_spec_node_id": "ux.errorconfig",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.componentinstance",
-      "destination_layer": "ux",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.errorconfig.governs.ux.experiencestate": {
       "id": "ux.errorconfig.governs.ux.experiencestate",
       "source_spec_node_id": "ux.errorconfig",
@@ -2319,17 +2286,6 @@
       "destination_spec_node_id": "data-model.objectschema",
       "destination_layer": "data-model",
       "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.experiencestate.associated-with.ux.view": {
-      "id": "ux.experiencestate.associated-with.ux.view",
-      "source_spec_node_id": "ux.experiencestate",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.view",
-      "destination_layer": "ux",
-      "predicate": "associated-with",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2664,24 +2620,13 @@
       "strength": "medium",
       "required": false
     },
-    "ux.stateaction.flows-to.ux.statetransition": {
-      "id": "ux.stateaction.flows-to.ux.statetransition",
-      "source_spec_node_id": "ux.stateaction",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.statetransition",
-      "destination_layer": "ux",
-      "predicate": "flows-to",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.stateaction.specializes.ux.stateactiontemplate": {
-      "id": "ux.stateaction.specializes.ux.stateactiontemplate",
+    "ux.stateaction.realizes.ux.stateactiontemplate": {
+      "id": "ux.stateaction.realizes.ux.stateactiontemplate",
       "source_spec_node_id": "ux.stateaction",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.stateactiontemplate",
       "destination_layer": "ux",
-      "predicate": "specializes",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2730,24 +2675,13 @@
       "strength": "medium",
       "required": false
     },
-    "ux.stateactiontemplate.implements.ux.stateaction": {
-      "id": "ux.stateactiontemplate.implements.ux.stateaction",
+    "ux.stateactiontemplate.realizes.ux.stateaction": {
+      "id": "ux.stateactiontemplate.realizes.ux.stateaction",
       "source_spec_node_id": "ux.stateactiontemplate",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.stateaction",
       "destination_layer": "ux",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.stateactiontemplate.provides.ux.stateaction": {
-      "id": "ux.stateactiontemplate.provides.ux.stateaction",
-      "source_spec_node_id": "ux.stateactiontemplate",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.stateaction",
-      "destination_layer": "ux",
-      "predicate": "provides",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2803,17 +2737,6 @@
       "destination_spec_node_id": "ux.transitiontemplate",
       "destination_layer": "ux",
       "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.statetransition.associated-with.ux.actioncomponent": {
-      "id": "ux.statetransition.associated-with.ux.actioncomponent",
-      "source_spec_node_id": "ux.statetransition",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.actioncomponent",
-      "destination_layer": "ux",
-      "predicate": "associated-with",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3082,17 +3005,6 @@
       "strength": "medium",
       "required": false
     },
-    "ux.transitiontemplate.governs.ux.statetransition": {
-      "id": "ux.transitiontemplate.governs.ux.statetransition",
-      "source_spec_node_id": "ux.transitiontemplate",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.statetransition",
-      "destination_layer": "ux",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "ux.transitiontemplate.navigates-to.ux.view": {
       "id": "ux.transitiontemplate.navigates-to.ux.view",
       "source_spec_node_id": "ux.transitiontemplate",
@@ -3164,17 +3076,6 @@
       "source_spec_node_id": "ux.uxlibrary",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.librarycomponent",
-      "destination_layer": "ux",
-      "predicate": "provides",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.uxlibrary.provides.ux.librarysubview": {
-      "id": "ux.uxlibrary.provides.ux.librarysubview",
-      "source_spec_node_id": "ux.uxlibrary",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.librarysubview",
       "destination_layer": "ux",
       "predicate": "provides",
       "cardinality": "many-to-many",
@@ -3291,8 +3192,8 @@
       "strength": "medium",
       "required": false
     },
-    "ux.view.aggregates.actioncomponent": {
-      "id": "ux.view.aggregates.actioncomponent",
+    "ux.view.aggregates.ux.actioncomponent": {
+      "id": "ux.view.aggregates.ux.actioncomponent",
       "source_spec_node_id": "ux.view",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.actioncomponent",
@@ -3396,6 +3297,17 @@
       "source_layer": "ux",
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.realizes.product.feature": {
+      "id": "ux.view.realizes.product.feature",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -3561,17 +3473,6 @@
       "source_layer": "ux",
       "destination_spec_node_id": "application.applicationevent",
       "destination_layer": "application",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "ux.view.uses.ux.layoutconfig": {
-      "id": "ux.view.uses.ux.layoutconfig",
-      "source_spec_node_id": "ux.view",
-      "source_layer": "ux",
-      "destination_spec_node_id": "ux.layoutconfig",
-      "destination_layer": "ux",
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",

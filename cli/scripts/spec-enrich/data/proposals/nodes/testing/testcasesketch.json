@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.testcasesketch",
+  "previous_description": "A design-time test case specification that selects concrete input partition values for a CoverageRequirement, serving as the bridge between test design (InputPartitionSelection) and executable test case specification per IEEE 829-2008. Exists in sketch (unimplemented) or implemented status — not yet tied to a specific test runner or execution framework.",
+  "definition": "A single test case design that combines specific input selections (one chosen value per relevant partition), a context variation and an expected outcome category to exercise one CoverageRequirement of a TestCoverageTarget. It may remain unimplemented or be linked through source to the individual test function, parameterized row or scenario that realizes it.",
+  "distinguish_from": [
+    {
+      "type": "testing.coveragerequirement",
+      "when": "the element states which partitions, contexts or outcomes must be covered (the criterion), rather than one specific combination chosen to satisfy it."
+    },
+    {
+      "type": "testing.inputselection",
+      "when": "the element is one field's binding of a partition representative to a concrete datum inside a test case, not the whole test case."
+    },
+    {
+      "type": "testing.inputpartitionselection",
+      "when": "the element lists which partition values a coverage requirement demands across all its tests, rather than the values one test case uses."
+    },
+    {
+      "type": "testing.testcoveragetarget",
+      "when": "the element identifies the endpoint, component or workflow under test, which anchors many test cases, rather than an individual test case against it."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Clause 10 Level Test Case (test case specification: inputs, expected outcomes, environmental needs)",
+  "code_evidence": [
+    "An individual test function or method (pytest test_*, Jest it()/test(), JUnit @Test) whose name, docstring or tag cites a requirement or partition, e.g. 'rejects quantity below zero'.",
+    "A single row of a parameterized test, such as a pytest.mark.parametrize id, a JUnit @CsvSource line or a Gherkin 'Scenario Outline' Examples row, binding concrete inputs to an expected result.",
+    "A test-case entry in a test plan, spreadsheet or test-management export (TestRail, Xray, Zephyr) with an ID, preconditions, input values, expected result and a status such as Draft or Approved."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of the scenario this sketch exercises: preconditions, the input combination chosen and the expected observable outcome. Set it whenever the name alone does not make the intent clear."
+    }
+  ],
+  "notes": "inputSelections is described as referencing InputPartitionSelection, but that type belongs to CoverageRequirement. The concrete per-case bindings are InputSelection, which this type composes. Retarget it. The status values implemented/automated overlap implementationFormat and contradict 'not yet tied to a runner'. There are no coverageRequirementRef or expectedOutcome attributes, so these links exist only as relationships.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.251Z"
+}

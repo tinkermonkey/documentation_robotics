@@ -1,0 +1,38 @@
+{
+  "source": "ux.layoutconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.064Z",
+  "relationships": [
+    {
+      "id": "ux.layoutconfig.associated-with.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.layoutconfig associated-with ux.librarycomponent",
+      "description": "The layout configuration is linked to a reusable library component as its default or recommended arrangement of that component's slotted children, without either owning the other.",
+      "evidence": "The library component's definition file references the layout config by id (e.g. a defaultLayout or layout field), or the layout config lists the component among the types it is intended for."
+    },
+    {
+      "id": "ux.layoutconfig.composes.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.layoutconfig composes ux.layoutconfig",
+      "description": "A parent layout configuration embeds a nested layout configuration, such as a grid area's inner flex rules, that exists only as part of the enclosing arrangement and is discarded with it.",
+      "evidence": "The parent layout's spec contains the child layout inline as a nested object (e.g. an areas or regions entry holding its own display/gap/alignment properties) rather than referencing a separately defined layout."
+    },
+    {
+      "id": "ux.layoutconfig.governs.ux.view",
+      "previous_description": "Defines relationship: ux.layoutconfig governs ux.view",
+      "description": "The layout configuration sets the binding arrangement rules (layout mode, grid tracks, spacing, width limits) that the view's top-level children must follow when positioned on that surface.",
+      "evidence": "The view's spec declares a layout reference to the config, and the rendered page's root container carries the config's CSS grid/flex, gap and max-width values."
+    },
+    {
+      "id": "ux.layoutconfig.provides.ux.subview",
+      "previous_description": "Defines relationship: ux.layoutconfig provides ux.subview",
+      "description": "The layout configuration supplies the container arrangement a sub-view uses to position its grouped component instances within the parent view's region.",
+      "evidence": "The sub-view definition (inline or via its LibrarySubView) has a layout property pointing to the config, and the sub-view's wrapper element applies the config's display, gap and alignment styles."
+    },
+    {
+      "id": "ux.layoutconfig.provides.ux.view",
+      "previous_description": "Defines relationship: ux.layoutconfig provides ux.view",
+      "description": "The layout configuration supplies the arrangement scheme the view applies to position its component instances and sub-views on the surface.",
+      "evidence": "The view's spec file references the layout config by id in its layout field, and the generated view template wraps its children in a container styled with that config's properties."
+    }
+  ],
+  "notes": "governs and provides between LayoutConfig and View express essentially the same fact (the view uses this layout); keep one, preferably 'applies' from the ux category, which fits better than either. 'applies' would likewise suit SubView instead of provides."
+}

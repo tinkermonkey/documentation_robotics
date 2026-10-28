@@ -1,0 +1,58 @@
+{
+  "spec_node_id": "api.openapidocument",
+  "previous_description": "The root document object of an OpenAPI 3.0 specification. Required fields are openapi (semver string, e.g. '3.0.3'), info, and paths. Serves as the entry point for all tooling, gateways, and documentation generators.",
+  "definition": "A root-level API description that declares one OpenAPI version and binds together exactly one Info object, one Paths map, and optionally servers, components, root security requirements, tags and external docs, describing a single API surface. One instance exists per openapi.yaml/json file or per generated spec endpoint, not per path, operation or reusable component.",
+  "distinguish_from": [
+    {
+      "type": "api.info",
+      "when": "the element is only the title/version/description/contact/license metadata block, not the whole specification."
+    },
+    {
+      "type": "api.paths",
+      "when": "the element is only the map of URL path templates to PathItems inside a document."
+    },
+    {
+      "type": "api.components",
+      "when": "the element is the reusable-definitions registry (schemas, responses, securitySchemes, etc.), even if it lives in a separate shared file referenced via $ref."
+    },
+    {
+      "type": "api.pathitem",
+      "when": "the element describes the operations under one URL path rather than the whole API."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 OpenAPI Object (root document object)",
+  "code_evidence": [
+    "a file such as openapi.yaml, openapi.json or swagger/v3 spec whose top-level key is 'openapi: 3.0.x' alongside 'info' and 'paths'",
+    "framework spec bootstrap code, e.g. FastAPI(title=..., version=...), springdoc OpenAPI bean, swagger-jsdoc definition object, or NSwag/Swashbuckle AddSwaggerGen document registration",
+    "an HTTP route serving the generated spec (e.g. GET /openapi.json, /v3/api-docs) or a Swagger UI/Redoc config pointing at that URL, or an openapi-generator input path in build config"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "openapi",
+      "description": "The OpenAPI Specification version the document conforms to, as a semantic version string (e.g. '3.0.3'); always set, and distinct from the API's own version in Info."
+    },
+    {
+      "name": "info",
+      "description": "Reference to the single api.info node holding the API's title, version and metadata; always set because Info is required."
+    },
+    {
+      "name": "servers",
+      "description": "Reference(s) to api.server nodes giving the base URLs where the API is deployed; set when the spec declares root-level servers, otherwise tooling defaults to '/'."
+    },
+    {
+      "name": "components",
+      "description": "Reference to the api.components node holding reusable schemas, responses, parameters and security schemes; set when the document defines any reusable objects."
+    },
+    {
+      "name": "tags",
+      "description": "Ordered reference list of root-level api.tag nodes that supply descriptions and external docs for tag names used by operations; set when the spec declares a root tags array."
+    },
+    {
+      "name": "externalDocs",
+      "description": "Reference to an api.externaldocumentation node linking to supplementary documentation for the whole API; set only when the spec declares root-level externalDocs."
+    }
+  ],
+  "notes": "Reference attributes (info, servers, components, tags) are typed string but duplicate the composes/aggregates relationships; pick one mechanism. servers and tags should be arrays. Outgoing composes to api.responses and api.schema contradict OpenAPI, where these live under Components or Operations, not the root. Info→document 'associated-with' duplicates document→info 'composes'.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

@@ -1,0 +1,86 @@
+{
+  "source": "ux.librarycomponent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.105Z",
+  "relationships": [
+    {
+      "id": "ux.librarycomponent.composes.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.librarycomponent composes ux.actioncomponent",
+      "description": "The reusable component definition contains the button, link or menu control as an integral part of its own structure, so that control exists only as part of this component and is removed with it.",
+      "evidence": "The component's source file (e.g. a Vue/React/Svelte component) declares the button or link inline in its template and wires its click handler to the component's own emitted events."
+    },
+    {
+      "id": "ux.librarycomponent.composes.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.librarycomponent composes ux.librarycomponent",
+      "description": "The outer reusable component is built from the inner reusable component as a fixed, built-in part, so the outer component's definition is incomplete without that sub-component.",
+      "evidence": "The parent component's source imports the child component and always includes it in its template, and the design-system manifest lists the child as an internal part of the parent."
+    },
+    {
+      "id": "ux.librarycomponent.depends-on.technology.systemsoftware",
+      "previous_description": "Defines relationship: ux.librarycomponent depends-on technology.systemsoftware",
+      "description": "The reusable component definition can only build or execute on a particular platform product, such as a browser engine, JavaScript runtime or native UI toolkit, at a supported version.",
+      "evidence": "The component package's package.json engines or peerDependencies field, or its browserslist or build configuration, pins the runtime or framework version it needs."
+    },
+    {
+      "id": "ux.librarycomponent.renders.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.librarycomponent renders ux.actioncomponent",
+      "description": "When the reusable component is drawn, it outputs the actionable control into its visual output, for example as a button inside a card or a menu entry inside a dropdown.",
+      "evidence": "The component's render function or template emits the control's markup (e.g. a <button> or <a> element), and a Storybook story or snapshot test shows the control in the rendered output."
+    },
+    {
+      "id": "ux.librarycomponent.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.librarycomponent renders ux.componentinstance",
+      "description": "The reusable component's template places a specific configured occurrence of another library component, with fixed prop values and a fixed position, inside its own rendered output.",
+      "evidence": "The component template contains a tag for another library component with literal prop values, and the UX spec records a component instance whose parent is this library component."
+    },
+    {
+      "id": "ux.librarycomponent.renders.ux.componentreference",
+      "previous_description": "Defines relationship: ux.librarycomponent renders ux.componentreference",
+      "description": "The reusable component draws whatever content the slot-filling declaration assigns to one of its named slots, at the slot position in its template.",
+      "evidence": "The component template declares a named <slot> or children prop, and the UX spec contains a component reference naming that slot on this component together with the specNodeId of the content to place in it."
+    },
+    {
+      "id": "ux.librarycomponent.renders.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.librarycomponent renders ux.librarycomponent",
+      "description": "When the outer reusable component is drawn, it outputs the inner reusable component as part of its visual tree, either always or depending on conditions.",
+      "evidence": "The outer component's template or JSX contains the inner component's tag, possibly inside a conditional or loop, and rendered snapshot tests show the inner component's markup."
+    },
+    {
+      "id": "ux.librarycomponent.requires.technology.technologyservice",
+      "previous_description": "Defines relationship: ux.librarycomponent requires technology.technologyservice",
+      "description": "The reusable component cannot work correctly without an infrastructure capability, such as a CDN for its assets, an identity service, or an image or font delivery service.",
+      "evidence": "The component's configuration or code references the service's endpoint (e.g. an asset CDN URL, an auth SDK initialisation or a telemetry key), and its documentation lists the service as a prerequisite."
+    },
+    {
+      "id": "ux.librarycomponent.satisfies.motivation.principle",
+      "previous_description": "Defines relationship: ux.librarycomponent satisfies motivation.principle",
+      "description": "The reusable component definition is designed to follow a cross-cutting design principle, such as accessibility-first or consistency through a single design system.",
+      "evidence": "The component's design documentation or ADR cites the principle, and automated checks for that principle (e.g. axe accessibility audits or design-token lint rules) pass for the component."
+    },
+    {
+      "id": "ux.librarycomponent.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: ux.librarycomponent satisfies motivation.requirement",
+      "description": "The reusable component definition provides the specific, verifiable behaviour or property that a stated requirement demands, such as keyboard operability or a required input format.",
+      "evidence": "The component's tests or Storybook acceptance stories are tagged with the requirement ID and verify its acceptance criteria, and the traceability matrix links the requirement to the component."
+    },
+    {
+      "id": "ux.librarycomponent.specializes.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.librarycomponent specializes ux.librarycomponent",
+      "description": "The reusable component is a more specific variant of a general reusable component: it inherits that component's property schema, slots and events and narrows or extends them, for example a PrimaryButton based on Button.",
+      "evidence": "The component's source extends or wraps the base component and forwards its props, or its TypeScript props interface extends the base component's props interface, and the design-system docs list it as a variant of the base."
+    },
+    {
+      "id": "ux.librarycomponent.uses.ux.actionpattern",
+      "previous_description": "Defines relationship: ux.librarycomponent uses ux.actionpattern",
+      "description": "The reusable component follows a shared interaction recipe for its controls, such as confirm-before-delete with a modal and a success toast, rather than defining its own feedback sequence.",
+      "evidence": "The component's event handlers call a shared interaction helper or hook that implements the pattern (e.g. useConfirmAction), or the UX spec links the component's actions to the pattern ID."
+    },
+    {
+      "id": "ux.librarycomponent.uses.ux.statepattern",
+      "previous_description": "Defines relationship: ux.librarycomponent uses ux.statepattern",
+      "description": "The reusable component drives its internal behaviour with a shared, named state machine, such as loading/success/error or wizard steps, instead of defining its own states and transitions.",
+      "evidence": "The component imports and instantiates a shared state machine definition (e.g. an XState machine or a useAsyncState hook), or the UX spec links the component to the state pattern ID."
+    }
+  ],
+  "notes": "composes and renders to actioncomponent and to librarycomponent overlap heavily; consider keeping only one predicate for each. renders componentreference is odd because a reference is a declaration rather than a rendered occurrence. satisfies principle conflicts with the principle definition (not directly verifiable); governed-by-principles fits better."
+}

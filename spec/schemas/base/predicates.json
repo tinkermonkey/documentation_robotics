@@ -134,7 +134,7 @@
       "predicate": "covers",
       "inverse": "covered-by",
       "category": "testing",
-      "description": "Coverage scope \u2014 test requirement or target covers an element",
+      "description": "Coverage scope — test requirement or target covers an element",
       "archimate_alignment": null,
       "semantics": {
         "directionality": "bidirectional",
@@ -494,19 +494,6 @@
         "reflexivity": false
       }
     },
-    "implements": {
-      "predicate": "implements",
-      "inverse": "implemented-by",
-      "category": "structural",
-      "description": "Element provides concrete implementation of another element",
-      "archimate_alignment": "Realization",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
     "composes": {
       "predicate": "composes",
       "inverse": "composed-of",
@@ -672,32 +659,6 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "supports-goals": {
-      "predicate": "supports-goals",
-      "inverse": "supported-by",
-      "category": "traceability",
-      "description": "Implementation contributes to achieving goal",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "fulfills-requirements": {
-      "predicate": "fulfills-requirements",
-      "inverse": "fulfilled-by",
-      "category": "traceability",
-      "description": "Implementation satisfies requirement",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       }

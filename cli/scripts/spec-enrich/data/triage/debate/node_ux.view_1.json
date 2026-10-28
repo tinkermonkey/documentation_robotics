@@ -1,0 +1,67 @@
+{
+  "claim_id": "node:ux.view#1",
+  "first_pass": {
+    "choice": "works_as_designed",
+    "probabilities": {
+      "real_defect": 0.21,
+      "works_as_designed": 0.521,
+      "judgment_call": 0.228,
+      "out_of_scope": 0.04
+    },
+    "confidence": 0.16
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified facts show view.routable is an optional boolean with no description, so false is a legal value and the attribute does not explain what false means.",
+      "The current definition 'Routable grouping of components' does sit in tension with an attribute that permits false and a type enum including modal, dialog, drawer, overlay and embedded.",
+      "The proposed definition already says a view is 'either the target of a navigation route or opened as a standalone surface', which covers non-routable modals and largely satisfies the claim's proposed change.",
+      "No fact suggests the routable attribute itself is wrong; the evidence points to definition wording, not to the attribute's type."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "As written, 'Routable grouping' contradicts routable=false, which the boolean explicitly allows; a modeller reading the definition could wrongly exclude modals.",
+          "The type enum lists modal, dialog, drawer and overlay, which are commonly non-routable, so the current definition misclassifies valid instances.",
+          "routable has no description, so nothing in the schema resolves the contradiction for modellers or CLI validation."
+        ],
+        "arguments_against": [
+          "The proposed definition already replaces 'Routable' with route-or-standalone wording, so the defect is being fixed in the pending revision.",
+          "The issue is wording in a one-line definition, not a structural schema error; it changes no attributes or relationships."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "Layer intent names View as page, modal, dialog, drawer or panel, so non-routable views are clearly intended and the boolean exists to mark that.",
+          "The proposed definition explicitly covers standalone non-routed surfaces, showing the design already treats routability as optional.",
+          "At most the definition needs clearer wording, which matches the 'definition should say so more clearly' scope of this option."
+        ],
+        "arguments_against": [
+          "The current definition literally says 'Routable', so the spec as written misstates the intent rather than merely being unclear.",
+          "Calling it working as designed ignores that routable lacks any description explaining false values."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "One could argue whether modals should be views or subviews or library components; the distinctions show this boundary needs deciding."
+        ],
+        "arguments_against": [
+          "The layer overview explicitly names modals and dialogs as views, so there is no open product question about inclusion.",
+          "The fix is a wording clarification already drafted, not a choice between reasonable alternative models."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "Routing paths belong to the navigation layer, so one might say routability detail is not UX's concern."
+        ],
+        "arguments_against": [
+          "The claim is about the ux.view definition and its own attribute, squarely within the UX layer spec.",
+          "It concerns spec text, not tooling or something the spec deliberately omits."
+        ]
+      }
+    ]
+  }
+}

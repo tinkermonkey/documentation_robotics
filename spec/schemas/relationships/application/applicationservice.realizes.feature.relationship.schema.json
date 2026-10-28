@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationservice realizes Feature",
+  "description": "The application service supplies the operations that make the user-visible product feature work.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationservice.realizes.product.feature"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationservice"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "product.feature"
+    },
+    "destination_layer": {
+      "const": "product"
+    },
+    "predicate": {
+      "const": "realizes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The feature's spec, ticket or feature flag is wired to the service's endpoints, e.g. the frontend feature calls the service's API and the feature toggle gates its routes."
+  ]
+}

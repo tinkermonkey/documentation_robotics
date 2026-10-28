@@ -1,0 +1,38 @@
+{
+  "source": "security.accesscondition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.056Z",
+  "relationships": [
+    {
+      "id": "security.accesscondition.composes.security.policyrule",
+      "previous_description": "Defines relationship: security.accesscondition composes security.policyrule",
+      "description": "The access condition is one comparison term inside a policy rule's condition expression, existing only as part of that rule and contributing its true/false result to the rule's permit or deny decision.",
+      "evidence": "The policy definition file (e.g. OPA/Rego, XACML or a YAML policy) nests the attribute comparison inside the rule's condition block, so deleting the rule removes the comparison with it."
+    },
+    {
+      "id": "security.accesscondition.constrains.security.permission",
+      "previous_description": "Defines relationship: security.accesscondition constrains security.permission",
+      "description": "The access condition narrows when a granted permission actually applies, so a holder of the permission may perform the action on the resource only if the runtime attribute comparison is true.",
+      "evidence": "The authorization configuration attaches the condition to the permission grant (e.g. an IAM policy 'Condition' block or a @PreAuthorize expression combining hasPermission with an attribute check), and requests failing the comparison are denied despite the role holding the permission."
+    },
+    {
+      "id": "security.accesscondition.governs.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: security.accesscondition governs security.fieldaccesscontrol",
+      "description": "The access condition decides at runtime whether the field access control's masking, redaction or tokenization is applied to a field, such as unmasking a value only when the subject's clearance claim meets a threshold.",
+      "evidence": "The field-masking configuration or serializer code checks the condition's attribute comparison before applying or skipping the mask on that named field."
+    },
+    {
+      "id": "security.accesscondition.references.security.secureresource",
+      "previous_description": "Defines relationship: security.accesscondition references security.secureresource",
+      "description": "The access condition names a property of the secure resource, such as owner, classification or tenant, as the attribute or comparison value it tests, without depending on the resource's functionality.",
+      "evidence": "The condition's attribute path points into the resource context (e.g. 'resource.ownerId == subject.sub' or 'resource.classification'), and the referenced property is declared on that protected resource's schema."
+    },
+    {
+      "id": "security.accesscondition.uses.security.validationrule",
+      "previous_description": "Defines relationship: security.accesscondition uses security.validationrule",
+      "description": "The access condition delegates checking an attribute value's format, range or allowed-value set to a validation rule, using the rule's verdict as part of the comparison before it returns its access result.",
+      "evidence": "The condition's implementation or policy expression invokes the named validation check (e.g. a shared regex or allowed-list function) on the request attribute, and an invalid value causes the condition to evaluate false with its denial message."
+    }
+  ],
+  "notes": "composes direction looks inverted: the catalog says whole composes part, yet here the part (AccessCondition) composes the whole (PolicyRule); 'composed-of' or swapping the direction fits better. Using ValidationRule muddles concerns, since validation accepts values and conditions make access decisions. Governs over FieldAccessControl partly overlaps with constrains."
+}

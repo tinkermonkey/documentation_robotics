@@ -1,0 +1,50 @@
+{
+  "source": "api.schema",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.069Z",
+  "relationships": [
+    {
+      "id": "api.schema.maps-to.business.businessobject",
+      "previous_description": "Defines relationship: api.schema maps-to business.businessobject",
+      "description": "The schema is the wire-level representation of a business concept, so its properties carry the information that defines that business object, such as an Order or Invoice, when it crosses the API.",
+      "evidence": "The components/schemas entry is named for the business object, or carries an x-business-object extension or description linking it, and its properties match the attributes in the business object catalog."
+    },
+    {
+      "id": "api.schema.maps-to.data-store.collection",
+      "previous_description": "Defines relationship: api.schema maps-to data-store.collection",
+      "description": "Instances of the schema are persisted as records in the collection, so the API payload shape is serialized from, or deserialized into, rows or documents of that table, collection or index.",
+      "evidence": "An ORM entity, repository or DTO mapper that converts the schema's generated model class to the persisted entity, or an x-table or x-collection extension on the schema, names the collection."
+    },
+    {
+      "id": "api.schema.maps-to.data-store.field",
+      "previous_description": "Defines relationship: api.schema maps-to data-store.field",
+      "description": "The schema, typically a property-level or scalar schema, carries the value stored in a specific persisted column, document path or property, so reading or writing it reads or writes that field.",
+      "evidence": "Mapper code, ORM column annotations or generated DTO-to-entity mappings assign the schema property to the named column or document field, or an x-column extension on the property names it."
+    },
+    {
+      "id": "api.schema.references.api.operation",
+      "previous_description": "Defines relationship: api.schema references api.operation",
+      "description": "The schema points to an operation it is related to, for example a hypermedia link or callback target describing where a value of this shape can be submitted or fetched, without depending on that operation to be valid.",
+      "evidence": "A vendor extension such as x-operationId on the schema, or a property whose description or format names the target operationId, identifies the operation in the OpenAPI document."
+    },
+    {
+      "id": "api.schema.references.api.schema",
+      "previous_description": "Defines relationship: api.schema references api.schema",
+      "description": "The schema reuses another schema's definition by pointer, typically for a property, array item or additionalProperties value, so the referenced shape constrains part of this one.",
+      "evidence": "The schema object contains a $ref such as '#/components/schemas/Address' in its properties, items, additionalProperties, oneOf or anyOf entries pointing at the other schema."
+    },
+    {
+      "id": "api.schema.references.api.tag",
+      "previous_description": "Defines relationship: api.schema references api.tag",
+      "description": "The schema is labeled with a documentation tag so tooling and readers can group it with the operations in the same functional category.",
+      "evidence": "The schema carries a vendor extension such as x-tags listing a tag name that is declared in the OpenAPI root tags array."
+    },
+    {
+      "id": "api.schema.specializes.api.schema",
+      "previous_description": "Defines relationship: api.schema specializes api.schema",
+      "description": "The schema is a subtype of a more general base schema, inheriting all of its properties and constraints while adding or narrowing its own, so any value valid against it is also valid against the base.",
+      "evidence": "The schema's allOf includes a $ref to the base schema alongside its own properties, or the base schema's discriminator mapping lists this schema as a concrete variant."
+    }
+  ],
+  "notes": "references→api.operation and references→api.tag have no native OpenAPI 3.0 basis; schemas don't point to operations or tags except via vendor extensions. references→api.schema and specializes→api.schema overlap since both use $ref; restrict specializes to allOf inheritance/discriminator. maps-to collection and field overlap with property-level mapping."
+}

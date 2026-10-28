@@ -1,0 +1,44 @@
+{
+  "source": "security.dataclassification",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.063Z",
+  "relationships": [
+    {
+      "id": "security.dataclassification.governs.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: security.dataclassification governs security.fieldaccesscontrol",
+      "description": "The classification tier dictates how strongly a sensitive field must be masked, redacted, hashed or tokenized, so the field-level protection rule takes its masking strategy from the label assigned to that field.",
+      "evidence": "The field-access-control definition references a classification level (e.g. classification: restricted), and the masking mode it declares matches the handling rule that tier prescribes."
+    },
+    {
+      "id": "security.dataclassification.governs.security.informationentity",
+      "previous_description": "Defines relationship: security.dataclassification governs security.informationentity",
+      "description": "The classification label is attached to the logical information category, such as customer PII or card data, and imposes its minimum handling obligations on every use of that category.",
+      "evidence": "The data inventory or security model entry for the information entity carries a classification attribute naming this tier, for example in a data catalog tag or a model YAML field."
+    },
+    {
+      "id": "security.dataclassification.governs.security.retentionpolicy",
+      "previous_description": "Defines relationship: security.dataclassification governs security.retentionpolicy",
+      "description": "The classification tier sets the constraints that a retention policy must honour for data carrying that label, including minimum keep periods, permitted storage locations and required disposal methods.",
+      "evidence": "The retention policy document or configuration names the classification level it applies to, and its retention period and disposal method trace back to that tier's handling rules."
+    },
+    {
+      "id": "security.dataclassification.governs.security.secureresource",
+      "previous_description": "Defines relationship: security.dataclassification governs security.secureresource",
+      "description": "The protected resource holds data at this sensitivity tier, so the classification's protection obligations, such as encryption at rest and in transit, apply to that API, store or service.",
+      "evidence": "The resource is tagged with the classification level in infrastructure or catalog metadata (for example a data-classification tag on a database), and its encryption and access settings meet the tier's requirements."
+    },
+    {
+      "id": "security.dataclassification.requires.security.countermeasure",
+      "previous_description": "Defines relationship: security.dataclassification requires security.countermeasure",
+      "description": "The classification tier mandates a specific security control, such as encryption or DLP, that must be in place for any data carrying the label to be handled compliantly.",
+      "evidence": "The classification standard lists the required controls for the tier, and the countermeasure register records that control as satisfying the tier's obligation, e.g. 'confidential requires AES-256 encryption at rest'."
+    },
+    {
+      "id": "security.dataclassification.supports.security.securitypolicy",
+      "previous_description": "Defines relationship: security.dataclassification supports security.securitypolicy",
+      "description": "The classification label gives the access-control policy a sensitivity attribute that its rules use to decide which principals may reach data at each tier.",
+      "evidence": "The policy's rules or target conditions test the classification attribute, for example an XACML or OPA condition such as resource.classification == 'restricted'."
+    }
+  ],
+  "notes": "The governs links to secureresource and fieldaccesscontrol overlap with the label-to-asset relationship already held by informationentity; classification probably applies to resources indirectly through information entities. 'requires' to countermeasure arguably duplicates the governance notion of 'mandates', which fits better, since a classification label does not need a control in order to function."
+}

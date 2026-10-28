@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "navigation.routemeta",
+  "previous_description": "Per-route rendering and access configuration attached to a Route node and consumed by the SPA router at runtime. Covers layout selection, component instance caching, animation transitions, breadcrumb labeling, and access control hints. Security attributes (requiresAuth, roles, permissions) are navigation hints that should be enforced through NavigationGuard nodes in the security layer.",
+  "definition": "A declarative metadata record attached to a single Route that the SPA router reads at runtime. It sets how that route's view is rendered (layout wrapper, keep-alive caching, enter/leave animation, breadcrumb label) and exposes access hints (requiresAuth, roles, permissions) for guards to read; it carries no URL path and no executable logic of its own.",
+  "distinguish_from": [
+    {
+      "type": "navigation.route",
+      "when": "the symbol defines the addressable path pattern and the component it resolves to, rather than the auxiliary meta/data object hanging off that route record"
+    },
+    {
+      "type": "navigation.navigationguard",
+      "when": "the symbol is executable interception logic (beforeEach, canActivate, a loader redirect) that evaluates and enforces access, rather than the static hints such logic reads"
+    },
+    {
+      "type": "navigation.breadcrumbconfig",
+      "when": "the configuration sets breadcrumb generation rules, separators or home-link behaviour for a whole navigation scope rather than one route's breadcrumb label"
+    },
+    {
+      "type": "navigation.navigationtransition",
+      "when": "modelling a directed change from one route to another with a trigger, not the CSS/animation name stored in a route's meta 'transition' field"
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: Route Meta Fields (e.g., Vue Router RouteMeta, Angular Route.data, React Router route handle)",
+  "code_evidence": [
+    "a `meta: { requiresAuth: true, layout: 'AuthLayout', keepAlive: true }` object inside a Vue Router route record, or a `declare module 'vue-router' { interface RouteMeta { ... } }` type augmentation",
+    "an Angular route definition with `data: { roles: ['admin'], breadcrumb: 'Reports' }` that is read through ActivatedRoute.snapshot.data or in a guard",
+    "a root shell that wraps `<router-view>` in `<keep-alive>` or `<transition :name=\"route.meta.transition\">`, or that picks a layout component from `route.meta.layout` / `useMatches()[i].handle`"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The roles, permissions, layout, keepAlive and transition attributes are marked required, but real meta objects set only a few fields; they should be optional. roles and permissions should be string arrays, not comma-separated strings. The 'transition' attribute collides with NavigationTransition and with the uses→navigationtransition edge; rename it 'animation'. The definition wrongly places NavigationGuard in the security layer.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.228Z"
+}

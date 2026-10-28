@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Inputspacepartition Composes Partitionvalue",
+  "title": "Inputspacepartition composes Partitionvalue",
   "description": "Defines relationship: testing.inputspacepartition composes testing.partitionvalue",
   "allOf": [
     {
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.inputspacepartition.composes.partitionvalue"
+      "const": "testing.inputspacepartition.composes.testing.partitionvalue"
     },
     "source_spec_node_id": {
       "const": "testing.inputspacepartition"

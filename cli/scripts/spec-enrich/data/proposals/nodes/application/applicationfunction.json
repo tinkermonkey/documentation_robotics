@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationfunction",
+  "previous_description": "Automated behavior performed by an application component for internal purposes, not directly exposed as a service to external consumers.",
+  "definition": "A unit of automated behavior performed by a single application component, grouped by the kind of work or capability it covers rather than by execution order or trigger, and invoked from inside the system rather than offered as a contract to external consumers.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationprocess",
+      "when": "the behavior is an ordered sequence of steps leading to a defined operational result, such as a workflow, saga, pipeline or multi-step job, rather than a capability grouping with no inherent order."
+    },
+    {
+      "type": "application.applicationservice",
+      "when": "the behavior is the externally visible, consumer-facing offering, such as a public service-layer method or endpoint-backed capability. The function is the internal behavior that realizes it."
+    },
+    {
+      "type": "application.applicationinteraction",
+      "when": "the behavior can only be performed jointly by two or more components, such as a request-reply exchange or a publish-subscribe handshake, rather than by one component alone."
+    },
+    {
+      "type": "application.applicationcomponent",
+      "when": "the symbol is the deployable or replaceable structural unit, such as a module, package or service class, that owns behavior, rather than the behavior itself."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.3.1 Application Function",
+  "code_evidence": [
+    "A class or module of internal, unexported or package-private methods grouped around one concern (e.g. PricingCalculator.computeDiscount, TaxRules.apply) whose callers are other classes in the same codebase rather than route handlers or external clients.",
+    "A domain or utility function, such as validation, scoring, matching or transformation logic, that is reused by several workflows or service methods and is not registered on any HTTP router, message listener or public API surface.",
+    "A stored procedure, rule-engine rule or helper invoked through an internal call graph, documented as 'computes', 'validates' or 'derives' something, with no ordering of steps and no direct external trigger."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of what the function computes or manages, its inputs and outputs, and the owning component; set it whenever the name alone does not make the behavior's scope clear."
+    }
+  ],
+  "notes": "The phrase 'for internal purposes' conflicts with the realizes→ApplicationService relationship; clarify that the function is the internal behavior that realizes the service, not the exposed contract. The spec needs a granularity rule, otherwise every private method qualifies. The api.operation→realizes→applicationfunction direction looks inverted; operations normally realize or serve services.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:23:51.834Z"
+}

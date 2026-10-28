@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "security.securitymodel.aggregates.informationentity"
+      "const": "security.securitymodel.aggregates.security.informationentity"
     },
     "source_spec_node_id": {
       "const": "security.securitymodel"

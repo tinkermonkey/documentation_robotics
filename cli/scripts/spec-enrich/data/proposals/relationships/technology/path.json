@@ -1,0 +1,50 @@
+{
+  "source": "technology.path",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.050Z",
+  "relationships": [
+    {
+      "id": "technology.path.assigned-to.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.path assigned-to technology.technologyinterface",
+      "description": "The communication path is bound to a specific technology interface endpoint, so the traffic it carries terminates at that listening port, socket or broker listener.",
+      "evidence": "A connection string, firewall rule or service-mesh route for the link names the interface's host and port (e.g. db.internal:5432) as its endpoint."
+    },
+    {
+      "id": "technology.path.composes.technology.path",
+      "previous_description": "Defines relationship: technology.path composes technology.path",
+      "description": "An end-to-end communication path is built from constituent path segments, such as hops or tunnel legs, that exist only as parts of that overall link.",
+      "evidence": "Network topology documentation or Terraform defines a site-to-site VPN connection whose tunnel resources or peering hops are declared as sub-components of that single connection."
+    },
+    {
+      "id": "technology.path.flows-to.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.path flows-to technology.technologyservice",
+      "description": "Data exchanged over the communication path is delivered to the technology service at its far end, such as requests carried to a database or messaging capability.",
+      "evidence": "Traffic flow diagrams, network policies or mesh telemetry show requests travelling over the link and arriving at the service's endpoint (e.g. a NetworkPolicy allowing egress to the database service)."
+    },
+    {
+      "id": "technology.path.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.path realizes technology.technologyservice",
+      "description": "The communication path itself is the concrete mechanism that delivers a connectivity-type technology service, such as a managed VPN, private link or message channel offered to consumers.",
+      "evidence": "A service catalog entry or Terraform module for a connectivity offering (e.g. a private-link or VPN service) is implemented by provisioning this specific tunnel or channel resource."
+    },
+    {
+      "id": "technology.path.serves.technology.device",
+      "previous_description": "Defines relationship: technology.path serves technology.device",
+      "description": "The communication path provides connectivity to a physical device, letting that hardware exchange data with the other endpoints on the link.",
+      "evidence": "Network inventory or switch/router configuration lists the device's port or IP as an endpoint of the VLAN, circuit or tunnel."
+    },
+    {
+      "id": "technology.path.serves.technology.node",
+      "previous_description": "Defines relationship: technology.path serves technology.node",
+      "description": "The communication path provides connectivity to a hosting node, such as a VM, container or cluster, enabling the workloads on it to reach other endpoints.",
+      "evidence": "Infrastructure-as-code attaches the node to the link, e.g. a subnet route, security group rule or VPC peering entry referencing the VM or cluster, or a Kubernetes NetworkPolicy selecting its pods."
+    },
+    {
+      "id": "technology.path.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.path triggers technology.technologyevent",
+      "description": "A state change on the communication path, such as the link going down, a tunnel renegotiating or latency exceeding a threshold, raises a discrete technology event.",
+      "evidence": "Monitoring configuration defines an alert or health-check rule on the link (e.g. a CloudWatch alarm on VPN TunnelState or a connection-probe failure) that emits the named event."
+    }
+  ],
+  "notes": "flows-to and realizes toward TechnologyService overlap ambiguously. A path usually serves or carries traffic to a service rather than realizing it, and realizes fits only connectivity services. serves toward Device and Node is the same notion split by target type. ArchiMate models a path as associated-with its nodes rather than serving them."
+}

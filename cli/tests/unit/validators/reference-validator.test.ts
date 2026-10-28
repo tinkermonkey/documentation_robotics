@@ -68,11 +68,11 @@ describe("ReferenceValidator", () => {
     expect(result.errors[0].message).toContain("business-process-nonexistent");
   });
 
-  it("should enforce directional constraint (higher to lower)", () => {
+  it("should allow references in either direction across layers (direction is defined by the predicate)", () => {
     const validator = new ReferenceValidator();
     const model = createTestModel();
 
-    // Lower layer (business) incorrectly references higher layer (motivation)
+    // business references motivation: valid, a process implements a goal
     const businessLayer = new Layer("business", [
       new Element({
         id: "business-process-sales",
@@ -95,9 +95,8 @@ describe("ReferenceValidator", () => {
 
     const result = validator.validateModel(model);
 
-    expect(result.isValid()).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain("Invalid reference direction");
+    expect(result.isValid()).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 
   it("should allow same-layer references", () => {
@@ -472,7 +471,7 @@ describe("ReferenceValidator", () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it("should enforce directional constraint on qualified references", () => {
+    it("should allow qualified references in either direction (direction is defined by the predicate)", () => {
       const validator = new ReferenceValidator();
       const manifest = new Manifest({
         name: "Test Model",
@@ -483,7 +482,7 @@ describe("ReferenceValidator", () => {
       });
       const model = new Model("/test", manifest);
 
-      // Data Store layer incorrectly referencing higher layer (api) in external model
+      // Data Store layer referencing the api layer in a declared external model: valid
       const dataStoreLayer = new Layer("data-store", [
         new Element({
           id: "data-store-table-users",
@@ -497,9 +496,8 @@ describe("ReferenceValidator", () => {
 
       const result = validator.validateModel(model);
 
-      expect(result.isValid()).toBe(false);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].message).toContain("Invalid reference direction");
+      expect(result.isValid()).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it("should report malformed qualified path segment", () => {

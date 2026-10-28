@@ -1,0 +1,50 @@
+{
+  "source": "navigation.contextvariable",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.067Z",
+  "relationships": [
+    {
+      "id": "navigation.contextvariable.consumes.navigation.route",
+      "previous_description": "Defines relationship: navigation.contextvariable consumes navigation.route",
+      "description": "The context variable takes its value from a client-side route, for example by being hydrated from the route's path parameters or query string when the browser location matches that route entry.",
+      "evidence": "The flow's context declaration or router resolver reads the route's params or query (e.g. route.paramMap, useSearchParams) and writes the result into the named context variable store key."
+    },
+    {
+      "id": "navigation.contextvariable.flows-to.navigation.flowstep",
+      "previous_description": "Defines relationship: navigation.contextvariable flows-to navigation.flowstep",
+      "description": "The value held in the context variable is carried forward across route transitions and handed to a specific step of the navigation flow, which reads it to render or decide its behavior.",
+      "evidence": "The component or guard bound to the flow step's route reads the variable from the flow's context store, session storage or URL query key, after an earlier step has written it."
+    },
+    {
+      "id": "navigation.contextvariable.maps-to.api.parameter",
+      "previous_description": "Defines relationship: navigation.contextvariable maps-to api.parameter",
+      "description": "The client-side state held in the context variable is sent as a named path, query, header or cookie input when the front end calls an API operation.",
+      "evidence": "The API client call made during the flow passes the context variable's value into the parameter of that name and location declared in the OpenAPI operation."
+    },
+    {
+      "id": "navigation.contextvariable.maps-to.data-model.schemaproperty",
+      "previous_description": "Defines relationship: navigation.contextvariable maps-to data-model.schemaproperty",
+      "description": "The context variable holds the client-side copy of one field of a domain or DTO schema, so its type and value restrictions correspond to that property's subschema.",
+      "evidence": "The context variable's declared schema or type annotation $refs or mirrors the specific property under the object schema's 'properties', and code assigns it from or to that field."
+    },
+    {
+      "id": "navigation.contextvariable.references.application.dataobject",
+      "previous_description": "Defines relationship: navigation.contextvariable references application.dataobject",
+      "description": "The context variable's value is typed as an application data structure, such as a draft order or selected-customer record, without the variable depending on any behavior of that structure.",
+      "evidence": "The context variable declaration uses the data object's class, interface or type alias as its generic or annotated type in the flow's state definition."
+    },
+    {
+      "id": "navigation.contextvariable.references.data-model.jsonschema",
+      "previous_description": "Defines relationship: navigation.contextvariable references data-model.jsonschema",
+      "description": "The context variable declares its value shape by pointing at a top-level JSON Schema document that validates what steps may write into it.",
+      "evidence": "The context variable's schema field contains a $ref or $id URI resolving to the JSON Schema document, or the runtime validates stored values against that schema file."
+    },
+    {
+      "id": "navigation.contextvariable.triggers.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.contextvariable triggers navigation.navigationtransition",
+      "description": "Setting or changing the context variable's value causes the router to initiate a particular permitted route change, such as redirecting once a required selection has been stored.",
+      "evidence": "A watcher, effect or store subscription on the context variable calls router.navigate or issues a redirect to the transition's destination route when the value is set or meets a condition."
+    }
+  ],
+  "notes": "consumes and triggers attribute behavior to passive runtime data; consumes on Route is better inverted (route provides/populates variable), and triggers is better modeled as a guard evaluating the variable. references jsonschema overlaps maps-to schemaproperty when the variable's schema is a property subschema; references dataobject and references jsonschema both describe value type."
+}

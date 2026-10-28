@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice accesses Dataobject",
-  "description": "Defines relationship: application.applicationservice accesses application.dataobject",
+  "description": "The application service's operations read, write or transform the code-level data structure as their input, output or working state.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service interface or implementation takes, returns or mutates the class, record or DTO, e.g. a method signature `CustomerDto getCustomer(id)` or repository calls that save that type."
+  ]
 }

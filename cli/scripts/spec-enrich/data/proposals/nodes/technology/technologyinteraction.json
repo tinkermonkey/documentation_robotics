@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologyinteraction",
+  "previous_description": "A unit of collective technology behavior performed by two or more collaborating nodes, such as a distributed transaction, inter-service handshake, or cluster failover protocol.",
+  "definition": "A technology behavior element that is performed jointly by two or more technology active structure elements (nodes, devices, or system software) acting as a collaboration, and that none of the participants can complete alone. Examples include a distributed commit, consensus-based leader election, a cluster failover handover, or a replication sync between peers.",
+  "distinguish_from": [
+    {
+      "type": "technology.technologyfunction",
+      "when": "the behavior is carried out by a single node or system software on its own, such as local log rotation or one load balancer distributing requests, with no coordination protocol between peers."
+    },
+    {
+      "type": "technology.technologyprocess",
+      "when": "the element is an ordered sequence of steps toward a defined result, such as a deployment pipeline or backup job, whose steps need not be jointly performed by multiple collaborating participants."
+    },
+    {
+      "type": "technology.technologycollaboration",
+      "when": "you are modelling the group of cooperating nodes or software itself (the cluster, mesh, or replica set) rather than the joint behavior that group performs."
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the element is the externally visible capability offered to consumers, such as a highly available database service, rather than the internal multi-party coordination that realizes it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.3 Technology Interaction",
+  "code_evidence": [
+    "Configuration or code for a consensus or coordination protocol among peers, such as Raft or etcd peer settings, ZooKeeper quorum configuration, Redis Sentinel monitor/failover settings, or Patroni leader-election config.",
+    "A two-phase or XA distributed transaction setup that coordinates prepare/commit across multiple resource managers, for example a JTA/Atomikos transaction manager enlisting both a database and a message broker.",
+    "Replication or cluster-membership protocol settings that require multiple instances to exchange state, such as PostgreSQL streaming replication primary_conninfo, Kafka consumer-group rebalance handlers, or Hazelcast/Akka cluster join and gossip configuration."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the joint behavior: the participating elements, the coordination protocol or algorithm used (e.g. Raft, 2PC, gossip), and the outcome. Set it whenever the participants or protocol cannot be inferred from the element name."
+    }
+  ],
+  "notes": "The 'realizes → technologycollaboration' relationship is not valid ArchiMate, since behavior does not realize active structure; a collaboration is assigned to the interaction, which is already covered by 'performs'. 'composes → technologyfunction' is questionable. The flows-to self-relationship is listed twice. The definition says 'nodes', but performers may also be system software or devices. Consider adding an optional protocol/coordinationPattern attribute.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.242Z"
+}

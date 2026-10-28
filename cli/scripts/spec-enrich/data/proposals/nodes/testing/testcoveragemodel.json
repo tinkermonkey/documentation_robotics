@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.testcoveragemodel",
+  "previous_description": "The root artifact of a testing layer coverage specification, aggregating all TestCoverageTargets, InputSpacePartitions, ContextVariations, CoverageRequirements, and TestCaseSketches for an application. Corresponds to the test plan document structure in IEEE 829-2008, providing a single point of reference for coverage governance.",
+  "definition": "A versioned, application-scoped coverage specification that acts as the root container for the coverage targets, input partitions, context variations, coverage requirements, exclusions and test case sketches of exactly one application or API. It corresponds to a test plan as a whole, not to any individual target, test, suite or results report.",
+  "distinguish_from": [
+    {
+      "type": "testing.testcoveragetarget",
+      "when": "the element identifies one endpoint, workflow, UI component, job or integration flow that needs coverage, rather than the whole application's coverage specification."
+    },
+    {
+      "type": "testing.coveragesummary",
+      "when": "the element reports aggregated counts or status across a model's targets, requirements and sketches, rather than defining the coverage scope itself."
+    },
+    {
+      "type": "testing.coveragerequirement",
+      "when": "the element states the criteria (partitions, contexts, outcomes, coverage strategy) that a single target must satisfy, rather than containing all targets and requirements."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Clause 8 Master Test Plan / Clause 9 Level Test Plan",
+  "code_evidence": [
+    "A top-level test plan or coverage manifest file (e.g. test-plan.yaml, coverage-model.json) carrying a version and an application or service identifier, and listing the endpoints or features to be tested.",
+    "A TEST_PLAN.md or docs/testing/plan document for one service that has 'Features to be tested', 'Approach' and 'Pass/fail criteria' sections.",
+    "A test-generation configuration that imports one OpenAPI document or application spec (e.g. a schemathesis, dredd or contract-test config pointing at openapi.yaml) and produces the set of coverage targets for that application."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Version identifier of this coverage model, as a semantic version or date stamp (e.g. '1.2.0' or '2024-05-01'); increment it whenever targets, requirements or exclusions are added, removed or changed."
+    },
+    {
+      "name": "description",
+      "description": "Free-text summary of the model's scope, the application release or test level it addresses, and any overall test approach; set it whenever the scope is not obvious from the application reference."
+    }
+  ],
+  "notes": "The model both aggregates and composes testcoveragetarget; pick one. Coveragesummary 'aggregates' testcoveragemodel inverts the composition direction, and its three edges to the model are redundant. The single 'application' reference conflicts with 'covers' edges into many layers. Consider adding a testLevel attribute (unit, integration, system, acceptance) and a status attribute to match IEEE 829 level test plans.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

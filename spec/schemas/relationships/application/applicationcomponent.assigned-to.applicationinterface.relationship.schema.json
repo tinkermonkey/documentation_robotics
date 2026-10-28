@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent assigned-to Applicationinterface",
-  "description": "Defines relationship: application.applicationcomponent assigned-to application.applicationinterface",
+  "description": "The component is the active element behind the access point, handling every request that arrives through that controller, endpoint or listener.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The controller, gRPC binding or message listener is registered in the component's bootstrap or routing configuration and delegates directly to the component's handlers."
+  ]
 }

@@ -1,0 +1,67 @@
+{
+  "claim_id": "node:data-store.namespace#1",
+  "first_pass": {
+    "choice": "real_defect",
+    "probabilities": {
+      "real_defect": 0.441,
+      "works_as_designed": 0.283,
+      "judgment_call": 0.224,
+      "out_of_scope": 0.052
+    },
+    "confidence": 0.103
+  },
+  "arguments": {
+    "fact_checks": [
+      "The current namespace definition explicitly lists 'Elasticsearch index' among its mappings, so the overlap the claim describes exists in the spec as written.",
+      "The proposed definition already drops Elasticsearch index from Namespace and routes 'an Elasticsearch index that holds documents' to collection in its distinctions, matching the claim's proposed change.",
+      "The verified facts do not include data-store.collection's attributes, so the existence of a SEARCH_INDEX collectionType is not confirmed by the evidence given.",
+      "The relationship list includes both namespace.composes.collection and collection.composes.namespace, so composition runs both ways. That makes it unclear what an Elasticsearch index mapped to Namespace would compose."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "The current text maps Elasticsearch index to Namespace, but an ES index directly holds documents, which is the role of Collection, the central storage unit.",
+          "Two element types claiming the same physical construct gives modellers and extraction tooling ambiguous targets, producing inconsistent models.",
+          "The proposed definition already corrects this, which suggests the authors treat the current mapping as an error."
+        ],
+        "arguments_against": [
+          "The SEARCH_INDEX collectionType cited by the claim is not shown in the verified facts, so part of the claim's premise is unconfirmed.",
+          "If the proposed definition is adopted, the issue is already resolved, and the claim adds nothing beyond it."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "The skill overview describes Namespace loosely as 'schemas, keyspaces, databases', so the broad paradigm-neutral listing may be intentional.",
+          "Elasticsearch indexes with aliases or multiple mappings could be read as name-scoping containers, a defensible but loose reading."
+        ],
+        "arguments_against": [
+          "The proposed definition says Namespace 'does not itself hold records'. ES indexes hold documents, so the mapping contradicts intended semantics.",
+          "The layer intent names Collection as the core storage unit, which fits an ES index better than a grouping container."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Elasticsearch has no schema-like layer. Whether an index is a container or a storage unit is partly a modelling convention choice.",
+          "Some teams group index families (time-based indexes behind an alias) and might want a Namespace-level element for that."
+        ],
+        "arguments_against": [
+          "The layer's own definitions (records held vs. names scoped) give a clear criterion, leaving little room for preference.",
+          "Index families behind aliases are covered by View in the proposed distinctions ('alias over source collections'), not by Namespace."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "The claim could be read as concerning extraction or mapping guidance rather than the type model itself."
+        ],
+        "arguments_against": [
+          "The mapping list is part of the element type definition in the spec, not tooling behaviour.",
+          "The data-store layer explicitly targets multiple paradigms, so Elasticsearch is within its modelled scope."
+        ]
+      }
+    ]
+  }
+}

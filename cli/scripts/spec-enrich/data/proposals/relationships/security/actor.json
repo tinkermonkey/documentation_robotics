@@ -1,0 +1,56 @@
+{
+  "source": "security.actor",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.063Z",
+  "relationships": [
+    {
+      "id": "security.actor.accesses.security.secureresource",
+      "previous_description": "Defines relationship: security.actor accesses security.secureresource",
+      "description": "The principal is the subject that reads, invokes or modifies the protected API, database, file or UI area, making it the 'who' in an authorization decision whose 'object' is that resource.",
+      "evidence": "An access policy, ACL entry or authorization check (e.g. a policy rule or @PreAuthorize expression) names the actor or its principal identifier as allowed to perform operations on the resource, or audit logs record the actor's access to it."
+    },
+    {
+      "id": "security.actor.assigned-to.security.role",
+      "previous_description": "Defines relationship: security.actor assigned-to security.role",
+      "description": "The principal is a member of the role and receives that role's permission bundle, including any permissions inherited from the role's parent, through this assignment.",
+      "evidence": "An identity provider group membership, RBAC binding (e.g. a Kubernetes RoleBinding subject or user_roles table row) or security model entry lists the actor as holding the role."
+    },
+    {
+      "id": "security.actor.associated-with.security.delegation",
+      "previous_description": "Defines relationship: security.actor associated-with security.delegation",
+      "description": "The principal takes part in the delegation record, either as the delegator who transfers its own authority or as the delegatee who temporarily exercises it.",
+      "evidence": "The delegation definition names the actor in its delegator or delegatee field, for example an OAuth on-behalf-of grant or an impersonation configuration that lists the actor."
+    },
+    {
+      "id": "security.actor.associated-with.security.threat",
+      "previous_description": "Defines relationship: security.actor associated-with security.threat",
+      "description": "The principal is linked to the threat-model entry, typically as the threat agent that could carry out the attack or as the population whose credentials or privileges the attack abuses.",
+      "evidence": "The threat model document or threat register entry (e.g. a STRIDE table or OWASP Threat Dragon model) names the actor as the threat source or affected principal for that threat."
+    },
+    {
+      "id": "security.actor.constrained-by.security.securityconstraints",
+      "previous_description": "Defines relationship: security.actor constrained-by security.securityconstraints",
+      "description": "The principal's actions are limited by the application's separation-of-duty, binding-of-duty and need-to-know rules, so it cannot perform conflicting or purpose-inappropriate steps even when its roles would otherwise permit them.",
+      "evidence": "A SeparationOfDuty, BindingOfDuty or NeedToKnow rule within the constraints container references the actor or its roles, and the workflow engine or policy decision point enforces that rule against the actor's requests."
+    },
+    {
+      "id": "security.actor.governed-by.security.authenticationconfig",
+      "previous_description": "Defines relationship: security.actor governed-by security.authenticationconfig",
+      "description": "The principal must prove its identity under the rules of the authentication configuration, which sets its identity provider, second-factor requirement, session lifetime and credential policy.",
+      "evidence": "The identity provider or authentication configuration (e.g. an OIDC client, SAML realm or MFA policy) scopes its rules to the actor's user population or service account type."
+    },
+    {
+      "id": "security.actor.references.security.delegation",
+      "previous_description": "Defines relationship: security.actor references security.delegation",
+      "description": "The principal's definition holds a pointer to a delegation record it is party to, without its own existence depending on that delegation.",
+      "evidence": "The actor's model entry or identity record contains a delegation identifier field pointing to the delegation record."
+    },
+    {
+      "id": "security.actor.requires.security.authenticationconfig",
+      "previous_description": "Defines relationship: security.actor requires security.authenticationconfig",
+      "description": "The principal cannot be recognised or act within the application until it has authenticated through the mechanism the authentication configuration defines.",
+      "evidence": "The application's security filter chain or gateway rejects the actor's requests unless they carry a token or session issued through the configured identity provider and authentication flow."
+    }
+  ],
+  "notes": "Actor→Delegation has both associated-with and references, which are near-redundant; prefer one, ideally with delegator/delegatee roles made explicit. Actor→AuthenticationConfig has both governed-by and requires, which overlap heavily. Actor associated-with Threat conflicts with the Threat definition, which excludes the principal who carries out the attack."
+}

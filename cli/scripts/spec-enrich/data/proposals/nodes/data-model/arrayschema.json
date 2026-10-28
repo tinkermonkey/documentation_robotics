@@ -1,0 +1,58 @@
+{
+  "spec_node_id": "data-model.arrayschema",
+  "previous_description": "Defines validation rules for JSON array instances, constraining item schemas, cardinality bounds (minItems/maxItems), uniqueness requirements, and contains-subschema matching.",
+  "definition": "A JSON Schema subschema with type 'array' that constrains an ordered list of values: the schema each element must satisfy, how many elements are allowed, whether they must be distinct, and whether at least one element must match a given subschema.",
+  "distinguish_from": [
+    {
+      "type": "data-model.schemaproperty",
+      "when": "you are modelling the named field that holds the list (its name, title, description, readOnly) rather than the constraints on the list value itself."
+    },
+    {
+      "type": "data-model.objectschema",
+      "when": "the collection is keyed by name rather than ordered by position, such as a Map<String, T>, dict or record type, which becomes an object with additionalProperties or patternProperties."
+    },
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the list type is declared once under 'definitions' with a title and reused through $ref. Model the array constraints inside it as an arrayschema."
+    },
+    {
+      "type": "data-model.schemacomposition",
+      "when": "the constraint is a boolean combination (allOf/anyOf/oneOf/not) of subschemas, for example a union of element types, rather than array keywords directly."
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 Validation (draft-handrews-json-schema-validation-01) §6.4 Validation Keywords for Arrays (items, additionalItems, maxItems, minItems, uniqueItems, contains)",
+  "code_evidence": [
+    "A DTO, entity or record field typed as a collection, such as List<T>, T[], Array<T>, Set<T>, Sequence[T] or repeated in protobuf, where Set or frozenset types imply uniqueItems.",
+    "Cardinality validators on a collection field, such as Bean Validation @Size(min, max) or @NotEmpty on a List, Pydantic conlist or Field(min_length=..., max_length=...), or Zod z.array(...).min().max().nonempty().",
+    "A JSON Schema or OpenAPI fragment containing \"type\": \"array\" together with an \"items\" keyword, often with minItems, maxItems or uniqueItems."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "type",
+      "description": "The JSON Schema type keyword, which for this element must be the literal string 'array'. Always set it so the schema validates only array instances."
+    },
+    {
+      "name": "items",
+      "description": "The subschema, inline or as a $ref to a definition, that every array element must validate against. Set it whenever the element type is known, for example the T in List<T>."
+    },
+    {
+      "name": "minItems",
+      "description": "A non-negative integer giving the inclusive minimum number of elements. Set it when the list must not be empty (1) or needs a floor, for example from @Size(min) or @NotEmpty."
+    },
+    {
+      "name": "maxItems",
+      "description": "A non-negative integer giving the inclusive maximum number of elements. Set it when code or configuration enforces an upper bound on list length, for example @Size(max) or a page-size limit."
+    },
+    {
+      "name": "uniqueItems",
+      "description": "When true, all elements must be pairwise distinct by JSON equality. Set it when the source type has set semantics or the code rejects duplicates."
+    },
+    {
+      "name": "contains",
+      "description": "A subschema (inline or $ref) that at least one element must validate against. Set it only when the code requires the list to include a matching element, such as at least one primary address."
+    }
+  ],
+  "notes": "'type' is typed 'any' and optional. It should be a required string fixed to 'array'. 'items' as a string cannot express Draft 7's tuple form (an array of schemas). 'additionalItems' is missing. The aggregates relationships omit arrayschema→arrayschema (nested arrays) and boolean element types.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.251Z"
+}

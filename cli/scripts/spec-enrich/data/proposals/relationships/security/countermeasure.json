@@ -1,0 +1,62 @@
+{
+  "source": "security.countermeasure",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.060Z",
+  "relationships": [
+    {
+      "id": "security.countermeasure.fulfills.security.securityconstraints",
+      "previous_description": "Defines relationship: security.countermeasure fulfills security.securityconstraints",
+      "description": "The countermeasure is the control that meets the protective intent of an application's separation-of-duty, binding-of-duty and need-to-know rules, so those workflow constraints are actually upheld.",
+      "evidence": "The threat model or control register entry for the countermeasure cites the SecurityConstraints set by name, and the workflow engine or approval code enforces the listed duty and purpose rules."
+    },
+    {
+      "id": "security.countermeasure.implements.security.securitypolicy",
+      "previous_description": "Defines relationship: security.countermeasure implements security.securitypolicy",
+      "description": "The countermeasure is the concrete control that puts the security policy's ordered access-control rules into operation for its category of target.",
+      "evidence": "The control's configuration, such as a policy-engine bundle or gateway rule set, loads and evaluates the named policy, and the control register links the two."
+    },
+    {
+      "id": "security.countermeasure.mitigates.security.threat",
+      "previous_description": "Defines relationship: security.countermeasure mitigates security.threat",
+      "description": "The countermeasure is recorded against the threat-model entry as the control that reduces that attack's likelihood or impact, together with its assessed effectiveness.",
+      "evidence": "The threat model, such as a STRIDE sheet, OWASP Threat Dragon file or risk register, lists the countermeasure under the threat with its implementation status and effectiveness rating."
+    },
+    {
+      "id": "security.countermeasure.monitors.security.secureresource",
+      "previous_description": "Defines relationship: security.countermeasure monitors security.secureresource",
+      "description": "The countermeasure acts as a detective control that observes access to and activity on the protected resource, for example by alerting on anomalous operations.",
+      "evidence": "SIEM rules, WAF logging or audit-log alert configurations target the resource's endpoint, table or path and are tagged with the countermeasure's control ID."
+    },
+    {
+      "id": "security.countermeasure.protects.business.businessprocess",
+      "previous_description": "Defines relationship: security.countermeasure protects business.businessprocess",
+      "description": "The countermeasure safeguards the business process, keeping its activities and resulting business objects from being disrupted, tampered with or abused by the threats it addresses.",
+      "evidence": "A business impact or risk assessment maps the control to the process, or fraud and approval controls are configured on the systems that carry out that process's steps."
+    },
+    {
+      "id": "security.countermeasure.protects.security.secureresource",
+      "previous_description": "Defines relationship: security.countermeasure protects security.secureresource",
+      "description": "The countermeasure is a preventive control applied to the protected API, database, file or service, shielding it from the threats recorded against it.",
+      "evidence": "Infrastructure or gateway configuration, such as WAF rules, encryption-at-rest settings, rate limits or network policies, is attached to the resource and references the countermeasure."
+    },
+    {
+      "id": "security.countermeasure.realizes.motivation.goal",
+      "previous_description": "Defines relationship: security.countermeasure realizes motivation.goal",
+      "description": "The countermeasure is a concrete security measure through which stakeholders' intended security end state, such as protecting customer data, is brought about.",
+      "evidence": "The security architecture document or control register traces the countermeasure to the named goal, for example in a goal-to-control traceability matrix."
+    },
+    {
+      "id": "security.countermeasure.requires.security.evidence",
+      "previous_description": "Defines relationship: security.countermeasure requires security.evidence",
+      "description": "The countermeasure depends on a specific kind of proof artifact, such as audit trails, signatures or timestamps, being produced and retained in order to operate or demonstrate its effectiveness.",
+      "evidence": "The control specification names the required evidence type, and the logging, signing or timestamping configuration that emits that artifact is deployed alongside the control."
+    },
+    {
+      "id": "security.countermeasure.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: security.countermeasure satisfies motivation.requirement",
+      "description": "The countermeasure is the control that meets a specific verifiable security requirement, making its 'shall/must' statement and acceptance criteria hold.",
+      "evidence": "A requirements traceability matrix or compliance mapping links the requirement ID to the countermeasure, and test or audit results show the acceptance criteria are met."
+    }
+  ],
+  "notes": "implements SecurityPolicy reverses the stated design: concrete configuration implements countermeasures, not vice versa. realizes Goal is too strong for a qualitative goal; supports fits better. fulfills SecurityConstraints overlaps satisfies Requirement. monitors and protects SecureResource overlap; monitors suits only detective controls."
+}

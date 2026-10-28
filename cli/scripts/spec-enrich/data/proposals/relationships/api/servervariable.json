@@ -1,0 +1,32 @@
+{
+  "source": "api.servervariable",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.049Z",
+  "relationships": [
+    {
+      "id": "api.servervariable.associated-with.api.parameter",
+      "previous_description": "Defines relationship: api.servervariable associated-with api.parameter",
+      "description": "The server variable and the parameter carry the same logical value, such as an API version, tenant or region, one substituted into the base URL and the other into the request path, query, header or cookie, so changing one implies a corresponding change in the other.",
+      "evidence": "The server's variables map declares a key, such as 'version', and an operation or path item declares a parameter with the same name or a documented equivalence, for example a description stating that the header must match the selected server variable."
+    },
+    {
+      "id": "api.servervariable.governs.api.server",
+      "previous_description": "Defines relationship: api.servervariable governs api.server",
+      "description": "The server variable sets the default and the allowed enumerated values for one {placeholder} in the server's URL template, which determines which concrete base URLs that server declaration can resolve to.",
+      "evidence": "The server object's 'variables' map contains a key that matches a {token} in its 'url' string, and that entry declares a 'default' and optionally an 'enum'."
+    },
+    {
+      "id": "api.servervariable.references.api.example",
+      "previous_description": "Defines relationship: api.servervariable references api.example",
+      "description": "The server variable points to a named example that shows a concrete substitution value for its placeholder, for instance a sample region or environment name, without that example constraining the allowed values.",
+      "evidence": "The server variable entry contains a vendor extension or description that holds a $ref to components/examples/<name>, such as 'x-example: {$ref: ...}', or a documentation link to that example."
+    },
+    {
+      "id": "api.servervariable.serves.api.operation",
+      "previous_description": "Defines relationship: api.servervariable serves api.operation",
+      "description": "The server variable supplies the resolved segment of the base URL used to build every request URL for the operation, so client-selected values such as an environment or region determine where calls to that method and path are sent.",
+      "evidence": "The operation's effective 'servers' list, declared at operation, path-item or document level, includes a server whose URL contains the variable's {placeholder}, and generated clients expose that variable as a configurable base-URL setting."
+    }
+  ],
+  "notes": "'governs' understates the link: a server variable is structurally part of its server and cannot exist without it, so 'composes' fits better. The OpenAPI ServerVariable object has no examples field, so 'references api.example' depends on vendor extensions and is questionable. 'serves api.operation' only holds indirectly through api.server and may be redundant."
+}

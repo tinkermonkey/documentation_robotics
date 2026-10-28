@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinterface exposes Secureresource",
-  "description": "Defines relationship: application.applicationinterface exposes security.secureresource",
+  "description": "The interface makes the protected resource reachable to callers, so the resource's permitted operations are invoked through this endpoint and its access controls must apply there.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Routes or RPC methods on the interface map to the resource's operations and carry security annotations, guards or policy configuration naming that resource."
+  ]
 }

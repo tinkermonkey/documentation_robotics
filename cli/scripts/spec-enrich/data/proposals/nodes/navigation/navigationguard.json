@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "navigation.navigationguard",
+  "previous_description": "A conditional interceptor that evaluates whether a user is permitted to activate a route, applied at route resolution time before the target component renders. Guards encapsulate cross-cutting access policies — authentication state, role membership, feature-flag enablement, or custom predicates — and execute in priority order (lowest order value first) when multiple guards protect the same route. A guard may allow activation, redirect the user, or block navigation entirely based on its evaluation result.",
+  "definition": "A client-side router interceptor that runs during route resolution, before the target view renders, and decides whether a navigation to one or more routes may proceed, by evaluating a GuardCondition and, on denial, triggering a GuardAction. It is the executable hook registered with the SPA router (global, per-route or per-flow), not the predicate it evaluates, the response it takes on denial, or the route metadata it reads.",
+  "distinguish_from": [
+    {
+      "type": "navigation.guardcondition",
+      "when": "the symbol is only the boolean predicate or expression (e.g. isAuthenticated(), hasRole('admin')) and is not itself registered with the router as an interceptor"
+    },
+    {
+      "type": "navigation.guardaction",
+      "when": "the symbol is only the denial response: the redirect target, block, notification message or confirmation prompt returned or executed when access is refused"
+    },
+    {
+      "type": "navigation.routemeta",
+      "when": "the symbol is declarative per-route data (meta.requiresAuth, data.roles, canDeactivate flags) that a guard reads but which performs no evaluation itself"
+    },
+    {
+      "type": "navigation.navigationtransition",
+      "when": "the symbol models the edge between two routes and its trigger, rather than the check that permits or denies traversing that edge"
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: Route Guard / navigation hook (e.g. Angular CanActivate/CanMatch/CanDeactivate, Vue Router beforeEach/beforeEnter, React Router loader-based redirect)",
+  "code_evidence": [
+    "a function or class implementing CanActivate, CanActivateChild, CanMatch or CanDeactivate (or a CanActivateFn) listed in a route's canActivate/canMatch array",
+    "a callback registered via router.beforeEach, router.beforeResolve or a route's beforeEnter that calls next(false), next('/login') or returns a redirect location",
+    "a React Router loader or wrapper component such as <RequireAuth>/<ProtectedRoute> that checks session, role or feature flag and returns redirect('/login') or <Navigate> before rendering the child route"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of the access policy the guard enforces and the routes or flows it protects, e.g. 'Blocks admin routes for users without the admin role'; set whenever the guard's purpose is not obvious from its type and name."
+    },
+    {
+      "name": "order",
+      "description": "Non-negative integer execution priority among guards protecting the same route, evaluated lowest value first; derive it from registration order in the router (array position in canActivate, beforeEach registration sequence) and set it whenever more than one guard can apply."
+    }
+  ],
+  "notes": "Enum 'type' lacks a value for leave/deactivate guards (unsaved-changes prompts), and no attribute captures hook phase (beforeEnter, canDeactivate, canMatch) or scope (global vs per-route). Duplicate relationships 'evaluates' and 'uses' to guardcondition should be merged. RouteMeta says guards live in the security layer, contradicting this layer placement.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.251Z"
+}

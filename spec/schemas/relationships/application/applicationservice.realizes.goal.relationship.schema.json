@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice realizes Goal",
-  "description": "Defines relationship: application.applicationservice realizes motivation.goal",
+  "description": "The application service is put in place as a concrete means of achieving the stated goal.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Architecture decision records or roadmap documentation cite the goal as the rationale for building the service and trace the service to that goal."
+  ]
 }

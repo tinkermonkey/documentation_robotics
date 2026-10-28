@@ -1,0 +1,11 @@
+{
+  "name": "dr-classify-eval",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Experimental eval harness: classify codebase-memory symbol cards into DR layers/types with decision models and Claude, and measure accuracy and calibration.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "zod": "^4.3.6"
+  }
+}

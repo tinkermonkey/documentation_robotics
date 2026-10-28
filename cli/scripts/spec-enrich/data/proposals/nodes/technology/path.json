@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.path",
+  "previous_description": "A link between two or more nodes through which those nodes can exchange data, representing a logical communication channel such as a network route, API connection, or message channel.",
+  "definition": "A logical communication link between two or more specific nodes or devices over which they exchange data, independent of the physical medium that carries it, such as a service-to-database connection, a VPN tunnel between two sites, or a queue channel between a producer host and a consumer host.",
+  "distinguish_from": [
+    {
+      "type": "technology.communicationnetwork",
+      "when": "the element is the shared transmission medium or address space (LAN, VPC, subnet, VPN as a whole) connecting many nodes, rather than a particular link between identified endpoints"
+    },
+    {
+      "type": "technology.technologyinterface",
+      "when": "the element is the access point on one node (a listening port, endpoint or protocol binding) through which a service is offered, not the link between two nodes"
+    },
+    {
+      "type": "technology.technologyinteraction",
+      "when": "the element is the collective behavior exchanged over the link (handshake, replication protocol, failover exchange), not the channel itself"
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the element is an infrastructure capability offered to consumers, such as a managed messaging or load-balancing service, rather than a point-to-point data channel"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.2.6 Path",
+  "code_evidence": [
+    "a connection string or endpoint URL in configuration that names another deployed host and port, e.g. DATABASE_URL=postgres://orders-db:5432 or a gRPC target address in an environment file",
+    "an infrastructure-as-code resource that links two specific endpoints, e.g. a Terraform aws_vpc_peering_connection, an IPsec VPN tunnel, or a security-group/NetworkPolicy rule allowing traffic from workload A to workload B on a given port",
+    "a docker-compose depends_on/links entry or a service-mesh route (Istio VirtualService, DestinationRule) that directs traffic from one named service to another"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the path naming its endpoints, the direction and purpose of the data flow, and any notable constraints such as ports, encryption or latency; set whenever the endpoints or purpose are not obvious from the name."
+    }
+  ],
+  "notes": "Path lacks the source attribute every sibling has, though IaC and config are its main evidence. pathType mixes topology with directionality: 'bidirectional' is not exclusive of 'point-to-point'; split into topology and direction. 'realizes technologyservice', 'flows-to technologyservice' and 'assigned-to technologyinterface' are not ArchiMate-valid for a structure element; review.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.227Z"
+}

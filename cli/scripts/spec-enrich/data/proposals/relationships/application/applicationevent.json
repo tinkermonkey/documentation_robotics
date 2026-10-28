@@ -1,0 +1,32 @@
+{
+  "source": "application.applicationevent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:24:41.084Z",
+  "relationships": [
+    {
+      "id": "application.applicationevent.depends-on.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationevent depends-on application.dataobject",
+      "description": "The application event carries or is defined by the data object as its payload, so the event cannot be emitted or interpreted without that data structure's schema.",
+      "evidence": "The event class or message schema declares the data object type as its payload field, or the event topic's Avro/JSON schema references the data object's definition."
+    },
+    {
+      "id": "application.applicationevent.triggers.application.applicationcollaboration",
+      "previous_description": "Defines relationship: application.applicationevent triggers application.applicationcollaboration",
+      "description": "Occurrence of the application event sets off the joint behaviour carried out by the group of components named by the application collaboration, such as a choreographed saga across several services.",
+      "evidence": "Every component in the collaboration has a subscriber or consumer configuration bound to the event's topic or channel that starts their coordinated handling, for example in AsyncAPI specs or message-broker subscription config."
+    },
+    {
+      "id": "application.applicationevent.triggers.application.applicationprocess",
+      "previous_description": "Defines relationship: application.applicationevent triggers application.applicationprocess",
+      "description": "Emission of the application event is the start trigger that launches a run of the application process's ordered sequence of steps.",
+      "evidence": "A handler annotated as the listener for the event, such as @EventListener, a Kafka consumer, or a workflow-engine start-event definition, invokes the process's entry point or starts the workflow instance."
+    },
+    {
+      "id": "application.applicationevent.triggers.business.businessprocess",
+      "previous_description": "Defines relationship: application.applicationevent triggers business.businessprocess",
+      "description": "The application event signals a system state change that initiates the business process carried out by people or roles in the organisation, such as a notification that starts a manual review.",
+      "evidence": "A BPMN model or operational runbook names the event as the start event of the business process, or an integration creates a task in the BPM or ticketing system when the event fires."
+    }
+  ],
+  "notes": "Triggering an ApplicationCollaboration is semantically wrong: in ArchiMate, triggers links behaviour elements, while a collaboration is active structure. The event should trigger the collaboration's ApplicationInteraction instead. Using depends-on toward a DataObject is also loose; associated-with, or access via the handling process, expresses an event payload more accurately."
+}

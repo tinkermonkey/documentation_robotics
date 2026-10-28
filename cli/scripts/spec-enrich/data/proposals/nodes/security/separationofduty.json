@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.separationofduty",
+  "previous_description": "Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + approval, initiate + authorize) are performed by different actors or roles, preventing fraud, collusion, and undetected errors. MutuallyExclusive indicates roles that cannot be assigned to the same individual.",
+  "definition": "A procedural access-control constraint requiring that two or more conflicting tasks or roles in a workflow (e.g., request and approve, initiate and authorize) are held or performed by different actors. It may be static, where the roles are mutually exclusive in assignment, or dynamic, where the same subject is barred from executing a later step on an item it acted on earlier.",
+  "distinguish_from": [
+    {
+      "type": "security.bindingofduty",
+      "when": "the rule requires the same actor who started a task to also complete it, rather than forbidding the same actor from performing both steps."
+    },
+    {
+      "type": "security.policyrule",
+      "when": "the logic is a generic condition-plus-effect evaluation (permit/deny) not specifically about preventing one subject from holding or exercising conflicting duties."
+    },
+    {
+      "type": "security.role",
+      "when": "the thing being modelled is the named permission bundle itself rather than the exclusion constraint between bundles."
+    },
+    {
+      "type": "security.needtoknow",
+      "when": "access is restricted by the actor's declared purpose rather than by conflict with another task or role the actor holds."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-5 Separation of Duties",
+  "code_evidence": [
+    "An approval handler that rejects the request when approver.id equals the request's createdBy/submittedBy field, often with an error like 'cannot approve your own request'.",
+    "A role-assignment validator or config list of mutually exclusive role pairs (e.g., 'conflictingRoles: [payment_creator, payment_approver]') checked when granting roles.",
+    "A maker-checker or four-eyes workflow configuration requiring a distinct second user to authorize a step, such as a minimum-distinct-approvers setting or a branch-protection rule that disallows self-approval."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of which tasks or roles are separated and the risk being controlled (e.g., 'Invoice creators may not approve invoices they created'); set whenever the rule's intent is not obvious from its name."
+    },
+    {
+      "name": "message",
+      "description": "Human-readable violation text returned to the user or written to logs when the constraint blocks an assignment or action (e.g., 'You cannot approve a request you submitted')."
+    }
+  ],
+  "notes": "The type has no attributes naming the conflicting roles or tasks; those exist only through 'constrains' relationships, so pairs cannot be expressed precisely. Consider adding a conflictingRoles/conflictingTasks array and a static/dynamic enum, since mutuallyExclusive only captures static SoD. Add a scope attribute to match bindingofduty.scope.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.257Z"
+}

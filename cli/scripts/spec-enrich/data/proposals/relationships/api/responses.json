@@ -1,0 +1,44 @@
+{
+  "source": "api.responses",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.104Z",
+  "relationships": [
+    {
+      "id": "api.responses.aggregates.api.header",
+      "previous_description": "Defines relationship: api.responses aggregates api.header",
+      "description": "The operation's outcome map collects, through its individual Response entries, the response header declarations (such as X-RateLimit-Remaining or Location) that the operation can return across its status codes, and those headers may also live independently in the components headers registry.",
+      "evidence": "Under an operation's responses block, one or more status-code entries declare a headers map whose entries are inline Header objects or $ref pointers to components/headers."
+    },
+    {
+      "id": "api.responses.aggregates.api.schema",
+      "previous_description": "Defines relationship: api.responses aggregates api.schema",
+      "description": "The operation's outcome map gathers the body schemas that describe the payload shape returned for each status code, while named schemas remain reusable definitions that exist independently under components/schemas.",
+      "evidence": "Within an operation's responses block, status-code entries contain content media types whose schema property holds an inline schema or a $ref to components/schemas."
+    },
+    {
+      "id": "api.responses.associated-with.api.ratelimit",
+      "previous_description": "Defines relationship: api.responses associated-with api.ratelimit",
+      "description": "The operation's set of possible outcomes is related to the throttling policy governing that operation, typically because it includes a 429 Too Many Requests entry and rate-limit headers that report or signal the policy's enforcement.",
+      "evidence": "The operation carrying the rate-limit extension or policy declares a '429' key in its responses map, or its responses define X-RateLimit-* or Retry-After headers matching the policy's window and limit."
+    },
+    {
+      "id": "api.responses.composes.api.response",
+      "previous_description": "Defines relationship: api.responses composes api.response",
+      "description": "Each Response object is one status-code-keyed outcome that exists only as an entry in an operation's outcome map, so removing the map or the operation removes that outcome.",
+      "evidence": "The OpenAPI document lists the Response object, or a $ref to components/responses, under a status-code or 'default' key inside a specific operation's responses block."
+    },
+    {
+      "id": "api.responses.references.api.link",
+      "previous_description": "Defines relationship: api.responses references api.link",
+      "description": "The operation's outcome map points to the follow-on Link descriptors declared on its Response entries, telling clients which operation can be called next using values taken from this operation's results.",
+      "evidence": "A status-code entry in the operation's responses block declares a links map whose entries name an operationId or operationRef, or $ref a definition under components/links."
+    },
+    {
+      "id": "api.responses.references.api.schema",
+      "previous_description": "Defines relationship: api.responses references api.schema",
+      "description": "The operation's outcome map points by $ref to named, shared schemas in components/schemas that define the body shapes of its outcomes, without owning those definitions.",
+      "evidence": "A content media type under one of the operation's status-code entries holds a schema property of the form $ref: '#/components/schemas/...'."
+    }
+  ],
+  "notes": "Headers, schemas and links properly belong to individual Response objects (or MediaType), not the Responses map; these are transitive shortcuts. aggregates.api.schema and references.api.schema largely overlap—distinguish inline versus $ref or drop one. RateLimit association is indirect and better attached to the operation or a 429 Response."
+}

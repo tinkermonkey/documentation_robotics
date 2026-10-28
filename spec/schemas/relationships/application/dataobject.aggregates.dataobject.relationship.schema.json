@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Dataobject aggregates Dataobject",
-  "description": "Defines relationship: application.dataobject aggregates application.dataobject",
+  "description": "The containing data structure groups references to another data structure whose instances have their own identity and lifecycle, such as an Order holding the Customer it belongs to or a Cart listing Product records that persist after the cart is discarded.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The containing class declares a field, collection or ID reference typed to the other data object, and that object is constructed, persisted or looked up elsewhere and passed in rather than created by the container."
+  ]
 }

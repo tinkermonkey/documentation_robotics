@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinteraction realizes Applicationservice",
-  "description": "Defines relationship: application.applicationinteraction realizes application.applicationservice",
+  "description": "The collaborative behaviour is the concrete mechanism through which the externally visible application service is actually delivered, with the service's operations implemented by the saga or multi-party exchange.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service's API endpoint or operation handler starts the saga or choreography and returns its result, or architecture documentation maps the service operation to the interaction as its implementation."
+  ]
 }

@@ -1,0 +1,20 @@
+{
+  "source": "business.representation",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.100Z",
+  "relationships": [
+    {
+      "id": "business.representation.realizes.business.businessobject",
+      "previous_description": "Defines relationship: business.representation realizes business.businessobject",
+      "description": "The representation is the concrete, perceptible form, such as a printed invoice layout, PDF template or on-screen form, through which the information of the business object is conveyed to people, without altering its business meaning.",
+      "evidence": "A document template, report definition or form specification (e.g. an invoice PDF template or print layout file) is documented as rendering the fields of the named business object, and the business object's documentation lists that template as its presentation format."
+    },
+    {
+      "id": "business.representation.realizes.business.contract",
+      "previous_description": "Defines relationship: business.representation realizes business.contract",
+      "description": "The representation is the tangible document or rendering, such as a signed PDF agreement, printed SLA schedule or e-signature form, in which the terms, obligations and rights recorded by the contract are made perceptible to the contracting parties.",
+      "evidence": "A contract template or generated agreement document (e.g. an SLA PDF template or DocuSign envelope definition) is mapped in the contract management system or documentation to the specific contract type whose clauses it lays out."
+    }
+  ],
+  "notes": "Contract is a specialization of BusinessObject, so the contract relationship is technically subsumed by the business-object one. It is kept for explicitness only."
+}

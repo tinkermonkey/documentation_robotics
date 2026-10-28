@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "security.accesscondition",
+  "previous_description": "Defines a single boolean predicate evaluated against a request context attribute (field), comparing the runtime value using a specified operator. Composed inside a PolicyRule condition chain to form compound access control expressions.",
+  "definition": "A single comparison predicate that tests one named request-context attribute (subject claim, resource property, environment value) against a literal or referenced value using one operator, and yields a denial message when false. It carries no effect of its own; it is evaluated as one term within a PolicyRule, ResourceOperation or InformationRight authorization check.",
+  "distinguish_from": [
+    {
+      "type": "security.condition",
+      "when": "the logic is a reusable, free-form or compound expression (time windows, combined attribute logic) rather than one field-operator-value test"
+    },
+    {
+      "type": "security.policyrule",
+      "when": "the unit carries a permit/deny effect or obligations, not just a boolean test"
+    },
+    {
+      "type": "security.validationrule",
+      "when": "the check enforces format, range or integrity of field data rather than deciding whether a principal may access something"
+    },
+    {
+      "type": "security.informationright",
+      "when": "the element grants named operations on an information entity to a specific actor, even if it embeds a constraint"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-3 (Access Enforcement); XACML 3.0 Match element / NIST SP 800-162 ABAC attribute predicate",
+  "code_evidence": [
+    "A guard clause in a handler or middleware that compares one request attribute to a value and throws or returns 403 with a message, e.g. if (req.user.tenantId !== resource.tenantId) throw new ForbiddenError('Tenant mismatch')",
+    "A declarative policy or config entry holding a field/operator/value triple, e.g. { attribute: 'token.scope', op: 'contains', value: 'orders:write' } in a Casbin, OPA input or custom rules file",
+    "A route or method annotation that asserts a single claim or attribute, e.g. @PreAuthorize(\"hasAuthority('SCOPE_read')\") or requireClaim('email_verified', true)"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "field",
+      "description": "Dot-path name of the request-context attribute being tested (e.g. 'subject.role', 'resource.ownerId', 'env.ipAddress'), as it is resolved at evaluation time."
+    },
+    {
+      "name": "value",
+      "description": "Comparison operand as a string: a literal, a comma-separated list for 'in', a regex for 'matches', or a context reference such as '${subject.id}'. Leave empty only for operator 'exists'."
+    },
+    {
+      "name": "message",
+      "description": "Human-readable denial reason returned or logged when the predicate evaluates to false, e.g. 'Caller must belong to the resource tenant'."
+    },
+    {
+      "name": "source",
+      "description": "Where the field value is read from in the request context, such as 'token', 'header', 'path', 'query', 'body', 'session' or 'environment'. Set it so evaluators know which input to resolve."
+    }
+  ],
+  "notes": "'source' is a required string here but an optional source-code-reference object on siblings; rename (e.g. attributeSource). Operator enum lacks gte/lte/not-in; value is string-only. Both 'accesscondition composes policyrule' and 'policyrule uses accesscondition' exist; the composition direction appears reversed. 'message' should not be required for every predicate.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.233Z"
+}

@@ -1,0 +1,44 @@
+{
+  "source": "security.separationofduty",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.075Z",
+  "relationships": [
+    {
+      "id": "security.separationofduty.associated-with.security.bindingofduty",
+      "previous_description": "Defines relationship: security.separationofduty associated-with security.bindingofduty",
+      "description": "The separation-of-duty constraint is paired with a complementary binding-of-duty constraint on the same workflow, one forcing different actors onto conflicting steps while the other forces the same actor onto linked follow-on steps.",
+      "evidence": "The workflow or access-control policy document defines both constraints over the same task or process steps, for example a BPMN or policy file that lists SoD and BoD rules for one approval workflow."
+    },
+    {
+      "id": "security.separationofduty.constrains.business.businessrole",
+      "previous_description": "Defines relationship: security.separationofduty constrains business.businessrole",
+      "description": "The separation-of-duty constraint declares certain organizational responsibility positions, such as requester and approver, mutually exclusive, so no business actor may occupy both or act in both on the same case.",
+      "evidence": "A segregation-of-duties matrix or HR/IAM policy names the conflicting business roles and forbids one person from holding both, with role-assignment review records showing the check."
+    },
+    {
+      "id": "security.separationofduty.constrains.security.role",
+      "previous_description": "Defines relationship: security.separationofduty constrains security.role",
+      "description": "The separation-of-duty constraint marks pairs or sets of permission-bearing roles as conflicting, so the access-control system refuses to assign them to the same subject or to activate them together on one item.",
+      "evidence": "The IAM or RBAC configuration contains a mutual-exclusion or SoD rule set listing the conflicting role identifiers, and role-assignment code rejects grants that violate it."
+    },
+    {
+      "id": "security.separationofduty.governs.security.policyrule",
+      "previous_description": "Defines relationship: security.separationofduty governs security.policyrule",
+      "description": "The separation-of-duty constraint dictates the condition and deny effect of policy rules that check whether the requesting subject already performed a conflicting step or holds a conflicting role.",
+      "evidence": "A policy-as-code rule (e.g. OPA/Rego or XACML) whose condition compares the current actor with the prior step's actor or role, annotated or traced to the SoD control identifier."
+    },
+    {
+      "id": "security.separationofduty.mitigates.security.threat",
+      "previous_description": "Defines relationship: security.separationofduty mitigates security.threat",
+      "description": "The separation-of-duty constraint reduces threats such as insider fraud, collusion-free embezzlement or self-approval abuse by ensuring no single actor can complete a sensitive transaction alone.",
+      "evidence": "The threat model or risk register lists the SoD control as a countermeasure against the named threat entry, such as fraudulent self-approval of payments."
+    },
+    {
+      "id": "security.separationofduty.requires.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: security.separationofduty requires security.accountabilityrequirement",
+      "description": "Enforcing the separation-of-duty constraint depends on each workflow step being attributable to the actor who performed it, since the system cannot bar a subject from a later step without a reliable record of who did the earlier one.",
+      "evidence": "The SoD enforcement logic reads actor identity from an audit trail or signed step record mandated by the accountability requirement, for example a check querying the approval log's 'performed_by' field."
+    }
+  ],
+  "notes": "Both constrains→business.businessrole and constrains→security.role express the same exclusion at different layers; acceptable if both layers are modeled, but likely redundant if security roles map one-to-one to business roles. associated-with to BindingOfDuty is vague; a more specific predicate is unavailable but worth reviewing."
+}

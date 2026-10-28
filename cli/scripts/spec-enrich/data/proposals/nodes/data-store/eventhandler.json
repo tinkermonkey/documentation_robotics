@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "data-store.eventhandler",
+  "previous_description": "A reactive mechanism that executes in response to data change events. Paradigm-neutral: covers SQL triggers, MongoDB change streams, DynamoDB Streams, Cassandra CDC, Redis keyspace notifications, Elasticsearch watchers, Neo4j APOC triggers, and time-series alerting rules.",
+  "definition": "A registered binding, declared in or against a data store, that attaches to a collection or database scope and runs an action automatically when specified data-change events or data conditions occur there (SQL trigger, change-stream or CDC subscription, keyspace notification, watcher or alert rule). It is the activation wiring (event, timing, granularity, filter), not the computation body it invokes.",
+  "distinguish_from": [
+    {
+      "type": "data-store.storedlogic",
+      "when": "the symbol is the function, procedure, Lua script or pipeline body that does the work (e.g. the trigger function created by CREATE FUNCTION ... RETURNS trigger), not the declaration that binds it to events."
+    },
+    {
+      "type": "data-store.validationrule",
+      "when": "integrity is enforced declaratively by the engine (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator) rather than by a BEFORE trigger that runs code to reject or rewrite rows."
+    },
+    {
+      "type": "data-store.retentionpolicy",
+      "when": "the mechanism is a TTL, ILM or downsampling policy that expires or moves data by age, rather than reacting to individual insert, update, delete or expiry events with custom logic."
+    },
+    {
+      "type": "data-store.view",
+      "when": "derived data is kept current by a materialized view or continuous aggregate refresh policy rather than by a handler that writes to another collection on each change."
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 (SQL/Foundation) <trigger definition> (CREATE TRIGGER), extended to change streams, CDC and keyspace notifications",
+  "code_evidence": [
+    "A migration or DDL file containing CREATE TRIGGER ... BEFORE|AFTER INSERT OR UPDATE ON <table> FOR EACH ROW EXECUTE FUNCTION <fn>()",
+    "Code or config opening a change feed on a store, e.g. MongoDB collection.watch([{ $match: ... }]), a DynamoDB StreamSpecification with a Lambda event source mapping, or a Debezium connector config listing table.include.list",
+    "Redis setup issuing CONFIG SET notify-keyspace-events (or notify-keyspace-events in redis.conf) together with a PSUBSCRIBE on __keyspace@*__ or __keyevent@*__ channels"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "enabled",
+      "description": "Whether the handler is currently active and will fire; set false when it is declared but disabled (e.g. ALTER TABLE ... DISABLE TRIGGER, a paused connector or deactivated watcher), otherwise true, which is the default."
+    }
+  ],
+  "notes": "WATCHER and ALERT_RULE fire on periodic conditions, not data changes, and timing lacks a SCHEDULED/PERIODIC value. events has no item enum. Boundary with application-layer consumers (a service calling watch()) is unclear; specify whether the subscription or the consumer is modelled here. field --triggers--> eventhandler should probably be 'monitors' (UPDATE OF column).",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.259Z"
+}

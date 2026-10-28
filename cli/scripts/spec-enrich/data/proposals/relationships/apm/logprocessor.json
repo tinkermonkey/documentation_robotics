@@ -1,0 +1,32 @@
+{
+  "source": "apm.logprocessor",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.104Z",
+  "relationships": [
+    {
+      "id": "apm.logprocessor.flows-to.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.logprocessor flows-to apm.exporterconfig",
+      "description": "The log processor hands each LogRecord it accepts, singly or in batches, to the log exporter defined by this export configuration, which then ships the records to the configured backend endpoint.",
+      "evidence": "The SDK setup constructs a SimpleLogRecordProcessor or BatchLogRecordProcessor wrapping the configured OTLP LogRecordExporter, or a Collector logs pipeline lists the processor before that exporter in its pipeline definition."
+    },
+    {
+      "id": "apm.logprocessor.flows-to.apm.logprocessor",
+      "previous_description": "Defines relationship: apm.logprocessor flows-to apm.logprocessor",
+      "description": "The upstream log processor passes the records it has filtered, transformed, enriched or redacted to the next processor in the chain, which receives them as its input.",
+      "evidence": "The LoggerProvider registers both processors in order, or one processor explicitly delegates to the next, or a Collector service.pipelines.logs.processors list places the first processor immediately before the second."
+    },
+    {
+      "id": "apm.logprocessor.flows-to.apm.span",
+      "previous_description": "Defines relationship: apm.logprocessor flows-to apm.span",
+      "description": "The log processor forwards log record data into a span, for example by attaching the record as a span event on the active span whose trace and span context it carries.",
+      "evidence": "The processor's onEmit implementation looks up the current span through the trace context and calls addEvent or setAttribute on that span using the log record's content."
+    },
+    {
+      "id": "apm.logprocessor.satisfies.security.securityconstraints",
+      "previous_description": "Defines relationship: apm.logprocessor satisfies security.securityconstraints",
+      "description": "The log processor implements part of the application's security constraints, for example by redacting or dropping record fields so that only parties permitted under NeedToKnow rules can see sensitive log data.",
+      "evidence": "The processor's redaction or filtering rules, such as an attributes or redaction processor configuration, are documented or traced as the control that implements a specific NeedToKnow constraint in the SecurityConstraints model."
+    }
+  ],
+  "notes": "flows-to span is doubtful: log records normally carry span context for correlation and do not flow into spans, so 'references' would fit better unless log-to-span-event bridging is intended. satisfies SecurityConstraints is a weak fit, since separation and binding of duty are workflow rules a log processor cannot fulfil. Only NeedToKnow-driven redaction plausibly applies."
+}

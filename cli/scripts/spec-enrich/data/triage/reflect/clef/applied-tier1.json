@@ -1,0 +1,892 @@
+{
+  "backend": "clef",
+  "record": "tier1",
+  "select": {
+    "remove-duplicate": 0.6,
+    "reverse": 0.7,
+    "rename-predicate": 0.7
+  },
+  "applied_at": "2026-10-26T13:23:58.745Z",
+  "counts": {
+    "rename": 5,
+    "create": 2,
+    "delete": 79,
+    "skipped": 1
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "apm.resource.monitors.technology.node",
+      "to": "apm.resource.references.technology.node",
+      "p": 0.708,
+      "claims": ["rel:apm.resource#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/apm/resource.monitors.node.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/apm/resource.references.node.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "application.applicationprocess.depends-on.application.dataobject",
+      "to": "application.applicationprocess.accesses.application.dataobject",
+      "p": 0.763,
+      "claims": ["rel:application.applicationprocess#4"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationprocess.depends-on.dataobject.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationprocess.accesses.dataobject.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "application.applicationprocess.delivers-value.application.applicationservice",
+      "to": "application.applicationprocess.realizes.application.applicationservice",
+      "p": 0.75,
+      "claims": ["rel:application.applicationprocess#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationprocess.delivers-value.applicationservice.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationprocess.realizes.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "navigation.routemeta.governs.navigation.navigationguard",
+      "to": "navigation.routemeta.references.navigation.navigationguard",
+      "p": 0.765,
+      "claims": ["rel:navigation.routemeta#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/routemeta.governs.navigationguard.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/routemeta.references.navigationguard.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "ux.stateaction.specializes.ux.stateactiontemplate",
+      "to": "ux.stateaction.realizes.ux.stateactiontemplate",
+      "p": 0.816,
+      "claims": ["rel:ux.stateaction#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/stateaction.specializes.stateactiontemplate.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/stateaction.realizes.stateactiontemplate.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "reverse",
+      "from": "api.oauthflows.serves.api.securityscheme",
+      "to": "api.securityscheme.composes.api.oauthflows",
+      "p": 0.867,
+      "claims": ["rel:api.oauthflows#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/oauthflows.serves.securityscheme.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/securityscheme.composes.oauthflows.relationship.schema.json",
+      "note": "the reversed schema already existed under a malformed 4-part id; its id was corrected to the 5-part form, cardinality and strength kept, and the old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "api.info.associated-with.api.openapidocument",
+      "to": "api.openapidocument.composes.api.info",
+      "p": 0.827,
+      "claims": ["node:api.openapidocument#4", "rel:api.info#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/info.associated-with.openapidocument.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "api.requestbody.serves.api.operation",
+      "to": "api.operation.aggregates.api.requestbody",
+      "p": 0.824,
+      "claims": ["rel:api.requestbody#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/requestbody.serves.operation.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "api.oauthflow.associated-with.api.oauthflows",
+      "to": "api.oauthflows.composes.api.oauthflow",
+      "p": 0.81,
+      "claims": ["rel:api.oauthflow#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/oauthflow.associated-with.oauthflows.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "api.parameter.references.api.operation",
+      "to": "api.operation.aggregates.api.parameter",
+      "p": 0.753,
+      "claims": ["node:api.parameter#3", "rel:api.parameter#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/parameter.references.operation.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "api.externaldocumentation.serves.api.openapidocument",
+      "to": "api.openapidocument.references.api.externaldocumentation",
+      "p": 0.745,
+      "claims": ["rel:api.externaldocumentation#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/externaldocumentation.serves.openapidocument.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "api.encoding.associated-with.api.mediatype",
+      "to": "api.mediatype.composes.api.encoding",
+      "p": 0.709,
+      "claims": ["rel:api.encoding#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/encoding.associated-with.mediatype.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "application.applicationprocess.depends-on.application.applicationevent",
+      "to": "application.applicationevent.triggers.application.applicationprocess",
+      "p": 0.702,
+      "claims": ["rel:application.applicationprocess#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationprocess.depends-on.applicationevent.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "business.businessprocess.aggregates.application.applicationprocess",
+      "to": "application.applicationprocess.realizes.business.businessprocess",
+      "p": 0.901,
+      "claims": [
+        "node:business.businessprocess#2",
+        "rel:business.businessprocess#2"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/business/businessprocess.aggregates.applicationprocess.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "business.businessrole.serves.business.businessactor",
+      "to": "business.businessactor.assigned-to.business.businessrole",
+      "p": 0.838,
+      "claims": ["node:business.businessactor#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/business/businessrole.serves.businessactor.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "data-store.collection.realizes.api.schema",
+      "to": "api.schema.maps-to.data-store.collection",
+      "p": 0.772,
+      "claims": ["rel:data-store.collection#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/data-store/collection.realizes.schema.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "motivation.outcome.associated-with.motivation.constraint",
+      "to": "motivation.constraint.influence.motivation.outcome",
+      "p": 0.836,
+      "claims": ["rel:motivation.outcome#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/outcome.associated-with.constraint.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "motivation.assessment.associated-with.motivation.constraint",
+      "to": "motivation.constraint.influence.motivation.assessment",
+      "p": 0.83,
+      "claims": ["rel:motivation.assessment#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/assessment.associated-with.constraint.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "motivation.outcome.associated-with.motivation.driver",
+      "to": "motivation.driver.influence.motivation.outcome",
+      "p": 0.773,
+      "claims": ["rel:motivation.outcome#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/outcome.associated-with.driver.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "motivation.outcome.realizes.motivation.value",
+      "to": "motivation.value.associated-with.motivation.outcome",
+      "p": 0.717,
+      "claims": ["node:motivation.value#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/outcome.realizes.value.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "navigation.routemeta.serves.navigation.route",
+      "to": "navigation.route.composes.navigation.routemeta",
+      "p": 0.835,
+      "claims": ["rel:navigation.routemeta#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/routemeta.serves.route.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph",
+      "to": "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig",
+      "p": 0.724,
+      "claims": ["rel:navigation.breadcrumbconfig#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/breadcrumbconfig.associated-with.navigationgraph.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "security.threat.triggers.security.auditconfig",
+      "to": "security.auditconfig.mitigates.security.threat",
+      "p": 0.82,
+      "claims": ["rel:security.threat#5"],
+      "note": "reversed schema already existed; old direction deleted (file was named audit-config, applied by hand)",
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/threat.triggers.audit-config.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "security.policyaction.enforces-requirement.security.policyrule",
+      "to": "security.policyrule.triggers.security.policyaction",
+      "p": 0.794,
+      "claims": ["node:security.policyaction#6", "rel:security.policyaction#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/policyaction.enforces-requirement.policyrule.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "security.accesscondition.composes.security.policyrule",
+      "to": "security.policyrule.uses.security.accesscondition",
+      "p": 0.756,
+      "claims": [
+        "node:security.accesscondition#6",
+        "node:security.accesscondition#5",
+        "rel:security.accesscondition#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/accesscondition.composes.policyrule.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "security.actor.governed-by.security.authenticationconfig",
+      "to": "security.authenticationconfig.authenticates.security.actor",
+      "p": 0.749,
+      "claims": ["rel:security.actor#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/actor.governed-by.authenticationconfig.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "security.accesscondition.governs.security.fieldaccesscontrol",
+      "to": "security.fieldaccesscontrol.constrained-by.security.accesscondition",
+      "p": 0.725,
+      "claims": ["rel:security.accesscondition#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/accesscondition.governs.fieldaccesscontrol.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "technology.technologyservice.aggregates.technology.technologyfunction",
+      "to": "technology.technologyfunction.realizes.technology.technologyservice",
+      "p": 0.87,
+      "claims": ["rel:technology.technologyservice#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/technologyservice.aggregates.technologyfunction.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "technology.technologyinterface.assigned-to.technology.technologyservice",
+      "to": "technology.technologyservice.provides.technology.technologyinterface",
+      "p": 0.787,
+      "claims": ["rel:technology.technologyinterface#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/technologyinterface.assigned-to.technologyservice.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "technology.technologyservice.aggregates.technology.technologyprocess",
+      "to": "technology.technologyprocess.realizes.technology.technologyservice",
+      "p": 0.782,
+      "claims": ["rel:technology.technologyservice#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/technologyservice.aggregates.technologyprocess.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "technology.device.composes.technology.systemsoftware",
+      "to": "technology.systemsoftware.depends-on.technology.device",
+      "p": 0.763,
+      "claims": ["rel:technology.device#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/device.composes.systemsoftware.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "technology.technologyinterface.assigned-to.technology.node",
+      "to": "technology.node.composes.technology.technologyinterface",
+      "p": 0.724,
+      "claims": ["rel:technology.technologyinterface#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/technologyinterface.assigned-to.node.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "technology.technologyservice.consumes.technology.artifact",
+      "to": "technology.artifact.realizes.technology.technologyservice",
+      "p": 0.722,
+      "claims": ["rel:technology.technologyservice#4"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/technologyservice.consumes.artifact.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "create",
+      "kind": "reverse",
+      "from": "testing.partitionvalue.composes.testing.inputspacepartition",
+      "to": "testing.inputspacepartition.composes.testing.partitionvalue",
+      "p": 0.843,
+      "claims": ["node:testing.inputspacepartition#4"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/partitionvalue.composes.inputspacepartition.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/inputspacepartition.composes.partitionvalue.relationship.schema.json",
+      "note": "the reversed schema already existed under a malformed 4-part id; its id was corrected to the 5-part form, cardinality and strength kept, and the old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "testing.coveragerequirement.aggregates.testing.coverageexclusion",
+      "to": "testing.coverageexclusion.references.testing.coveragerequirement",
+      "p": 0.772,
+      "claims": ["rel:testing.coveragerequirement#7"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/coveragerequirement.aggregates.coverageexclusion.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "ux.transitiontemplate.governs.ux.statetransition",
+      "to": "ux.statetransition.uses.ux.transitiontemplate",
+      "p": 0.834,
+      "claims": ["rel:ux.transitiontemplate#4"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/transitiontemplate.governs.statetransition.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "ux.stateactiontemplate.provides.ux.stateaction",
+      "to": "ux.stateaction.realizes.ux.stateactiontemplate",
+      "p": 0.818,
+      "claims": ["rel:ux.stateactiontemplate#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/stateactiontemplate.provides.stateaction.relationship.schema.json",
+      "note": "reversed schema already existed under its renamed id (specializes -> realizes); old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "ux.errorconfig.governs.ux.componentinstance",
+      "to": "ux.componentinstance.uses.ux.errorconfig",
+      "p": 0.809,
+      "claims": ["rel:ux.errorconfig#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/errorconfig.governs.componentinstance.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "ux.errorconfig.governs.ux.actioncomponent",
+      "to": "ux.actioncomponent.uses.ux.errorconfig",
+      "p": 0.798,
+      "claims": ["rel:ux.errorconfig#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/errorconfig.governs.actioncomponent.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "ux.statetransition.associated-with.ux.actioncomponent",
+      "to": "ux.actioncomponent.triggers.ux.statetransition",
+      "p": 0.781,
+      "claims": ["rel:ux.statetransition#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/statetransition.associated-with.actioncomponent.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "reverse",
+      "from": "ux.stateaction.flows-to.ux.statetransition",
+      "to": "ux.statetransition.triggers.ux.stateaction",
+      "p": 0.765,
+      "claims": ["rel:ux.stateaction#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/stateaction.flows-to.statetransition.relationship.schema.json",
+      "note": "reversed schema already existed; old direction deleted"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.oauthflows.aggregates.api.oauthflow",
+      "to": "api.oauthflows.composes.api.oauthflow",
+      "p": 0.825,
+      "claims": [
+        "node:api.oauthflow#6",
+        "node:api.oauthflows#2",
+        "rel:api.oauthflows#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/oauthflows.aggregates.oauthflow.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.ratelimit.serves.api.operation",
+      "to": "api.ratelimit.governs.api.operation",
+      "p": 0.824,
+      "claims": [
+        "rel:api.ratelimit#2",
+        "node:api.ratelimit#5",
+        "rel:api.ratelimit#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/ratelimit.serves.operation.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.paths.aggregates.api.pathitem",
+      "to": "api.paths.composes.api.pathitem",
+      "p": 0.778,
+      "claims": ["node:api.paths#4", "rel:api.paths#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/paths.aggregates.pathitem.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.operation.composes.api.schema",
+      "to": "api.operation.references.api.schema",
+      "p": 0.758,
+      "claims": ["rel:api.operation#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/operation.composes.schema.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.encoding.composes.api.header",
+      "to": "api.encoding.references.api.header",
+      "p": 0.727,
+      "claims": ["rel:api.encoding#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/encoding.composes.header.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.operation.triggers.business.businessprocess",
+      "to": "api.operation.realizes.business.businessprocess",
+      "p": 0.697,
+      "claims": ["rel:api.operation#6"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/operation.triggers.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "api.operation.aggregates.api.tag",
+      "to": "api.operation.references.api.tag",
+      "p": 0.611,
+      "claims": ["rel:api.operation#3", "node:api.tag#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/api/operation.aggregates.tag.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "apm.logconfiguration.serves.apm.resource",
+      "to": "apm.logconfiguration.depends-on.apm.resource",
+      "p": 0.731,
+      "claims": ["rel:apm.logconfiguration#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/apm/logconfiguration.serves.resource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "application.applicationfunction.delivers-value.application.applicationservice",
+      "to": "application.applicationfunction.realizes.application.applicationservice",
+      "p": 0.825,
+      "claims": ["rel:application.applicationfunction#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationfunction.delivers-value.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "application.applicationcollaboration.depends-on.application.applicationcomponent",
+      "to": "application.applicationcollaboration.aggregates.application.applicationcomponent",
+      "p": 0.808,
+      "claims": ["rel:application.applicationcollaboration#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcollaboration.depends-on.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "application.applicationinteraction.delivers-value.application.applicationservice",
+      "to": "application.applicationinteraction.realizes.application.applicationservice",
+      "p": 0.792,
+      "claims": [
+        "rel:application.applicationinteraction#1",
+        "node:application.applicationinteraction#5"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationinteraction.delivers-value.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "application.applicationcomponent.assigned-to.application.applicationfunction",
+      "to": "application.applicationcomponent.composes.application.applicationfunction",
+      "p": 0.723,
+      "claims": ["rel:application.applicationcomponent#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/application/applicationcomponent.assigned-to.applicationfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "business.businessrole.performs.business.businessprocess",
+      "to": "business.businessrole.assigned-to.business.businessprocess",
+      "p": 0.884,
+      "claims": ["rel:business.businessrole#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/business/businessrole.performs.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "business.businessrole.assigned-to.business.businessprocess",
+      "to": "business.businessrole.performs.business.businessprocess",
+      "p": 0.819,
+      "claims": ["node:business.businessprocess#3"],
+      "note": "skipped: replacement no longer exists"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "business.businessprocess.delivers.business.businessobject",
+      "to": "business.businessprocess.accesses.business.businessobject",
+      "p": 0.766,
+      "claims": ["rel:business.businessprocess#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/business/businessprocess.delivers.businessobject.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "data-store.view.aggregates.data-store.collection",
+      "to": "data-store.view.derives-from.data-store.collection",
+      "p": 0.886,
+      "claims": ["rel:data-store.view#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/data-store/view.aggregates.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "data-store.retentionpolicy.aggregates.data-store.namespace",
+      "to": "data-store.retentionpolicy.governs.data-store.namespace",
+      "p": 0.868,
+      "claims": [
+        "rel:data-store.retentionpolicy#2",
+        "rel:data-store.retentionpolicy#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/data-store/retentionpolicy.aggregates.namespace.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "data-store.retentionpolicy.aggregates.data-store.collection",
+      "to": "data-store.retentionpolicy.governs.data-store.collection",
+      "p": 0.852,
+      "claims": [
+        "rel:data-store.retentionpolicy#1",
+        "rel:data-store.retentionpolicy#2"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/data-store/retentionpolicy.aggregates.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "data-store.storedlogic.aggregates.data-store.collection",
+      "to": "data-store.storedlogic.accesses.data-store.collection",
+      "p": 0.753,
+      "claims": ["rel:data-store.storedlogic#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/data-store/storedlogic.aggregates.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "data-store.accesspattern.aggregates.data-store.collection",
+      "to": "data-store.accesspattern.accesses.data-store.collection",
+      "p": 0.679,
+      "claims": [
+        "rel:data-store.accesspattern#1",
+        "node:data-store.accesspattern#2"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/data-store/accesspattern.aggregates.collection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "motivation.stakeholder.associated-with.motivation.goal",
+      "to": "motivation.stakeholder.influence.motivation.goal",
+      "p": 0.738,
+      "claims": ["rel:motivation.stakeholder#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/stakeholder.associated-with.goal.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "motivation.constraint.influence.motivation.requirement",
+      "to": "motivation.constraint.constrains.motivation.requirement",
+      "p": 0.721,
+      "claims": ["rel:motivation.constraint#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/constraint.influence.requirement.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "motivation.stakeholder.associated-with.motivation.driver",
+      "to": "motivation.stakeholder.influence.motivation.driver",
+      "p": 0.692,
+      "claims": ["rel:motivation.stakeholder#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/stakeholder.associated-with.driver.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "motivation.principle.realizes.motivation.goal",
+      "to": "motivation.principle.influence.motivation.goal",
+      "p": 0.645,
+      "claims": ["rel:motivation.principle#1", "rel:motivation.principle#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/motivation/principle.realizes.goal.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "navigation.navigationguard.uses.navigation.guardcondition",
+      "to": "navigation.navigationguard.evaluates.navigation.guardcondition",
+      "p": 0.897,
+      "claims": [
+        "node:navigation.navigationguard#4",
+        "rel:navigation.navigationguard#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/navigationguard.uses.guardcondition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "navigation.navigationflow.triggers.business.businessprocess",
+      "to": "navigation.navigationflow.realizes.business.businessprocess",
+      "p": 0.882,
+      "claims": ["node:navigation.navigationflow#4"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/navigationflow.triggers.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "navigation.navigationgraph.aggregates.navigation.navigationtransition",
+      "to": "navigation.navigationgraph.composes.navigation.navigationtransition",
+      "p": 0.808,
+      "claims": ["rel:navigation.navigationgraph#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/navigationgraph.aggregates.navigationtransition.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "navigation.navigationflow.aggregates.navigation.flowstep",
+      "to": "navigation.navigationflow.composes.navigation.flowstep",
+      "p": 0.772,
+      "claims": [
+        "node:navigation.flowstep#3",
+        "node:navigation.navigationflow#3",
+        "rel:navigation.navigationflow#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/navigationflow.aggregates.flowstep.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "navigation.navigationtransition.flows-to.navigation.route",
+      "to": "navigation.navigationtransition.navigates-to.navigation.route",
+      "p": 0.758,
+      "claims": ["rel:navigation.navigationtransition#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/navigationtransition.flows-to.route.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "navigation.navigationgraph.aggregates.navigation.route",
+      "to": "navigation.navigationgraph.composes.navigation.route",
+      "p": 0.751,
+      "claims": ["rel:navigation.navigationgraph#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/navigation/navigationgraph.aggregates.route.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "product.feature.uses.product.capability",
+      "to": "product.feature.realizes.product.capability",
+      "p": 0.836,
+      "claims": ["rel:product.feature#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/product/feature.uses.capability.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "security.securitymodel.governs.security.securitypolicy",
+      "to": "security.securitymodel.composes.security.securitypolicy",
+      "p": 0.85,
+      "claims": [
+        "node:security.securitymodel#2",
+        "rel:security.securitymodel#2"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/securitymodel.governs.securitypolicy.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "security.countermeasure.monitors.security.secureresource",
+      "to": "security.countermeasure.protects.security.secureresource",
+      "p": 0.789,
+      "claims": ["rel:security.countermeasure#4"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/countermeasure.monitors.secureresource.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "security.securitymodel.aggregates.security.authenticationconfig",
+      "to": "security.securitymodel.composes.security.authenticationconfig",
+      "p": 0.742,
+      "claims": ["rel:security.securitymodel#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/securitymodel.aggregates.authenticationconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "security.role.authorizes.security.permission",
+      "to": "security.role.aggregates.security.permission",
+      "p": 0.644,
+      "claims": [
+        "node:security.permission#5",
+        "node:security.role#3",
+        "rel:security.role#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/role.authorizes.permission.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "security.securitymodel.manages.security.threat",
+      "to": "security.securitymodel.aggregates.security.threat",
+      "p": 0.611,
+      "claims": [
+        "node:security.securitymodel#3",
+        "rel:security.securitymodel#3"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/securitymodel.manages.threat.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "security.role.provides.security.permission",
+      "to": "security.role.aggregates.security.permission",
+      "p": 0.602,
+      "claims": [
+        "node:security.permission#5",
+        "node:security.role#3",
+        "rel:security.role#1"
+      ],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/security/role.provides.permission.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "technology.communicationnetwork.serves.technology.node",
+      "to": "technology.communicationnetwork.connects.technology.node",
+      "p": 0.902,
+      "claims": ["rel:technology.communicationnetwork#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/communicationnetwork.serves.node.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "technology.technologyevent.flows-to.technology.technologyprocess",
+      "to": "technology.technologyevent.triggers.technology.technologyprocess",
+      "p": 0.677,
+      "claims": ["rel:technology.technologyevent#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/technology/technologyevent.flows-to.technologyprocess.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "testing.testcasesketch.accesses.testing.inputselection",
+      "to": "testing.testcasesketch.composes.testing.inputselection",
+      "p": 0.85,
+      "claims": ["rel:testing.testcasesketch#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/testcasesketch.accesses.inputselection.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "testing.coveragegap.triggers.testing.coveragerequirement",
+      "to": "testing.coveragegap.references.testing.coveragerequirement",
+      "p": 0.789,
+      "claims": ["node:testing.coveragegap#4", "rel:testing.coveragegap#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/coveragegap.triggers.coveragerequirement.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "testing.testcasesketch.references.testing.testcoveragetarget",
+      "to": "testing.testcasesketch.validates.testing.testcoveragetarget",
+      "p": 0.727,
+      "claims": ["rel:testing.testcasesketch#2"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/testcasesketch.references.testcoveragetarget.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "testing.testcoveragemodel.aggregates.testing.testcoveragetarget",
+      "to": "testing.testcoveragemodel.composes.testing.testcoveragetarget",
+      "p": 0.66,
+      "claims": ["rel:testing.testcoveragemodel#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/testing/testcoveragemodel.aggregates.testcoveragetarget.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "ux.view.uses.ux.layoutconfig",
+      "to": "ux.view.applies.ux.layoutconfig",
+      "p": 0.752,
+      "claims": ["rel:ux.view#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/view.uses.layoutconfig.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "ux.uxlibrary.provides.ux.librarysubview",
+      "to": "ux.uxlibrary.aggregates.ux.librarysubview",
+      "p": 0.646,
+      "claims": ["node:ux.librarysubview#3"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/uxlibrary.provides.librarysubview.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "ux.experiencestate.associated-with.ux.view",
+      "to": "ux.experiencestate.governs.ux.view",
+      "p": 0.615,
+      "claims": ["node:ux.experiencestate#4", "rel:ux.experiencestate#1"],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/spec/schemas/relationships/ux/experiencestate.associated-with.view.relationship.schema.json"
+    }
+  ]
+}

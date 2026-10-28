@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "data-store.accesspattern",
+  "previous_description": "A documented data access pattern that describes how applications read or write data. Critical for NoSQL data modeling where schema design is driven by access patterns rather than normalization.",
+  "definition": "A single named read or write operation against one collection, characterized by its key condition, optional sort and filter conditions, and operation category, as issued by application code or listed in a data-model design. It describes the request shape the application sends to the store, not a structure or computation stored in the engine.",
+  "distinguish_from": [
+    {
+      "type": "data-store.storedlogic",
+      "when": "the computation is defined and registered inside the database engine (SQL function or procedure, aggregation pipeline saved server-side, Lua script loaded via SCRIPT LOAD) rather than issued as a query from application code"
+    },
+    {
+      "type": "data-store.view",
+      "when": "the query is persisted in the schema as a named derived collection (CREATE VIEW, materialized view, search alias) that other queries read from"
+    },
+    {
+      "type": "data-store.index",
+      "when": "the element is the physical lookup structure (CREATE INDEX, GSI, vector index) that makes a lookup efficient, not the lookup itself"
+    },
+    {
+      "type": "data-store.eventhandler",
+      "when": "the logic runs reactively in response to a data-change event (trigger, change stream, CDC consumer) rather than being requested by an application call"
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 (Foundation) query specification and SQL-data change statements (approximate; the access pattern is a NoSQL data-modeling construct with no direct SQL counterpart)",
+  "code_evidence": [
+    "a repository or DAO method that issues one parameterized query against a single table or collection, e.g. Spring Data findByCustomerIdAndStatus, an @Query annotation, or a Mongoose Model.find({customerId}) call",
+    "a DynamoDB GetItem/Query/PutItem/BatchWriteItem call, or a Cassandra prepared statement, carrying a KeyConditionExpression or WHERE clause on partition and clustering keys",
+    "a data-model design document or single-table-design spreadsheet that enumerates access patterns with their PK/SK expressions, GSI used, and expected request rate"
+  ],
+  "attribute_descriptions": [],
+  "notes": "targetCollection duplicates the accesses→collection relationship, and accesses and aggregates→collection overlap; pick one. A single targetCollection cannot express join or multi-collection transaction patterns. The patternType enum lacks DELETE. Consider adding projection (returned fields), pagination/limit, and a latency target attribute.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.247Z"
+}

@@ -1,0 +1,32 @@
+{
+  "source": "api.header",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.056Z",
+  "relationships": [
+    {
+      "id": "api.header.associated-with.api.securityscheme",
+      "previous_description": "Defines relationship: api.header associated-with api.securityscheme",
+      "description": "The header declaration describes the same HTTP header that an apiKey security scheme designates as the carrier of client credentials, linking the documented header to the authentication mechanism that reads it.",
+      "evidence": "A securityScheme with type apiKey and in: header names a header (e.g. X-API-Key) whose name matches a key in a components.headers or response headers map in the same OpenAPI document."
+    },
+    {
+      "id": "api.header.references.api.example",
+      "previous_description": "Defines relationship: api.header references api.example",
+      "description": "The header declaration points to a named sample value that illustrates a concrete value the header may carry, without that sample constraining the header's shape.",
+      "evidence": "The header object's examples map contains an entry whose value is a $ref to #/components/examples/<name>, or an inline Example object, in the OpenAPI document."
+    },
+    {
+      "id": "api.header.references.api.schema",
+      "previous_description": "Defines relationship: api.header references api.schema",
+      "description": "The header declaration uses the schema to define the type, format and constraints that any value sent in this header must conform to.",
+      "evidence": "The header object in the OpenAPI document has a schema property that is either an inline Schema Object or a $ref to #/components/schemas/<name>, or a content map whose media type carries that schema."
+    },
+    {
+      "id": "api.header.specializes.api.parameter",
+      "previous_description": "Defines relationship: api.header specializes api.parameter",
+      "description": "The header is a restricted form of parameter that inherits the parameter's schema, serialization, style and example fields, but its name comes from the map key and its location is fixed to header.",
+      "evidence": "The OpenAPI 3.0 specification defines the Header Object as following the Parameter Object structure except that name is not specified and in is implicitly header. A validator or code model may also implement Header as a subtype of Parameter."
+    }
+  ],
+  "notes": "The header-to-securityscheme association is weak. The OpenAPI document has no structural link between them, only an apiKey scheme naming the same header string. This should probably be a derived or inferred relationship rather than a declared one. The specializes relationship is conceptual at the specification level and does not connect two instance-level elements."
+}

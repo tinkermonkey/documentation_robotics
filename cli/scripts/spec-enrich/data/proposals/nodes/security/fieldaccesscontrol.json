@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.fieldaccesscontrol",
+  "previous_description": "Defines access restrictions and transformation rules for a specific data field, controlling how sensitive values are masked or redacted when exposed to unauthorized principals. Used within SecureResource fieldAccess to enforce field-level data protection per NIST SP 800-53 AC-3 and SC-28.",
+  "definition": "A field-level protection rule bound to one named field (property, column or attribute) of a SecureResource. It states how that field's value is masked, redacted, hashed, tokenized or truncated when the field is exposed to a principal that lacks the permission to see it in clear.",
+  "distinguish_from": [
+    {
+      "type": "security.validationrule",
+      "when": "the constraint governs which values a field may accept or contain (pattern, range, length), not how its value is hidden from unauthorized readers."
+    },
+    {
+      "type": "security.secureresource",
+      "when": "the control applies to the whole resource, endpoint or table and its operations, not to an individual field within it."
+    },
+    {
+      "type": "security.dataclassification",
+      "when": "the element assigns a sensitivity tier or encryption obligation to data, rather than naming the masking technique for one specific field."
+    },
+    {
+      "type": "security.policyaction",
+      "when": "masking is the generic enforcement response fired by a PolicyRule match, not a standing rule attached to a named field."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-3 Access Enforcement (field-level), with SC-28 Protection of Information at Rest",
+  "code_evidence": [
+    "A DTO or serializer field carrying a masking or redaction annotation or type, e.g. @Sensitive, @JsonSerialize(using = MaskingSerializer.class), Pydantic SecretStr, or a custom redact() field transformer.",
+    "Response-shaping code that replaces or drops a specific field after a permission check, e.g. `if not user.has_perm('view_ssn'): data['ssn'] = mask(data['ssn'])`.",
+    "Declarative column- or field-level masking configuration: a GraphQL @auth or @mask directive on a field, Hasura column permissions, SQL Server `MASKED WITH (FUNCTION = ...)`, or a Snowflake/Postgres masking policy on a column."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "field",
+      "description": "Name or dotted path of the protected field within the parent SecureResource (e.g. 'customer.ssn' or 'card_number'); always set it, matching the field name as it appears in the resource's schema or payload."
+    },
+    {
+      "name": "description",
+      "description": "Free-text explanation of why the field is protected and who may see it unmasked; set it when the masking rationale or exemption is not obvious from the field name and strategy."
+    }
+  ],
+  "notes": "maskingStrategy cites SC-28 (at rest), but masking on exposure is closer to AC-3/AC-21. There is no attribute naming the permission or roles that see the clear value; it lives only in the requires relationship. The enum lacks 'omit' and 'partial'. The governs and protects edges to secureresource look redundant.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.197Z"
+}

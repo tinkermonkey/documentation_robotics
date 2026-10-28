@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationevent triggers Businessprocess",
-  "description": "Defines relationship: application.applicationevent triggers business.businessprocess",
+  "description": "The application event signals a system state change that initiates the business process carried out by people or roles in the organisation, such as a notification that starts a manual review.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A BPMN model or operational runbook names the event as the start event of the business process, or an integration creates a task in the BPM or ticketing system when the event fires."
+  ]
 }

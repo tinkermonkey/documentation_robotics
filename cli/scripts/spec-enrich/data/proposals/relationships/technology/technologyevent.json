@@ -1,0 +1,44 @@
+{
+  "source": "technology.technologyevent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.069Z",
+  "relationships": [
+    {
+      "id": "technology.technologyevent.associated-with.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyevent associated-with technology.technologyservice",
+      "description": "The infrastructure state change, such as an outage alert or a capacity threshold breach, concerns a specific technology capability that consumers rely on, without implying that the event causes or realizes that service.",
+      "evidence": "An alerting rule, status-page incident or monitoring dashboard ties the named event, such as a 'DatabaseUnavailable' alert, to the service it reports on through a label, tag or service identifier."
+    },
+    {
+      "id": "technology.technologyevent.flows-to.technology.artifact",
+      "previous_description": "Defines relationship: technology.technologyevent flows-to technology.artifact",
+      "description": "When the infrastructure event occurs, its payload or record is passed into a data unit, such as an event log file, crash dump, or generated build manifest, where it is persisted.",
+      "evidence": "A logging, webhook or event-sink configuration writes the event's payload to a named file, object path or archive, for example a Fluentd output or an S3 event-notification destination."
+    },
+    {
+      "id": "technology.technologyevent.flows-to.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyevent flows-to technology.technologyprocess",
+      "description": "The data carried by the infrastructure event, such as the image tag in a registry push or the node name in a failure alert, is handed to the automated process as input it consumes during its steps.",
+      "evidence": "The pipeline or job definition reads fields from the triggering event payload, such as webhook body parameters or Alertmanager labels, and uses them as inputs to its steps."
+    },
+    {
+      "id": "technology.technologyevent.triggers.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.technologyevent triggers technology.technologyfunction",
+      "description": "The occurrence of the infrastructure state change causally starts or activates ongoing behavior on a node or system software, such as a node failure kicking off load-balancer rerouting or a disk-full alert starting log rotation.",
+      "evidence": "A platform configuration binds the event to the function, such as a health-check failure condition that activates the load balancer's drain behavior or a logrotate size trigger."
+    },
+    {
+      "id": "technology.technologyevent.triggers.technology.technologyinteraction",
+      "previous_description": "Defines relationship: technology.technologyevent triggers technology.technologyinteraction",
+      "description": "The infrastructure state change initiates a collaborative behavior among several nodes or system software instances, such as a primary node failing and setting off leader election or a cluster failover handover.",
+      "evidence": "Cluster software configuration or runbooks, such as Patroni, etcd or Pacemaker settings, specify that the named failure or timeout event starts the joint election, failover or sync protocol."
+    },
+    {
+      "id": "technology.technologyevent.triggers.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyevent triggers technology.technologyprocess",
+      "description": "The infrastructure event is the start trigger that launches the ordered automated sequence, such as a cron schedule elapsing starting a backup job or a merged commit starting a deployment pipeline.",
+      "evidence": "The process definition declares the event as its trigger, for example an 'on: push' or schedule block in a CI workflow, a Kubernetes CronJob schedule, or an EventBridge rule targeting the job."
+    }
+  ],
+  "notes": "flows-to Artifact is questionable: ArchiMate Flow links behavior elements, while an event writing to a passive artifact is an Access (accesses/writes) relationship. The flows-to and triggers relationships to TechnologyProcess overlap. Triggering usually implies the payload is handed over, so modelers may struggle to choose between them unless the spec states when each applies."
+}

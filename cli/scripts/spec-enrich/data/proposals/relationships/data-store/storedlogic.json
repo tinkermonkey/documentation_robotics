@@ -1,0 +1,104 @@
+{
+  "source": "data-store.storedlogic",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.088Z",
+  "relationships": [
+    {
+      "id": "data-store.storedlogic.accesses.data-store.collection",
+      "previous_description": "Defines relationship: data-store.storedlogic accesses data-store.collection",
+      "description": "The stored routine reads rows, documents or keys from, or writes them to, the base container while it executes inside the engine.",
+      "evidence": "The routine body (e.g. a PL/pgSQL function, Lua script or Painless script) contains SELECT/INSERT/UPDATE/DELETE statements, redis.call on the key pattern, or index references naming that collection."
+    },
+    {
+      "id": "data-store.storedlogic.aggregates.data-store.collection",
+      "previous_description": "Defines relationship: data-store.storedlogic aggregates data-store.collection",
+      "description": "The stored logic unit, such as a package or Redis function library, groups a set of collections it administers as part of one logical module, while those collections continue to exist on their own.",
+      "evidence": "A schema package or migration module creates the routine together with the collections and lists both in the same package manifest, extension script or deployment unit."
+    },
+    {
+      "id": "data-store.storedlogic.aggregates.data-store.field",
+      "previous_description": "Defines relationship: data-store.storedlogic aggregates data-store.field",
+      "description": "The stored routine works with a defined set of fields, for example as its input or output signature, that it groups without owning their definition in the collection schema.",
+      "evidence": "The routine's parameter list, RETURNS TABLE clause or %ROWTYPE/%TYPE declarations reference those specific columns or document paths."
+    },
+    {
+      "id": "data-store.storedlogic.composes.data-store.storedlogic",
+      "previous_description": "Defines relationship: data-store.storedlogic composes data-store.storedlogic",
+      "description": "The containing stored logic unit, such as an SQL package or Redis function library, includes the member routine as an inseparable part that is created and dropped with it.",
+      "evidence": "The package body or FUNCTION LOAD library source declares the member procedure or function, so dropping the package or library removes it."
+    },
+    {
+      "id": "data-store.storedlogic.composes.data-store.validationrule",
+      "previous_description": "Defines relationship: data-store.storedlogic composes data-store.validationrule",
+      "description": "The stored routine bundles an engine-enforced integrity constraint as part of its definition, so the constraint exists only while the routine that defines or backs it exists.",
+      "evidence": "A CHECK constraint or domain constraint calls the function in its expression, and the DDL creates and drops the constraint together with the function."
+    },
+    {
+      "id": "data-store.storedlogic.depends-on.technology.systemsoftware",
+      "previous_description": "Defines relationship: data-store.storedlogic depends-on technology.systemsoftware",
+      "description": "The stored routine can only be deployed and executed by a specific database engine product and version, whose language, extensions and built-ins it requires.",
+      "evidence": "The routine's DDL uses an engine-specific LANGUAGE clause, extension or version-gated syntax, and the migration tooling or Terraform pins that engine version for its database."
+    },
+    {
+      "id": "data-store.storedlogic.implements.application.applicationfunction",
+      "previous_description": "Defines relationship: data-store.storedlogic implements application.applicationfunction",
+      "description": "The stored routine is the concrete in-database code that carries out the application function's automated behavior on behalf of its owning application component.",
+      "evidence": "The application component's repository or data-access layer delegates the function's work by calling the routine by name (CALL, EVALSHA, FCALL, pipeline id) instead of implementing the logic itself."
+    },
+    {
+      "id": "data-store.storedlogic.migrates.data-store.collection",
+      "previous_description": "Defines relationship: data-store.storedlogic migrates data-store.collection",
+      "description": "The stored routine moves or transforms existing data into the target collection, for example as a backfill, schema migration or tiering job.",
+      "evidence": "A migration script or scheduled job definition invokes the routine, whose body performs INSERT ... SELECT, reindex or copy operations writing into that collection."
+    },
+    {
+      "id": "data-store.storedlogic.realizes.business.businessfunction",
+      "previous_description": "Defines relationship: data-store.storedlogic realizes business.businessfunction",
+      "description": "The stored routine encodes business rules, such as billing calculations or claims adjudication, that make the business function's competency operational in the data tier.",
+      "evidence": "Routine comments, naming or architecture documentation trace it to the business function, and its logic implements that function's documented rules."
+    },
+    {
+      "id": "data-store.storedlogic.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: data-store.storedlogic satisfies security.securitypolicy",
+      "description": "The stored routine, such as a row-level security predicate or SECURITY DEFINER guard, embodies the access-control decisions required by the security policy for data in the store.",
+      "evidence": "A CREATE POLICY or grant configuration references the function as its USING/WITH CHECK predicate, and security documentation maps it to the named policy."
+    },
+    {
+      "id": "data-store.storedlogic.serves.application.applicationservice",
+      "previous_description": "Defines relationship: data-store.storedlogic serves application.applicationservice",
+      "description": "The stored routine provides the in-database behavior that the application service relies on to fulfil the operations it offers to its consumers.",
+      "evidence": "The service's implementation code calls the routine by name through its database driver or ORM raw-call API when handling its operations."
+    },
+    {
+      "id": "data-store.storedlogic.serves.api.operation",
+      "previous_description": "Defines relationship: data-store.storedlogic serves api.operation",
+      "description": "The stored routine performs the data work behind an HTTP operation, so the route handler for that method and path depends on it to produce its response.",
+      "evidence": "The controller or handler bound to that method-path invokes the routine via CALL, rpc() (e.g. PostgREST /rpc), EVALSHA or a pipeline parameter."
+    },
+    {
+      "id": "data-store.storedlogic.triggers.data-store.storedlogic",
+      "previous_description": "Defines relationship: data-store.storedlogic triggers data-store.storedlogic",
+      "description": "The invoking routine causes the engine to execute the other routine, either by calling it directly or by firing an event that it handles.",
+      "evidence": "The first routine's body contains a CALL, PERFORM, FCALL or pipeline processor referencing the second, or its writes fire a trigger bound to the second routine."
+    },
+    {
+      "id": "data-store.storedlogic.triggers.data-store.view",
+      "previous_description": "Defines relationship: data-store.storedlogic triggers data-store.view",
+      "description": "The stored routine initiates the recomputation or refresh of a derived view, such as a materialized view or continuous aggregate.",
+      "evidence": "The routine body or its schedule executes REFRESH MATERIALIZED VIEW, refresh_continuous_aggregate or an alias swap naming that view."
+    },
+    {
+      "id": "data-store.storedlogic.uses.technology.technologyservice",
+      "previous_description": "Defines relationship: data-store.storedlogic uses technology.technologyservice",
+      "description": "The stored routine relies on an infrastructure capability, such as a scheduler, outbound messaging, object storage or a key-management service, offered by the platform to do its work.",
+      "evidence": "The routine body calls platform facilities like pg_cron, pg_net, aws_s3 or external KMS functions, and the infrastructure configuration enables that service for the database."
+    },
+    {
+      "id": "data-store.storedlogic.validates.data-store.collection",
+      "previous_description": "Defines relationship: data-store.storedlogic validates data-store.collection",
+      "description": "The stored routine checks the data written to or held in the collection against integrity or business rules, rejecting or flagging records that violate them.",
+      "evidence": "A trigger on the collection is bound to the routine, or a scheduled job runs it, and its body raises errors or logs violations for that collection's records."
+    }
+  ],
+  "notes": "Aggregating collections and fields is dubious: stored logic references but does not group them; accesses covers this. Composing a validation rule contradicts its definition (declarative schema constraint, not part of procedural code). Validates (a testing predicate) overlaps accesses and imperative triggers excluded from ValidationRule. Realizes business function skips the application layer; implements application function is preferable."
+}

@@ -1,0 +1,44 @@
+{
+  "source": "motivation.principle",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.082Z",
+  "relationships": [
+    {
+      "id": "motivation.principle.associated-with.motivation.value",
+      "previous_description": "Defines relationship: motivation.principle associated-with motivation.value",
+      "description": "The principle is linked to a stakeholder value it reflects or protects, so the benefit can be cited as the justification for why the principle exists.",
+      "evidence": "The principle's rationale section in the architecture principles catalogue cites the named stakeholder value, or the model records an explicit association between the two."
+    },
+    {
+      "id": "motivation.principle.influence.motivation.assessment",
+      "previous_description": "Defines relationship: motivation.principle influence motivation.assessment",
+      "description": "The principle shapes how an assessment is framed or judged, so a finding such as a gap or risk is identified by measuring the current state against what the principle prescribes.",
+      "evidence": "The assessment report or architecture review record lists the principle as a criterion and states the finding as a deviation from it or as conformance to it."
+    },
+    {
+      "id": "motivation.principle.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.principle influence motivation.goal",
+      "description": "The principle steers how a stakeholder goal is formulated or prioritised, positively or negatively, without by itself achieving that goal.",
+      "evidence": "The goal's definition or strategy document cites the principle as a shaping consideration, or a review record shows the goal was reworded or reprioritised because of it."
+    },
+    {
+      "id": "motivation.principle.influence.motivation.principle",
+      "previous_description": "Defines relationship: motivation.principle influence motivation.principle",
+      "description": "One principle shapes the interpretation or wording of another, for example when an enterprise-wide principle is refined into a domain principle or when two principles must be traded off.",
+      "evidence": "The principles catalogue entry for the influenced principle names the influencing principle in its rationale, its implications or its derivation notes."
+    },
+    {
+      "id": "motivation.principle.influence.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.principle influence motivation.requirement",
+      "description": "The principle guides how a concrete, verifiable requirement is written, so the requirement is a specific application of the principle's general prescription.",
+      "evidence": "The requirement's specification or backlog item references the principle ID in its rationale or traceability field, for example 'derived from principle P-07 API-first'."
+    },
+    {
+      "id": "motivation.principle.realizes.motivation.goal",
+      "previous_description": "Defines relationship: motivation.principle realizes motivation.goal",
+      "description": "Adopting and following the principle is a concrete means by which the stakeholder goal is attained, so the principle operationalises the goal's intended direction.",
+      "evidence": "The principles catalogue or strategy document states that the principle is adopted in order to achieve the named goal, and the traceability matrix maps the principle to that goal."
+    }
+  ],
+  "notes": "principle realizes goal overlaps with principle influence goal, and ArchiMate does not allow principles to realize goals (they realize nothing; goals are refined by principles via influence/realization from requirements). Consider removing realizes, or restricting it, to avoid two predicates expressing the same contribution."
+}

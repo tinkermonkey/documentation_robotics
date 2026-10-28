@@ -1,0 +1,32 @@
+{
+  "source": "security.condition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.064Z",
+  "relationships": [
+    {
+      "id": "security.condition.composes.security.accesscondition",
+      "previous_description": "Defines relationship: security.condition composes security.accesscondition",
+      "description": "The named condition is built from one or more single-attribute comparison predicates, which it combines (for example with AND/OR) into the reusable boolean expression it exposes.",
+      "evidence": "The condition's definition in the policy file lists the access-condition predicates as its terms, for example an allOf/anyOf array of attribute–operator–value entries nested under the condition's name."
+    },
+    {
+      "id": "security.condition.constrains.security.policyrule",
+      "previous_description": "Defines relationship: security.condition constrains security.policyrule",
+      "description": "The reusable condition acts as the applicability test of the policy rule, so the rule's permit or deny effect is produced only when the condition evaluates to true for the request context.",
+      "evidence": "The policy rule declaration references the condition by name or ID in its condition/when field, for example a XACML Rule whose Condition element points to the shared condition definition."
+    },
+    {
+      "id": "security.condition.constrains.security.securitypolicy",
+      "previous_description": "Defines relationship: security.condition constrains security.securitypolicy",
+      "description": "The condition acts as a gate on the whole security policy, so the policy and its ordered rules are evaluated only for requests whose context satisfies the condition.",
+      "evidence": "The security policy's target or applicability block references the named condition, for example a policy-level 'appliesWhen: business-hours-only' entry in the policy configuration."
+    },
+    {
+      "id": "security.condition.triggers.security.policyaction",
+      "previous_description": "Defines relationship: security.condition triggers security.policyaction",
+      "description": "When the condition matches a request, the enforcement point carries out the associated response step, such as blocking, challenging, masking or notifying, as an obligation tied to that match.",
+      "evidence": "The condition's configuration or the enforcement-point config maps the condition name to an onMatch/obligations entry naming the action type and its parameters, such as step-up MFA or an alert webhook."
+    }
+  ],
+  "notes": "'composes' may be too strong: access conditions are also evaluated on their own within PolicyRules, ResourceOperations and InformationRights, so they exist independently of a Condition, which suggests 'aggregates'. Having the condition trigger actions directly partly duplicates PolicyRule obligation triggering and bypasses the permit/deny decision step."
+}

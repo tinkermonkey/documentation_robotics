@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "navigation.flowstep",
+  "previous_description": "A single ordered node in a NavigationFlow, binding a sequence position to a specific route that the user must visit as part of a multi-step process. Each step carries a sequence index (determines order), a route reference, an optional required flag (whether the step may be skipped), and a waitBehavior governing whether the flow advances immediately or blocks until the step completes. FlowSteps compose into NavigationFlows that realize multi-page business processes such as checkout, onboarding, or wizards.",
+  "definition": "An ordered position within a NavigationFlow that binds a sequence index to one route the user visits as part of a multi-step process, together with whether the step may be skipped and how the flow waits on it before advancing. It exists only as a member of a flow; the same route outside any ordered process is not a step.",
+  "distinguish_from": [
+    {
+      "type": "navigation.route",
+      "when": "the symbol declares a URL path pattern and the component it resolves to, independent of any position in an ordered multi-step process"
+    },
+    {
+      "type": "navigation.navigationflow",
+      "when": "the symbol is the whole ordered wizard, checkout or onboarding sequence that contains the steps, not a single position within it"
+    },
+    {
+      "type": "navigation.navigationtransition",
+      "when": "the symbol describes the edge between two routes and what triggers it (click, redirect, back) rather than a numbered stop in a flow"
+    },
+    {
+      "type": "navigation.contextvariable",
+      "when": "the symbol is state carried between steps (e.g. a cart or form draft held in sessionStorage) rather than the step itself"
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns – multi-step wizard / stepper step",
+  "code_evidence": [
+    "An entry in a steps array of a wizard or stepper configuration (e.g. `steps: [{ path: '/checkout/shipping', ... }, { path: '/checkout/payment', ... }]`) whose position or explicit index defines order",
+    "A stepper component child (e.g. `<Step>`, `<mat-step>`, `<el-step>`) bound to a route path, carrying an `optional` or `required` flag or a completion or validation gate",
+    "Next/previous step logic, such as `goToStep(n)`, `currentStep + 1` or a state-machine state in an onboarding or checkout flow, that resolves a step index to a router push of a specific path"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "sequence",
+      "description": "Integer position of the step within its NavigationFlow, starting at 1 and unique within the flow, that sets traversal order; always set it, taking the value from the array index or explicit step number in code."
+    },
+    {
+      "name": "route",
+      "description": "Identifier or path of the navigation.route the user visits at this step (e.g. 'checkout-payment' or '/checkout/payment'); set it to the route ID where one exists, otherwise to the literal path."
+    },
+    {
+      "name": "description",
+      "description": "Free-text summary of what the user accomplishes at this step (e.g. 'enter shipping address'); set it when the route name alone does not convey the step's purpose."
+    },
+    {
+      "name": "required",
+      "description": "Boolean flag; true means the flow cannot advance past this step without completing it, and false means the step may be skipped. Set it to false for steps marked optional or skippable in code."
+    }
+  ],
+  "notes": "The 'route' string attribute duplicates both the navigates-to and realizes relationships to navigation.route, so keep one. 'realizes navigation.route' is semantically odd. The aggregates and composes relationships from navigationflow are redundant. waitBehavior 'timeout' has no timeout-duration attribute. The 'required' name collides with ContextVariable.required, and 'skippable' or 'optional' would be clearer.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.252Z"
+}

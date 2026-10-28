@@ -109,7 +109,8 @@ export interface CircularPath {
  * - Structural metrics (orphanedElements, circularDependencies):
  *   Count of problematic elements
  * - Compliance metrics (layerComplianceScore):
- *   Percentage of relationships following higher→lower layer rule
+ *   Percentage of cross-layer relationships whose predicate is in the catalog (direction is
+ *   defined by the predicate, not by layer order; see spec/DESIGN_CHARTER.md)
  */
 export interface QualityMetrics {
   // Coverage
@@ -430,7 +431,7 @@ export class ReportDataModel {
         ? (relationships.crossLayerCount / relationships.totalRelationships) * 100
         : 0;
 
-    // Layer compliance score: proportion of relationships going higher -> lower
+    // Layer compliance score: cross-layer relationships whose predicate is in the catalog
     const layerComplianceScore = this.calculateLayerComplianceScore(relationships);
 
     this.cachedQuality = {
@@ -619,32 +620,20 @@ export class ReportDataModel {
   }
 
   /**
-   * Calculate layer compliance score (directional compliance)
-   * Measures adherence to the higher -> lower layer reference rule
+   * Calculate layer compliance score: the share of cross-layer relationships between known
+   * layers whose predicate is in the catalog. There is no layer-direction rule; direction is a
+   * property of the predicate (spec/DESIGN_CHARTER.md).
    */
   private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
-    // Only count relationships with known (valid) layer names
-    const validRelationships = analysis.classified.filter((rel) => {
-      const sourceOrder = getLayerOrder(rel.sourceLayer);
-      const targetOrder = getLayerOrder(rel.targetLayer);
-      return sourceOrder > 0 && targetOrder > 0;
-    });
+    const crossLayer = analysis.classified.filter(
+      (rel) =>
+        rel.isCrossLayer && getLayerOrder(rel.sourceLayer) > 0 && getLayerOrder(rel.targetLayer) > 0
+    );
 
-    if (validRelationships.length === 0) return 100;
+    if (crossLayer.length === 0) return 100;
 
-    let compliantCount = 0;
-
-    for (const rel of validRelationships) {
-      const sourceOrder = getLayerOrder(rel.sourceLayer);
-      const targetOrder = getLayerOrder(rel.targetLayer);
-
-      // Compliant if source >= target (higher layer -> lower/same layer)
-      if (sourceOrder >= targetOrder) {
-        compliantCount++;
-      }
-    }
-
-    return Math.round((compliantCount / validRelationships.length) * 100);
+    const compliantCount = crossLayer.filter((rel) => rel.isSpecCompliant).length;
+    return Math.round((compliantCount / crossLayer.length) * 100);
   }
 
   /**

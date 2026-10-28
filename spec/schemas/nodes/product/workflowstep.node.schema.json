@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WorkflowStep",
+  "description": "A single ordered, user-facing step within a UserWorkflow: what the user does or experiences at that point in the journey, which Feature the step exercises and which Capability it relies on. Steps are product-level and implementation-independent; their technical realization is a navigation FlowStep bound to a route.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "product.workflowstep"
+    },
+    "layer_id": {
+      "const": "product"
+    },
+    "type": {
+      "const": "workflowstep"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description of the step"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Position of the step within its UserWorkflow (1-based)"
+        },
+        "action": {
+          "type": "string",
+          "description": "What the user does or experiences at this step, from the user's point of view (e.g. 'Requests a password reset link')"
+        },
+        "outcome": {
+          "type": "string",
+          "description": "Observable result of the step for the user (e.g. 'Receives an email containing a reset link')"
+        },
+        "optional": {
+          "type": "boolean",
+          "description": "Whether the workflow can complete without this step",
+          "default": false
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": ["sequence", "action"],
+      "additionalProperties": false
+    }
+  }
+}

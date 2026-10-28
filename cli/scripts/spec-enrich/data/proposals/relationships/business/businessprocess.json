@@ -1,0 +1,92 @@
+{
+  "source": "business.businessprocess",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.105Z",
+  "relationships": [
+    {
+      "id": "business.businessprocess.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businessprocess accesses business.businessobject",
+      "description": "During one or more of its activities, the process reads, creates, updates or deletes the business information unit, such as an Order handling process updating the Order record.",
+      "evidence": "The process model (e.g. a BPMN diagram) shows a data association from a task in the process to the business object, or the process documentation lists the object as an input or output with a CRUD mode."
+    },
+    {
+      "id": "business.businessprocess.accesses.business.contract",
+      "previous_description": "Defines relationship: business.businessprocess accesses business.contract",
+      "description": "The process consults or modifies the agreement during its execution, for example checking SLA terms or penalty clauses before deciding how to fulfil a request.",
+      "evidence": "A process step's documentation or BPMN data input references the contract (e.g. 'verify entitlement against customer SLA'), or the workflow reads the contract record to determine terms."
+    },
+    {
+      "id": "business.businessprocess.aggregates.application.applicationprocess",
+      "previous_description": "Defines relationship: business.businessprocess aggregates application.applicationprocess",
+      "description": "The business process groups an automated application workflow as one of its constituent steps, so that part of the business sequence is carried out by that software process, which can still exist and run outside this business process.",
+      "evidence": "The BPMN model contains a service or script task bound to the application workflow or saga, or the process design document maps a business step to a named orchestration or pipeline."
+    },
+    {
+      "id": "business.businessprocess.constrained-by.security.securityconstraints",
+      "previous_description": "Defines relationship: business.businessprocess constrained-by security.securityconstraints",
+      "description": "Execution of the process is subject to the set of duty and need-to-know rules grouped in the security constraints container, which together restrict who may perform its steps and on what data.",
+      "evidence": "The security model's constraints section names the process or its workflow as the scope of its duty and purpose rules, or the workflow engine configuration loads that constraint set for the process."
+    },
+    {
+      "id": "business.businessprocess.constrained-by.security.separationofduty",
+      "previous_description": "Defines relationship: business.businessprocess constrained-by security.separationofduty",
+      "description": "The process must assign its conflicting steps, such as requesting and approving a payment, to different actors as the separation-of-duty rule requires.",
+      "evidence": "The workflow engine or IAM policy declares a rule that the approver of a task in this process must differ from its initiator, or the process documentation cites the SoD control for its steps."
+    },
+    {
+      "id": "business.businessprocess.delivers.business.businessobject",
+      "previous_description": "Defines relationship: business.businessprocess delivers business.businessobject",
+      "description": "The business object is the result the process produces at its end state, such as a completed Invoice or settled Claim handed to the customer or stakeholder.",
+      "evidence": "The process definition names the business object as its end event output or deliverable, or the process documentation states that completion yields that object."
+    },
+    {
+      "id": "business.businessprocess.flows-to.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessprocess flows-to business.businessprocess",
+      "description": "The source process passes information, material or work items to the destination process, which uses them as input to its own activities.",
+      "evidence": "A BPMN message flow or data hand-off connects the two processes, or the process documentation describes the output of one being transferred to the other (e.g. approved orders passed to fulfilment)."
+    },
+    {
+      "id": "business.businessprocess.realizes.business.businessservice",
+      "previous_description": "Defines relationship: business.businessprocess realizes business.businessservice",
+      "description": "The process is the internal sequence of activities through which the externally visible business service is actually delivered to its consumers.",
+      "evidence": "The service catalogue or service blueprint names the process as the delivery mechanism for the service, or the BPMN model is labelled as the implementation of that service."
+    },
+    {
+      "id": "business.businessprocess.realizes.motivation.goal",
+      "previous_description": "Defines relationship: business.businessprocess realizes motivation.goal",
+      "description": "Carrying out the process moves the organization toward the stakeholder's intended end state, making the process a concrete means of achieving that goal.",
+      "evidence": "The process charter or strategy document traces the process to the goal (e.g. 'this process realizes the goal of improving customer satisfaction'), or a traceability matrix links them."
+    },
+    {
+      "id": "business.businessprocess.realizes.motivation.outcome",
+      "previous_description": "Defines relationship: business.businessprocess realizes motivation.outcome",
+      "description": "Executing the process produces the measurable end result stated by the outcome, such as reducing claim settlement time to under five days.",
+      "evidence": "The process KPIs or performance reports measure the outcome's target value against this process, or the process design document names the outcome as its intended result."
+    },
+    {
+      "id": "business.businessprocess.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: business.businessprocess satisfies motivation.requirement",
+      "description": "The process's steps and rules implement the verifiable 'shall' statement, so that following the process meets the requirement's acceptance criteria.",
+      "evidence": "A requirements traceability matrix maps the requirement to the process, or the process documentation cites the requirement ID against the step that fulfils it."
+    },
+    {
+      "id": "business.businessprocess.triggers.business.businessevent",
+      "previous_description": "Defines relationship: business.businessprocess triggers business.businessevent",
+      "description": "Reaching a point in, or the end of, the process causes the named business state change to occur, such as an order fulfilment process raising 'order shipped'.",
+      "evidence": "The BPMN model shows an intermediate or end event emitted by the process with that event's name, or the workflow publishes the corresponding domain event on completion."
+    },
+    {
+      "id": "business.businessprocess.triggers.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessprocess triggers business.businessfunction",
+      "description": "Completion or a step of the process initiates work within the ongoing business capability, such as a sales process prompting the Accounting function to act.",
+      "evidence": "The process documentation or BPMN model shows a hand-off from the process to the organizational unit or function (e.g. a task routed to the accounting department queue)."
+    },
+    {
+      "id": "business.businessprocess.triggers.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessprocess triggers business.businessprocess",
+      "description": "Completion or a step of the source process causally starts the destination process, establishing their temporal order in a value chain.",
+      "evidence": "The BPMN model shows a sequence flow, call activity or start-message link from the source process to the destination process, or the workflow engine launches the second process when the first completes."
+    }
+  ],
+  "notes": "accesses and delivers BusinessObject overlap; delivers suits outcome/value targets, while ArchiMate would use access (write). aggregates ApplicationProcess is cross-layer; ArchiMate normally has application process serving or realizing the business process. realizes Goal skips the Outcome/Requirement chain and overlaps with realizes Outcome and satisfies Requirement. flows-to and triggers between processes are distinct but often conflated."
+}

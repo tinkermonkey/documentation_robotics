@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess depends-on Applicationinterface",
-  "description": "Defines relationship: application.applicationprocess depends-on application.applicationinterface",
+  "description": "The workflow reaches another component's services through the application interface during its steps, so the process needs that endpoint or channel to be available.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A workflow step calls through a generated client, HTTP or gRPC stub, GraphQL query or message-channel producer configured against that interface's endpoint or topic."
+  ]
 }

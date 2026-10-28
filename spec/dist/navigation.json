@@ -4,7 +4,7 @@
     "id": "navigation",
     "number": 11,
     "name": "Navigation Layer",
-    "description": "Layer 11: Navigation Layer",
+    "description": "Describes how a user moves through the application: routes and route parameters, navigation flows and their steps, guards and redirects, menus, deep links and the transitions between views (single-page-application navigation patterns). Router configuration and route tables are the usual evidence; the views reached belong to the UX layer and server-side HTTP endpoints to the API layer.",
     "inspired_by": {
       "standard": "SPA Navigation Patterns",
       "version": "1.0",
@@ -528,17 +528,6 @@
     }
   },
   "relationshipSchemas": {
-    "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph": {
-      "id": "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph",
-      "source_spec_node_id": "navigation.breadcrumbconfig",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationgraph",
-      "destination_layer": "navigation",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.breadcrumbconfig.provides.navigation.routemeta": {
       "id": "navigation.breadcrumbconfig.provides.navigation.routemeta",
       "source_spec_node_id": "navigation.breadcrumbconfig",
@@ -748,6 +737,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.flowstep.realizes.product.workflowstep": {
+      "id": "navigation.flowstep.realizes.product.workflowstep",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "product.workflowstep",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.flowstep.requires.navigation.navigationguard": {
       "id": "navigation.flowstep.requires.navigation.navigationguard",
       "source_spec_node_id": "navigation.flowstep",
@@ -935,17 +935,6 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.navigationflow.aggregates.navigation.flowstep": {
-      "id": "navigation.navigationflow.aggregates.navigation.flowstep",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.flowstep",
-      "destination_layer": "navigation",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.navigationflow.composes.navigation.flowstep": {
       "id": "navigation.navigationflow.composes.navigation.flowstep",
       "source_spec_node_id": "navigation.navigationflow",
@@ -996,6 +985,17 @@
       "source_layer": "navigation",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.realizes.product.userworkflow": {
+      "id": "navigation.navigationflow.realizes.product.userworkflow",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "product.userworkflow",
+      "destination_layer": "product",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -1056,17 +1056,6 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.navigationflow.triggers.business.businessprocess": {
-      "id": "navigation.navigationflow.triggers.business.businessprocess",
-      "source_spec_node_id": "navigation.navigationflow",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.navigationflow.uses.technology.systemsoftware": {
       "id": "navigation.navigationflow.uses.technology.systemsoftware",
       "source_spec_node_id": "navigation.navigationflow",
@@ -1105,28 +1094,6 @@
       "source_spec_node_id": "navigation.navigationgraph",
       "source_layer": "navigation",
       "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationgraph.aggregates.navigation.navigationtransition": {
-      "id": "navigation.navigationgraph.aggregates.navigation.navigationtransition",
-      "source_spec_node_id": "navigation.navigationgraph",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationtransition",
-      "destination_layer": "navigation",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationgraph.aggregates.navigation.route": {
-      "id": "navigation.navigationgraph.aggregates.navigation.route",
-      "source_spec_node_id": "navigation.navigationgraph",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.route",
       "destination_layer": "navigation",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
@@ -1221,17 +1188,6 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.navigationguard.implements.security.securitypolicy": {
-      "id": "navigation.navigationguard.implements.security.securitypolicy",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.navigationguard.intercepts.navigation.navigationflow": {
       "id": "navigation.navigationguard.intercepts.navigation.navigationflow",
       "source_spec_node_id": "navigation.navigationguard",
@@ -1260,6 +1216,17 @@
       "source_layer": "navigation",
       "destination_spec_node_id": "motivation.principle",
       "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.realizes.security.securitypolicy": {
+      "id": "navigation.navigationguard.realizes.security.securitypolicy",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
@@ -1331,17 +1298,6 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.navigationguard.uses.navigation.guardcondition": {
-      "id": "navigation.navigationguard.uses.navigation.guardcondition",
-      "source_spec_node_id": "navigation.navigationguard",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.guardcondition",
-      "destination_layer": "navigation",
-      "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.navigationguard.uses.data-model.objectschema": {
       "id": "navigation.navigationguard.uses.data-model.objectschema",
       "source_spec_node_id": "navigation.navigationguard",
@@ -1371,17 +1327,6 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.navigationtransition.flows-to.navigation.route": {
-      "id": "navigation.navigationtransition.flows-to.navigation.route",
-      "source_spec_node_id": "navigation.navigationtransition",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1793,22 +1738,22 @@
       "strength": "medium",
       "required": false
     },
-    "navigation.routemeta.governs.navigation.navigationguard": {
-      "id": "navigation.routemeta.governs.navigation.navigationguard",
-      "source_spec_node_id": "navigation.routemeta",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.navigationguard",
-      "destination_layer": "navigation",
-      "predicate": "governs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "navigation.routemeta.references.navigation.breadcrumbconfig": {
       "id": "navigation.routemeta.references.navigation.breadcrumbconfig",
       "source_spec_node_id": "navigation.routemeta",
       "source_layer": "navigation",
       "destination_spec_node_id": "navigation.breadcrumbconfig",
+      "destination_layer": "navigation",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.references.navigation.navigationguard": {
+      "id": "navigation.routemeta.references.navigation.navigationguard",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationguard",
       "destination_layer": "navigation",
       "predicate": "references",
       "cardinality": "many-to-many",
@@ -1833,17 +1778,6 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "navigation.routemeta.serves.navigation.route": {
-      "id": "navigation.routemeta.serves.navigation.route",
-      "source_spec_node_id": "navigation.routemeta",
-      "source_layer": "navigation",
-      "destination_spec_node_id": "navigation.route",
-      "destination_layer": "navigation",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

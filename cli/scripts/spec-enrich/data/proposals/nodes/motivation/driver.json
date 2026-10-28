@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "motivation.driver",
+  "previous_description": "External or internal condition that motivates an organization to change its goals, strategy, or architecture.",
+  "definition": "A motivation element naming an external or internal condition or force (e.g. a regulation coming into effect, market pressure, rising operating cost, technical debt) that prompts the organization to set or change goals, requirements or architecture. It names the condition itself, not an evaluation of it and not the response to it.",
+  "distinguish_from": [
+    {
+      "type": "motivation.assessment",
+      "when": "the element records the result of analysing a condition (a SWOT finding, risk rating, gap or feasibility conclusion) rather than naming the condition itself."
+    },
+    {
+      "type": "motivation.goal",
+      "when": "the statement expresses a desired end state or direction the organization intends to pursue in response to the condition."
+    },
+    {
+      "type": "motivation.constraint",
+      "when": "the element is a fixed restriction on design or implementation choices (e.g. 'must run on-prem') rather than a force that motivates change."
+    },
+    {
+      "type": "motivation.stakeholder",
+      "when": "the element is the person, team or organization holding the concern, not the concern or condition itself."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.2.2 Driver",
+  "code_evidence": [
+    "An ADR or design doc 'Context' / 'Motivation' / 'Background' section naming an external or internal condition, such as 'GDPR enforcement deadline' or 'p95 latency complaints from customers', as the reason for the change.",
+    "Issue tracker epics or labels (e.g. 'compliance', 'tech-debt', 'cost-reduction') whose description cites a regulation, market event or operational problem that triggers a body of work.",
+    "Code comments or README notes that justify a module's existence by citing a condition, e.g. '// Required due to PCI-DSS 4.0 rollout' or 'Introduced because vendor X API is deprecated in 2025'."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the motivating condition: what it is, where it originates (internal or external), and any source evidence such as a regulation citation, incident or metric. Set it whenever the name alone does not make the condition unambiguous."
+    }
+  ],
+  "notes": "Category enum mixes overlapping values: 'business' overlaps market/strategic/competitive, and 'technical' duplicates 'technological'. Consider consolidating. There is no internal/external flag even though the definition hinges on it. Consider adding an 'origin' enum. The ArchiMate standard places stakeholder→driver as association, so the incoming 'influence' from stakeholder is non-standard and should be reviewed.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.252Z"
+}

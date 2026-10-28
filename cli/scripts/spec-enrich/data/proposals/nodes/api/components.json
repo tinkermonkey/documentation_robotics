@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "api.components",
+  "previous_description": "A named registry for reusable API definition objects (schemas, responses, parameters, examples, requestBodies, headers, securitySchemes, links, callbacks) that enables $ref referencing throughout the specification. Component entries are not rendered directly — they must be referenced by operations, parameters, or schemas to take effect. Component name keys must match the pattern ^[a-zA-Z0-9.\\-_]+$ per OpenAPI 3.0 — arbitrary strings are not valid component identifiers.",
+  "definition": "The single container object within an OpenAPI document that holds named, reusable definitions (schemas, responses, parameters, examples, request bodies, headers, security schemes, links and callbacks), each addressable by a '#/components/<kind>/<name>' $ref pointer. It defines no paths or operations itself; its entries take effect only when referenced.",
+  "distinguish_from": [
+    {
+      "type": "api.openapidocument",
+      "when": "the element is the root object carrying openapi, info, paths and servers, of which the components section is only one child."
+    },
+    {
+      "type": "api.schema",
+      "when": "the element is an individual data-shape definition, whether inline or stored under components.schemas, rather than the registry that holds it."
+    },
+    {
+      "type": "api.responses",
+      "when": "the element is an operation's map of HTTP status codes to Response objects, not the components.responses registry of named reusable responses."
+    },
+    {
+      "type": "api.paths",
+      "when": "the element maps URL path templates to PathItem objects that define live API surface, rather than holding unreferenced reusable definitions."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Components Object",
+  "code_evidence": [
+    "A top-level 'components:' key in an openapi.yaml/openapi.json with sub-maps such as schemas, securitySchemes, parameters or responses",
+    "JSON Reference strings of the form \"$ref: '#/components/schemas/User'\" or '#/components/responses/NotFound' elsewhere in the spec",
+    "Programmatic spec builders populating the section, e.g. springdoc 'new OpenAPI().components(new Components().addSecuritySchemes(...))', NestJS DocumentBuilder().addBearerAuth(), or drf-spectacular/FastAPI registering models under components.schemas"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The composes→api.paths edge is invalid: an OpenAPI 3.0 Components object has no paths or pathItems, which exist only in 3.1. components.responses holds Response objects, not a Responses map, so drop composes→api.responses. api.response appears under both aggregates and composes; pick one. The oauthflows→components association is spurious, because flows nest in securityscheme.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

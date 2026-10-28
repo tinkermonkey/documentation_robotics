@@ -1,0 +1,68 @@
+{
+  "source": "motivation.requirement",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.106Z",
+  "relationships": [
+    {
+      "id": "motivation.requirement.aggregates.motivation.goal",
+      "previous_description": "Defines relationship: motivation.requirement aggregates motivation.goal",
+      "description": "The requirement groups one or more narrower goals as independent parts of its scope, so the goals stay meaningful on their own even if the bundling requirement is withdrawn.",
+      "evidence": "A requirements document or traceability matrix lists the goal IDs as named sub-items under the requirement's entry, while each goal also has its own standalone record."
+    },
+    {
+      "id": "motivation.requirement.aggregates.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.requirement aggregates motivation.requirement",
+      "description": "The parent requirement bundles child requirements as its constituent parts, and each child remains a separately trackable and verifiable statement that could be reused or regrouped elsewhere.",
+      "evidence": "The requirements management tool (e.g. Jira epic/story links or a DOORS module hierarchy) shows the child requirement IDs linked under the parent, each with its own acceptance criteria."
+    },
+    {
+      "id": "motivation.requirement.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.requirement associated-with motivation.constraint",
+      "description": "The requirement and the constraint bear on the same design decision, with the constraint limiting which options can be used to satisfy the requirement, without one deriving from the other.",
+      "evidence": "An architecture decision record or requirement entry cites both the requirement ID and the constraint (e.g. a mandated technology or deadline) as factors in the same decision."
+    },
+    {
+      "id": "motivation.requirement.associated-with.motivation.driver",
+      "previous_description": "Defines relationship: motivation.requirement associated-with motivation.driver",
+      "description": "The driver is the condition or force, such as a new regulation or rising cost, that prompted the requirement to be written and serves as its justification.",
+      "evidence": "The requirement's rationale or source field names the driver, for example citing the regulation clause or cost analysis that motivated it."
+    },
+    {
+      "id": "motivation.requirement.associated-with.motivation.goal",
+      "previous_description": "Defines relationship: motivation.requirement associated-with motivation.goal",
+      "description": "The requirement is loosely linked to a goal it is relevant to, recording traceability without asserting that meeting the requirement achieves the goal.",
+      "evidence": "A traceability matrix or requirement record lists the goal in a 'related goals' field rather than a 'realizes' or 'refines' field."
+    },
+    {
+      "id": "motivation.requirement.associated-with.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.requirement associated-with motivation.outcome",
+      "description": "The outcome is the measurable end result that satisfying the requirement is expected to contribute to or be evaluated against.",
+      "evidence": "The requirement specification or OKR document references the outcome's target value or KPI as the success measure linked to the requirement."
+    },
+    {
+      "id": "motivation.requirement.associated-with.motivation.stakeholder",
+      "previous_description": "Defines relationship: motivation.requirement associated-with motivation.stakeholder",
+      "description": "The stakeholder is the party whose concern the requirement expresses or who requested, owns, or must accept it.",
+      "evidence": "The requirement record names the stakeholder in its requester, owner, or approver field, or meeting notes attribute the need to that stakeholder."
+    },
+    {
+      "id": "motivation.requirement.associated-with.motivation.value",
+      "previous_description": "Defines relationship: motivation.requirement associated-with motivation.value",
+      "description": "The value describes the benefit a stakeholder gains when the requirement is met, giving the stakeholder-perspective justification for the requirement.",
+      "evidence": "The requirement's business case or user-story 'so that' clause states the benefit captured by the value element."
+    },
+    {
+      "id": "motivation.requirement.realizes.motivation.goal",
+      "previous_description": "Defines relationship: motivation.requirement realizes motivation.goal",
+      "description": "The requirement is a concrete, verifiable refinement of the goal, such that satisfying the requirement makes the qualitative goal achievable in practice.",
+      "evidence": "A goal-to-requirement decomposition (e.g. a traceability matrix or goal model) lists the requirement as one of the refinements that together achieve the goal."
+    },
+    {
+      "id": "motivation.requirement.specializes.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.requirement specializes motivation.requirement",
+      "description": "The source requirement is a more specific variant of the general requirement, inheriting its intent and constraints while narrowing it to a particular context, platform, or case.",
+      "evidence": "The requirements catalog marks the requirement as a variant or subtype of the general one, e.g. 'REQ-AUTH-MOBILE specializes REQ-AUTH', restating its criteria with added specifics."
+    }
+  ],
+  "notes": "Requirement aggregates goal inverts the usual hierarchy; goals are refined by requirements, so this should likely be removed or reversed. Requirement associated-with goal overlaps with realizes goal; prefer realizes when the requirement actually refines the goal. Aggregates requirement and specializes requirement must be distinguished as decomposition versus variant."
+}

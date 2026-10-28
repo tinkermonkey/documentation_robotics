@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "apm.spanevent",
+  "previous_description": "Timestamped annotation within a span's lifetime, used to record significant moments such as exceptions (OTel semantic convention: name='exception' with exception.type, exception.message, and exception.stacktrace attributes) or state transitions.",
+  "definition": "A named, timestamped annotation attached to exactly one span and recorded at a single instant within that span's start–end window. It has no duration and no identity of its own, and it describes a notable occurrence such as a caught exception, retry or state transition inside the operation the span covers.",
+  "distinguish_from": [
+    {
+      "type": "apm.logrecord",
+      "when": "the event is emitted through a Logger or the OTel Events/Logs API as an independent record (even if it carries traceId/spanId for correlation), rather than being added to a span via addEvent/recordException."
+    },
+    {
+      "type": "apm.span",
+      "when": "the thing being recorded has its own start and end time, its own spanId, or child operations, i.e. it is a unit of work with duration rather than a point-in-time marker inside one."
+    },
+    {
+      "type": "apm.spanlink",
+      "when": "the annotation points to another span (traceId+spanId) to express causality across traces or batches rather than recording something that happened at a moment within this span."
+    }
+  ],
+  "standard_reference": "OpenTelemetry Trace API, Span Events ('Add Events' / 'Record Exception'); OTLP trace.proto Span.Event message",
+  "code_evidence": [
+    "calls to span.addEvent(name, attributes) / span.add_event(...) / Span.current().addEvent(...) on an active span",
+    "calls to span.recordException(err) / span.record_exception(e), or events named 'exception' carrying exception.type, exception.message and exception.stacktrace attributes",
+    "in .NET, Activity.AddEvent(new ActivityEvent(\"name\", tags: ...)), or exported OTLP/Jaeger payloads showing an 'events' (or 'logs') array nested inside a span"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "timeUnixNano",
+      "description": "Instant at which the event occurred, as nanoseconds since the Unix epoch encoded as a decimal string (OTLP fixed64). It must fall within the parent span's start and end times; set it explicitly only when the event time differs from the moment addEvent was called."
+    },
+    {
+      "name": "droppedAttributesCount",
+      "description": "Number of attributes discarded from this event because SDK attribute count or length limits were exceeded; use 0 when no attributes were dropped."
+    }
+  ],
+  "notes": "The event 'name' is missing as an attribute, even though OTLP requires it and the definition relies on name='exception'; add it as required. The 'triggers apm.metricinstrument' and 'monitors ux.actioncomponent' relationships are dubious, because events neither drive instruments nor monitor UI directly. The OTel Events API now emits LogRecords, which blurs the boundary with apm.logrecord.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.239Z"
+}

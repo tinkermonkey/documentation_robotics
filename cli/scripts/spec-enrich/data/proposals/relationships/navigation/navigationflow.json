@@ -1,0 +1,116 @@
+{
+  "source": "navigation.navigationflow",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.080Z",
+  "relationships": [
+    {
+      "id": "navigation.navigationflow.accesses.data-store.collection",
+      "previous_description": "Defines relationship: navigation.navigationflow accesses data-store.collection",
+      "description": "The multi-step journey reads from or writes to a persistent collection as it progresses, for example saving a draft order at an intermediate step or committing the final record when the last step completes.",
+      "evidence": "A step handler or flow completion callback registered for the flow calls a repository or API endpoint that queries or inserts into the named table, document collection or bucket."
+    },
+    {
+      "id": "navigation.navigationflow.accesses.data-model.objectschema",
+      "previous_description": "Defines relationship: navigation.navigationflow accesses data-model.objectschema",
+      "description": "The journey reads or assembles instances of a structured domain record as the user moves through its steps, such as building up a CheckoutOrder or OnboardingProfile object that is submitted at the end.",
+      "evidence": "The flow's state store or completion handler is typed against the schema's interface, DTO or model class and populates or validates its properties across the steps."
+    },
+    {
+      "id": "navigation.navigationflow.accesses.ux.view",
+      "previous_description": "Defines relationship: navigation.navigationflow accesses ux.view",
+      "description": "The journey opens and works with a specific page, screen or modal as one of the display surfaces the user passes through while completing the process.",
+      "evidence": "The flow definition or wizard controller references the view component, either through a step's route target or by opening the modal directly, during the flow."
+    },
+    {
+      "id": "navigation.navigationflow.aggregates.navigation.contextvariable",
+      "previous_description": "Defines relationship: navigation.navigationflow aggregates navigation.contextvariable",
+      "description": "The journey groups the client-side state items it carries across its steps, such as a cart ID or selected plan, which each step writes or reads before the flow finishes.",
+      "evidence": "The flow configuration lists the context variables with their schema, scope and storage mechanism, or the flow's state slice declares those keys in sessionStorage, localStorage, memory or the query string."
+    },
+    {
+      "id": "navigation.navigationflow.aggregates.navigation.flowstep",
+      "previous_description": "Defines relationship: navigation.navigationflow aggregates navigation.flowstep",
+      "description": "The journey collects its ordered steps into one grouping, with each step contributing one route and a sequence index to the overall process.",
+      "evidence": "The flow definition's steps array lists the FlowStep entries with their order, route and skippable settings."
+    },
+    {
+      "id": "navigation.navigationflow.composes.navigation.flowstep",
+      "previous_description": "Defines relationship: navigation.navigationflow composes navigation.flowstep",
+      "description": "The journey owns its ordered steps outright, so each step's sequence position, skippability and wait behaviour only exist as part of this flow and disappear if the flow is removed.",
+      "evidence": "The FlowStep entries are declared inline in the flow's definition object or wizard config and have no separate registration outside that flow."
+    },
+    {
+      "id": "navigation.navigationflow.flows-to.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.navigationflow flows-to navigation.navigationtransition",
+      "description": "Progress through the journey passes along a particular permitted route change, such as the move from the shipping route to the payment route, when the user advances between steps.",
+      "evidence": "The flow's next and previous handlers call the router to perform a route change that matches a transition declared between the source and destination routes in the router configuration."
+    },
+    {
+      "id": "navigation.navigationflow.realizes.application.applicationprocess",
+      "previous_description": "Defines relationship: navigation.navigationflow realizes application.applicationprocess",
+      "description": "The client-side journey is the user-facing execution of an ordered application workflow, with its steps carrying out the stages of that process, such as a checkout saga or account-provisioning orchestration.",
+      "evidence": "The flow's step transitions and completion handler invoke, in order, the service methods or workflow endpoints that make up the documented application process."
+    },
+    {
+      "id": "navigation.navigationflow.realizes.business.businessprocess",
+      "previous_description": "Defines relationship: navigation.navigationflow realizes business.businessprocess",
+      "description": "The journey is the digital means by which a user carries out a business process end to end, such as placing an order or enrolling as a customer, mapping its steps onto the process's activities.",
+      "evidence": "Process documentation or a BPMN model maps each business activity to a step of the flow, and the flow's completion produces the process's defined result."
+    },
+    {
+      "id": "navigation.navigationflow.realizes.motivation.goal",
+      "previous_description": "Defines relationship: navigation.navigationflow realizes motivation.goal",
+      "description": "Delivering the journey makes concrete a stakeholder end state, such as frictionless purchasing or faster customer onboarding.",
+      "evidence": "The product brief, epic or architecture decision record cites the goal as the reason the flow was introduced, and the flow's analytics are tied to that goal."
+    },
+    {
+      "id": "navigation.navigationflow.realizes.product.userworkflow",
+      "previous_description": "Defines relationship: navigation.navigationflow realizes product.userworkflow",
+      "description": "The journey is the concrete, route-based implementation in the client of a user workflow described from the persona's point of view, turning its user-facing steps into screens visited in order.",
+      "evidence": "Product specs or story tickets link the user workflow to the flow, and each WorkflowStep corresponds to one or more FlowSteps in the flow definition."
+    },
+    {
+      "id": "navigation.navigationflow.requires.navigation.navigationguard",
+      "previous_description": "Defines relationship: navigation.navigationflow requires navigation.navigationguard",
+      "description": "The journey depends on a router guard to stop users entering or advancing through its steps out of order or without the required preconditions, such as reaching payment before a shipping address is captured.",
+      "evidence": "The flow definition or its routes register the guard in a beforeEnter, canActivate or per-flow guards list, and the guard checks flow state before allowing navigation."
+    },
+    {
+      "id": "navigation.navigationflow.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: navigation.navigationflow satisfies motivation.requirement",
+      "description": "The journey meets a stated, verifiable need, such as 'users must be able to complete checkout in at most four steps', through its step order and behaviour.",
+      "evidence": "The requirement's acceptance criteria reference the flow, and end-to-end tests that drive the flow through its steps are traced to the requirement ID."
+    },
+    {
+      "id": "navigation.navigationflow.satisfies.security.securityconstraints",
+      "previous_description": "Defines relationship: navigation.navigationflow satisfies security.securityconstraints",
+      "description": "The journey's step ordering and gating enforce the workflow-level duty and purpose rules of the security model, for example forcing an approval step to be performed by someone other than the requester.",
+      "evidence": "Guards or step preconditions in the flow check the separation-of-duty, binding-of-duty or need-to-know rules defined in the security model, and security review documents trace those constraints to the flow."
+    },
+    {
+      "id": "navigation.navigationflow.serves.business.businessservice",
+      "previous_description": "Defines relationship: navigation.navigationflow serves business.businessservice",
+      "description": "The journey is the channel through which customers consume an externally visible business service, such as Order Delivery or Claims Handling, by completing it in the client.",
+      "evidence": "The service catalogue or channel documentation lists the flow as the digital entry point for the business service, and the flow's final step submits the request to that service."
+    },
+    {
+      "id": "navigation.navigationflow.triggers.application.applicationevent",
+      "previous_description": "Defines relationship: navigation.navigationflow triggers application.applicationevent",
+      "description": "Starting, completing or abandoning the journey emits a named application event, such as CheckoutCompleted or OnboardingStarted, that other application behaviour reacts to.",
+      "evidence": "The flow's start, completion or abandon handler dispatches or publishes the event by name to an event bus, store action or analytics/message topic."
+    },
+    {
+      "id": "navigation.navigationflow.triggers.business.businessprocess",
+      "previous_description": "Defines relationship: navigation.navigationflow triggers business.businessprocess",
+      "description": "Completing the journey initiates a downstream business process, such as order fulfilment or application review, that people in the organisation then carry out.",
+      "evidence": "The flow's final submission creates a work item, case or order record that the business process documentation names as its start trigger."
+    },
+    {
+      "id": "navigation.navigationflow.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: navigation.navigationflow uses technology.systemsoftware",
+      "description": "The journey depends on a platform software product, such as the SPA router library's runtime, the browser storage engine or a cache server that holds flow state, to run and persist its progress.",
+      "evidence": "The flow's implementation imports or configures the platform product, for example a router or state-persistence package declared in package.json or a Redis session store named in deployment config."
+    }
+  ],
+  "notes": "aggregates and composes FlowStep conflict; FlowStep exists only within a flow, so composes is correct and aggregates should be dropped. Realizing a Goal is questionable; supports fits better. accesses View overlaps the step-to-route-to-view chain. flows-to NavigationTransition is odd, since a flow traverses or references transitions. uses SystemSoftware is weakly meaningful for a client-side flow."
+}

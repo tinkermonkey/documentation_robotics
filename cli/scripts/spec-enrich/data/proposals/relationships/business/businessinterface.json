@@ -1,0 +1,50 @@
+{
+  "source": "business.businessinterface",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.103Z",
+  "relationships": [
+    {
+      "id": "business.businessinterface.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businessinterface accesses business.businessobject",
+      "description": "The channel or point of access reads, captures or updates the business information, as when a customer portal displays an Order or a mailroom registers an incoming Claim.",
+      "evidence": "Channel documentation, screen inventories or intake procedures for the interface list the business object as information captured, displayed or updated at that touchpoint."
+    },
+    {
+      "id": "business.businessinterface.flows-to.business.businessobject",
+      "previous_description": "Defines relationship: business.businessinterface flows-to business.businessobject",
+      "description": "Information gathered at the channel is passed on into the business object, as when details submitted at a branch counter or portal populate a new Claim or Order record.",
+      "evidence": "A value-stream or information-flow diagram, or the channel's intake procedure, shows data entered at the interface being handed off to create or populate the business object."
+    },
+    {
+      "id": "business.businessinterface.provides.business.businessservice",
+      "previous_description": "Defines relationship: business.businessinterface provides business.businessservice",
+      "description": "The channel is a point through which the business service is offered and reached, as when a call centre makes Claims Handling available to policyholders.",
+      "evidence": "The service catalogue or service description lists the interface among the channels or contact points through which that business service can be requested."
+    },
+    {
+      "id": "business.businessinterface.serves.business.businessactor",
+      "previous_description": "Defines relationship: business.businessinterface serves business.businessactor",
+      "description": "The specific person, team or external organization uses the channel to reach the organization's services, as when a named corporate customer submits orders through a dedicated portal.",
+      "evidence": "Channel usage agreements, customer onboarding records or access lists identify the named actor as a user of that interface."
+    },
+    {
+      "id": "business.businessinterface.serves.business.businessrole",
+      "previous_description": "Defines relationship: business.businessinterface serves business.businessrole",
+      "description": "Whoever occupies the responsibility position uses the channel to obtain services, as when anyone acting as Customer or Broker contacts the claims hotline.",
+      "evidence": "Channel strategy documents or customer journey maps name the role as the intended audience or user segment of the interface."
+    },
+    {
+      "id": "business.businessinterface.triggers.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessinterface triggers business.businessfunction",
+      "description": "Contact received through the channel sets the ongoing competency area to work, as when inquiries arriving at the customer portal are routed to the Customer Support function.",
+      "evidence": "Routing rules or operating procedures for the interface state that requests arriving there are dispatched to the business function for handling."
+    },
+    {
+      "id": "business.businessinterface.triggers.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessinterface triggers business.businessprocess",
+      "description": "A request arriving through the channel initiates an instance of the business process, as when a claim submitted at the branch counter starts the claims-intake process.",
+      "evidence": "The process model shows a start event or initiating step tied to receipt of a request via the interface, or the channel's procedures say each submission opens a process case."
+    }
+  ],
+  "notes": "flows-to toward a passive BusinessObject is non-standard ArchiMate (flow links behavior/active elements) and largely duplicates accesses. Triggers from an interface is not valid ArchiMate (triggering is between behaviors/events); triggering a BusinessFunction, which has no defined start, is especially doubtful—consider serves or assigned-to via the service instead."
+}

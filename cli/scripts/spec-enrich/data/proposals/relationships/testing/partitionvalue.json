@@ -1,0 +1,44 @@
+{
+  "source": "testing.partitionvalue",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.076Z",
+  "relationships": [
+    {
+      "id": "testing.partitionvalue.composes.testing.inputspacepartition",
+      "previous_description": "Defines relationship: testing.partitionvalue composes testing.inputspacepartition",
+      "description": "The equivalence or boundary class is an integral part of exactly one input space partition and has no existence once that partition of the input field's domain is removed.",
+      "evidence": "The test-design model file lists the partition value nested under the input space partition's values collection, and the value carries no identity outside that parent."
+    },
+    {
+      "id": "testing.partitionvalue.constrained-by.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.partitionvalue constrained-by testing.coveragerequirement",
+      "description": "The coverage criterion, such as boundary-values or pairwise, determines whether and in what combinations this equivalence class must be exercised by the target's test cases.",
+      "evidence": "The coverage requirement's definition names the partition value, or its parent partition, among the selected input partitions it must cover."
+    },
+    {
+      "id": "testing.partitionvalue.depends-on.testing.environmentfactor",
+      "previous_description": "Defines relationship: testing.partitionvalue depends-on testing.environmentfactor",
+      "description": "The equivalence class is meaningful only under a particular environmental condition, such as a locale or dependency version, because that condition determines which values fall into the class or behave alike.",
+      "evidence": "The partition value's boundary condition or representative value is stated relative to a named environment factor, for example a locale-specific date format or a value limit tied to an OS version."
+    },
+    {
+      "id": "testing.partitionvalue.flows-to.testing.outcomecategory",
+      "previous_description": "Defines relationship: testing.partitionvalue flows-to testing.outcomecategory",
+      "description": "Inputs drawn from this equivalence class are expected to produce results of the named outcome category, such as a validation error for an out-of-range boundary class.",
+      "evidence": "The test design maps the partition value to an expected outcome category, or test case sketches that use its representative value are grouped under that category."
+    },
+    {
+      "id": "testing.partitionvalue.references.testing.coverageexclusion",
+      "previous_description": "Defines relationship: testing.partitionvalue references testing.coverageexclusion",
+      "description": "The equivalence class points to a signed-off exclusion decision that explains why tests are not required to exercise it.",
+      "evidence": "The partition value record carries an exclusion identifier that matches an approved coverage exclusion entry with its rationale and approver."
+    },
+    {
+      "id": "testing.partitionvalue.triggers.testing.coveragegap",
+      "previous_description": "Defines relationship: testing.partitionvalue triggers testing.coveragegap",
+      "description": "A required equivalence class that no implemented or executed test exercises gives rise to a recorded coverage gap finding.",
+      "evidence": "A coverage gap record names the partition value, or its representative value, as the uncovered element, and coverage analysis output shows no test case using it."
+    }
+  ],
+  "notes": "The references link to CoverageExclusion is questionable. Exclusions are defined as applying to coverage targets or requirements, not partition values. Triggers to CoverageGap is also loose: gaps are defined against requirements or targets, and an analysis process rather than the value itself produces them. The depends-on link to EnvironmentFactor mixes input-space and environment concerns that the definitions keep separate."
+}

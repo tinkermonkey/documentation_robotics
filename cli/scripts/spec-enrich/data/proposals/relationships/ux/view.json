@@ -1,0 +1,200 @@
+{
+  "source": "ux.view",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.072Z",
+  "relationships": [
+    {
+      "id": "ux.view.accesses.application.applicationcomponent",
+      "previous_description": "Defines relationship: ux.view accesses application.applicationcomponent",
+      "description": "The page or screen reads from or invokes an application module or service class, for example by injecting it or calling its methods to load or change state.",
+      "evidence": "The view's source file imports or injects the component, such as a store, service or provider, and calls its methods from lifecycle hooks or event handlers."
+    },
+    {
+      "id": "ux.view.accesses.data-store.collection",
+      "previous_description": "Defines relationship: ux.view accesses data-store.collection",
+      "description": "The screen reads or writes records in a persistent table, document collection or bucket directly, without going through an API layer.",
+      "evidence": "The view's code or loader runs a database client query, such as a Firestore, Supabase or IndexedDB call, against that named collection or table."
+    },
+    {
+      "id": "ux.view.accesses.api.operation",
+      "previous_description": "Defines relationship: ux.view accesses api.operation",
+      "description": "The screen calls a specific HTTP method-and-path endpoint to fetch or submit the data it displays or edits.",
+      "evidence": "The view's loader, hook or event handler issues a fetch or generated-client call to that method and URL path."
+    },
+    {
+      "id": "ux.view.accesses.data-store.view",
+      "previous_description": "Defines relationship: ux.view accesses data-store.view",
+      "description": "The screen reads its displayed data from a derived database view or materialized view instead of from base tables.",
+      "evidence": "The view's data loader queries the named database view, for example with a SELECT against it or a client call that names it."
+    },
+    {
+      "id": "ux.view.aggregates.actioncomponent",
+      "previous_description": "Defines relationship: ux.view aggregates ux.actioncomponent",
+      "description": "The screen contains buttons, links or menu entries that users activate, and these controls are defined independently and could be reused on other screens.",
+      "evidence": "The view's template or JSX places the action control, such as a button or link component with an onClick or href, inside its markup."
+    },
+    {
+      "id": "ux.view.aggregates.ux.subview",
+      "previous_description": "Defines relationship: ux.view aggregates ux.subview",
+      "description": "The screen includes a region that is a placement of a reusable library sub-view, which also exists outside this particular screen.",
+      "evidence": "The view's markup includes a shared sub-view component imported from a library or shared directory, with the sub-view's ref set."
+    },
+    {
+      "id": "ux.view.applies.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.view applies ux.layoutconfig",
+      "description": "The screen arranges its children according to a declared layout specification covering grid, flex, spacing and width rules.",
+      "evidence": "The view's root container carries the layout configuration, for example grid or flex CSS classes or a layout object referenced in the view spec."
+    },
+    {
+      "id": "ux.view.binds-to.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.view binds-to ux.dataconfig",
+      "description": "The screen obtains the data it displays through a declared binding that names the source, such as an API, a store or a static value, and the field path selected from it.",
+      "evidence": "The view spec or code declares a data binding, for example a useQuery or store selector, or a dataConfig entry attached to the view."
+    },
+    {
+      "id": "ux.view.composes.ux.subview",
+      "previous_description": "Defines relationship: ux.view composes ux.subview",
+      "description": "The screen owns an inline, non-routable region that exists only as part of this screen and has no meaning without it.",
+      "evidence": "The view spec defines the sub-view inline with no ref, or the view file declares a local section component used only by that view."
+    },
+    {
+      "id": "ux.view.depends-on.technology.systemsoftware",
+      "previous_description": "Defines relationship: ux.view depends-on technology.systemsoftware",
+      "description": "The screen can only run on a particular runtime or platform product, such as a browser engine, a Node SSR runtime or a native OS version.",
+      "evidence": "package.json engines, the browserslist setting or the platform manifest declares the runtime that the view's rendering requires."
+    },
+    {
+      "id": "ux.view.maps-to.business.businessobject",
+      "previous_description": "Defines relationship: ux.view maps-to business.businessobject",
+      "description": "The screen presents and edits one business concept, such as an Order detail page or a Customer record screen.",
+      "evidence": "The view's route, title and bound data model all correspond to the named business entity, for example the route /orders/:id loads an Order."
+    },
+    {
+      "id": "ux.view.maps-to.motivation.outcome",
+      "previous_description": "Defines relationship: ux.view maps-to motivation.outcome",
+      "description": "The screen is the UI surface whose usage is intended to produce a specific, measurable result, such as a checkout page tied to a target conversion rate.",
+      "evidence": "Product or analytics documentation links the screen's tracked events or funnel to the outcome's target metric."
+    },
+    {
+      "id": "ux.view.realizes.application.applicationinterface",
+      "previous_description": "Defines relationship: ux.view realizes application.applicationinterface",
+      "description": "The screen is the concrete user-facing access point through which users reach an application component's services.",
+      "evidence": "Architecture documentation or the route table identifies the view as the GUI entry point of the component's user interface."
+    },
+    {
+      "id": "ux.view.realizes.business.businessprocess",
+      "previous_description": "Defines relationship: ux.view realizes business.businessprocess",
+      "description": "The screen is the surface on which users carry out the steps of a business process, such as a claim submission screen for claims intake.",
+      "evidence": "Process documentation or a user story maps the process steps to the view, and the view's actions perform those steps."
+    },
+    {
+      "id": "ux.view.realizes.product.feature",
+      "previous_description": "Defines relationship: ux.view realizes product.feature",
+      "description": "The screen is the concrete delivery of a user-perceivable product feature.",
+      "evidence": "The feature's ticket or spec names the view's route or screen, and the view is gated by that feature's flag."
+    },
+    {
+      "id": "ux.view.realizes.motivation.goal",
+      "previous_description": "Defines relationship: ux.view realizes motivation.goal",
+      "description": "The screen is built as a concrete means of advancing a qualitative stakeholder goal, such as improving self-service.",
+      "evidence": "A design brief or traceability matrix links the view to the goal it was created to advance."
+    },
+    {
+      "id": "ux.view.references.data-model.objectschema",
+      "previous_description": "Defines relationship: ux.view references data-model.objectschema",
+      "description": "The screen points to the structured record schema that defines the shape of the data it displays or submits.",
+      "evidence": "The view's code imports the type, interface or JSON schema for the entity, or validates its form against it."
+    },
+    {
+      "id": "ux.view.references.security.secureresource",
+      "previous_description": "Defines relationship: ux.view references security.secureresource",
+      "description": "The screen is named as, or corresponds to, a protected UI area that authorization decisions are made about.",
+      "evidence": "The access-control model lists the view's route or screen identifier as a resource with permitted operations."
+    },
+    {
+      "id": "ux.view.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.view renders ux.componentinstance",
+      "description": "The screen places and draws a specific configured occurrence of a library component as part of its display.",
+      "evidence": "The view's template or JSX contains the library component element with its prop values at that position."
+    },
+    {
+      "id": "ux.view.requires.ux.errorconfig",
+      "previous_description": "Defines relationship: ux.view requires ux.errorconfig",
+      "description": "The screen depends on an error-display configuration that determines how load or action failures are shown to the user.",
+      "evidence": "The view declares an error boundary, errorElement or errorConfig entry that specifies the notification severity and message text."
+    },
+    {
+      "id": "ux.view.requires.security.permission",
+      "previous_description": "Defines relationship: ux.view requires security.permission",
+      "description": "Users must hold a specific permission before the screen will open or display its content.",
+      "evidence": "A route guard, middleware or the view code checks the permission string, such as can('orders:read'), before rendering."
+    },
+    {
+      "id": "ux.view.requires.security.role",
+      "previous_description": "Defines relationship: ux.view requires security.role",
+      "description": "The screen is accessible only to users assigned a particular role, such as Admin.",
+      "evidence": "The route definition or guard on the view declares the required role, for example roles: ['admin'] or hasRole('admin')."
+    },
+    {
+      "id": "ux.view.requires.technology.technologyservice",
+      "previous_description": "Defines relationship: ux.view requires technology.technologyservice",
+      "description": "The screen cannot function without an infrastructure capability such as CDN hosting, an identity provider or a push-notification service.",
+      "evidence": "The view's code or deployment configuration calls the infrastructure service's SDK or endpoint, for example an auth provider or a storage SDK."
+    },
+    {
+      "id": "ux.view.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: ux.view satisfies motivation.requirement",
+      "description": "The screen fulfills a specific verifiable requirement, so that its behavior meets that requirement's acceptance criteria.",
+      "evidence": "The requirement's acceptance tests exercise the view, or a traceability matrix maps the requirement ID to the view."
+    },
+    {
+      "id": "ux.view.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: ux.view satisfies security.securitypolicy",
+      "description": "The screen's access behavior conforms to the rules of a named access-control policy.",
+      "evidence": "Security review records or the policy's target definitions show the view's route evaluated under that policy, with matching guard behavior."
+    },
+    {
+      "id": "ux.view.serves.application.applicationservice",
+      "previous_description": "Defines relationship: ux.view serves application.applicationservice",
+      "description": "The screen makes an application service usable by presenting a user interface for that service's operations.",
+      "evidence": "The view's actions invoke the service's operations, and the service documentation lists the view as its user-facing channel."
+    },
+    {
+      "id": "ux.view.serves.business.businessrole",
+      "previous_description": "Defines relationship: ux.view serves business.businessrole",
+      "description": "The screen is a working surface provided for people acting in a business role, such as an approver's review queue.",
+      "evidence": "UX personas, the route's role guard or the navigation menu configuration designate the view for that role."
+    },
+    {
+      "id": "ux.view.serves.business.businessservice",
+      "previous_description": "Defines relationship: ux.view serves business.businessservice",
+      "description": "The screen is a channel through which customers or staff receive a business service, such as an online claims portal page.",
+      "evidence": "Service design documentation lists the view as a touchpoint of the business service."
+    },
+    {
+      "id": "ux.view.serves.motivation.stakeholder",
+      "previous_description": "Defines relationship: ux.view serves motivation.stakeholder",
+      "description": "The screen exists to address the concerns and needs of a particular stakeholder group.",
+      "evidence": "Design research, personas or requirements trace the view to that stakeholder's concerns."
+    },
+    {
+      "id": "ux.view.uses.application.applicationevent",
+      "previous_description": "Defines relationship: ux.view uses application.applicationevent",
+      "description": "The screen subscribes to, or emits, an application event in order to react to state changes, for example refreshing when an OrderPlaced event occurs.",
+      "evidence": "The view's code registers an event listener or subscription for, or dispatches, the named event."
+    },
+    {
+      "id": "ux.view.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.view uses ux.layoutconfig",
+      "description": "The screen relies on a layout configuration to position its children.",
+      "evidence": "The view references the layout configuration in its spec or root container classes."
+    },
+    {
+      "id": "ux.view.uses.api.securityscheme",
+      "previous_description": "Defines relationship: ux.view uses api.securityscheme",
+      "description": "The screen authenticates its API calls using a declared credential mechanism, such as a bearer token or an OAuth flow.",
+      "evidence": "The view's API client attaches credentials in the form the scheme specifies, for example an Authorization: Bearer header, and the called operations reference that scheme."
+    }
+  ],
+  "notes": "uses.layoutconfig duplicates applies.layoutconfig; keep applies. aggregates.subview and composes.subview overlap and need a ref-set versus inline distinction. renders.componentinstance overlaps with aggregates.actioncomponent. realizes.motivation.goal should be supports-goals. maps-to is a data-mapping predicate and is misused for outcome and businessobject. serves.applicationservice is inverted: services serve the UI."
+}

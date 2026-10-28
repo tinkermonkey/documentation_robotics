@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "apm.instrumentationconfig",
+  "previous_description": "Configuration for OTel instrumentation of application code. Auto-instrumentation uses SDK contrib plugin libraries (e.g., opentelemetry-instrumentation-express) that hook into frameworks transparently at SDK bootstrap time. Manual instrumentation uses direct OTel API calls (Tracer.startSpan, Meter.createCounter) embedded in application code. This node controls which libraries or code paths are instrumented and whether instrumentation is enabled.",
+  "definition": "A telemetry configuration entry that selects one instrumented library, framework or application code path and sets whether and how it is instrumented. This covers an auto-instrumentation plugin registered at SDK bootstrap, or a manual instrumentation site using the OTel Tracer/Meter/Logger API. It does not cover where telemetry is sent, how it is sampled, or which individual instruments are defined.",
+  "distinguish_from": [
+    {
+      "type": "apm.instrumentationscope",
+      "when": "the element is the name/version/schemaUrl identity stamped on emitted telemetry (the tracer or meter name), not the setting that turns instrumentation of a library on or off"
+    },
+    {
+      "type": "apm.traceconfiguration",
+      "when": "the configuration governs TracerProvider-wide behaviour such as sampler, propagators or span processor pipeline rather than which library or code path is instrumented"
+    },
+    {
+      "type": "apm.exporterconfig",
+      "when": "the configuration specifies the destination, protocol, endpoint, authentication or compression for exported telemetry"
+    },
+    {
+      "type": "apm.metricinstrument",
+      "when": "the code creates a specific Counter, Histogram or Gauge with its own name and unit; that is an instrument produced by instrumentation, not the instrumentation setting itself"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Instrumentation Libraries and zero-code (automatic) instrumentation; OpenTelemetry declarative configuration 'instrumentation' section",
+  "code_evidence": [
+    "A registerInstrumentations([...]) or getNodeAutoInstrumentations({...}) call listing plugins such as '@opentelemetry/instrumentation-http' with per-plugin enabled flags or options",
+    "Environment variables or agent flags such as OTEL_INSTRUMENTATION_<NAME>_ENABLED, OTEL_NODE_ENABLED_INSTRUMENTATIONS, OTEL_PYTHON_DISABLED_INSTRUMENTATIONS or -javaagent:opentelemetry-javaagent.jar in a Dockerfile, Helm values or startup script",
+    "An opentelemetry-instrumentation-* dependency invoked in code (e.g., FlaskInstrumentor().instrument_app(app)), or a wrapper module that calls trace.getTracer('<lib>') to manually instrument a specific code path"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "type",
+      "description": "Category of the instrumented target, as a short lowercase label such as 'http', 'database', 'messaging', 'rpc', 'framework' or 'runtime'; set it on every instance to group instrumentation by technology."
+    },
+    {
+      "name": "enabled",
+      "description": "Whether this instrumentation is active at runtime. Treat it as true when absent, and set it to false when the library is explicitly disabled (e.g., OTEL_INSTRUMENTATION_FS_ENABLED=false)."
+    },
+    {
+      "name": "description",
+      "description": "Free-text explanation of what this instrumentation captures and any notable options applied, such as ignored routes or captured headers. Set it when the libraryName alone does not convey intent."
+    }
+  ],
+  "notes": "'type' (free string, required) overlaps confusingly with 'instrumentationType'; constrain it with an enum or rename it to 'category'. The type lacks a 'libraryVersion' attribute and an 'options' object for settings such as ignored paths or captured headers. Granularity should be fixed at one instance per instrumented library or code path, not one per SDK bootstrap.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.256Z"
+}

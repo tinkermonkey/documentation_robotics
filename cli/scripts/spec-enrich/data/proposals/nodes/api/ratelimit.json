@@ -1,0 +1,29 @@
+{
+  "spec_node_id": "api.ratelimit",
+  "previous_description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+  "definition": "A request-throttling policy attached to an API's servers, paths or operations that caps how many requests a consumer, identified by a counting key, may make within a fixed time window. It also states what enforcement happens when that cap is exceeded.",
+  "distinguish_from": [
+    {
+      "type": "api.header",
+      "when": "you are modelling the response headers that report quota state to clients (e.g. X-RateLimit-Remaining, RateLimit-Reset, Retry-After), not the limit policy itself."
+    },
+    {
+      "type": "api.response",
+      "when": "you are modelling the documented HTTP outcome returned when a limit trips (typically 429 Too Many Requests or 503), including its description and body."
+    },
+    {
+      "type": "api.securityscheme",
+      "when": "the element defines how a caller is authenticated (an API key, bearer token or OAuth2), even if that identity is later used as the rate-limit key."
+    }
+  ],
+  "standard_reference": "No OpenAPI 3.0 object; typically expressed as a vendor extension (e.g. x-ratelimit) or in gateway config; enforcement action aligns with NIST SP 800-53 SC-5 Denial-of-Service Protection.",
+  "code_evidence": [
+    "Rate-limiting middleware mounted on an HTTP router with numeric limits, e.g. express-rate-limit `rateLimit({ windowMs: 60000, max: 100, keyGenerator })` or ASP.NET `AddRateLimiter`/`[EnableRateLimiting]`.",
+    "Framework throttle declarations on handlers or controllers, e.g. NestJS `@Throttle({ default: { limit: 10, ttl: 60000 } })`, Django REST Framework `throttle_classes` with `DEFAULT_THROTTLE_RATES = {'user': '1000/day'}`, or Spring/Bucket4j bucket definitions.",
+    "API gateway or proxy configuration defining request quotas per route or consumer, e.g. a Kong `rate-limiting` plugin, an AWS API Gateway usage plan throttle, an nginx `limit_req_zone`, or an `x-ratelimit` extension in the OpenAPI file."
+  ],
+  "attribute_descriptions": [],
+  "notes": "Not an OpenAPI 3.0 construct, so the layer's standard does not ground it. scope and keyBy overlap; for example, per-ip duplicates keyBy 'request.ip'. Consider deriving one from the other. The window format is unspecified; ISO 8601 duration is suggested. A burst/capacity attribute is missing for token-bucket limiters. The 'governs' and 'serves' relationships to api.operation look redundant.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.224Z"
+}

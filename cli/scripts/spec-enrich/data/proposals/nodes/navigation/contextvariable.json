@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "navigation.contextvariable",
+  "previous_description": "A typed variable shared across steps of a NavigationFlow, enabling state to persist and transfer between route transitions.",
+  "definition": "A named, typed item of client-side state that a NavigationFlow carries between its FlowSteps across route transitions, declared with a schema, a lifetime scope and a storage mechanism such as session storage, local storage, memory or URL query string. It is runtime data written by one step and read by later steps or guards, not static per-route configuration or a path parameter of a single route.",
+  "distinguish_from": [
+    {
+      "type": "navigation.routemeta",
+      "when": "the value is static configuration declared on one route (layout, roles, keepAlive, breadcrumb) rather than data produced and consumed at runtime as the user moves through a flow"
+    },
+    {
+      "type": "navigation.route",
+      "when": "the value is a path segment parameter (e.g. ':orderId') that is part of a single route's URL pattern and identifies the resource that route addresses, rather than state carried across several steps"
+    },
+    {
+      "type": "navigation.flowstep",
+      "when": "the thing being modelled is a position in the flow bound to a route, not the data passed between such positions"
+    },
+    {
+      "type": "navigation.guardcondition",
+      "when": "the symbol is the boolean predicate that reads session or flow state to permit or deny access, rather than the state item itself"
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: wizard/flow state passing (router navigation state, query-string state and session-persisted state)",
+  "code_evidence": [
+    "A wizard or checkout store (Redux slice, Pinia/Vuex module, NgRx feature, or XState machine context) whose fields are written in one route's component and read in subsequent routes of the same flow",
+    "Calls such as sessionStorage.setItem('checkout.shippingAddress', ...), localStorage writes, or a useSessionStorage hook keyed by flow name, with the value read back on a later step page",
+    "Navigation calls that pass values forward, such as router.push({ query: { planId } }), navigate('/step-2', { state: { orderId } }), or Angular NavigationExtras.state, read on arrival via useLocation().state or getCurrentNavigation()"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "schemaRef",
+      "description": "Reference (ID or URI) to the data-model JSON Schema or application DataObject that defines the variable's type and shape, e.g. 'data-model.jsonschema.shipping-address'. Always set, so steps and guards can validate the value."
+    },
+    {
+      "name": "defaultValue",
+      "description": "Serialized initial value (literal or JSON string conforming to schemaRef) assigned when the flow or scope starts before any step writes the variable. Omit when the variable must be explicitly collected, typically when required is true."
+    }
+  ],
+  "notes": "Scope 'session' overlaps persistedIn 'sessionStorage', and scope 'global' contradicts the flow-scoped definition. persistedIn lacks 'history-state' (location.state) and server-side persistence. No name attribute is declared. defaultValue is an untyped string. guardcondition has both consumes and uses edges to this type, which is redundant. A 'triggers' edge from passive state to NavigationTransition is questionable.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.200Z"
+}

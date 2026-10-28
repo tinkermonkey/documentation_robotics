@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice requires Authenticationconfig",
-  "description": "Defines relationship: application.applicationservice requires security.authenticationconfig",
+  "description": "Consumers must be authenticated according to the authentication configuration, identity provider, MFA and session rules, before the application service will handle their calls.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service's security configuration or gateway route declares the identity provider, OIDC/JWT validation or MFA policy, and unauthenticated requests receive 401 responses."
+  ]
 }

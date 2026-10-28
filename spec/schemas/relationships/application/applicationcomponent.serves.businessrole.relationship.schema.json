@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent serves Businessrole",
-  "description": "Defines relationship: application.applicationcomponent serves business.businessrole",
+  "description": "The component supports the people holding the business role in carrying out their responsibilities, acting as a tool they rely on.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The component's role-based access configuration or user documentation grants the business role access to screens or operations designed for its tasks."
+  ]
 }

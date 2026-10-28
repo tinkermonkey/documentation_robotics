@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.stateaction",
+  "previous_description": "A concrete action bound to a specific ExperienceState lifecycle event. Instances are bound to a state and lifecycle hook; for reusable parameterizable definitions use StateActionTemplate. Examples: scroll-to-top (lifecycle: on-enter), focus-first-field (lifecycle: on-enter), dispatch-analytics-event (lifecycle: on-exit).",
+  "definition": "A side-effect operation (navigate, submit, open, close, dispatch, validate) bound to one specific ExperienceState or StateTransition and executed automatically by that element's lifecycle hook (on-enter, on-exit, on-transition), rather than invoked directly as a user-facing control.",
+  "distinguish_from": [
+    {
+      "type": "ux.stateactiontemplate",
+      "when": "the action is a parameterized, reusable definition that is not yet bound to a particular state and lifecycle hook"
+    },
+    {
+      "type": "ux.actionpattern",
+      "when": "describing a recurring user-initiated interaction recipe (input trigger plus feedback such as toast or modal) rather than an effect fired by a state lifecycle"
+    },
+    {
+      "type": "ux.statetransition",
+      "when": "modelling the edge itself, meaning its trigger event, destination state and guard, rather than the effect executed while it fires"
+    },
+    {
+      "type": "ux.actioncomponent",
+      "when": "the element is the rendered button, link or menu the user activates, not the effect run as part of a state's entry, exit or transition"
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "Named actions listed in a state-machine config's entry/exit arrays or in a transition's actions array (e.g. XState `entry: ['scrollToTop','focusFirstField']`, `exit: 'trackStepExit'`).",
+    "A useEffect, watch or ngOnInit/ngOnDestroy handler keyed on the current step or state value that calls router.push, form.submit, store.dispatch, element.focus or window.scrollTo.",
+    "Wizard or step components whose onEnter/onLeave callbacks, or route-leave guards such as beforeRouteLeave, emit analytics events or run form validation when the step changes."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what this bound action does in context (e.g. 'moves keyboard focus to the first invalid field after entering the review step'); set it whenever the action enum value and name alone do not convey the effect."
+    }
+  ],
+  "notes": "The action enum lacks scroll and focus, although the examples (scroll-to-top, focus-first-field) need them. timing 'conditional' refers to a guard, but no guard attribute exists. 'immediate' is defined as running before the state activates, which is meaningless for on-exit. HTML 5.3 has no equivalent; the closest concept is UML 2.5 state entry/exit/effect behaviors.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

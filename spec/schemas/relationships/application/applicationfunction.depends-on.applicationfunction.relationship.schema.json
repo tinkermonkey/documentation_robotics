@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction depends-on Applicationfunction",
-  "description": "Defines relationship: application.applicationfunction depends-on application.applicationfunction",
+  "description": "The source application function needs the capability of another internal application function in order to complete its own work.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The source function's implementation imports and calls the other function's methods, or receives it as an injected collaborator."
+  ]
 }

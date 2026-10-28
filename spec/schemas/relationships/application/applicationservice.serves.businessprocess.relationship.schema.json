@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice serves Businessprocess",
-  "description": "Defines relationship: application.applicationservice serves business.businessprocess",
+  "description": "The application service automates or supports activities within the business process, which uses it to reach its business result.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Process documentation or BPMN models show process tasks performed via the service, and the service's API is called from the system that executes those tasks."
+  ]
 }

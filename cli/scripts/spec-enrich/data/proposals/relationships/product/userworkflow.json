@@ -1,0 +1,44 @@
+{
+  "source": "product.userworkflow",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.087Z",
+  "relationships": [
+    {
+      "id": "product.userworkflow.aggregates.business.businessprocess",
+      "previous_description": "Defines relationship: product.userworkflow aggregates business.businessprocess",
+      "description": "The user journey groups one or more independently defined business processes whose activities the persona triggers or takes part in while moving from the journey's start to its goal, without owning those processes.",
+      "evidence": "The workflow's specification or journey map lists the named business processes (e.g. 'Order fulfilment', 'Credit check') as stages it passes through, and those processes are also modelled separately in the business layer."
+    },
+    {
+      "id": "product.userworkflow.composes.product.feature",
+      "previous_description": "Defines relationship: product.userworkflow composes product.feature",
+      "description": "The user journey is built from the product features its steps exercise, so each listed feature is a functional part the persona must invoke to complete the journey.",
+      "evidence": "The workflow document or product backlog links each workflow step to the feature it invokes, and the union of those links lists the feature as part of the journey."
+    },
+    {
+      "id": "product.userworkflow.composes.product.workflowstep",
+      "previous_description": "Defines relationship: product.userworkflow composes product.workflowstep",
+      "description": "The user journey owns its ordered steps, each of which exists only as one position within this journey and is deleted if the journey is removed.",
+      "evidence": "The workflow definition (journey map, spec file or story map) enumerates the steps with sequence numbers under this workflow's identifier, and no other workflow references those step entries."
+    },
+    {
+      "id": "product.userworkflow.delivers.motivation.outcome",
+      "previous_description": "Defines relationship: product.userworkflow delivers motivation.outcome",
+      "description": "Completing the user journey produces the measurable end result stated by the outcome, such as a reduced time-to-checkout or an increased activation rate.",
+      "evidence": "The product requirements or OKR document ties the workflow to the outcome's target metric, and analytics funnels or dashboards measure that metric on completions of this journey."
+    },
+    {
+      "id": "product.userworkflow.serves.product.persona",
+      "previous_description": "Defines relationship: product.userworkflow serves product.persona",
+      "description": "The user journey is designed for the persona, who performs it to reach a goal that persona holds.",
+      "evidence": "The workflow's specification or journey map names the persona as its actor and cites that persona's goal or pain point as the journey's purpose."
+    },
+    {
+      "id": "product.userworkflow.uses.product.capability",
+      "previous_description": "Defines relationship: product.userworkflow uses product.capability",
+      "description": "The user journey relies on the product capability to be present, because one or more of its steps cannot be accomplished without that ability, such as search or payment processing.",
+      "evidence": "The capability map or workflow spec traces the journey's steps to the capability, typically via features linked to the steps that realise that capability."
+    }
+  ],
+  "notes": "composes→feature is semantically wrong: features exist independently of any workflow and are shared across journeys, so aggregates or uses fits better. aggregates→businessprocess looks inverted; a user journey more naturally supports or realizes part of a business process. uses→capability is largely derivable via steps→features→capabilities, so it is partly redundant."
+}

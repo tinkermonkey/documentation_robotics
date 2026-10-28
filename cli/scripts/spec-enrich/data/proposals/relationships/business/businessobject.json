@@ -1,0 +1,20 @@
+{
+  "source": "business.businessobject",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.061Z",
+  "relationships": [
+    {
+      "id": "business.businessobject.composes.business.businessobject",
+      "previous_description": "Defines relationship: business.businessobject composes business.businessobject",
+      "description": "The containing business object (e.g. an Order) is made up of the part business object (e.g. an Order Line), which has no business meaning or lifecycle outside that whole and is created and discarded with it.",
+      "evidence": "The business glossary or domain model shows the part entity as an owned component of the whole, and business rules state that deleting or closing the whole also removes the part (e.g. cascade-delete or 'cannot exist without parent' in the domain specification)."
+    },
+    {
+      "id": "business.businessobject.references.application.dataobject",
+      "previous_description": "Defines relationship: business.businessobject references application.dataobject",
+      "description": "The business concept points to the code-level data structure that carries its information in software, as a traceability link that implies no functional dependency of the business object on the application.",
+      "evidence": "Architecture or domain documentation, or an annotation or comment on the class, record or message type, names the business object it represents (e.g. 'OrderDTO represents business object Order')."
+    }
+  ],
+  "notes": "The references link from business object to data object is weak. ArchiMate models this as the data object realizing the business object (application.dataobject realizes business.businessobject). Consider replacing it with the inverse realization so the traceability direction and strength are explicit."
+}

@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "motivation.meaning",
+  "previous_description": "Knowledge or expertise present in, or the interpretation given to, a concept in a particular context, as understood by stakeholders.",
+  "definition": "A motivation element recording the interpretation or knowledge that stakeholders attach to a specific concept (a term, data item, artifact, or other architecture element) within a stated context, expressed as an explanatory statement of what the concept signifies rather than as an intent, need, condition, or worth.",
+  "distinguish_from": [
+    {
+      "type": "motivation.value",
+      "when": "the statement expresses how much a concept is worth or how useful it is to a stakeholder (financial, strategic, reputational benefit), not what it signifies"
+    },
+    {
+      "type": "motivation.principle",
+      "when": "the statement is normative, prescribing how systems or decisions should behave, rather than explaining what a concept means"
+    },
+    {
+      "type": "motivation.requirement",
+      "when": "the statement declares a need that a system must realize, including a requirement that a term be interpreted a certain way"
+    },
+    {
+      "type": "motivation.assessment",
+      "when": "the statement is a finding from analysing the current state of affairs (strength, weakness, risk, gap), not the interpretation of a concept"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.4.2 Meaning",
+  "code_evidence": [
+    "a glossary or ubiquitous-language document (e.g. GLOSSARY.md, docs/domain-terms.md) defining business terms as used in a specific bounded context",
+    "a docstring or comment on a domain class, enum value, or field explaining the business interpretation of the concept, e.g. 'An \"active\" customer means one with a purchase in the last 90 days'",
+    "a data dictionary or schema description entry (e.g. dbt schema.yml column description, JSON Schema 'description', OpenAPI field description) stating what a field signifies for its consumers"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text statement of the interpretation itself: which concept it applies to, the context or stakeholder group in which the interpretation holds, and the meaning given; set it on every instance, since it is the substance of the element."
+    }
+  ],
+  "notes": "Meaning has no attributes identifying the concept interpreted or the context of interpretation; consider adding 'context' and a reference to the interpreted element. Relationships omit association to requirement, principle and to elements in other layers, though ArchiMate permits meaning to be associated with any concept. Risk of glossary entries being classified as meaning in bulk.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.256Z"
+}

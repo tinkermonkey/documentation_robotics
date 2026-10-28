@@ -1,0 +1,128 @@
+{
+  "source": "application.applicationservice",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:25:33.368Z",
+  "relationships": [
+    {
+      "id": "application.applicationservice.accesses.business.businessobject",
+      "previous_description": "Defines relationship: application.applicationservice accesses business.businessobject",
+      "description": "The application service reads, creates or updates the business-level information, such as an order, invoice or contract, that its operations act upon on behalf of consumers.",
+      "evidence": "The service's operation signatures or handler code read or persist the entity that the business model documents as that business object, e.g. an OrderService.submit method that writes the Order record."
+    },
+    {
+      "id": "application.applicationservice.accesses.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationservice accesses application.dataobject",
+      "description": "The application service's operations read, write or transform the code-level data structure as their input, output or working state.",
+      "evidence": "The service interface or implementation takes, returns or mutates the class, record or DTO, e.g. a method signature `CustomerDto getCustomer(id)` or repository calls that save that type."
+    },
+    {
+      "id": "application.applicationservice.constrained-by.security.accesscondition",
+      "previous_description": "Defines relationship: application.applicationservice constrained-by security.accesscondition",
+      "description": "Invocation of the application service is permitted only when the access condition's predicate on a request attribute evaluates to true.",
+      "evidence": "A policy file or authorization middleware binds a condition such as `request.tenant == user.tenant` to the service's routes or operations, and calls are rejected when it fails."
+    },
+    {
+      "id": "application.applicationservice.delivers-value.motivation.value",
+      "previous_description": "Defines relationship: application.applicationservice delivers-value motivation.value",
+      "description": "Making the application service available produces the worth or benefit that stakeholders recognize as the value, such as faster checkout or reduced manual effort.",
+      "evidence": "Product or architecture documentation, business cases or OKR pages attribute the stated value explicitly to the service, ideally backed by a KPI dashboard tied to the service's usage."
+    },
+    {
+      "id": "application.applicationservice.depends-on.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationservice depends-on application.applicationservice",
+      "description": "The application service cannot fulfil its operations without calling another application service, so the latter's unavailability breaks it.",
+      "evidence": "The service's implementation contains client calls, SDK imports or service-mesh configuration targeting the other service's endpoint, and its health check or failure handling reflects that dependency."
+    },
+    {
+      "id": "application.applicationservice.depends-on.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationservice depends-on application.dataobject",
+      "description": "The application service requires the data structure to exist and keep its shape in order to function, so changes to the data object break the service contract.",
+      "evidence": "The service's API schema or code imports and uses the data object type such that compilation or contract tests fail if the type is removed or altered."
+    },
+    {
+      "id": "application.applicationservice.flows-to.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationservice flows-to application.applicationservice",
+      "description": "Data or control produced by the source application service is passed on to the destination application service as the next step in an end-to-end interaction.",
+      "evidence": "The source service publishes an event, message or response that the destination service consumes, as shown in queue/topic subscriptions, workflow definitions or distributed traces linking the two."
+    },
+    {
+      "id": "application.applicationservice.realizes.business.businessservice",
+      "previous_description": "Defines relationship: application.applicationservice realizes business.businessservice",
+      "description": "The application service is the automated means through which the business service is actually delivered to its customers.",
+      "evidence": "Architecture documentation or service catalog entries map the business service to the application service, and the service's endpoints implement the business service's described operations."
+    },
+    {
+      "id": "application.applicationservice.realizes.product.capability",
+      "previous_description": "Defines relationship: application.applicationservice realizes product.capability",
+      "description": "The application service provides the concrete technical behavior that gives the product the stated capability.",
+      "evidence": "A capability map or product spec lists the application service as the implementation of the capability, and removing the service would leave the capability unavailable."
+    },
+    {
+      "id": "application.applicationservice.realizes.product.feature",
+      "previous_description": "Defines relationship: application.applicationservice realizes product.feature",
+      "description": "The application service supplies the operations that make the user-visible product feature work.",
+      "evidence": "The feature's spec, ticket or feature flag is wired to the service's endpoints, e.g. the frontend feature calls the service's API and the feature toggle gates its routes."
+    },
+    {
+      "id": "application.applicationservice.realizes.motivation.goal",
+      "previous_description": "Defines relationship: application.applicationservice realizes motivation.goal",
+      "description": "The application service is put in place as a concrete means of achieving the stated goal.",
+      "evidence": "Architecture decision records or roadmap documentation cite the goal as the rationale for building the service and trace the service to that goal."
+    },
+    {
+      "id": "application.applicationservice.realizes.motivation.requirement",
+      "previous_description": "Defines relationship: application.applicationservice realizes motivation.requirement",
+      "description": "The application service provides the behavior that fulfils the stated requirement.",
+      "evidence": "A requirements traceability matrix, ticket link or acceptance test maps the requirement ID to the service's operations, and those tests pass against the service."
+    },
+    {
+      "id": "application.applicationservice.references.apm.traceconfiguration",
+      "previous_description": "Defines relationship: application.applicationservice references apm.traceconfiguration",
+      "description": "The application service points to the tracer provider configuration that determines how its spans are sampled, propagated and processed, without depending on it functionally.",
+      "evidence": "The service's startup code or config (e.g. OTEL_* environment variables or an otel config file) names that sampler, propagator and span processor setup."
+    },
+    {
+      "id": "application.applicationservice.requires.security.authenticationconfig",
+      "previous_description": "Defines relationship: application.applicationservice requires security.authenticationconfig",
+      "description": "Consumers must be authenticated according to the authentication configuration, identity provider, MFA and session rules, before the application service will handle their calls.",
+      "evidence": "The service's security configuration or gateway route declares the identity provider, OIDC/JWT validation or MFA policy, and unauthenticated requests receive 401 responses."
+    },
+    {
+      "id": "application.applicationservice.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: application.applicationservice satisfies motivation.constraint",
+      "description": "The application service is designed and operated within the limits that the constraint imposes, such as a mandated technology, region or latency budget.",
+      "evidence": "Deployment manifests, technology choices or compliance checks for the service demonstrably conform to the constraint, e.g. data-residency settings restricting it to the required region."
+    },
+    {
+      "id": "application.applicationservice.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: application.applicationservice serves application.applicationcomponent",
+      "description": "The application component consumes the application service's operations to carry out its own responsibilities.",
+      "evidence": "The component's code holds a client, injected interface or API call to the service, e.g. a dependency-injected PaymentService used inside the component."
+    },
+    {
+      "id": "application.applicationservice.serves.application.applicationfunction",
+      "previous_description": "Defines relationship: application.applicationservice serves application.applicationfunction",
+      "description": "The application function invokes the application service's operations as part of the internal work it performs.",
+      "evidence": "The function's implementation calls the service's interface or endpoint, visible as a method call or HTTP/RPC client invocation inside that function's code."
+    },
+    {
+      "id": "application.applicationservice.serves.application.applicationprocess",
+      "previous_description": "Defines relationship: application.applicationservice serves application.applicationprocess",
+      "description": "One or more steps of the application process call the application service to obtain the results the sequence needs.",
+      "evidence": "The workflow, saga or pipeline definition includes a step that invokes the service's operation, e.g. a Temporal activity or step function task targeting its endpoint."
+    },
+    {
+      "id": "application.applicationservice.serves.business.businessprocess",
+      "previous_description": "Defines relationship: application.applicationservice serves business.businessprocess",
+      "description": "The application service automates or supports activities within the business process, which uses it to reach its business result.",
+      "evidence": "Process documentation or BPMN models show process tasks performed via the service, and the service's API is called from the system that executes those tasks."
+    },
+    {
+      "id": "application.applicationservice.serves.motivation.stakeholder",
+      "previous_description": "Defines relationship: application.applicationservice serves motivation.stakeholder",
+      "description": "The application service is offered for the benefit of the stakeholder, whose interests it is intended to meet.",
+      "evidence": "The service catalog, product documentation or SLA names the stakeholder group as the intended consumer or beneficiary of the service."
+    }
+  ],
+  "notes": "accesses vs depends-on DataObject overlap. realizes Goal is non-standard; supports/supports-goals fits better. realizes Requirement vs satisfies Constraint use inconsistent predicates for similar traceability. flows-to vs depends-on between services may duplicate. Serving a Stakeholder (motivation element) is odd; serve a role/actor instead. AccessCondition is too fine-grained; constrain via a policy rule."
+}

@@ -1,0 +1,66 @@
+{
+  "spec_node_id": "ux.layoutconfig",
+  "previous_description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
+  "definition": "A declarative set of container arrangement rules (CSS layout mode, grid track counts, spacing, alignment and width constraints) applied to a View, SubView or component to position its children. It renders no content of its own and is identified by its layout properties, not by any markup it emits.",
+  "distinguish_from": [
+    {
+      "type": "ux.librarycomponent",
+      "when": "the layout is a reusable rendered component with its own props, slots or events (e.g. an exported <Grid> or <Stack> primitive of type 'layout'), rather than a set of arrangement values."
+    },
+    {
+      "type": "ux.componentinstance",
+      "when": "the symbol is a concrete usage of a layout library component in a particular view, even if the props it receives are layout values."
+    },
+    {
+      "type": "ux.librarysubview",
+      "when": "the reusable thing is a grouping of component instances, such as a sidebar-plus-content fragment, rather than the spacing and alignment rules that arrange them."
+    },
+    {
+      "type": "ux.view",
+      "when": "the symbol is a routable screen or page shell, even one named like a layout (e.g. a framework layout.tsx that renders header and outlet)."
+    }
+  ],
+  "standard_reference": "CSS Grid Layout Module Level 1 and CSS Flexible Box Layout Module Level 1 (no direct HTML 5.3 element; applied to HTML 5.3 sectioning containers)",
+  "code_evidence": [
+    "A CSS/SCSS rule, CSS module or styled-component on a page or container class that sets display:grid or display:flex together with grid-template-columns, gap, justify-content or max-width.",
+    "Layout primitives invoked with arrangement-only props, e.g. <Grid columns={3} gap=\"md\">, <Stack direction=\"row\" align=\"center\">, or Tailwind classes such as 'grid grid-cols-3 gap-4 max-w-screen-xl'.",
+    "A named layout entry in theme or route configuration, e.g. a layouts map, container maxWidth and spacing tokens in tailwind.config or theme.ts, or route meta { layout: 'two-column' }."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "columns",
+      "description": "Number of explicit grid column tracks (the repeat count in grid-template-columns), as a positive integer; set when type is 'grid' or style is 'grid'/'masonry'."
+    },
+    {
+      "name": "rows",
+      "description": "Number of explicit grid row tracks (the repeat count in grid-template-rows), as a positive integer; set only when the grid has a fixed row count rather than auto-flowing rows."
+    },
+    {
+      "name": "gap",
+      "description": "CSS gap shorthand giving uniform spacing between children as a CSS length or design token (e.g. '16px', '1rem', 'var(--space-md)'); set when row and column spacing are equal."
+    },
+    {
+      "name": "rowGap",
+      "description": "CSS row-gap length giving vertical spacing between rows or wrapped flex lines (e.g. '24px'); set only to override gap for the row axis."
+    },
+    {
+      "name": "columnGap",
+      "description": "CSS column-gap length giving horizontal spacing between columns or flex items (e.g. '12px'); set only to override gap for the column axis."
+    },
+    {
+      "name": "padding",
+      "description": "CSS padding shorthand for inner spacing between the container edge and its children (e.g. '16px 24px'); set when the container defines its own inset."
+    },
+    {
+      "name": "margin",
+      "description": "CSS margin shorthand for outer spacing around the container (e.g. '0 auto' for centring); set when the layout controls its own offset from siblings or parent."
+    },
+    {
+      "name": "maxWidth",
+      "description": "CSS max-width value capping the container width (e.g. '1200px', '80ch', '100%'); set for constrained or centred content containers."
+    }
+  ],
+  "notes": "The definition promises responsive breakpoints, but there is no breakpoint attribute. justifyItems should use the CSS Grid values start/end, not flex-start/flex-end. 'absolute' and 'sticky' are position values, not display modes. The 'style' enum duplicates 'grid'. labelPosition is form-specific. ux.view.layout (string) overlaps this type, and the self-'composes' relationship is listed twice.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.260Z"
+}

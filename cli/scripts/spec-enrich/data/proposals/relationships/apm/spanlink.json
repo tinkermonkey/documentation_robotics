@@ -1,0 +1,14 @@
+{
+  "source": "apm.spanlink",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.058Z",
+  "relationships": [
+    {
+      "id": "apm.spanlink.references.apm.span",
+      "previous_description": "Defines relationship: apm.spanlink references apm.span",
+      "description": "The span link points to the linked span, typically a producer or upstream operation, through its SpanContext so that the span carrying the link records a causal but non-parent-child connection to that operation, such as a batch consumer span pointing to each message's producer span.",
+      "evidence": "Instrumentation code passes a Link built from the producer span's extracted SpanContext (e.g. from message headers) in the links option of tracer.startSpan for the consumer span, and exported trace data shows the link's traceId/spanId matching spans emitted at the producer's code location."
+    }
+  ],
+  "notes": "Because the span model element is a code-location definition and not a runtime occurrence, the link really references the span definition whose runtime instances it points to. The span-link-to-carrier ownership (composed-of from span) is not covered here and may need a separate relationship."
+}

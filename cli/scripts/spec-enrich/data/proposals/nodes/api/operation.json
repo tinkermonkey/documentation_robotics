@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "api.operation",
+  "previous_description": "Defines a single HTTP method bound to a path, specifying its contract: parameters, request body, possible responses, security requirements, and tags. Operation-level security overrides global API security requirements; an empty security array ([]) explicitly removes all security enforcement for the operation. The primary unit of API surface area in OpenAPI 3.0.",
+  "definition": "An HTTP interaction contract identified by one HTTP method on one URL path template, specifying the parameters, request body, responses and security that apply to that method-path pair. Each route handler, controller action or generated client method bound to a distinct method plus path is one instance.",
+  "distinguish_from": [
+    {
+      "type": "api.pathitem",
+      "when": "the element groups all methods available under a single URL path template, or carries path-level parameters shared by those methods, rather than describing one method's contract"
+    },
+    {
+      "type": "api.callback",
+      "when": "the element is an outbound request the API sends to a consumer-supplied URL resolved from a runtime expression, rather than an endpoint the API itself serves"
+    },
+    {
+      "type": "api.link",
+      "when": "the element only describes how values from one operation's response feed the parameters of another operation, rather than defining an endpoint"
+    },
+    {
+      "type": "api.paths",
+      "when": "the element is the document-wide map of all path templates, not a single method on a single path"
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Operation Object",
+  "code_evidence": [
+    "A handler function or method registered for a specific HTTP verb and path, e.g. @app.get('/users/{id}'), @GetMapping(\"/users/{id}\"), router.post('/orders', ...), or [HttpDelete(\"{id}\")] on an ASP.NET controller action",
+    "An entry under paths.<template>.<get|post|put|delete|patch|head|options|trace> in an openapi.yaml or openapi.json file, typically carrying an operationId",
+    "A method in a generated API client, for example from openapi-generator or NSwag, that issues a request with a fixed HTTP method to a fixed path template and is named after an operationId"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "summary",
+      "description": "A short plain-text phrase, ideally under 120 characters, stating what the operation does; set it from the handler's docstring or the OpenAPI summary field."
+    },
+    {
+      "name": "description",
+      "description": "A longer explanation of the operation's behaviour, side effects and constraints, which may use CommonMark; set it when the summary is insufficient to understand the contract."
+    },
+    {
+      "name": "tags",
+      "description": "One or more tag names used to group this operation in documentation, typically the resource or controller name; each name should match an api.tag element where one is declared."
+    },
+    {
+      "name": "deprecated",
+      "description": "Set to true when the operation is marked obsolete (for example via @Deprecated or OpenAPI deprecated: true) and consumers should stop calling it; it defaults to false."
+    }
+  ],
+  "notes": "OpenAPI 3.0 makes operationId, summary and tags optional; marking them required here will reject valid specs. tags should be an array, not a string. http_path duplicates the parent PathItem key. There is no security attribute, although the definition discusses it. The outgoing 'composes api.paths' edge is inverted. Operations inside callback PathItems are ambiguous.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.250Z"
+}

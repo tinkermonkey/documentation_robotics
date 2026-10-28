@@ -1,0 +1,32 @@
+{
+  "source": "data-store.eventhandler",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.055Z",
+  "relationships": [
+    {
+      "id": "data-store.eventhandler.monitors.data-store.collection",
+      "previous_description": "Defines relationship: data-store.eventhandler monitors data-store.collection",
+      "description": "The event handler is attached to the collection as its watched scope, listening for the inserts, updates, deletes or data conditions on that table, bucket or index that should fire its action.",
+      "evidence": "The handler's declaration names the collection as its target, such as CREATE TRIGGER ... ON orders, a MongoDB watch() on the orders collection, a Debezium table include list, or a Redis keyspace notification pattern matching the bucket's keys."
+    },
+    {
+      "id": "data-store.eventhandler.triggers.application.applicationevent",
+      "previous_description": "Defines relationship: data-store.eventhandler triggers application.applicationevent",
+      "description": "When the handler fires on a data change, it emits a named application-level occurrence such as a CDC message or notification, and application components subscribe to that occurrence and react to it.",
+      "evidence": "The handler configuration publishes to a named channel or topic, for example pg_notify('order_created'), a CDC connector routing to an 'orders.changed' Kafka topic, or an alert rule webhook, and application code subscribes to that event name."
+    },
+    {
+      "id": "data-store.eventhandler.triggers.business.businessevent",
+      "previous_description": "Defines relationship: data-store.eventhandler triggers business.businessevent",
+      "description": "The handler detects the data condition that signifies a business state change, such as an order row reaching status 'placed', and so marks the moment that business occurrence happens and kicks off the business behavior that responds to it.",
+      "evidence": "The handler's filter or WHEN clause encodes the business condition, for example WHEN NEW.status = 'SIGNED', and design documentation or an event catalog maps that firing to the named business event such as 'Contract Signed'."
+    },
+    {
+      "id": "data-store.eventhandler.triggers.data-store.storedlogic",
+      "previous_description": "Defines relationship: data-store.eventhandler triggers data-store.storedlogic",
+      "description": "The handler is the activation wiring that invokes the named stored function, procedure, script or pipeline as its action body each time its event and filter match.",
+      "evidence": "The handler definition references the stored logic by name, for example CREATE TRIGGER ... EXECUTE FUNCTION audit_order_change(), a MongoDB Atlas trigger bound to a named function, or an Elasticsearch index default_pipeline setting."
+    }
+  ],
+  "notes": "Triggering a BusinessEvent directly from a data-store handler crosses abstraction levels. The usual chain is handler → ApplicationEvent, which then realizes or flows to a BusinessEvent. Treat the business-level link as derived or optional to avoid redundancy with the application-event relationship."
+}

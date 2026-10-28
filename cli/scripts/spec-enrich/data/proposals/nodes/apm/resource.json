@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "apm.resource",
+  "previous_description": "Immutable set of attributes identifying the entity (service, host, process) that produces telemetry. Resource attributes are merged into all signals (traces, metrics, logs) emitted by a process at the SDK level, making accurate resource definition critical for cross-signal correlation.",
+  "definition": "An immutable set of OpenTelemetry attributes, built once per SDK or process from code, environment variables or resource detectors, that identifies the telemetry-producing entity (service, host, process, container, cloud instance). The SDK attaches it unchanged to every span, metric and log record that the process's providers emit.",
+  "distinguish_from": [
+    {
+      "type": "apm.instrumentationscope",
+      "when": "the name, version and attributes identify the library or module that created the tracer, meter or logger, rather than the service or process emitting the telemetry."
+    },
+    {
+      "type": "apm.traceconfiguration",
+      "when": "the code configures TracerProvider behaviour such as samplers, propagators or span processors, even if a Resource object is passed into the same constructor."
+    },
+    {
+      "type": "apm.metricconfiguration",
+      "when": "the code sets MeterProvider-level export intervals, cardinality limits or exemplar filtering rather than entity identity attributes."
+    },
+    {
+      "type": "apm.span",
+      "when": "the attributes vary per operation or request (e.g. http.route, db.statement) instead of being constant for the whole process."
+    }
+  ],
+  "standard_reference": "OpenTelemetry Specification: Resource SDK and Resource Semantic Conventions (service.*, host.*, process.*, deployment.*)",
+  "code_evidence": [
+    "A Resource constructed via Resource.create / resourceFromAttributes / Resource.getDefault().merge(...) with keys such as service.name, service.version or deployment.environment, then passed to a NodeSDK, TracerProvider, MeterProvider or LoggerProvider constructor.",
+    "OTEL_SERVICE_NAME or OTEL_RESOURCE_ATTRIBUTES environment variables set in Dockerfiles, Kubernetes manifests, Helm values or .env files.",
+    "Resource detectors registered at SDK bootstrap (e.g. envDetector, processDetector, hostDetector, awsEc2Detector, gcpDetector), or an OTel Collector 'resource'/'resourcedetection' processor block in collector YAML."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "schemaUrl",
+      "description": "URL of the OpenTelemetry semantic-conventions schema version that the resource attribute keys follow (e.g. 'https://opentelemetry.io/schemas/1.21.0'); set it when the resource or its detectors declare an explicit schema version."
+    },
+    {
+      "name": "droppedAttributesCount",
+      "description": "Non-negative integer count of resource attributes discarded because of attribute limits or invalid values; set it to 0 when all attributes were retained."
+    }
+  ],
+  "notes": "serviceName also appears on logconfiguration and metricconfiguration, which contradicts traceconfiguration's statement that identity belongs on Resource. Remove it there. droppedAttributesCount is rarely observable from code, so it should be optional with a default of 0. The 'aggregates exporterconfig/metricinstrument/span' relationships misstate the model: exporters attach to providers, and signals reference resources rather than being owned by them.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.240Z"
+}

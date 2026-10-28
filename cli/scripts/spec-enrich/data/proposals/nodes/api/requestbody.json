@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "api.requestbody",
+  "previous_description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required and must contain at least one entry per OpenAPI 3.0. The 'required' field defaults to false. Can be placed in api.components requestBodies and referenced via $ref for reuse across multiple operations.",
+  "definition": "An API contract element describing the payload a client sends in the body of a single operation's HTTP request, expressed as one or more media-type entries (e.g. application/json, multipart/form-data) plus an optional required flag and description. It covers only the request payload of a body-bearing method; URL, query, header and cookie inputs and anything returned to the client are excluded.",
+  "distinguish_from": [
+    {
+      "type": "api.parameter",
+      "when": "the input travels in the path, query string, header or cookie rather than the HTTP message body."
+    },
+    {
+      "type": "api.mediatype",
+      "when": "modelling the schema, examples and encoding for one specific MIME type inside the body's content map, rather than the body as a whole with its required flag."
+    },
+    {
+      "type": "api.schema",
+      "when": "describing the data shape itself (fields, types, constraints) independent of whether it is carried in a request, a response or a parameter."
+    },
+    {
+      "type": "api.response",
+      "when": "the payload is sent by the server back to the client for a status code, not by the client to the server."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Request Body Object",
+  "code_evidence": [
+    "A route handler parameter bound from the body, such as Spring @RequestBody, FastAPI Body()/Pydantic model argument, NestJS @Body() or ASP.NET [FromBody].",
+    "A 'requestBody:' block under a POST/PUT/PATCH operation, or an entry under 'components/requestBodies', in an OpenAPI YAML/JSON file.",
+    "Body validation middleware or a DTO class applied to req.body, e.g. express.json() followed by a Joi/Zod/class-validator schema check, or a generated client method that serializes a payload argument with a Content-Type header."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Brief human-readable explanation of the request payload's purpose and contents, CommonMark allowed per OpenAPI 3.0. Set it whenever the body's meaning is not obvious from the operation summary."
+    },
+    {
+      "name": "required",
+      "description": "Boolean indicating whether a client must send a body for the operation to succeed; defaults to false, so set it to true when the handler rejects requests with an empty or missing body."
+    }
+  ],
+  "notes": "The required 'content' map has no attribute; it exists only via the mediatype relationships. Both 'aggregates' and 'composes' to api.mediatype are declared, plus 'mediatype serves requestbody', which is redundant and inconsistent; pick one. Direct links to api.example, api.schema and api.encoding bypass MediaType, where OpenAPI actually places them.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.259Z"
+}

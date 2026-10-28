@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "apm.logprocessor",
+  "previous_description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
+  "definition": "A log-record pipeline stage registered on an OTel LoggerProvider (or in a Collector logs pipeline) that receives each emitted LogRecord and either forwards it to an exporter, synchronously or in buffered batches, or filters, transforms, enriches or redacts it before passing it on. It models one processor in the chain, not the provider-level logging configuration.",
+  "distinguish_from": [
+    {
+      "type": "apm.logconfiguration",
+      "when": "the element is the LoggerProvider-level setup (service name, minimum severity, the overall processor/exporter wiring) rather than one stage in the processor chain"
+    },
+    {
+      "type": "apm.exporterconfig",
+      "when": "the element specifies where and how logs are sent (endpoint, protocol, authentication, compression) rather than how records are handled before export"
+    },
+    {
+      "type": "apm.logrecord",
+      "when": "the element is an individual log event or the structure of emitted log data rather than the component that handles those records"
+    },
+    {
+      "type": "apm.traceconfiguration",
+      "when": "the pipeline component processes spans (a SpanProcessor) rather than log records"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Logs SDK Specification: LogRecordProcessor (SimpleLogRecordProcessor, BatchLogRecordProcessor)",
+  "code_evidence": [
+    "a class implementing the OTel LogRecordProcessor interface (onEmit/emit, forceFlush, shutdown), for example a redaction or enrichment processor",
+    "instantiation of BatchLogRecordProcessor or SimpleLogRecordProcessor passed to LoggerProvider.addLogRecordProcessor / SdkLoggerProvider.builder().addLogRecordProcessor, or OTEL_BLRP_* environment variables",
+    "an entry under processors: (e.g. batch, attributes, filter, transform, redaction) referenced in an OpenTelemetry Collector service.pipelines.logs.processors list"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "order",
+      "description": "Ascending integer position of this processor in its LoggerProvider or pipeline chain, where lower values run first; set it when more than one processor is registered so that invocation order is explicit."
+    },
+    {
+      "name": "enabled",
+      "description": "Boolean indicating whether the processor is active in the pipeline (default true); set it to false when the processor is defined in configuration but deliberately not registered or is disabled by a feature flag."
+    }
+  ],
+  "notes": "Batch tuning attributes are missing (maxQueueSize, scheduleDelayMillis, maxExportBatchSize, exportTimeoutMillis). The type enum does not distinguish Collector processors (filter, attributes, transform) from SDK processors. Relationships flows-to apm.span and metricinstrument→logprocessor look semantically wrong. There is no SpanProcessor counterpart type; span processors are buried in traceconfiguration.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.249Z"
+}

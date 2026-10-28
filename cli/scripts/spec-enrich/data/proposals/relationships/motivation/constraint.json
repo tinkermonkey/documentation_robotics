@@ -1,0 +1,50 @@
+{
+  "source": "motivation.constraint",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.087Z",
+  "relationships": [
+    {
+      "id": "motivation.constraint.constrains.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.constraint constrains motivation.requirement",
+      "description": "The restriction narrows how a requirement may be met or phrased, so a mandated technology, budget ceiling or deadline rules out solutions that would otherwise satisfy the stated need.",
+      "evidence": "The requirement text or its traceability matrix cites the constraint (for example, 'must be met using only EU-hosted services per constraint C-12') as a limit on acceptable realizations."
+    },
+    {
+      "id": "motivation.constraint.influence.motivation.assessment",
+      "previous_description": "Defines relationship: motivation.constraint influence motivation.assessment",
+      "description": "The restriction shapes a recorded finding, for example when a contractual term or forbidden technology is the reason a gap, risk or feasibility verdict is judged the way it is.",
+      "evidence": "The assessment write-up, risk register entry or feasibility study names the constraint as a factor behind its conclusion."
+    },
+    {
+      "id": "motivation.constraint.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.constraint influence motivation.goal",
+      "description": "The restriction affects how far, how fast or in which direction stakeholders can pursue an intended end state, without forbidding the goal outright.",
+      "evidence": "A strategy document, goal definition or decision record states that the goal's scope or priority was adjusted because of the named budget, deadline, jurisdiction or technology constraint."
+    },
+    {
+      "id": "motivation.constraint.influence.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.constraint influence motivation.outcome",
+      "description": "The restriction bears on the target value, threshold or time frame of a measurable result, for example when a fixed deadline or budget cap sets or lowers the achievable target.",
+      "evidence": "The outcome's target definition, OKR sheet or roadmap entry references the constraint as the basis for its threshold or date."
+    },
+    {
+      "id": "motivation.constraint.influence.motivation.principle",
+      "previous_description": "Defines relationship: motivation.constraint influence motivation.principle",
+      "description": "The restriction shapes how a cross-cutting design principle is formulated or applied within its scope, for example a jurisdictional data-residency constraint that leads to a 'local-first data' principle.",
+      "evidence": "The principle's rationale or implications section in the architecture principles catalogue cites the constraint as a motivating or qualifying factor."
+    },
+    {
+      "id": "motivation.constraint.influence.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.constraint influence motivation.requirement",
+      "description": "The restriction contributes to the content or priority of a requirement without strictly limiting its realization, for example a regulatory jurisdiction prompting a new logging requirement.",
+      "evidence": "The requirement's rationale or source field in the backlog or specification names the constraint as a reason the requirement exists or was reprioritized."
+    },
+    {
+      "id": "motivation.constraint.specializes.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.constraint specializes motivation.constraint",
+      "description": "The more specific restriction is a narrower case of a general restriction, such as 'only PostgreSQL 15 on AWS RDS' refining 'only approved open-source databases'.",
+      "evidence": "The policy or decision record defines the specific constraint as a refinement of the general one, for example by citing its parent constraint ID or listing it under that heading."
+    }
+  ],
+  "notes": "constrains and influence toward motivation.requirement overlap: both express a constraint shaping a requirement. Modelers will struggle to choose between them. Keep 'constrains' for limiting the solution space. Reserve 'influence' for weaker, non-restrictive effects, or drop that relationship."
+}

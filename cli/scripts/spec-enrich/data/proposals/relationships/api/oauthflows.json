@@ -1,0 +1,38 @@
+{
+  "source": "api.oauthflows",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.055Z",
+  "relationships": [
+    {
+      "id": "api.oauthflows.aggregates.api.oauthflow",
+      "previous_description": "Defines relationship: api.oauthflows aggregates api.oauthflow",
+      "description": "The flows container gathers the per-grant-type flow configurations that an oauth2 scheme offers, treating each flow as a part it groups.",
+      "evidence": "An OpenAPI document's securitySchemes entry of type oauth2 has a flows object whose implicit, password, clientCredentials or authorizationCode field holds an OAuthFlow with its own URLs and scopes."
+    },
+    {
+      "id": "api.oauthflows.associated-with.api.components",
+      "previous_description": "Defines relationship: api.oauthflows associated-with api.components",
+      "description": "The flows container is related to the components section only indirectly, because it sits inside a security scheme registered under components.securitySchemes.",
+      "evidence": "The YAML/JSON path components.securitySchemes.<name>.flows exists in the OpenAPI document, placing the flows object within the components tree."
+    },
+    {
+      "id": "api.oauthflows.associated-with.api.operation",
+      "previous_description": "Defines relationship: api.oauthflows associated-with api.operation",
+      "description": "The grant types offered by the flows container become available to an operation when that operation's security requirement names the enclosing oauth2 scheme and requests scopes defined in those flows.",
+      "evidence": "An operation's security array lists the oauth2 scheme name with scope strings that appear in the scopes map of one of that scheme's flows."
+    },
+    {
+      "id": "api.oauthflows.composes.api.oauthflow",
+      "previous_description": "Defines relationship: api.oauthflows composes api.oauthflow",
+      "description": "Each flow configuration exists only as a field of the flows container, which also gives the flow its grant type, so the flow cannot exist on its own.",
+      "evidence": "The OAuthFlow object appears inline under a grant-type key such as flows.authorizationCode and has no standalone components entry or $ref target of its own."
+    },
+    {
+      "id": "api.oauthflows.serves.api.securityscheme",
+      "previous_description": "Defines relationship: api.oauthflows serves api.securityscheme",
+      "description": "The flows container supplies the oauth2 security scheme with its set of supported grant types and their configurations, which the scheme needs to be a valid OAuth 2.0 mechanism.",
+      "evidence": "A securityScheme with type: oauth2 declares the required flows field, and a validator rejects the scheme if that field is missing."
+    }
+  ],
+  "notes": "aggregates and composes to api.oauthflow are contradictory: OAuthFlow cannot exist outside OAuthFlows, so composes is correct and aggregates should be removed. serves to securityscheme should really be composition, since the scheme composes OAuthFlows. The associations with components and operation are indirect, run through SecurityScheme, and duplicate those paths."
+}

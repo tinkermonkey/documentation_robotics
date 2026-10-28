@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "api.callback",
+  "previous_description": "Defines a callback where the API sends asynchronous notifications to an external URL derived at runtime. A callback maps a Runtime Expression (e.g., $request.body#/callbackUrl) to a full PathItem object, meaning the callback specifies the complete HTTP interaction — method, headers, and expected response — not just a target URL. Enables event-driven integrations and async workflows.",
+  "definition": "An outbound HTTP request contract attached to an operation, in which the API itself calls a consumer-supplied URL. The URL is obtained by evaluating a runtime expression against the triggering request or response, and the full interaction (method, body, expected responses) is described as a PathItem.",
+  "distinguish_from": [
+    {
+      "type": "api.operation",
+      "when": "the HTTP interaction is one the API receives and serves on its own paths, rather than a request the API sends to a URL supplied by the consumer."
+    },
+    {
+      "type": "api.link",
+      "when": "the relationship describes a follow-up call that the client makes to another operation of this API, using values from a response, rather than a call the API pushes to the client."
+    },
+    {
+      "type": "api.pathitem",
+      "when": "modelling the set of HTTP methods under a fixed path template of the API, or the inner PathItem that a callback aggregates, rather than the expression-keyed callback wrapper."
+    },
+    {
+      "type": "api.server",
+      "when": "the target is a fixed or variable-templated deployment base URL of the API, not a URL resolved per request from a runtime expression."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Callback Object (Operation.callbacks; Runtime Expressions)",
+  "code_evidence": [
+    "A 'callbacks:' map under an operation in an OpenAPI YAML/JSON file whose keys are runtime expressions such as '{$request.body#/callbackUrl}'.",
+    "A route decorator or annotation declaring callbacks, such as FastAPI's callbacks= router parameter or springdoc/Swagger @Callback, on a subscription or job-submission endpoint.",
+    "Handler code that stores a callbackUrl/notifyUrl field from the incoming request and later issues an HTTP POST to it from a background job or event listener using an HTTP client."
+  ],
+  "attribute_descriptions": [],
+  "notes": "The callback's map-key name (e.g. 'onPaymentComplete') has no attribute, and it is unclear whether one node represents a named callback or a single expression entry. The 'uses api.server' relationship is dubious because callback targets are resolved at runtime. The layer description mentions webhooks, but no webhook type exists; webhooks are an OpenAPI 3.1 concept and could be confused with callbacks.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.252Z"
+}

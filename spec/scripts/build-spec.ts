@@ -163,6 +163,10 @@ interface RelationshipData {
   cardinality: string;
   strength: string;
   required?: boolean;
+  /** Human-readable meaning of the relationship (absent when the source still carries the boilerplate). */
+  description?: string;
+  /** Observable evidence in code/config/docs that the relationship holds (from x-dr-evidence). */
+  evidence?: string[];
 }
 
 interface LayerDistFile {
@@ -552,6 +556,9 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
       const cardinality = schema.properties?.cardinality?.const ?? "many-to-many";
       const strength = schema.properties?.strength?.const ?? "medium";
       const required = schema.properties?.required?.const ?? false;
+      const description: string | undefined =
+        typeof schema.description === "string" && !/^Defines relationship: /.test(schema.description) ? schema.description : undefined;
+      const evidence: string[] | undefined = Array.isArray(schema["x-dr-evidence"]) ? schema["x-dr-evidence"] : undefined;
 
       if (!id || !source_spec_node_id || !source_layer || !destination_spec_node_id || !destination_layer || !predicate) {
         console.warn(`[WARN] Incomplete relationship schema: ${filepath}`);
@@ -568,6 +575,8 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
         cardinality,
         strength,
         required,
+        ...(description ? { description } : {}),
+        ...(evidence ? { evidence } : {}),
       };
 
       // Deduplicate: only keep first occurrence

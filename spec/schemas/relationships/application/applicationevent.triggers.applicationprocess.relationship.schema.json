@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationevent triggers Applicationprocess",
-  "description": "Defines relationship: application.applicationevent triggers application.applicationprocess",
+  "description": "Emission of the application event is the start trigger that launches a run of the application process's ordered sequence of steps.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A handler annotated as the listener for the event, such as @EventListener, a Kafka consumer, or a workflow-engine start-event definition, invokes the process's entry point or starts the workflow instance."
+  ]
 }

@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "apm.instrumentationscope",
+  "previous_description": "Named instrumented library or component that identifies the source of telemetry across all three OTel signal types (traces, metrics, logs), enabling attribution and filtering of signals by their origin.",
+  "definition": "A named telemetry-producer identity, consisting of a name plus optional version, schema URL and attributes, under which code obtains a Tracer, Meter or Logger so that every span, metric and log record it emits is tagged with that origin. It identifies the instrumenting library or module, not the service or process that runs it.",
+  "distinguish_from": [
+    {
+      "type": "apm.resource",
+      "when": "the identity describes the service, host, process or deployment that produces telemetry (service.name, host.name) rather than the library or module within it that emits the signals"
+    },
+    {
+      "type": "apm.instrumentationconfig",
+      "when": "the element is the setting that selects, enables or disables instrumentation of a library or code path, rather than the name/version identity stamped on the emitted telemetry"
+    },
+    {
+      "type": "apm.metricinstrument",
+      "when": "the element is an individual Counter, Histogram or Gauge created from a Meter, rather than the named Meter scope that owns the instruments"
+    },
+    {
+      "type": "apm.traceconfiguration",
+      "when": "the element is TracerProvider-wide sampler, propagator or processor configuration rather than a per-library tracer identity"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Specification: InstrumentationScope (Glossary and Tracer/Meter/Logger 'Get a ...' operations); OTLP InstrumentationScope message in ScopeSpans/ScopeMetrics/ScopeLogs",
+  "code_evidence": [
+    "Calls such as trace.getTracer('com.example.payments', '1.2.0'), meterProvider.getMeter(name, version, {schemaUrl}) or loggerProvider.getLogger(name) with a literal or constant library/module name",
+    "An instrumentation package whose class passes a name and version constant to its base constructor, e.g. super('@opentelemetry/instrumentation-express', VERSION) or InstrumentationScopeInfo.builder(name).setVersion(...)",
+    "Exported telemetry or collector config referencing scope identity: OTLP scopeSpans/scopeMetrics/scopeLogs entries with scope.name, or otel.scope.name / otel.library.name labels used in queries and filters"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Version string of the instrumenting library or module (typically semver, e.g. '1.4.0'), as passed to getTracer/getMeter/getLogger; set whenever the code supplies a version."
+    },
+    {
+      "name": "schemaUrl",
+      "description": "URL of the OpenTelemetry semantic-conventions schema that this scope's telemetry conforms to (e.g. 'https://opentelemetry.io/schemas/1.24.0'); set when the code passes a schemaUrl on acquisition."
+    },
+    {
+      "name": "droppedAttributesCount",
+      "description": "Non-negative integer count of scope attributes discarded because of attribute limits; set to 0 when modelling a scope definition rather than observed runtime data."
+    }
+  ],
+  "notes": "No explicit 'name' attribute although OTel scope identity is name+version+schemaUrl; add it. droppedAttributesCount being required is a runtime artifact, awkward for design-time models; make optional. The 'aggregates exporterconfig' relationship is questionable: exporters are provider-level, not per scope. The attributes description says 'this signal', but a scope is not a signal.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

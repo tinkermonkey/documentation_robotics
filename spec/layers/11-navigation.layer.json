@@ -2,7 +2,7 @@
   "id": "navigation",
   "number": 11,
   "name": "Navigation Layer",
-  "description": "Layer 11: Navigation Layer",
+  "description": "Describes how a user moves through the application: routes and route parameters, navigation flows and their steps, guards and redirects, menus, deep links and the transitions between views (single-page-application navigation patterns). Router configuration and route tables are the usual evidence; the views reached belong to the UX layer and server-side HTTP endpoints to the API layer.",
   "inspired_by": {
     "standard": "SPA Navigation Patterns",
     "version": "1.0",

@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "motivation.constraint",
+  "previous_description": "Restriction on the freedom of design and implementation choices available when realizing a system, as opposed to requirements which must be satisfied.",
+  "definition": "A stated restriction on the solution space, such as a mandated or forbidden technology, a deadline, a budget ceiling, a jurisdiction or a contractual term, that limits which design or implementation options are permissible without describing a capability or quality the system must deliver. It is recorded in decision records, policies or requirement text, not in executable code.",
+  "distinguish_from": [
+    {
+      "type": "motivation.requirement",
+      "when": "the statement describes a function or quality the system must provide (what it must do or how well), rather than ruling options in or out for how it is built"
+    },
+    {
+      "type": "motivation.principle",
+      "when": "the statement is a general normative rule meant to guide many decisions across systems (e.g. 'prefer managed services') rather than a specific, checkable limit on one solution"
+    },
+    {
+      "type": "motivation.driver",
+      "when": "the item is the underlying condition or force (a new regulation, a market shift) that motivates change, rather than the concrete restriction derived from it"
+    },
+    {
+      "type": "motivation.assessment",
+      "when": "the item is an analytical finding about the current state (a risk, gap or weakness) rather than a binding limit on design choices"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.3 Goal, Outcome, Principle, Requirement and Constraint: Constraint",
+  "code_evidence": [
+    "An ADR or design doc section titled 'Constraints' or 'Decision drivers' with mandatory wording such as 'must use PostgreSQL 14', 'no GPL dependencies' or 'must ship before Q3'",
+    "Code comments or config justified by a cited rule, e.g. cloud region pinned to eu-* with a comment referencing GDPR data residency, or a deny-list of licences in a dependency-audit config",
+    "Architecture fitness tests or lint rules (ArchUnit, dependency-cruiser, import-linter) that forbid certain imports, libraries or runtime versions, together with documentation naming the restriction they enforce"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text statement of the restriction, giving its source (regulation, contract, decision record, budget), the scope it applies to and how compliance can be checked; set it for every constraint so the limit can be verified."
+    }
+  ],
+  "notes": "The current definition's phrase 'as opposed to requirements which must be satisfied' is misleading: in ArchiMate constraints are binding too, being a requirement-like element restricting realization. 'external' overlaps 'regulatory'. Consider adding 'contractual/legal' and 'security' values, plus a source/rationale attribute. The self-loop specializes relationship is listed twice.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.221Z"
+}

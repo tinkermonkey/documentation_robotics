@@ -1,0 +1,86 @@
+{
+  "source": "testing.coveragesummary",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.070Z",
+  "relationships": [
+    {
+      "id": "testing.coveragesummary.aggregates.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coveragesummary aggregates testing.coveragerequirement",
+      "description": "The model-wide coverage report tallies each coverage requirement of its model in its requirement totals, and the requirement exists independently of any particular report snapshot.",
+      "evidence": "The generated summary record lists or counts the requirement's identifier among its totalled requirements, and that identifier matches a requirement defined in the same coverage model file."
+    },
+    {
+      "id": "testing.coveragesummary.aggregates.testing.targetcoveragesummary",
+      "previous_description": "Defines relationship: testing.coveragesummary aggregates testing.targetcoveragesummary",
+      "description": "The model-wide report rolls up the per-target coverage records of its model, using their designed, implemented and automated counts to compute the overall figures.",
+      "evidence": "The summary's per-target section embeds or links the target summary records, and its totals equal the sum of those records' counts in the same report run."
+    },
+    {
+      "id": "testing.coveragesummary.aggregates.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.coveragesummary aggregates testing.testcasesketch",
+      "description": "The model-wide report counts each test case sketch of the model in its designed, implemented and automated totals without owning the sketch's lifecycle.",
+      "evidence": "The summary's sketch totals are computed from the sketch entries in the coverage model, and the report lists the sketch identifiers or their implementation status."
+    },
+    {
+      "id": "testing.coveragesummary.aggregates.testing.testcoveragemodel",
+      "previous_description": "Defines relationship: testing.coveragesummary aggregates testing.testcoveragemodel",
+      "description": "The report presents the coverage model as the whole whose contents it totals, treating the model as a captured part of the point-in-time snapshot.",
+      "evidence": "The summary record embeds a snapshot or version-pinned copy of the coverage model it was generated from."
+    },
+    {
+      "id": "testing.coveragesummary.depends-on.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.coveragesummary depends-on testing.testcoveragetarget",
+      "description": "The report cannot be computed without the model's coverage targets, since every per-target figure and overall target count is derived from them.",
+      "evidence": "The report generator iterates over the model's declared targets to compute totals, and a summary with no targets fails generation or reports zero scope."
+    },
+    {
+      "id": "testing.coveragesummary.fulfills-requirements.motivation.requirement",
+      "previous_description": "Defines relationship: testing.coveragesummary fulfills-requirements motivation.requirement",
+      "description": "The report provides the evidence demanded by a motivation requirement that mandates reported test coverage, such as a requirement to publish coverage before release.",
+      "evidence": "The requirement's acceptance criteria cite the coverage summary report, and the release checklist or traceability matrix links the summary record as satisfying evidence."
+    },
+    {
+      "id": "testing.coveragesummary.measures-outcome.motivation.outcome",
+      "previous_description": "Defines relationship: testing.coveragesummary measures-outcome motivation.outcome",
+      "description": "The report's totals serve as the measured value showing whether a stated coverage outcome, such as 90% of requirements exercised, has been reached.",
+      "evidence": "The outcome's target value names a summary metric, and a dashboard or quality gate compares the summary's computed percentage to that threshold."
+    },
+    {
+      "id": "testing.coveragesummary.references.business.businessprocess",
+      "previous_description": "Defines relationship: testing.coveragesummary references business.businessprocess",
+      "description": "The report cites a business process whose workflow targets it totals, so readers can see coverage status in terms of that process.",
+      "evidence": "The summary record includes the business process identifier in a scope or grouping field, matching a business-workflow target in the model."
+    },
+    {
+      "id": "testing.coveragesummary.references.testing.coverageexclusion",
+      "previous_description": "Defines relationship: testing.coveragesummary references testing.coverageexclusion",
+      "description": "The report cites the approved exclusions that remove targets or requirements from its required-coverage denominator, so that excluded items are not counted as shortfalls.",
+      "evidence": "The summary lists exclusion identifiers in an excluded-items section, and its required-coverage denominator is reduced by exactly those excluded items."
+    },
+    {
+      "id": "testing.coveragesummary.references.testing.coveragegap",
+      "previous_description": "Defines relationship: testing.coveragesummary references testing.coveragegap",
+      "description": "The report points to the recorded coverage gaps that explain why its exercised share falls short of required coverage.",
+      "evidence": "The summary contains links or identifiers of open gap records, and each referenced gap names a requirement or target counted as unexercised in the totals."
+    },
+    {
+      "id": "testing.coveragesummary.references.testing.testcoveragemodel",
+      "previous_description": "Defines relationship: testing.coveragesummary references testing.testcoveragemodel",
+      "description": "The report identifies the single coverage model and version whose contents it summarises at its snapshot time.",
+      "evidence": "The summary record carries a model identifier and version field that resolves to an existing coverage model definition."
+    },
+    {
+      "id": "testing.coveragesummary.serves.testing.testcoveragemodel",
+      "previous_description": "Defines relationship: testing.coveragesummary serves testing.testcoveragemodel",
+      "description": "The report gives the coverage model's owners a consolidated status view that they use to track the test plan's progress.",
+      "evidence": "The coverage model's documentation or CI pipeline publishes the summary as its status report, for example as a build artifact attached to the model's repository."
+    },
+    {
+      "id": "testing.coveragesummary.validates.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coveragesummary validates testing.coveragerequirement",
+      "description": "The report states whether each coverage requirement has been exercised by at least one implemented test, confirming or refuting that the criterion is met.",
+      "evidence": "The summary marks each requirement identifier as exercised or not, based on links from implemented test functions to the sketches for that requirement."
+    }
+  ],
+  "notes": "aggregates→TestCoverageModel inverts the containment: the model is reported on, not part of the report; with references and serves to the same model, three predicates express one link—keep references. validates→CoverageRequirement overstates a report's role; it reports status rather than performing verification. fulfills-requirements→Requirement is weak for a report record."
+}

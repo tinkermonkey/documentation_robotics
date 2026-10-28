@@ -1,0 +1,54 @@
+{
+  "spec_node_id": "data-model.objectschema",
+  "previous_description": "Defines validation rules for JSON object instances, specifying named properties, required fields, and constraints on additional or dynamically named properties.",
+  "definition": "A schema node of type 'object' that constrains JSON object instances by declaring a set of named, typed properties, which of those properties must be present, and rules for undeclared or dynamically named keys. In code it corresponds to a structured domain record (entity class, ORM model, DTO, record or interface with fields), not to an individual field or to a primitive type alias.",
+  "distinguish_from": [
+    {
+      "type": "data-model.schemaproperty",
+      "when": "the symbol is a single field, column or attribute inside a structure rather than the structure that owns the fields"
+    },
+    {
+      "type": "data-model.jsonschema",
+      "when": "the element is the root schema document or file, identified by $schema and $id and holding definitions, rather than one object shape described within it"
+    },
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the named reusable type is a primitive alias or enumeration (e.g. a TypeScript enum, a branded string type, a Python Enum) with no named fields of its own"
+    },
+    {
+      "type": "data-model.schemacomposition",
+      "when": "the type is defined only by combining other schemas (union, intersection, discriminated oneOf, negation) rather than by declaring its own properties; plain class inheritance stays an objectschema with an extends relationship"
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 Validation (draft-handrews-json-schema-validation-01) §6.5 Validation Keywords for Objects",
+  "code_evidence": [
+    "A class annotated @Entity/@Table, a Django models.Model subclass, or a SQLAlchemy declarative class whose attributes declare domain fields",
+    "A TypeScript interface or type literal, Pydantic BaseModel, Python @dataclass, Java record, or Go struct with named typed fields used as a DTO or request/response payload",
+    "A JSON Schema or OpenAPI components.schemas entry with \"type\": \"object\" and a \"properties\" map, or a z.object()/Joi.object()/yup.object() validator declaration"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "type",
+      "description": "The JSON Schema type keyword, which is always the string 'object' for this element; set it on every instance."
+    },
+    {
+      "name": "required",
+      "description": "Array of property names (strings) that must be present in a valid instance; populate it from fields that are non-optional in code, such as TypeScript fields without '?', Pydantic fields without defaults, or NOT NULL columns."
+    },
+    {
+      "name": "additionalProperties",
+      "description": "Either a boolean or a subschema (inline or $ref) governing keys not listed in properties or patternProperties; set false for closed models (e.g. Pydantic extra='forbid', TypeScript exact types) and a value schema for map-like types such as Record<string, T>."
+    },
+    {
+      "name": "minProperties",
+      "description": "Non-negative integer giving the minimum number of keys a valid instance must contain; set it only when code or a validator explicitly enforces a lower bound on key count."
+    },
+    {
+      "name": "maxProperties",
+      "description": "Non-negative integer giving the maximum number of keys a valid instance may contain; set it only when code or a validator explicitly enforces an upper bound on key count."
+    }
+  ],
+  "notes": "type should be a const 'object', not a free string. additionalProperties, patternProperties and propertyNames are typed string but Draft 7 allows boolean/schema or regex-to-schema maps. The properties attribute duplicates the aggregates→schemaproperty relationship; pick one. Draft 7 'dependencies' keyword is missing. realizes→motivation.goal looks semantically wrong.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.221Z"
+}

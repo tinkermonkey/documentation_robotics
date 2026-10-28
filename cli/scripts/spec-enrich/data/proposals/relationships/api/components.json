@@ -1,0 +1,80 @@
+{
+  "source": "api.components",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.075Z",
+  "relationships": [
+    {
+      "id": "api.components.aggregates.callback",
+      "previous_description": "Defines relationship: api.components aggregates api.callback",
+      "description": "The reusable-definitions container registers a named callback contract under components.callbacks so that operations can attach the same outbound webhook interaction by reference instead of redefining it inline.",
+      "evidence": "The OpenAPI document has an entry under components.callbacks/<name>, and at least one operation's callbacks map uses $ref: '#/components/callbacks/<name>' to point at it."
+    },
+    {
+      "id": "api.components.aggregates.api.example",
+      "previous_description": "Defines relationship: api.components aggregates api.example",
+      "description": "The reusable-definitions container holds a named sample value under components.examples, which media types, parameters or headers can pull into their examples maps by reference.",
+      "evidence": "The document declares components.examples/<name> with a value or externalValue, and an examples map elsewhere contains $ref: '#/components/examples/<name>'."
+    },
+    {
+      "id": "api.components.aggregates.link",
+      "previous_description": "Defines relationship: api.components aggregates api.link",
+      "description": "The reusable-definitions container registers a named link descriptor under components.links so that several responses can share the same mapping from response values onto a follow-on operation's parameters.",
+      "evidence": "The document defines components.links/<name> with an operationId or operationRef, and one or more response links maps reference it via $ref: '#/components/links/<name>'."
+    },
+    {
+      "id": "api.components.aggregates.requestbody",
+      "previous_description": "Defines relationship: api.components aggregates api.requestbody",
+      "description": "The reusable-definitions container holds a named request payload definition under components.requestBodies that multiple body-bearing operations can adopt as their requestBody by reference.",
+      "evidence": "The document lists components.requestBodies/<name> with a content map, and operations declare requestBody: { $ref: '#/components/requestBodies/<name>' }."
+    },
+    {
+      "id": "api.components.aggregates.api.response",
+      "previous_description": "Defines relationship: api.components aggregates api.response",
+      "description": "The reusable-definitions container registers a named HTTP outcome under components.responses that operations can reuse for a status code, such as a shared 404 or error response.",
+      "evidence": "The document defines components.responses/<name> with a description and optional content, and an operation's responses map assigns a status code to $ref: '#/components/responses/<name>'."
+    },
+    {
+      "id": "api.components.composes.api.header",
+      "previous_description": "Defines relationship: api.components composes api.header",
+      "description": "The reusable-definitions container owns a named header declaration in its components.headers registry, and that declaration exists only as an entry of the registry, ready to be referenced from response or encoding headers maps.",
+      "evidence": "The document contains components.headers/<Header-Name> with a schema, and a response or encoding headers map points at it with $ref: '#/components/headers/<Header-Name>'."
+    },
+    {
+      "id": "api.components.composes.api.parameter",
+      "previous_description": "Defines relationship: api.components composes api.parameter",
+      "description": "The reusable-definitions container owns a named path, query, header or cookie parameter definition in components.parameters, which operations and path items include by reference.",
+      "evidence": "The document declares components.parameters/<name> with name, in and schema, and a parameters array in an operation or path item includes $ref: '#/components/parameters/<name>'."
+    },
+    {
+      "id": "api.components.composes.api.paths",
+      "previous_description": "Defines relationship: api.components composes api.paths",
+      "description": "The reusable-definitions container is claimed to contain the document's path map, even though the endpoint set is defined at the document root and not within the components registry.",
+      "evidence": "The parsed OpenAPI document would have to place the paths object inside components, whereas a valid document declares paths as a root-level sibling of components."
+    },
+    {
+      "id": "api.components.composes.api.response",
+      "previous_description": "Defines relationship: api.components composes api.response",
+      "description": "The reusable-definitions container owns each named Response definition in components.responses as an entry of that registry, and the entry serves as the canonical single-status-code outcome that operations reference.",
+      "evidence": "The document's components.responses map has a keyed Response object, which an operation's responses map reaches through a '#/components/responses/<name>' $ref."
+    },
+    {
+      "id": "api.components.composes.api.responses",
+      "previous_description": "Defines relationship: api.components composes api.responses",
+      "description": "The reusable-definitions container is claimed to contain a status-code-keyed outcome map, although Responses objects are scoped to individual operations and components only registers individual Response entries.",
+      "evidence": "The document would need a status-code-keyed Responses map placed inside components, whereas a valid document places that map under each operation's responses field."
+    },
+    {
+      "id": "api.components.composes.api.schema",
+      "previous_description": "Defines relationship: api.components composes api.schema",
+      "description": "The reusable-definitions container owns each named data-shape definition in components.schemas, and these entries act as the shared models that request bodies, responses, parameters and other schemas reference.",
+      "evidence": "The document defines components.schemas/<Name> as a Schema Object, and media types, parameters or other schemas reference it via $ref: '#/components/schemas/<Name>'."
+    },
+    {
+      "id": "api.components.composes.api.securityscheme",
+      "previous_description": "Defines relationship: api.components composes api.securityscheme",
+      "description": "The reusable-definitions container owns each named credential mechanism in components.securitySchemes, such as an API key, HTTP bearer, OAuth2 or OpenID Connect scheme, and root-level or operation-level security requirements invoke the scheme by its name.",
+      "evidence": "The document declares components.securitySchemes/<name> with a type, and a root or operation security array lists that <name> as a key."
+    }
+  ],
+  "notes": "Response appears under both aggregates and composes, so the two edges are redundant and contradictory. The composes.paths edge is wrong: Paths is a root sibling of components. The composes.responses edge is wrong: components holds Response entries, not operation-scoped Responses maps. Registry entries use aggregates for some kinds and composes for others, with no clear basis for the difference."
+}

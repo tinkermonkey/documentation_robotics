@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "testing.targetcoveragesummary",
+  "previous_description": "Coverage metrics summary for a single test coverage target",
+  "definition": "A per-target coverage report record that states, for exactly one TestCoverageTarget, the counts of designed, implemented and automated test case sketches and the share of that target's coverage requirements exercised by at least one implemented test. It reports measured status, not required criteria or identified deficits.",
+  "distinguish_from": [
+    {
+      "type": "testing.coveragesummary",
+      "when": "the record aggregates totals across all targets and requirements of a whole TestCoverageModel rather than metrics for one target."
+    },
+    {
+      "type": "testing.coveragegap",
+      "when": "the element records a specific uncovered requirement with severity and remediation status, rather than numeric coverage counts."
+    },
+    {
+      "type": "testing.coveragerequirement",
+      "when": "the element specifies the coverage criteria a target must satisfy, rather than reporting how far they are satisfied."
+    },
+    {
+      "type": "testing.testcoveragetarget",
+      "when": "the element identifies the endpoint, workflow or component in scope for testing, rather than its coverage metrics."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Test Summary Report (Clause 15: Comprehensiveness assessment / Summary of results), per-feature scope",
+  "code_evidence": [
+    "A generated coverage report file (e.g. coverage-summary.json, a JUnit/Allure per-endpoint section) keyed by a single endpoint, route or feature ID with counts of planned, implemented and automated tests",
+    "A CI script or reporting job that groups test results by target (e.g. by OpenAPI operationId or tag) and computes a percentage of requirements with passing implemented tests",
+    "A traceability matrix row or markdown table in test documentation listing one feature/endpoint alongside sketch count, implemented count, automated count and coverage %"
+  ],
+  "attribute_descriptions": [],
+  "notes": "Lacks generatedAt/timestamp and modelRef that CoverageSummary has, so staleness can't be judged. coveragePercentage measures requirements, not code lines; a name like requirementCoveragePercentage would avoid confusion with line/branch coverage tools. Consider gapCount and exclusionCount attributes since references to CoverageGap/CoverageExclusion exist only as relationships. 'validates' relationship verb is questionable for a report.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.202Z"
+}

@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "api.securityscheme",
+  "previous_description": "Defines an authentication/authorization mechanism for the API. Supports four scheme types: apiKey (name+in required), http (scheme required), oauth2 (flows required), and openIdConnect (openIdConnectUrl required). Only 'type' is universally required. Note: SecurityScheme defines the mechanism; it is referenced by name string key in Operation.security or the root security array — those references are security requirement objects, not SecurityScheme instances.",
+  "definition": "A named declaration in an API description of one mechanism by which clients present credentials: an API key carried in a header, query parameter or cookie; an HTTP authentication scheme such as basic or bearer; a set of OAuth 2.0 flows; or an OpenID Connect discovery URL. It is registered under components.securitySchemes and referenced by name from root-level or operation-level security requirements, which are not themselves instances.",
+  "distinguish_from": [
+    {
+      "type": "api.oauthflows",
+      "when": "modelling the container of grant-type configurations nested inside an oauth2 scheme, rather than the scheme itself."
+    },
+    {
+      "type": "api.oauthflow",
+      "when": "modelling the authorizationUrl, tokenUrl and scopes of a single OAuth 2.0 grant type."
+    },
+    {
+      "type": "api.parameter",
+      "when": "a header, query or cookie value is an ordinary operation input rather than a credential the API authenticates, or the API key is only documented as a plain parameter."
+    },
+    {
+      "type": "api.operation",
+      "when": "recording that a particular endpoint requires or waives authentication; that is the operation's security requirement referencing this scheme by name."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Security Scheme Object (components.securitySchemes)",
+  "code_evidence": [
+    "An entry under components.securitySchemes in an OpenAPI YAML/JSON file, e.g. bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}.",
+    "Framework declarations that emit a scheme into generated OpenAPI, such as FastAPI OAuth2PasswordBearer(tokenUrl=...), APIKeyHeader(name='X-API-Key') or HTTPBearer(); springdoc @SecurityScheme(name=..., type=SecuritySchemeType.HTTP, scheme=\"bearer\"); or NestJS DocumentBuilder().addBearerAuth().",
+    "Authentication middleware or strategy that reads a credential from a fixed location and is applied across routes, e.g. a passport-jwt/passport-http-bearer strategy, or a middleware checking req.headers['x-api-key'] before handlers run."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text (CommonMark) explanation of the scheme for consumers, e.g. how to obtain a key or token; set whenever the mechanism needs explanation beyond its type."
+    },
+    {
+      "name": "in",
+      "description": "Location of the API key: one of 'header', 'query' or 'cookie'. Required and only meaningful when type is apiKey."
+    },
+    {
+      "name": "scheme",
+      "description": "Name of the HTTP Authorization scheme as registered by IANA (RFC 7235), e.g. 'basic', 'bearer' or 'digest'. Required and only meaningful when type is http."
+    },
+    {
+      "name": "bearerFormat",
+      "description": "Hint describing how the bearer token is formatted, e.g. 'JWT'. Documentation only; set when type is http and scheme is bearer."
+    }
+  ],
+  "notes": "Missing 'name' attribute (the header/query/cookie key name), which is required for apiKey and cited in the definition. 'in' should be enum[header|query|cookie]. There is no element type for security requirement objects. Outgoing maps-to data-store.collection and serves business.businessrole look speculative and invite misclassification.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.239Z"
+}

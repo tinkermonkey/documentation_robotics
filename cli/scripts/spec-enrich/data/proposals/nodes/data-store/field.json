@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "data-store.field",
+  "previous_description": "A named data element within a collection. Paradigm-neutral: maps to SQL column, document store field/path, key-value hash field, wide-column column, vector dimension or metadata field, time-series tag or field, graph property, and search engine mapping property.",
+  "definition": "A named, typed data element declared in the physical structure of a persisted collection, whose value is stored for each record. Covers a SQL column, document field or path, hash field, wide-column column, time-series tag or field, vector or metadata field, graph property, and search-engine mapping property.",
+  "distinguish_from": [
+    {
+      "type": "data-store.collection",
+      "when": "the symbol declares the container of records (table, collection, bucket, measurement, node label) rather than one named element inside it"
+    },
+    {
+      "type": "data-store.index",
+      "when": "the symbol declares a lookup structure over one or more existing fields (CREATE INDEX, createIndex, mapping index option) rather than the stored element itself"
+    },
+    {
+      "type": "data-store.validationrule",
+      "when": "the symbol is a separately declared constraint (PRIMARY KEY, FOREIGN KEY, CHECK, UNIQUE, JSON Schema required list) that restricts field values, rather than the field declaration"
+    },
+    {
+      "type": "data-store.view",
+      "when": "the column appears only in a derived query or projection (SELECT list of a view, continuous aggregate) and is not stored in a base collection"
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 §11.4 <column definition> (column descriptor)",
+  "code_evidence": [
+    "a column clause inside CREATE TABLE or ALTER TABLE ... ADD COLUMN in a migration script (e.g. 'email VARCHAR(255) NOT NULL')",
+    "an ORM-mapped attribute such as a JPA @Column field, SQLAlchemy Column(...), Django models.CharField, or Prisma model field line",
+    "an entry under a document or search schema definition, such as a Mongoose schema path, a MongoDB $jsonSchema property, or an Elasticsearch mappings.properties key with a type"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "nullable",
+      "description": "Whether the store accepts an absent or null value for this field. Set false when the declaration carries NOT NULL, required: true, or an equivalent, and true when nulls or missing paths are explicitly allowed."
+    },
+    {
+      "name": "defaultValue",
+      "description": "The literal or expression the store assigns when a write omits this field, recorded as written in the source (e.g. '0', 'now()', 'CURRENT_TIMESTAMP'). Set only when the default is declared in the storage schema, not when it is assigned in application code."
+    }
+  ],
+  "notes": "nullable duplicates validationrule NOT_NULL, so state which is canonical. fieldRole LABEL overlaps collection NODE_LABEL. fieldRole lacks a PRIMARY_KEY/ID value, and VALUE versus PROPERTY is ambiguous for graphs. Composition of field by database and namespace should probably be restricted to collection. A field-level 'description/comment' attribute is missing.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.232Z"
+}

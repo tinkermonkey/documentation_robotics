@@ -2,7 +2,7 @@
   "id": "application",
   "number": 5,
   "name": "Application Layer",
-  "description": "Layer 5: Application Layer",
+  "description": "Models the application architecture: application components (deployable modules, classes and services), the application functions and processes that describe their internal behaviour, the application services and interfaces through which that behaviour is exposed, application events and interactions, collaborations between components, and the data objects they process (ArchiMate 3.2 application layer). This is the default home for ordinary application code structure; more specific layers apply only when a symbol is itself an API contract, a data schema, a persistence object, a UI element, telemetry, security logic or a test asset.",
   "inspired_by": {
     "standard": "ArchiMate 3.2",
     "version": "3.2",

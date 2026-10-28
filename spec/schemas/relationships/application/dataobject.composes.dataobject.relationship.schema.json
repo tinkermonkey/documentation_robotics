@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Dataobject composes Dataobject",
-  "description": "Defines relationship: application.dataobject composes application.dataobject",
+  "description": "The whole data structure owns an embedded part structure that has no independent identity and is created, copied, serialized and discarded together with it, such as an Invoice and its InvoiceLine items or a Person and its embedded Address value object.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The part type appears only as a nested or embedded member of the whole, for example a nested record, an @Embedded or @ElementCollection mapping, a cascade-all/orphan-removal association, or a nested message in a protobuf or JSON schema, and it is instantiated inside the whole's constructor or builder."
+  ]
 }

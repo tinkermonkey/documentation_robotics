@@ -1,0 +1,26 @@
+{
+  "source": "security.secureresource",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.087Z",
+  "relationships": [
+    {
+      "id": "security.secureresource.aggregates.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: security.secureresource aggregates security.fieldaccesscontrol",
+      "description": "The protected resource groups the field-level masking, redaction, hashing or tokenization rules that govern how each of its named fields is shown to principals who lack clear-text permission.",
+      "evidence": "The security model file lists the field access control entries under the resource's fields or fieldAccess section, each naming a property or column that exists on that resource's schema."
+    },
+    {
+      "id": "security.secureresource.aggregates.security.resourceoperation",
+      "previous_description": "Defines relationship: security.secureresource aggregates security.resourceoperation",
+      "description": "The protected resource holds the set of actions, such as create, read, approve or export, that the authorization layer can permit or refuse on it, each carrying its own conditions, rate limits and audit settings.",
+      "evidence": "The access control policy declares the operation under the resource's operations list, and the authorization middleware or policy engine checks that resource-and-action pair before the handler runs."
+    },
+    {
+      "id": "security.secureresource.references.business.businessobject",
+      "previous_description": "Defines relationship: security.secureresource references business.businessobject",
+      "description": "The protected resource points to the business concept, such as Order, Invoice or Customer record, whose information it holds or exposes, so access decisions on it can be traced back to the business meaning of the data.",
+      "evidence": "The resource definition carries a businessObject or similar reference field naming the business object's ID, or the protected API or table documentation states that it stores or serves that business entity."
+    }
+  ],
+  "notes": "Both aggregates relationships look semantically weak: a FieldAccessControl is bound to one field of a single resource, and a ResourceOperation is declared on a single resource. Neither can exist without its owning resource, so composes would express the lifecycle dependency more accurately than aggregates."
+}

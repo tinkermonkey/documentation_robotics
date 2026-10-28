@@ -1,0 +1,98 @@
+{
+  "source": "security.securitymodel",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.056Z",
+  "relationships": [
+    {
+      "id": "security.securitymodel.aggregates.actor",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.actor",
+      "description": "The application's security model enumerates the principal populations, service accounts and external parties that may authenticate to it, while each actor remains an independently defined identity that could also be referenced from other contexts.",
+      "evidence": "The application's security model file (e.g. security-model.yaml) lists the actor by id under its actors section, or the identity provider's tenant configuration for that application registers the user group or service account."
+    },
+    {
+      "id": "security.securitymodel.aggregates.security.authenticationconfig",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.authenticationconfig",
+      "description": "The application's security model includes the identity-verification setup (protocol, identity provider, MFA and session lifetime) used by that application, where the setup may be a shared configuration reused by other applications.",
+      "evidence": "The application's security model references a named authentication configuration, such as an OIDC client or SAML settings block, that is defined in a shared identity-provider configuration module."
+    },
+    {
+      "id": "security.securitymodel.aggregates.delegation",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.delegation",
+      "description": "The application's security model records the authority transfers in which one of its actors lends permissions or a role to another actor within that application.",
+      "evidence": "The application's delegation table, admin console export or policy file contains a delegation record naming a delegator, a delegatee and an expiry, scoped to that application's model."
+    },
+    {
+      "id": "security.securitymodel.aggregates.informationentity",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.informationentity",
+      "description": "The application's security model catalogues the logical categories of sensitive information (such as customer PII or card data) that the application handles and that its information rights grant access to.",
+      "evidence": "The application's data inventory or privacy register lists the information category under that application, or the security model file declares it in its information entities section."
+    },
+    {
+      "id": "security.securitymodel.aggregates.permission",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.permission",
+      "description": "The application's security model collects the atomic action-on-resource grants that its roles bundle and its enforcement points check.",
+      "evidence": "The application's permission registry, such as a permissions enum, a Keycloak client-scope list or a policy file, declares the permission string, and the application's guards or annotations check that string."
+    },
+    {
+      "id": "security.securitymodel.aggregates.role",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.role",
+      "description": "The application's security model defines the assignable permission bundles and privilege tiers that the application's actors are given.",
+      "evidence": "The application's role definitions, such as IAM role resources, a roles seed file or identity-provider client roles, declare the role within that application's scope."
+    },
+    {
+      "id": "security.securitymodel.aggregates.secureresource",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.secureresource",
+      "description": "The application's security model names the APIs, data stores, files, UI areas and streams that are the protected objects of its authorization decisions.",
+      "evidence": "The application's security model or resource-server configuration registers the API, table or UI area as a protected resource with its own allowed operations."
+    },
+    {
+      "id": "security.securitymodel.aggregates.security.threat",
+      "previous_description": "Defines relationship: security.securitymodel aggregates security.threat",
+      "description": "The application's threat model is part of its security model and lists the attack techniques and adverse events identified against that application's assets.",
+      "evidence": "The application's threat-model document, such as a STRIDE worksheet or Threat Dragon file, contains the threat entry rated by likelihood and impact for that application."
+    },
+    {
+      "id": "security.securitymodel.composes.security.authenticationconfig",
+      "previous_description": "Defines relationship: security.securitymodel composes security.authenticationconfig",
+      "description": "The application's authentication configuration exists only as part of that application's security model, fixing how principals of that one application prove their identity.",
+      "evidence": "The authentication settings, such as the OIDC client registration, MFA flag and session timeout, are declared inside the application's own security configuration and are removed when that application's configuration is deleted."
+    },
+    {
+      "id": "security.securitymodel.composes.security.securityconstraints",
+      "previous_description": "Defines relationship: security.securitymodel composes security.securityconstraints",
+      "description": "The application's set of separation-of-duty, binding-of-duty and need-to-know rules exists only within that application's security model and has no meaning outside it.",
+      "evidence": "The application's security model file contains a constraints section declaring its SoD, BoD and need-to-know rules, which are not referenced by any other application."
+    },
+    {
+      "id": "security.securitymodel.composes.security.securitypolicy",
+      "previous_description": "Defines relationship: security.securitymodel composes security.securitypolicy",
+      "description": "Each prioritized access-control policy belongs to exactly one application's security model and is defined and deleted with it.",
+      "evidence": "The application's policy bundle, such as an OPA package or XACML PolicySet deployed for that application, contains the policy, and the policy is versioned and deployed with that bundle."
+    },
+    {
+      "id": "security.securitymodel.constrains.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: security.securitymodel constrains security.accountabilityrequirement",
+      "description": "The application's security model sets the scope and access-control paradigm within which its non-repudiation obligations on named actions and resources must be defined and met.",
+      "evidence": "The application's audit or compliance specification lists accountability requirements that reference only that application's actors, actions and resources and that conform to its declared access-control paradigm."
+    },
+    {
+      "id": "security.securitymodel.governs.security.dataclassification",
+      "previous_description": "Defines relationship: security.securitymodel governs security.dataclassification",
+      "description": "The application's security model determines which sensitivity tiers and handling obligations apply to the data labelled within that application.",
+      "evidence": "The application's data-classification policy or security model declares the classification levels, such as public, internal, confidential and restricted, with their encryption rules, and its data schemas carry those labels."
+    },
+    {
+      "id": "security.securitymodel.governs.security.securitypolicy",
+      "previous_description": "Defines relationship: security.securitymodel governs security.securitypolicy",
+      "description": "The application's security model sets the paradigm, scope and priority framework under which its access-control policies are authored and combined.",
+      "evidence": "The application's policy engine configuration, such as the root OPA package or XACML PolicySet combining algorithm, loads the policy and orders it by priority under that application's model."
+    },
+    {
+      "id": "security.securitymodel.manages.security.threat",
+      "previous_description": "Defines relationship: security.securitymodel manages security.threat",
+      "description": "The application's security model is responsible for tracking each identified threat through its lifecycle, keeping its likelihood and impact ratings current and linking it to countermeasures.",
+      "evidence": "The application's threat register or risk backlog tracks the threat with an owner, status and review date, and links it to the mitigating controls defined in the same model."
+    }
+  ],
+  "notes": "aggregates and composes both link SecurityModel to AuthenticationConfig, which is contradictory; keep composes only, since there is one config per application. SecurityPolicy has both composes and governs, and governs is redundant with containment. Threat has both aggregates and manages, which overlap. constrains on AccountabilityRequirement has weak semantics, because a container does not restrict its members; aggregates would fit better."
+}

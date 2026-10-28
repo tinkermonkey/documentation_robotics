@@ -1,0 +1,44 @@
+{
+  "source": "motivation.meaning",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.105Z",
+  "relationships": [
+    {
+      "id": "motivation.meaning.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.meaning associated-with motivation.constraint",
+      "description": "The meaning gives the agreed interpretation of a term or concept that a constraint relies on, such as what 'personal data' or 'go-live date' signifies, so the restriction can be applied without ambiguity.",
+      "evidence": "A decision record or policy stating the constraint links to, or cites, a glossary entry or definition note that interprets the key term used in the constraint text."
+    },
+    {
+      "id": "motivation.meaning.associated-with.motivation.driver",
+      "previous_description": "Defines relationship: motivation.meaning associated-with motivation.driver",
+      "description": "The meaning records how stakeholders interpret the condition named by a driver, for example what a new regulation's term 'processor' implies for the organization, framing how the driver is understood.",
+      "evidence": "A driver entry in the architecture repository or strategy document references an interpretation note, legal reading or glossary definition that explains what the driving condition signifies in context."
+    },
+    {
+      "id": "motivation.meaning.associated-with.motivation.goal",
+      "previous_description": "Defines relationship: motivation.meaning associated-with motivation.goal",
+      "description": "The meaning clarifies what a concept used in a goal signifies to stakeholders, such as what 'customer-centric' or 'digital first' means here, so the goal's intended direction is shared.",
+      "evidence": "A goal statement in a strategy or motivation model is annotated with, or hyperlinks to, a definition or interpretation note that explains the term the goal depends on."
+    },
+    {
+      "id": "motivation.meaning.associated-with.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.meaning associated-with motivation.outcome",
+      "description": "The meaning defines how a concept within an outcome is to be interpreted, for example what counts as an 'active user' or a 'resolved incident', so achievement of the outcome can be judged consistently.",
+      "evidence": "An outcome or KPI definition document cites a glossary or data-dictionary entry that specifies the meaning of the measured concept used in its target."
+    },
+    {
+      "id": "motivation.meaning.associated-with.motivation.stakeholder",
+      "previous_description": "Defines relationship: motivation.meaning associated-with motivation.stakeholder",
+      "description": "The meaning captures the interpretation a particular stakeholder holds of a concept, identifying whose perspective the explanatory statement reflects.",
+      "evidence": "A glossary entry, interview note or workshop record attributes the interpretation of the concept to a named stakeholder role or group, or the stakeholder is listed as the definition's owner or source."
+    },
+    {
+      "id": "motivation.meaning.associated-with.motivation.value",
+      "previous_description": "Defines relationship: motivation.meaning associated-with motivation.value",
+      "description": "The meaning explains what a concept referenced in a value statement signifies, so that the worth claimed for stakeholders, such as 'saves ten minutes per order', is understood in the intended sense.",
+      "evidence": "A value proposition or benefits document references a definition or interpretation note that clarifies the concept whose worth it states."
+    }
+  ],
+  "notes": "All six use the generic associated-with, which is ArchiMate's only permitted relation for Meaning but carries little semantics; direction is ambiguous since Meaning interprets a concept rather than the motivation element itself. The meaning-to-stakeholder link is the most substantive (whose interpretation); others essentially say 'defines a term used in'."
+}

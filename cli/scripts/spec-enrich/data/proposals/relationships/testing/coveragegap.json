@@ -1,0 +1,38 @@
+{
+  "source": "testing.coveragegap",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.087Z",
+  "relationships": [
+    {
+      "id": "testing.coveragegap.flows-to.testing.coverageexclusion",
+      "previous_description": "Defines relationship: testing.coveragegap flows-to testing.coverageexclusion",
+      "description": "A recorded coverage shortfall can be carried forward into an explicit exclusion decision, where an accountable approver turns the unremediated gap into a signed-off choice to accept its residual risk rather than write the missing tests.",
+      "evidence": "The coverage exclusion record carries an origin or resolves-gap field holding the gap's identifier, and the gap's remediation status is set to 'excluded' with a link to that exclusion."
+    },
+    {
+      "id": "testing.coveragegap.references.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coveragegap references testing.coveragerequirement",
+      "description": "The gap names the specific coverage criterion, such as boundary-values, pairwise or MC/DC, whose required combinations are not yet exercised by implemented or executed tests.",
+      "evidence": "The gap entry in the coverage model or gap report has a requirement field containing the coverage requirement's id, and the reported uncovered combinations are drawn from that requirement's criterion."
+    },
+    {
+      "id": "testing.coveragegap.references.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.coveragegap references testing.testcoveragetarget",
+      "description": "The gap identifies the in-scope production artifact or capability, such as an API operation, UI view or scheduled job, whose behaviour lacks the tests it needs.",
+      "evidence": "The gap record's target field holds the identifier of a test coverage target declared in the TestCoverageModel, and the gap report groups the finding under that target."
+    },
+    {
+      "id": "testing.coveragegap.triggers.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coveragegap triggers testing.coveragerequirement",
+      "description": "Discovering the shortfall prompts the test designer to author a new coverage requirement, or tighten an existing one, so that the previously unaddressed area of the target is governed by an explicit coverage criterion.",
+      "evidence": "The commit, ticket or change log that adds or amends the coverage requirement cites the gap's identifier as its motivation, and the requirement's creation date follows the gap's recording date."
+    },
+    {
+      "id": "testing.coveragegap.triggers.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.coveragegap triggers testing.partitionvalue",
+      "description": "The gap reveals a missing equivalence or boundary class in an input dimension, and this leads to defining a new partition value with its boundary condition and representative value so test cases can cover it.",
+      "evidence": "A partition value added to an InputSpacePartition in the coverage model is linked to the gap id through its source annotation or the commit message, and the gap's description names that untested class."
+    }
+  ],
+  "notes": "triggers→coveragerequirement overlaps with references→coveragerequirement and inverts the natural dependency: gaps are measured against existing requirements. Consider keeping only references. flows-to→coverageexclusion describes a lifecycle transition rather than a data or control flow. An inverse such as exclusion 'resolves' gap, or 'precedes', would fit better."
+}

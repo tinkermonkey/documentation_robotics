@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "api.link",
+  "previous_description": "Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns.",
+  "definition": "A response-scoped descriptor that names a target operation, by operationId or operationRef, and maps values from the current response or request (via runtime expressions or literals) onto that operation's parameters or request body. It is a design-time statement of how one call can follow another. It is not a hyperlink carried in the response payload.",
+  "distinguish_from": [
+    {
+      "type": "api.callback",
+      "when": "the API itself sends an outbound request to a consumer-supplied URL, rather than describing a follow-up call the consumer may make to an operation in this API"
+    },
+    {
+      "type": "api.schema",
+      "when": "the 'links' are runtime data inside the response body (e.g. HAL _links, JSON:API links objects) whose shape is being described, not an OpenAPI Link Object"
+    },
+    {
+      "type": "api.header",
+      "when": "the relationship is conveyed by an actual HTTP Link response header (RFC 8288) declared on the response"
+    },
+    {
+      "type": "api.parameter",
+      "when": "you are defining the input the target operation accepts, rather than mapping a value from a prior response into that input"
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Link Object",
+  "code_evidence": [
+    "A 'links:' map under a response in an OpenAPI YAML/JSON file whose entries carry operationId or operationRef plus parameters using runtime expressions such as '$response.body#/id'",
+    "A springdoc/swagger-core @Link annotation inside @ApiResponse(links = ...), or a swagger-php @OA\\Link / NestJS equivalent attached to a response definition",
+    "Entries under components.links referenced from responses via $ref '#/components/links/<Name>'"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Human-readable explanation of the link's purpose and when a client should follow it; CommonMark is allowed, and it should be set whenever the target or parameter mapping is not self-evident."
+    }
+  ],
+  "notes": "The outgoing references to api.tag and api.schema have no basis in the Link Object; consider removing them. The 'uses api.server' relationship reflects the Link 'server' field, which is missing as an attribute. Links attach to a Response, not to Responses, so the api.responses→api.link edge is questionable. Modellers may confuse this with HAL-style payload links.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.227Z"
+}

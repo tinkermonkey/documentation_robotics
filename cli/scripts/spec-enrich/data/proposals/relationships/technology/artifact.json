@@ -1,0 +1,44 @@
+{
+  "source": "technology.artifact",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "technology.artifact.aggregates.technology.artifact",
+      "previous_description": "Defines relationship: technology.artifact aggregates technology.artifact",
+      "description": "A bundling artifact such as a release archive, Helm chart package or distribution tarball gathers member artifacts that are also versioned, stored and deployable on their own, so removing the bundle leaves those members intact.",
+      "evidence": "A release manifest, tarball listing or chart dependency file names separately published artifacts (each with its own registry path or checksum) that are included in the bundle."
+    },
+    {
+      "id": "technology.artifact.associated-with.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.artifact associated-with technology.systemsoftware",
+      "description": "The artifact is linked to a particular platform product, for example a configuration file read by a database engine, a script run by a language runtime, or an image intended for a container runtime, without implying that either one owns the other.",
+      "evidence": "The system software's startup flags, config include path or install documentation reference the artifact's file path, or the artifact's metadata declares the runtime or engine version it targets."
+    },
+    {
+      "id": "technology.artifact.composes.technology.artifact",
+      "previous_description": "Defines relationship: technology.artifact composes technology.artifact",
+      "description": "An enclosing artifact physically contains a constituent artifact that exists only inside it, such as an image layer within a container image or a class file within a JAR, so the part is created and discarded together with the whole.",
+      "evidence": "The Dockerfile build steps, OCI image manifest layer digests, or archive listing show the constituent file is produced only as part of the enclosing artifact and is never published on its own."
+    },
+    {
+      "id": "technology.artifact.depends-on.technology.artifact",
+      "previous_description": "Defines relationship: technology.artifact depends-on technology.artifact",
+      "description": "The dependent artifact cannot be built, installed or run correctly unless another artifact is present, for example a package that needs a shared library or an image built FROM a base image.",
+      "evidence": "A package manifest dependency entry (package.json, pom.xml, requirements.txt), a Dockerfile FROM line, or a linker or loader reference names the required artifact and its version."
+    },
+    {
+      "id": "technology.artifact.flows-to.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.artifact flows-to technology.technologyprocess",
+      "description": "The artifact is passed as an input into an automated infrastructure process, such as a built image handed to a deployment pipeline stage or a backup file fed to a restore job.",
+      "evidence": "A CI/CD pipeline definition (GitHub Actions, GitLab CI, Jenkinsfile) or job configuration declares the artifact as a downloaded input, trigger or parameter of the process step."
+    },
+    {
+      "id": "technology.artifact.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.artifact realizes technology.technologyservice",
+      "description": "The artifact is the concrete deployable payload whose installation and execution provides the infrastructure capability, such as a broker image that delivers the messaging service or a Terraform module that delivers the storage service.",
+      "evidence": "Deployment manifests or IaC code show that the artifact, once deployed, backs the service endpoint, for example a Kubernetes Service selecting pods that run that image or a module output exposing the provisioned capability."
+    }
+  ],
+  "notes": "Artifact-to-artifact aggregates and composes are easy to confuse; modelers need a clear rule, such as independent publishability, to choose between them. Artifact realizes TechnologyService is weak semantically: in ArchiMate, artifacts normally realize application components or data objects, and services are realized by node or system-software behavior."
+}

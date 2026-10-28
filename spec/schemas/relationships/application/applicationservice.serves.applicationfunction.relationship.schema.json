@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationservice serves Applicationfunction",
+  "description": "The application function invokes the application service's operations as part of the internal work it performs.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationservice.serves.application.applicationfunction"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationservice"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "serves"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The function's implementation calls the service's interface or endpoint, visible as a method call or HTTP/RPC client invocation inside that function's code."
+  ]
+}

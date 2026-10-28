@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "navigation.navigationtransition",
+  "previous_description": "A directed edge in the navigation graph representing an authorized route change from a source route to a destination route, triggered by a specific mechanism (user click, programmatic dispatch, timeout, browser-back, or redirect). Models the actual paths users traverse between states in the application — distinct from the routes themselves — enabling analysis of navigation flows, dead-end detection, and trigger-based transition policies.",
+  "definition": "A directed edge between exactly one source Route and one destination Route that records a single permitted route change in the client-side router, together with the mechanism that initiates it (user click, programmatic call, timeout, browser history, or redirect). It represents the move between routes, not either route, and carries no sequence position in a multi-step process.",
+  "distinguish_from": [
+    {
+      "type": "navigation.route",
+      "when": "the element is the addressable URL pattern or route-table entry itself, including a route declared with type 'redirect' or 'alias', rather than the move from one route to another"
+    },
+    {
+      "type": "navigation.flowstep",
+      "when": "the element is an ordered position in a multi-step process (it has a sequence index and a required/wait behavior) rather than an edge between two routes"
+    },
+    {
+      "type": "navigation.guardaction",
+      "when": "the redirect or block is the response a NavigationGuard executes on denial, with a message and preserveRoute setting, rather than a modeled edge between two routes"
+    },
+    {
+      "type": "navigation.routemeta",
+      "when": "'transition' refers to the CSS or animation effect applied on entering or leaving a route (e.g. 'fade'), not to a route-to-route edge"
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: declarative and programmatic navigation (route change via History API pushState/replaceState/popstate)",
+  "code_evidence": [
+    "A router link component (<Link to=\"/orders\">, <router-link :to=\"{name:'checkout'}\">, [routerLink]) rendered in the view of one route and targeting another route",
+    "An imperative navigation call such as router.push(), navigate('/x'), history.replace(), Navigator.pushNamed() or this.router.navigateByUrl() inside an event handler, effect, form-submit callback, or setTimeout",
+    "A route-table entry or loader/guard return that forwards one path to another, e.g. { path: '/old', redirect: '/new' }, <Navigate to=\"/login\" replace/>, or return redirect('/dashboard')"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "from",
+      "description": "Identifier (Route ID or path pattern) of the source Route from which the transition starts; set to the route whose view or config contains the link, call, or redirect, or to '*' only when the transition can be fired from any route."
+    },
+    {
+      "name": "to",
+      "description": "Identifier (Route ID or path pattern, with parameter placeholders such as '/orders/:id') of the destination Route that becomes active once the transition completes; always set to a Route defined in the same NavigationGraph."
+    },
+    {
+      "name": "description",
+      "description": "Free-text explanation of when and why the transition occurs, such as the UI control or business event that fires it; set when the trigger alone does not make the user intent clear."
+    }
+  ],
+  "notes": "'Authorized' in the current definition is undefined. Guards constrain transitions; they do not author them. Relationship set is redundant: flows-to and navigates-to both target Route, and the graph both aggregates and composes transitions. The string attributes from/to duplicate those edges. The 'redirect' trigger overlaps Route type=redirect and GuardAction action=redirect; the spec should state which element owns a redirect.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.223Z"
+}

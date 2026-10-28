@@ -1,0 +1,69 @@
+{
+  "claim_id": "node:application.dataobject#4",
+  "first_pass": {
+    "choice": "judgment_call",
+    "probabilities": {
+      "real_defect": 0.299,
+      "works_as_designed": 0.257,
+      "judgment_call": 0.323,
+      "out_of_scope": 0.121
+    },
+    "confidence": 0.033
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified facts list data-model.objectschema.realizes.application.dataobject, so the spec does define a cross-layer link where a schema realizes a data object; the two are not simply competing homes.",
+      "No verified fact shows any relationship between application.dataobject and persistence or API schema types, so the claim about those boundaries cannot be confirmed or refuted from the evidence.",
+      "The layer definition already states a general precedence: application is the default home, and more specific layers apply when a symbol is itself an API contract, data schema or persistence object.",
+      "The current dataobject definition's distinctions name only in-layer siblings (component, event, interface), and none names data-model, persistence or API layers."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "The dataobject definition's distinctions cover only in-layer siblings, so a modeller classifying an ORM entity or DTO gets no element-level guidance.",
+          "Code-level classes often serve as both a DTO and a schema, so missing tie-break wording invites inconsistent classification across modellers and CLI runs.",
+          "The layer intent's precedence sits in the layer definition, not in the element definition that modellers actually read when choosing a type."
+        ],
+        "arguments_against": [
+          "The layer definition already states the precedence rule ('more specific layers apply only when a symbol is itself...a data schema, a persistence object').",
+          "The realizes relationship shows the intended design is to model both elements and link them, not to pick one exclusively."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "The layer definition explicitly makes application the default and defers to data-model, API and persistence layers for specific cases; that is the precedence rule.",
+          "The objectschema realizes dataobject relationship shows the layers are designed to coexist, with a schema concretizing the application-level data object.",
+          "At most, the definition could cross-reference the layer-level default rule; that is a clarity tweak, not a defect."
+        ],
+        "arguments_against": [
+          "The element definition itself is silent on cross-layer boundaries, so the design intent is not visible where classification decisions are made.",
+          "The proposed tie-breaker (ORM-mapped versus published) is more operational than the layer's 'is itself a schema' wording."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Whether to repeat layer-level precedence inside each element definition is an editorial and product choice.",
+          "The proposed criteria (ORM mapping, publication) are one reasonable heuristic among several, such as dual-modelling with realizes links."
+        ],
+        "arguments_against": [
+          "The layer intent already decides the precedence direction, so little remains for a product decision.",
+          "The realizes relationship already encodes the intended dual-modelling approach."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "The persistence and API schema boundaries belong to other layers' definitions, not to application.dataobject.",
+          "Deciding which concrete symbol gets which type could be treated as extractor or CLI heuristics rather than spec content."
+        ],
+        "arguments_against": [
+          "Type-selection guidance is exactly what element definitions provide, and the subject's definition already carries distinction clauses.",
+          "The claim concerns spec definitions and the affected ids are spec types, not tooling."
+        ]
+      }
+    ]
+  }
+}

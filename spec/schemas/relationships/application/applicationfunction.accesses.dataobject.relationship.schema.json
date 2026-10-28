@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction accesses Dataobject",
-  "description": "Defines relationship: application.applicationfunction accesses application.dataobject",
+  "description": "The application function reads, creates or modifies the state held in the data object while it performs its work, treating the data structure as passive material.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The function's implementing methods instantiate, read fields of, or mutate the class, record or struct that defines the data object, for example by taking it as a parameter or returning it."
+  ]
 }

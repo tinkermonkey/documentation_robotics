@@ -1,0 +1,80 @@
+{
+  "source": "motivation.goal",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.086Z",
+  "relationships": [
+    {
+      "id": "motivation.goal.aggregates.motivation.goal",
+      "previous_description": "Defines relationship: motivation.goal aggregates motivation.goal",
+      "description": "A broad strategic goal groups narrower sub-goals that together make up its intent, while each sub-goal remains a meaningful objective that could be retained or reassigned on its own.",
+      "evidence": "A strategy document, OKR tree or goal register lists the sub-goal under the parent goal's heading, or the parent goal's model entry names the sub-goal in its child or part list."
+    },
+    {
+      "id": "motivation.goal.aggregates.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.goal aggregates motivation.requirement",
+      "description": "The goal gathers a set of requirements as its constituent parts, forming a cluster of verifiable needs that are organized under that stakeholder intent but stay valid as independent requirements.",
+      "evidence": "A requirements specification or backlog groups the requirement under a section or epic named for the goal, or the goal's model entry explicitly lists the requirement ID as a member."
+    },
+    {
+      "id": "motivation.goal.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.goal associated-with motivation.constraint",
+      "description": "The goal is linked to a constraint that bounds the solution options available for pursuing it, such as a budget ceiling or mandated technology, without either one implying or realizing the other.",
+      "evidence": "A decision record, charter or goal description cites the constraint ID as applicable to the goal, for example in a 'constraints' or 'boundary conditions' field."
+    },
+    {
+      "id": "motivation.goal.influence.motivation.assessment",
+      "previous_description": "Defines relationship: motivation.goal influence motivation.assessment",
+      "description": "Pursuing the goal shapes how an assessment is framed or weighted, so findings such as gaps or risks are judged relative to the end state stakeholders want to reach.",
+      "evidence": "An assessment report, SWOT or gap analysis states that it was scoped or evaluated against the named goal and cites the goal's ID in its criteria or context section."
+    },
+    {
+      "id": "motivation.goal.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.goal influence motivation.goal",
+      "description": "One goal positively or negatively affects the attainability or priority of another goal, as when pursuing cost reduction tempers an ambition for service expansion, without one being part of the other.",
+      "evidence": "A strategy map, goal-dependency diagram or portfolio review document records a positive or negative influence link between the two goal IDs, often with a +/- annotation."
+    },
+    {
+      "id": "motivation.goal.influence.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.goal influence motivation.outcome",
+      "description": "The goal steers which concrete, measurable outcomes are pursued and how their targets are set, giving direction to results without itself being measurable.",
+      "evidence": "An OKR sheet, benefits register or outcome definition references the goal as the intent behind the outcome's target value or time frame."
+    },
+    {
+      "id": "motivation.goal.influence.motivation.principle",
+      "previous_description": "Defines relationship: motivation.goal influence motivation.principle",
+      "description": "The goal affects the formulation or emphasis of an architectural principle, so that general design guidance is shaped to favour the direction stakeholders intend.",
+      "evidence": "The principle's rationale or implications section in the architecture principles catalogue cites the goal's ID as a motivating factor."
+    },
+    {
+      "id": "motivation.goal.influence.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.goal influence motivation.requirement",
+      "description": "The goal motivates and shapes a requirement, giving the rationale for why the system must exhibit a specific verifiable behavior or property.",
+      "evidence": "The requirement's traceability field, rationale text or requirements-management tool link names the goal ID as its originating motivation."
+    },
+    {
+      "id": "motivation.goal.realizes.motivation.goal",
+      "previous_description": "Defines relationship: motivation.goal realizes motivation.goal",
+      "description": "Achieving a more concrete or lower-level goal brings about the end state described by a higher-level goal, acting as the means by which that broader intent is accomplished.",
+      "evidence": "A goal-refinement model or strategy cascade document records that attaining the lower goal constitutes achievement of the higher goal, e.g. via a 'realizes' link in the architecture repository."
+    },
+    {
+      "id": "motivation.goal.realizes.motivation.value",
+      "previous_description": "Defines relationship: motivation.goal realizes motivation.value",
+      "description": "Reaching the goal delivers the stated worth or benefit to the named stakeholders, making the goal the means by which that value becomes real.",
+      "evidence": "A business case or value-proposition document states that attaining the goal produces the named stakeholder benefit and cross-references both IDs."
+    },
+    {
+      "id": "motivation.goal.specializes.motivation.goal",
+      "previous_description": "Defines relationship: motivation.goal specializes motivation.goal",
+      "description": "The goal is a more specific kind of a general goal, inheriting its intent and narrowing it to a particular domain, segment or context, such as 'improve mobile customer satisfaction' specializing 'improve customer satisfaction'.",
+      "evidence": "The goal catalogue or model records the general goal as the parent type of the specific goal, with the specific goal's description restating the general intent for a narrower scope."
+    },
+    {
+      "id": "motivation.goal.supports.motivation.principle",
+      "previous_description": "Defines relationship: motivation.goal supports motivation.principle",
+      "description": "Pursuing the goal reinforces adherence to the principle, contributing to the principle being upheld across decisions within its scope.",
+      "evidence": "The principles catalogue or goal description states that the goal advances the principle, for example listing the goal under the principle's supporting objectives."
+    }
+  ],
+  "notes": "Goal aggregates requirement inverts usual ArchiMate direction (requirements realize goals). goal realizes goal overlaps with goal aggregates goal and influence goal as decomposition variants. influence and supports toward principle are largely redundant. Goal realizing value is unusual; association is more typical. Influence toward assessment reverses the normal assessment-influences-goal direction."
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcollaboration provides Applicationinterface",
-  "description": "Defines relationship: application.applicationcollaboration provides application.applicationinterface",
+  "description": "The collaboration offers a single access point, such as a gateway endpoint or shared topic, through which consumers reach the services its members deliver jointly.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "An API gateway, ingress, or BFF controller configuration mounts a route that fans out to the member components and is documented as the collaboration's entry point."
+  ]
 }

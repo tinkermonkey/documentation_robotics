@@ -2,7 +2,7 @@
   "id": "business",
   "number": 2,
   "name": "Business Layer",
-  "description": "Layer 2: Business Layer",
+  "description": "Describes what the organization does independently of the software that supports it: business actors and roles, collaborations and interfaces, processes, functions, interactions and events, business services and business objects (ArchiMate 3.2 business layer). Elements here are realized by application services and consume no implementation detail.",
   "inspired_by": {
     "standard": "ArchiMate 3.2",
     "version": "3.2",

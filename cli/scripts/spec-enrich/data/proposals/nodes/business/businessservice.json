@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businessservice",
+  "previous_description": "An externally visible behavior element that fulfills a business need for a customer or stakeholder. Defined from the consumer perspective; the internal realization (via BusinessProcess or BusinessFunction) is encapsulated and not exposed.",
+  "definition": "A behavior element that names an explicitly defined, externally visible unit of business behavior offered to customers or other stakeholders, such as 'Claims Handling' or 'Order Delivery'. It is described by the value and outcome the consumer receives, independent of the processes, functions, or software that realize it.",
+  "distinguish_from": [
+    {
+      "type": "business.businessprocess",
+      "when": "the element describes the internal ordered steps, triggers, and hand-offs that produce a result, rather than the offering as the consumer sees it."
+    },
+    {
+      "type": "business.businessfunction",
+      "when": "the element is an internal grouping of behavior by competency or organizational capability, such as Finance or HR, that is not offered to a consumer as a named service."
+    },
+    {
+      "type": "business.businessinterface",
+      "when": "the element is the access point or channel through which the service is obtained, such as a call center, web portal, or branch counter, rather than the behavior itself."
+    },
+    {
+      "type": "business.product",
+      "when": "the element is a marketed bundle of one or more services together with contracts or terms, sold or offered as a single package."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.3.5 Business Service",
+  "code_evidence": [
+    "A service catalog, SLA, or operating-level document entry that names a customer-facing offering (e.g. 'Claims Handling') with its consumers, availability hours, and service levels.",
+    "An OpenAPI tag, bounded-context module, or top-level domain package whose description states a business outcome for external consumers and groups several operations that support it.",
+    "A pricing page, terms-of-service text, or plan/entitlement configuration listing named services a customer is entitled to receive (e.g. 'Premium Support', 'Same-day Shipping')."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the service from the consumer's perspective: the need it fulfills, its intended consumers, and any service levels. Set it whenever the name alone does not make the offered outcome clear."
+    }
+  ],
+  "notes": "The outgoing 'businessservice realizes businessprocess' relationship inverts ArchiMate, which has the process realize the service, and it duplicates the existing incoming edge. 'delivers → businessobject' is non-standard; ArchiMate would use access. 'data-store.database realizes' and 'technology.systemsoftware realizes' skip the application layer. Consider adding optional serviceLevel and consumer attributes.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

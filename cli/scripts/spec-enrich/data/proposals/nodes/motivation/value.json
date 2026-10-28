@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "motivation.value",
+  "previous_description": "Relative worth, utility, or importance of a concept, phenomenon, or outcome to one or more stakeholders.",
+  "definition": "A motivation element stating the worth, benefit, or utility that a specific concept, service, feature, or outcome has for one or more named stakeholders, expressed from the stakeholder's perspective (for example 'saves customers ten minutes per order') rather than as a target, a result, or a need.",
+  "distinguish_from": [
+    {
+      "type": "motivation.outcome",
+      "when": "the statement describes an end result the organization intends or has achieved, such as a measurable state change, rather than why that result is worth something to a stakeholder"
+    },
+    {
+      "type": "motivation.goal",
+      "when": "the statement expresses a desired direction or end state the organization strives toward, not the benefit a stakeholder derives"
+    },
+    {
+      "type": "motivation.meaning",
+      "when": "the statement gives the interpretation or definition of a concept in a context, not its worth or importance"
+    },
+    {
+      "type": "motivation.driver",
+      "when": "the statement describes a condition or force that motivates change, such as market pressure or regulation, rather than a benefit delivered"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.4.2 Value",
+  "code_evidence": [
+    "A 'Value proposition', 'Benefits' or 'Why this matters' section in a product spec, PRD or README that names a stakeholder and the benefit they receive",
+    "A business case, OKR or ADR 'Consequences/Benefits' entry quantifying worth to a stakeholder, such as cost saved, revenue enabled or time reduced",
+    "A feature, epic or service catalogue entry with a 'value', 'benefit' or 'business value' field describing what a user or customer gains"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text explanation of the value: which stakeholders it applies to, what benefit they gain, and any quantification or evidence. Set it whenever the element name alone does not state who benefits and how."
+    }
+  ],
+  "notes": "The 'goal realizes value' and 'outcome realizes value' relationships deviate from ArchiMate, which only associates value. 'value associated-with value' is listed twice. The enum has no customer or user-experience category, so modellers will overload 'social' or 'operational'. Consider adding an optional quantification attribute, such as amount and unit.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.259Z"
+}

@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "navigation.guardcondition",
+  "previous_description": "Boolean predicate evaluated by a NavigationGuard to determine whether route access should be permitted. Expressions may reference user session state, roles, or feature flags. Async conditions (e.g., token validation API calls) are supported with a configurable timeout; on timeout, the condition fails closed (access denied) to preserve security.",
+  "definition": "A boolean predicate, possibly asynchronous with a millisecond timeout, that a NavigationGuard evaluates against session state, roles, permissions, feature flags, route metadata or flow context to decide whether activation of a target route is allowed. It is the test only: it neither registers interception on routes nor specifies what happens on denial.",
+  "distinguish_from": [
+    {
+      "type": "navigation.navigationguard",
+      "when": "the symbol is the interceptor registered with the router (beforeEach hook, canActivate class, route-level beforeEnter) that carries a guard type and execution order, rather than the predicate expression it calls."
+    },
+    {
+      "type": "navigation.guardaction",
+      "when": "the code describes the denial response, such as a redirect to '/login', returning false to block, showing a toast, or prompting for confirmation, rather than the true/false test that precedes it."
+    },
+    {
+      "type": "navigation.routemeta",
+      "when": "the symbol is declarative per-route data like requiresAuth, roles or permissions that a predicate reads, rather than the logic that evaluates that data."
+    },
+    {
+      "type": "navigation.contextvariable",
+      "when": "the symbol is the flow-scoped state value itself (e.g. a stored cartId or wizard progress) that a condition may inspect, rather than a predicate over it."
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: route guard predicate (e.g. the boolean/Promise<boolean> result of Angular CanActivate or the condition inside a Vue Router beforeEach guard)",
+  "code_evidence": [
+    "A named function or method returning boolean, Promise<boolean> or Observable<boolean> (e.g. isAuthenticated(), hasRole(route.meta.roles), isFeatureEnabled('beta')) that is invoked from inside a router guard hook.",
+    "An inline conditional expression in a beforeEach/canActivate/loader body, such as `if (!store.user || !to.meta.roles.includes(store.user.role))`, whose result selects between next()/true and a redirect or block.",
+    "An awaited token or permission check (e.g. `await authService.validateToken()`), often wrapped in Promise.race or a timeout option, that returns false or throws on expiry before a route is allowed to activate."
+  ],
+  "attribute_descriptions": [],
+  "notes": "timeout is required even when async is false, which makes it meaningless for synchronous predicates. It should be optional or conditional on async. 'constrains→route' duplicates the guard's role, and 'consumes' and 'uses' to contextvariable are redundant. The expression language (JS, CEL, named reference) is unrecorded, so a 'language' enum attribute is advisable.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.243Z"
+}

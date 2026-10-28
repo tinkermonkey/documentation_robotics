@@ -1,0 +1,44 @@
+{
+  "source": "navigation.navigationtransition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.084Z",
+  "relationships": [
+    {
+      "id": "navigation.navigationtransition.flows-to.navigation.route",
+      "previous_description": "Defines relationship: navigation.navigationtransition flows-to navigation.route",
+      "description": "When the transition fires, control and any carried route parameters pass along the edge into the destination route, which becomes the active router entry.",
+      "evidence": "The router transition table or link definition lists the route's name or path as the 'to' endpoint of the transition, and router logs show the location changing to that path after the transition."
+    },
+    {
+      "id": "navigation.navigationtransition.navigates-to.navigation.route",
+      "previous_description": "Defines relationship: navigation.navigationtransition navigates-to navigation.route",
+      "description": "The transition names the route that the client-side router moves the user to, whether the move starts from a click, a programmatic call, a timeout, browser history or a redirect.",
+      "evidence": "A router-link 'to' prop, a router.push/navigate call or a redirect entry tied to the transition references the destination route's path or name."
+    },
+    {
+      "id": "navigation.navigationtransition.requires.navigation.navigationguard",
+      "previous_description": "Defines relationship: navigation.navigationtransition requires navigation.navigationguard",
+      "description": "The route change can only complete after the named navigation guard has run during route resolution and allowed it to proceed.",
+      "evidence": "A beforeEnter/canActivate hook on the destination route, or a global beforeEach hook matching the transition's routes, is registered with the router and is invoked whenever this transition is attempted."
+    },
+    {
+      "id": "navigation.navigationtransition.triggers.navigation.guardaction",
+      "previous_description": "Defines relationship: navigation.navigationtransition triggers navigation.guardaction",
+      "description": "An attempt to make this transition that fails its guard causes the router to carry out the guard action, such as a redirect, cancellation, message or confirmation prompt.",
+      "evidence": "The guard's denial branch returns a redirect, returns false or opens a confirm dialog when evaluating navigation for this transition's source and destination, and tests or logs show that outcome on denied attempts."
+    },
+    {
+      "id": "navigation.navigationtransition.triggers.ux.statetransition",
+      "previous_description": "Defines relationship: navigation.navigationtransition triggers ux.statetransition",
+      "description": "Completing the route change emits the UI event that fires a state transition in the experience state machine, moving the experience into its destination state.",
+      "evidence": "An afterEach or route-change listener dispatches the named event to the state machine (e.g. XState send) when this transition completes, and the state machine definition maps that event to the state transition."
+    },
+    {
+      "id": "navigation.navigationtransition.uses.navigation.contextvariable",
+      "previous_description": "Defines relationship: navigation.navigationtransition uses navigation.contextvariable",
+      "description": "The transition reads or writes the flow's context variable to carry state across the route change, for example to fill destination parameters or record where the user came from.",
+      "evidence": "The navigation handler for this transition reads or writes the variable's key in session storage, local storage, the flow store or the query string when calling the router."
+    }
+  ],
+  "notes": "flows-to and navigates-to to Route are redundant: both express the transition's destination route. Keep navigates-to, the UX-specific predicate. Triggers GuardAction is indirect, since the guard triggers its action on denial and the transition only causes it through requires NavigationGuard."
+}

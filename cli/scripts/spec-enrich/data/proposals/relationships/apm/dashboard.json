@@ -1,0 +1,38 @@
+{
+  "source": "apm.dashboard",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.081Z",
+  "relationships": [
+    {
+      "id": "apm.dashboard.monitors.apm.alert",
+      "previous_description": "Defines relationship: apm.dashboard monitors apm.alert",
+      "description": "The dashboard surfaces the firing state and history of the alert rule in a panel, giving operators a visual status view of that rule alongside related telemetry.",
+      "evidence": "The dashboard JSON or Terraform resource contains an alert-list or alert-status panel that references the alert rule by its UID, name or monitor ID."
+    },
+    {
+      "id": "apm.dashboard.monitors.apm.logrecord",
+      "previous_description": "Defines relationship: apm.dashboard monitors apm.logrecord",
+      "description": "The dashboard contains a log panel whose query selects occurrences of this kind of log record, letting operators inspect or count those events over time.",
+      "evidence": "A panel in the dashboard definition carries a log query (e.g. LogQL, Datadog log search) that filters on the log record's message template, event name or distinguishing attributes."
+    },
+    {
+      "id": "apm.dashboard.monitors.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.dashboard monitors apm.metricinstrument",
+      "description": "The dashboard visualizes time series recorded by the metric instrument, plotting its measurements in one or more panels for human inspection.",
+      "evidence": "A panel query in the dashboard JSON or resource (e.g. PromQL, Datadog metric query) references the metric name emitted by the instrument declared in code via the Meter API."
+    },
+    {
+      "id": "apm.dashboard.monitors.api.operation",
+      "previous_description": "Defines relationship: apm.dashboard monitors api.operation",
+      "description": "The dashboard presents the health of the API operation, such as its request rate, error rate and latency, so operators can watch that specific method-path endpoint.",
+      "evidence": "Panel queries in the dashboard filter telemetry on the operation's HTTP method and route template (e.g. http.route=\"/orders/{id}\" and http.request.method=\"GET\")."
+    },
+    {
+      "id": "apm.dashboard.monitors.apm.span",
+      "previous_description": "Defines relationship: apm.dashboard monitors apm.span",
+      "description": "The dashboard displays trace-derived data for the span, such as its duration distribution, throughput or error status, giving a visual view of that instrumented unit of work.",
+      "evidence": "A panel query in the dashboard definition selects spans or span-derived metrics by the span name and kind declared at the tracer.startSpan call site or by the instrumentation library."
+    }
+  ],
+  "notes": "The api.operation relationship is indirect: dashboards observe telemetry (spans, metrics) about the operation rather than the contract itself, overlapping with monitors span/metricinstrument. Monitors alert is closer to 'references' or 'associated-with', since the dashboard displays alert state rather than observing a running system."
+}

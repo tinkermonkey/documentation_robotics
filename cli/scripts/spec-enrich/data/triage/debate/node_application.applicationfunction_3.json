@@ -1,0 +1,69 @@
+{
+  "claim_id": "node:application.applicationfunction#3",
+  "first_pass": {
+    "choice": "judgment_call",
+    "probabilities": {
+      "real_defect": 0.236,
+      "works_as_designed": 0.268,
+      "judgment_call": 0.377,
+      "out_of_scope": 0.119
+    },
+    "confidence": 0.045
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified facts confirm api.operation.realizes.application.applicationfunction exists, and realizes is the only predicate from api.operation to application.applicationfunction.",
+      "The facts list no relationship in the reverse direction, so the alternative 'function realizes operation' is not currently modelled.",
+      "The function's definition says it is 'invoked from inside the system rather than offered as a contract to external consumers' and that it realizes the ApplicationService. That fits poorly with an externally exposed API operation realizing it.",
+      "The facts do not show whether api.operation has any relationship to application.applicationservice, so the claim's suggested replacement cannot be confirmed or refuted as already present."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "The function definition calls it internal and non-contractual, yet an API operation, which is an external contract, is the only cross-layer realizer shown. This contradicts the layer's own distinctions.",
+          "The ApplicationService distinction names 'endpoint-backed capability' as service territory. An operation should therefore attach to services, not functions.",
+          "Modellers mapping endpoints will read this edge as license to link operations to internal functions, which blurs the service/function boundary the spec draws."
+        ],
+        "arguments_against": [
+          "Cross-layer realizes edges in this spec typically run from more concrete layers to more abstract ones. An API operation concretely implementing a function is a coherent reading.",
+          "The facts don't show a missing operation-to-service link, so the edge may be supplementary rather than mistaken.",
+          "Removing the only realizer may orphan functions from API traceability in CLI validation."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "The predicate 'realizes' is defined as 'implements or makes concrete'. An operation spec can concretely embody the behavior a function performs.",
+          "Direction fits the spec's pattern that downstream technical layers realize application-layer elements, not the reverse."
+        ],
+        "arguments_against": [
+          "The function definition explicitly excludes being offered as a contract to external consumers. An API operation is such a contract, so the design text does not support this edge.",
+          "There is no documentation in the facts explaining why operations target functions rather than services."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "ArchiMate permits several readings of how concrete specifications relate to behavior. Whether operations trace to services, functions, or both is a product choice.",
+          "Adding an operation-to-service edge alongside, rather than reversing, is a design decision about traceability granularity.",
+          "Some codebases have internal APIs where an operation maps directly to a function with no distinct service."
+        ],
+        "arguments_against": [
+          "The layer definitions already decide the question: externally visible offerings are services, internal behavior is functions.",
+          "A choice that contradicts the subject's own definition is less a trade-off than an inconsistency."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "The relationship is sourced from the api layer, so arguably its ownership and review belong to that layer, not application."
+        ],
+        "arguments_against": [
+          "The claim concerns a relationship schema in the spec itself, not tooling or an unmodelled concept.",
+          "The edge targets application.applicationfunction and directly affects how that type is used, so it is squarely in scope."
+        ]
+      }
+    ]
+  }
+}

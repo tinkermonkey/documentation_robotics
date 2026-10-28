@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "data-store.validationrule",
+  "previous_description": "A data integrity or validation rule enforced by the data store. Paradigm-neutral: covers SQL constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK, NOT NULL), document store schema validation and required fields, graph uniqueness and existence constraints, key-value key format rules, and search engine mapping enforcement.",
+  "definition": "A declarative integrity constraint, declared in the data store's schema or collection configuration and enforced by the storage engine itself, that restricts which records, field values, keys or cross-collection references a write may produce. Application-side validation that the engine never sees, and imperative checks coded in triggers or procedures, are not instances.",
+  "distinguish_from": [
+    {
+      "type": "data-store.eventhandler",
+      "when": "the check is imperative logic fired by a change event, such as a BEFORE INSERT trigger that raises an exception, rather than a declared constraint."
+    },
+    {
+      "type": "data-store.index",
+      "when": "the declaration is an index created mainly to speed up lookups; a UNIQUE or PRIMARY KEY constraint that the engine happens to back with an index is still a validationrule."
+    },
+    {
+      "type": "data-store.field",
+      "when": "the only restriction is the field's declared dataType, nullable flag, default or generation rule, with no separately named or declared constraint."
+    },
+    {
+      "type": "data-store.retentionpolicy",
+      "when": "the rule governs how long data is kept and expires, deletes, archives or downsamples it, rather than rejecting or flagging invalid writes."
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 (SQL/Foundation) §11.6 <table constraint definition>, with §11.7 unique, §11.8 referential and §11.9 check constraint definitions",
+  "code_evidence": [
+    "Migration or DDL statements containing constraint clauses, such as ALTER TABLE ... ADD CONSTRAINT, PRIMARY KEY (...), FOREIGN KEY ... REFERENCES ... ON DELETE CASCADE, or CHECK (...).",
+    "Engine-level validator or constraint commands, such as MongoDB createCollection/collMod with validator: {$jsonSchema: ...} and validationAction, or Neo4j CREATE CONSTRAINT ... REQUIRE n.email IS UNIQUE / IS NOT NULL.",
+    "ORM or schema-config declarations that emit engine constraints, such as SQLAlchemy CheckConstraint/UniqueConstraint/ForeignKey, Django Meta.constraints, or an Elasticsearch mapping with \"dynamic\": \"strict\"."
+  ],
+  "attribute_descriptions": [],
+  "notes": "NOT_NULL duplicates field.nullable, and UNIQUE vs UNIQUENESS_CONSTRAINT is a redundant split; consider merging. TTL_CONSTRAINT overlaps collection.ttlDefault and retentionpolicy. There is no deferrable/initiallyDeferred attribute for SQL DEFERRABLE constraints. NO_ACTION described as 'deferred reject' is accurate only for deferrable constraints. The enforcement enum cannot express MongoDB validationLevel (strict/moderate).",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.232Z"
+}

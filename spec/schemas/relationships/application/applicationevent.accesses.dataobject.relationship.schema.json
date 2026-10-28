@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationevent accesses Dataobject",
+  "description": "The application event carries or is defined by the data object as its payload, so the event cannot be emitted or interpreted without that data structure's schema.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationevent.accesses.application.dataobject"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationevent"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.dataobject"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "accesses"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The event class or message schema declares the data object type as its payload field, or the event topic's Avro/JSON schema references the data object's definition."
+  ]
+}

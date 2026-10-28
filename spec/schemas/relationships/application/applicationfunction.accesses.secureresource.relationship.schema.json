@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction accesses Secureresource",
-  "description": "Defines relationship: application.applicationfunction accesses security.secureresource",
+  "description": "The application function performs operations on the protected resource and is therefore a subject whose actions fall under that resource's access-control rules.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The function's code invokes an operation on the resource that the security policy names, such as a repository call on a guarded entity, or carries the permission check or annotation that the resource definition declares."
+  ]
 }

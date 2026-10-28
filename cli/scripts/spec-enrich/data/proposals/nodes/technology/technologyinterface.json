@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologyinterface",
+  "previous_description": "Point of access where technology services are made available to consuming components, per ArchiMate 3.2 TechnologyInterface. Represents the contractual boundary of a technology service — specifying the communication protocol and interaction semantics through which infrastructure capabilities are consumed. A TechnologyInterface anchors the technical coupling point between service provider and consumer within the technology layer.",
+  "definition": "An access point on a node, device or system software through which a technology service can be consumed. It is identified by a concrete protocol endpoint, such as a listening port, socket, broker listener or endpoint URL, that other technology or application components connect to.",
+  "distinguish_from": [
+    {
+      "type": "technology.technologyservice",
+      "when": "the element is the infrastructure capability itself (e.g. managed message queuing, object storage) rather than the specific protocol endpoint through which it is reached"
+    },
+    {
+      "type": "technology.path",
+      "when": "the element is the communication link or route between two or more nodes (e.g. a service-mesh route, a VPN tunnel between sites), not the endpoint at one end of it"
+    },
+    {
+      "type": "technology.systemsoftware",
+      "when": "the element is the running platform software (e.g. the PostgreSQL engine, the RabbitMQ broker) that exposes the endpoint, rather than the endpoint itself"
+    },
+    {
+      "type": "technology.communicationnetwork",
+      "when": "the element is the network segment (LAN, VPC subnet, VPN) that carries traffic, rather than an addressable listener on a node attached to it"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.2.5 Technology Interface",
+  "code_evidence": [
+    "A port or listener declaration exposing a protocol endpoint, such as Dockerfile EXPOSE, a containerPort or Kubernetes Service port entry, or an aws_lb_listener resource in Terraform",
+    "Platform listener configuration in a broker, database or server config file, e.g. RabbitMQ listeners.tcp, postgresql.conf port/listen_addresses, or an nginx 'listen 443 ssl' directive",
+    "An endpoint URL or connection string in environment or application config that consumers use to reach infrastructure, e.g. AMQP_URL=amqp://broker:5672 or REDIS_URL=redis://cache:6379"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the endpoint, including its address or port, authentication or TLS requirements, and which service it exposes. Set it whenever these facts are not captured by other attributes."
+    }
+  ],
+  "notes": "The protocol enum lacks common infrastructure wire protocols (kafka, redis, postgres/sql, ssh), and there is no port/address attribute, which is the main identifier. The 'provides' relationships and the redundant service-provides/serves-interface pair are non-ArchiMate. 'path assigned-to interface' is non-standard. The boundary with application.applicationinterface for HTTP APIs needs an explicit rule.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.249Z"
+}

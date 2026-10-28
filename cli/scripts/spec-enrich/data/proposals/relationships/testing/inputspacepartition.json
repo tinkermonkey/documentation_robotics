@@ -1,0 +1,50 @@
+{
+  "source": "testing.inputspacepartition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.047Z",
+  "relationships": [
+    {
+      "id": "testing.inputspacepartition.composes.partitionvalue",
+      "previous_description": "Defines relationship: testing.inputspacepartition composes testing.partitionvalue",
+      "description": "The input space partition is the owning whole that contains each equivalence or boundary class of its field, so the partition value has no existence outside that one partition.",
+      "evidence": "The test coverage model file nests the partition value entries (each with a boundary condition and representative value) directly under the partition's values list, with no separate top-level definition."
+    },
+    {
+      "id": "testing.inputspacepartition.depends-on.inputspacepartition",
+      "previous_description": "Defines relationship: testing.inputspacepartition depends-on testing.inputspacepartition",
+      "description": "The partitioning of one input field is only meaningful in light of another field's partitioning, for example when the valid classes of an end-date field depend on the chosen class of a start-date field or a discriminator field.",
+      "evidence": "The partition definition declares a dependency or conditional constraint naming the other partition, or its partition values carry boundary conditions expressed in terms of the other field's values."
+    },
+    {
+      "id": "testing.inputspacepartition.references.data-store.collection",
+      "previous_description": "Defines relationship: testing.inputspacepartition references data-store.collection",
+      "description": "The partition divides the value domain of an attribute stored in a persistent collection, identifying that collection as the location of the field whose test inputs are being classified.",
+      "evidence": "The partition's field reference points to a named table, document collection or index (and attribute) that appears in the database schema, migration scripts or data-store model."
+    },
+    {
+      "id": "testing.inputspacepartition.references.data-model.jsonschema",
+      "previous_description": "Defines relationship: testing.inputspacepartition references data-model.jsonschema",
+      "description": "The partition identifies the top-level schema document whose constraints define the input domain being split, anchoring the field to a resolvable $id.",
+      "evidence": "The partition entry contains a $ref or URI that resolves to the $id of a registered JSON Schema document in the data model."
+    },
+    {
+      "id": "testing.inputspacepartition.references.api.parameter",
+      "previous_description": "Defines relationship: testing.inputspacepartition references api.parameter",
+      "description": "The partition classifies the possible values of a specific path, query, header or cookie parameter of an API operation, so that test inputs for that parameter are chosen from its equivalence classes.",
+      "evidence": "The partition names a parameter (name and in location) that matches a parameter declared on an operation or path item in the OpenAPI specification."
+    },
+    {
+      "id": "testing.inputspacepartition.references.data-model.schemaproperty",
+      "previous_description": "Defines relationship: testing.inputspacepartition references data-model.schemaproperty",
+      "description": "The partition divides the value domain of a single named property of an object schema, with its classes derived from that property's type, enum, format and other value restrictions.",
+      "evidence": "The partition's field reference is a JSON Pointer or $ref to an entry under an object schema's properties keyword, and its boundary conditions mirror that property's constraints."
+    },
+    {
+      "id": "testing.inputspacepartition.serves.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.inputspacepartition serves testing.testcoveragetarget",
+      "description": "The partition supplies the equivalence classes of one input field to the coverage target, enabling the target's coverage requirements and test case sketches to select representative inputs for the artifact under test.",
+      "evidence": "The test coverage model lists the partition under the target's input fields, and the target's coverage requirements or test case sketches cite the partition's values."
+    }
+  ],
+  "notes": "The four references relationships to collection, JSONSchema, parameter and schemaproperty are alternative anchors for the single field; a partition should reference exactly one. Referencing a whole JSONSchema document is coarser than a field-level reference and overlaps with schemaproperty. Serves to the coverage target would read more naturally as composed-of or aggregated-by."
+}

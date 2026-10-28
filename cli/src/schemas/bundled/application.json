@@ -4,7 +4,7 @@
     "id": "application",
     "number": 5,
     "name": "Application Layer",
-    "description": "Layer 5: Application Layer",
+    "description": "Models the application architecture: application components (deployable modules, classes and services), the application functions and processes that describe their internal behaviour, the application services and interfaces through which that behaviour is exposed, application events and interactions, collaborations between components, and the data objects they process (ArchiMate 3.2 application layer). This is the default home for ordinary application code structure; more specific layers apply only when a symbol is itself an API contract, a data schema, a persistence object, a UI element, telemetry, security logic or a test asset.",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -26,7 +26,7 @@
     "applicationcollaboration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationCollaboration",
-      "description": "Aggregate of application components working together",
+      "description": "An active structure element that names a grouping of two or more application components (or nested collaborations) which jointly perform collective behaviour. It is a logical or configured grouping of independently deployable parts, not a deployable unit or behaviour in its own right. Use ApplicationComponent instead when the symbol is a single modular, deployable unit, even if it internally composes sub-modules or calls other services. Use ApplicationInteraction instead when the symbol describes the joint behaviour itself, such as a message exchange, saga step sequence or protocol between components, rather than the group of participants. Use ApplicationProcess instead when the symbol is an ordered sequence of steps that achieves a result, even if those steps span several components. Use ApplicationService instead when the symbol is the externally exposed functionality the group offers rather than the group of participating components.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -46,7 +46,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "A free-text description of the collaboration that names its participating components and the joint purpose they serve. Set it whenever the element name alone does not make membership or purpose clear."
             },
             "properties": {
               "type": "object",
@@ -56,12 +57,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.2.2 Application Collaboration",
+      "x-dr-evidence": [
+        "a saga or choreography definition (e.g. Temporal/Camunda workflow config, event-flow manifest) that enumerates several named participating services under one collective name",
+        "a docker-compose file, Helm umbrella chart or Kubernetes namespace that groups multiple separately built services as one named subsystem delivering a shared capability",
+        "an architecture document, ADR or C4 diagram boundary that names a set of cooperating services (e.g. 'checkout subsystem: cart, pricing, payment') as a unit"
+      ],
+      "x-dr-distinguish": {
+        "application.applicationcomponent": "the symbol is a single modular, deployable unit, even if it internally composes sub-modules or calls other services",
+        "application.applicationinteraction": "the symbol describes the joint behaviour itself, such as a message exchange, saga step sequence or protocol between components, rather than the group of participants",
+        "application.applicationprocess": "the symbol is an ordered sequence of steps that achieves a result, even if those steps span several components",
+        "application.applicationservice": "the symbol is the externally exposed functionality the group offers rather than the group of participating components"
+      },
       "$id": "urn:dr:spec:node:application.applicationcollaboration"
     },
     "applicationcomponent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationComponent",
-      "description": "Modular, deployable, and replaceable part of a system",
+      "description": "An active structural application element that encapsulates a cohesive set of application behaviour and data behind its interfaces and can be built, deployed, or replaced as a unit, such as a service, module, package, or dependency-injected class with its own responsibility. It is the thing that performs behaviour, not the behaviour itself. Use ApplicationFunction instead when the symbol is a unit of behaviour, such as a method, function, or handler body, that a component performs, rather than the structural unit that owns that behaviour. Use ApplicationInterface instead when the symbol is only the access point through which a component's services are reached, such as a controller endpoint set, client stub, or exported port, rather than the implementing unit. Use ApplicationCollaboration instead when the symbol represents a grouping of several components that work together, such as a system-of-services or a composite deployment, rather than a single replaceable unit. Use DataObject instead when the symbol is a passive data structure, such as a DTO, record, or entity without behaviour of its own, that components read or write.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -81,7 +94,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text narrative describing the component's responsibility, boundaries, and notable dependencies. Set it whenever the component's name alone does not convey what it owns or why it exists."
             },
             "type": {
               "type": "string",
@@ -97,12 +111,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.2.1 Application Component",
+      "x-dr-evidence": [
+        "a module, package, or service directory with its own build manifest or deployment descriptor (package.json, pom.xml, go.mod, Dockerfile, Kubernetes Deployment)",
+        "a class annotated or registered as a managed component in a DI container (@Component, @Service, @Injectable, Module providers) whose instances are injected into other classes",
+        "an entry in docker-compose, Helm charts, or an architecture/service catalogue (e.g. Backstage catalog-info.yaml) naming the unit as a separately deployable service or library"
+      ],
+      "x-dr-distinguish": {
+        "application.applicationfunction": "the symbol is a unit of behaviour, such as a method, function, or handler body, that a component performs, rather than the structural unit that owns that behaviour",
+        "application.applicationinterface": "the symbol is only the access point through which a component's services are reached, such as a controller endpoint set, client stub, or exported port, rather than the implementing unit",
+        "application.applicationcollaboration": "the symbol represents a grouping of several components that work together, such as a system-of-services or a composite deployment, rather than a single replaceable unit",
+        "application.dataobject": "the symbol is a passive data structure, such as a DTO, record, or entity without behaviour of its own, that components read or write"
+      },
       "$id": "urn:dr:spec:node:application.applicationcomponent"
     },
     "applicationevent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationEvent",
-      "description": "A state change in an application element that triggers reactive application behavior.",
+      "description": "An application behavior element representing a named, instantaneous occurrence of a state change that an application component emits or receives, and that triggers or is consumed by other application behavior. It has no duration and performs no work itself; reacting is done by processes, functions or interactions. Use DataObject instead when the symbol is a data structure that components read, store or transform, and it is never published, emitted or subscribed to as a notification of something that happened. Use ApplicationProcess instead when the symbol is the handler, listener body or workflow that runs in response to the event, or that produces it, rather than the occurrence itself. Use ApplicationService instead when the symbol is an exposed capability that consumers invoke or subscribe to, such as an event stream offered as a service, rather than one specific kind of occurrence. Use ApplicationInteraction instead when the symbol describes the joint publish-subscribe or messaging behavior between two or more components rather than a single event type exchanged within it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -122,7 +148,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the event: what state change it signals, which component emits it, its typical consumers and any delivery guarantees. Set it whenever the event name alone does not make these clear."
             },
             "eventType": {
               "type": "string",
@@ -138,12 +165,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.3.4 Application Event",
+      "x-dr-evidence": [
+        "A class or record named in the past tense (e.g. OrderPlaced, UserRegisteredEvent) that extends a framework event base type such as Spring ApplicationEvent or a DomainEvent marker, and is passed to a publisher (eventPublisher.publish, mediator.Publish, bus.emit).",
+        "A string or constant event or topic name used in both an emit or publish call and a subscription (emitter.on('invoice.paid'), @EventListener, @KafkaListener(topics=...), RabbitMQ routing key).",
+        "A message entry in an AsyncAPI document, event catalog or CloudEvents type registry that declares the event's name and payload and lists its producers and consumers."
+      ],
+      "x-dr-distinguish": {
+        "application.dataobject": "the symbol is a data structure that components read, store or transform, and it is never published, emitted or subscribed to as a notification of something that happened.",
+        "application.applicationprocess": "the symbol is the handler, listener body or workflow that runs in response to the event, or that produces it, rather than the occurrence itself.",
+        "application.applicationservice": "the symbol is an exposed capability that consumers invoke or subscribe to, such as an event stream offered as a service, rather than one specific kind of occurrence.",
+        "application.applicationinteraction": "the symbol describes the joint publish-subscribe or messaging behavior between two or more components rather than a single event type exchanged within it."
+      },
       "$id": "urn:dr:spec:node:application.applicationevent"
     },
     "applicationfunction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationFunction",
-      "description": "Automated behavior performed by an application component for internal purposes, not directly exposed as a service to external consumers.",
+      "description": "A unit of automated behavior performed by a single application component, grouped by the kind of work or capability it covers rather than by execution order or trigger, and invoked from inside the system rather than offered as a contract to external consumers. Use ApplicationProcess instead when the behavior is an ordered sequence of steps leading to a defined operational result, such as a workflow, saga, pipeline or multi-step job, rather than a capability grouping with no inherent order. Use ApplicationService instead when the behavior is the externally visible, consumer-facing offering, such as a public service-layer method or endpoint-backed capability. The function is the internal behavior that realizes it. Use ApplicationInteraction instead when the behavior can only be performed jointly by two or more components, such as a request-reply exchange or a publish-subscribe handshake, rather than by one component alone. Use ApplicationComponent instead when the symbol is the deployable or replaceable structural unit, such as a module, package or service class, that owns behavior, rather than the behavior itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -163,7 +202,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of what the function computes or manages, its inputs and outputs, and the owning component; set it whenever the name alone does not make the behavior's scope clear."
             },
             "properties": {
               "type": "object",
@@ -173,12 +213,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.3.1 Application Function",
+      "x-dr-evidence": [
+        "A class or module of internal, unexported or package-private methods grouped around one concern (e.g. PricingCalculator.computeDiscount, TaxRules.apply) whose callers are other classes in the same codebase rather than route handlers or external clients.",
+        "A domain or utility function, such as validation, scoring, matching or transformation logic, that is reused by several workflows or service methods and is not registered on any HTTP router, message listener or public API surface.",
+        "A stored procedure, rule-engine rule or helper invoked through an internal call graph, documented as 'computes', 'validates' or 'derives' something, with no ordering of steps and no direct external trigger."
+      ],
+      "x-dr-distinguish": {
+        "application.applicationprocess": "the behavior is an ordered sequence of steps leading to a defined operational result, such as a workflow, saga, pipeline or multi-step job, rather than a capability grouping with no inherent order.",
+        "application.applicationservice": "the behavior is the externally visible, consumer-facing offering, such as a public service-layer method or endpoint-backed capability. The function is the internal behavior that realizes it.",
+        "application.applicationinteraction": "the behavior can only be performed jointly by two or more components, such as a request-reply exchange or a publish-subscribe handshake, rather than by one component alone.",
+        "application.applicationcomponent": "the symbol is the deployable or replaceable structural unit, such as a module, package or service class, that owns behavior, rather than the behavior itself."
+      },
       "$id": "urn:dr:spec:node:application.applicationfunction"
     },
     "applicationinteraction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationInteraction",
-      "description": "Collective application behavior performed by two or more application components working in collaboration, representing their joint behavioral contribution.",
+      "description": "A unit of application behaviour performed jointly by two or more application components acting as a collaboration, which no single participant completes alone, such as a saga, a multi-service choreography or a handshake protocol spanning both sides of an exchange. Use ApplicationProcess instead when the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies. Use ApplicationCollaboration instead when the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform. Use ApplicationService instead when the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it. Use ApplicationEvent instead when the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -198,7 +250,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the joint behaviour, naming the participating components, the exchange it accomplishes and its trigger. Set it whenever the participants or flow are not evident from the element name."
             },
             "pattern": {
               "type": "string",
@@ -215,12 +268,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.3.2 Application Interaction",
+      "x-dr-evidence": [
+        "a saga or choreography definition (e.g. Temporal/Camunda workflow, Axon saga, Step Functions state machine) whose steps invoke and compensate operations in several distinct services",
+        "a matched producer and consumer pair across separate deployable modules bound to the same topic, queue or RPC contract and documented as one flow (e.g. an AsyncAPI channel or sequence diagram naming multiple services)",
+        "a coordinator implementing a multi-party protocol such as two-phase commit, distributed lock negotiation or a client-server handshake where both sides' logic is required to complete the exchange"
+      ],
+      "x-dr-distinguish": {
+        "application.applicationprocess": "the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies.",
+        "application.applicationcollaboration": "the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform.",
+        "application.applicationservice": "the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it.",
+        "application.applicationevent": "the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it."
+      },
       "$id": "urn:dr:spec:node:application.applicationinteraction"
     },
     "applicationinterface": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationInterface",
-      "description": "Point of access where application service is available",
+      "description": "An active-structure access point owned by an application component or collaboration, such as a mounted controller, gRPC server binding, GraphQL endpoint or message-channel listener, through which that component's application services are reachable by users or other components over a specific application-level protocol. It is the channel itself, not the behaviour offered through it and not the formal contract document describing it. Use ApplicationService instead when the element describes the externally visible behaviour or functionality offered, such as 'order placement', independent of the endpoint, protocol or channel through which it is reached. Use ApplicationComponent instead when the symbol is the deployable or replaceable module, service or package as a whole, rather than one of the access points it provides. Use ApplicationInteraction instead when the symbol represents joint behaviour carried out by two or more components exchanging messages, rather than the single access point one component offers. Use ApplicationFunction instead when the symbol is internal handler or business logic invoked behind the endpoint, rather than the endpoint binding or adapter itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -240,7 +305,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the access point: which component provides it, its base path, address or channel name, the services reachable through it, and any notable constraints. Set it whenever the name and protocol alone do not identify the endpoint."
             },
             "protocol": {
               "type": "string",
@@ -265,12 +331,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.2.3 Application Interface",
+      "x-dr-evidence": [
+        "A controller or router class that groups route handlers under a base path and is mounted on a web server, such as a Spring @RestController with @RequestMapping(\"/orders\"), an Express Router passed to app.use('/orders', ...), or a FastAPI APIRouter included in the app.",
+        "A gRPC servicer or GraphQL schema/resolver set registered on a server at startup, such as add_OrderServiceServicer_to_server(...) or an Apollo server exposing /graphql.",
+        "A message or socket entry point bound to a named channel in code or config, such as a @RabbitListener(queues=\"orders\") consumer, an AMQP queue binding in application.yml, or a WebSocket endpoint handler (@ServerEndpoint, socket.io namespace)."
+      ],
+      "x-dr-distinguish": {
+        "application.applicationservice": "the element describes the externally visible behaviour or functionality offered, such as 'order placement', independent of the endpoint, protocol or channel through which it is reached.",
+        "application.applicationcomponent": "the symbol is the deployable or replaceable module, service or package as a whole, rather than one of the access points it provides.",
+        "application.applicationinteraction": "the symbol represents joint behaviour carried out by two or more components exchanging messages, rather than the single access point one component offers.",
+        "application.applicationfunction": "the symbol is internal handler or business logic invoked behind the endpoint, rather than the endpoint binding or adapter itself."
+      },
       "$id": "urn:dr:spec:node:application.applicationinterface"
     },
     "applicationprocess": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationProcess",
-      "description": "An ordered sequence of application behaviors performed by an application component to achieve a specific operational result.",
+      "description": "An internal behaviour element of an application component consisting of a fixed, ordered series of steps (calls, transformations, state transitions) that runs from a start trigger to a defined end result. What sets it apart is that the sequence and the outcome are explicit, as in a workflow, saga, pipeline or multi-step orchestration method, rather than a grouping of related capabilities. Use ApplicationFunction instead when the behaviour is a cohesive grouping of capability, such as a module of related operations or a single-purpose routine, with no meaningful step order or defined end-to-end outcome. Use ApplicationService instead when the symbol is the externally consumable entry point or contract (a service method or endpoint offered to consumers) rather than the internal step sequence that fulfils it. Use ApplicationInteraction instead when the ordered behaviour is jointly performed by two or more components, for example a choreographed exchange, and cannot be attributed to a single component. Use ApplicationEvent instead when the symbol represents the occurrence or state change that starts or ends the sequence (an event class or message type), not the steps themselves.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -290,7 +368,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the process: its triggering event, its ordered main steps, and the result it produces. Set it whenever the step sequence is not evident from the element name, preferably drawn from code comments or workflow docs."
             },
             "properties": {
               "type": "object",
@@ -300,12 +379,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.3 Application Process (application internal behaviour element)",
+      "x-dr-evidence": [
+        "A workflow, saga or state-machine definition (e.g. Temporal/Camunda/Step Functions workflow, Spring State Machine, a Saga class) declaring ordered steps or states with transitions",
+        "An orchestration method that calls several functions or services in a fixed sequence with intermediate results passed between steps and a final result or status returned (e.g. processOrder(): validate → reserve → charge → ship)",
+        "A pipeline or job definition (ETL job, batch Step/Job configuration, chain of handlers/middleware registered in order) that is started by a trigger such as a scheduled job, a message consumer or an event handler"
+      ],
+      "x-dr-distinguish": {
+        "application.applicationfunction": "the behaviour is a cohesive grouping of capability, such as a module of related operations or a single-purpose routine, with no meaningful step order or defined end-to-end outcome",
+        "application.applicationservice": "the symbol is the externally consumable entry point or contract (a service method or endpoint offered to consumers) rather than the internal step sequence that fulfils it",
+        "application.applicationinteraction": "the ordered behaviour is jointly performed by two or more components, for example a choreographed exchange, and cannot be attributed to a single component",
+        "application.applicationevent": "the symbol represents the occurrence or state change that starts or ends the sequence (an event class or message type), not the steps themselves"
+      },
       "$id": "urn:dr:spec:node:application.applicationprocess"
     },
     "applicationservice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApplicationService",
-      "description": "Service that exposes application functionality",
+      "description": "An externally visible unit of application behavior that a component, function, process or interaction makes available to consumers (users, business processes, or other components) as a named set of operations, defined by what it offers rather than how it is implemented or accessed. Use ApplicationFunction instead when the behavior is internal to a component, such as a private helper, mapper or validation routine, and is not offered as a named capability to callers outside that component. Use ApplicationInterface instead when the symbol is the access point or binding through which a service is reached, such as an HTTP controller, gRPC endpoint, WebSocket handler or message listener, carrying a specific protocol. Use ApplicationComponent instead when the symbol is the deployable or replaceable structural unit (module, package, microservice, class as a unit of deployment) that performs or realizes behavior, rather than the behavior it exposes. Use ApplicationProcess instead when the symbol is an ordered sequence of steps, such as a saga, workflow or orchestrator method, that achieves a result rather than an offered capability.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -325,7 +416,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of what the service offers to its consumers, including its main operations and intended callers; set it whenever the service name alone does not convey its scope."
             },
             "serviceType": {
               "type": "string",
@@ -341,12 +433,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §9.3 Application Service",
+      "x-dr-evidence": [
+        "A service interface or abstract contract, such as IOrderService or a gRPC 'service' block in a .proto file, whose operations are injected into or called from controllers, handlers or other modules",
+        "A class annotated @Service, @Injectable or registered in a DI container whose public methods are invoked across module or component boundaries rather than only within its own package",
+        "A queue consumer, scheduled batch job or event subscriber documented or configured to fulfil requests from other systems under a named capability, for example a 'payment-processing' worker bound in messaging or cron configuration"
+      ],
+      "x-dr-distinguish": {
+        "application.applicationfunction": "the behavior is internal to a component, such as a private helper, mapper or validation routine, and is not offered as a named capability to callers outside that component",
+        "application.applicationinterface": "the symbol is the access point or binding through which a service is reached, such as an HTTP controller, gRPC endpoint, WebSocket handler or message listener, carrying a specific protocol",
+        "application.applicationcomponent": "the symbol is the deployable or replaceable structural unit (module, package, microservice, class as a unit of deployment) that performs or realizes behavior, rather than the behavior it exposes",
+        "application.applicationprocess": "the symbol is an ordered sequence of steps, such as a saga, workflow or orchestrator method, that achieves a result rather than an offered capability"
+      },
       "$id": "urn:dr:spec:node:application.applicationservice"
     },
     "dataobject": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DataObject",
-      "description": "A passive application element representing data structured for automated processing by application components. Unlike behavioral elements, it is accessed, manipulated, or stored by active elements — not an actor itself. For canonical data schema definitions shared across layers, use the Data Model layer instead.",
+      "description": "A passive application element: a code-level data structure (class, record, struct, type alias or message payload) whose purpose is to hold state that application components, functions and services create, read, transform or pass along, and which performs no application behavior beyond trivial accessors, constructors or self-validation. Use ApplicationComponent instead when the class encapsulates substantive behavior or dependencies (injected collaborators, business logic, I/O) and acts as a modular, replaceable unit rather than as a carrier of state. Use ApplicationEvent instead when the structure represents the occurrence of a state change that is published or dispatched to trigger reactive behavior, rather than data that is merely accessed; an event class's separate payload type remains a data object. Use ApplicationInterface instead when the type defines an access point (method contract, endpoint binding, client stub) through which a service is invoked, rather than the data exchanged through it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -366,7 +470,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of what information the data object holds, its main fields and which components produce or consume it; set it whenever the symbol name alone does not convey the data's meaning."
             },
             "properties": {
               "type": "object",
@@ -375,6 +480,17 @@
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §9.4.1 Data Object",
+      "x-dr-evidence": [
+        "A class, record, struct or dataclass consisting mainly of fields with getters/setters or immutable properties (e.g. Python @dataclass, Java record, Lombok @Data, C# record, TypeScript interface or type alias) and no injected dependencies.",
+        "The type appears as a parameter or return type in signatures of service, handler or function methods, e.g. names ending in Dto, Command, Request, Result, Model or ValueObject.",
+        "Instances are constructed, mapped (e.g. via a mapper or serializer) and mutated by other classes, while the type itself carries no ORM table mapping, OpenAPI schema annotation or UI binding that would place it in a more specific layer."
+      ],
+      "x-dr-distinguish": {
+        "application.applicationcomponent": "the class encapsulates substantive behavior or dependencies (injected collaborators, business logic, I/O) and acts as a modular, replaceable unit rather than as a carrier of state.",
+        "application.applicationevent": "the structure represents the occurrence of a state change that is published or dispatched to trigger reactive behavior, rather than data that is merely accessed; an event class's separate payload type remains a data object.",
+        "application.applicationinterface": "the type defines an access point (method contract, endpoint binding, client stub) through which a service is invoked, rather than the data exchanged through it."
       },
       "$id": "urn:dr:spec:node:application.dataobject"
     }
@@ -389,51 +505,38 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration counts the component as one of its participating members, while the component stays independently deployable and may also belong to other collaborations.",
+      "evidence": [
+        "A docker-compose file, Helm umbrella chart, or architecture document lists the component as a member service of the named collaboration, for example among the declared participants of a saga."
+      ]
     },
-    "application.applicationcollaboration.delivers-value.application.applicationinteraction": {
-      "id": "application.applicationcollaboration.delivers-value.application.applicationinteraction",
+    "application.applicationcollaboration.assigned-to.application.applicationinteraction": {
+      "id": "application.applicationcollaboration.assigned-to.application.applicationinteraction",
       "source_spec_node_id": "application.applicationcollaboration",
       "source_layer": "application",
       "destination_spec_node_id": "application.applicationinteraction",
       "destination_layer": "application",
-      "predicate": "delivers-value",
+      "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration is the joint actor whose member components together carry out the interaction; no single member performs it alone.",
+      "evidence": [
+        "A saga or choreography definition, such as a Temporal workflow, Step Functions state machine, or event-flow document, has every step executed by member components of the collaboration."
+      ]
     },
-    "application.applicationcollaboration.delivers-value.application.applicationservice": {
-      "id": "application.applicationcollaboration.delivers-value.application.applicationservice",
+    "application.applicationcollaboration.assigned-to.application.applicationprocess": {
+      "id": "application.applicationcollaboration.assigned-to.application.applicationprocess",
       "source_spec_node_id": "application.applicationcollaboration",
       "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
+      "destination_spec_node_id": "application.applicationprocess",
       "destination_layer": "application",
-      "predicate": "delivers-value",
+      "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationcollaboration.depends-on.application.applicationcomponent": {
-      "id": "application.applicationcollaboration.depends-on.application.applicationcomponent",
-      "source_spec_node_id": "application.applicationcollaboration",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationcomponent",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "application.applicationcollaboration.depends-on.application.applicationinteraction": {
-      "id": "application.applicationcollaboration.depends-on.application.applicationinteraction",
-      "source_spec_node_id": "application.applicationcollaboration",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationinteraction",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration is the set of components that together perform the process; the process's steps call across the cooperating members and no single one carries it end to end."
     },
     "application.applicationcollaboration.depends-on.application.applicationinterface": {
       "id": "application.applicationcollaboration.depends-on.application.applicationinterface",
@@ -444,7 +547,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration's members must reach the interface, such as an external API endpoint or message channel, to carry out their joint behaviour.",
+      "evidence": [
+        "Client configuration in the member components, such as a base URL, generated gRPC stub, or queue subscription, targets that interface."
+      ]
     },
     "application.applicationcollaboration.depends-on.application.dataobject": {
       "id": "application.applicationcollaboration.depends-on.application.dataobject",
@@ -455,7 +562,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration's members must share and agree on the data object, such as a common event payload or saga state record, to coordinate their joint work.",
+      "evidence": [
+        "A shared contract package, such as a protobuf message or Avro schema, is imported by multiple member components and exchanged between them during the collaborative flow."
+      ]
     },
     "application.applicationcollaboration.provides.application.applicationinterface": {
       "id": "application.applicationcollaboration.provides.application.applicationinterface",
@@ -466,7 +577,26 @@
       "predicate": "provides",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaboration offers a single access point, such as a gateway endpoint or shared topic, through which consumers reach the services its members deliver jointly.",
+      "evidence": [
+        "An API gateway, ingress, or BFF controller configuration mounts a route that fans out to the member components and is documented as the collaboration's entry point."
+      ]
+    },
+    "application.applicationcollaboration.realizes.application.applicationservice": {
+      "id": "application.applicationcollaboration.realizes.application.applicationservice",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The collaboration's combined behaviour is what makes the externally visible service available, so the service's operations exist only because the members work together.",
+      "evidence": [
+        "An API gateway route or service-catalog entry for the service is fulfilled by orchestrating calls across several member components of the collaboration."
+      ]
     },
     "application.applicationcomponent.accesses.application.dataobject": {
       "id": "application.applicationcomponent.accesses.application.dataobject",
@@ -477,7 +607,11 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component creates, reads, updates or deletes instances of the data structure while performing its behaviour, so the data object is part of the state it handles.",
+      "evidence": [
+        "The component's class or module instantiates, deserializes, mutates or returns the data object's type, for example as a repository method parameter or return type."
+      ]
     },
     "application.applicationcomponent.accesses.security.secureresource": {
       "id": "application.applicationcomponent.accesses.security.secureresource",
@@ -488,7 +622,11 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component performs operations on the protected resource at runtime, which makes it a subject whose actions on that resource are checked by access control.",
+      "evidence": [
+        "The component's code calls the resource's protected operations, such as a guarded API path, table or file, or the security configuration lists the component's service identity as a principal on that resource."
+      ]
     },
     "application.applicationcomponent.assigned-to.application.applicationfunction": {
       "id": "application.applicationcomponent.assigned-to.application.applicationfunction",
@@ -499,7 +637,11 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component is the active structure that performs the function: the function's logic runs inside this component and is attributed to it, not offered as a service of its own.",
+      "evidence": [
+        "The function's code lives only within the component's package or source tree and is not exported or reused by any other deployable unit."
+      ]
     },
     "application.applicationcomponent.assigned-to.application.applicationinterface": {
       "id": "application.applicationcomponent.assigned-to.application.applicationinterface",
@@ -510,18 +652,23 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component is the active element behind the access point, handling every request that arrives through that controller, endpoint or listener.",
+      "evidence": [
+        "The controller, gRPC binding or message listener is registered in the component's bootstrap or routing configuration and delegates directly to the component's handlers."
+      ]
     },
-    "application.applicationcomponent.composes.application.applicationfunction": {
-      "id": "application.applicationcomponent.composes.application.applicationfunction",
+    "application.applicationcomponent.assigned-to.application.applicationprocess": {
+      "id": "application.applicationcomponent.assigned-to.application.applicationprocess",
       "source_spec_node_id": "application.applicationcomponent",
       "source_layer": "application",
-      "destination_spec_node_id": "application.applicationfunction",
+      "destination_spec_node_id": "application.applicationprocess",
       "destination_layer": "application",
-      "predicate": "composes",
+      "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component is the active structure that performs the process; the process's ordered steps run inside this component."
     },
     "application.applicationcomponent.constrained-by.security.securitypolicy": {
       "id": "application.applicationcomponent.constrained-by.security.securitypolicy",
@@ -532,18 +679,11 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationcomponent.implements.security.countermeasure": {
-      "id": "application.applicationcomponent.implements.security.countermeasure",
-      "source_spec_node_id": "application.applicationcomponent",
-      "source_layer": "application",
-      "destination_spec_node_id": "security.countermeasure",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component's permitted operations and data access are limited by the rules of the security policy, so its behaviour must stay within what the policy allows.",
+      "evidence": [
+        "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
+      ]
     },
     "application.applicationcomponent.mitigates.security.threat": {
       "id": "application.applicationcomponent.mitigates.security.threat",
@@ -554,7 +694,11 @@
       "predicate": "mitigates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component's behaviour lowers the likelihood or impact of the identified threat, reducing the residual risk recorded against it.",
+      "evidence": [
+        "The threat model or risk register lists the component as a mitigating element for the threat, backed by code that blocks or detects the attack vector."
+      ]
     },
     "application.applicationcomponent.provides.application.applicationinterface": {
       "id": "application.applicationcomponent.provides.application.applicationinterface",
@@ -565,7 +709,11 @@
       "predicate": "provides",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component offers the access point to users or other components, making its services reachable through that controller, endpoint or channel.",
+      "evidence": [
+        "The component's codebase declares and exposes the interface, for example by mounting the route, publishing the gRPC service definition or subscribing the listener at startup."
+      ]
     },
     "application.applicationcomponent.realizes.application.applicationservice": {
       "id": "application.applicationcomponent.realizes.application.applicationservice",
@@ -576,7 +724,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component's internal behaviour is what concretely delivers the operations that the service promises to its consumers.",
+      "evidence": [
+        "The component's class implements the service's interface or contract, such as an OpenAPI or protobuf service definition, with method bodies backing each operation."
+      ]
     },
     "application.applicationcomponent.realizes.business.businessservice": {
       "id": "application.applicationcomponent.realizes.business.businessservice",
@@ -587,7 +739,56 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component is the automated system that concretely delivers the business service to its customers or stakeholders.",
+      "evidence": [
+        "Architecture documentation or a service catalog maps the business service to the component, and the component's operations carry out the service's core transactions."
+      ]
+    },
+    "application.applicationcomponent.realizes.product.capability": {
+      "id": "application.applicationcomponent.realizes.product.capability",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.capability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component supplies the concrete implementation that gives the product the stated ability.",
+      "evidence": [
+        "A capability map or product documentation links the capability to the component, and the component's code implements the behaviour the capability describes."
+      ]
+    },
+    "application.applicationcomponent.realizes.security.countermeasure": {
+      "id": "application.applicationcomponent.realizes.security.countermeasure",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component contains the working code of the security control, turning the documented countermeasure into executing behaviour.",
+      "evidence": [
+        "The component's source contains the control logic, such as input sanitization, rate limiting, encryption or token validation, and the countermeasure record points to that module as its implementation."
+      ]
+    },
+    "application.applicationcomponent.realizes.product.feature": {
+      "id": "application.applicationcomponent.realizes.product.feature",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The component implements the user-visible functionality that makes up the feature, so shipping the component delivers the feature.",
+      "evidence": [
+        "The feature's tickets, feature flag or release notes reference changes in the component's repository, and the component's code contains the feature's logic."
+      ]
     },
     "application.applicationcomponent.realizes.motivation.goal": {
       "id": "application.applicationcomponent.realizes.motivation.goal",
@@ -598,7 +799,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Building and operating the component directly brings about the desired end state that the goal expresses.",
+      "evidence": [
+        "Architecture decision records or roadmap documents cite the component as the delivery vehicle for the goal, with metrics attributing goal progress to it."
+      ]
     },
     "application.applicationcomponent.realizes.motivation.principle": {
       "id": "application.applicationcomponent.realizes.motivation.principle",
@@ -609,7 +814,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component's design is a concrete embodiment of the architectural principle, demonstrating how that principle is applied in practice.",
+      "evidence": [
+        "An architecture decision record or design document for the component explicitly cites the principle, and its structure reflects it, for example statelessness or API-first design."
+      ]
     },
     "application.applicationcomponent.satisfies.motivation.requirement": {
       "id": "application.applicationcomponent.satisfies.motivation.requirement",
@@ -620,7 +829,11 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component meets the stated need, so the requirement is considered fulfilled by its delivered behaviour or qualities.",
+      "evidence": [
+        "A traceability matrix links the requirement ID to the component, and acceptance tests for that requirement pass against the component."
+      ]
     },
     "application.applicationcomponent.serves.business.businessrole": {
       "id": "application.applicationcomponent.serves.business.businessrole",
@@ -631,7 +844,11 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The component supports the people holding the business role in carrying out their responsibilities, acting as a tool they rely on.",
+      "evidence": [
+        "The component's role-based access configuration or user documentation grants the business role access to screens or operations designed for its tasks."
+      ]
     },
     "application.applicationcomponent.uses.application.applicationcomponent": {
       "id": "application.applicationcomponent.uses.application.applicationcomponent",
@@ -642,29 +859,41 @@
       "predicate": "uses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The source component relies on the target component's functionality at runtime, so the target is a dependency the source needs to do its work.",
+      "evidence": [
+        "The source component injects, imports or calls the target, for example through a dependency-injection binding, package dependency or HTTP/gRPC client configured with the target's address."
+      ]
     },
-    "application.applicationevent.depends-on.application.dataobject": {
-      "id": "application.applicationevent.depends-on.application.dataobject",
+    "application.applicationevent.accesses.application.dataobject": {
+      "id": "application.applicationevent.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationevent",
       "source_layer": "application",
       "destination_spec_node_id": "application.dataobject",
       "destination_layer": "application",
-      "predicate": "depends-on",
+      "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application event carries or is defined by the data object as its payload, so the event cannot be emitted or interpreted without that data structure's schema.",
+      "evidence": [
+        "The event class or message schema declares the data object type as its payload field, or the event topic's Avro/JSON schema references the data object's definition."
+      ]
     },
-    "application.applicationevent.triggers.application.applicationcollaboration": {
-      "id": "application.applicationevent.triggers.application.applicationcollaboration",
+    "application.applicationevent.triggers.application.applicationinteraction": {
+      "id": "application.applicationevent.triggers.application.applicationinteraction",
       "source_spec_node_id": "application.applicationevent",
       "source_layer": "application",
-      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_spec_node_id": "application.applicationinteraction",
       "destination_layer": "application",
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Occurrence of the application event sets off the interaction, the joint behaviour carried out by a collaboration of components, such as a choreographed saga across several services.",
+      "evidence": [
+        "Every component in the collaboration has a subscriber or consumer configuration bound to the event's topic or channel that starts their coordinated handling, for example in AsyncAPI specs or message-broker subscription config."
+      ]
     },
     "application.applicationevent.triggers.application.applicationprocess": {
       "id": "application.applicationevent.triggers.application.applicationprocess",
@@ -675,7 +904,11 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Emission of the application event is the start trigger that launches a run of the application process's ordered sequence of steps.",
+      "evidence": [
+        "A handler annotated as the listener for the event, such as @EventListener, a Kafka consumer, or a workflow-engine start-event definition, invokes the process's entry point or starts the workflow instance."
+      ]
     },
     "application.applicationevent.triggers.business.businessprocess": {
       "id": "application.applicationevent.triggers.business.businessprocess",
@@ -686,7 +919,11 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application event signals a system state change that initiates the business process carried out by people or roles in the organisation, such as a notification that starts a manual review.",
+      "evidence": [
+        "A BPMN model or operational runbook names the event as the start event of the business process, or an integration creates a task in the BPM or ticketing system when the event fires."
+      ]
     },
     "application.applicationfunction.accesses.application.dataobject": {
       "id": "application.applicationfunction.accesses.application.dataobject",
@@ -697,7 +934,11 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application function reads, creates or modifies the state held in the data object while it performs its work, treating the data structure as passive material.",
+      "evidence": [
+        "The function's implementing methods instantiate, read fields of, or mutate the class, record or struct that defines the data object, for example by taking it as a parameter or returning it."
+      ]
     },
     "application.applicationfunction.accesses.security.secureresource": {
       "id": "application.applicationfunction.accesses.security.secureresource",
@@ -708,29 +949,11 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationfunction.delivers-value.application.applicationprocess": {
-      "id": "application.applicationfunction.delivers-value.application.applicationprocess",
-      "source_spec_node_id": "application.applicationfunction",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationprocess",
-      "destination_layer": "application",
-      "predicate": "delivers-value",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "application.applicationfunction.delivers-value.application.applicationservice": {
-      "id": "application.applicationfunction.delivers-value.application.applicationservice",
-      "source_spec_node_id": "application.applicationfunction",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "delivers-value",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application function performs operations on the protected resource and is therefore a subject whose actions fall under that resource's access-control rules.",
+      "evidence": [
+        "The function's code invokes an operation on the resource that the security policy names, such as a repository call on a guarded entity, or carries the permission check or annotation that the resource definition declares."
+      ]
     },
     "application.applicationfunction.depends-on.application.applicationevent": {
       "id": "application.applicationfunction.depends-on.application.applicationevent",
@@ -741,7 +964,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application function cannot carry out its work unless the application event occurs, because it reacts to that event or needs the state change the event signals.",
+      "evidence": [
+        "The function is registered as a listener, subscriber or handler for the event type, through a decorator, a message-consumer binding or an event-bus subscription."
+      ]
     },
     "application.applicationfunction.depends-on.application.applicationfunction": {
       "id": "application.applicationfunction.depends-on.application.applicationfunction",
@@ -752,18 +979,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationfunction.depends-on.application.dataobject": {
-      "id": "application.applicationfunction.depends-on.application.dataobject",
-      "source_spec_node_id": "application.applicationfunction",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.dataobject",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The source application function needs the capability of another internal application function in order to complete its own work.",
+      "evidence": [
+        "The source function's implementation imports and calls the other function's methods, or receives it as an injected collaborator."
+      ]
     },
     "application.applicationfunction.flows-to.application.applicationfunction": {
       "id": "application.applicationfunction.flows-to.application.applicationfunction",
@@ -774,7 +994,11 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Data or control produced by the source application function is handed on to the target application function, which continues the processing.",
+      "evidence": [
+        "The source function's return value or emitted payload is passed directly into the target function, through a call chain, a pipeline wiring or a queue that connects the two."
+      ]
     },
     "application.applicationfunction.realizes.application.applicationservice": {
       "id": "application.applicationfunction.realizes.application.applicationservice",
@@ -785,7 +1009,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application function is the internal behavior that concretely implements the operations the application service exposes to its consumers.",
+      "evidence": [
+        "The service interface or API contract is implemented by classes or methods belonging to the function, for example a service implementation class that contains the function's logic."
+      ]
     },
     "application.applicationfunction.realizes.business.businessfunction": {
       "id": "application.applicationfunction.realizes.business.businessfunction",
@@ -796,7 +1024,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application function automates the competency described by the business function, so that software carries out work the business function groups.",
+      "evidence": [
+        "Architecture or capability-mapping documentation maps the application module to the business function, and the module's logic implements that business area's rules, such as payroll calculation for HR management."
+      ]
     },
     "application.applicationfunction.satisfies.motivation.requirement": {
       "id": "application.applicationfunction.satisfies.motivation.requirement",
@@ -807,18 +1039,11 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationinteraction.delivers-value.application.applicationservice": {
-      "id": "application.applicationinteraction.delivers-value.application.applicationservice",
-      "source_spec_node_id": "application.applicationinteraction",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "delivers-value",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application function's behavior meets the stated need, so the requirement is fulfilled by what the function does.",
+      "evidence": [
+        "A requirements-traceability matrix, ticket link or code annotation ties the function's implementation to the requirement ID, and acceptance tests for the requirement exercise the function."
+      ]
     },
     "application.applicationinteraction.depends-on.application.applicationcollaboration": {
       "id": "application.applicationinteraction.depends-on.application.applicationcollaboration",
@@ -829,7 +1054,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction can only run when the named grouping of components that jointly carries it out is in place, since no single participant can complete the saga, choreography or handshake alone.",
+      "evidence": [
+        "A saga orchestrator definition, choreography spec or deployment manifest lists the participating services of the collaboration as required steps or participants of the interaction."
+      ]
     },
     "application.applicationinteraction.depends-on.application.applicationevent": {
       "id": "application.applicationinteraction.depends-on.application.applicationevent",
@@ -840,7 +1069,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction requires a specific state-change occurrence to start, advance or complete, such as a choreography step that waits for a PaymentCaptured event before continuing.",
+      "evidence": [
+        "Participant code subscribes to the event's topic or queue (e.g. a Kafka listener or event handler registration) as a step of the saga, or the saga definition names the event as a trigger or transition."
+      ]
     },
     "application.applicationinteraction.depends-on.application.applicationservice": {
       "id": "application.applicationinteraction.depends-on.application.applicationservice",
@@ -851,7 +1084,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction calls on another application service's operations to complete one or more of its steps, so it cannot finish if that service is unavailable.",
+      "evidence": [
+        "A saga step or choreography handler invokes the service's client, endpoint or RPC method, or the interaction's specification lists the service as a required dependency."
+      ]
     },
     "application.applicationinteraction.depends-on.application.dataobject": {
       "id": "application.applicationinteraction.depends-on.application.dataobject",
@@ -862,7 +1099,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction needs a particular data structure to carry state between its participants, such as the message payload or saga state record exchanged across the handshake.",
+      "evidence": [
+        "The saga state class, message schema or payload type is imported and serialized/deserialized by the participants' interaction handlers, or declared in the protocol's schema definitions."
+      ]
     },
     "application.applicationinteraction.realizes.application.applicationservice": {
       "id": "application.applicationinteraction.realizes.application.applicationservice",
@@ -873,18 +1114,26 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The collaborative behaviour is the concrete mechanism through which the externally visible application service is actually delivered, with the service's operations implemented by the saga or multi-party exchange.",
+      "evidence": [
+        "The service's API endpoint or operation handler starts the saga or choreography and returns its result, or architecture documentation maps the service operation to the interaction as its implementation."
+      ]
     },
-    "application.applicationinterface.delivers-value.application.applicationcollaboration": {
-      "id": "application.applicationinterface.delivers-value.application.applicationcollaboration",
+    "application.applicationinterface.assigned-to.application.applicationservice": {
+      "id": "application.applicationinterface.assigned-to.application.applicationservice",
       "source_spec_node_id": "application.applicationinterface",
       "source_layer": "application",
-      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
-      "predicate": "delivers-value",
+      "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface is the protocol-specific channel through which the application service's operations are offered to its consumers.",
+      "evidence": [
+        "The service's operations are bound to routes, RPC methods or topics on this interface in the router, servicer registration or API specification."
+      ]
     },
     "application.applicationinterface.depends-on.application.applicationcomponent": {
       "id": "application.applicationinterface.depends-on.application.applicationcomponent",
@@ -895,7 +1144,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface cannot operate without the owning or backing component that actually handles the requests arriving on the channel.",
+      "evidence": [
+        "The controller, gRPC servicer or listener class is registered in the component's module or injects that component's classes, and fails to start or respond if that component is absent."
+      ]
     },
     "application.applicationinterface.depends-on.application.applicationfunction": {
       "id": "application.applicationinterface.depends-on.application.applicationfunction",
@@ -906,18 +1159,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationinterface.depends-on.application.applicationservice": {
-      "id": "application.applicationinterface.depends-on.application.applicationservice",
-      "source_spec_node_id": "application.applicationinterface",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Requests received on the interface are handled by delegating to an internal function of the component, so the endpoint needs that function to produce its responses.",
+      "evidence": [
+        "The route handler or RPC method body calls the internal function's method or module directly, as shown in the import graph and call sites."
+      ]
     },
     "application.applicationinterface.depends-on.application.dataobject": {
       "id": "application.applicationinterface.depends-on.application.dataobject",
@@ -928,7 +1174,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface relies on the data object as the request, response or message payload structure it parses and emits on the channel.",
+      "evidence": [
+        "Handler signatures, OpenAPI/protobuf bindings or listener deserializers reference the data object's class or schema as input or output type."
+      ]
     },
     "application.applicationinterface.exposes.security.secureresource": {
       "id": "application.applicationinterface.exposes.security.secureresource",
@@ -939,18 +1189,11 @@
       "predicate": "exposes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationinterface.serves.application.applicationservice": {
-      "id": "application.applicationinterface.serves.application.applicationservice",
-      "source_spec_node_id": "application.applicationinterface",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
-      "destination_layer": "application",
-      "predicate": "serves",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface makes the protected resource reachable to callers, so the resource's permitted operations are invoked through this endpoint and its access controls must apply there.",
+      "evidence": [
+        "Routes or RPC methods on the interface map to the resource's operations and carry security annotations, guards or policy configuration naming that resource."
+      ]
     },
     "application.applicationinterface.serves.business.businessrole": {
       "id": "application.applicationinterface.serves.business.businessrole",
@@ -961,40 +1204,26 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Holders of the business role use the interface as their point of access to the application's functionality when carrying out their responsibilities.",
+      "evidence": [
+        "The interface's authorization configuration, UI/API documentation or access policy names the role as an intended consumer, e.g. role-restricted routes or a role-specific portal endpoint."
+      ]
     },
-    "application.applicationprocess.delivers-value.application.applicationservice": {
-      "id": "application.applicationprocess.delivers-value.application.applicationservice",
+    "application.applicationprocess.accesses.application.dataobject": {
+      "id": "application.applicationprocess.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationprocess",
       "source_layer": "application",
-      "destination_spec_node_id": "application.applicationservice",
+      "destination_spec_node_id": "application.dataobject",
       "destination_layer": "application",
-      "predicate": "delivers-value",
+      "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationprocess.depends-on.application.applicationcollaboration": {
-      "id": "application.applicationprocess.depends-on.application.applicationcollaboration",
-      "source_spec_node_id": "application.applicationprocess",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationcollaboration",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "application.applicationprocess.depends-on.application.applicationevent": {
-      "id": "application.applicationprocess.depends-on.application.applicationevent",
-      "source_spec_node_id": "application.applicationprocess",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.applicationevent",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The workflow creates, reads, transforms or passes along the data object between steps, so its inputs, intermediate state or result have that structure.",
+      "evidence": [
+        "The process's step signatures, saga state class or pipeline stage types take or return the data object's class, record or message payload type."
+      ]
     },
     "application.applicationprocess.depends-on.application.applicationfunction": {
       "id": "application.applicationprocess.depends-on.application.applicationfunction",
@@ -1005,7 +1234,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One or more ordered steps of the workflow call the internal application function to perform a piece of work, so the process cannot finish without that capability.",
+      "evidence": [
+        "A step method or activity in the pipeline, saga or workflow code calls the function's internal module or class method, visible in the call graph or activity registration."
+      ]
     },
     "application.applicationprocess.depends-on.application.applicationinterface": {
       "id": "application.applicationprocess.depends-on.application.applicationinterface",
@@ -1016,18 +1249,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationprocess.depends-on.application.dataobject": {
-      "id": "application.applicationprocess.depends-on.application.dataobject",
-      "source_spec_node_id": "application.applicationprocess",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.dataobject",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The workflow reaches another component's services through the application interface during its steps, so the process needs that endpoint or channel to be available.",
+      "evidence": [
+        "A workflow step calls through a generated client, HTTP or gRPC stub, GraphQL query or message-channel producer configured against that interface's endpoint or topic."
+      ]
     },
     "application.applicationprocess.flows-to.application.applicationprocess": {
       "id": "application.applicationprocess.flows-to.application.applicationprocess",
@@ -1038,7 +1264,26 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "When the upstream workflow completes or reaches a hand-off point, control or its output data passes to the downstream workflow, which continues the end-to-end sequence.",
+      "evidence": [
+        "The upstream process's final step starts the downstream workflow, publishes the message it consumes, or is chained to it in the orchestration definition (e.g. Step Functions, Airflow DAG, Temporal child workflow)."
+      ]
+    },
+    "application.applicationprocess.realizes.application.applicationservice": {
+      "id": "application.applicationprocess.realizes.application.applicationservice",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
+      "evidence": [
+        "The service's public operation (e.g. an API handler or service-interface method) delegates its work to the workflow, saga or pipeline entry point and returns that process's end result to the caller."
+      ]
     },
     "application.applicationprocess.realizes.business.businessprocess": {
       "id": "application.applicationprocess.realizes.business.businessprocess",
@@ -1049,7 +1294,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The automated workflow is the software execution of the business process, carrying out its ordered steps so the business result is reached without manual work.",
+      "evidence": [
+        "Process documentation or BPMN models map the business process steps to the workflow's stages, and the workflow code or definition is named for and traceable to that business process."
+      ]
     },
     "application.applicationprocess.triggers.application.applicationevent": {
       "id": "application.applicationprocess.triggers.application.applicationevent",
@@ -1060,7 +1309,11 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Running the workflow, or reaching a particular step, emits the application event as a signal that a state change has happened, for other behaviour to react to.",
+      "evidence": [
+        "A step or completion handler in the workflow code publishes, emits or dispatches the named event type to an event bus, topic or in-process event dispatcher."
+      ]
     },
     "application.applicationservice.accesses.business.businessobject": {
       "id": "application.applicationservice.accesses.business.businessobject",
@@ -1071,7 +1324,11 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service reads, creates or updates the business-level information, such as an order, invoice or contract, that its operations act upon on behalf of consumers.",
+      "evidence": [
+        "The service's operation signatures or handler code read or persist the entity that the business model documents as that business object, e.g. an OrderService.submit method that writes the Order record."
+      ]
     },
     "application.applicationservice.accesses.application.dataobject": {
       "id": "application.applicationservice.accesses.application.dataobject",
@@ -1082,18 +1339,26 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service's operations read, write or transform the code-level data structure as their input, output or working state.",
+      "evidence": [
+        "The service interface or implementation takes, returns or mutates the class, record or DTO, e.g. a method signature `CustomerDto getCustomer(id)` or repository calls that save that type."
+      ]
     },
-    "application.applicationservice.constrained-by.security.accesscondition": {
-      "id": "application.applicationservice.constrained-by.security.accesscondition",
+    "application.applicationservice.constrained-by.security.securitypolicy": {
+      "id": "application.applicationservice.constrained-by.security.securitypolicy",
       "source_spec_node_id": "application.applicationservice",
       "source_layer": "application",
-      "destination_spec_node_id": "security.accesscondition",
+      "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Invocation of the application service is governed by the security policy: the policy's rules decide which requests may call the service and under what conditions.",
+      "evidence": [
+        "A policy file, authorization middleware or gateway rule set bound to the service's routes applies the named policy's rules before the service is invoked."
+      ]
     },
     "application.applicationservice.delivers-value.motivation.value": {
       "id": "application.applicationservice.delivers-value.motivation.value",
@@ -1104,7 +1369,11 @@
       "predicate": "delivers-value",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Making the application service available produces the worth or benefit that stakeholders recognize as the value, such as faster checkout or reduced manual effort.",
+      "evidence": [
+        "Product or architecture documentation, business cases or OKR pages attribute the stated value explicitly to the service, ideally backed by a KPI dashboard tied to the service's usage."
+      ]
     },
     "application.applicationservice.depends-on.application.applicationservice": {
       "id": "application.applicationservice.depends-on.application.applicationservice",
@@ -1115,18 +1384,11 @@
       "predicate": "depends-on",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "application.applicationservice.depends-on.application.dataobject": {
-      "id": "application.applicationservice.depends-on.application.dataobject",
-      "source_spec_node_id": "application.applicationservice",
-      "source_layer": "application",
-      "destination_spec_node_id": "application.dataobject",
-      "destination_layer": "application",
-      "predicate": "depends-on",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service cannot fulfil its operations without calling another application service, so the latter's unavailability breaks it.",
+      "evidence": [
+        "The service's implementation contains client calls, SDK imports or service-mesh configuration targeting the other service's endpoint, and its health check or failure handling reflects that dependency."
+      ]
     },
     "application.applicationservice.flows-to.application.applicationservice": {
       "id": "application.applicationservice.flows-to.application.applicationservice",
@@ -1137,7 +1399,11 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Data or control produced by the source application service is passed on to the destination application service as the next step in an end-to-end interaction.",
+      "evidence": [
+        "The source service publishes an event, message or response that the destination service consumes, as shown in queue/topic subscriptions, workflow definitions or distributed traces linking the two."
+      ]
     },
     "application.applicationservice.realizes.business.businessservice": {
       "id": "application.applicationservice.realizes.business.businessservice",
@@ -1148,7 +1414,41 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service is the automated means through which the business service is actually delivered to its customers.",
+      "evidence": [
+        "Architecture documentation or service catalog entries map the business service to the application service, and the service's endpoints implement the business service's described operations."
+      ]
+    },
+    "application.applicationservice.realizes.product.capability": {
+      "id": "application.applicationservice.realizes.product.capability",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.capability",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application service provides the concrete technical behavior that gives the product the stated capability.",
+      "evidence": [
+        "A capability map or product spec lists the application service as the implementation of the capability, and removing the service would leave the capability unavailable."
+      ]
+    },
+    "application.applicationservice.realizes.product.feature": {
+      "id": "application.applicationservice.realizes.product.feature",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application service supplies the operations that make the user-visible product feature work.",
+      "evidence": [
+        "The feature's spec, ticket or feature flag is wired to the service's endpoints, e.g. the frontend feature calls the service's API and the feature toggle gates its routes."
+      ]
     },
     "application.applicationservice.realizes.motivation.goal": {
       "id": "application.applicationservice.realizes.motivation.goal",
@@ -1159,7 +1459,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service is put in place as a concrete means of achieving the stated goal.",
+      "evidence": [
+        "Architecture decision records or roadmap documentation cite the goal as the rationale for building the service and trace the service to that goal."
+      ]
     },
     "application.applicationservice.realizes.motivation.requirement": {
       "id": "application.applicationservice.realizes.motivation.requirement",
@@ -1170,7 +1474,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service provides the behavior that fulfils the stated requirement.",
+      "evidence": [
+        "A requirements traceability matrix, ticket link or acceptance test maps the requirement ID to the service's operations, and those tests pass against the service."
+      ]
     },
     "application.applicationservice.references.apm.traceconfiguration": {
       "id": "application.applicationservice.references.apm.traceconfiguration",
@@ -1181,7 +1489,11 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service points to the tracer provider configuration that determines how its spans are sampled, propagated and processed, without depending on it functionally.",
+      "evidence": [
+        "The service's startup code or config (e.g. OTEL_* environment variables or an otel config file) names that sampler, propagator and span processor setup."
+      ]
     },
     "application.applicationservice.requires.security.authenticationconfig": {
       "id": "application.applicationservice.requires.security.authenticationconfig",
@@ -1192,7 +1504,11 @@
       "predicate": "requires",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Consumers must be authenticated according to the authentication configuration, identity provider, MFA and session rules, before the application service will handle their calls.",
+      "evidence": [
+        "The service's security configuration or gateway route declares the identity provider, OIDC/JWT validation or MFA policy, and unauthenticated requests receive 401 responses."
+      ]
     },
     "application.applicationservice.satisfies.motivation.constraint": {
       "id": "application.applicationservice.satisfies.motivation.constraint",
@@ -1203,7 +1519,56 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service is designed and operated within the limits that the constraint imposes, such as a mandated technology, region or latency budget.",
+      "evidence": [
+        "Deployment manifests, technology choices or compliance checks for the service demonstrably conform to the constraint, e.g. data-residency settings restricting it to the required region."
+      ]
+    },
+    "application.applicationservice.serves.application.applicationcomponent": {
+      "id": "application.applicationservice.serves.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application component consumes the application service's operations to carry out its own responsibilities.",
+      "evidence": [
+        "The component's code holds a client, injected interface or API call to the service, e.g. a dependency-injected PaymentService used inside the component."
+      ]
+    },
+    "application.applicationservice.serves.application.applicationfunction": {
+      "id": "application.applicationservice.serves.application.applicationfunction",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The application function invokes the application service's operations as part of the internal work it performs.",
+      "evidence": [
+        "The function's implementation calls the service's interface or endpoint, visible as a method call or HTTP/RPC client invocation inside that function's code."
+      ]
+    },
+    "application.applicationservice.serves.application.applicationprocess": {
+      "id": "application.applicationservice.serves.application.applicationprocess",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "One or more steps of the application process call the application service to obtain the results the sequence needs.",
+      "evidence": [
+        "The workflow, saga or pipeline definition includes a step that invokes the service's operation, e.g. a Temporal activity or step function task targeting its endpoint."
+      ]
     },
     "application.applicationservice.serves.business.businessprocess": {
       "id": "application.applicationservice.serves.business.businessprocess",
@@ -1214,7 +1579,11 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service automates or supports activities within the business process, which uses it to reach its business result.",
+      "evidence": [
+        "Process documentation or BPMN models show process tasks performed via the service, and the service's API is called from the system that executes those tasks."
+      ]
     },
     "application.applicationservice.serves.motivation.stakeholder": {
       "id": "application.applicationservice.serves.motivation.stakeholder",
@@ -1225,7 +1594,11 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The application service is offered for the benefit of the stakeholder, whose interests it is intended to meet.",
+      "evidence": [
+        "The service catalog, product documentation or SLA names the stakeholder group as the intended consumer or beneficiary of the service."
+      ]
     },
     "application.dataobject.aggregates.application.dataobject": {
       "id": "application.dataobject.aggregates.application.dataobject",
@@ -1236,7 +1609,11 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The containing data structure groups references to another data structure whose instances have their own identity and lifecycle, such as an Order holding the Customer it belongs to or a Cart listing Product records that persist after the cart is discarded.",
+      "evidence": [
+        "The containing class declares a field, collection or ID reference typed to the other data object, and that object is constructed, persisted or looked up elsewhere and passed in rather than created by the container."
+      ]
     },
     "application.dataobject.composes.application.dataobject": {
       "id": "application.dataobject.composes.application.dataobject",
@@ -1247,7 +1624,11 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The whole data structure owns an embedded part structure that has no independent identity and is created, copied, serialized and discarded together with it, such as an Invoice and its InvoiceLine items or a Person and its embedded Address value object.",
+      "evidence": [
+        "The part type appears only as a nested or embedded member of the whole, for example a nested record, an @Embedded or @ElementCollection mapping, a cascade-all/orphan-removal association, or a nested message in a protobuf or JSON schema, and it is instantiated inside the whole's constructor or builder."
+      ]
     },
     "application.dataobject.realizes.application.dataobject": {
       "id": "application.dataobject.realizes.application.dataobject",
@@ -1258,7 +1639,11 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The concrete data structure gives a tangible implementation of an abstract or contract-level data definition, such as a DTO class implementing a shared interface or type contract, or a generated class materializing a schema-defined message type.",
+      "evidence": [
+        "The concrete class or struct declares that it implements the abstract type (for example `implements`, a TypeScript `satisfies` or structural conformance check), or a code generator config such as OpenAPI, protobuf or Avro shows the class produced from the abstract schema definition."
+      ]
     }
   }
 }

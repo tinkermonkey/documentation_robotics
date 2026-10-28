@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "security.actor",
+  "previous_description": "A named principal — human user, service account, automated system, or external entity — whose identity and trust level govern what operations it may perform. Associates with Roles for permission grouping and with SeparationOfDuty and Delegation controls, per NIST SP 800-53 AC-2 (Account Management) and SP 800-207 (Zero Trust Architecture).",
+  "definition": "A named principal (a human user population, service account, automated system, or external party) that is the subject of authentication and authorization decisions, typed by category and optionally assigned a trust level. It represents who acts, as distinct from the permission bundle it holds or the authority it receives temporarily.",
+  "distinguish_from": [
+    {
+      "type": "security.role",
+      "when": "the element is a named bundle of permissions that many principals can be assigned, such as 'admin' or 'editor', rather than the principal itself."
+    },
+    {
+      "type": "security.delegation",
+      "when": "the element records a transfer of authority from one principal to another, with a scope or expiry, rather than the principal that delegates or receives it."
+    },
+    {
+      "type": "security.authenticationconfig",
+      "when": "the element describes how principals prove identity, such as the provider, MFA or session timeout, rather than who is being identified."
+    },
+    {
+      "type": "security.threat",
+      "when": "the element models an adversary or attack scenario with a likelihood and impact, rather than a legitimate principal that the system recognises and authorizes."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-2 (Account Management); NIST SP 800-207 subject/principal",
+  "code_evidence": [
+    "A principal or user-context class (e.g. UserPrincipal, ServiceIdentity) populated from a verified token and passed to authorization checks.",
+    "Declared service accounts or machine identities in configuration, such as a Kubernetes ServiceAccount, cloud IAM users or roles for workloads, or OAuth client_credentials client registrations.",
+    "Branching in authorization code on the principal's kind or trust level, such as `if principal.type == 'service'` or checks on an `is_internal` or `partner` flag."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of who or what this actor represents, for example 'nightly billing batch job' or 'external payment partner'. Set it whenever the actor's name alone does not make its identity source or purpose clear."
+    }
+  ],
+  "notes": "The `objectives` attribute references goal nodes, but no ActorObjective type exists in this layer, although NeedToKnow also mentions one. The relationships are redundant: there are two edges to delegation (associated-with and references) and two to authenticationconfig (governed-by and requires). The trustLevel value 'full' conflicts with zero-trust semantics. There is no explicit `name` attribute, and modellers may confuse actors with individual end users.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.263Z"
+}

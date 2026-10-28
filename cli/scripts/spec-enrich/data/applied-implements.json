@@ -1,0 +1,129 @@
+{
+  "backend": "maintainer",
+  "record": "implements",
+  "commit": "2da53daf",
+  "applied_at": "2026-10-26T13:17:14.000Z",
+  "derived_from": "relationshipSchemas with predicate implements in spec/dist at the parent of commit 2da53daf",
+  "counts": {
+    "retire-predicate": 1,
+    "rename": 17,
+    "delete": 1
+  },
+  "actions": [
+    {
+      "action": "retire-predicate",
+      "from": "implements",
+      "to": "realizes",
+      "note": "implements and realizes had one meaning; every relationship recorded with implements becomes realizes on the same pair, whether or not the catalog had an implements schema for that pair"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "api.ratelimit.implements.security.countermeasure",
+      "to": "api.ratelimit.realizes.security.countermeasure"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "api.securityscheme.implements.security.securitypolicy",
+      "to": "api.securityscheme.realizes.security.securitypolicy"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "application.applicationcomponent.implements.security.countermeasure",
+      "to": "application.applicationcomponent.realizes.security.countermeasure"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "data-store.collection.implements.security.secureresource",
+      "to": "data-store.collection.realizes.security.secureresource"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "data-store.storedlogic.implements.application.applicationfunction",
+      "to": "data-store.storedlogic.realizes.application.applicationfunction"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "navigation.navigationguard.implements.security.securitypolicy",
+      "to": "navigation.navigationguard.realizes.security.securitypolicy"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "security.countermeasure.implements.security.securitypolicy",
+      "to": "security.countermeasure.realizes.security.securitypolicy"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "security.fieldaccesscontrol.implements.security.policyrule",
+      "to": "security.fieldaccesscontrol.realizes.security.policyrule"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "security.informationright.implements.security.permission",
+      "to": "security.informationright.realizes.security.permission"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "security.needtoknow.implements.security.policyrule",
+      "to": "security.needtoknow.realizes.security.policyrule"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "security.securityconstraints.implements.motivation.constraint",
+      "to": "security.securityconstraints.realizes.motivation.constraint"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "technology.systemsoftware.implements.motivation.principle",
+      "to": "technology.systemsoftware.realizes.motivation.principle"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "technology.systemsoftware.implements.security.countermeasure",
+      "to": "technology.systemsoftware.realizes.security.countermeasure"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "technology.technologyfunction.implements.security.countermeasure",
+      "to": "technology.technologyfunction.realizes.security.countermeasure"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "ux.actioncomponent.implements.ux.actionpattern",
+      "to": "ux.actioncomponent.realizes.ux.actionpattern"
+    },
+    {
+      "action": "delete",
+      "kind": "remove-duplicate",
+      "from": "ux.componentinstance.implements.ux.librarycomponent",
+      "to": "ux.componentinstance.realizes.ux.librarycomponent",
+      "note": "the realizes schema already existed; the implements schema was deleted"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "ux.componentreference.implements.ux.librarycomponent",
+      "to": "ux.componentreference.realizes.ux.librarycomponent"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "ux.stateactiontemplate.implements.ux.stateaction",
+      "to": "ux.stateactiontemplate.realizes.ux.stateaction"
+    }
+  ]
+}

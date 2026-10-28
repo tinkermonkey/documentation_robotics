@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businessrole",
+  "previous_description": "An active structure element representing a named set of responsibilities, skills, or authorizations that can be assigned to a BusinessActor. Roles abstract away the concrete actor, enabling flexible actor-to-behavior assignment.",
+  "definition": "An active structure element naming a responsibility position in the organization (e.g., Claims Adjuster, Approver, Customer) that business behavior is assigned to and that one or more BusinessActors can fill. It is defined by what is expected of whoever occupies it, not by the identity of a particular person, department or organization.",
+  "distinguish_from": [
+    {
+      "type": "business.businessactor",
+      "when": "the element is a specific, identifiable person, department, team or external organization, such as 'Finance Department' or 'Acme Ltd', rather than a position that different actors could fill."
+    },
+    {
+      "type": "business.businesscollaboration",
+      "when": "the element is a temporary or permanent grouping of two or more roles acting jointly, such as 'Buyer–Seller Negotiation', rather than a single responsibility position."
+    },
+    {
+      "type": "business.businessfunction",
+      "when": "the name denotes a capability-based grouping of behavior, such as 'Claims Handling', rather than the position responsible for performing it, such as 'Claims Handler'."
+    },
+    {
+      "type": "business.businessinterface",
+      "when": "the element is a channel or access point through which a service is offered, such as a call center, portal or front desk, rather than the responsibility held by whoever staffs it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.2.2 Business Role",
+  "code_evidence": [
+    "An enum, constant set or lookup table of job-like user categories (e.g., APPROVER, UNDERWRITER, CASE_WORKER, CUSTOMER) that workflow or task-assignment logic uses to route work, rather than to name individual users.",
+    "Workflow or BPMN definitions that name a responsibility as a swimlane, candidateGroup or task assignee (e.g., camunda:candidateGroups=\"claims-adjuster\"), or approval-chain configuration such as 'requires sign-off by Finance Approver'.",
+    "Requirements artifacts or user stories phrased 'As a <role>, I want…', or RACI and responsibility matrices listing positions against processes or tasks."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the role's responsibilities, required skills or authorizations, and typical occupying actors; set it whenever the role name alone does not make the scope of responsibility clear."
+    }
+  ],
+  "notes": "The model has both 'performs' and 'assigned-to' from role to process/function, which is redundant because ArchiMate uses assignment only. 'role serves actor' has no ArchiMate basis. The BusinessInteraction definition wrongly implies processes are performed by roles and functions by actors. Inbound security.role maps-to invites conflating access-control roles with business roles.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.251Z"
+}

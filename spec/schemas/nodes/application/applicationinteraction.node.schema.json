@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationInteraction",
-  "description": "Collective application behavior performed by two or more application components working in collaboration, representing their joint behavioral contribution.",
+  "description": "A unit of application behaviour performed jointly by two or more application components acting as a collaboration, which no single participant completes alone, such as a saga, a multi-service choreography or a handshake protocol spanning both sides of an exchange. Use ApplicationProcess instead when the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies. Use ApplicationCollaboration instead when the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform. Use ApplicationService instead when the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it. Use ApplicationEvent instead when the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the joint behaviour, naming the participating components, the exchange it accomplishes and its trigger. Set it whenever the participants or flow are not evident from the element name."
         },
         "pattern": {
           "type": "string",
@@ -37,5 +38,17 @@
       "required": ["pattern"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.3.2 Application Interaction",
+  "x-dr-evidence": [
+    "a saga or choreography definition (e.g. Temporal/Camunda workflow, Axon saga, Step Functions state machine) whose steps invoke and compensate operations in several distinct services",
+    "a matched producer and consumer pair across separate deployable modules bound to the same topic, queue or RPC contract and documented as one flow (e.g. an AsyncAPI channel or sequence diagram naming multiple services)",
+    "a coordinator implementing a multi-party protocol such as two-phase commit, distributed lock negotiation or a client-server handshake where both sides' logic is required to complete the exchange"
+  ],
+  "x-dr-distinguish": {
+    "application.applicationprocess": "the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies.",
+    "application.applicationcollaboration": "the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform.",
+    "application.applicationservice": "the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it.",
+    "application.applicationevent": "the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it."
   }
 }

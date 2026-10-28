@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "api.license",
+  "previous_description": "Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers.",
+  "definition": "A metadata object, nested under an API's Info object, that identifies by name the legal license governing use of the API and optionally gives a URL to the full license text. It describes terms of use for the API contract itself, not the license of the implementing source code.",
+  "distinguish_from": [
+    {
+      "type": "api.info",
+      "when": "the element is the overall API metadata block (title, version, description, termsOfService) rather than only the license name and URL inside it."
+    },
+    {
+      "type": "api.externaldocumentation",
+      "when": "the URL points to guides, wikis or reference docs that explain the API rather than to the legal license terms."
+    },
+    {
+      "type": "api.contact",
+      "when": "the information identifies who owns or supports the API (name, email, URL) rather than the legal terms under which it may be used."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 License Object",
+  "code_evidence": [
+    "an info.license block with name (e.g. 'Apache 2.0', 'MIT') and url fields in an openapi.yaml/openapi.json file",
+    "a framework OpenAPI config call setting license metadata, e.g. springdoc new License().name(\"Apache 2.0\").url(...), FastAPI(license_info={...}) or swagger-jsdoc definition.info.license",
+    "an @OpenAPIDefinition(info = @Info(license = @License(name=..., url=...))) or equivalent annotation on an application or config class"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "url",
+      "description": "Absolute URL (OpenAPI 3.0 requires URL format) pointing to the full text of the license; set it whenever the license terms are published at a resolvable location."
+    }
+  ],
+  "notes": "The required OpenAPI 'name' field is not listed as an attribute; it is presumably carried by the element's generic name, which should be stated explicitly. The outgoing associated-with link to api.openapidocument duplicates the path via api.info aggregation and may be redundant.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

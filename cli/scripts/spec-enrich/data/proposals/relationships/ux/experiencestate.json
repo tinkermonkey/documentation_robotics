@@ -1,0 +1,56 @@
+{
+  "source": "ux.experiencestate",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.059Z",
+  "relationships": [
+    {
+      "id": "ux.experiencestate.associated-with.ux.view",
+      "previous_description": "Defines relationship: ux.experiencestate associated-with ux.view",
+      "description": "The experience state is a condition of the state machine that drives a particular view, linking that machine node to the surface on which it is observed without implying control or rendering.",
+      "evidence": "The view's state machine definition or view spec lists the state by name among its states, or the state record carries a view reference."
+    },
+    {
+      "id": "ux.experiencestate.flows-to.ux.statetransition",
+      "previous_description": "Defines relationship: ux.experiencestate flows-to ux.statetransition",
+      "description": "The experience state is the source node of the outgoing transition, so control leaves this state along that edge when the transition's triggering UI event fires and its guard holds.",
+      "evidence": "In the machine config (e.g. an XState `states.editing.on.SUBMIT` entry), the transition is declared under this state's `on` block or carries this state as its `from` value."
+    },
+    {
+      "id": "ux.experiencestate.governs.ux.view",
+      "previous_description": "Defines relationship: ux.experiencestate governs ux.view",
+      "description": "While the experience state is active, it dictates which of the view's components are enabled, disabled or hidden, constraining what the view presents and permits.",
+      "evidence": "The state's definition contains enabled/disabled/hidden component lists keyed to component instances of the view, or the view's template conditionally gates controls on `state.matches('<state>')`."
+    },
+    {
+      "id": "ux.experiencestate.navigates-to.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.experiencestate navigates-to ux.experiencestate",
+      "description": "The experience state can hand the experience off directly to another experience state of the same machine, making that target state the next active condition.",
+      "evidence": "The machine config has a transition under the source state whose `target` names the destination state, or the state's on-enter action navigates to it."
+    },
+    {
+      "id": "ux.experiencestate.renders.ux.view",
+      "previous_description": "Defines relationship: ux.experiencestate renders ux.view",
+      "description": "When the experience state becomes active, it causes the view to be displayed in the configuration that state prescribes, such as a loading or error screen.",
+      "evidence": "The component code switches on the current state and returns the view's component (e.g. `case 'error': return <ErrorView/>`), or the state spec names the view as its rendered surface."
+    },
+    {
+      "id": "ux.experiencestate.specializes.ux.statepattern",
+      "previous_description": "Defines relationship: ux.experiencestate specializes ux.statepattern",
+      "description": "The experience state is a concrete instance of one of the reusable state pattern's generic states, inheriting its role, transitions and semantics while adding context-specific details.",
+      "evidence": "The state definition declares an `extends`/`pattern` reference to the state pattern and maps to one of the pattern's named states, e.g. a 'loading' state derived from the loading/success/error pattern."
+    },
+    {
+      "id": "ux.experiencestate.triggers.ux.stateaction",
+      "previous_description": "Defines relationship: ux.experiencestate triggers ux.stateaction",
+      "description": "Entering or exiting the experience state automatically fires the state action bound to its lifecycle hook, such as submitting a form on entering 'submitted'.",
+      "evidence": "The state's `entry` or `exit` array in the machine config lists the action, or the state action record names this state and an on-enter/on-exit hook."
+    },
+    {
+      "id": "ux.experiencestate.uses.ux.stateactiontemplate",
+      "previous_description": "Defines relationship: ux.experiencestate uses ux.stateactiontemplate",
+      "description": "The experience state draws on the reusable action template to define one of its lifecycle side effects, supplying concrete parameter values for that template on this state.",
+      "evidence": "The state's entry/exit action references the template by identifier with bound parameter values, e.g. `entry: [{ type: 'navigateTemplate', params: { to: '/done' } }]`."
+    }
+  ],
+  "notes": "associated-with, governs and renders to ux.view overlap; governs (component enablement) is the meaningful one, and renders conflicts with the state being 'not a screen'. navigates-to between states duplicates transitions modeled via StateTransition. uses StateActionTemplate bypasses StateAction, which already instantiates templates; triggers StateAction suffices."
+}

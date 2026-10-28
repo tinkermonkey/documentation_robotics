@@ -1,0 +1,38 @@
+{
+  "source": "ux.librarysubview",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.055Z",
+  "relationships": [
+    {
+      "id": "ux.librarysubview.aggregates.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.librarysubview aggregates ux.componentinstance",
+      "description": "The shared library sub-view groups configured component instances that it references but does not own, so an instance could be re-parented or survive removal of the sub-view definition.",
+      "evidence": "The library sub-view's definition file lists component instance IDs by reference (e.g. a children array of refs to instances declared elsewhere) rather than declaring them inline."
+    },
+    {
+      "id": "ux.librarysubview.composes.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.librarysubview composes ux.componentinstance",
+      "description": "The shared library sub-view owns the configured component instances that make up its assembly, so each instance exists only as part of that sub-view definition and is deleted with it.",
+      "evidence": "The library sub-view's spec or JSX/template inlines the component instances with their prop values and render positions directly inside its own definition body."
+    },
+    {
+      "id": "ux.librarysubview.uses.ux.actionpattern",
+      "previous_description": "Defines relationship: ux.librarysubview uses ux.actionpattern",
+      "description": "The shared library sub-view adopts a reusable interaction recipe so its action controls follow the prescribed input modality and feedback sequence wherever the sub-view is embedded.",
+      "evidence": "The library sub-view's definition names the action pattern by ID (e.g. actionPattern: confirm-then-toast) on its buttons or handlers, or imports the pattern's hook/utility."
+    },
+    {
+      "id": "ux.librarysubview.uses.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.librarysubview uses ux.dataconfig",
+      "description": "The shared library sub-view declares a data binding that tells its embedded components which source (API, store, local storage, mock or static value) and field path supply their data.",
+      "evidence": "The library sub-view's spec attaches a dataConfig entry naming the source and field path, or its component code consumes the binding declared in that DataConfig."
+    },
+    {
+      "id": "ux.librarysubview.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.librarysubview uses ux.layoutconfig",
+      "description": "The shared library sub-view applies a declarative layout configuration that arranges its component instances with a given layout mode, grid tracks, spacing and alignment.",
+      "evidence": "The library sub-view's definition references a layoutConfig ID, or its container element carries the grid/flex classes or styles defined by that LayoutConfig."
+    }
+  ],
+  "notes": "aggregates and composes to componentinstance are mutually contradictory; the ComponentInstance definition ('placed inside a specific...LibrarySubView') implies composition, so aggregates looks redundant or wrong. uses to layoutconfig would read better as 'applies' (ux predicate for configuration/style), and uses to dataconfig arguably overlaps with 'binds-to'."
+}

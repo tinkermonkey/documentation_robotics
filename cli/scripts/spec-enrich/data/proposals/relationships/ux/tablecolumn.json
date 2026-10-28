@@ -1,0 +1,50 @@
+{
+  "source": "ux.tablecolumn",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.064Z",
+  "relationships": [
+    {
+      "id": "ux.tablecolumn.binds-to.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.tablecolumn binds-to ux.dataconfig",
+      "description": "The column draws each cell's value from the field path that the data-binding declaration selects from the table's row data source, so the binding determines what the column displays.",
+      "evidence": "The column definition's field or accessor key matches a field path declared in the DataConfig attached to the table, such as a column `accessorKey: 'email'` resolved against the table's `dataSource` binding."
+    },
+    {
+      "id": "ux.tablecolumn.maps-to.data-store.field",
+      "previous_description": "Defines relationship: ux.tablecolumn maps-to data-store.field",
+      "description": "The column presents the values persisted in one physical field of a stored collection, so each cell shows that record's stored column, document path or property value.",
+      "evidence": "The column's field key matches a column in the database DDL, collection mapping or search index mapping, and the query that fills the table selects that physical field."
+    },
+    {
+      "id": "ux.tablecolumn.maps-to.data-model.schemaproperty",
+      "previous_description": "Defines relationship: ux.tablecolumn maps-to data-model.schemaproperty",
+      "description": "The column displays one logical property of the entity or DTO schema that describes each row record, and it takes that property's type, format and title for its rendering and header.",
+      "evidence": "The column's field key names a property under the row ObjectSchema's `properties` in the OpenAPI or JSON Schema document, and the cell renderer type matches that property's type or format."
+    },
+    {
+      "id": "ux.tablecolumn.references.ux.actionpattern",
+      "previous_description": "Defines relationship: ux.tablecolumn references ux.actionpattern",
+      "description": "The column points to a reusable interaction recipe for its in-cell actions, such as row-level edit, delete or link clicks, so those actions follow that recipe's input modality and feedback sequence.",
+      "evidence": "The column configuration includes an action or cell-type entry that names the ActionPattern identifier, for example `cellAction: 'confirm-delete-pattern'`, in the UX specification."
+    },
+    {
+      "id": "ux.tablecolumn.references.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: ux.tablecolumn references security.fieldaccesscontrol",
+      "description": "The column names the field-level protection rule that governs its bound field, so cells show masked, redacted or truncated values to viewers who lack clear-text permission.",
+      "evidence": "The column definition carries a masking or redaction attribute, or a security annotation, whose field matches the FieldAccessControl rule declared on the same field of the secured resource."
+    },
+    {
+      "id": "ux.tablecolumn.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.tablecolumn renders ux.componentinstance",
+      "description": "The column delegates the display of each of its cells to a specific placed component occurrence, such as a badge, avatar or link instance, configured with props derived from the row value.",
+      "evidence": "The column's cell renderer property, for example `cell: <StatusBadge .../>` or `renderCell: 'status-badge-instance'`, references a ComponentInstance declared in the view specification."
+    },
+    {
+      "id": "ux.tablecolumn.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.tablecolumn uses ux.layoutconfig",
+      "description": "The column applies a declarative arrangement rule set to position the content inside its header and cells, such as alignment, spacing and width constraints.",
+      "evidence": "The column configuration references a named LayoutConfig, for example `cellLayout: 'compact-right-aligned'`, or applies that LayoutConfig's CSS layout classes to its header and cell containers."
+    }
+  ],
+  "notes": "The two maps-to relationships, to data-store.field and to data-model.schemaproperty, plus binds-to dataconfig all describe the column's data source; the column should usually map to the schema property only. Renders componentinstance is odd because the column is itself part of a table ComponentInstance. Uses layoutconfig overlaps with the column's own width and alignment attributes."
+}

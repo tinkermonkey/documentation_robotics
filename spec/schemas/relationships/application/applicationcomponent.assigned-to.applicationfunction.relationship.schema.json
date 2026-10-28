@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent assigned-to Applicationfunction",
-  "description": "Defines relationship: application.applicationcomponent assigned-to application.applicationfunction",
+  "description": "The component is the active structure that performs the function: the function's logic runs inside this component and is attributed to it, not offered as a service of its own.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The function's code lives only within the component's package or source tree and is not exported or reused by any other deployable unit."
+  ]
 }

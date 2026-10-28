@@ -1,0 +1,67 @@
+{
+  "claim_id": "node:security.accesscondition#1",
+  "first_pass": {
+    "choice": "real_defect",
+    "probabilities": {
+      "real_defect": 0.77,
+      "works_as_designed": 0.084,
+      "judgment_call": 0.113,
+      "out_of_scope": 0.033
+    },
+    "confidence": 0.484
+  },
+  "arguments": {
+    "fact_checks": [
+      "Nine of the eleven security types declaring 'source' use an optional object described as 'Source code reference', so the claimed sibling pattern is real and dominant.",
+      "accesscondition.source is a required string with no description, so the facts do not show whether it means a code reference or something else.",
+      "evidence.source is also a required string, but it has an explicit description (origin of an evidence artifact), so a deliberate string-typed 'source' exists and is documented as distinct.",
+      "condition, policyrule and validationrule, the types closest to accesscondition, all use the optional source-code-reference object."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "Nine sibling types, including condition and policyrule, use an optional source-code-reference object; accesscondition alone deviates without explanation.",
+          "The missing description, unlike evidence.source, suggests an accidental typing rather than an intentional distinct meaning.",
+          "Required 'source' forces modellers to invent a value for every predicate, even when no code location exists, which hampers CLI validation."
+        ],
+        "arguments_against": [
+          "evidence.source shows a required string 'source' can legitimately carry a different meaning.",
+          "Accesscondition may intend 'source' as the attribute category (subject, resource, environment), which a code-reference object would break."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "The proposed definition names subject claim, resource property and environment value, so 'source' could plausibly be the XACML attribute category for 'field'.",
+          "Like evidence.source, accesscondition.source may be a domain attribute that only shares its name with the code reference."
+        ],
+        "arguments_against": [
+          "There is no description establishing the alternative meaning, unlike the documented evidence.source.",
+          "Accesscondition is embedded in PolicyRule, which uses the code-reference object, so coherence would expect the same."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Whether a predicate carries its own code reference or inherits one from its PolicyRule is a granularity choice for product owners.",
+          "One fix renames the string to 'attributeSource' and adds the optional code reference; the other just retypes it. Choosing between them needs a decision."
+        ],
+        "arguments_against": [
+          "Required versus optional with an undocumented type looks like an error rather than a deliberate trade-off.",
+          "The dominant sibling convention gives a clear default, so little genuine choice remains."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "Source-code traceability is arguably a tooling or extraction concern rather than core security semantics."
+        ],
+        "arguments_against": [
+          "The attribute is declared in the spec schema itself, so its typing is squarely a spec matter.",
+          "The claim concerns schema consistency within the layer, not CLI behaviour."
+        ]
+      }
+    ]
+  }
+}

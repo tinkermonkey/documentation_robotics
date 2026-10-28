@@ -1,0 +1,38 @@
+{
+  "source": "apm.instrumentationscope",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.054Z",
+  "relationships": [
+    {
+      "id": "apm.instrumentationscope.aggregates.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.instrumentationscope aggregates apm.exporterconfig",
+      "description": "The instrumentation scope groups the exporter configurations that ship the telemetry it emits, though each exporter is configured independently and may serve many scopes.",
+      "evidence": "The SDK bootstrap that obtains the scope's Tracer or Meter from a provider is the same bootstrap that registers the named SpanExporter or MetricReader with its endpoint and protocol, or a Collector pipeline routes data from that scope to the exporter."
+    },
+    {
+      "id": "apm.instrumentationscope.aggregates.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.instrumentationscope aggregates apm.metricinstrument",
+      "description": "The metric instrument is defined under the instrumentation scope's Meter, so every measurement it records is attributed to that instrumenting library or module.",
+      "evidence": "Code calls meterProvider.getMeter(scopeName, version) and then createCounter or histogramBuilder on that Meter to declare the instrument."
+    },
+    {
+      "id": "apm.instrumentationscope.aggregates.apm.span",
+      "previous_description": "Defines relationship: apm.instrumentationscope aggregates apm.span",
+      "description": "The span is started from the Tracer obtained for the instrumentation scope, so the scope is the declared origin of that unit of traced work.",
+      "evidence": "Code obtains tracerProvider.getTracer(scopeName, version) and calls startSpan or spanBuilder with the span name on that Tracer, or exported span data carries the scope name in its InstrumentationScope field."
+    },
+    {
+      "id": "apm.instrumentationscope.monitors.data-model.objectschema",
+      "previous_description": "Defines relationship: apm.instrumentationscope monitors data-model.objectschema",
+      "description": "The instrumentation scope emits telemetry about operations on records of the object schema, for example spans or metrics recording creation, validation or persistence of that entity type.",
+      "evidence": "The instrumentation module wraps repository, ORM or serializer calls for the entity class and sets span attributes or metric labels naming that entity type."
+    },
+    {
+      "id": "apm.instrumentationscope.monitors.ux.uxapplication",
+      "previous_description": "Defines relationship: apm.instrumentationscope monitors ux.uxapplication",
+      "description": "The instrumentation scope is the client-side telemetry library that observes the front-end application, capturing its page loads, interactions and errors.",
+      "evidence": "The app root's bootstrap initializes a web or mobile OpenTelemetry SDK or RUM agent and registers instrumentations under that scope name, such as document-load or user-interaction."
+    }
+  ],
+  "notes": "Aggregating ExporterConfig is questionable: exporters attach to providers or pipelines, not scopes, so the link is indirect. The monitors links blur the definition that scope identifies the instrumenting library rather than the observed subject; a predicate such as instruments, or routing through spans, would be more precise."
+}

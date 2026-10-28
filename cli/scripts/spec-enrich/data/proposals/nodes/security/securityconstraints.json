@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "security.securityconstraints",
+  "previous_description": "An aggregate container defining the procedural access control constraints for an application, grouping SeparationOfDuty, BindingOfDuty, and NeedToKnow rules. Applied within SecurityModel to enforce AC-5 and workflow integrity controls.",
+  "definition": "An application-scoped container that groups the procedural, workflow-level access constraints (SeparationOfDuty, BindingOfDuty and NeedToKnow rules) applied within a SecurityModel. It holds no predicate or decision logic of its own; its content is the set of duty and purpose constraints it aggregates.",
+  "distinguish_from": [
+    {
+      "type": "security.separationofduty",
+      "when": "modelling one specific rule that two tasks or roles must be held by different actors, rather than the collection of all such rules for the application"
+    },
+    {
+      "type": "security.securitypolicy",
+      "when": "the artifact is a prioritized set of evaluable rules with permit/deny effects targeting endpoints, data or roles, rather than a grouping of duty and need-to-know constraints"
+    },
+    {
+      "type": "security.securitymodel",
+      "when": "the element is the root security specification for the application, composing authentication, roles, threats, classification and policies, not only the procedural constraints"
+    },
+    {
+      "type": "security.needtoknow",
+      "when": "modelling a single purpose-justification requirement for one resource rather than the grouping container"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-5 (Separation of Duties), with AC-3(3) need-to-know restrictions",
+  "code_evidence": [
+    "a dedicated configuration block or file (e.g. 'constraints:' or 'duty-rules.yaml') listing separation-of-duty pairs, binding-of-duty tasks and need-to-know resources together",
+    "a registry or module (e.g. WorkflowConstraintRegistry, DutyConstraintService) that loads and applies several SoD/BoD/purpose checks to workflow transitions such as request/approve",
+    "a documentation section titled e.g. 'Procedural Access Constraints' or 'Segregation of Duties Matrix' enumerating mutually exclusive roles and task-continuity rules for one application"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Version identifier of this constraint set (e.g. semantic version '1.2.0' or a dated revision), set when the grouped duty and need-to-know rules are versioned independently of the enclosing SecurityModel."
+    }
+  ],
+  "notes": "Container has no scoping attribute (application/scope) and no description; consider adding them. Outgoing 'enforces' and 'governs' to securitypolicy are redundant and odd for a passive container. Incoming 'satisfies' from apm.logprocessor, navigationflow and objectschema target the container rather than individual rules, which weakens traceability; consider redirecting to the aggregated rule types.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

@@ -1,0 +1,62 @@
+{
+  "source": "technology.technologycollaboration",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.070Z",
+  "relationships": [
+    {
+      "id": "technology.technologycollaboration.accesses.technology.artifact",
+      "previous_description": "Defines relationship: technology.technologycollaboration accesses technology.artifact",
+      "description": "The cooperating peer group reads or writes a shared data artifact, such as a replicated cluster configuration file, snapshot archive or shared membership manifest, as part of its joint operation.",
+      "evidence": "The cluster's configuration or startup manifest mounts the same file, snapshot path or ConfigMap on every member, or the collaboration's runbook documents peers jointly reading or writing that artifact."
+    },
+    {
+      "id": "technology.technologycollaboration.aggregates.technology.node",
+      "previous_description": "Defines relationship: technology.technologycollaboration aggregates technology.node",
+      "description": "The host is a peer member of the cluster or ensemble, contributing its compute to the collaboration while remaining a host that can exist and be re-assigned independently.",
+      "evidence": "The cluster definition lists the host as a member, for example a StatefulSet replica, an initial-cluster or seed-node entry, or a Terraform cluster resource that references the VM instance IDs."
+    },
+    {
+      "id": "technology.technologycollaboration.aggregates.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.technologycollaboration aggregates technology.technologyinterface",
+      "description": "The endpoint is one of the access points that makes up the collaboration, such as a member's client port or a shared cluster endpoint through which consumers reach the peer group as a whole.",
+      "evidence": "The cluster configuration declares the listener, for example a Kubernetes Service fronting the StatefulSet, a cluster-endpoint URL, or per-member advertise addresses and ports."
+    },
+    {
+      "id": "technology.technologycollaboration.associated-with.technology.technologycollaboration",
+      "previous_description": "Defines relationship: technology.technologycollaboration associated-with technology.technologycollaboration",
+      "description": "Two separate peer groups are related to each other, for example a primary database cluster paired with a disaster-recovery cluster or a service mesh federated with another mesh, without one containing the other.",
+      "evidence": "Configuration in one cluster names the other, such as a cross-cluster replication target, a mesh federation or trust-domain entry, or architecture documentation describing the pairing."
+    },
+    {
+      "id": "technology.technologycollaboration.performs.technology.technologyinteraction",
+      "previous_description": "Defines relationship: technology.technologycollaboration performs technology.technologyinteraction",
+      "description": "The peer group jointly carries out the coordinated behavior, such as leader election, distributed commit or replication sync, which needs its members to cooperate.",
+      "evidence": "The cluster software's configuration enables the protocol across members, for example Raft or Paxos settings, replication-mode or quorum parameters, and logs show the members exchanging protocol messages."
+    },
+    {
+      "id": "technology.technologycollaboration.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologycollaboration realizes technology.technologyservice",
+      "description": "The peer group as a whole delivers the infrastructure capability consumers rely on, such as highly available storage, a distributed cache or mesh traffic management, which no single member provides alone.",
+      "evidence": "Service catalog entries, Terraform outputs or Helm chart values expose the cluster's combined endpoint as the provider of the capability, and consumer connection strings point to the cluster rather than an individual member."
+    },
+    {
+      "id": "technology.technologycollaboration.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.technologycollaboration triggers technology.technologyevent",
+      "description": "The peer group's joint activity raises a discrete infrastructure state change, such as a leader-changed, failover-completed, quorum-lost or rebalance-finished event.",
+      "evidence": "Cluster logs, emitted metrics or alert rules record the event as raised by the cluster, for example a Patroni failover callback, a Kafka controller-change log line or an alert keyed on the cluster's quorum status."
+    },
+    {
+      "id": "technology.technologycollaboration.uses.technology.communicationnetwork",
+      "previous_description": "Defines relationship: technology.technologycollaboration uses technology.communicationnetwork",
+      "description": "The peer group relies on the network, such as a VPC, subnet or overlay, to carry its inter-member traffic and client traffic.",
+      "evidence": "The member hosts are attached to the network in Terraform or Kubernetes networking definitions, and the cluster's bind or advertise addresses fall within that network's address range."
+    },
+    {
+      "id": "technology.technologycollaboration.uses.technology.path",
+      "previous_description": "Defines relationship: technology.technologycollaboration uses technology.path",
+      "description": "The peer group exchanges its coordination or replication traffic over a specific logical link between members or sites, such as a replication channel or a cross-region VPN tunnel.",
+      "evidence": "The cluster configuration names the link, for example a replication peer address routed through a tunnel or peering connection, and the network definition or firewall rules declare that path between the member hosts."
+    }
+  ],
+  "notes": "The two 'uses' relationships (communicationnetwork, path) partially overlap: a path normally runs over a network, so modelling both from the collaboration may be redundant. Aggregating technologyinterface is unusual; interfaces normally compose a single active element, so the collaboration-level endpoint should be the explicit target."
+}

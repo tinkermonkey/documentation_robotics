@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationinteraction",
+  "previous_description": "Collective application behavior performed by two or more application components working in collaboration, representing their joint behavioral contribution.",
+  "definition": "A unit of application behaviour performed jointly by two or more application components acting as a collaboration, which no single participant completes alone, such as a saga, a multi-service choreography or a handshake protocol spanning both sides of an exchange.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationprocess",
+      "when": "the ordered sequence of steps is executed by a single application component, even if it calls other components as dependencies."
+    },
+    {
+      "type": "application.applicationcollaboration",
+      "when": "the symbol represents the structural grouping of cooperating components rather than the behaviour they jointly perform."
+    },
+    {
+      "type": "application.applicationservice",
+      "when": "the symbol is the externally exposed, consumer-facing behaviour offered to callers rather than the internal joint behaviour that realizes it."
+    },
+    {
+      "type": "application.applicationevent",
+      "when": "the symbol is the message, notification or state change exchanged between participants rather than the cooperative behaviour that produces and handles it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.3.2 Application Interaction",
+  "code_evidence": [
+    "a saga or choreography definition (e.g. Temporal/Camunda workflow, Axon saga, Step Functions state machine) whose steps invoke and compensate operations in several distinct services",
+    "a matched producer and consumer pair across separate deployable modules bound to the same topic, queue or RPC contract and documented as one flow (e.g. an AsyncAPI channel or sequence diagram naming multiple services)",
+    "a coordinator implementing a multi-party protocol such as two-phase commit, distributed lock negotiation or a client-server handshake where both sides' logic is required to complete the exchange"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the joint behaviour, naming the participating components, the exchange it accomplishes and its trigger. Set it whenever the participants or flow are not evident from the element name."
+    }
+  ],
+  "notes": "Lacks the 'properties' attribute every sibling has. The 'pattern' enum overlaps: 'event-driven' and 'publish-subscribe' are hard to separate. Saga/orchestration styles are missing. Single code symbols usually implement one side only, so classifiers will rarely match this type directly. Both realizes and delivers-value point to applicationservice, which is redundant. Collaboration depends-on interaction looks inverted.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:23:51.093Z"
+}

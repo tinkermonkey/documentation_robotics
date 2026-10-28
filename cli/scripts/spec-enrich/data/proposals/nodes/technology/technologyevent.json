@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologyevent",
+  "previous_description": "A technology behavior element that denotes a state change in the technology layer that triggers or results from technology behavior, such as a system alert, infrastructure notification, scheduled job trigger, or deployment completion signal.",
+  "definition": "A technology behavior element that denotes a discrete, instantaneous state change in infrastructure or platform software, such as an alert firing, a node or container failing, a scheduled trigger elapsing, or a deployment completing, that starts or results from technology functions, processes or interactions. It has no duration and performs no work itself.",
+  "distinguish_from": [
+    {
+      "type": "technology.technologyprocess",
+      "when": "the element is the multi-step job or pipeline that runs (backup job, deployment pipeline) rather than the trigger that starts it or the completion signal it emits"
+    },
+    {
+      "type": "technology.technologyfunction",
+      "when": "the element is a continuous automated capability of a node (health checking, log rotation, load balancing) rather than a single occurrence detected or produced by it"
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the element is the exposed monitoring, alerting or scheduling capability (Alertmanager, EventBridge, a cron service) that emits or delivers events, not the event itself"
+    },
+    {
+      "type": "technology.artifact",
+      "when": "the element is the file that declares the event condition, such as an alert-rule YAML, crontab or CloudWatch alarm template, rather than the state change it describes"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.3.4 Technology Event",
+  "code_evidence": [
+    "A named alerting rule or alarm definition, such as a Prometheus rule with alert:, expr: and for: fields, a CloudWatch/Azure Monitor alarm, or a Datadog monitor, that fires on a metric threshold or failure condition.",
+    "A schedule trigger that starts infrastructure work, such as a Kubernetes CronJob schedule: field, a crontab line, a CI on: schedule block, or an EventBridge/Cloud Scheduler rule.",
+    "A handler subscribed to infrastructure lifecycle notifications, such as a Kubernetes watch on Pod/Node events, the Docker events API, a CI on: deployment_status trigger, a SIGTERM/preStop hook, or a webhook receiving deployment-completed payloads."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the state change: the condition that raises the event, its emitting source, and what it triggers. Set it whenever the event name alone does not make the trigger condition clear."
+    }
+  ],
+  "notes": "eventType enum overlaps (alert is usually the consequence of a threshold-breach) and omits common cases: recovery/resolved, scaling, startup/shutdown, configuration-change. No attribute for emitting source or schedule/condition expression. The 'OpenTelemetry alignment' claim is unexplained. The flows-to→artifact relationship is semantically dubious for an instantaneous event.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.238Z"
+}

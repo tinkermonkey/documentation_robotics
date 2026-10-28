@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologyfunction",
+  "previous_description": "A collection of technology behavior that can be performed by a node, representing an internal automated capability such as data replication, load balancing, or log rotation.",
+  "definition": "An internal technology behavior element grouping automated infrastructure behavior that a single node or system software performs on an ongoing basis, defined by the capability it provides rather than by a sequence of steps or an externally exposed contract, such as data replication, load balancing, health checking, or log rotation.",
+  "distinguish_from": [
+    {
+      "type": "technology.technologyprocess",
+      "when": "the behavior is an ordered sequence of steps with a defined start and end result, such as a CI/CD pipeline, backup job run, or certificate renewal workflow."
+    },
+    {
+      "type": "technology.technologyservice",
+      "when": "the behavior is the externally visible capability offered to consumers through an interface (e.g. 'managed object storage'), rather than the internal mechanism that delivers it."
+    },
+    {
+      "type": "technology.technologyinteraction",
+      "when": "the behavior can only be performed jointly by two or more collaborating nodes, such as a consensus round, distributed transaction, or cluster failover handshake."
+    },
+    {
+      "type": "technology.systemsoftware",
+      "when": "the element is the software product or runtime that performs the behavior (e.g. nginx, PostgreSQL), not the behavior itself."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.3.1 Technology Function",
+  "code_evidence": [
+    "Infrastructure configuration that enables a named built-in capability of a platform component, such as a PostgreSQL streaming-replication block, an nginx upstream load-balancing block, or a Redis persistence/eviction policy.",
+    "A sidecar, daemon, or DaemonSet that runs continuously to perform a housekeeping capability, such as a logrotate config, a Fluent Bit log-shipping agent, or a node-exporter metrics collector.",
+    "Kubernetes or cloud resource settings declaring automated platform behavior, such as liveness/readiness probes, a HorizontalPodAutoscaler, or an S3 bucket replication or lifecycle rule."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of what the function does, which node or system software performs it, and its triggering or operating conditions; set whenever the name alone does not make the capability's scope clear."
+    }
+  ],
+  "notes": "No attribute distinguishes function categories (replication, balancing, monitoring, scaling); consider a functionType enum parallel to siblings. The definition says 'performed by a node', but systemsoftware is also assigned-to it, so the definition must cover both. The boundary with TechnologyProcess hinges on step sequencing, which is weakly observable in config. The incoming navigation.route uses relation looks questionable.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.207Z"
+}

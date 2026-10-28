@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "testing.partitionvalue",
+  "previous_description": "An individual equivalence class within an InputSpacePartition, characterized by a label, representative value, and optional constraint expression, used to enumerate the testable categories of an input dimension per IEEE 829-2008 test design specification.",
+  "definition": "A single equivalence class or boundary class of one input dimension, owned by exactly one InputSpacePartition. It is defined by a boundary condition and by a representative value that stands for every value in the class during test design.",
+  "distinguish_from": [
+    {
+      "type": "testing.inputspacepartition",
+      "when": "you are modelling the whole input field or dimension and its complete set of classes, rather than one class within it."
+    },
+    {
+      "type": "testing.inputselection",
+      "when": "you are binding a specific concrete test datum, used by a particular TestCaseSketch, to one of the partition's classes."
+    },
+    {
+      "type": "testing.inputpartitionselection",
+      "when": "you are stating which classes of a partition a CoverageRequirement must or must not exercise."
+    },
+    {
+      "type": "testing.outcomecategory",
+      "when": "the category classifies expected results (success, validation error, timeout) rather than input values."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Level Test Design Specification, features and input specification refinement; equivalence partitioning and boundary value analysis per ISO/IEC/IEEE 29119-4 §5.2.1–5.2.3",
+  "code_evidence": [
+    "A parametrized test table for a single argument whose case ids name input classes, e.g. @pytest.mark.parametrize ids=['valid','empty','too_long','negative'] or a JUnit @ValueSource/@CsvSource grouped by class.",
+    "Test data constants or builder functions named after a class of one field and mirroring a schema constraint, e.g. MAX_LEN_BOUNDARY = 255, invalid_email(), or a 'min - 1' value derived from a minimum declared in the OpenAPI or JSON Schema.",
+    "A property-based generator restricted to one class of an input, e.g. a Hypothesis strategy such as st.integers(min_value=0, max_value=100) or a fast-check arbitrary filtered by a regex predicate."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "label",
+      "description": "Short identifier for the class, unique within its parent partition (e.g. 'empty-string', 'above-max'); other nodes cite it in coverValues, excludeValues and affectedValues, so it is always set."
+    },
+    {
+      "name": "description",
+      "description": "Optional free-text explanation of why values in this class are expected to behave alike and what behaviour they probe; set it when the label and constraint alone do not make the intent clear."
+    },
+    {
+      "name": "representativeValue",
+      "description": "One abstract value, written as a string, that stands for the whole class in test design (e.g. '101' for above-max, '' for null-empty); it is distinct from the concrete datum later bound in InputSelection.concreteValue."
+    }
+  ],
+  "notes": "The definition calls the constraint expression optional, yet constraint and constraintExpression are both required. There is no explicit partitionRef attribute; ownership relies only on the composes relationship. The category enum mixes validity classes with value shapes (null-empty, special-character). The triggers relationship to coveragegap runs both ways, and depends-on to environmentfactor is doubtful.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.202Z"
+}

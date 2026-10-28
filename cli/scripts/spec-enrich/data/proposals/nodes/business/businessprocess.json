@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businessprocess",
+  "previous_description": "A behavior element representing a sequence or set of behaviors that achieves a specific business result for a customer or stakeholder. Driven by external triggers (BusinessEvents) or internal initiations, and performed by BusinessActors or BusinessRoles.",
+  "definition": "A business behavior element, performed by a BusinessRole or BusinessActor, that consists of an ordered sequence of business activities with a defined start (a BusinessEvent or internal initiation) and a defined end state yielding a specific result, such as a delivered BusinessObject or a fulfilled request, for a customer or stakeholder.",
+  "distinguish_from": [
+    {
+      "type": "business.businessfunction",
+      "when": "the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result."
+    },
+    {
+      "type": "business.businessinteraction",
+      "when": "the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor."
+    },
+    {
+      "type": "business.businessservice",
+      "when": "you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done)."
+    },
+    {
+      "type": "business.businessevent",
+      "when": "the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.3.1 Business Process",
+  "code_evidence": [
+    "A workflow or orchestration definition (BPMN file, Camunda/Temporal/Step Functions workflow, saga class) named after a business outcome, e.g. OrderFulfillmentWorkflow, whose steps run in a declared order.",
+    "A state machine or status enum on a business entity whose transitions follow a business lifecycle (e.g. SUBMITTED → APPROVED → SHIPPED) and are driven by a single orchestrating service method.",
+    "Documentation, runbooks or user stories that describe a numbered sequence of business steps from a trigger to a completion criterion, owned by a named role (e.g. 'claims handler')."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text prose describing the process's trigger, main steps, performing role, and end result, written in business terms; set whenever the name alone does not make the start and end conditions clear."
+    }
+  ],
+  "notes": "The incoming 'businessservice realizes businessprocess' is inverted relative to the outgoing 'businessprocess realizes businessservice'; keep only the latter. 'businessprocess aggregates application.applicationprocess' breaks layer independence and should probably be 'applicationprocess realizes/serves'. 'businessrole assigned-to' and 'performs' are duplicates. The BusinessInteraction sibling definition wrongly implies functions are actor-only and processes role-only.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.199Z"
+}

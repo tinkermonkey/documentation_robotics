@@ -1,0 +1,62 @@
+{
+  "source": "api.pathitem",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.077Z",
+  "relationships": [
+    {
+      "id": "api.pathitem.aggregates.api.parameter",
+      "previous_description": "Defines relationship: api.pathitem aggregates api.parameter",
+      "description": "The path item declares a parameter (typically a path template variable such as userId, or a shared header) at path level so that it applies to every operation under that path, while the parameter can also be defined in components and reused elsewhere.",
+      "evidence": "The OpenAPI document lists the parameter, inline or as a $ref to components/parameters, in the 'parameters' array directly under the path key rather than under a method."
+    },
+    {
+      "id": "api.pathitem.aggregates.api.server",
+      "previous_description": "Defines relationship: api.pathitem aggregates api.server",
+      "description": "The path item overrides the document-level base URLs with its own server declaration, so every operation on that path is sent to that network location, while the same server definition may also appear at other scopes.",
+      "evidence": "A 'servers' array appears directly under the path key in the OpenAPI document, containing an entry whose url matches the server element."
+    },
+    {
+      "id": "api.pathitem.composes.api.operation",
+      "previous_description": "Defines relationship: api.pathitem composes api.operation",
+      "description": "The path item is the container for the method-specific operation, which exists only as the GET, POST or other method bound to that path template and has no identity without it.",
+      "evidence": "The operation object sits under an HTTP method key (get, post, put, delete, etc.) nested beneath the path key in the OpenAPI paths map, or a router registers a handler for that method on that exact path."
+    },
+    {
+      "id": "api.pathitem.depends-on.technology.technologyservice",
+      "previous_description": "Defines relationship: api.pathitem depends-on technology.technologyservice",
+      "description": "The operations exposed on the path cannot be served unless an infrastructure capability such as an API gateway, load balancer, database or identity service is available behind it.",
+      "evidence": "Gateway or ingress configuration (e.g. an x-amazon-apigateway-integration extension, a Kubernetes Ingress rule or a Kong route) binds the path to the backing infrastructure service, or deployment manifests show the path's handlers require that service."
+    },
+    {
+      "id": "api.pathitem.realizes.business.businessfunction",
+      "previous_description": "Defines relationship: api.pathitem realizes business.businessfunction",
+      "description": "The URL resource represented by the path is the technical embodiment of a business competency, such as /claims realizing Claims Handling, making that function's capabilities accessible through the API.",
+      "evidence": "Architecture documentation, capability maps or tags on the path's operations explicitly map the path to the named business function, for example a tag or x-business-function extension naming it."
+    },
+    {
+      "id": "api.pathitem.references.api.externaldocumentation",
+      "previous_description": "Defines relationship: api.pathitem references api.externaldocumentation",
+      "description": "The path item points readers to externally hosted documentation that explains the resource exposed at that path in more depth than the API description itself.",
+      "evidence": "An externalDocs URL, or a link in the path item's description field, points to the documentation page associated with the path."
+    },
+    {
+      "id": "api.pathitem.references.api.pathitem",
+      "previous_description": "Defines relationship: api.pathitem references api.pathitem",
+      "description": "The path item takes its definition from another path item, for example a callback or webhook path, or a path in a shared file, so both describe the same set of operations without duplication.",
+      "evidence": "The path item object contains a '$ref' whose JSON pointer or relative file URL resolves to the other path item, e.g. components/pathItems or an external paths file."
+    },
+    {
+      "id": "api.pathitem.requires.security.securitypolicy",
+      "previous_description": "Defines relationship: api.pathitem requires security.securitypolicy",
+      "description": "Every request to any operation on the path must be admitted by the access-control policy that governs that endpoint category before it can be processed.",
+      "evidence": "Policy configuration (e.g. an OPA/XACML policy target, gateway route policy or Spring Security matcher) names the path template as its target, or the path's operations declare security requirements enforced by that policy."
+    },
+    {
+      "id": "api.pathitem.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: api.pathitem serves application.applicationcomponent",
+      "description": "The resource exposed at the path provides its operations to an application component, such as a frontend or another microservice, that calls URLs under that path to carry out its behaviour.",
+      "evidence": "The consuming component's source or generated client issues HTTP calls to URLs matching the path template, or its configuration lists the path as a dependency endpoint."
+    }
+  ],
+  "notes": "PathItem has no externalDocs field in OpenAPI; the references-externaldocumentation relationship is only realizable via description links, so it is questionable. Realizing a BusinessFunction directly from a path item is unusual; it's normally the operation or an application service that realizes business behaviour. Serves-applicationcomponent is more naturally expressed at the operation level."
+}
