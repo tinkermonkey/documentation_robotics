@@ -1,11 +1,11 @@
 {
   "format": "dr-reflection-plan/1",
   "taxonomy_id": "dr_spec",
-  "title": "DR reflection plan: api layer (64 relationship changes)",
+  "title": "DR reflection plan: api layer (63 relationship changes)",
   "rationale": "Relationship schemas in the api layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.",
   "source": "pipeline",
-  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json, branch feature/extraction-eval-harness",
-  "created_at": "2026-10-27T18:56:23.987Z",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json",
+  "created_at": "2026-10-28T12:57:11.234Z",
   "layer": "api",
   "operations": [
     {
@@ -167,7 +167,8 @@
       "ref": null,
       "fields": {
         "predicate": "aggregates",
-        "title": "api.components aggregates api.securityscheme"
+        "title": "api.components aggregates api.securityscheme",
+        "description": "Defines relationship: api.components aggregates api.securityscheme"
       },
       "rationale": "Rename the predicate of api.components.composes.api.securityscheme to api.components.aggregates.api.securityscheme. Plan kind rename-predicate, p 0.77; claims rel:api.components#4.",
       "kind": "property",
@@ -206,7 +207,8 @@
       "ref": null,
       "fields": {
         "predicate": "aggregates",
-        "title": "api.components aggregates api.parameter"
+        "title": "api.components aggregates api.parameter",
+        "description": "Defines relationship: api.components aggregates api.parameter"
       },
       "rationale": "Rename the predicate of api.components.composes.api.parameter to api.components.aggregates.api.parameter. Plan kind rename-predicate, p 0.74; claims rel:api.components#4.",
       "kind": "property",
@@ -245,7 +247,8 @@
       "ref": null,
       "fields": {
         "predicate": "aggregates",
-        "title": "api.components aggregates api.header"
+        "title": "api.components aggregates api.header",
+        "description": "Defines relationship: api.components aggregates api.header"
       },
       "rationale": "Rename the predicate of api.components.composes.api.header to api.components.aggregates.api.header. Plan kind rename-predicate, p 0.71; claims rel:api.components#4.",
       "kind": "property",
@@ -284,7 +287,8 @@
       "ref": null,
       "fields": {
         "predicate": "composes",
-        "title": "api.info composes api.license"
+        "title": "api.info composes api.license",
+        "description": "Defines relationship: api.info composes api.license"
       },
       "rationale": "Rename the predicate of api.info.aggregates.api.license to api.info.composes.api.license. Plan kind rename-predicate, p 0.60; claims rel:api.license#2, rel:api.info#2.",
       "kind": "property",
@@ -331,7 +335,8 @@
       "ref": null,
       "fields": {
         "predicate": "associated-with",
-        "title": "api.ratelimit associated-with api.pathitem"
+        "title": "api.ratelimit associated-with api.pathitem",
+        "description": "Defines relationship: api.ratelimit associated-with api.pathitem"
       },
       "rationale": "Rename the predicate of api.ratelimit.serves.api.pathitem to api.ratelimit.associated-with.api.pathitem. Plan kind rename-predicate, p 0.60; claims rel:api.ratelimit#2.",
       "kind": "property",
@@ -370,7 +375,8 @@
       "ref": null,
       "fields": {
         "predicate": "composes",
-        "title": "api.server composes api.servervariable"
+        "title": "api.server composes api.servervariable",
+        "description": "Defines relationship: api.server composes api.servervariable"
       },
       "rationale": "Rename the predicate of api.server.aggregates.api.servervariable to api.server.composes.api.servervariable. Plan kind rename-predicate, p 0.59; claims rel:api.server#1.",
       "kind": "property",
@@ -409,7 +415,8 @@
       "ref": null,
       "fields": {
         "predicate": "composes",
-        "title": "api.info composes api.contact"
+        "title": "api.info composes api.contact",
+        "description": "Defines relationship: api.info composes api.contact"
       },
       "rationale": "Rename the predicate of api.info.aggregates.api.contact to api.info.composes.api.contact. Plan kind rename-predicate, p 0.57; claims rel:api.info#2.",
       "kind": "property",
@@ -448,7 +455,8 @@
       "ref": null,
       "fields": {
         "predicate": "aggregates",
-        "title": "api.operation aggregates api.responses"
+        "title": "api.operation aggregates api.responses",
+        "description": "Defines relationship: api.operation aggregates api.responses"
       },
       "rationale": "Rename the predicate of api.operation.composes.api.responses to api.operation.aggregates.api.responses. Plan kind rename-predicate, p 0.35; claims rel:api.operation#4.",
       "kind": "property",
@@ -487,7 +495,8 @@
       "ref": null,
       "fields": {
         "predicate": "uses",
-        "title": "api.parameter uses api.schema"
+        "title": "api.parameter uses api.schema",
+        "description": "Defines relationship: api.parameter uses api.schema"
       },
       "rationale": "Rename the predicate of api.parameter.references.api.schema to api.parameter.uses.api.schema. Plan kind rename-predicate, p 0.35; claims rel:api.parameter#3.",
       "kind": "property",
@@ -526,7 +535,8 @@
       "ref": null,
       "fields": {
         "predicate": "aggregates",
-        "title": "api.operation aggregates api.response"
+        "title": "api.operation aggregates api.response",
+        "description": "Defines relationship: api.operation aggregates api.response"
       },
       "rationale": "Rename the predicate of api.operation.delivers.api.response to api.operation.aggregates.api.response. Plan kind rename-predicate, p 0.22; claims rel:api.operation#4.",
       "kind": "property",
@@ -902,7 +912,8 @@
       "fields": {
         "source_spec_node_id": "api.mediatype",
         "destination_spec_node_id": "api.mediatype",
-        "title": "api.mediatype aggregates api.mediatype"
+        "title": "api.mediatype aggregates api.mediatype",
+        "description": "Defines relationship: api.mediatype aggregates api.mediatype"
       },
       "rationale": "Retarget of api.requestbody.aggregates.api.example to api.mediatype.aggregates.api.mediatype. Plan kind retarget, p 0.82; claims rel:api.requestbody#2.",
       "kind": "property",
@@ -1087,7 +1098,8 @@
       "ref": null,
       "fields": {
         "source_spec_node_id": "api.encoding",
-        "title": "api.encoding associated-with api.header"
+        "title": "api.encoding associated-with api.header",
+        "description": "Defines relationship: api.encoding associated-with api.header"
       },
       "rationale": "Retarget of api.mediatype.associated-with.api.header to api.encoding.associated-with.api.header. Plan kind retarget, p 0.66; claims rel:api.mediatype#2.",
       "kind": "property",
@@ -1235,8 +1247,6 @@
       "target_id": "api.responses.references.api.schema",
       "ref": null,
       "fields": {},
-      "rationale": "Remove api.responses.references.api.schema: api.mediatype.references.api.schema already exists and expresses it. Plan kind retarget, p 0.59; claims rel:api.responses#2.",
-      "kind": "property",
       "base": {
         "predicate": "references",
         "source_spec_node_id": "api.responses",
@@ -1244,25 +1254,43 @@
         "title": "api.responses references api.schema",
         "description": "Defines relationship: api.responses references api.schema"
       },
+      "rationale": "Also removed with api.responses.aggregates.api.schema: Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68. Also plan row 32 (retarget): Remove api.responses.references.api.schema: api.mediatype.references.api.schema already exists and expresses it. Plan kind retarget, p 0.59; claims rel:api.responses#2.",
+      "kind": "property",
       "evidence": [
         {
           "quote": "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning. Proposed: Distinguish inline schemas from $ref schemas between the two relationships, or drop one of them.",
           "claim_id": "rel:api.responses#2"
         },
         {
+          "quote": "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map. Proposed: Remove the header, schema and link relationships from api.responses and keep them only on api.response or api.mediatype.",
+          "claim_id": "rel:api.responses#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#2): best source of 'aggregates api.schema': api.response (0.51), api.responses (0.15), none (0.14); best destination of 'api.responses aggregates': api.schema (0.53), none (0.30), api.components (0.05); best predicate: references (0.72), aggregates (0.08), uses (0.06). Outcome: alternative (source=api.response; predicate=references).",
+          "claim_id": "rel:api.responses#2"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#1): best source of 'aggregates api.schema': api.response (0.75), none (0.11), api.responses (0.06); best destination of 'api.responses aggregates': none (0.68), api.schema (0.17), api.header (0.05); best predicate: references (0.54), none (0.30), aggregates (0.05). Outcome: alternative (source=api.response; predicate=references).",
+          "claim_id": "rel:api.responses#1"
+        },
+        {
           "quote": "Sorting answers (rel:api.responses#2): best source of 'references api.schema': api.mediatype (0.59), api.operation (0.12), none (0.09); best destination of 'api.responses references': api.schema (0.39), api.components (0.25), none (0.22); best predicate: references (0.64), none (0.11), uses (0.08). Outcome: alternative (source=api.mediatype).",
           "claim_id": "rel:api.responses#2"
         }
       ],
-      "probability": 0.592,
+      "probability": 0.51,
       "scope": null,
       "status": "pending",
       "dr": {
-        "plan_row": 32,
-        "plan_kind": "retarget",
-        "triple": "api.responses.references.api.schema",
-        "replacement": ["api.mediatype.references.api.schema"],
-        "claims": ["rel:api.responses#2"]
+        "plan_row": 51,
+        "plan_kind": "compound",
+        "triple": "api.responses.aggregates.api.schema",
+        "replacement": ["api.response.references.api.schema"],
+        "claims": ["rel:api.responses#2", "rel:api.responses#1"],
+        "extra": "also_delete",
+        "walk_decision": "delete",
+        "walk_rationale": "Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68.",
+        "merged_plan_rows": [32]
       }
     },
     {
@@ -1272,7 +1300,8 @@
       "ref": null,
       "fields": {
         "source_spec_node_id": "api.encoding",
-        "title": "api.encoding associated-with api.encoding"
+        "title": "api.encoding associated-with api.encoding",
+        "description": "Defines relationship: api.encoding associated-with api.encoding"
       },
       "rationale": "Retarget of api.requestbody.associated-with.api.encoding to api.encoding.associated-with.api.encoding. Plan kind retarget, p 0.57; claims rel:api.requestbody#2.",
       "kind": "property",
@@ -1525,7 +1554,8 @@
       "ref": null,
       "fields": {
         "destination_spec_node_id": "security.authenticationconfig",
-        "title": "api.securityscheme maps-to security.authenticationconfig"
+        "title": "api.securityscheme maps-to security.authenticationconfig",
+        "description": "Defines relationship: api.securityscheme maps-to security.authenticationconfig"
       },
       "rationale": "Retarget of api.securityscheme.maps-to.security.actor to api.securityscheme.maps-to.security.authenticationconfig. Plan kind retarget, p 0.47; claims rel:api.securityscheme#3.",
       "kind": "property",
@@ -1836,7 +1866,8 @@
       "ref": null,
       "fields": {
         "destination_spec_node_id": "application.applicationcomponent",
-        "title": "api.operation realizes application.applicationcomponent"
+        "title": "api.operation realizes application.applicationcomponent",
+        "description": "Defines relationship: api.operation realizes application.applicationcomponent"
       },
       "rationale": "Retarget of api.operation.realizes.application.applicationfunction to api.operation.realizes.application.applicationcomponent. Plan kind retarget, p 0.30; claims node:application.applicationfunction#3.",
       "kind": "property",
@@ -1948,7 +1979,8 @@
       "fields": {
         "source_spec_node_id": "application.applicationcomponent",
         "destination_spec_node_id": "motivation.outcome",
-        "title": "application.applicationcomponent realizes motivation.outcome"
+        "title": "application.applicationcomponent realizes motivation.outcome",
+        "description": "Defines relationship: application.applicationcomponent realizes motivation.outcome"
       },
       "rationale": "Retarget of api.operation.realizes.motivation.goal to application.applicationcomponent.realizes.motivation.outcome. Plan kind retarget, p 0.24; claims rel:api.operation#5.",
       "kind": "property",
@@ -2013,6 +2045,10 @@
         {
           "quote": "Sorting answers (rel:api.responses#1): best source of 'aggregates api.schema': api.response (0.75), none (0.11), api.responses (0.06); best destination of 'api.responses aggregates': none (0.68), api.schema (0.17), api.header (0.05); best predicate: references (0.54), none (0.30), aggregates (0.05). Outcome: alternative (source=api.response; predicate=references).",
           "claim_id": "rel:api.responses#1"
+        },
+        {
+          "quote": "Sorting answers (rel:api.responses#2): best source of 'references api.schema': api.mediatype (0.59), api.operation (0.12), none (0.09); best destination of 'api.responses references': api.schema (0.39), api.components (0.25), none (0.22); best predicate: references (0.64), none (0.11), uses (0.08). Outcome: alternative (source=api.mediatype).",
+          "claim_id": "rel:api.responses#2"
         }
       ],
       "probability": 0.51,
@@ -2030,52 +2066,6 @@
     },
     {
       "seq": 52,
-      "op": "delete",
-      "target_id": "api.responses.references.api.schema",
-      "ref": null,
-      "fields": {},
-      "base": {
-        "predicate": "references",
-        "source_spec_node_id": "api.responses",
-        "destination_spec_node_id": "api.schema",
-        "title": "api.responses references api.schema",
-        "description": "Defines relationship: api.responses references api.schema"
-      },
-      "rationale": "Also removed with api.responses.aggregates.api.schema: Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68.",
-      "kind": "property",
-      "evidence": [
-        {
-          "quote": "The relationships api.responses aggregates api.schema and api.responses references api.schema largely overlap in meaning. Proposed: Distinguish inline schemas from $ref schemas between the two relationships, or drop one of them.",
-          "claim_id": "rel:api.responses#2"
-        },
-        {
-          "quote": "The relationships api.responses aggregates api.header, api.responses aggregates api.schema and api.responses references api.link are transitive shortcuts, because headers, schemas and links belong to individual Response objects (or MediaType), not to the Responses map. Proposed: Remove the header, schema and link relationships from api.responses and keep them only on api.response or api.mediatype.",
-          "claim_id": "rel:api.responses#1"
-        },
-        {
-          "quote": "Sorting answers (rel:api.responses#2): best source of 'aggregates api.schema': api.response (0.51), api.responses (0.15), none (0.14); best destination of 'api.responses aggregates': api.schema (0.53), none (0.30), api.components (0.05); best predicate: references (0.72), aggregates (0.08), uses (0.06). Outcome: alternative (source=api.response; predicate=references).",
-          "claim_id": "rel:api.responses#2"
-        },
-        {
-          "quote": "Sorting answers (rel:api.responses#1): best source of 'aggregates api.schema': api.response (0.75), none (0.11), api.responses (0.06); best destination of 'api.responses aggregates': none (0.68), api.schema (0.17), api.header (0.05); best predicate: references (0.54), none (0.30), aggregates (0.05). Outcome: alternative (source=api.response; predicate=references).",
-          "claim_id": "rel:api.responses#1"
-        }
-      ],
-      "probability": 0.51,
-      "scope": null,
-      "status": "pending",
-      "dr": {
-        "plan_row": 51,
-        "plan_kind": "compound",
-        "triple": "api.responses.references.api.schema",
-        "replacement": ["api.response.references.api.schema"],
-        "claims": ["rel:api.responses#2", "rel:api.responses#1"],
-        "walk_decision": "delete",
-        "walk_rationale": "Responses is the status-code map; schemas belong to Response and MediaType (both already linked). Both responses-to-schema edges are the same transitive shortcut. Sorting: source api.response 0.51/0.75, destination none 0.68."
-      }
-    },
-    {
-      "seq": 53,
       "op": "update",
       "target_id": "api.server.serves.api.pathitem",
       "ref": null,
@@ -2083,7 +2073,8 @@
         "predicate": "aggregates",
         "source_spec_node_id": "application.applicationcomponent",
         "destination_spec_node_id": "api.server",
-        "title": "application.applicationcomponent aggregates api.server"
+        "title": "application.applicationcomponent aggregates api.server",
+        "description": "Defines relationship: application.applicationcomponent aggregates api.server"
       },
       "rationale": "Change of api.server.serves.api.pathitem to application.applicationcomponent.aggregates.api.server. Plan kind compound, p 0.45; claims rel:api.server#5.",
       "kind": "property",
@@ -2118,7 +2109,7 @@
       }
     },
     {
-      "seq": 54,
+      "seq": 53,
       "op": "delete",
       "target_id": "api.schema.references.api.operation",
       "ref": null,
@@ -2154,16 +2145,12 @@
       }
     },
     {
-      "seq": 55,
-      "op": "update",
+      "seq": 54,
+      "op": "delete",
       "target_id": "api.components.composes.api.schema",
       "ref": null,
-      "fields": {
-        "predicate": "aggregates",
-        "destination_spec_node_id": "api.parameter",
-        "title": "api.components aggregates api.parameter"
-      },
-      "rationale": "Change of api.components.composes.api.schema to api.components.aggregates.api.parameter. Plan kind compound, p 0.24; claims rel:api.components#4.",
+      "fields": {},
+      "rationale": "Remove api.components.composes.api.schema: api.components.aggregates.api.parameter is produced by an earlier operation in this proposal and expresses it. Change of api.components.composes.api.schema to api.components.aggregates.api.parameter. Plan kind compound, p 0.24; claims rel:api.components#4.",
       "kind": "property",
       "base": {
         "predicate": "composes",
@@ -2194,15 +2181,12 @@
       }
     },
     {
-      "seq": 56,
-      "op": "update",
+      "seq": 55,
+      "op": "delete",
       "target_id": "api.components.composes.api.response",
       "ref": null,
-      "fields": {
-        "predicate": "aggregates",
-        "title": "api.components aggregates api.response"
-      },
-      "rationale": "Change of api.components.composes.api.response to api.components.aggregates.api.response. Claims disagree on the replacement (api.components.aggregates.api.response | api.responses.aggregates.api.response); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.88; claims node:api.components#3, rel:api.components#1.",
+      "fields": {},
+      "rationale": "Remove api.components.composes.api.response: api.components.aggregates.api.response already exists and expresses it. Plan kind conflict, p 0.88; claims node:api.components#3, rel:api.components#1.",
       "kind": "property",
       "base": {
         "predicate": "composes",
@@ -2244,7 +2228,7 @@
       }
     },
     {
-      "seq": 57,
+      "seq": 56,
       "op": "delete",
       "target_id": "api.openapidocument.composes.api.responses",
       "ref": null,
@@ -2291,15 +2275,12 @@
       }
     },
     {
-      "seq": 58,
-      "op": "update",
+      "seq": 57,
+      "op": "delete",
       "target_id": "api.server.serves.application.applicationcomponent",
       "ref": null,
-      "fields": {
-        "source_spec_node_id": "application.applicationservice",
-        "title": "application.applicationservice serves application.applicationcomponent"
-      },
-      "rationale": "Change of api.server.serves.application.applicationcomponent to application.applicationservice.serves.application.applicationcomponent. Claims disagree on the replacement (application.applicationservice.serves.application.applicationcomponent | application.applicationservice.serves.application.applicationinterface); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.72; claims node:api.server#3, rel:api.server#4.",
+      "fields": {},
+      "rationale": "Remove api.server.serves.application.applicationcomponent: application.applicationservice.serves.application.applicationcomponent already exists and expresses it. Plan kind conflict, p 0.72; claims node:api.server#3, rel:api.server#4.",
       "kind": "property",
       "base": {
         "predicate": "serves",
@@ -2341,14 +2322,15 @@
       }
     },
     {
-      "seq": 59,
+      "seq": 58,
       "op": "update",
       "target_id": "api.response.references.api.schema",
       "ref": null,
       "fields": {
         "predicate": "aggregates",
         "source_spec_node_id": "api.mediatype",
-        "title": "api.mediatype aggregates api.schema"
+        "title": "api.mediatype aggregates api.schema",
+        "description": "Defines relationship: api.mediatype aggregates api.schema"
       },
       "rationale": "Change of api.response.references.api.schema to api.mediatype.aggregates.api.schema. Claims disagree on the replacement (api.mediatype.aggregates.api.schema | api.mediatype.references.api.schema); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.69; claims rel:api.response#3, rel:api.response#4.",
       "kind": "property",
@@ -2392,14 +2374,15 @@
       }
     },
     {
-      "seq": 60,
+      "seq": 59,
       "op": "update",
       "target_id": "api.response.aggregates.api.schema",
       "ref": null,
       "fields": {
         "predicate": "references",
         "destination_spec_node_id": "api.mediatype",
-        "title": "api.response references api.mediatype"
+        "title": "api.response references api.mediatype",
+        "description": "Defines relationship: api.response references api.mediatype"
       },
       "rationale": "Change of api.response.aggregates.api.schema to api.response.references.api.mediatype. Claims disagree on the replacement (api.response.references.api.mediatype | api.response.aggregates.api.mediatype); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.67; claims rel:api.response#3, rel:api.response#4.",
       "kind": "property",
@@ -2443,7 +2426,7 @@
       }
     },
     {
-      "seq": 61,
+      "seq": 60,
       "op": "delete",
       "target_id": "api.pathitem.references.api.externaldocumentation",
       "ref": null,
@@ -2490,16 +2473,12 @@
       }
     },
     {
-      "seq": 62,
-      "op": "update",
+      "seq": 61,
+      "op": "delete",
       "target_id": "api.components.composes.api.responses",
       "ref": null,
-      "fields": {
-        "predicate": "aggregates",
-        "destination_spec_node_id": "api.response",
-        "title": "api.components aggregates api.response"
-      },
-      "rationale": "Change of api.components.composes.api.responses to api.components.aggregates.api.response. Claims disagree on the replacement (api.components.aggregates.api.response | api.operation.composes.api.response); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.47; claims node:api.components#2, rel:api.components#3.",
+      "fields": {},
+      "rationale": "Remove api.components.composes.api.responses: api.components.aggregates.api.response already exists and expresses it. Plan kind conflict, p 0.47; claims node:api.components#2, rel:api.components#3.",
       "kind": "property",
       "base": {
         "predicate": "composes",
@@ -2541,17 +2520,12 @@
       }
     },
     {
-      "seq": 63,
-      "op": "update",
+      "seq": 62,
+      "op": "delete",
       "target_id": "api.operation.composes.api.paths",
       "ref": null,
-      "fields": {
-        "predicate": "serves",
-        "source_spec_node_id": "api.paths",
-        "destination_spec_node_id": "api.operation",
-        "title": "api.paths serves api.operation"
-      },
-      "rationale": "Change of api.operation.composes.api.paths to api.paths.serves.api.operation. Claims disagree on the replacement (api.paths.serves.api.operation | api.paths.serves.api.openapidocument | api.responses.serves.api.openapidocument); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.47; claims node:api.operation#5, node:api.paths#3, rel:api.operation#1.",
+      "fields": {},
+      "rationale": "Remove api.operation.composes.api.paths: api.paths.serves.api.operation already exists and expresses it. Plan kind conflict, p 0.47; claims node:api.operation#5, node:api.paths#3, rel:api.operation#1.",
       "kind": "property",
       "base": {
         "predicate": "composes",
@@ -2606,14 +2580,15 @@
       }
     },
     {
-      "seq": 64,
+      "seq": 63,
       "op": "update",
       "target_id": "api.openapidocument.composes.api.schema",
       "ref": null,
       "fields": {
         "source_spec_node_id": "api.components",
         "destination_spec_node_id": "api.components",
-        "title": "api.components composes api.components"
+        "title": "api.components composes api.components",
+        "description": "Defines relationship: api.components composes api.components"
       },
       "rationale": "Change of api.openapidocument.composes.api.schema to api.components.composes.api.components. Claims disagree on the replacement (api.components.composes.api.components | api.components.composes.api.paths); the first is proposed, the others are in dr.replacement for a re-proposal if this one is rejected. Plan kind conflict, p 0.44; claims rel:api.openapidocument#2, node:api.openapidocument#3.",
       "kind": "property",
