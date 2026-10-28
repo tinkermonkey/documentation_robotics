@@ -81,6 +81,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   means in the domain) and `x-dr-evidence` (what in code or configuration proves it), replacing
   `Defines relationship: ...`. The compiled `spec/dist` now carries relationship `description`
   and `evidence`; previously relationships compiled to flat data with no description.
+- **API- and UX-layer definitions enriched** (second output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`, node schemas only). All 27 api node types and all 22 ux node types now
+  carry an operational genus-and-differentia definition followed by "Use <sibling> instead when ..."
+  distinctions, plus `x-dr-standard` (the OpenAPI 3.0 object for every api type; HTML 5.3, CSS,
+  WAI-ARIA 1.2 or W3C SCXML sections for the 14 ux types that have a standard counterpart),
+  `x-dr-evidence` (three observable code signals) and `x-dr-distinguish`; 55 api and 49 ux
+  attributes that had no description are now described (existing attribute descriptions were not
+  overwritten). Relationship schemas whose source is an api or ux type are unchanged; they are being
+  reworked separately.
 - **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
   Feature that did not exist in the catalog; it now matches the relationship schemas added above.
 

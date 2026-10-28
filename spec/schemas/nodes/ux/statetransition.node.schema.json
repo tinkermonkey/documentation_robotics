@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StateTransition",
-  "description": "A directed edge in the ExperienceState machine, owned by its source ExperienceState. Specifies the trigger event, destination state, optional guard condition, and side-effect actions. The 'from' state is implicitly the ExperienceState that contains this transition via relationship.",
+  "description": "A directed edge in an ExperienceState machine that moves the experience from its owning source ExperienceState to one destination ExperienceState when a named UI event occurs. It may carry a guard condition that must hold and an ordered list of StateActions run as side effects when it fires. Use TransitionTemplate instead when the element describes reusable motion or animation (fade, slide, duration, easing) applied to a state or page change, not which state the event leads to. Use StateAction instead when the element is the side-effect operation itself (navigate, submit, dispatch, validate) bound to a lifecycle hook, rather than the edge between two states. Use ExperienceState instead when the element is a node the experience can rest in (loading, error, confirmed), with entry and exit actions and component visibility, rather than the move between such nodes. Use ActionPattern instead when the element is a reusable trigger-plus-feedback interaction recipe (e.g. confirm-and-delete) applied to components, not a specific source-to-destination edge in one state machine.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -40,7 +40,8 @@
           "description": "DOM or UX event that initiates this state transition, per HTML 5.3 event model."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A plain-language sentence saying what user event moves the experience from the source state to the destination and why. Example: 'User submits valid payment form; moves to processing'. Set it whenever the trigger, guard or destination does not make the transition's intent obvious on its own."
         },
         "actions": {
           "type": "array",
@@ -71,5 +72,17 @@
       "required": ["trigger"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "W3C SCXML <transition> element (event, cond, target, executable content) for state-machine semantics; trigger values follow the HTML 5.3 event handler / DOM event model",
+  "x-dr-evidence": [
+    "An XState or similar statechart config entry such as `on: { SUBMIT: { target: 'confirmed', guard: 'isValid', actions: ['track'] } }` inside a state node",
+    "A reducer or useReducer case that switches on the current status together with an event or action type and returns a different status value (e.g. `case 'editing': if (action.type === 'SAVE') return 'saving'`)",
+    "A transitions table or map literal of `{ from, event, to }` records, or a `canTransition(from, event)` / `transition(state, event)` helper that a component's onClick or onSubmit handler calls"
+  ],
+  "x-dr-distinguish": {
+    "ux.transitiontemplate": "the element describes reusable motion or animation (fade, slide, duration, easing) applied to a state or page change, not which state the event leads to",
+    "ux.stateaction": "the element is the side-effect operation itself (navigate, submit, dispatch, validate) bound to a lifecycle hook, rather than the edge between two states",
+    "ux.experiencestate": "the element is a node the experience can rest in (loading, error, confirmed), with entry and exit actions and component visibility, rather than the move between such nodes",
+    "ux.actionpattern": "the element is a reusable trigger-plus-feedback interaction recipe (e.g. confirm-and-delete) applied to components, not a specific source-to-destination edge in one state machine"
   }
 }

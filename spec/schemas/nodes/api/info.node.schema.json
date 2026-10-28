@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Info",
-  "description": "Required root-level metadata describing the API identity, version, legal terms, and maintainer contact. The 'title' and 'version' fields are required per OpenAPI 3.0. Consumed by documentation generators, API gateways, and developer portals.",
+  "description": "A single metadata object nested in an OpenAPI document's root 'info' field that records the described API's title, its document version, an optional description and terms-of-service URL, and references to its contact and license. Exactly one exists per OpenAPI document; it describes the API as a whole, not any path, operation or server. Use OpenAPIDocument instead when the element is the root object itself, which holds the 'openapi' spec-version string and the paths, servers, components and security sections, rather than only the descriptive metadata block. Use Contact instead when the element carries only the maintainer's name, email or URL, which Info references through its 'contact' field. Use License instead when the element carries only the license name and license URL, which Info references through its 'license' field. Use ExternalDocumentation instead when the element is a link to an external guide or wiki attached to the root document, a tag, an operation or a schema, rather than inline title and version metadata.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,17 +21,20 @@
       "type": "object",
       "properties": {
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name of the API as shown in documentation portals and gateways (e.g. 'Taxonomy Service API'); always set, since OpenAPI 3.0 requires it."
         },
         "description": {
           "type": "string",
           "description": "Supports CommonMark (Markdown) syntax per OpenAPI 3.0."
         },
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version string of the API definition document (e.g. '1.4.0' or '2024-05-01'), distinct from the OpenAPI specification version held in OpenAPIDocument.openapi; always set, since OpenAPI 3.0 requires it."
         },
         "termsOfService": {
-          "type": "string"
+          "type": "string",
+          "description": "URL of the API's terms of service, which must be a valid URL per OpenAPI 3.0; set only when the API publishes usage terms."
         },
         "contact": {
           "type": "string",
@@ -45,5 +48,17 @@
       "required": ["title", "version"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Info Object",
+  "x-dr-evidence": [
+    "An 'info:' block containing 'title:' and 'version:' keys at the top level of an openapi.yaml or openapi.json file",
+    "A framework OpenAPI bootstrap call that sets API metadata, such as FastAPI(title=..., version=..., description=...), NestJS new DocumentBuilder().setTitle().setVersion(), or springdoc new OpenAPI().info(new Info().title(...))",
+    "A Java annotation @OpenAPIDefinition(info = @Info(title = ..., version = ...)), or a swagger-jsdoc options object with definition.info.title and definition.info.version"
+  ],
+  "x-dr-distinguish": {
+    "api.openapidocument": "the element is the root object itself, which holds the 'openapi' spec-version string and the paths, servers, components and security sections, rather than only the descriptive metadata block",
+    "api.contact": "the element carries only the maintainer's name, email or URL, which Info references through its 'contact' field",
+    "api.license": "the element carries only the license name and license URL, which Info references through its 'license' field",
+    "api.externaldocumentation": "the element is a link to an external guide or wiki attached to the root document, a tag, an operation or a schema, rather than inline title and version metadata"
   }
 }

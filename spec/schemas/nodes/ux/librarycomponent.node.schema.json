@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LibraryComponent",
-  "description": "Reusable UI component definition that can be instantiated in multiple UXSpecs",
+  "description": "A reusable UI component definition that declares an accepted property schema, named content slots and emitted events independently of any particular screen, so it can be instantiated with different configuration in many views or UXSpecs. It is the component type, not a placed, configured occurrence of it. Use ComponentInstance instead when the symbol is a specific usage of a component inside a View, SubView or LibrarySubView with concrete prop values, such as a <DataTable columns={...}/> call site, rather than the component's definition. Use ActionComponent instead when the element is a single interactive trigger, such as a button, link, menu item or voice command, modelled for the action it fires rather than as a reusable component with its own props, slots and events. Use LibrarySubView instead when the reusable unit is an ordered arrangement of several component instances, such as a filter bar plus a table, rather than one component with its own prop schema. Use View instead when the component is a routable page, modal or screen reached via a navigation route rather than a building block embedded by other components or views.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -35,10 +35,12 @@
           "description": "UI component category used for library organization and component lookup."
         },
         "label": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable display name of the component as shown in the library catalogue or Storybook, such as 'Data Table'; set it when the specNodeId slug is not presentation-friendly."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the component's purpose, intended usage and notable behaviour, written for library consumers; set it for every published component."
         },
         "category": {
           "type": "string",
@@ -130,5 +132,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 Custom Elements (autonomous custom element definition) with the template and slot elements of Web Components",
+  "x-dr-evidence": [
+    "A component exported from a shared design-system or components package index, such as packages/ui/src/index.ts, with a typed props contract (TypeScript Props interface, PropTypes, Vue defineProps or an Angular @Input set) and imported by several screens.",
+    "A Storybook story file (*.stories.tsx or *.stories.mdx) or design-system documentation page that catalogues the component and its prop, slot and event variants.",
+    "A customElements.define('x-foo', ...) registration, or a component declaring <slot name=...>, children or render props and emitting custom events (emit, dispatchEvent, onXxx callback props) without registering any route."
+  ],
+  "x-dr-distinguish": {
+    "ux.componentinstance": "the symbol is a specific usage of a component inside a View, SubView or LibrarySubView with concrete prop values, such as a <DataTable columns={...}/> call site, rather than the component's definition.",
+    "ux.actioncomponent": "the element is a single interactive trigger, such as a button, link, menu item or voice command, modelled for the action it fires rather than as a reusable component with its own props, slots and events.",
+    "ux.librarysubview": "the reusable unit is an ordered arrangement of several component instances, such as a filter bar plus a table, rather than one component with its own prop schema.",
+    "ux.view": "the component is a routable page, modal or screen reached via a navigation route rather than a building block embedded by other components or views."
   }
 }

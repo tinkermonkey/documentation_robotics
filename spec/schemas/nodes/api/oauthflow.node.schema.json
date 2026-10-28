@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OAuthFlow",
-  "description": "Configuration for a single OAuth 2.0 grant type (implicit, password, clientCredentials, or authorizationCode). authorizationUrl is required for implicit and authorizationCode flows; tokenUrl is required for password, clientCredentials, and authorizationCode flows; scopes is required for all flows. The flow type is not an explicit field \u2014 it is implied by which attribute of the parent OAuthFlows object references this OAuthFlow.",
+  "description": "A configuration object describing one OAuth 2.0 grant type (implicit, password, clientCredentials or authorizationCode) within an oauth2 security scheme, giving the endpoint URLs that grant uses and the map of scopes it can issue. Its grant type is determined by the OAuthFlows field that holds it, not by a field of its own. Use OAuthFlows instead when the element is the container grouping all grant types for one oauth2 scheme (the 'flows' object) rather than the settings of a single grant. Use SecurityScheme instead when the element declares the authentication mechanism itself (type oauth2, apiKey, http, openIdConnect) and its registry name, rather than the URLs and scopes of one OAuth grant. Use Server instead when the URL is a base address where the API itself is deployed, not an authorization, token or refresh endpoint of an identity provider.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,13 +21,16 @@
       "type": "object",
       "properties": {
         "authorizationUrl": {
-          "type": "string"
+          "type": "string",
+          "description": "Absolute URL of the authorization endpoint where the user grants consent; required for implicit and authorizationCode flows and omitted for password and clientCredentials."
         },
         "tokenUrl": {
-          "type": "string"
+          "type": "string",
+          "description": "Absolute URL of the token endpoint that exchanges a grant or credentials for an access token; required for password, clientCredentials and authorizationCode flows and omitted for implicit."
         },
         "refreshUrl": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional absolute URL of the endpoint used to obtain refreshed access tokens; set only when the provider issues refresh tokens via a distinct endpoint."
         },
         "scopes": {
           "type": "object",
@@ -37,5 +40,16 @@
       "required": ["scopes"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 OAuth Flow Object",
+  "x-dr-evidence": [
+    "An entry under components.securitySchemes.<name>.flows.authorizationCode (or implicit/password/clientCredentials) in an openapi.yaml containing authorizationUrl, tokenUrl and scopes keys",
+    "A framework security declaration such as FastAPI OAuth2PasswordBearer(tokenUrl=...)/OAuth2AuthorizationCodeBearer, springdoc @OAuthFlow(authorizationUrl=..., tokenUrl=..., scopes=@OAuthScope(...)), or NestJS addOAuth2({ flows: { ... } })",
+    "A scopes dictionary mapping scope strings (e.g. 'read:users') to descriptions, used in both the spec generator config and route-level scope checks"
+  ],
+  "x-dr-distinguish": {
+    "api.oauthflows": "the element is the container grouping all grant types for one oauth2 scheme (the 'flows' object) rather than the settings of a single grant.",
+    "api.securityscheme": "the element declares the authentication mechanism itself (type oauth2, apiKey, http, openIdConnect) and its registry name, rather than the URLs and scopes of one OAuth grant.",
+    "api.server": "the URL is a base address where the API itself is deployed, not an authorization, token or refresh endpoint of an identity provider."
   }
 }

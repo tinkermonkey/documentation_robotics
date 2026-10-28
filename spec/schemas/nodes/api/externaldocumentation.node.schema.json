@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExternalDocumentation",
-  "description": "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Can be attached to the root OpenAPI document, individual Tags, Operations, and Schema objects.",
+  "description": "A metadata object holding a single URL (plus optional descriptive text) that points to documentation hosted outside the OpenAPI document. It attaches through an 'externalDocs' field to the root document, a Tag, an Operation or a Schema. Use Contact instead when the URL or email identifies a person or team to reach for support, not a documentation resource. Use License instead when the URL points to the legal license terms under which the API is offered. Use Info instead when the text is the API's own inline title, description or termsOfService rather than a link to an outside documentation page. Use Example instead when the URL (externalValue) points to a sample payload value rather than to human-readable documentation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,14 +21,28 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Short CommonMark-capable text describing what the linked documentation covers; set it when the URL alone does not make the target's purpose clear."
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Absolute URL of the external documentation resource (e.g. https://docs.example.com/guide), always required."
         }
       },
       "required": ["url"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 External Documentation Object",
+  "x-dr-evidence": [
+    "an 'externalDocs:' block containing a 'url:' key in an openapi.yaml/json file, at root level, under a tag, an operation or a schema",
+    "a springdoc/swagger-core @ExternalDocumentation(url=...) or @ExternalDocs annotation on a controller method, OpenAPIDefinition or model class",
+    "a NestJS DocumentBuilder().setExternalDoc(description, url) call, or a FastAPI openapi_tags entry with an 'externalDocs' dict"
+  ],
+  "x-dr-distinguish": {
+    "api.contact": "the URL or email identifies a person or team to reach for support, not a documentation resource.",
+    "api.license": "the URL points to the legal license terms under which the API is offered.",
+    "api.info": "the text is the API's own inline title, description or termsOfService rather than a link to an outside documentation page.",
+    "api.example": "the URL (externalValue) points to a sample payload value rather than to human-readable documentation."
   }
 }

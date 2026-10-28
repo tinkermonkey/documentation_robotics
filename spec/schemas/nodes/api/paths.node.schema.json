@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Paths",
-  "description": "A map of URL path patterns to PathItem objects defining the API surface. Path keys use OpenAPI path templating (e.g., /users/{id}) and must begin with '/'. Individual path entries are modeled as relationships to api.pathitem nodes.",
+  "description": "A single container object within one OpenAPI document that maps each relative URL path template (a key beginning with '/', e.g. /users/{id}) to exactly one PathItem, representing the complete set of endpoints the document exposes. There is one per OpenAPI document, and it does not itself carry operations, servers or metadata. Use PathItem instead when the symbol represents one specific URL path pattern and the HTTP methods available on it, rather than the whole collection of paths. Use OpenAPIDocument instead when the symbol is the root specification object carrying openapi version, info, servers, components and security in addition to the paths map. Use Operation instead when the symbol is a single HTTP method handler bound to a path, with its own parameters, request body and responses. Use Components instead when the map holds reusable named definitions (schemas, responses, parameters, etc.) referenced via $ref rather than routable URL paths.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,5 +22,17 @@
       "properties": {},
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Paths Object",
+  "x-dr-evidence": [
+    "The top-level 'paths:' key in an openapi.yaml/openapi.json file, whose children are keys like '/users/{userId}'.",
+    "A root route table that enumerates all URL patterns of the service, e.g. Django root urls.py urlpatterns, Rails config/routes.rb, or an Express app mounting all routers.",
+    "Framework-generated spec output exposing a paths dictionary, e.g. FastAPI app.openapi()['paths'] or a springdoc/Swashbuckle-generated document's Paths collection."
+  ],
+  "x-dr-distinguish": {
+    "api.pathitem": "the symbol represents one specific URL path pattern and the HTTP methods available on it, rather than the whole collection of paths.",
+    "api.openapidocument": "the symbol is the root specification object carrying openapi version, info, servers, components and security in addition to the paths map.",
+    "api.operation": "the symbol is a single HTTP method handler bound to a path, with its own parameters, request body and responses.",
+    "api.components": "the map holds reusable named definitions (schemas, responses, parameters, etc.) referenced via $ref rather than routable URL paths."
   }
 }

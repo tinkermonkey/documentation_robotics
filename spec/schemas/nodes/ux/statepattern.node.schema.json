@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StatePattern",
-  "description": "Reusable state machine template for common UX interaction flows, composed of named ExperienceStates and transitions. Canonical examples: 'wizard' \u2014 multi-step form with back/next/submit transitions; 'optimistic-update' \u2014 loading \u2192 success/error with retry; 'tab-panel' \u2014 N peer states with tab-driven transitions; 'authenticated-route' \u2014 unauthenticated \u2192 redirect/login \u2192 authenticated.",
+  "description": "A reusable, named state machine definition: an ordered set of ExperienceStates and the transitions between them that encodes a recurring interaction flow (e.g. wizard, loading/success/error, tab panel, auth gate). It is not bound to any single View or component and is meant to be applied by several of them. Use ExperienceState instead when the symbol represents one state node (e.g. 'loading' or 'step-2') rather than the whole reusable machine that contains it. Use StateTransition instead when the symbol is a single trigger→destination edge with an optional guard, not a complete set of states. Use ActionPattern instead when the reusable thing is one trigger-plus-feedback interaction (e.g. confirm-and-delete) with no states of its own. Use UXSpec instead when the states are the top-level, one-off state machine of a single experience rather than a template reused across experiences.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A plain-text summary of the flow the pattern encodes: its states, the main transitions and the situations it fits. Set it whenever the pattern name alone does not make its behaviour clear."
         },
         "category": {
           "type": "string",
@@ -45,5 +46,16 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A state machine factory or definition (e.g. XState createMachine, a createWizardMachine(steps) function) exported from a shared module and imported by multiple views or components",
+    "A generic hook or store (e.g. useAsync, useWizard, useTabs) exposing a finite status union such as 'idle' | 'loading' | 'success' | 'error' plus transition functions (next, back, retry), reused across features",
+    "A shared reducer typed with a discriminated union of states, or a design-system doc page describing the flow and its states (e.g. 'Optimistic update pattern')"
+  ],
+  "x-dr-distinguish": {
+    "ux.experiencestate": "the symbol represents one state node (e.g. 'loading' or 'step-2') rather than the whole reusable machine that contains it",
+    "ux.statetransition": "the symbol is a single trigger→destination edge with an optional guard, not a complete set of states",
+    "ux.actionpattern": "the reusable thing is one trigger-plus-feedback interaction (e.g. confirm-and-delete) with no states of its own",
+    "ux.uxspec": "the states are the top-level, one-off state machine of a single experience rather than a template reused across experiences"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RequestBody",
-  "description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required and must contain at least one entry per OpenAPI 3.0. The 'required' field defaults to false. Can be placed in api.components requestBodies and referenced via $ref for reuse across multiple operations.",
+  "description": "An API contract element describing the payload a client sends in the body of a single operation's HTTP request, expressed as one or more media-type entries (e.g. application/json, multipart/form-data) plus an optional required flag and description. It covers only the request payload of a body-bearing method; URL, query, header and cookie inputs and anything returned to the client are excluded. Use Parameter instead when the input travels in the path, query string, header or cookie rather than the HTTP message body. Use MediaType instead when modelling the schema, examples and encoding for one specific MIME type inside the body's content map, rather than the body as a whole with its required flag. Use Schema instead when describing the data shape itself (fields, types, constraints) independent of whether it is carried in a request, a response or a parameter. Use Response instead when the payload is sent by the server back to the client for a status code, not by the client to the server.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,13 +21,27 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Brief human-readable explanation of the request payload's purpose and contents, CommonMark allowed per OpenAPI 3.0. Set it whenever the body's meaning is not obvious from the operation summary."
         },
         "required": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean indicating whether a client must send a body for the operation to succeed; defaults to false, so set it to true when the handler rejects requests with an empty or missing body."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Request Body Object",
+  "x-dr-evidence": [
+    "A route handler parameter bound from the body, such as Spring @RequestBody, FastAPI Body()/Pydantic model argument, NestJS @Body() or ASP.NET [FromBody].",
+    "A 'requestBody:' block under a POST/PUT/PATCH operation, or an entry under 'components/requestBodies', in an OpenAPI YAML/JSON file.",
+    "Body validation middleware or a DTO class applied to req.body, e.g. express.json() followed by a Joi/Zod/class-validator schema check, or a generated client method that serializes a payload argument with a Content-Type header."
+  ],
+  "x-dr-distinguish": {
+    "api.parameter": "the input travels in the path, query string, header or cookie rather than the HTTP message body.",
+    "api.mediatype": "modelling the schema, examples and encoding for one specific MIME type inside the body's content map, rather than the body as a whole with its required flag.",
+    "api.schema": "describing the data shape itself (fields, types, constraints) independent of whether it is carried in a request, a response or a parameter.",
+    "api.response": "the payload is sent by the server back to the client for a status code, not by the client to the server."
   }
 }

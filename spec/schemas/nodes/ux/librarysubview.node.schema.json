@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LibrarySubView",
-  "description": "Reusable, non-routable grouping of components intended to be composed into Views or other SubViews. Unlike View, LibrarySubView has no route and cannot be navigated to directly. It exists purely as a reusable composition unit, analogous to an HTML template element.",
+  "description": "A reusable, non-routable composition of configured component instances, published in a UX library and embedded by reference into multiple Views or SubViews. It is distinguished from a SubView by being the shared definition rather than its placement in a particular parent, and from a LibraryComponent by being an assembly of existing components rather than a primitive with its own prop, slot and event contract. Use SubView instead when the fragment is a specific placement inside one parent View (with an order), either referencing a library sub-view via 'ref' or defined inline and not reused elsewhere. Use LibraryComponent instead when the unit is a single primitive or widget with its own declared props, slots and events, rather than an arrangement of several already-configured component instances. Use View instead when the grouping is reachable by a route or URL, or is opened as a page, modal, dialog or drawer in its own right. Use StatePattern instead when what is being reused is a sequence of states and transitions (wizard, optimistic update) rather than a visual arrangement of components.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable display name of the reusable sub-view as shown in library catalogues or Storybook (e.g. 'Address Form Section'); set it whenever the sub-view is published in a UXLibrary."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Plain-text summary of the sub-view's purpose, its contained components and its intended embedding contexts; set it to help consumers choose between similar library sub-views."
         },
         "category": {
           "type": "string",
@@ -41,5 +43,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 §4.12.3 The template element",
+  "x-dr-evidence": [
+    "A component file in a shared or design-system package (e.g. src/shared/sections/, packages/ui/patterns/) that renders a fixed arrangement of several other library components, has no route registration and is imported by two or more page components.",
+    "A Storybook story grouped under a 'Patterns', 'Sections' or 'Compositions' heading, as opposed to 'Components', that renders a multi-component block such as a FiltersWithTable or AddressFormSection.",
+    "A reusable template partial (e.g. Angular ng-template, Django {% include %} partial, Rails shared partial, Blade @include, or HTML <template> element) that contains several component tags and is included from multiple page templates."
+  ],
+  "x-dr-distinguish": {
+    "ux.subview": "the fragment is a specific placement inside one parent View (with an order), either referencing a library sub-view via 'ref' or defined inline and not reused elsewhere.",
+    "ux.librarycomponent": "the unit is a single primitive or widget with its own declared props, slots and events, rather than an arrangement of several already-configured component instances.",
+    "ux.view": "the grouping is reachable by a route or URL, or is opened as a page, modal, dialog or drawer in its own right.",
+    "ux.statepattern": "what is being reused is a sequence of states and transitions (wizard, optimistic update) rather than a visual arrangement of components."
   }
 }

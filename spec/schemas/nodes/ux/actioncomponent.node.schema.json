@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ActionComponent",
-  "description": "Interactive element that triggers actions (button, menu, link, voice command)",
+  "description": "A user-operable control (button, hyperlink, menu entry, icon button or spoken command) whose activation starts an operation, a navigation or a state change. It is the trigger point that user input reaches, as opposed to the input fields, display components or layout containers around it. Use ActionPattern instead when you are modelling the reusable trigger-plus-feedback behaviour (e.g. confirm-and-delete) that many controls share, rather than one concrete control in the interface. Use LibraryComponent instead when the symbol is the generic, reusable Button/Link/Menu definition in a design system with a props schema, rather than a specific control that triggers a specific action. Use ComponentInstance instead when the element is a configured placement of a non-action library component (table, chart, display, input) inside a View or SubView. Use StateTransition instead when you are modelling the state-machine edge that the activation causes (trigger event, destination state, guard), not the control the user operates.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "label": {
-          "type": "string"
+          "type": "string",
+          "description": "The visible text or accessible name of the control (the button text, link text or spoken phrase). Set it whenever the control is not icon-only; for icon-only controls, set it to the aria-label value."
         },
         "type": {
           "type": "string",
@@ -29,13 +30,16 @@
           "description": "Interactive element kind, per HTML 5.3 button, anchor, and menu element semantics."
         },
         "icon": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the icon displayed on the control, as a design-system icon name or asset path (e.g. 'trash', 'mdi-plus'). Set it when the control shows a glyph."
         },
         "disabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "When true, the control is rendered but cannot be activated, corresponding to the HTML disabled attribute or aria-disabled. Set it only when the control is statically disabled; state-dependent disabling belongs on ExperienceState.disabledComponents."
         },
         "tooltip": {
-          "type": "string"
+          "type": "string",
+          "description": "Short helper text shown on hover or focus, corresponding to the HTML title attribute or a tooltip component. Set it when the control's purpose is not obvious from its label or icon."
         },
         "channel": {
           "type": "string",
@@ -84,5 +88,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 interactive content: the button element and the a element with href; menu entries per the WAI-ARIA 1.2 menu and menuitem roles",
+  "x-dr-evidence": [
+    "A <button>, <a href> or design-system <Button>/<IconButton>/<Link> element rendered in a template with an onClick/onSelect/@click handler or a router 'to' target",
+    "A menu or toolbar configuration array whose entries carry a label, icon and handler or command id (e.g. items: [{label:'Delete', icon:'trash', onClick: ...}])",
+    "A voice or chat intent or command registration (e.g. an Alexa intent handler or a slash-command definition) that maps an utterance to an action invocation"
+  ],
+  "x-dr-distinguish": {
+    "ux.actionpattern": "you are modelling the reusable trigger-plus-feedback behaviour (e.g. confirm-and-delete) that many controls share, rather than one concrete control in the interface",
+    "ux.librarycomponent": "the symbol is the generic, reusable Button/Link/Menu definition in a design system with a props schema, rather than a specific control that triggers a specific action",
+    "ux.componentinstance": "the element is a configured placement of a non-action library component (table, chart, display, input) inside a View or SubView",
+    "ux.statetransition": "you are modelling the state-machine edge that the activation causes (trigger event, destination state, guard), not the control the user operates"
   }
 }

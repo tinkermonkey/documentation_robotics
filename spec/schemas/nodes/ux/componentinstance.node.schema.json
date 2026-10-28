@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ComponentInstance",
-  "description": "Instance of a LibraryComponent with application-specific configuration",
+  "description": "A single concrete occurrence of a library component placed inside a specific View, SubView or LibrarySubView, carrying the prop values and render position that configure that one usage. It is identified by its reference to exactly one ux.librarycomponent definition, not by declaring props, slots or events of its own. Use LibraryComponent instead when the symbol defines the reusable component itself (its prop schema, slots, events, implementation) rather than one configured use of it on a screen. Use ComponentReference instead when the element only declares which component fills a named slot of a parent component (a slot or children placeholder), without its own configured props or render order. Use ActionComponent instead when the element's identity is an interactive trigger (button, link, menu, voice command) modelled by its action semantics rather than as a configured usage of a library component. Use SubView instead when the element is a non-routable fragment grouping several components within a View, rather than a single component usage.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -36,5 +36,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 §4.12.5 Custom elements: an element occurrence in the document tree created from a custom element definition, with attributes set per usage",
+  "x-dr-evidence": [
+    "a JSX/TSX, Vue or Angular template tag for an imported design-system component (e.g. <DataTable columns={cols} pageSize={20} />) inside a page or screen component",
+    "a declarative layout or page-config entry such as { \"component\": \"Chart\", \"props\": { ... } } in a low-code, CMS or server-driven-UI JSON/YAML file",
+    "a component tag inside a parent's render list whose position or explicit order key determines where it appears among sibling components on the screen"
+  ],
+  "x-dr-distinguish": {
+    "ux.librarycomponent": "the symbol defines the reusable component itself (its prop schema, slots, events, implementation) rather than one configured use of it on a screen",
+    "ux.componentreference": "the element only declares which component fills a named slot of a parent component (a slot or children placeholder), without its own configured props or render order",
+    "ux.actioncomponent": "the element's identity is an interactive trigger (button, link, menu, voice command) modelled by its action semantics rather than as a configured usage of a library component",
+    "ux.subview": "the element is a non-routable fragment grouping several components within a View, rather than a single component usage"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ActionPattern",
-  "description": "Reusable action configuration for common user interactions. Defines the trigger, feedback mechanism, and optional target for recurring UX patterns. Example: 'confirm-and-delete' pattern \u2014 trigger: click on delete button, feedback: confirmation modal then success toast, targetRef: the item being deleted.",
+  "description": "A reusable interaction recipe that pairs a user input modality with a prescribed feedback sequence (toast, modal, route change, etc.) and is applied across multiple action components. It is not tied to one rendered control or one state, and is defined once to be reused wherever the same interaction recurs. Use ActionComponent instead when the element is a single concrete button, link, menu or voice command rendered in a view, rather than the shared interaction convention it follows. Use StateAction instead when the element is one operation (navigate, submit, dispatch…) bound to a specific ExperienceState lifecycle hook, not a user-triggered interaction with feedback reused across components. Use StatePattern instead when the reusable thing is a multi-state machine (wizard, optimistic-update, tab-panel) with states and transitions, rather than a single trigger-and-feedback interaction. Use StateActionTemplate instead when the reusable definition is a parameterized system-side operation executed during state transitions, with no user trigger or feedback mechanism.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the interaction sequence: what the user does, what feedback follows and in what order, and when the pattern applies. Set it whenever the name alone does not convey the steps, e.g. 'click delete → confirm modal → success toast'."
         },
         "category": {
           "type": "string",
@@ -52,5 +53,16 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A shared hook or higher-order helper (e.g. useConfirmDelete, withConfirmation, useOptimisticAction) that wraps a click/keyboard handler with a confirmation modal and a success or error toast, and is imported by several components.",
+    "A design-system document or Storybook 'Patterns' page describing an interaction such as 'confirm-and-delete' or 'bulk select then act', with its trigger and the feedback the user sees.",
+    "A configuration map or registry of named interaction behaviours (e.g. actions: { delete: { confirm: true, toast: 'Deleted' } }) that buttons, table row actions or menus look up by key."
+  ],
+  "x-dr-distinguish": {
+    "ux.actioncomponent": "the element is a single concrete button, link, menu or voice command rendered in a view, rather than the shared interaction convention it follows.",
+    "ux.stateaction": "the element is one operation (navigate, submit, dispatch…) bound to a specific ExperienceState lifecycle hook, not a user-triggered interaction with feedback reused across components.",
+    "ux.statepattern": "the reusable thing is a multi-state machine (wizard, optimistic-update, tab-panel) with states and transitions, rather than a single trigger-and-feedback interaction.",
+    "ux.stateactiontemplate": "the reusable definition is a parameterized system-side operation executed during state transitions, with no user trigger or feedback mechanism."
   }
 }

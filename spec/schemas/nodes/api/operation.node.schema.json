@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Operation",
-  "description": "Defines a single HTTP method bound to a path, specifying its contract: parameters, request body, possible responses, security requirements, and tags. Operation-level security overrides global API security requirements; an empty security array ([]) explicitly removes all security enforcement for the operation. The primary unit of API surface area in OpenAPI 3.0.",
+  "description": "An HTTP interaction contract identified by one HTTP method on one URL path template, specifying the parameters, request body, responses and security that apply to that method-path pair. Each route handler, controller action or generated client method bound to a distinct method plus path is one instance. Use PathItem instead when the element groups all methods available under a single URL path template, or carries path-level parameters shared by those methods, rather than describing one method's contract. Use Callback instead when the element is an outbound request the API sends to a consumer-supplied URL resolved from a runtime expression, rather than an endpoint the API itself serves. Use Link instead when the element only describes how values from one operation's response feed the parameters of another operation, rather than defining an endpoint. Use Paths instead when the element is the document-wide map of all path templates, not a single method on a single path.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -25,16 +25,20 @@
           "description": "Unique identifier for this operation across the entire API document"
         },
         "summary": {
-          "type": "string"
+          "type": "string",
+          "description": "A short plain-text phrase, ideally under 120 characters, stating what the operation does; set it from the handler's docstring or the OpenAPI summary field."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A longer explanation of the operation's behaviour, side effects and constraints, which may use CommonMark; set it when the summary is insufficient to understand the contract."
         },
         "tags": {
-          "type": "string"
+          "type": "string",
+          "description": "Tag name used to group this operation in documentation, typically the resource or controller name; it should match an api.tag element where one is declared. This schema stores the value as a single string although OpenAPI allows a list."
         },
         "deprecated": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Set to true when the operation is marked obsolete (for example via @Deprecated or OpenAPI deprecated: true) and consumers should stop calling it; it defaults to false."
         },
         "http_method": {
           "type": "string",
@@ -59,5 +63,17 @@
       "required": ["operationId", "summary", "tags"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Operation Object",
+  "x-dr-evidence": [
+    "A handler function or method registered for a specific HTTP verb and path, e.g. @app.get('/users/{id}'), @GetMapping(\"/users/{id}\"), router.post('/orders', ...), or [HttpDelete(\"{id}\")] on an ASP.NET controller action",
+    "An entry under paths.<template>.<get|post|put|delete|patch|head|options|trace> in an openapi.yaml or openapi.json file, typically carrying an operationId",
+    "A method in a generated API client, for example from openapi-generator or NSwag, that issues a request with a fixed HTTP method to a fixed path template and is named after an operationId"
+  ],
+  "x-dr-distinguish": {
+    "api.pathitem": "the element groups all methods available under a single URL path template, or carries path-level parameters shared by those methods, rather than describing one method's contract",
+    "api.callback": "the element is an outbound request the API sends to a consumer-supplied URL resolved from a runtime expression, rather than an endpoint the API itself serves",
+    "api.link": "the element only describes how values from one operation's response feed the parameters of another operation, rather than defining an endpoint",
+    "api.paths": "the element is the document-wide map of all path templates, not a single method on a single path"
   }
 }

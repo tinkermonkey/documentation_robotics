@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DataConfig",
-  "description": "Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow.",
+  "description": "A data-binding declaration attached to a view, sub-view or component that names where the UI obtains its data (remote API, client state store, local storage, mock or static value) and, optionally, the field path selected from that data. It describes the binding only. The fetching logic belongs to the application layer, and the endpoint or entity it points at belongs to the api or data-model layer. Use ErrorConfig instead when the element describes how a failed load or submit is shown to the user (message, notification type, retry or fallback), rather than where the data comes from. Use ChartSeries instead when the element specifies how one field of already-bound data is drawn in a chart (series label, chart type, color, line style), rather than the origin of the data. Use TableColumn instead when the element specifies the header, field, width, sorting or rendering of a single table column that consumes bound data. Use ComponentInstance instead when the values are fixed, author-supplied prop overrides on a library component placed in a view, rather than values resolved at runtime from a data source.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,5 +37,16 @@
       "required": ["source", "target"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A data-fetching hook or service call inside a component, such as useQuery(['orders'], fetchOrders), useSWR('/api/user') or an Angular route resolver, whose result is passed straight into rendered props or a template.",
+    "A state-store selector or mapping that wires a store slice into a component, such as useSelector(s => s.user.profile.name), mapStateToProps, or Pinia/Vuex computed getters. These indicate a state source and give the path.",
+    "A component whose data is fed from localStorage/sessionStorage (getItem, a useLocalStorage hook) or from imported fixture/mock JSON (MSW handlers, Storybook args, a static constants file)."
+  ],
+  "x-dr-distinguish": {
+    "ux.errorconfig": "the element describes how a failed load or submit is shown to the user (message, notification type, retry or fallback), rather than where the data comes from.",
+    "ux.chartseries": "the element specifies how one field of already-bound data is drawn in a chart (series label, chart type, color, line style), rather than the origin of the data.",
+    "ux.tablecolumn": "the element specifies the header, field, width, sorting or rendering of a single table column that consumes bound data.",
+    "ux.componentinstance": "the values are fixed, author-supplied prop overrides on a library component placed in a view, rather than values resolved at runtime from a data source."
   }
 }

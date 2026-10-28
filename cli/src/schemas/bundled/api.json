@@ -44,7 +44,7 @@
     "callback": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Callback",
-      "description": "Defines a callback where the API sends asynchronous notifications to an external URL derived at runtime. A callback maps a Runtime Expression (e.g., $request.body#/callbackUrl) to a full PathItem object, meaning the callback specifies the complete HTTP interaction — method, headers, and expected response — not just a target URL. Enables event-driven integrations and async workflows.",
+      "description": "An outbound HTTP request contract attached to an operation, in which the API itself calls a consumer-supplied URL. The URL is obtained by evaluating a runtime expression against the triggering request or response, and the full interaction (method, body, expected responses) is described as a PathItem. Use Operation instead when the HTTP interaction is one the API receives and serves on its own paths, rather than a request the API sends to a URL supplied by the consumer. Use Link instead when the relationship describes a follow-up call that the client makes to another operation of this API, using values from a response, rather than a call the API pushes to the client. Use PathItem instead when modelling the set of HTTP methods under a fixed path template of the API, or the inner PathItem that a callback aggregates, rather than the expression-keyed callback wrapper. Use Server instead when the target is a fixed or variable-templated deployment base URL of the API, not a URL resolved per request from a runtime expression.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -71,12 +71,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Callback Object (Operation.callbacks; Runtime Expressions)",
+      "x-dr-evidence": [
+        "A 'callbacks:' map under an operation in an OpenAPI YAML/JSON file whose keys are runtime expressions such as '{$request.body#/callbackUrl}'.",
+        "A route decorator or annotation declaring callbacks, such as FastAPI's callbacks= router parameter or springdoc/Swagger @Callback, on a subscription or job-submission endpoint.",
+        "Handler code that stores a callbackUrl/notifyUrl field from the incoming request and later issues an HTTP POST to it from a background job or event listener using an HTTP client."
+      ],
+      "x-dr-distinguish": {
+        "api.operation": "the HTTP interaction is one the API receives and serves on its own paths, rather than a request the API sends to a URL supplied by the consumer.",
+        "api.link": "the relationship describes a follow-up call that the client makes to another operation of this API, using values from a response, rather than a call the API pushes to the client.",
+        "api.pathitem": "modelling the set of HTTP methods under a fixed path template of the API, or the inner PathItem that a callback aggregates, rather than the expression-keyed callback wrapper.",
+        "api.server": "the target is a fixed or variable-templated deployment base URL of the API, not a URL resolved per request from a runtime expression."
+      },
       "$id": "urn:dr:spec:node:api.callback"
     },
     "components": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Components",
-      "description": "A named registry for reusable API definition objects (schemas, responses, parameters, examples, requestBodies, headers, securitySchemes, links, callbacks) that enables $ref referencing throughout the specification. Component entries are not rendered directly — they must be referenced by operations, parameters, or schemas to take effect. Component name keys must match the pattern ^[a-zA-Z0-9.\\-_]+$ per OpenAPI 3.0 — arbitrary strings are not valid component identifiers.",
+      "description": "The single container object within an OpenAPI document that holds named, reusable definitions (schemas, responses, parameters, examples, request bodies, headers, security schemes, links and callbacks), each addressable by a '#/components/<kind>/<name>' $ref pointer. It defines no paths or operations itself; its entries take effect only when referenced. Use OpenAPIDocument instead when the element is the root object carrying openapi, info, paths and servers, of which the components section is only one child. Use Schema instead when the element is an individual data-shape definition, whether inline or stored under components.schemas, rather than the registry that holds it. Use Responses instead when the element is an operation's map of HTTP status codes to Response objects, not the components.responses registry of named reusable responses. Use Paths instead when the element maps URL path templates to PathItem objects that define live API surface, rather than holding unreferenced reusable definitions.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -98,12 +110,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Components Object",
+      "x-dr-evidence": [
+        "A top-level 'components:' key in an openapi.yaml/openapi.json with sub-maps such as schemas, securitySchemes, parameters or responses",
+        "JSON Reference strings of the form \"$ref: '#/components/schemas/User'\" or '#/components/responses/NotFound' elsewhere in the spec",
+        "Programmatic spec builders populating the section, e.g. springdoc 'new OpenAPI().components(new Components().addSecuritySchemes(...))', NestJS DocumentBuilder().addBearerAuth(), or drf-spectacular/FastAPI registering models under components.schemas"
+      ],
+      "x-dr-distinguish": {
+        "api.openapidocument": "the element is the root object carrying openapi, info, paths and servers, of which the components section is only one child.",
+        "api.schema": "the element is an individual data-shape definition, whether inline or stored under components.schemas, rather than the registry that holds it.",
+        "api.responses": "the element is an operation's map of HTTP status codes to Response objects, not the components.responses registry of named reusable responses.",
+        "api.paths": "the element maps URL path templates to PathItem objects that define live API surface, rather than holding unreferenced reusable definitions."
+      },
       "$id": "urn:dr:spec:node:api.components"
     },
     "contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact",
-      "description": "Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration.",
+      "description": "A metadata object nested in an API document's Info section that identifies the person or organisation responsible for the exposed API by name, email address and/or URL. It describes who maintains the API contract, not the server it is deployed on or the documentation it links to. Use Info instead when the element carries the API's title, version, description or terms of service rather than only the maintainer's name, email and URL. Use ExternalDocumentation instead when the URL points to a guide, wiki or reference material for the API rather than to a support or maintainer contact page. Use License instead when the name and URL identify the legal licence terms under which the API is offered rather than the party to contact.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -123,22 +147,35 @@
           "type": "object",
           "properties": {
             "url": {
-              "type": "string"
+              "type": "string",
+              "description": "Absolute URL of the maintainer's support or contact page, e.g. https://example.com/support. Set it when consumers should reach the owner through a web page rather than, or as well as, by email."
             },
             "email": {
-              "type": "string"
+              "type": "string",
+              "description": "Email address of the contact person or team, in RFC 5322 mailbox format, e.g. api-team@example.com. Set it when there is a monitored mailbox for API support or questions."
             }
           },
           "required": [],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Contact Object",
+      "x-dr-evidence": [
+        "An info.contact block with name, email or url keys in an openapi.yaml or openapi.json file.",
+        "A framework OpenAPI configuration passing a contact argument, e.g. FastAPI(contact={...}), Springdoc new Contact().name(...).email(...), or a swagger-jsdoc definition.info.contact entry.",
+        "An @contact or @Contact annotation or docblock tag in API annotations, such as swag's // @contact.email comment or the MicroProfile @Contact(...) annotation inside @Info."
+      ],
+      "x-dr-distinguish": {
+        "api.info": "the element carries the API's title, version, description or terms of service rather than only the maintainer's name, email and URL.",
+        "api.externaldocumentation": "the URL points to a guide, wiki or reference material for the API rather than to a support or maintainer contact page.",
+        "api.license": "the name and URL identify the legal licence terms under which the API is offered rather than the party to contact."
+      },
       "$id": "urn:dr:spec:node:api.contact"
     },
     "encoding": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Encoding",
-      "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation. Note: a Content-Type header placed in the Encoding object's 'headers' map is ignored — use the 'contentType' attribute to set the MIME type for a multipart section.",
+      "description": "A per-property serialization rule inside a request body's MediaType, keyed by a top-level schema property name, that fixes how that property is written as a part of a multipart or application/x-www-form-urlencoded body: its part Content-Type, part headers, and form style/explode/allowReserved behaviour. Use MediaType instead when the element describes the whole body for one MIME type (schema, examples, and the encoding map itself) rather than the rule for one property within it. Use Header instead when the element is an individual header definition (schema, required, description) that a multipart part or response carries, not the part-level serialization rule that lists those headers. Use Schema instead when the element defines the data shape or type of the property (type, format, properties) rather than how that property is serialized onto the wire. Use Parameter instead when the element is a path, query, header or cookie input to the operation rather than a property of a request body.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -158,10 +195,12 @@
           "type": "object",
           "properties": {
             "propertyName": {
-              "type": "string"
+              "type": "string",
+              "description": "Name of the top-level property in the MediaType's schema that this rule applies to (the map key in MediaType.encoding); it must match an existing schema property name exactly and should always be set."
             },
             "contentType": {
-              "type": "string"
+              "type": "string",
+              "description": "MIME type, or comma-separated list of MIME types or wildcards such as 'image/png, image/jpeg', for this part; set it only to override the default (application/octet-stream for binary strings, text/plain for primitives, application/json for objects)."
             },
             "style": {
               "type": "string",
@@ -177,7 +216,8 @@
               "description": "Serialization style for the encoding (only applicable to multipart/form-data and application/x-www-form-urlencoded)"
             },
             "explode": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean; when true, array or object values of this property are emitted as separate key=value pairs; defaults to true when style is 'form' and false otherwise, and is ignored unless the body is application/x-www-form-urlencoded."
             },
             "allowReserved": {
               "type": "boolean",
@@ -188,12 +228,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Encoding Object (MediaType Object 'encoding' field)",
+      "x-dr-evidence": [
+        "An OpenAPI YAML/JSON fragment with an 'encoding:' map under 'requestBody.content.multipart/form-data' or 'application/x-www-form-urlencoded', keyed by property names such as 'profileImage: { contentType: image/png }'.",
+        "A springdoc/swagger-core @Encoding(name=..., contentType=...) annotation nested in @Content on a controller method that consumes multipart/form-data, e.g. alongside @RequestPart parameters.",
+        "Upload handler code that declares per-field part content types or headers, e.g. FastAPI File/Form fields with media_type, or a multer/busboy field configuration whose field names match properties of the request body schema."
+      ],
+      "x-dr-distinguish": {
+        "api.mediatype": "the element describes the whole body for one MIME type (schema, examples, and the encoding map itself) rather than the rule for one property within it.",
+        "api.header": "the element is an individual header definition (schema, required, description) that a multipart part or response carries, not the part-level serialization rule that lists those headers.",
+        "api.schema": "the element defines the data shape or type of the property (type, format, properties) rather than how that property is serialized onto the wire.",
+        "api.parameter": "the element is a path, query, header or cookie input to the operation rather than a property of a request body."
+      },
       "$id": "urn:dr:spec:node:api.encoding"
     },
     "example": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Example",
-      "description": "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.",
+      "description": "A named sample instance of a value, given either inline or by external URL, attached through an `examples` map to a media type, parameter or header, or registered under components.examples for $ref reuse. It illustrates one concrete payload or value. It does not define the shape or constraints of that value. Use Schema instead when the element defines the type, properties and constraints a value must satisfy rather than one concrete sample of it. Use MediaType instead when the element is the MIME-keyed content entry itself; a single inline `example` value on that media type is an attribute of it, not a separate Example. Use ExternalDocumentation instead when the URL points to explanatory prose such as a guide or wiki rather than to a sample payload or value. Use Components instead when the element is the reusable registry holding examples rather than one named example entry within it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -213,10 +265,12 @@
           "type": "object",
           "properties": {
             "summary": {
-              "type": "string"
+              "type": "string",
+              "description": "Short plain-text label for the example, typically shown as its title in documentation tools; set it whenever several examples sit side by side so readers can tell them apart."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Longer explanation of the scenario the example illustrates, written in CommonMark per OpenAPI 3.0; set it when the value's purpose or preconditions are not obvious from the summary."
             },
             "value": {
               "type": "string",
@@ -231,12 +285,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Example Object",
+      "x-dr-evidence": [
+        "An entry in an `examples:` map under `content.application/json`, a parameter or a header in an openapi.yaml/json file, carrying `summary` and `value` or `externalValue` keys.",
+        "A `components.examples` entry referenced elsewhere via `$ref: '#/components/examples/<Name>'`.",
+        "Framework annotations that emit named examples, e.g. springdoc `@ExampleObject(name=..., value=...)`, FastAPI `Body(openapi_examples={...})`, NestJS `@ApiBody({ examples: {...} })` or swagger-php `@OA\\Examples`."
+      ],
+      "x-dr-distinguish": {
+        "api.schema": "the element defines the type, properties and constraints a value must satisfy rather than one concrete sample of it.",
+        "api.mediatype": "the element is the MIME-keyed content entry itself; a single inline `example` value on that media type is an attribute of it, not a separate Example.",
+        "api.externaldocumentation": "the URL points to explanatory prose such as a guide or wiki rather than to a sample payload or value.",
+        "api.components": "the element is the reusable registry holding examples rather than one named example entry within it."
+      },
       "$id": "urn:dr:spec:node:api.example"
     },
     "externaldocumentation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExternalDocumentation",
-      "description": "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Can be attached to the root OpenAPI document, individual Tags, Operations, and Schema objects.",
+      "description": "A metadata object holding a single URL (plus optional descriptive text) that points to documentation hosted outside the OpenAPI document. It attaches through an 'externalDocs' field to the root document, a Tag, an Operation or a Schema. Use Contact instead when the URL or email identifies a person or team to reach for support, not a documentation resource. Use License instead when the URL points to the legal license terms under which the API is offered. Use Info instead when the text is the API's own inline title, description or termsOfService rather than a link to an outside documentation page. Use Example instead when the URL (externalValue) points to a sample payload value rather than to human-readable documentation.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -256,22 +322,36 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Short CommonMark-capable text describing what the linked documentation covers; set it when the URL alone does not make the target's purpose clear."
             },
             "url": {
-              "type": "string"
+              "type": "string",
+              "description": "Absolute URL of the external documentation resource (e.g. https://docs.example.com/guide), always required."
             }
           },
           "required": ["url"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 External Documentation Object",
+      "x-dr-evidence": [
+        "an 'externalDocs:' block containing a 'url:' key in an openapi.yaml/json file, at root level, under a tag, an operation or a schema",
+        "a springdoc/swagger-core @ExternalDocumentation(url=...) or @ExternalDocs annotation on a controller method, OpenAPIDefinition or model class",
+        "a NestJS DocumentBuilder().setExternalDoc(description, url) call, or a FastAPI openapi_tags entry with an 'externalDocs' dict"
+      ],
+      "x-dr-distinguish": {
+        "api.contact": "the URL or email identifies a person or team to reach for support, not a documentation resource.",
+        "api.license": "the URL points to the legal license terms under which the API is offered.",
+        "api.info": "the text is the API's own inline title, description or termsOfService rather than a link to an outside documentation page.",
+        "api.example": "the URL (externalValue) points to a sample payload value rather than to human-readable documentation."
+      },
       "$id": "urn:dr:spec:node:api.externaldocumentation"
     },
     "header": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Header",
-      "description": "Defines a reusable HTTP header for responses or request components. The header name is derived from its map key — the OpenAPI 3.0 Header Object does not include a 'name' field (use the 'name' attribute as a local identifier only). The 'in' location is implicitly 'header' and must not be specified, distinguishing Header from Parameter.",
+      "description": "A named HTTP header declaration, keyed by header name in a Response's headers map, an Encoding's headers map, or the Components headers registry, that describes the header value's schema, serialization and examples. It carries no 'name' or 'in' field because the name comes from the map key and the location is always header. Use Parameter instead when the header is a client-supplied input to an operation, declared in the operation's or path's parameters list with in: header. Use SecurityScheme instead when the header carries credentials (e.g. Authorization, X-API-Key) and what is being modelled is the authentication mechanism, i.e. an apiKey scheme with in: header or an http bearer scheme. Use RateLimit instead when what is being modelled is the throttling policy itself (request count, window, scope), not the X-RateLimit-* response header that reports it. Use Encoding instead when the intent is to set the MIME type of a multipart part; use Encoding.contentType rather than a Content-Type header, which OpenAPI ignores.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -291,13 +371,16 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable explanation of the header's meaning and value format, in CommonMark; set it whenever the header's purpose is not obvious from its name."
             },
             "required": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean stating whether the header is always present in the enclosing response or multipart part. Defaults to false; set true only when the header is guaranteed to be sent."
             },
             "deprecated": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean marking the header as deprecated so consumers stop relying on it. Defaults to false; set true when the header is scheduled for removal."
             },
             "schema": {
               "type": "object",
@@ -339,12 +422,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Header Object",
+      "x-dr-evidence": [
+        "An OpenAPI YAML/JSON 'headers:' map under a response (e.g. responses.200.headers.X-Request-Id with a schema) or an entry under components.headers.",
+        "A springdoc/swagger annotation such as @ApiResponse(headers = @Header(name = \"X-Rate-Limit-Remaining\", schema = @Schema(type = \"integer\"))), or a FastAPI/NestJS responses= declaration with a 'headers' dict.",
+        "A route handler that sets a fixed response header (e.g. res.setHeader('Location', ...) or response.headers['ETag'] = ...) whose value is documented as part of the response contract."
+      ],
+      "x-dr-distinguish": {
+        "api.parameter": "the header is a client-supplied input to an operation, declared in the operation's or path's parameters list with in: header.",
+        "api.securityscheme": "the header carries credentials (e.g. Authorization, X-API-Key) and what is being modelled is the authentication mechanism, i.e. an apiKey scheme with in: header or an http bearer scheme.",
+        "api.ratelimit": "what is being modelled is the throttling policy itself (request count, window, scope), not the X-RateLimit-* response header that reports it.",
+        "api.encoding": "the intent is to set the MIME type of a multipart part; use Encoding.contentType rather than a Content-Type header, which OpenAPI ignores."
+      },
       "$id": "urn:dr:spec:node:api.header"
     },
     "info": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Info",
-      "description": "Required root-level metadata describing the API identity, version, legal terms, and maintainer contact. The 'title' and 'version' fields are required per OpenAPI 3.0. Consumed by documentation generators, API gateways, and developer portals.",
+      "description": "A single metadata object nested in an OpenAPI document's root 'info' field that records the described API's title, its document version, an optional description and terms-of-service URL, and references to its contact and license. Exactly one exists per OpenAPI document; it describes the API as a whole, not any path, operation or server. Use OpenAPIDocument instead when the element is the root object itself, which holds the 'openapi' spec-version string and the paths, servers, components and security sections, rather than only the descriptive metadata block. Use Contact instead when the element carries only the maintainer's name, email or URL, which Info references through its 'contact' field. Use License instead when the element carries only the license name and license URL, which Info references through its 'license' field. Use ExternalDocumentation instead when the element is a link to an external guide or wiki attached to the root document, a tag, an operation or a schema, rather than inline title and version metadata.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -364,17 +459,20 @@
           "type": "object",
           "properties": {
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable name of the API as shown in documentation portals and gateways (e.g. 'Taxonomy Service API'); always set, since OpenAPI 3.0 requires it."
             },
             "description": {
               "type": "string",
               "description": "Supports CommonMark (Markdown) syntax per OpenAPI 3.0."
             },
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version string of the API definition document (e.g. '1.4.0' or '2024-05-01'), distinct from the OpenAPI specification version held in OpenAPIDocument.openapi; always set, since OpenAPI 3.0 requires it."
             },
             "termsOfService": {
-              "type": "string"
+              "type": "string",
+              "description": "URL of the API's terms of service, which must be a valid URL per OpenAPI 3.0; set only when the API publishes usage terms."
             },
             "contact": {
               "type": "string",
@@ -389,12 +487,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Info Object",
+      "x-dr-evidence": [
+        "An 'info:' block containing 'title:' and 'version:' keys at the top level of an openapi.yaml or openapi.json file",
+        "A framework OpenAPI bootstrap call that sets API metadata, such as FastAPI(title=..., version=..., description=...), NestJS new DocumentBuilder().setTitle().setVersion(), or springdoc new OpenAPI().info(new Info().title(...))",
+        "A Java annotation @OpenAPIDefinition(info = @Info(title = ..., version = ...)), or a swagger-jsdoc options object with definition.info.title and definition.info.version"
+      ],
+      "x-dr-distinguish": {
+        "api.openapidocument": "the element is the root object itself, which holds the 'openapi' spec-version string and the paths, servers, components and security sections, rather than only the descriptive metadata block",
+        "api.contact": "the element carries only the maintainer's name, email or URL, which Info references through its 'contact' field",
+        "api.license": "the element carries only the license name and license URL, which Info references through its 'license' field",
+        "api.externaldocumentation": "the element is a link to an external guide or wiki attached to the root document, a tag, an operation or a schema, rather than inline title and version metadata"
+      },
       "$id": "urn:dr:spec:node:api.info"
     },
     "license": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "License",
-      "description": "Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers.",
+      "description": "A metadata object, nested under an API's Info object, that identifies by name the legal license governing use of the API and optionally gives a URL to the full license text. It describes terms of use for the API contract itself, not the license of the implementing source code. Use Info instead when the element is the overall API metadata block (title, version, description, termsOfService) rather than only the license name and URL inside it. Use ExternalDocumentation instead when the URL points to guides, wikis or reference docs that explain the API rather than to the legal license terms. Use Contact instead when the information identifies who owns or supports the API (name, email, URL) rather than the legal terms under which it may be used.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -414,19 +524,31 @@
           "type": "object",
           "properties": {
             "url": {
-              "type": "string"
+              "type": "string",
+              "description": "Absolute URL (OpenAPI 3.0 requires URL format) pointing to the full text of the license; set it whenever the license terms are published at a resolvable location."
             }
           },
           "required": ["name"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 License Object",
+      "x-dr-evidence": [
+        "an info.license block with name (e.g. 'Apache 2.0', 'MIT') and url fields in an openapi.yaml/openapi.json file",
+        "a framework OpenAPI config call setting license metadata, e.g. springdoc new License().name(\"Apache 2.0\").url(...), FastAPI(license_info={...}) or swagger-jsdoc definition.info.license",
+        "an @OpenAPIDefinition(info = @Info(license = @License(name=..., url=...))) or equivalent annotation on an application or config class"
+      ],
+      "x-dr-distinguish": {
+        "api.info": "the element is the overall API metadata block (title, version, description, termsOfService) rather than only the license name and URL inside it.",
+        "api.externaldocumentation": "the URL points to guides, wikis or reference docs that explain the API rather than to the legal license terms.",
+        "api.contact": "the information identifies who owns or supports the API (name, email, URL) rather than the legal terms under which it may be used."
+      },
       "$id": "urn:dr:spec:node:api.license"
     },
     "link": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Link",
-      "description": "Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns.",
+      "description": "A response-scoped descriptor that names a target operation, by operationId or operationRef, and maps values from the current response or request (via runtime expressions or literals) onto that operation's parameters or request body. It is a design-time statement of how one call can follow another. It is not a hyperlink carried in the response payload. Use Callback instead when the API itself sends an outbound request to a consumer-supplied URL, rather than describing a follow-up call the consumer may make to an operation in this API. Use Schema instead when the 'links' are runtime data inside the response body (e.g. HAL _links, JSON:API links objects) whose shape is being described, not an OpenAPI Link Object. Use Header instead when the relationship is conveyed by an actual HTTP Link response header (RFC 8288) declared on the response. Use Parameter instead when you are defining the input the target operation accepts, rather than mapping a value from a prior response into that input.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -454,7 +576,8 @@
               "description": "A relative or absolute URL reference to an operation. Mutually exclusive with 'operationId' — only one may be specified per Link."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable explanation of the link's purpose and when a client should follow it; CommonMark is allowed, and it should be set whenever the target or parameter mapping is not self-evident."
             },
             "parameters": {
               "type": "object",
@@ -469,12 +592,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Link Object",
+      "x-dr-evidence": [
+        "A 'links:' map under a response in an OpenAPI YAML/JSON file whose entries carry operationId or operationRef plus parameters using runtime expressions such as '$response.body#/id'",
+        "A springdoc/swagger-core @Link annotation inside @ApiResponse(links = ...), or a swagger-php @OA\\Link / NestJS equivalent attached to a response definition",
+        "Entries under components.links referenced from responses via $ref '#/components/links/<Name>'"
+      ],
+      "x-dr-distinguish": {
+        "api.callback": "the API itself sends an outbound request to a consumer-supplied URL, rather than describing a follow-up call the consumer may make to an operation in this API",
+        "api.schema": "the 'links' are runtime data inside the response body (e.g. HAL _links, JSON:API links objects) whose shape is being described, not an OpenAPI Link Object",
+        "api.header": "the relationship is conveyed by an actual HTTP Link response header (RFC 8288) declared on the response",
+        "api.parameter": "you are defining the input the target operation accepts, rather than mapping a value from a prior response into that input"
+      },
       "$id": "urn:dr:spec:node:api.link"
     },
     "mediatype": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MediaType",
-      "description": "Describes the schema, examples, and encoding for a specific MIME type within a request body or response content map. Keyed by media type string (e.g., application/json).",
+      "description": "An entry in the 'content' map of a request body, response, or content-style parameter, keyed by one MIME type or media range (e.g. application/json, text/*), that binds the payload schema, examples, and (for multipart or form-urlencoded bodies) per-property encoding used when the payload has that type. Use Schema instead when the element is the data-shape definition itself (type, properties, items), independent of which MIME type carries it. Use Encoding instead when the element describes serialization of a single property within a multipart or form-urlencoded body rather than the whole payload for a MIME type. Use RequestBody instead when the element is the container holding the description, the required flag and the full content map across all MIME types for an operation's input. Use Response instead when the element is an outcome for a status code, with its description, headers and links, rather than one MIME-typed representation within it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -494,7 +629,8 @@
           "type": "object",
           "properties": {
             "contentType": {
-              "type": "string"
+              "type": "string",
+              "description": "The media type or media range string that keys this entry in the parent content map, per RFC 6838 (e.g. 'application/json', 'text/*', 'application/vnd.acme+json'); always set it, and keep it unique within the parent's content map."
             },
             "example": {
               "type": "string",
@@ -505,12 +641,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Media Type Object",
+      "x-dr-evidence": [
+        "An OpenAPI YAML/JSON 'content:' block under a requestBody or response with a key such as 'application/json' or 'multipart/form-data' carrying 'schema:' and 'example(s):'.",
+        "A framework annotation declaring a produced or consumed MIME type with a payload schema, e.g. Spring @Content(mediaType=\"application/json\", schema=@Schema(...)) or @Produces/@Consumes on a JAX-RS resource method.",
+        "FastAPI/NestJS response declarations naming a MIME type with a model, e.g. responses={200: {\"content\": {\"image/png\": {}}}} or @ApiProduces('text/csv') paired with @ApiResponse({type: Dto})."
+      ],
+      "x-dr-distinguish": {
+        "api.schema": "the element is the data-shape definition itself (type, properties, items), independent of which MIME type carries it.",
+        "api.encoding": "the element describes serialization of a single property within a multipart or form-urlencoded body rather than the whole payload for a MIME type.",
+        "api.requestbody": "the element is the container holding the description, the required flag and the full content map across all MIME types for an operation's input.",
+        "api.response": "the element is an outcome for a status code, with its description, headers and links, rather than one MIME-typed representation within it."
+      },
       "$id": "urn:dr:spec:node:api.mediatype"
     },
     "oauthflow": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OAuthFlow",
-      "description": "Configuration for a single OAuth 2.0 grant type (implicit, password, clientCredentials, or authorizationCode). authorizationUrl is required for implicit and authorizationCode flows; tokenUrl is required for password, clientCredentials, and authorizationCode flows; scopes is required for all flows. The flow type is not an explicit field — it is implied by which attribute of the parent OAuthFlows object references this OAuthFlow.",
+      "description": "A configuration object describing one OAuth 2.0 grant type (implicit, password, clientCredentials or authorizationCode) within an oauth2 security scheme, giving the endpoint URLs that grant uses and the map of scopes it can issue. Its grant type is determined by the OAuthFlows field that holds it, not by a field of its own. Use OAuthFlows instead when the element is the container grouping all grant types for one oauth2 scheme (the 'flows' object) rather than the settings of a single grant. Use SecurityScheme instead when the element declares the authentication mechanism itself (type oauth2, apiKey, http, openIdConnect) and its registry name, rather than the URLs and scopes of one OAuth grant. Use Server instead when the URL is a base address where the API itself is deployed, not an authorization, token or refresh endpoint of an identity provider.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -530,13 +678,16 @@
           "type": "object",
           "properties": {
             "authorizationUrl": {
-              "type": "string"
+              "type": "string",
+              "description": "Absolute URL of the authorization endpoint where the user grants consent; required for implicit and authorizationCode flows and omitted for password and clientCredentials."
             },
             "tokenUrl": {
-              "type": "string"
+              "type": "string",
+              "description": "Absolute URL of the token endpoint that exchanges a grant or credentials for an access token; required for password, clientCredentials and authorizationCode flows and omitted for implicit."
             },
             "refreshUrl": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional absolute URL of the endpoint used to obtain refreshed access tokens; set only when the provider issues refresh tokens via a distinct endpoint."
             },
             "scopes": {
               "type": "object",
@@ -547,12 +698,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 OAuth Flow Object",
+      "x-dr-evidence": [
+        "An entry under components.securitySchemes.<name>.flows.authorizationCode (or implicit/password/clientCredentials) in an openapi.yaml containing authorizationUrl, tokenUrl and scopes keys",
+        "A framework security declaration such as FastAPI OAuth2PasswordBearer(tokenUrl=...)/OAuth2AuthorizationCodeBearer, springdoc @OAuthFlow(authorizationUrl=..., tokenUrl=..., scopes=@OAuthScope(...)), or NestJS addOAuth2({ flows: { ... } })",
+        "A scopes dictionary mapping scope strings (e.g. 'read:users') to descriptions, used in both the spec generator config and route-level scope checks"
+      ],
+      "x-dr-distinguish": {
+        "api.oauthflows": "the element is the container grouping all grant types for one oauth2 scheme (the 'flows' object) rather than the settings of a single grant.",
+        "api.securityscheme": "the element declares the authentication mechanism itself (type oauth2, apiKey, http, openIdConnect) and its registry name, rather than the URLs and scopes of one OAuth grant.",
+        "api.server": "the URL is a base address where the API itself is deployed, not an authorization, token or refresh endpoint of an identity provider."
+      },
       "$id": "urn:dr:spec:node:api.oauthflow"
     },
     "oauthflows": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OAuthFlows",
-      "description": "Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. At least one flow attribute must be specified. Always nested within a SecurityScheme where type is 'oauth2' — cannot be used independently.",
+      "description": "A container object nested in an oauth2-type SecurityScheme that maps each supported OAuth 2.0 grant type (implicit, password, clientCredentials, authorizationCode) to one OAuthFlow configuration. It holds no URLs or scopes of its own; it only selects which grant types the scheme offers. Use OAuthFlow instead when the element carries the authorizationUrl, tokenUrl, refreshUrl or scopes of a single grant type rather than the set of grant-type slots. Use SecurityScheme instead when the element declares the authentication mechanism itself (type, description, name/in, scheme) rather than the flows block inside an oauth2 scheme. Use Components instead when the element is the document-wide registry holding named securitySchemes, not the flows object within one scheme.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -574,12 +736,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 OAuth Flows Object",
+      "x-dr-evidence": [
+        "A 'flows:' map with keys such as authorizationCode or clientCredentials under a securitySchemes entry whose type is oauth2 in openapi.yaml or openapi.json",
+        "A springdoc/swagger-annotations @OAuthFlows(...) passed as the flows argument of @SecurityScheme(type = SecuritySchemeType.OAUTH2)",
+        "A framework flows model instantiated for an OAuth2 scheme, e.g. FastAPI OAuthFlowsModel(password=...) or .NET Swashbuckle new OpenApiOAuthFlows { AuthorizationCode = ... }"
+      ],
+      "x-dr-distinguish": {
+        "api.oauthflow": "the element carries the authorizationUrl, tokenUrl, refreshUrl or scopes of a single grant type rather than the set of grant-type slots.",
+        "api.securityscheme": "the element declares the authentication mechanism itself (type, description, name/in, scheme) rather than the flows block inside an oauth2 scheme.",
+        "api.components": "the element is the document-wide registry holding named securitySchemes, not the flows object within one scheme."
+      },
       "$id": "urn:dr:spec:node:api.oauthflows"
     },
     "openapidocument": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OpenAPIDocument",
-      "description": "The root document object of an OpenAPI 3.0 specification. Required fields are openapi (semver string, e.g. '3.0.3'), info, and paths. Serves as the entry point for all tooling, gateways, and documentation generators.",
+      "description": "A root-level API description that declares one OpenAPI version and binds together exactly one Info object, one Paths map, and optionally servers, components, root security requirements, tags and external docs, describing a single API surface. One instance exists per openapi.yaml/json file or per generated spec endpoint, not per path, operation or reusable component. Use Info instead when the element is only the title/version/description/contact/license metadata block, not the whole specification. Use Paths instead when the element is only the map of URL path templates to PathItems inside a document. Use Components instead when the element is the reusable-definitions registry (schemas, responses, securitySchemes, etc.), even if it lives in a separate shared file referenced via $ref. Use PathItem instead when the element describes the operations under one URL path rather than the whole API.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -599,42 +772,60 @@
           "type": "object",
           "properties": {
             "openapi": {
-              "type": "string"
+              "type": "string",
+              "description": "The OpenAPI Specification version the document conforms to, as a semantic version string (e.g. '3.0.3'); always set, and distinct from the API's own version in Info."
             },
             "info": {
-              "type": "string"
+              "type": "string",
+              "description": "Reference to the single api.info node holding the API's title, version and metadata; always set because Info is required."
             },
             "servers": {
-              "type": "string"
+              "type": "string",
+              "description": "Reference to the api.server nodes giving the base URLs where the API is deployed; set when the spec declares root-level servers, otherwise tooling defaults to '/'. This schema stores the reference as a single string."
             },
             "paths": {
               "type": "string",
               "description": "Required per OpenAPI 3.0 but may be an empty object ({}) when the document is used solely to define reusable components."
             },
             "components": {
-              "type": "string"
+              "type": "string",
+              "description": "Reference to the api.components node holding reusable schemas, responses, parameters and security schemes; set when the document defines any reusable objects."
             },
             "security": {
               "type": "string",
               "description": "Defines default security requirements applied to all operations. Individual operations can override or remove it by setting their own 'security' to an empty array ([])."
             },
             "tags": {
-              "type": "string"
+              "type": "string",
+              "description": "Reference to the root-level api.tag nodes that supply descriptions and external docs for the tag names operations use; set when the spec declares a root tags array. This schema stores the reference as a single string."
             },
             "externalDocs": {
-              "type": "string"
+              "type": "string",
+              "description": "Reference to an api.externaldocumentation node linking to supplementary documentation for the whole API; set only when the spec declares root-level externalDocs."
             }
           },
           "required": ["openapi", "info", "paths"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 OpenAPI Object (root document object)",
+      "x-dr-evidence": [
+        "a file such as openapi.yaml, openapi.json or swagger/v3 spec whose top-level key is 'openapi: 3.0.x' alongside 'info' and 'paths'",
+        "framework spec bootstrap code, e.g. FastAPI(title=..., version=...), springdoc OpenAPI bean, swagger-jsdoc definition object, or NSwag/Swashbuckle AddSwaggerGen document registration",
+        "an HTTP route serving the generated spec (e.g. GET /openapi.json, /v3/api-docs) or a Swagger UI/Redoc config pointing at that URL, or an openapi-generator input path in build config"
+      ],
+      "x-dr-distinguish": {
+        "api.info": "the element is only the title/version/description/contact/license metadata block, not the whole specification.",
+        "api.paths": "the element is only the map of URL path templates to PathItems inside a document.",
+        "api.components": "the element is the reusable-definitions registry (schemas, responses, securitySchemes, etc.), even if it lives in a separate shared file referenced via $ref.",
+        "api.pathitem": "the element describes the operations under one URL path rather than the whole API."
+      },
       "$id": "urn:dr:spec:node:api.openapidocument"
     },
     "operation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Operation",
-      "description": "Defines a single HTTP method bound to a path, specifying its contract: parameters, request body, possible responses, security requirements, and tags. Operation-level security overrides global API security requirements; an empty security array ([]) explicitly removes all security enforcement for the operation. The primary unit of API surface area in OpenAPI 3.0.",
+      "description": "An HTTP interaction contract identified by one HTTP method on one URL path template, specifying the parameters, request body, responses and security that apply to that method-path pair. Each route handler, controller action or generated client method bound to a distinct method plus path is one instance. Use PathItem instead when the element groups all methods available under a single URL path template, or carries path-level parameters shared by those methods, rather than describing one method's contract. Use Callback instead when the element is an outbound request the API sends to a consumer-supplied URL resolved from a runtime expression, rather than an endpoint the API itself serves. Use Link instead when the element only describes how values from one operation's response feed the parameters of another operation, rather than defining an endpoint. Use Paths instead when the element is the document-wide map of all path templates, not a single method on a single path.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -658,16 +849,20 @@
               "description": "Unique identifier for this operation across the entire API document"
             },
             "summary": {
-              "type": "string"
+              "type": "string",
+              "description": "A short plain-text phrase, ideally under 120 characters, stating what the operation does; set it from the handler's docstring or the OpenAPI summary field."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "A longer explanation of the operation's behaviour, side effects and constraints, which may use CommonMark; set it when the summary is insufficient to understand the contract."
             },
             "tags": {
-              "type": "string"
+              "type": "string",
+              "description": "Tag name used to group this operation in documentation, typically the resource or controller name; it should match an api.tag element where one is declared. This schema stores the value as a single string although OpenAPI allows a list."
             },
             "deprecated": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Set to true when the operation is marked obsolete (for example via @Deprecated or OpenAPI deprecated: true) and consumers should stop calling it; it defaults to false."
             },
             "http_method": {
               "type": "string",
@@ -693,12 +888,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Operation Object",
+      "x-dr-evidence": [
+        "A handler function or method registered for a specific HTTP verb and path, e.g. @app.get('/users/{id}'), @GetMapping(\"/users/{id}\"), router.post('/orders', ...), or [HttpDelete(\"{id}\")] on an ASP.NET controller action",
+        "An entry under paths.<template>.<get|post|put|delete|patch|head|options|trace> in an openapi.yaml or openapi.json file, typically carrying an operationId",
+        "A method in a generated API client, for example from openapi-generator or NSwag, that issues a request with a fixed HTTP method to a fixed path template and is named after an operationId"
+      ],
+      "x-dr-distinguish": {
+        "api.pathitem": "the element groups all methods available under a single URL path template, or carries path-level parameters shared by those methods, rather than describing one method's contract",
+        "api.callback": "the element is an outbound request the API sends to a consumer-supplied URL resolved from a runtime expression, rather than an endpoint the API itself serves",
+        "api.link": "the element only describes how values from one operation's response feed the parameters of another operation, rather than defining an endpoint",
+        "api.paths": "the element is the document-wide map of all path templates, not a single method on a single path"
+      },
       "$id": "urn:dr:spec:node:api.operation"
     },
     "parameter": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Parameter",
-      "description": "Defines an input to an API operation by location, name, and schema. Parameters can appear in four locations: 'path' (always required, name must match the {placeholder} in the path template), 'query' (case-sensitive name, appended to the URL), 'header' (case-insensitive name), and 'cookie'. The 'schema' and 'content' attributes are mutually exclusive; 'content' requires exactly one map entry.",
+      "description": "A named input to an API operation or path item that is carried outside the request body, in the URL path, the query string, a request header or a cookie. It is identified by the pair (name, in) and constrained by either a schema or a single-entry content map. Use RequestBody instead when the input is carried in the HTTP message body, including form fields of application/x-www-form-urlencoded or multipart/form-data payloads. Use Header instead when the header describes a response header, or a multipart part header under an Encoding, where the name comes from a map key and no 'in' location is given. Use ServerVariable instead when the {placeholder} is substituted in a Server URL (host, base path, tenant) rather than in a Paths key template. Use Schema instead when you are modelling the data type or constraints of the value itself rather than the named input slot that carries it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -723,16 +930,20 @@
               "description": "Location of the parameter. Path parameters must always have required: true. Default serialization style: 'form' for query/cookie, 'simple' for path/header."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable explanation of the parameter's meaning and accepted values, in CommonMark; set it whenever the name alone does not convey semantics or units."
             },
             "required": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether the client must supply the parameter. It must be true when in is 'path' and defaults to false otherwise; set it to true for mandatory query, header or cookie inputs."
             },
             "deprecated": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Marks the parameter as scheduled for removal so that consumers stop sending it. Defaults to false; set it to true when the handler still accepts the parameter but it is slated for removal."
             },
             "allowEmptyValue": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when the chosen style cannot serialize an empty value, and is NOT RECOMMENDED in OpenAPI 3.0.3."
             },
             "style": {
               "type": "string",
@@ -775,12 +986,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Parameter Object",
+      "x-dr-evidence": [
+        "Framework parameter bindings on handler arguments, such as Spring @PathVariable/@RequestParam/@RequestHeader/@CookieValue, FastAPI Path()/Query()/Header()/Cookie(), or ASP.NET [FromRoute]/[FromQuery]/[FromHeader].",
+        "Handler code reading req.params.<name>, req.query.<name>, req.get('<Header>') or req.cookies.<name> in an Express/Koa-style route registered on a router.",
+        "An entry under a 'parameters:' list in an OpenAPI YAML/JSON file, at operation, path-item or components level, containing 'name:' and 'in: path|query|header|cookie'."
+      ],
+      "x-dr-distinguish": {
+        "api.requestbody": "the input is carried in the HTTP message body, including form fields of application/x-www-form-urlencoded or multipart/form-data payloads.",
+        "api.header": "the header describes a response header, or a multipart part header under an Encoding, where the name comes from a map key and no 'in' location is given.",
+        "api.servervariable": "the {placeholder} is substituted in a Server URL (host, base path, tenant) rather than in a Paths key template.",
+        "api.schema": "you are modelling the data type or constraints of the value itself rather than the named input slot that carries it."
+      },
       "$id": "urn:dr:spec:node:api.parameter"
     },
     "pathitem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PathItem",
-      "description": "Groups all HTTP operations available under a single URL path pattern (e.g., /users/{userId}). Path-level parameters apply to all operations under the path and can be overridden by matching name+in at the operation level, but cannot be removed. Individual HTTP methods are represented as operation references. Supports $ref at the PathItem level, enabling shared path definitions to be reused across multiple OpenAPI specifications.",
+      "description": "An OpenAPI path-level object that groups the HTTP operations exposed under exactly one URL path template (e.g. /users/{userId}), or under one callback runtime expression. It carries parameters and servers shared by all of those operations. It describes the whole path, not any single method. Use Operation instead when the element is one HTTP method on the path (e.g. GET /users/{userId}) with its own operationId, request body and responses. Use Paths instead when the element is the document-wide map from every path template to its PathItem, not a single path entry. Use Callback instead when the element is the runtime-expression key (e.g. $request.body#/callbackUrl) naming where an asynchronous notification is sent, rather than the PathItem that key maps to. Use Parameter instead when the element is a single named input (path, query, header or cookie), even if it is declared at path level and shared by all operations.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -800,22 +1023,36 @@
           "type": "object",
           "properties": {
             "summary": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional short one-line plain-text summary intended to apply to all operations under this path; set it when the path as a whole has a single clear purpose (e.g. 'Single user resource')."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional longer explanation, in CommonMark Markdown, of the resource or behaviour shared by all operations under this path; set it when path-wide context (semantics, constraints) is not captured by individual operation descriptions."
             }
           },
           "required": [],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Path Item Object",
+      "x-dr-evidence": [
+        "a key beginning with '/' directly under 'paths:' in an OpenAPI YAML/JSON file, whose children are HTTP-method keys (get, post, put, delete) and optionally a shared 'parameters' or 'servers' list",
+        "a router chain bound to one path string with several verb handlers, e.g. Express router.route('/users/:id').get(...).put(...).delete(...)",
+        "a class-based view bound to a single URL pattern whose methods are named after HTTP verbs, e.g. a Flask MethodView or Django APIView registered at path('users/<int:id>/', ...)"
+      ],
+      "x-dr-distinguish": {
+        "api.operation": "the element is one HTTP method on the path (e.g. GET /users/{userId}) with its own operationId, request body and responses",
+        "api.paths": "the element is the document-wide map from every path template to its PathItem, not a single path entry",
+        "api.callback": "the element is the runtime-expression key (e.g. $request.body#/callbackUrl) naming where an asynchronous notification is sent, rather than the PathItem that key maps to",
+        "api.parameter": "the element is a single named input (path, query, header or cookie), even if it is declared at path level and shared by all operations"
+      },
       "$id": "urn:dr:spec:node:api.pathitem"
     },
     "paths": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Paths",
-      "description": "A map of URL path patterns to PathItem objects defining the API surface. Path keys use OpenAPI path templating (e.g., /users/{id}) and must begin with '/'. Individual path entries are modeled as relationships to api.pathitem nodes.",
+      "description": "A single container object within one OpenAPI document that maps each relative URL path template (a key beginning with '/', e.g. /users/{id}) to exactly one PathItem, representing the complete set of endpoints the document exposes. There is one per OpenAPI document, and it does not itself carry operations, servers or metadata. Use PathItem instead when the symbol represents one specific URL path pattern and the HTTP methods available on it, rather than the whole collection of paths. Use OpenAPIDocument instead when the symbol is the root specification object carrying openapi version, info, servers, components and security in addition to the paths map. Use Operation instead when the symbol is a single HTTP method handler bound to a path, with its own parameters, request body and responses. Use Components instead when the map holds reusable named definitions (schemas, responses, parameters, etc.) referenced via $ref rather than routable URL paths.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -837,12 +1074,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Paths Object",
+      "x-dr-evidence": [
+        "The top-level 'paths:' key in an openapi.yaml/openapi.json file, whose children are keys like '/users/{userId}'.",
+        "A root route table that enumerates all URL patterns of the service, e.g. Django root urls.py urlpatterns, Rails config/routes.rb, or an Express app mounting all routers.",
+        "Framework-generated spec output exposing a paths dictionary, e.g. FastAPI app.openapi()['paths'] or a springdoc/Swashbuckle-generated document's Paths collection."
+      ],
+      "x-dr-distinguish": {
+        "api.pathitem": "the symbol represents one specific URL path pattern and the HTTP methods available on it, rather than the whole collection of paths.",
+        "api.openapidocument": "the symbol is the root specification object carrying openapi version, info, servers, components and security in addition to the paths map.",
+        "api.operation": "the symbol is a single HTTP method handler bound to a path, with its own parameters, request body and responses.",
+        "api.components": "the map holds reusable named definitions (schemas, responses, parameters, etc.) referenced via $ref rather than routable URL paths."
+      },
       "$id": "urn:dr:spec:node:api.paths"
     },
     "ratelimit": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RateLimit",
-      "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+      "description": "A request-throttling policy attached to an API's servers, paths or operations that caps how many requests a consumer, identified by a counting key, may make within a fixed time window. It also states what enforcement happens when that cap is exceeded. Use Header instead when you are modelling the response headers that report quota state to clients (e.g. X-RateLimit-Remaining, RateLimit-Reset, Retry-After), not the limit policy itself. Use Response instead when you are modelling the documented HTTP outcome returned when a limit trips (typically 429 Too Many Requests or 503), including its description and body. Use SecurityScheme instead when the element defines how a caller is authenticated (an API key, bearer token or OAuth2), even if that identity is later used as the rate-limit key.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -892,12 +1141,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "No OpenAPI 3.0 object; typically expressed as a vendor extension (e.g. x-ratelimit) or in gateway config; enforcement action aligns with NIST SP 800-53 SC-5 Denial-of-Service Protection.",
+      "x-dr-evidence": [
+        "Rate-limiting middleware mounted on an HTTP router with numeric limits, e.g. express-rate-limit `rateLimit({ windowMs: 60000, max: 100, keyGenerator })` or ASP.NET `AddRateLimiter`/`[EnableRateLimiting]`.",
+        "Framework throttle declarations on handlers or controllers, e.g. NestJS `@Throttle({ default: { limit: 10, ttl: 60000 } })`, Django REST Framework `throttle_classes` with `DEFAULT_THROTTLE_RATES = {'user': '1000/day'}`, or Spring/Bucket4j bucket definitions.",
+        "API gateway or proxy configuration defining request quotas per route or consumer, e.g. a Kong `rate-limiting` plugin, an AWS API Gateway usage plan throttle, an nginx `limit_req_zone`, or an `x-ratelimit` extension in the OpenAPI file."
+      ],
+      "x-dr-distinguish": {
+        "api.header": "you are modelling the response headers that report quota state to clients (e.g. X-RateLimit-Remaining, RateLimit-Reset, Retry-After), not the limit policy itself.",
+        "api.response": "you are modelling the documented HTTP outcome returned when a limit trips (typically 429 Too Many Requests or 503), including its description and body.",
+        "api.securityscheme": "the element defines how a caller is authenticated (an API key, bearer token or OAuth2), even if that identity is later used as the rate-limit key."
+      },
       "$id": "urn:dr:spec:node:api.ratelimit"
     },
     "requestbody": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RequestBody",
-      "description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required and must contain at least one entry per OpenAPI 3.0. The 'required' field defaults to false. Can be placed in api.components requestBodies and referenced via $ref for reuse across multiple operations.",
+      "description": "An API contract element describing the payload a client sends in the body of a single operation's HTTP request, expressed as one or more media-type entries (e.g. application/json, multipart/form-data) plus an optional required flag and description. It covers only the request payload of a body-bearing method; URL, query, header and cookie inputs and anything returned to the client are excluded. Use Parameter instead when the input travels in the path, query string, header or cookie rather than the HTTP message body. Use MediaType instead when modelling the schema, examples and encoding for one specific MIME type inside the body's content map, rather than the body as a whole with its required flag. Use Schema instead when describing the data shape itself (fields, types, constraints) independent of whether it is carried in a request, a response or a parameter. Use Response instead when the payload is sent by the server back to the client for a status code, not by the client to the server.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -917,21 +1177,35 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Brief human-readable explanation of the request payload's purpose and contents, CommonMark allowed per OpenAPI 3.0. Set it whenever the body's meaning is not obvious from the operation summary."
             },
             "required": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean indicating whether a client must send a body for the operation to succeed; defaults to false, so set it to true when the handler rejects requests with an empty or missing body."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "OpenAPI 3.0 Request Body Object",
+      "x-dr-evidence": [
+        "A route handler parameter bound from the body, such as Spring @RequestBody, FastAPI Body()/Pydantic model argument, NestJS @Body() or ASP.NET [FromBody].",
+        "A 'requestBody:' block under a POST/PUT/PATCH operation, or an entry under 'components/requestBodies', in an OpenAPI YAML/JSON file.",
+        "Body validation middleware or a DTO class applied to req.body, e.g. express.json() followed by a Joi/Zod/class-validator schema check, or a generated client method that serializes a payload argument with a Content-Type header."
+      ],
+      "x-dr-distinguish": {
+        "api.parameter": "the input travels in the path, query string, header or cookie rather than the HTTP message body.",
+        "api.mediatype": "modelling the schema, examples and encoding for one specific MIME type inside the body's content map, rather than the body as a whole with its required flag.",
+        "api.schema": "describing the data shape itself (fields, types, constraints) independent of whether it is carried in a request, a response or a parameter.",
+        "api.response": "the payload is sent by the server back to the client for a status code, not by the client to the server."
       },
       "$id": "urn:dr:spec:node:api.requestbody"
     },
     "response": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Response",
-      "description": "Defines a single HTTP response returned by an operation, including its description, body content (keyed by MIME type), response headers, and optional hypermedia links. The 'content' field may be omitted entirely for responses with no body (e.g., 204 No Content). Header map keys are case-insensitive per the HTTP specification.",
+      "description": "An OpenAPI description object specifying one possible HTTP outcome of an operation for a single status code (or 'default'). It carries a required description and, optionally, response headers, a body content map keyed by MIME type, and links to follow-on operations. Use Responses instead when the element is the whole status-code-to-response map for an operation rather than a single outcome under one status code. Use MediaType instead when the element describes the schema, examples and encoding for one MIME type entry (e.g. application/json) inside a response's content map. Use Schema instead when the element defines only the data shape of a response body, independent of status code, headers or description. Use Header instead when the element defines one individual response header rather than the response that contains it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -951,19 +1225,32 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Required human-readable explanation of what this outcome means (e.g. 'User not found'); CommonMark is permitted. Set it for every response, including those with no body."
             }
           },
           "required": ["description"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Response Object",
+      "x-dr-evidence": [
+        "an @ApiResponse(responseCode=\"404\", description=...) annotation in springdoc/Swagger, or a NestJS @ApiOkResponse/@ApiNotFoundResponse decorator on a controller method",
+        "an entry under a status-code key such as '200': or 'default': beneath an operation's 'responses' map, or under 'components/responses', in an openapi.yaml/json file",
+        "a FastAPI route declaring responses={404: {\"description\": ..., \"model\": ...}}, or a handler returning a fixed status code with a documented body or headers"
+      ],
+      "x-dr-distinguish": {
+        "api.responses": "the element is the whole status-code-to-response map for an operation rather than a single outcome under one status code",
+        "api.mediatype": "the element describes the schema, examples and encoding for one MIME type entry (e.g. application/json) inside a response's content map",
+        "api.schema": "the element defines only the data shape of a response body, independent of status code, headers or description",
+        "api.header": "the element defines one individual response header rather than the response that contains it"
+      },
       "$id": "urn:dr:spec:node:api.response"
     },
     "responses": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Responses",
-      "description": "A map of HTTP status codes (e.g., 200, 404, default) to Response objects describing each possible outcome of an operation. At least one response must be defined per OpenAPI 3.0. Status code ranges (e.g., 2XX) are not supported — only specific numeric codes and 'default' are valid keys.",
+      "description": "A status-code-keyed map, scoped to exactly one operation, whose keys are HTTP status codes (e.g. '200', '404') or 'default' and whose values are the Response objects describing each possible outcome. It is the container of an operation's outcomes, not any single outcome. Use Response instead when the element describes one outcome (its description, body content, headers, links) under a single status code rather than the whole set of outcomes for an operation. Use Components instead when the element is the reusable registry (components.responses) of named, individually $ref-able Response definitions rather than the status-code map attached to one operation. Use Operation instead when the element is the HTTP method bound to a path that owns the responses map alongside its parameters, request body, security and tags.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -985,12 +1272,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Responses Object",
+      "x-dr-evidence": [
+        "A 'responses:' block nested under an HTTP method in an openapi.yaml/json file, with status-code keys such as '200', '404' or 'default' each pointing to a response definition or $ref.",
+        "A Java/Spring handler annotated @ApiResponses({@ApiResponse(responseCode = \"200\", ...), @ApiResponse(responseCode = \"404\", ...)}), or a NestJS handler stacked with several @ApiResponse({status: ...}) decorators.",
+        "A route decorator argument mapping status codes to outcomes, such as FastAPI @app.get(..., responses={404: {...}}) or drf-spectacular @extend_schema(responses={200: Serializer, 404: None})."
+      ],
+      "x-dr-distinguish": {
+        "api.response": "the element describes one outcome (its description, body content, headers, links) under a single status code rather than the whole set of outcomes for an operation.",
+        "api.components": "the element is the reusable registry (components.responses) of named, individually $ref-able Response definitions rather than the status-code map attached to one operation.",
+        "api.operation": "the element is the HTTP method bound to a path that owns the responses map alongside its parameters, request body, security and tags."
+      },
       "$id": "urn:dr:spec:node:api.responses"
     },
     "schema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Schema",
-      "description": "Inline data type definition using a subset of JSON Schema Draft 7, used within API operations to describe request/response data shapes. For reusable canonical types, reference data-model layer entities instead. OpenAPI 3.0 restriction: a '$ref' within a Schema ignores all sibling keywords — unlike JSON Schema where $ref can be merged with other constraints.",
+      "description": "A data-shape definition, expressed as an OpenAPI 3.0 Schema Object, that constrains the type and structure of a value exchanged over the API, such as a request body, response body, parameter or header value. It is either a named entry under components/schemas or an inline schema nested in a media type, parameter, header or another schema. Use MediaType instead when the element is the MIME-type-keyed content entry (e.g. application/json) that wraps a schema together with examples and encoding, rather than the shape definition itself. Use Parameter instead when the element is a named operation input with a location (path, query, header or cookie), whose value type is merely described by a referenced schema. Use Components instead when the element is the registry that holds reusable schemas, responses and parameters, not an individual type definition. Use Example instead when the element is a concrete sample value illustrating data, rather than the constraints the data must satisfy.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1010,25 +1308,32 @@
           "type": "object",
           "properties": {
             "type": {
-              "type": "string"
+              "type": "string",
+              "description": "The JSON data type of the value: one of string, number, integer, boolean, array or object. OpenAPI 3.0 does not allow type arrays or 'null'. Set it on every non-$ref, non-composed schema."
             },
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "A short human-readable label for the schema, typically the model or DTO name. Set it when documentation tooling should display a name other than the component key."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Explanatory text for the schema or property, in CommonMark. Set it whenever the meaning of the value is not obvious from its name and type."
             },
             "format": {
-              "type": "string"
+              "type": "string",
+              "description": "A modifier refining 'type', such as int32, int64, float, double, byte, binary, date, date-time, password, email or uuid. Set it when the base type alone does not convey the value's encoding or semantics."
             },
             "default": {
-              "type": "string"
+              "type": "string",
+              "description": "The value the server assumes when the consumer omits this property or parameter. It must conform to the schema's type. Set it only when an actual server-side default exists."
             },
             "enum": {
-              "type": "string"
+              "type": "string",
+              "description": "The closed set of literal values the data may take, each valid against the schema's type, as declared by the enum keyword. Set it for fixed vocabularies such as status codes or modes. This schema stores the set as a single string."
             },
             "nullable": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean, default false. When true, null is an accepted value in addition to the declared type (the OpenAPI 3.0 substitute for type: [T, null]). Set it when the API may send or accept explicit nulls."
             },
             "properties": {
               "type": "object",
@@ -1087,12 +1392,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Schema Object",
+      "x-dr-evidence": [
+        "A DTO or model class used as a route's request or response type and annotated for OpenAPI generation, such as a Pydantic model passed as response_model in FastAPI, a NestJS class with @ApiProperty fields, or a Java class with @Schema.",
+        "An entry under '#/components/schemas/' or a 'schema:' block beneath 'content' in an openapi.yaml/json file, containing keywords such as type, properties, required, items, allOf or $ref.",
+        "A validation schema object attached to a route definition, such as a Fastify route 'schema: { body, response }', a zod/joi schema converted to OpenAPI, or a model class emitted by openapi-generator."
+      ],
+      "x-dr-distinguish": {
+        "api.mediatype": "the element is the MIME-type-keyed content entry (e.g. application/json) that wraps a schema together with examples and encoding, rather than the shape definition itself",
+        "api.parameter": "the element is a named operation input with a location (path, query, header or cookie), whose value type is merely described by a referenced schema",
+        "api.components": "the element is the registry that holds reusable schemas, responses and parameters, not an individual type definition",
+        "api.example": "the element is a concrete sample value illustrating data, rather than the constraints the data must satisfy"
+      },
       "$id": "urn:dr:spec:node:api.schema"
     },
     "securityscheme": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SecurityScheme",
-      "description": "Defines an authentication/authorization mechanism for the API. Supports four scheme types: apiKey (name+in required), http (scheme required), oauth2 (flows required), and openIdConnect (openIdConnectUrl required). Only 'type' is universally required. Note: SecurityScheme defines the mechanism; it is referenced by name string key in Operation.security or the root security array — those references are security requirement objects, not SecurityScheme instances.",
+      "description": "A named declaration in an API description of one mechanism by which clients present credentials: an API key carried in a header, query parameter or cookie; an HTTP authentication scheme such as basic or bearer; a set of OAuth 2.0 flows; or an OpenID Connect discovery URL. It is registered under components.securitySchemes and referenced by name from root-level or operation-level security requirements, which are not themselves instances. Use OAuthFlows instead when modelling the container of grant-type configurations nested inside an oauth2 scheme, rather than the scheme itself. Use OAuthFlow instead when modelling the authorizationUrl, tokenUrl and scopes of a single OAuth 2.0 grant type. Use Parameter instead when a header, query or cookie value is an ordinary operation input rather than a credential the API authenticates, or the API key is only documented as a plain parameter. Use Operation instead when recording that a particular endpoint requires or waives authentication; that is the operation's security requirement referencing this scheme by name.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1117,16 +1434,20 @@
               "description": "Type of security scheme"
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text (CommonMark) explanation of the scheme for consumers, e.g. how to obtain a key or token; set whenever the mechanism needs explanation beyond its type."
             },
             "in": {
-              "type": "string"
+              "type": "string",
+              "description": "Location of the API key: one of 'header', 'query' or 'cookie'. Required and only meaningful when type is apiKey."
             },
             "scheme": {
-              "type": "string"
+              "type": "string",
+              "description": "Name of the HTTP Authorization scheme as registered by IANA (RFC 7235), e.g. 'basic', 'bearer' or 'digest'. Required and only meaningful when type is http."
             },
             "bearerFormat": {
-              "type": "string"
+              "type": "string",
+              "description": "Hint describing how the bearer token is formatted, e.g. 'JWT'. Documentation only; set when type is http and scheme is bearer."
             },
             "openIdConnectUrl": {
               "type": "string",
@@ -1137,12 +1458,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Security Scheme Object (components.securitySchemes)",
+      "x-dr-evidence": [
+        "An entry under components.securitySchemes in an OpenAPI YAML/JSON file, e.g. bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}.",
+        "Framework declarations that emit a scheme into generated OpenAPI, such as FastAPI OAuth2PasswordBearer(tokenUrl=...), APIKeyHeader(name='X-API-Key') or HTTPBearer(); springdoc @SecurityScheme(name=..., type=SecuritySchemeType.HTTP, scheme=\"bearer\"); or NestJS DocumentBuilder().addBearerAuth().",
+        "Authentication middleware or strategy that reads a credential from a fixed location and is applied across routes, e.g. a passport-jwt/passport-http-bearer strategy, or a middleware checking req.headers['x-api-key'] before handlers run."
+      ],
+      "x-dr-distinguish": {
+        "api.oauthflows": "modelling the container of grant-type configurations nested inside an oauth2 scheme, rather than the scheme itself.",
+        "api.oauthflow": "modelling the authorizationUrl, tokenUrl and scopes of a single OAuth 2.0 grant type.",
+        "api.parameter": "a header, query or cookie value is an ordinary operation input rather than a credential the API authenticates, or the API key is only documented as a plain parameter.",
+        "api.operation": "recording that a particular endpoint requires or waives authentication; that is the operation's security requirement referencing this scheme by name."
+      },
       "$id": "urn:dr:spec:node:api.securityscheme"
     },
     "server": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Server",
-      "description": "Defines a server URL (optionally templated with {variable} placeholders) where the API is deployed. Supports multiple server entries for different environments (production, staging, dev). The 'url' field is required. A 'servers' array can appear at three levels: root document, PathItem, and Operation — each level overrides the previous for that scope.",
+      "description": "A base-URL declaration in an API description that names a network location (absolute or relative, optionally containing {variable} placeholders) to which operation paths are appended to form request URLs. It is declared in a 'servers' array at document, path or operation scope. Use ServerVariable instead when the element is a single {placeholder} inside a server URL, with its default and allowed values, rather than the URL entry itself. Use PathItem instead when the element is a path template such as /users/{id} appended after the base URL, not the scheme/host/base-path prefix. Use OpenAPIDocument instead when the element is the whole API description that contains the servers array, not one entry within it. Use ExternalDocumentation instead when the URL points to human-readable documentation rather than to a location where API requests are sent.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1162,10 +1495,12 @@
           "type": "object",
           "properties": {
             "url": {
-              "type": "string"
+              "type": "string",
+              "description": "Base URL of the target host, given as an absolute URL or one relative to the document's location, and optionally containing {name} placeholders defined in 'variables'. Always set it; operation paths are appended to it."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional human-readable text, CommonMark allowed, identifying the host or environment the URL designates (e.g. 'Production', 'EU staging'). Set it when several servers are listed."
             },
             "variables": {
               "type": "string",
@@ -1176,12 +1511,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Server Object",
+      "x-dr-evidence": [
+        "a 'servers:' list with 'url:' entries in an openapi.yaml/json file, or a @Server(url=...) / @OpenAPIDefinition(servers=...) annotation",
+        "a generated API client configured with a basePath or baseURL constant such as 'https://api.example.com/v1', often switched per environment",
+        "a framework OpenAPI setup call that sets server URLs, e.g. FastAPI(servers=[{'url': ...}]) or springdoc OpenAPI().servers(List.of(new Server().url(...)))"
+      ],
+      "x-dr-distinguish": {
+        "api.servervariable": "the element is a single {placeholder} inside a server URL, with its default and allowed values, rather than the URL entry itself",
+        "api.pathitem": "the element is a path template such as /users/{id} appended after the base URL, not the scheme/host/base-path prefix",
+        "api.openapidocument": "the element is the whole API description that contains the servers array, not one entry within it",
+        "api.externaldocumentation": "the URL points to human-readable documentation rather than to a location where API requests are sent"
+      },
       "$id": "urn:dr:spec:node:api.server"
     },
     "servervariable": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ServerVariable",
-      "description": "A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants.",
+      "description": "A substitution rule for a single {placeholder} token in an api.server URL template. It declares the default value, used when no other value is supplied, and may restrict the token to an enumerated set of allowed values. It is identified by the placeholder name used as its key in the parent Server's variables map. Use Server instead when the element is the server URL template itself, or a concrete fixed base URL with no substitutable placeholder, rather than the definition of one placeholder within it. Use Parameter instead when the placeholder sits in a path template such as /users/{id}, or is a query, header or cookie input. Such inputs are supplied per request by the caller, not when the client selects its base URL. Use Example instead when the value is only an illustrative sample for a request, response or parameter, not a default or allowed value constraining a server URL token.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1209,19 +1556,31 @@
               "description": "Restricts the variable to a specific set of allowed values. The 'default' value must be one of these values when enum is present. The variable name (the map key in Server.variables) must exactly match a {placeholder} token in the parent server's URL string."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional human-readable explanation of what the placeholder represents, such as tenant subdomain or deployment region; CommonMark is allowed. Set it whenever the variable's purpose is not obvious from its name."
             }
           },
           "required": ["default"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenAPI 3.0 Server Variable Object",
+      "x-dr-evidence": [
+        "An OpenAPI YAML/JSON 'servers' entry whose url contains {tenant} or {env}, with a matching 'variables' map entry declaring 'default' and optionally 'enum'.",
+        "A springdoc/swagger-annotations @ServerVariable(name=..., defaultValue=..., allowableValues=...) nested inside a @Server annotation. Alternatively, a FastAPI/swagger-jsdoc servers definition carrying a 'variables' dict.",
+        "A generated API client exposing a server_variables/serverVariables configuration map, with documented defaults and allowed values used to build the base URL."
+      ],
+      "x-dr-distinguish": {
+        "api.server": "the element is the server URL template itself, or a concrete fixed base URL with no substitutable placeholder, rather than the definition of one placeholder within it.",
+        "api.parameter": "the placeholder sits in a path template such as /users/{id}, or is a query, header or cookie input. Such inputs are supplied per request by the caller, not when the client selects its base URL.",
+        "api.example": "the value is only an illustrative sample for a request, response or parameter, not a default or allowed value constraining a server URL token."
+      },
       "$id": "urn:dr:spec:node:api.servervariable"
     },
     "tag": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Tag",
-      "description": "A metadata label used to group and categorize API operations for documentation organization. Root-level Tag objects provide supplementary metadata (description, externalDocs) for tag names referenced in operations — they do not control which tags are permitted. Tags used in operations but not declared at root level are implicitly valid in OpenAPI 3.0 but will lack descriptions and externalDocs. Duplicate tag names at root level are invalid per OpenAPI 3.0.",
+      "description": "A named label in an OpenAPI document, declared in the root 'tags' array or listed in an Operation's 'tags' field, that groups operations into categories for documentation and tooling. It carries only descriptive metadata and has no effect on routing, validation or security. Use PathItem instead when the grouping is defined by a shared URL path pattern, such as all methods on /users/{id}, rather than by a free-form category name. Use ExternalDocumentation instead when the element is the URL and description of an outside documentation resource, even one attached to a tag. Use Components instead when the element is a registry of reusable objects referenced via $ref rather than a categorisation label for operations. Use Info instead when the metadata describes the API as a whole (title, version, terms) rather than one category of operations.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1241,11 +1600,24 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "A human-readable explanation of the category of operations this tag groups, in CommonMark per OpenAPI 3.0. Set it when the tag is declared at root level so documentation renderers can display a section introduction."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "OpenAPI 3.0 Tag Object",
+      "x-dr-evidence": [
+        "Controller or router annotations naming a category, e.g. NestJS @ApiTags('users'), springdoc @Tag(name = \"Orders\"), or Swagger 2 @Api(tags = \"...\")",
+        "Router or decorator arguments listing tag names, e.g. FastAPI APIRouter(tags=[\"billing\"]) or @app.get(..., tags=[\"items\"])",
+        "A root-level 'tags:' array in openapi.yaml or openapi.json whose entries have 'name' and 'description' fields, or generated client classes named after tags, such as UsersApi"
+      ],
+      "x-dr-distinguish": {
+        "api.pathitem": "the grouping is defined by a shared URL path pattern, such as all methods on /users/{id}, rather than by a free-form category name",
+        "api.externaldocumentation": "the element is the URL and description of an outside documentation resource, even one attached to a tag",
+        "api.components": "the element is a registry of reusable objects referenced via $ref rather than a categorisation label for operations",
+        "api.info": "the metadata describes the API as a whole (title, version, terms) rather than one category of operations"
       },
       "$id": "urn:dr:spec:node:api.tag"
     }

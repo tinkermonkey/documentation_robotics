@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "UXSpec",
-  "description": "Complete UX specification for a single experience (visual, voice, chat, SMS)",
+  "description": "A specification artifact that groups the routable views and top-level experience states making up one user experience (a feature area or user journey) delivered in a single modality: visual, voice, chat or SMS. It is aggregated by a UXApplication and is the unit that satisfies UX requirements. Use UXApplication instead when the element groups several experiences and carries application-wide settings such as theme, design system, default locale or target channel. Use View instead when the element is a single routable screen, page, modal or dialog rather than the collection of screens and states for a whole experience. Use StatePattern instead when the state machine is a reusable template (wizard, optimistic-update, tab-panel) meant to be applied across experiences rather than the top-level states of one concrete experience. Use UXLibrary instead when the element is a shareable package of library components, sub-views and patterns with no routes or experience-specific states of its own.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version identifier of this experience specification, preferably semantic versioning (e.g. '1.2.0'); set it when the spec is released or revised independently of the application."
         },
         "experience": {
           "type": "string",
@@ -29,10 +30,12 @@
           "description": "Delivery modality this spec describes. 'visual': screen-based UI; 'voice': voice assistant interface; 'chat': conversational messaging UI; 'sms': text message-based interaction."
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name of the experience (e.g. 'Checkout', 'Account Onboarding') used in documentation and diagrams; set it on every spec."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the user goal and scope this experience covers, including which journeys are in or out of scope; set it whenever the title alone does not make the boundary clear."
         },
         "source": {
           "type": "object",
@@ -69,5 +72,16 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A feature module or route-group directory (e.g. Angular module calling RouterModule.forChild, Next.js app/(checkout)/ group, React Router nested route tree) that bundles the routes and screens of one user journey.",
+    "A top-level flow state machine (e.g. XState createMachine or a Redux slice for a flow) whose states correspond to the screens or steps of a single experience such as onboarding or checkout.",
+    "A per-experience design or interaction artifact: a Figma page or Storybook section named for a journey, or for non-visual modalities a voice skill interaction model (Alexa/Dialogflow JSON) or chatbot flow definition."
+  ],
+  "x-dr-distinguish": {
+    "ux.uxapplication": "the element groups several experiences and carries application-wide settings such as theme, design system, default locale or target channel.",
+    "ux.view": "the element is a single routable screen, page, modal or dialog rather than the collection of screens and states for a whole experience.",
+    "ux.statepattern": "the state machine is a reusable template (wizard, optimistic-update, tab-panel) meant to be applied across experiences rather than the top-level states of one concrete experience.",
+    "ux.uxlibrary": "the element is a shareable package of library components, sub-views and patterns with no routes or experience-specific states of its own."
   }
 }

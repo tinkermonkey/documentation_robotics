@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ComponentReference",
-  "description": "A declarative placeholder in a parent component's named slot, pointing to another component to be rendered there. Unlike ComponentInstance (a concrete rendered occurrence), ComponentReference is a composition declaration that says 'render this component in this slot of the parent', analogous to the HTML slot element.",
+  "description": "A composition declaration attached to a parent component that names one of the parent's slots and identifies, by specNodeId, the library component or component instance to be rendered into that slot. It records the slot-filling relationship only; it carries no prop values of its own beyond an optional variant override and is not itself a rendered occurrence. Use ComponentInstance instead when the element is a concrete, configured usage of a library component with its own props and render order inside a View or SubView, rather than a pointer filling a parent's named slot. Use LibraryComponent instead when the element defines a reusable component's props, slots and events schema, rather than declaring what fills one slot of a parent. Use SubView instead when the embedded content is a grouping of several components placed in a View's subViews list, not a single component placed into a named slot of a parent component.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -36,5 +36,16 @@
       "required": ["ref"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "HTML 5.3 §4.12.8 The slot element (Web Components named slots)",
+  "x-dr-evidence": [
+    "A child element carrying a slot=\"header\"/slot=\"actions\" attribute, a Vue <template #footer> / v-slot directive, or an Angular <ng-content select=...> projection target being filled.",
+    "A React prop typed as ReactNode or render-prop (e.g. header={<Toolbar/>}, actions={<Button variant=\"compact\"/>}) passed to a layout or container component.",
+    "A Storybook or design-system doc listing a component's slots together with the allowed child components for each slot (e.g. 'Card.footer accepts Button | Link')."
+  ],
+  "x-dr-distinguish": {
+    "ux.componentinstance": "the element is a concrete, configured usage of a library component with its own props and render order inside a View or SubView, rather than a pointer filling a parent's named slot.",
+    "ux.librarycomponent": "the element defines a reusable component's props, slots and events schema, rather than declaring what fills one slot of a parent.",
+    "ux.subview": "the embedded content is a grouping of several components placed in a View's subViews list, not a single component placed into a named slot of a parent component."
   }
 }

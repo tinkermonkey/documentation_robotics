@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Encoding",
-  "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation. Note: a Content-Type header placed in the Encoding object's 'headers' map is ignored \u2014 use the 'contentType' attribute to set the MIME type for a multipart section.",
+  "description": "A per-property serialization rule inside a request body's MediaType, keyed by a top-level schema property name, that fixes how that property is written as a part of a multipart or application/x-www-form-urlencoded body: its part Content-Type, part headers, and form style/explode/allowReserved behaviour. Use MediaType instead when the element describes the whole body for one MIME type (schema, examples, and the encoding map itself) rather than the rule for one property within it. Use Header instead when the element is an individual header definition (schema, required, description) that a multipart part or response carries, not the part-level serialization rule that lists those headers. Use Schema instead when the element defines the data shape or type of the property (type, format, properties) rather than how that property is serialized onto the wire. Use Parameter instead when the element is a path, query, header or cookie input to the operation rather than a property of a request body.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "propertyName": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the top-level property in the MediaType's schema that this rule applies to (the map key in MediaType.encoding); it must match an existing schema property name exactly and should always be set."
         },
         "contentType": {
-          "type": "string"
+          "type": "string",
+          "description": "MIME type, or comma-separated list of MIME types or wildcards such as 'image/png, image/jpeg', for this part; set it only to override the default (application/octet-stream for binary strings, text/plain for primitives, application/json for objects)."
         },
         "style": {
           "type": "string",
@@ -40,7 +42,8 @@
           "description": "Serialization style for the encoding (only applicable to multipart/form-data and application/x-www-form-urlencoded)"
         },
         "explode": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean; when true, array or object values of this property are emitted as separate key=value pairs; defaults to true when style is 'form' and false otherwise, and is ignored unless the body is application/x-www-form-urlencoded."
         },
         "allowReserved": {
           "type": "boolean",
@@ -50,5 +53,17 @@
       "required": [],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Encoding Object (MediaType Object 'encoding' field)",
+  "x-dr-evidence": [
+    "An OpenAPI YAML/JSON fragment with an 'encoding:' map under 'requestBody.content.multipart/form-data' or 'application/x-www-form-urlencoded', keyed by property names such as 'profileImage: { contentType: image/png }'.",
+    "A springdoc/swagger-core @Encoding(name=..., contentType=...) annotation nested in @Content on a controller method that consumes multipart/form-data, e.g. alongside @RequestPart parameters.",
+    "Upload handler code that declares per-field part content types or headers, e.g. FastAPI File/Form fields with media_type, or a multer/busboy field configuration whose field names match properties of the request body schema."
+  ],
+  "x-dr-distinguish": {
+    "api.mediatype": "the element describes the whole body for one MIME type (schema, examples, and the encoding map itself) rather than the rule for one property within it.",
+    "api.header": "the element is an individual header definition (schema, required, description) that a multipart part or response carries, not the part-level serialization rule that lists those headers.",
+    "api.schema": "the element defines the data shape or type of the property (type, format, properties) rather than how that property is serialized onto the wire.",
+    "api.parameter": "the element is a path, query, header or cookie input to the operation rather than a property of a request body."
   }
 }

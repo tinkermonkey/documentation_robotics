@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ErrorConfig",
-  "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
+  "description": "A display configuration attached to a view, component, route or data binding that specifies how a failure is surfaced to the user: whether a notification appears, its severity, and the specific and fallback message text shown. Use DataConfig instead when the element describes where data comes from and how it is bound (source, target, path), not how a failure to load or save it is presented. Use ExperienceState instead when the error condition is modelled as a distinct state of the experience with its own transitions, enabled/disabled/hidden components and lifecycle actions, rather than as message and notification settings. Use ActionPattern instead when the element describes a reusable trigger-plus-feedback interaction (e.g. confirm-and-delete with a success toast) rather than the failure-specific messaging of a component or view. Use StatePattern instead when the element is a reusable state machine such as optimistic-update with loading, success, error and retry states, rather than the message settings applied in the error case.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "showNotification": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean that, when true, surfaces the error as a transient notification (toast, snackbar or ARIA alert) in addition to or instead of inline display; set it when the failure should be announced outside the component's own area."
         },
         "notificationType": {
           "type": "string",
@@ -29,13 +30,27 @@
           "description": "Severity category of the notification, aligned with ARIA live region and alert role semantics."
         },
         "errorMessage": {
-          "type": "string"
+          "type": "string",
+          "description": "The specific user-facing message text, or i18n message key, shown for the error condition this configuration handles; set it when the failure has a known cause and tailored wording."
         },
         "defaultErrorMessage": {
-          "type": "string"
+          "type": "string",
+          "description": "Fallback user-facing message text, or i18n message key, shown when no specific errorMessage applies or the underlying error carries no displayable message; set it to guarantee every failure shows some text."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "WAI-ARIA 1.2 alert role and aria-live regions (as used by HTML 5.3 for status and error announcements)",
+  "x-dr-evidence": [
+    "A catch block or onError callback (e.g. a react-query onError or axios interceptor) that calls a toast, snackbar or notification API with a severity such as 'error' or 'warning' and a message string.",
+    "An error boundary or fallback component (e.g. React ErrorBoundary, Angular ErrorHandler, Vue errorCaptured) that renders a configured message or generic fallback text when a child component throws.",
+    "A component prop or config object with keys such as errorMessage, defaultErrorMessage, showNotification or onErrorNotify, or an i18n message map keyed by error code supplying user-facing failure text."
+  ],
+  "x-dr-distinguish": {
+    "ux.dataconfig": "the element describes where data comes from and how it is bound (source, target, path), not how a failure to load or save it is presented.",
+    "ux.experiencestate": "the error condition is modelled as a distinct state of the experience with its own transitions, enabled/disabled/hidden components and lifecycle actions, rather than as message and notification settings.",
+    "ux.actionpattern": "the element describes a reusable trigger-plus-feedback interaction (e.g. confirm-and-delete with a success toast) rather than the failure-specific messaging of a component or view.",
+    "ux.statepattern": "the element is a reusable state machine such as optimistic-update with loading, success, error and retry states, rather than the message settings applied in the error case."
   }
 }

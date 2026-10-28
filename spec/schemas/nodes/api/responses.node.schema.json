@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Responses",
-  "description": "A map of HTTP status codes (e.g., 200, 404, default) to Response objects describing each possible outcome of an operation. At least one response must be defined per OpenAPI 3.0. Status code ranges (e.g., 2XX) are not supported \u2014 only specific numeric codes and 'default' are valid keys.",
+  "description": "A status-code-keyed map, scoped to exactly one operation, whose keys are HTTP status codes (e.g. '200', '404') or 'default' and whose values are the Response objects describing each possible outcome. It is the container of an operation's outcomes, not any single outcome. Use Response instead when the element describes one outcome (its description, body content, headers, links) under a single status code rather than the whole set of outcomes for an operation. Use Components instead when the element is the reusable registry (components.responses) of named, individually $ref-able Response definitions rather than the status-code map attached to one operation. Use Operation instead when the element is the HTTP method bound to a path that owns the responses map alongside its parameters, request body, security and tags.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,5 +22,16 @@
       "properties": {},
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Responses Object",
+  "x-dr-evidence": [
+    "A 'responses:' block nested under an HTTP method in an openapi.yaml/json file, with status-code keys such as '200', '404' or 'default' each pointing to a response definition or $ref.",
+    "A Java/Spring handler annotated @ApiResponses({@ApiResponse(responseCode = \"200\", ...), @ApiResponse(responseCode = \"404\", ...)}), or a NestJS handler stacked with several @ApiResponse({status: ...}) decorators.",
+    "A route decorator argument mapping status codes to outcomes, such as FastAPI @app.get(..., responses={404: {...}}) or drf-spectacular @extend_schema(responses={200: Serializer, 404: None})."
+  ],
+  "x-dr-distinguish": {
+    "api.response": "the element describes one outcome (its description, body content, headers, links) under a single status code rather than the whole set of outcomes for an operation.",
+    "api.components": "the element is the reusable registry (components.responses) of named, individually $ref-able Response definitions rather than the status-code map attached to one operation.",
+    "api.operation": "the element is the HTTP method bound to a path that owns the responses map alongside its parameters, request body, security and tags."
   }
 }

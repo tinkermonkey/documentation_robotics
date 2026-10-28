@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OAuthFlows",
-  "description": "Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. At least one flow attribute must be specified. Always nested within a SecurityScheme where type is 'oauth2' \u2014 cannot be used independently.",
+  "description": "A container object nested in an oauth2-type SecurityScheme that maps each supported OAuth 2.0 grant type (implicit, password, clientCredentials, authorizationCode) to one OAuthFlow configuration. It holds no URLs or scopes of its own; it only selects which grant types the scheme offers. Use OAuthFlow instead when the element carries the authorizationUrl, tokenUrl, refreshUrl or scopes of a single grant type rather than the set of grant-type slots. Use SecurityScheme instead when the element declares the authentication mechanism itself (type, description, name/in, scheme) rather than the flows block inside an oauth2 scheme. Use Components instead when the element is the document-wide registry holding named securitySchemes, not the flows object within one scheme.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,5 +22,16 @@
       "properties": {},
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 OAuth Flows Object",
+  "x-dr-evidence": [
+    "A 'flows:' map with keys such as authorizationCode or clientCredentials under a securitySchemes entry whose type is oauth2 in openapi.yaml or openapi.json",
+    "A springdoc/swagger-annotations @OAuthFlows(...) passed as the flows argument of @SecurityScheme(type = SecuritySchemeType.OAUTH2)",
+    "A framework flows model instantiated for an OAuth2 scheme, e.g. FastAPI OAuthFlowsModel(password=...) or .NET Swashbuckle new OpenApiOAuthFlows { AuthorizationCode = ... }"
+  ],
+  "x-dr-distinguish": {
+    "api.oauthflow": "the element carries the authorizationUrl, tokenUrl, refreshUrl or scopes of a single grant type rather than the set of grant-type slots.",
+    "api.securityscheme": "the element declares the authentication mechanism itself (type, description, name/in, scheme) rather than the flows block inside an oauth2 scheme.",
+    "api.components": "the element is the document-wide registry holding named securitySchemes, not the flows object within one scheme."
   }
 }

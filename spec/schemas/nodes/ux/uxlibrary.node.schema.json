@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "UXLibrary",
-  "description": "Collection of reusable UI components and sub-views that can be shared across applications",
+  "description": "A versioned, distributable package of UI building blocks that exports library components, library sub-views, state patterns and action patterns for consumption by one or more UX applications or specs. It is identified by its package boundary (manifest, version, export index), not by any rendered screen or route of its own. Use UXApplication instead when the artifact is a deployable product that consumes components, targets a delivery channel and groups UXSpecs, rather than a package exporting reusable parts. Use LibraryComponent instead when the symbol is a single reusable component definition with props, slots and events, not the package or index that exports many of them. Use LibrarySubView instead when the symbol is one reusable composition of component instances, not the collection that publishes it. Use UXSpec instead when the artifact describes the views and states of one concrete experience instead of exporting reusable parts for others to assemble.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,16 +21,20 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Release version of the library package, normally a semantic version string (e.g. '2.4.1') matching the package manifest; always set, and update it whenever the exported set or its contracts change."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Short plain-text summary of the library's scope and intended consumers (e.g. 'Internal admin design system'); set it when the name alone does not convey what the library covers."
         },
         "author": {
-          "type": "string"
+          "type": "string",
+          "description": "Person, team or organisation that owns and maintains the library, as recorded in the package manifest or ownership file; set it to identify who to contact for changes."
         },
         "license": {
-          "type": "string"
+          "type": "string",
+          "description": "License under which the library is distributed, preferably as an SPDX identifier (e.g. 'MIT', 'Apache-2.0', or 'UNLICENSED' for proprietary); set it when the library is shared beyond a single codebase or sourced from a third party."
         },
         "components": {
           "type": "array",
@@ -84,5 +88,16 @@
       "required": ["version"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A package.json (or equivalent manifest) for a UI package with name, version, license and author fields whose main/exports entry is a barrel index re-exporting many components (e.g. `export * from './Button'`).",
+    "A Storybook configuration or design-system documentation site cataloguing components of a single package, or a monorepo workspace such as packages/ui or @org/design-system that is imported by multiple apps.",
+    "Consumer code importing components from a shared package specifier (e.g. `import { DataTable } from '@acme/ui'`) rather than a relative path, often with the package listed as a peer or regular dependency in several applications."
+  ],
+  "x-dr-distinguish": {
+    "ux.uxapplication": "the artifact is a deployable product that consumes components, targets a delivery channel and groups UXSpecs, rather than a package exporting reusable parts.",
+    "ux.librarycomponent": "the symbol is a single reusable component definition with props, slots and events, not the package or index that exports many of them.",
+    "ux.librarysubview": "the symbol is one reusable composition of component instances, not the collection that publishes it.",
+    "ux.uxspec": "the artifact describes the views and states of one concrete experience instead of exporting reusable parts for others to assemble."
   }
 }

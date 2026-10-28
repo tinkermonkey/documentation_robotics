@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Response",
-  "description": "Defines a single HTTP response returned by an operation, including its description, body content (keyed by MIME type), response headers, and optional hypermedia links. The 'content' field may be omitted entirely for responses with no body (e.g., 204 No Content). Header map keys are case-insensitive per the HTTP specification.",
+  "description": "An OpenAPI description object specifying one possible HTTP outcome of an operation for a single status code (or 'default'). It carries a required description and, optionally, response headers, a body content map keyed by MIME type, and links to follow-on operations. Use Responses instead when the element is the whole status-code-to-response map for an operation rather than a single outcome under one status code. Use MediaType instead when the element describes the schema, examples and encoding for one MIME type entry (e.g. application/json) inside a response's content map. Use Schema instead when the element defines only the data shape of a response body, independent of status code, headers or description. Use Header instead when the element defines one individual response header rather than the response that contains it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,11 +21,24 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Required human-readable explanation of what this outcome means (e.g. 'User not found'); CommonMark is permitted. Set it for every response, including those with no body."
         }
       },
       "required": ["description"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Response Object",
+  "x-dr-evidence": [
+    "an @ApiResponse(responseCode=\"404\", description=...) annotation in springdoc/Swagger, or a NestJS @ApiOkResponse/@ApiNotFoundResponse decorator on a controller method",
+    "an entry under a status-code key such as '200': or 'default': beneath an operation's 'responses' map, or under 'components/responses', in an openapi.yaml/json file",
+    "a FastAPI route declaring responses={404: {\"description\": ..., \"model\": ...}}, or a handler returning a fixed status code with a documented body or headers"
+  ],
+  "x-dr-distinguish": {
+    "api.responses": "the element is the whole status-code-to-response map for an operation rather than a single outcome under one status code",
+    "api.mediatype": "the element describes the schema, examples and encoding for one MIME type entry (e.g. application/json) inside a response's content map",
+    "api.schema": "the element defines only the data shape of a response body, independent of status code, headers or description",
+    "api.header": "the element defines one individual response header rather than the response that contains it"
   }
 }

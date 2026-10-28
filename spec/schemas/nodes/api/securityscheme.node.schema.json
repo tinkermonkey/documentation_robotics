@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityScheme",
-  "description": "Defines an authentication/authorization mechanism for the API. Supports four scheme types: apiKey (name+in required), http (scheme required), oauth2 (flows required), and openIdConnect (openIdConnectUrl required). Only 'type' is universally required. Note: SecurityScheme defines the mechanism; it is referenced by name string key in Operation.security or the root security array \u2014 those references are security requirement objects, not SecurityScheme instances.",
+  "description": "A named declaration in an API description of one mechanism by which clients present credentials: an API key carried in a header, query parameter or cookie; an HTTP authentication scheme such as basic or bearer; a set of OAuth 2.0 flows; or an OpenID Connect discovery URL. It is registered under components.securitySchemes and referenced by name from root-level or operation-level security requirements, which are not themselves instances. Use OAuthFlows instead when modelling the container of grant-type configurations nested inside an oauth2 scheme, rather than the scheme itself. Use OAuthFlow instead when modelling the authorizationUrl, tokenUrl and scopes of a single OAuth 2.0 grant type. Use Parameter instead when a header, query or cookie value is an ordinary operation input rather than a credential the API authenticates, or the API key is only documented as a plain parameter. Use Operation instead when recording that a particular endpoint requires or waives authentication; that is the operation's security requirement referencing this scheme by name.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,16 +26,20 @@
           "description": "Type of security scheme"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text (CommonMark) explanation of the scheme for consumers, e.g. how to obtain a key or token; set whenever the mechanism needs explanation beyond its type."
         },
         "in": {
-          "type": "string"
+          "type": "string",
+          "description": "Location of the API key: one of 'header', 'query' or 'cookie'. Required and only meaningful when type is apiKey."
         },
         "scheme": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the HTTP Authorization scheme as registered by IANA (RFC 7235), e.g. 'basic', 'bearer' or 'digest'. Required and only meaningful when type is http."
         },
         "bearerFormat": {
-          "type": "string"
+          "type": "string",
+          "description": "Hint describing how the bearer token is formatted, e.g. 'JWT'. Documentation only; set when type is http and scheme is bearer."
         },
         "openIdConnectUrl": {
           "type": "string",
@@ -45,5 +49,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenAPI 3.0 Security Scheme Object (components.securitySchemes)",
+  "x-dr-evidence": [
+    "An entry under components.securitySchemes in an OpenAPI YAML/JSON file, e.g. bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}.",
+    "Framework declarations that emit a scheme into generated OpenAPI, such as FastAPI OAuth2PasswordBearer(tokenUrl=...), APIKeyHeader(name='X-API-Key') or HTTPBearer(); springdoc @SecurityScheme(name=..., type=SecuritySchemeType.HTTP, scheme=\"bearer\"); or NestJS DocumentBuilder().addBearerAuth().",
+    "Authentication middleware or strategy that reads a credential from a fixed location and is applied across routes, e.g. a passport-jwt/passport-http-bearer strategy, or a middleware checking req.headers['x-api-key'] before handlers run."
+  ],
+  "x-dr-distinguish": {
+    "api.oauthflows": "modelling the container of grant-type configurations nested inside an oauth2 scheme, rather than the scheme itself.",
+    "api.oauthflow": "modelling the authorizationUrl, tokenUrl and scopes of a single OAuth 2.0 grant type.",
+    "api.parameter": "a header, query or cookie value is an ordinary operation input rather than a credential the API authenticates, or the API key is only documented as a plain parameter.",
+    "api.operation": "recording that a particular endpoint requires or waives authentication; that is the operation's security requirement referencing this scheme by name."
   }
 }

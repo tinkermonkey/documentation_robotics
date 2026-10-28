@@ -1,6 +1,6 @@
 # Classification eval report: fastapi
 
-Generated 2026-10-25T19:16:55.934Z. Cards: 200. Gold labels: 200.
+Generated 2026-10-28T19:11:24.974Z. Cards: 200. Gold labels: 200.
 
 ## Gold label distribution
 
@@ -21,13 +21,15 @@ Significance histogram (0..4): 64 / 51 / 46 / 35 / 4. Gold labels with a type id
 
 ## Summary
 
-| backend          | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
-| ---------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| claude-haiku     | 200 | 72.0%     | 63.0%                 | 87.5%                | 0.41    | 99.0%        | 0.084     | 1624 ms        | $0.082     | $0.0004     |
-| clef             | 200 | 76.5%     | 67.5%                 | 88.2%                | 0.54    | 88.0%        | 0.220     | 696 ms         | $0.197     | $0.0010     |
-| clef-flash       | 200 | 78.5%     | 60.5%                 | 77.1%                | 0.75    | 69.0%        | 0.332     | 1190 ms        | $0.072     | $0.0004     |
-| clef@enriched-v1 | 200 | 76.5%     | 67.5%                 | 88.2%                | 0.54    | 88.0%        | 0.220     | 755 ms         | $0.202     | $0.0010     |
-| claude-sonnet    | 200 | 72.5%     | 60.5%                 | 83.4%                | 0.41    | 98.5%        | 0.094     | 1707 ms        | $1.478     | $0.0074     |
+| backend               | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
+| --------------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
+| claude-haiku          | 200 | 72.0%     | 63.0%                 | 87.5%                | 0.41    | 99.0%        | 0.084     | 1624 ms        | $0.082     | $0.0004     |
+| clef                  | 200 | 76.5%     | 67.5%                 | 88.2%                | 0.54    | 88.0%        | 0.220     | 696 ms         | $0.197     | $0.0010     |
+| clef-flash            | 200 | 78.5%     | 60.5%                 | 77.1%                | 0.75    | 69.0%        | 0.332     | 1190 ms        | $0.072     | $0.0004     |
+| clef@enriched-v1      | 200 | 76.5%     | 67.5%                 | 88.2%                | 0.54    | 88.0%        | 0.220     | 755 ms         | $0.202     | $0.0010     |
+| claude-sonnet         | 200 | 72.5%     | 60.5%                 | 83.4%                | 0.41    | 98.5%        | 0.094     | 1707 ms        | $1.478     | $0.0074     |
+| clef@enriched-v2-kind | 200 | 76.5%     | 68.5%                 | 89.5%                | 0.54    | 88.0%        | 0.220     | 1326 ms        | $0.344     | $0.0017     |
+| clef@enriched-v2      | 200 | 76.5%     | 68.0%                 | 88.9%                | 0.54    | 88.0%        | 0.220     | 1344 ms        | $0.346     | $0.0017     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
 
@@ -427,3 +429,161 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Method frontend.src.client.sdk.gen.ItemsService.deleteItem                   | none/- | api/operation (0.60)              | Generated OpenAPI client stub method (sdk.gen.ts) wrapping a DELETE /api/v1/items/{id} call. As generated code, it is not an architectural element in its own ri |
 | Function frontend.src.hooks.useCustomToast.showSuccessToast                  | none/- | ux/actionpattern (0.50)           | Trivial inner wrapper inside the useCustomToast hook that delegates to toast.success with a fixed title. Widely called, but it is a UI feedback helper below mod |
 | Method frontend.src.client.sdk.gen.UsersService.updateUser                   | none/- | api/operation (0.60)              | Generated OpenAPI client stub method (sdk.gen.ts) wrapping PATCH /api/v1/users/{user_id}. It is generated boilerplate; the operation it calls would be modelled  |
+
+## clef@enriched-v2-kind
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 70.0%  | 69          |
+| ux          | 50     | 88.0%  | 63          |
+| api         | 34     | 85.3%  | 29          |
+| data-model  | 10     | 100.0% | 14          |
+| data-store  | 8      | 50.0%  | 4           |
+| security    | 6      | 50.0%  | 3           |
+| application | 4      | 75.0%  | 7           |
+| navigation  | 4      | 75.0%  | 10          |
+| technology  | 3      | 0.0%   | 0           |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 19    |
+| none → navigation        | 5     |
+| api → none               | 4     |
+| ux → none                | 3     |
+| security → none          | 3     |
+| data-store → data-model  | 2     |
+| ux → navigation          | 2     |
+| data-store → application | 2     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 4   | 0.28      | 0.50     | 0.22 |
+| 0.3-0.4        | 19  | 0.36      | 0.42     | 0.06 |
+| 0.4-0.5        | 47  | 0.46      | 0.57     | 0.12 |
+| 0.5-0.6        | 56  | 0.54      | 0.79     | 0.24 |
+| 0.6-0.7        | 59  | 0.65      | 0.97     | 0.32 |
+| 0.7-0.8        | 13  | 0.73      | 1.00     | 0.27 |
+| 0.8-0.9        | 2   | 0.81      | 1.00     | 0.19 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 65.0%    | 89.2%             |
+| ≥0.60     | 37.0%    | 97.3%             |
+| ≥0.70     | 7.5%     | 100.0%            |
+| ≥0.80     | 1.0%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 21             | 0.90      | 0.43   | 0.58       |
+| authorization        | 9              | 1.00      | 0.44   | 0.62       |
+| data_persistence     | 30             | 0.93      | 0.43   | 0.59       |
+| external_integration | 20             | 0.92      | 0.55   | 0.69       |
+| observability        | 2              | n/a       | 0.00   | n/a        |
+| user_interface       | 68             | 0.92      | 0.96   | 0.94       |
+
+### Sample layer disagreements
+
+| symbol                                                                       | gold                  | predicted (conf)                  | gold rationale                                                                                                                                                   |
+| ---------------------------------------------------------------------------- | --------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class backend.app.models.User                                                | data-store/collection | data-model/- (0.55)               | SQLModel class with table=True defines the persisted user table: primary key, hashed password and creation timestamp columns, plus a cascade-delete relationship |
+| Interface frontend.src.components.Admin.DeleteUser.DeleteUserProps           | none/-                | ux/librarycomponent (0.41)        | A props type for the DeleteUser component, holding only an id and a success callback. It is a minor detail of that UI component rather than an element in its ow |
+| Method frontend.src.client.sdk.gen.LoginService.loginAccessToken             | api/operation         | none/- (0.49)                     | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend and is use |
+| Interface frontend.src.components.Items.ItemActionsMenu.ItemActionsMenuProps | none/-                | ux/librarycomponent (0.39)        | A trivial props interface for the ItemActionsMenu component, with a single field holding an ItemPublic. It is component scaffolding that would be captured as at |
+| Method frontend.src.client.sdk.gen.UsersService.updateUserMe                 | api/operation         | none/- (0.58)                     | Generated SDK client method wrapping the PATCH /api/v1/users/me operation. It is evidence for an API operation, but it is generated boilerplate in a client stub |
+| Function frontend.src.components.ui.tooltip.TooltipProvider                  | none/-                | ux/librarycomponent (0.52)        | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its |
+| Method frontend.src.client.sdk.gen.ItemsService.createItem                   | api/operation         | none/- (0.52)                     | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generated API cli |
+| Interface frontend.src.components.Common.Logo.LogoProps                      | none/-                | ux/librarycomponent (0.51)        | A props type declaration for the Logo UI component. It is a typing detail of that component, not an element in its own right. Any props would be attributes of t |
+| Interface frontend.src.routeTree.gen.FileRoutesByTo                          | none/-                | navigation/navigationgraph (0.49) | Generated TanStack Router type map (routeTree.gen.ts) that keys route paths to route types for type-safe navigation. It is generated boilerplate. The routes the |
+| Class backend.app.api.routes.private.PrivateUserCreate                       | api/schema            | data-model/objectschema (0.44)    | A Pydantic request-body model defined inline in the private API routes module. It describes the input shape of the private user-creation endpoint, so it is best |
+
+## clef@enriched-v2
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 70.0%  | 69          |
+| ux          | 50     | 88.0%  | 63          |
+| api         | 34     | 85.3%  | 29          |
+| data-model  | 10     | 100.0% | 14          |
+| data-store  | 8      | 50.0%  | 4           |
+| security    | 6      | 50.0%  | 3           |
+| application | 4      | 75.0%  | 7           |
+| navigation  | 4      | 75.0%  | 10          |
+| technology  | 3      | 0.0%   | 0           |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 19    |
+| none → navigation        | 5     |
+| api → none               | 4     |
+| ux → none                | 3     |
+| security → none          | 3     |
+| data-store → data-model  | 2     |
+| ux → navigation          | 2     |
+| data-store → application | 2     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 4   | 0.28      | 0.50     | 0.22 |
+| 0.3-0.4        | 19  | 0.36      | 0.42     | 0.06 |
+| 0.4-0.5        | 47  | 0.46      | 0.57     | 0.12 |
+| 0.5-0.6        | 56  | 0.54      | 0.79     | 0.24 |
+| 0.6-0.7        | 59  | 0.65      | 0.97     | 0.32 |
+| 0.7-0.8        | 13  | 0.73      | 1.00     | 0.27 |
+| 0.8-0.9        | 2   | 0.81      | 1.00     | 0.19 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 65.0%    | 89.2%             |
+| ≥0.60     | 37.0%    | 97.3%             |
+| ≥0.70     | 7.5%     | 100.0%            |
+| ≥0.80     | 1.0%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 21             | 0.90      | 0.43   | 0.58       |
+| authorization        | 9              | 1.00      | 0.44   | 0.62       |
+| data_persistence     | 30             | 0.93      | 0.43   | 0.59       |
+| external_integration | 20             | 0.92      | 0.55   | 0.69       |
+| observability        | 2              | n/a       | 0.00   | n/a        |
+| user_interface       | 68             | 0.92      | 0.96   | 0.94       |
+
+### Sample layer disagreements
+
+| symbol                                                                       | gold                  | predicted (conf)                  | gold rationale                                                                                                                                                   |
+| ---------------------------------------------------------------------------- | --------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class backend.app.models.User                                                | data-store/collection | data-model/- (0.55)               | SQLModel class with table=True defines the persisted user table: primary key, hashed password and creation timestamp columns, plus a cascade-delete relationship |
+| Interface frontend.src.components.Admin.DeleteUser.DeleteUserProps           | none/-                | ux/librarycomponent (0.41)        | A props type for the DeleteUser component, holding only an id and a success callback. It is a minor detail of that UI component rather than an element in its ow |
+| Method frontend.src.client.sdk.gen.LoginService.loginAccessToken             | api/operation         | none/- (0.49)                     | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend and is use |
+| Interface frontend.src.components.Items.ItemActionsMenu.ItemActionsMenuProps | none/-                | ux/librarycomponent (0.39)        | A trivial props interface for the ItemActionsMenu component, with a single field holding an ItemPublic. It is component scaffolding that would be captured as at |
+| Method frontend.src.client.sdk.gen.UsersService.updateUserMe                 | api/operation         | none/- (0.58)                     | Generated SDK client method wrapping the PATCH /api/v1/users/me operation. It is evidence for an API operation, but it is generated boilerplate in a client stub |
+| Function frontend.src.components.ui.tooltip.TooltipProvider                  | none/-                | ux/librarycomponent (0.52)        | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its |
+| Method frontend.src.client.sdk.gen.ItemsService.createItem                   | api/operation         | none/- (0.52)                     | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generated API cli |
+| Interface frontend.src.components.Common.Logo.LogoProps                      | none/-                | ux/librarycomponent (0.51)        | A props type declaration for the Logo UI component. It is a typing detail of that component, not an element in its own right. Any props would be attributes of t |
+| Interface frontend.src.routeTree.gen.FileRoutesByTo                          | none/-                | navigation/navigationgraph (0.49) | Generated TanStack Router type map (routeTree.gen.ts) that keys route paths to route types for type-safe navigation. It is generated boilerplate. The routes the |
+| Interface frontend.src.routeTree.gen.FileRoutesByPath                        | none/-                | navigation/navigationgraph (0.46) | This is a TanStack Router module-augmentation interface in the generated routeTree.gen.ts file. It only provides type mappings for routes; the routes themselves |
