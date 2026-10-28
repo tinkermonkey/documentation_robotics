@@ -25,8 +25,14 @@ import { normalizeNodeType } from "../generated/node-types.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
 import { Element } from "../core/element.js";
-import { Relationship } from "../core/relationships.js";
+import { Relationship, elementIdentifiers } from "../core/relationships.js";
 import { RelationshipCatalog } from "../core/relationship-catalog.js";
+import {
+  collectKnownIdentifiers,
+  findDanglingRelationships,
+  type UnresolvedSide,
+} from "../core/relationship-prune.js";
+import { isJson } from "../utils/globals.js";
 
 /**
  * Pre-resolved element and layer information to avoid redundant lookups.
@@ -337,6 +343,32 @@ export async function addRelationshipHandler(
 }
 
 /**
+ * Find relationships between two endpoints as they are recorded in relationships.yaml.
+ *
+ * Rows may name an element by UUID `id` or by dotted `path`, and the user may type
+ * either form. Each endpoint matches a row when the row's value is the typed
+ * identifier or any identifier of the element it resolves to. An endpoint that no
+ * longer resolves to an element still matches rows that store the typed value.
+ */
+export async function findRelationshipsByEndpoints(
+  model: Model,
+  source: string,
+  target: string,
+  predicate?: string
+): Promise<Relationship[]> {
+  const sourceIds = new Set(elementIdentifiers(model.getElementById(source) ?? {}, source));
+  const targetIds = new Set(elementIdentifiers(model.getElementById(target) ?? {}, target));
+  return model.relationships
+    .getAll()
+    .filter(
+      (rel) =>
+        sourceIds.has(rel.source) &&
+        targetIds.has(rel.target) &&
+        (!predicate || rel.predicate === predicate)
+    );
+}
+
+/**
  * Handler function for deleting relationships
  * Encapsulates the core logic of the delete-relationship command
  * @internal Exported for testing purposes
@@ -359,26 +391,24 @@ export async function deleteRelationshipHandler(
   predicate?: string,
   preResolved?: DeletePreResolved
 ): Promise<{ deletedCount: number }> {
-  // Use pre-resolved source layer if provided, otherwise resolve it
+  // The source element need not resolve: a row whose endpoint was deleted is
+  // exactly the row a user needs to remove (#963). The layer is informational only.
   let resolvedSourceLayerName = preResolved?.sourceLayerName;
   if (!resolvedSourceLayerName) {
     resolvedSourceLayerName = await findElementLayer(model, source);
-    if (!resolvedSourceLayerName) {
-      throw new CLIError(
-        `Source element ${source} not found`,
-        ErrorCategory.USER
-      );
-    }
   }
 
   // Use pre-found relationships if provided, otherwise find them
   let resolvedToDelete = preResolved?.toDelete;
   if (!resolvedToDelete) {
-    resolvedToDelete = model.relationships.find(source, target, predicate);
+    resolvedToDelete = await findRelationshipsByEndpoints(model, source, target, predicate);
   }
 
   if (resolvedToDelete.length === 0) {
-    throw new CLIError("No matching relationships found", ErrorCategory.USER);
+    throw new CLIError("No matching relationships found", ErrorCategory.USER, [
+      `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
+      'Use "dr relationship prune --dry-run" to list rows whose endpoints no longer resolve',
+    ]);
   }
 
   // Check for active changeset — stage deletion instead of writing directly
@@ -405,7 +435,9 @@ export async function deleteRelationshipHandler(
     }
   } else {
     // No active changeset — write directly
-    model.relationships.delete(source, target, predicate);
+    for (const rel of resolvedToDelete) {
+      model.relationships.delete(rel.source, rel.target, rel.predicate);
+    }
     await model.saveRelationships();
     await model.saveManifest();
 
@@ -450,6 +482,202 @@ export async function deleteRelationshipHandler(
   }
 
   return { deletedCount: resolvedToDelete.length };
+}
+
+export interface PruneRelationshipsOptions {
+  model?: string;
+  dryRun?: boolean;
+  layers?: string[];
+  format?: string;
+}
+
+export interface PruneRelationshipsResult {
+  scanned: number;
+  dangling: number;
+  removed: number;
+  dryRun: boolean;
+  staged: boolean;
+  changeset?: string;
+  layers?: string[];
+  relationships: Array<{
+    source: string;
+    predicate: string;
+    target: string;
+    layer: string;
+    targetLayer?: string;
+    unresolved: UnresolvedSide;
+  }>;
+}
+
+/**
+ * `dr relationship prune`: remove rows whose source or target resolves to no element.
+ *
+ * Elements are matched by UUID id and by dotted path (both are legal in
+ * relationships.yaml). Inside an active changeset the removals are staged as
+ * relationship-delete changes; otherwise relationships.yaml is rewritten with the
+ * surviving rows in their original order and its header comment preserved.
+ *
+ * @internal Exported for testing purposes
+ */
+export async function pruneRelationshipsCommand(
+  options: PruneRelationshipsOptions
+): Promise<PruneRelationshipsResult> {
+  const format = options.format ?? "text";
+  if (format !== "text" && format !== "json") {
+    throw new CLIError(`Invalid format: ${format}`, ErrorCategory.USER, [
+      "Use --format text or --format json",
+    ]);
+  }
+  const jsonOutput = format === "json" || isJson();
+
+  const layers = options.layers?.length ? options.layers : undefined;
+  if (layers) {
+    const invalid = layers.filter((l) => !isValidLayerName(l));
+    if (invalid.length > 0) {
+      throw new CLIError(
+        `Invalid layer name(s): ${invalid.join(", ")}`,
+        ErrorCategory.USER,
+        ['Use canonical layer names, e.g. "api", "data-model", "data-store"']
+      );
+    }
+  }
+
+  const model = await Model.load(options.model || process.cwd());
+
+  // Every identifier a current element is known by. getLayer() returns the projected
+  // view, so staged adds count as present and staged deletes as absent.
+  const elements: Element[] = [];
+  for (const layerName of model.getLayerNames()) {
+    const layer = await model.getLayer(layerName);
+    if (layer) {
+      elements.push(...layer.listElements());
+    }
+  }
+  const known = collectKnownIdentifiers(elements);
+
+  const analysis = findDanglingRelationships(model.relationships.getAll(), known, { layers });
+
+  const stagingManager = new StagingAreaManager(model.rootPath, model);
+  const activeChangeset = await stagingManager.getActive();
+  const staging = !!activeChangeset && activeChangeset.status === "staged";
+
+  const result: PruneRelationshipsResult = {
+    scanned: analysis.scanned,
+    dangling: analysis.dangling.length,
+    removed: 0,
+    dryRun: !!options.dryRun,
+    staged: false,
+    ...(staging ? { changeset: activeChangeset!.name } : {}),
+    ...(layers ? { layers } : {}),
+    relationships: analysis.dangling.map(({ relationship: rel, unresolved }) => ({
+      source: rel.source,
+      predicate: rel.predicate,
+      target: rel.target,
+      layer: rel.layer,
+      ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+      unresolved,
+    })),
+  };
+
+  if (!options.dryRun && analysis.dangling.length > 0) {
+    if (staging) {
+      for (const { relationship: rel } of analysis.dangling) {
+        await stagingManager.stage(activeChangeset!.id, {
+          type: "relationship-delete",
+          elementId: `${rel.source}::${rel.predicate}::${rel.target}`,
+          layerName: rel.layer,
+          before: {
+            source: rel.source,
+            target: rel.target,
+            predicate: rel.predicate,
+            layer: rel.layer,
+            ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+            ...(rel.properties ? { properties: rel.properties } : {}),
+          },
+        });
+      }
+      result.staged = true;
+    } else {
+      const danglingRows = new Set(analysis.dangling.map((d) => d.relationship));
+      model.relationships.retain((rel) => !danglingRows.has(rel));
+      await model.saveRelationships({ preserveHeader: true });
+      await model.saveManifest();
+
+      try {
+        const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+        const affectedLayers = new Set<string>();
+        for (const { relationship: rel } of analysis.dangling) {
+          for (const name of [rel.layer, rel.targetLayer]) {
+            if (name && isValidLayerName(name)) {
+              for (const affected of orchestrator.computeAffectedLayers(name)) {
+                affectedLayers.add(affected);
+              }
+            }
+          }
+        }
+        await orchestrator.regenerate(affectedLayers);
+      } catch (error) {
+        emitLog(SeverityNumber.WARN, "Failed to regenerate layer reports after relationship prune", {
+          "relationship.pruned": analysis.dangling.length,
+          "error.message": getErrorMessage(error),
+        });
+      }
+    }
+    result.removed = analysis.dangling.length;
+  }
+
+  if (jsonOutput) {
+    console.log(JSON.stringify({ status: "ok", ...result }, null, 2));
+    return result;
+  }
+
+  const scope = layers ? ` in layer(s) ${layers.join(", ")}` : "";
+  handleInfo(
+    `Scanned ${result.scanned} relationship(s)${scope}: ${result.dangling} dangling`
+  );
+  for (const row of result.relationships) {
+    const side =
+      row.unresolved === "both"
+        ? "source and target not found"
+        : `${row.unresolved} not found`;
+    handleInfo(
+      `  - ${ansis.yellow(row.source)} --[${ansis.magenta(row.predicate)}]--> ${ansis.yellow(row.target)} ${ansis.dim(`(${side})`)}`
+    );
+  }
+
+  if (result.dangling === 0) {
+    handleSuccess("No dangling relationships found", {
+      scanned: result.scanned,
+      dangling: 0,
+      removed: 0,
+    });
+  } else if (result.dryRun) {
+    handleSuccess(`Dry run: would remove ${result.dangling} dangling relationship(s)`, {
+      scanned: result.scanned,
+      dangling: result.dangling,
+      removed: 0,
+      dryRun: true,
+    });
+  } else if (result.staged) {
+    handleSuccess(
+      `Staged removal of ${result.removed} dangling relationship(s) to ${ansis.bold(result.changeset!)}`,
+      {
+        scanned: result.scanned,
+        dangling: result.dangling,
+        removed: result.removed,
+        changesetStatus: "staged",
+        changeset: result.changeset,
+      }
+    );
+  } else {
+    handleSuccess(`Removed ${result.removed} dangling relationship(s)`, {
+      scanned: result.scanned,
+      dangling: result.dangling,
+      removed: result.removed,
+    });
+  }
+
+  return result;
 }
 
 export function relationshipCommands(program: Command, rootProgram?: Command): void {
@@ -632,17 +860,11 @@ Examples:
         // Load model
         const model = await Model.load(options.model || process.cwd());
 
-        // Find source element and relationships to delete (for confirmation)
-        const sourceLayerName = await findElementLayer(model, source);
-        if (!sourceLayerName) {
-          throw new CLIError(
-            `Source element ${source} not found`,
-            ErrorCategory.USER
-          );
-        }
-
-        // Find relationships to delete (to show confirmation count)
-        const toDelete = model.relationships.find(
+        // Find relationships to delete (to show confirmation count). Endpoints are
+        // matched by the value recorded in the row, so a row whose source or target
+        // element has already been deleted can still be removed.
+        const toDelete = await findRelationshipsByEndpoints(
+          model,
           source,
           target,
           options.predicate
@@ -651,9 +873,18 @@ Examples:
         if (toDelete.length === 0) {
           throw new CLIError(
             "No matching relationships found",
-            ErrorCategory.USER
+            ErrorCategory.USER,
+            [
+              `Use "dr relationship list ${source}" to see the relationships recorded for ${source}`,
+              'Use "dr relationship prune --dry-run" to list rows whose endpoints no longer resolve',
+            ]
           );
         }
+
+        // The source layer is informational; fall back to the row's layer when the
+        // source element no longer exists.
+        const sourceLayerName =
+          (await findElementLayer(model, source)) ?? toDelete[0].layer;
 
         // Confirm deletion unless --force or non-interactive environment
         // In non-interactive environments (CI, tests), skip confirmation
@@ -711,6 +942,47 @@ Examples:
           deleteDetails,
           { verbose: options.verbose }
         );
+      } catch (error) {
+        handleError(error);
+      }
+    });
+
+  program
+    .command("prune")
+    .description(
+      "Remove relationship rows whose source or target no longer resolves to an element"
+    )
+    .option(
+      "--model <path>",
+      "Path to model root (contains model/manifest.yaml)"
+    )
+    .option("--dry-run", "List the rows that would be removed without writing")
+    .option(
+      "--layers <layers...>",
+      "Only scan rows whose source or target layer is one of these canonical layer names"
+    )
+    .option("--format <format>", "Output format: text, json", "text")
+    .addHelpText(
+      "after",
+      `
+A row is dangling when its source or target matches neither the UUID id nor the
+dotted path of any current element. Kept rows keep their order and the file's
+header comment is preserved. Inside an active changeset the removals are staged
+as relationship deletions instead of being written to relationships.yaml.
+
+Examples:
+  $ dr relationship prune --dry-run
+  $ dr relationship prune
+  $ dr relationship prune --layers api application --format json`
+    )
+    .action(async (options) => {
+      try {
+        await pruneRelationshipsCommand({
+          model: options.model,
+          dryRun: !!options.dryRun,
+          layers: options.layers,
+          format: options.format,
+        });
       } catch (error) {
         handleError(error);
       }

@@ -478,9 +478,18 @@ dr relationship add business-process-order business-process-payment \
 # List all relationships for an element
 dr relationship list business-process-order
 
-# Delete a relationship
+# Delete a relationship (works even when an endpoint element no longer exists)
 dr relationship delete business-process-order business-process-payment
+
+# Remove rows whose source or target no longer resolves to an element
+# (matches both UUID ids and dotted paths; --dry-run lists without writing)
+dr relationship prune --dry-run
+dr relationship prune --layers api application --format json
 ```
+
+`dr delete` removes the relationships that name the deleted element, so `prune` is for models
+that already carry dangling rows (earlier deletes, hand edits, imports). Inside an active changeset
+it stages the removals instead of writing `relationships.yaml`.
 
 ### Staging Workflow
 

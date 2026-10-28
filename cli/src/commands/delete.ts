@@ -9,6 +9,7 @@ import { MutationHandler } from "../core/mutation-handler.js";
 import { ReferenceRegistry } from "../core/reference-registry.js";
 import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js";
 import { findElementLayer } from "../utils/element-utils.js";
+import { elementIdentifiers } from "../core/relationships.js";
 import { CLIError, handleError, handleSuccess, handleInfo, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -139,6 +140,16 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
     // Calculate total elements to remove
     const elementsToRemove = options.cascade ? [id, ...dependents] : [id];
+
+    // Every identifier relationships.yaml may use for the elements being removed
+    // (UUID id and dotted path), captured before they are deleted from the model.
+    const relationshipIdentifiers = new Set<string>();
+    for (const eid of elementsToRemove) {
+      const target = eid === id ? element : model.getElementById(eid);
+      for (const identifier of elementIdentifiers(target ?? {}, eid)) {
+        relationshipIdentifiers.add(identifier);
+      }
+    }
 
     // Display dry-run summary
     if (options.dryRun) {
@@ -297,9 +308,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
         );
       } else {
         // Base model path: purge any stale relationships MutationHandler may have missed
-        const staleBase = elementsToRemove.reduce(
-          (n, eid) => n + model.relationships.deleteForElement(eid), 0
-        );
+        const staleBase = model.relationships.deleteForElement([...relationshipIdentifiers]);
         if (staleBase > 0) await model.saveRelationships();
 
         // Report deletion with cascade confirmation
@@ -308,9 +317,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     } else {
       // Fallback success message if before state is not available
       // This should rarely occur, but ensures user always gets feedback
-      const staleFallback = elementsToRemove.reduce(
-        (n, eid) => n + model.relationships.deleteForElement(eid), 0
-      );
+      const staleFallback = model.relationships.deleteForElement([...relationshipIdentifiers]);
       if (staleFallback > 0) await model.saveRelationships();
 
       // Report deletion with cascade confirmation
