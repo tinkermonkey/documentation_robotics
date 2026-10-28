@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr relationship prune [--dry-run] [--layers <layers...>] [--format text|json]`** removes
+  every `relationships.yaml` row whose `source` or `target` matches neither the UUID `id` nor the
+  dotted `path` of any current element (both forms are legal in the file, so matching on only one
+  produced false positives). `--dry-run` lists the rows with the unresolved side and writes
+  nothing; `--layers` restricts the scan to rows whose source or target layer is listed; kept rows
+  keep their order and the file's header comment is preserved. Inside an active changeset the
+  removals are staged as relationship deletions and applied at `dr changeset commit`. Exit code is
+  0 whether or not rows were removed. (#964)
+
 - **`dr upgrade` rewrites relationships retired by the spec 0.10.0 catalog.** The 0.9.0 → 0.10.0
   model migration now also rewrites `documentation-robotics/model/relationships.yaml`, so models
   recorded against spec 0.9.0 still validate after the catalog cleanup: `implements` becomes
@@ -58,6 +67,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr delete` now removes every relationship that names the deleted element.** The purge
+  matched only the identifier typed on the command line, so a row that stored the element's UUID
+  `id` survived a delete addressed by path (and vice versa); a delete staged in an active changeset
+  never purged at all, and `dr changeset commit` then rejected the changeset for the dangling row.
+  Deletes on the base model, with and without `--cascade`, now remove rows keyed by UUID or by
+  path for the element and each cascade-deleted dependent. A staged delete also stages the
+  removal of every row naming the element, commit applies the purge even for changesets staged
+  before this fix, and commit validation no longer counts rows naming a deleted element as
+  errors. (#963)
+- **`dr relationship delete` can remove a row whose endpoint no longer exists.** It used to
+  require the source to resolve to a live element and failed with "Source element ... not found"
+  for exactly the dangling row being removed. Endpoints are now matched by the value stored in
+  the row, or by any identifier of the element they resolve to, so a row stored by UUID is also
+  found when the path is typed. (#963)
 - **Staged changesets no longer need `--force` to commit after `dr upgrade`.** An upgrade writes a
   new spec version into the manifest (and its migrations may rewrite element files), which changed
   the model snapshot every staged changeset is checked against, so `dr changeset commit` reported

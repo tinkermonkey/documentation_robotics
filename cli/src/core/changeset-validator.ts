@@ -10,6 +10,7 @@ import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { Validator } from "../validators/validator.js";
 import { ValidationResult } from "../validators/types.js";
 import type { Model } from "./model.js";
+import { Relationships, elementIdentifiers } from "./relationships.js";
 
 /**
  * Validates changesets by running validation pipeline on projected models
@@ -51,6 +52,27 @@ export class ChangesetValidator {
 
     // Project the model with staged changes applied
     const projectedModel = await this.projectionEngine.projectModel(baseModel, changesetId);
+
+    // Relationships that name an element this changeset deletes are removed at commit
+    // (by UUID or by path), so they must not block the commit as dangling rows.
+    const deletedIdentifiers = new Set<string>();
+    if (changeset) {
+      for (const change of changeset.changes) {
+        if (change.type === "delete") {
+          const before = (change.before ?? {}) as { id?: unknown; path?: unknown };
+          for (const id of elementIdentifiers(before, change.elementId)) {
+            deletedIdentifiers.add(id);
+          }
+        }
+      }
+    }
+    if (deletedIdentifiers.size > 0) {
+      projectedModel.relationships = Relationships.fromArray(
+        baseModel.relationships
+          .getAll()
+          .filter((rel) => !deletedIdentifiers.has(rel.source) && !deletedIdentifiers.has(rel.target))
+      );
+    }
 
     // Run unified validator on projected model
     const fullResult = await this.validator.validateModel(projectedModel as unknown as Model);

@@ -21,6 +21,7 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
+import { elementIdentifiers } from "./relationships.js";
 import { isValidLayerName } from "./layers.js";
 import {
   isTelemetryEnabled,
@@ -530,6 +531,8 @@ export class StagingAreaManager {
       const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
         (a, b) => a.sequenceNumber - b.sequenceNumber
       );
+      // Set when applying an element delete removed rows from relationships.yaml
+      let relationshipsPurged = false;
 
       try {
         const applySpan = isTelemetryEnabled
@@ -639,6 +642,17 @@ export class StagingAreaManager {
                 }
               } else if (change.type === "delete") {
                 const element = layer.getElement(change.elementId);
+                // Purge relationships that name the element by UUID or by path.
+                // Deletes staged before relationship purging existed carry no
+                // relationship-delete changes, so this is the safety net at commit.
+                const before = (change.before ?? {}) as { id?: unknown; path?: unknown };
+                const purged = model.relationships.deleteForElement(
+                  elementIdentifiers(element ?? before, before.id as string | undefined,
+                    before.path as string | undefined, change.elementId)
+                );
+                if (purged > 0) {
+                  relationshipsPurged = true;
+                }
                 if (element) {
                   layer.deleteElement(element.path || element.id);
                   result.committed++;
@@ -711,7 +725,7 @@ export class StagingAreaManager {
         }
 
         // Persist staged relationship changes to relationships.yaml
-        if (hasRelationshipChanges) {
+        if (hasRelationshipChanges || relationshipsPurged) {
           try {
             await model.saveRelationships();
           } catch (error) {

@@ -13,6 +13,23 @@ export interface Relationship {
 }
 
 /**
+ * Every identifier a relationship row may use to name an element: its UUID `id`
+ * and its dotted `path`. Both forms are legal in relationships.yaml.
+ */
+export function elementIdentifiers(
+  element: { id?: unknown; path?: unknown },
+  ...extra: Array<string | undefined>
+): string[] {
+  const ids = new Set<string>();
+  for (const candidate of [element.id, element.path, ...extra]) {
+    if (typeof candidate === "string" && candidate.length > 0) {
+      ids.add(candidate);
+    }
+  }
+  return [...ids];
+}
+
+/**
  * Relationships class for managing the central relationships.yaml file
  */
 export class Relationships {
@@ -52,17 +69,39 @@ export class Relationships {
   }
 
   /**
-   * Delete all relationships involving an element (as source or target)
+   * Delete all relationships involving an element (as source or target).
+   *
+   * A row may name an element by its UUID `id` or by its dotted `path`, so callers
+   * should pass every identifier the element is known by (see
+   * `elementIdentifiers()`); any row whose source or target matches one of them
+   * is removed.
    */
-  deleteForElement(elementId: string): number {
+  deleteForElement(elementId: string | string[]): number {
+    const ids = new Set(
+      (Array.isArray(elementId) ? elementId : [elementId]).filter((id) => !!id)
+    );
     const initialLength = this.relationships.length;
     this.relationships = this.relationships.filter(
-      (rel) => rel.source !== elementId && rel.target !== elementId
+      (rel) => !ids.has(rel.source) && !ids.has(rel.target)
     );
     const deletedCount = initialLength - this.relationships.length;
     // Always mark as dirty to ensure file is rewritten (Python CLI behavior)
     this.dirty = true;
     return deletedCount;
+  }
+
+  /**
+   * Keep only the relationships for which `keep` returns true, preserving order.
+   * Returns the number of relationships removed.
+   */
+  retain(keep: (rel: Relationship) => boolean): number {
+    const initialLength = this.relationships.length;
+    this.relationships = this.relationships.filter(keep);
+    const removedCount = initialLength - this.relationships.length;
+    if (removedCount > 0) {
+      this.dirty = true;
+    }
+    return removedCount;
   }
 
   /**
