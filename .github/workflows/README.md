@@ -1,11 +1,11 @@
 # GitHub Workflows
 
-| File                    | Name                   | Triggers                                                                                                                                                                                                            |
-| ----------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli-tests.yml`         | CLI Tests              | pull_request, workflow_dispatch                                                                                                                                                                                     |
-| `release.yml`           | Release                | push                                                                                                                                                                                                                |
-| `ts-cli-regression.yml` | CLI Regression Suite   | workflow_dispatch                                                                                                                                                                                                   |
-| `validate-docs.yml`     | Validate Documentation | workflow_dispatch, # pull_request, # paths, # - "spec/schemas/base/**", # - "spec/schemas/_.schema.json", # - "spec/layers/_.layer.json", # - "spec/nodes/**/\*.node.json", # - "scripts/generate-layer-reports.ts" |
+| File                    | Name                   | Triggers                        |
+| ----------------------- | ---------------------- | ------------------------------- |
+| `cli-tests.yml`         | CLI Tests              | pull_request, workflow_dispatch |
+| `release.yml`           | Release                | push                            |
+| `ts-cli-regression.yml` | CLI Regression Suite   | workflow_dispatch               |
+| `validate-docs.yml`     | Validate Documentation | workflow_dispatch               |
 
 ## CLI Tests (`cli-tests.yml`)
 
