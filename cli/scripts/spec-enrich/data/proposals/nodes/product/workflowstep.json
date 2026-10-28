@@ -1,0 +1,29 @@
+{
+  "spec_node_id": "product.workflowstep",
+  "previous_description": "A single ordered, user-facing step within a UserWorkflow: what the user does or experiences at that point in the journey, which Feature the step exercises and which Capability it relies on. Steps are product-level and implementation-independent; their technical realization is a navigation FlowStep bound to a route.",
+  "definition": "An ordered, user-facing action within exactly one UserWorkflow, stating what the user does or experiences at that point in the journey and its observable result, described without reference to screens, routes, components or code. Each step names one position in one workflow; the same action in a different workflow is a different step.",
+  "distinguish_from": [
+    {
+      "type": "product.userworkflow",
+      "when": "the element is the whole goal-directed journey made up of several steps, rather than one position within it"
+    },
+    {
+      "type": "product.feature",
+      "when": "the element is a reusable unit of user-visible functionality that may be exercised by steps in many workflows, rather than a point in a particular journey"
+    },
+    {
+      "type": "product.capability",
+      "when": "the element describes an ability the product has regardless of any user sequence, with no ordering or user action attached"
+    }
+  ],
+  "standard_reference": "No direct ArchiMate 3.2 Strategy element; closest is a sub-process in ArchiMate 3.2 §8.3 Business Process decomposition, combined with the user-journey or story-map step of product-management practice",
+  "code_evidence": [
+    "Numbered 'When'/'Then' lines inside a Gherkin Scenario or acceptance-criteria list that describe a user action and its visible result",
+    "test.step('...') or cy.step-style blocks inside an end-to-end test (Playwright, Cypress) named after a user action within a journey test",
+    "A user-journey, onboarding or story-map document (or wizard step config array) listing ordered steps with titles like 'Enter email' and 'Confirm code'"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The sequence attribute and flows-to relationships can contradict each other, and the spec does not define which is authoritative. Branching or alternative paths cannot be expressed. The 'uses capability' link duplicates what the Feature already delivers. There is no way to name which Persona performs a step when a workflow involves several actors, beyond the 'serves' link. flows-to is listed twice.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.263Z"
+}

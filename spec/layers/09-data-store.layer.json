@@ -2,7 +2,7 @@
   "id": "data-store",
   "number": 9,
   "name": "Data Store Layer",
-  "description": "Layer 9: Data Store Layer",
+  "description": "Describes physical persistence: databases and schemas, tables and collections, columns and fields, indexes, constraints, views, migrations, access patterns and the queries that read and write them (ISO/IEC 9075 SQL with extensions for document, key-value and graph paradigms). Migration scripts, table definitions and repository or DAO code that talks to storage are evidence for elements here.",
   "inspired_by": {
     "standard": "ISO/IEC 9075 (SQL) + Paradigm Extensions",
     "version": "2024",

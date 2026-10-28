@@ -7,7 +7,137 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- **`product.workflowstep` node type** — UserWorkflow previously carried only a `complexity` enum and
+  free-text documentation, so the steps of a workflow could not be modelled. WorkflowStep is a
+  product-level, implementation-independent step (`sequence`, `action`, `outcome`, `optional`) that a
+  UserWorkflow `composes`, that `flows-to` the next step, that `uses` the Feature it exercises and the
+  Capability it relies on, and that a navigation FlowStep `realizes`.
+- **Capability consumption** — `product.feature uses product.capability`,
+  `product.userworkflow uses product.capability` and `product.capability depends-on product.capability`.
+  Previously the only feature-to-capability predicate was `realizes`, so "the password-reset feature
+  uses the email-sending capability" could only be expressed by misusing realization.
+- **Realization of product elements from lower layers** — the catalog had no relationship with a
+  product type as destination from any other layer, although the product skill documented four. Added:
+  `application.applicationservice` / `application.applicationcomponent` / `technology.technologyservice`
+  `realizes product.capability`; `application.applicationservice` / `application.applicationcomponent`
+  / `ux.view realizes product.feature`; `api.operation exposes product.feature`;
+  `navigation.navigationflow realizes product.userworkflow`; `navigation.flowstep realizes
+  product.workflowstep`; `testing.testcasesketch tests product.feature`;
+  `testing.testcoveragetarget covers product.feature`.
+- **Application-layer serving** — `application.applicationservice serves application.applicationprocess`,
+  `application.applicationfunction` and `application.applicationcomponent` (ArchiMate 3.2 serving
+  relationship). Previously an application service could serve a business process only, so "this
+  process uses the email service" had no predicate inside the application layer.
+
+### Fixed
+
+- **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
+  schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
+  and warned about the inconsistency. The layer file now lists all nine types.
+- **18 relationship schemas carried a four-part `id`** (the destination layer segment was missing,
+  e.g. `security.securitymodel.aggregates.role` for `security.securitymodel.aggregates.security.role`):
+  `api.components aggregates callback / link / requestbody`, `apm.span aggregates spanlink`,
+  `data-store.namespace composes storedlogic`, `security.securitymodel aggregates actor / delegation /
+  informationentity / permission / role / secureresource`, `security.threat aggregates countermeasure`,
+  `testing.inputspacepartition depends-on inputspacepartition`, `testing.testcoveragemodel aggregates
+  contextvariation / inputspacepartition / testcasesketch`, `testing.testcoveragetarget aggregates
+  contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the five-part
+  `{layer}.{type}.{predicate}.{layer}.{type}` form; no other field changed.
+
+### Changed
+
+- **Layer descriptions** — Every `spec/layers/*.layer.json` previously carried the placeholder
+  description `Layer N: Name`. Each of the 13 layers now has a real purpose-and-scope definition:
+  what the layer models, which standard it follows, what code or documents count as evidence for
+  elements in it, and where neighbouring concerns belong instead. The compiled `spec/dist/*.json`
+  and `manifest.json` carry the new text. Tooling that classifies code into layers (the
+  classification eval harness in `cli/scripts/classify-eval`) reads these definitions directly.
+- **Design charter** — `spec/DESIGN_CHARTER.md` (informative) states what the specification is for,
+  what a node and a relationship model, and how a proposed change is judged (defect, working as
+  designed, judgment call, scope). Tooling that reasons about the spec is given it as context.
+- **Direction is defined by the predicate, not by layer order.** The informal "higher layers reference
+  lower layers" rule is withdrawn: it had been read both ways (the CLI's reference validator enforced
+  motivation → testing while the relationship catalog runs implementation → intent), and the 11
+  catalog relationships that run "upward" (schema `maps-to` collection, process `constrained-by`
+  policy) were always correct. Each predicate carries its own direction; the catalog is the authority
+  on valid source/predicate/destination triples; traceability to motivation is a coverage property for
+  audits, not a direction prohibition.
+- **Application-layer definitions enriched** (first output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`). All nine application node types now carry an operational
+  genus-and-differentia definition followed by "Use <sibling> instead when ..." distinctions,
+  plus `x-dr-standard` (ArchiMate 3.2 section), `x-dr-evidence` (three observable code signals)
+  and `x-dr-distinguish`; the previously undocumented `documentation` attributes are described.
+  All 87 relationships whose source is an application type have a real `description` (what it
+  means in the domain) and `x-dr-evidence` (what in code or configuration proves it), replacing
+  `Defines relationship: ...`. The compiled `spec/dist` now carries relationship `description`
+  and `evidence`; previously relationships compiled to flat data with no description.
+- **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
+  Feature that did not exist in the catalog; it now matches the relationship schemas added above.
+
 ### Breaking Changes
+
+- **BREAKING: `supports-goals` and `fulfills-requirements` predicates retired.** Each was a
+  traceability-category twin of a motivation-category predicate with the same meaning and the same
+  inverse (`supports` / `supported-by`, `fulfills` / `fulfilled-by`), which the charter forbids. The
+  nine testing-layer schemas that used them now use `supports` (coveragerequirement, testcasesketch,
+  testcoveragemodel, testcoveragetarget `supports motivation.goal`) and `fulfills` (the same four
+  plus coveragesummary `fulfills motivation.requirement`); both predicates are removed from
+  `predicates.json` (69 predicates). Models that recorded either predicate are rewritten to the
+  surviving one on the same pair by `dr upgrade` (`cli/scripts/spec-enrich/data/applied-synonyms.json`).
+  The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
+  are unchanged.
+
+- **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
+  maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six
+  schemas deleted as duplicates of an existing edge (`applicationfunction delivers-value
+  applicationprocess`; `applicationservice` and `applicationfunction depends-on dataobject`, covered by
+  `accesses`; `applicationinterface delivers-value applicationcollaboration`, covered by `collaboration
+  provides interface`; `applicationcollaboration depends-on applicationinteraction` and
+  `applicationinterface depends-on applicationservice`, covered by the edges below). Seven renamed to
+  the ArchiMate 3.2 relationship: `applicationcollaboration` *assigned-to* `applicationinteraction`
+  (was delivers-value); `applicationcollaboration realizes applicationservice` (was delivers-value);
+  `applicationevent accesses dataobject` (was depends-on); `applicationcomponent` *assigned-to*
+  `applicationfunction` (was composes; tier 1 had kept the wrong twin); `applicationinterface`
+  *assigned-to* `applicationservice` (was serves); `applicationevent triggers applicationinteraction`
+  (was triggers applicationcollaboration); `applicationservice constrained-by security.securitypolicy`
+  (was accesscondition, one clause of a rule). One reversed: `applicationcollaboration assigned-to
+  applicationprocess` (was process depends-on collaboration). One added: `applicationcomponent
+  assigned-to applicationprocess`, which the layer lacked. `delivers-value` no longer appears in the
+  application layer, and application behaviour reaches data objects through `accesses` only. The
+  `applicationinterface` definition now says an interface is owned by a component or collaboration.
+  1,529 to 1,524 relationship schemas; actions recorded in `applied-walk-application.json` for the
+  model migration.
+
+- **BREAKING: 86 relationship schemas removed, 5 renamed, 2 reversed (reflection plan, tier 1).** The
+  relationship catalog carried pairs of schemas that said the same thing twice (`aggregates` beside
+  `composes`, `delivers-value` beside `realizes`, a `serves` or `associated-with` edge beside its
+  reverse `composes`/`aggregates`/`triggers`), and a few predicates that did not match their meaning
+  (`depends-on` a data object for `accesses`, `monitors` a node for `references`). Each change was
+  found by the maintainer-note triage, confirmed by the sorting-question reflection
+  (`cli/scripts/spec-enrich/triage-reflect.ts`) at p >= 0.6 for duplicate removals and p >= 0.7
+  for reversals and renames, and accepted after review. Removed: 79 duplicate or reverse-direction
+  schemas (api 14, security 11, ux 10, navigation 9, technology 8, motivation 8, application 7,
+  testing 6, data-store 6, business 4, apm 2, product 1). Renamed: `apm.resource monitors
+  technology.node` to `references`; `application.applicationprocess depends-on dataobject` to
+  `accesses`; `applicationprocess delivers-value applicationservice` to `realizes`;
+  `navigation.routemeta governs navigationguard` to `references`; `ux.stateaction specializes
+  stateactiontemplate` to `realizes`. Reversed: `api.oauthflows serves securityscheme` becomes
+  `api.securityscheme composes api.oauthflows`; `testing.partitionvalue composes
+  inputspacepartition` becomes `testing.inputspacepartition composes partitionvalue`. 1,610 to
+  1,529 relationship schemas. The full old-id to new-id list is
+  `cli/scripts/spec-enrich/data/triage/reflect/clef/applied-tier1.json`, the input for the model
+  migration that rewrites or drops affected relationships.
+
+- **BREAKING: `implements` predicate retired in favour of `realizes`.** The two predicates had the same
+  meaning ("provides concrete implementation of" versus "implements or makes concrete") and the same
+  ArchiMate alignment (Realization), violating the charter's one-meaning-one-predicate rule. The 18
+  relationship schemas that used `implements` are now `realizes` (17 renamed; `ux.componentinstance
+  implements ux.librarycomponent` deleted because the `realizes` schema already existed), and
+  `implements` is removed from `spec/schemas/base/predicates.json` (72 to 71 predicates, 1,611 to
+  1,610 relationship schemas). Models that recorded `implements` relationships need a migration that
+  rewrites the predicate to `realizes`.
 
 - **BREAKING: `objectschema.required` Type Change** — The `required` field on `data-model.objectschema` nodes changed from `{"type": "string"}` to `{"type": "array", "items": {"type": "string"}}` in `spec/schemas/nodes/data-model/objectschema.node.schema.json`:
   - **Rationale**: JSON Schema Draft 7 standard specifies `required` as an array of property names. The string format was non-standard and prevented accurate schema validation.

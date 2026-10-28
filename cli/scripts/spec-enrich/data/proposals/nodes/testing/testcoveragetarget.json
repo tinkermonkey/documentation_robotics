@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.testcoveragetarget",
+  "previous_description": "The primary unit of test scope governance in a TestCoverageModel, identifying an artifact or functionality that requires test coverage per IEEE 829-2008 Section 5.2.3 (Features to be tested). A target may represent an API endpoint, UI component, business workflow, or integration point — each anchoring a set of CoverageRequirements and TestCaseSketches.",
+  "definition": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow or scheduled job) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself.",
+  "distinguish_from": [
+    {
+      "type": "testing.coveragerequirement",
+      "when": "the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested"
+    },
+    {
+      "type": "testing.testcasesketch",
+      "when": "the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise"
+    },
+    {
+      "type": "testing.testcoveragemodel",
+      "when": "the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope"
+    },
+    {
+      "type": "testing.targetcoveragesummary",
+      "when": "the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target"
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Master/Level Test Plan §5.2.3 Features to be tested (with test items, §5.2.1)",
+  "code_evidence": [
+    "A test suite block (describe/class/@Nested) named after a specific endpoint, component, job or workflow, e.g. describe('POST /orders'), whose tests all import or call that one production symbol",
+    "A test plan, coverage manifest or traceability file (YAML/JSON/Markdown) listing 'features to be tested' entries keyed by operationId, route, component or job name, with a priority",
+    "Coverage tool configuration that scopes include patterns or thresholds to a named module, endpoint handler or scheduled-job entry point (e.g. per-path thresholds in jest/istanbul or a JaCoCo include rule)"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of the artifact or functionality in scope and the testing concerns it raises. Set it whenever the target name and targetType alone do not make the boundary of what must be verified clear."
+    }
+  ],
+  "notes": "targetType lacks values for library/domain function, data-model schema, stored logic and CLI command, yet relationships cover data-model.objectschema and data-store.storedlogic. Composition with coveragerequirement runs in both directions, which forms a cycle. Inputpartitionselection is composed by the target here, but its definition places it under CoverageRequirement. The 'source' object has no schema.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

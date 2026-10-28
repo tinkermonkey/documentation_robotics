@@ -1,0 +1,26 @@
+{
+  "source": "application.dataobject",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:25:23.477Z",
+  "relationships": [
+    {
+      "id": "application.dataobject.aggregates.application.dataobject",
+      "previous_description": "Defines relationship: application.dataobject aggregates application.dataobject",
+      "description": "The containing data structure groups references to another data structure whose instances have their own identity and lifecycle, such as an Order holding the Customer it belongs to or a Cart listing Product records that persist after the cart is discarded.",
+      "evidence": "The containing class declares a field, collection or ID reference typed to the other data object, and that object is constructed, persisted or looked up elsewhere and passed in rather than created by the container."
+    },
+    {
+      "id": "application.dataobject.composes.application.dataobject",
+      "previous_description": "Defines relationship: application.dataobject composes application.dataobject",
+      "description": "The whole data structure owns an embedded part structure that has no independent identity and is created, copied, serialized and discarded together with it, such as an Invoice and its InvoiceLine items or a Person and its embedded Address value object.",
+      "evidence": "The part type appears only as a nested or embedded member of the whole, for example a nested record, an @Embedded or @ElementCollection mapping, a cascade-all/orphan-removal association, or a nested message in a protobuf or JSON schema, and it is instantiated inside the whole's constructor or builder."
+    },
+    {
+      "id": "application.dataobject.realizes.application.dataobject",
+      "previous_description": "Defines relationship: application.dataobject realizes application.dataobject",
+      "description": "The concrete data structure gives a tangible implementation of an abstract or contract-level data definition, such as a DTO class implementing a shared interface or type contract, or a generated class materializing a schema-defined message type.",
+      "evidence": "The concrete class or struct declares that it implements the abstract type (for example `implements`, a TypeScript `satisfies` or structural conformance check), or a code generator config such as OpenAPI, protobuf or Avro shows the class produced from the abstract schema definition."
+    }
+  ],
+  "notes": "The direction of 'composes' is ambiguous: its inverse 'composed-of' implies the source is the part, while ArchiMate and the parallel 'aggregates' make the source the whole; whole-as-source was assumed here. 'realizes' between data objects overlaps with 'specializes' and 'extends' for interface or abstract-type implementation, so a precedence rule is needed."
+}

@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "data-model.stringschema",
+  "previous_description": "Defines validation rules for JSON string instances, including length bounds (minLength/maxLength), regular expression patterns, and semantic format hints (e.g., date-time, email, uri). The canonical node type for string type constraints in the data model.",
+  "definition": "A JSON Schema subschema whose type is 'string' and which constrains string instances through at least one string-specific keyword: minLength, maxLength, pattern or format. A bare type: 'string' with no such keyword is not enough.",
+  "distinguish_from": [
+    {
+      "type": "data-model.schemaproperty",
+      "when": "the element is the named member of an object (its name, documentation, default, readOnly/writeOnly), rather than the string constraint set that the property references or embeds"
+    },
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the string type is declared as a named, reusable entry under 'definitions' and referenced via $ref, especially an enumerated string type defined mainly by its enum values"
+    },
+    {
+      "type": "data-model.reference",
+      "when": "the code only points to another schema via $ref and declares no length, pattern or format constraints of its own"
+    },
+    {
+      "type": "data-model.schemacomposition",
+      "when": "string constraints are combined with other subschemas through allOf/anyOf/oneOf/not, and the combination itself is the element being modelled"
+    }
+  ],
+  "standard_reference": "JSON Schema Validation Draft 7 §6.3 Validation Keywords for Strings (maxLength, minLength, pattern) and §7 Semantic Validation with 'format'",
+  "code_evidence": [
+    "A JSON/YAML schema fragment of the form {\"type\": \"string\", \"maxLength\": 255, \"pattern\": \"^[A-Z]{3}$\"} or one carrying a \"format\" keyword, embedded in a schema file or OpenAPI components",
+    "A string field declared with validation constraints, such as Pydantic constr(min_length=…, regex=…) or Field(max_length=…), Zod z.string().min().max().email(), or Joi.string().pattern()",
+    "A Java/Kotlin String field annotated with Bean Validation constraints such as @Size(min=…, max=…), @Pattern(regexp=…), or @Email in an entity or DTO class"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "type",
+      "description": "The JSON Schema type keyword. Always set it to the literal 'string', the value that identifies this element as a string schema."
+    },
+    {
+      "name": "minLength",
+      "description": "The minimum permitted number of characters (Unicode code points) in the string, as a non-negative integer; set it when empty or too-short values must be rejected."
+    },
+    {
+      "name": "maxLength",
+      "description": "The maximum permitted number of characters (Unicode code points) in the string, as a non-negative integer no smaller than minLength; set it when the domain or a downstream field imposes a length limit."
+    },
+    {
+      "name": "pattern",
+      "description": "An ECMA-262 regular expression that the string must match, unanchored unless ^ and $ are used; set it when values follow a fixed syntax such as codes or identifiers."
+    }
+  ],
+  "notes": "The format enum mixes in post-Draft-7 values: duration and uuid come from 2019-09, and Draft 7's uri-template is missing. Change type from 'any' to const 'string'. Format is duplicated on schemaproperty and schemadefinition, which blurs ownership. String enum/const have no home here, so they get modelled on schemaproperty.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.257Z"
+}

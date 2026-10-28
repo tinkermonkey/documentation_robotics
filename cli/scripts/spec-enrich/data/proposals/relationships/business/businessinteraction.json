@@ -1,0 +1,38 @@
+{
+  "source": "business.businessinteraction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.066Z",
+  "relationships": [
+    {
+      "id": "business.businessinteraction.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businessinteraction accesses business.businessobject",
+      "description": "The jointly performed interaction creates, reads, updates or deletes the business object as part of the collaborating roles' shared work, such as a negotiation that drafts and amends a Contract.",
+      "evidence": "A process model or BPMN collaboration diagram shows a data association from the joint activity to the business object, or a procedure document states that the participants jointly produce or modify that record."
+    },
+    {
+      "id": "business.businessinteraction.flows-to.business.businessinteraction",
+      "previous_description": "Defines relationship: business.businessinteraction flows-to business.businessinteraction",
+      "description": "The outcome of one collective interaction, such as agreed terms or a shared decision, is handed over as input to a subsequent interaction carried out by the same or another collaboration.",
+      "evidence": "A BPMN collaboration or value-stream diagram draws a sequence or message flow from the first joint activity to the second, or a workflow definition passes the first interaction's output artifact as the second's input."
+    },
+    {
+      "id": "business.businessinteraction.flows-to.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessinteraction flows-to business.businessprocess",
+      "description": "The result of the collective interaction, such as a jointly approved deal, is passed on to a business process that one role then carries out on its own to complete the work.",
+      "evidence": "A process map shows a flow from the joint activity's end into the start of the downstream process, or a workflow engine configuration starts the process instance with the interaction's outcome as its input."
+    },
+    {
+      "id": "business.businessinteraction.serves.business.businessservice",
+      "previous_description": "Defines relationship: business.businessinteraction serves business.businessservice",
+      "description": "The collective interaction supplies behavior that the business service relies on in order to deliver its outcome to its consumers, such as joint underwriting review supporting a Policy Issuance service.",
+      "evidence": "A service catalog entry or service blueprint lists the joint activity as a supporting step behind the service, or an operating model document states that the service depends on the collaboration carrying out that interaction."
+    },
+    {
+      "id": "business.businessinteraction.triggers.business.businessevent",
+      "previous_description": "Defines relationship: business.businessinteraction triggers business.businessevent",
+      "description": "Completing the collective interaction causes the named business state change to occur, for example a joint signing session producing the 'contract signed' event.",
+      "evidence": "A BPMN diagram shows the joint activity followed by an end or intermediate throw event of that name, or an event catalog records the interaction as the source that raises the event."
+    }
+  ],
+  "notes": "serves to BusinessService looks semantically off: in ArchiMate an interaction typically realizes a business service, and the service then serves consumers. If a 'realizes' relationship exists or is intended, this 'serves' entry is either misdirected or redundant with it."
+}

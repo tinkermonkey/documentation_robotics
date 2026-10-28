@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess triggers Applicationevent",
-  "description": "Defines relationship: application.applicationprocess triggers application.applicationevent",
+  "description": "Running the workflow, or reaching a particular step, emits the application event as a signal that a state change has happened, for other behaviour to react to.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A step or completion handler in the workflow code publishes, emits or dispatches the named event type to an event bus, topic or in-process event dispatcher."
+  ]
 }

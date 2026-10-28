@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "data-store.retentionpolicy",
+  "previous_description": "A data lifecycle management policy that governs how long data is retained and what action is taken when the retention period expires. Applicable across paradigms: time-series downsampling, key-value TTL, search index lifecycle, relational partition pruning, and archival strategies.",
+  "definition": "A data lifecycle rule, declared in or enforced by the data store, that sets a maximum age for records in a collection or namespace and names the single action (delete, archive, downsample, move tier or compress) applied to records older than that age.",
+  "distinguish_from": [
+    {
+      "type": "data-store.validationrule",
+      "when": "the rule constrains or rejects writes, such as a TTL_CONSTRAINT requiring every key to carry an expiry, rather than removing or transforming data that has aged out"
+    },
+    {
+      "type": "data-store.storedlogic",
+      "when": "the symbol is the executable job, function or continuous query that performs the purge or rollup; the policy only declares age and action and triggers that logic"
+    },
+    {
+      "type": "data-store.view",
+      "when": "the downsampled result is a queryable derived collection such as a TimescaleDB continuous aggregate; the retention policy governs only when the source data expires"
+    },
+    {
+      "type": "data-store.eventhandler",
+      "when": "the code reacts to expiry or deletion events, such as a Redis keyspace EXPIRE notification listener, instead of defining when data expires"
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "A migration or setup script containing InfluxDB `CREATE RETENTION POLICY ... DURATION 30d`, TimescaleDB `add_retention_policy('metrics', INTERVAL '90 days')`, or pg_partman `retention` settings on a partitioned table",
+    "An Elasticsearch ILM or OpenSearch ISM policy document with phases such as `delete.min_age`, or IaC declaring DynamoDB `TimeToLiveSpecification` or S3 lifecycle rules for a storage bucket",
+    "A MongoDB index created with `expireAfterSeconds`, or a scheduled purge job (cron or worker) issuing `DELETE ... WHERE created_at < now() - interval` or dropping old partitions"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "enabled",
+      "description": "Whether the policy is currently active and enforced by the engine; set to false when the policy is defined but suspended (e.g., a disabled TimescaleDB job or paused ILM policy), otherwise true or omitted."
+    }
+  ],
+  "notes": "A single duration and action cannot express multi-phase lifecycles such as ILM hot/warm/cold/delete; consider a phases array. Overlaps with collection.ttlDefault and MongoDB TTL indexes, so the boundary needs a rule. Format mismatch: retentionDuration uses ISO 8601 but downsampleInterval uses '1h'. The 'aggregates' edges duplicate 'governs'. An age-basis field (insert time or timestamp field) is missing.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.258Z"
+}

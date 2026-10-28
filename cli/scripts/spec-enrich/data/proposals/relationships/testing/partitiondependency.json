@@ -1,0 +1,32 @@
+{
+  "source": "testing.partitiondependency",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.083Z",
+  "relationships": [
+    {
+      "id": "testing.partitiondependency.constrained-by.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.partitiondependency constrained-by testing.inputpartitionselection",
+      "description": "The cross-field dependency only takes effect within the scope of partition values that a coverage requirement's selection rule has chosen to exercise, so a selection that excludes the trigger or affected values limits the dependency.",
+      "evidence": "A test-design specification in which a coverage requirement's include/exclude list for a partition determines whether the dependency's trigger value or affected values appear at all, and the combination generator applies the dependency only to selected values."
+    },
+    {
+      "id": "testing.partitiondependency.references.testing.inputspacepartition",
+      "previous_description": "Defines relationship: testing.partitiondependency references testing.inputspacepartition",
+      "description": "The dependency names the input space partition that holds its trigger value and the partition of the other input field whose values are excluded, required, restricted or re-ranged.",
+      "evidence": "The dependency's definition in the test-design model or YAML cites the partition identifiers for its trigger field and its affected field."
+    },
+    {
+      "id": "testing.partitiondependency.triggers.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.partitiondependency triggers testing.coveragerequirement",
+      "description": "Once its trigger value is chosen, the dependency changes how a coverage requirement's combinatorial criterion is applied, so the requirement's generated combinations are recomputed without the invalid pairings.",
+      "evidence": "The combination generator's configuration or output for a coverage requirement shows that the dependency was applied, for example as pruned or added tuples logged against that requirement's identifier."
+    },
+    {
+      "id": "testing.partitiondependency.triggers.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.partitiondependency triggers testing.partitionvalue",
+      "description": "When its trigger condition is met, the dependency acts on the named partition values of the dependent input field, making each one excluded, required, restricted or re-ranged in the generated combinations.",
+      "evidence": "The dependency's definition lists the affected partition value identifiers together with an action such as exclude or require, and the generated test combinations omit or force those values whenever the trigger value is present."
+    }
+  ],
+  "notes": "constrained-by toward InputPartitionSelection looks inverted, since dependencies restrict which combinations a selection yields, so 'constrains' fits better. 'triggers' toward CoverageRequirement is semantically weak; 'constrains' is more accurate. 'triggers' toward PartitionValue conflates the trigger value, which actually triggers the dependency, with the affected values; a 'triggered-by' relationship to the trigger value is missing."
+}

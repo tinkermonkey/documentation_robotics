@@ -1,0 +1,50 @@
+{
+  "source": "security.auditconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.050Z",
+  "relationships": [
+    {
+      "id": "security.auditconfig.depends-on.security.retentionpolicy",
+      "previous_description": "Defines relationship: security.auditconfig depends-on security.retentionpolicy",
+      "description": "The audit logging configuration relies on a retention policy to decide how long the audit records it emits are kept, where they are stored, and how they are disposed of, because the configuration itself defines only what gets recorded.",
+      "evidence": "The audit logging configuration file or module references a named retention policy (e.g. a log bucket lifecycle rule or SIEM retention setting ID), and audit sink definitions point to storage governed by that policy."
+    },
+    {
+      "id": "security.auditconfig.fulfills.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: security.auditconfig fulfills security.accountabilityrequirement",
+      "description": "The audit configuration records the named action on the named resource together with the acting principal's identity, which provides the attributable proof that the accountability obligation demands.",
+      "evidence": "The audit configuration's event filter includes the requirement's action/resource pair and captures actor identity fields, and the requirement's traceability entry cites this configuration as its implementing control."
+    },
+    {
+      "id": "security.auditconfig.governs.security.retentionpolicy",
+      "previous_description": "Defines relationship: security.auditconfig governs security.retentionpolicy",
+      "description": "The audit configuration sets rules the retention policy for audit-log data must follow, such as which recorded categories fall under it and what sanitization must happen before records reach retained storage.",
+      "evidence": "A policy-as-code rule or design document derives the retention policy's data category or scope directly from the event categories declared in the audit configuration."
+    },
+    {
+      "id": "security.auditconfig.governs.security.secureresource",
+      "previous_description": "Defines relationship: security.auditconfig governs security.secureresource",
+      "description": "The audit configuration requires that security-relevant operations on the protected resource be logged at a set verbosity, with specified payload and header handling, which makes auditing a binding rule for that resource.",
+      "evidence": "The audit configuration declares the resource (e.g. an API path, table, or bucket) in its scope with mandatory logging and sanitization rules, and deployment checks reject the resource if auditing is disabled."
+    },
+    {
+      "id": "security.auditconfig.mitigates.security.threat",
+      "previous_description": "Defines relationship: security.auditconfig mitigates security.threat",
+      "description": "By producing an attributable trail of security events, the audit configuration reduces the impact of the modelled threat, such as repudiation, insider misuse, or undetected privilege escalation, through detection and forensic reconstruction.",
+      "evidence": "The threat model entry lists the audit configuration as a detective control, and the configuration captures the event types (e.g. failed logins, role changes) that indicate the threat technique."
+    },
+    {
+      "id": "security.auditconfig.monitors.security.secureresource",
+      "previous_description": "Defines relationship: security.auditconfig monitors security.secureresource",
+      "description": "The audit configuration watches access attempts and operations performed on the protected resource and writes the security-relevant ones to the audit trail.",
+      "evidence": "Audit log entries carry the resource's identifier, and the logging configuration (e.g. CloudTrail data event selectors, database audit settings, or API gateway access-log config) targets that resource."
+    },
+    {
+      "id": "security.auditconfig.triggers.security.evidence",
+      "previous_description": "Defines relationship: security.auditconfig triggers security.evidence",
+      "description": "When a configured security event occurs, the audit configuration causes an evidence artifact to be emitted, such as an audit log record, hash, or timestamped trail entry, so the event can later be verified and attributed.",
+      "evidence": "The audit configuration specifies the output format and sink for records, such as signed log entries or hash-chained trail files, and generated evidence artifacts reference the config's event category."
+    }
+  ],
+  "notes": "depends-on and governs to RetentionPolicy point in opposite directions, and governs contradicts the scope statement that retention belongs to RetentionPolicy; drop governs. governs and monitors to SecureResource overlap; monitors fits better. triggers to Evidence would read better as generates, since the config emits the artifact."
+}

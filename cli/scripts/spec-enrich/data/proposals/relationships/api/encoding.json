@@ -1,0 +1,38 @@
+{
+  "source": "api.encoding",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.076Z",
+  "relationships": [
+    {
+      "id": "api.encoding.associated-with.api.mediatype",
+      "previous_description": "Defines relationship: api.encoding associated-with api.mediatype",
+      "description": "The encoding rule is an entry in the media type's encoding map and governs how one property of that media type's multipart or form-urlencoded payload is serialized as a body part.",
+      "evidence": "In the OpenAPI document, the encoding entry appears under requestBody.content.<multipart/* or application/x-www-form-urlencoded>.encoding.<propertyName> of that specific media type."
+    },
+    {
+      "id": "api.encoding.associated-with.api.parameter",
+      "previous_description": "Defines relationship: api.encoding associated-with api.parameter",
+      "description": "The encoding rule applies the same style, explode and allowReserved serialization semantics to a form body property that the parameter applies to its query or path value, so the two share one serialization convention.",
+      "evidence": "The encoding's style/explode/allowReserved values match those of a parameter in the same operation that carries the same logical field, for example a form field mirrored as a query parameter."
+    },
+    {
+      "id": "api.encoding.composes.api.header",
+      "previous_description": "Defines relationship: api.encoding composes api.header",
+      "description": "The encoding owns an inline header declaration that describes an extra header, such as Content-Disposition or X-Rate-Limit, emitted on the multipart part for that property, and the declaration has no meaning outside that part.",
+      "evidence": "An inline Header Object with its own schema, without a $ref, is defined under encoding.<propertyName>.headers.<headerName> in the OpenAPI document."
+    },
+    {
+      "id": "api.encoding.references.api.header",
+      "previous_description": "Defines relationship: api.encoding references api.header",
+      "description": "The encoding reuses a shared, centrally registered header declaration to describe a header carried on the multipart part for that property.",
+      "evidence": "The encoding.<propertyName>.headers.<headerName> entry is a $ref pointing to #/components/headers/<HeaderName>."
+    },
+    {
+      "id": "api.encoding.references.api.schema",
+      "previous_description": "Defines relationship: api.encoding references api.schema",
+      "description": "The encoding names, through its map key, the top-level property of the media type's payload schema whose serialized form as a body part it controls.",
+      "evidence": "The encoding map key equals a property name listed under properties of the schema attached to the same media type, either inline or via $ref to components/schemas."
+    }
+  ],
+  "notes": "associated-with MediaType understates the link: MediaType composes its encoding entries, so this should be expressed as composition from MediaType. associated-with Parameter has no basis in OpenAPI 3.0, because encodings apply only to request-body media types, and it should probably be dropped. composes Header and references Header are not redundant: the first is an inline declaration, the second a $ref."
+}

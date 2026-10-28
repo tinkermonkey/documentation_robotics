@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "api.example",
+  "previous_description": "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.",
+  "definition": "A named sample instance of a value, given either inline or by external URL, attached through an `examples` map to a media type, parameter or header, or registered under components.examples for $ref reuse. It illustrates one concrete payload or value. It does not define the shape or constraints of that value.",
+  "distinguish_from": [
+    {
+      "type": "api.schema",
+      "when": "the element defines the type, properties and constraints a value must satisfy rather than one concrete sample of it."
+    },
+    {
+      "type": "api.mediatype",
+      "when": "the element is the MIME-keyed content entry itself; a single inline `example` value on that media type is an attribute of it, not a separate Example."
+    },
+    {
+      "type": "api.externaldocumentation",
+      "when": "the URL points to explanatory prose such as a guide or wiki rather than to a sample payload or value."
+    },
+    {
+      "type": "api.components",
+      "when": "the element is the reusable registry holding examples rather than one named example entry within it."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Example Object",
+  "code_evidence": [
+    "An entry in an `examples:` map under `content.application/json`, a parameter or a header in an openapi.yaml/json file, carrying `summary` and `value` or `externalValue` keys.",
+    "A `components.examples` entry referenced elsewhere via `$ref: '#/components/examples/<Name>'`.",
+    "Framework annotations that emit named examples, e.g. springdoc `@ExampleObject(name=..., value=...)`, FastAPI `Body(openapi_examples={...})`, NestJS `@ApiBody({ examples: {...} })` or swagger-php `@OA\\Examples`."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "summary",
+      "description": "Short plain-text label for the example, typically shown as its title in documentation tools; set it whenever several examples sit side by side so readers can tell them apart."
+    },
+    {
+      "name": "description",
+      "description": "Longer explanation of the scenario the example illustrates, written in CommonMark per OpenAPI 3.0; set it when the value's purpose or preconditions are not obvious from the summary."
+    }
+  ],
+  "notes": "`value` is typed string but OpenAPI allows any JSON value; it should be `any`. OpenAPI 3.0 RequestBody and ServerVariable have no examples field, so those relationships are non-standard. Example→operation association is also not in OpenAPI 3.0. No attribute captures the map-key name of the example.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.233Z"
+}

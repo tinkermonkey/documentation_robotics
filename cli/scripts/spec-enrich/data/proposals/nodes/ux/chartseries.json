@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.chartseries",
+  "previous_description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
+  "definition": "A per-series configuration within a chart component that maps one value field (and optionally one category field) of the chart's bound data to a plotted mark set, with its own legend label, visualization type, color and line style. One chart instance aggregates one or more such series.",
+  "distinguish_from": [
+    {
+      "type": "ux.tablecolumn",
+      "when": "the field binding configures a column of a tabular data grid (header, sort, filter, cell rendering) rather than a plotted series in a chart."
+    },
+    {
+      "type": "ux.dataconfig",
+      "when": "the element describes where the chart's data comes from (api, state, storage) and how it is selected, rather than how one field of that data is drawn."
+    },
+    {
+      "type": "ux.componentinstance",
+      "when": "the element is the chart component itself placed in a view with its props, rather than one series configured inside it."
+    },
+    {
+      "type": "ux.librarycomponent",
+      "when": "the element is the reusable chart component definition (e.g. a BarChart wrapper) with its prop schema, not a series configuration passed to it."
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "An entry in a chart library's series array, such as Chart.js `datasets: [{ label, data, borderColor }]`, ECharts `series: [{ type: 'bar', encode }]` or Highcharts `series: [...]`.",
+    "A series child element in JSX, such as Recharts `<Line dataKey=\"revenue\" stroke=\"#3B82F6\" />`, `<Bar dataKey=...>` or Victory `<VictoryLine x=\"month\" y=\"count\" />`, nested inside a chart container.",
+    "A typed config object or constant, such as `SeriesConfig` or `ChartSeries[]`, that pairs a value key and x/category key with a display name and color and is passed as a prop to a chart component."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "label",
+      "description": "Human-readable series name shown in the chart legend and tooltips (e.g. 'Revenue 2024'). Set it on every series; it is required even when only one series is plotted, so the legend and screen readers can identify the series."
+    }
+  ],
+  "notes": "The description mentions 'legend properties' and 'data source', but no legend attributes exist beyond label, and the data source comes from the dataconfig relationship. Line styles are SVG/canvas stroke styles; citing the CSS Border specification is misleading. 'pie', 'donut' and 'heatmap' are usually chart-level types, not series-level ones. Mixed-type charts justify a per-series type. There is no attribute for axis assignment or stacking.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

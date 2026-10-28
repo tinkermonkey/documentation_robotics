@@ -4,7 +4,7 @@
     "id": "api",
     "number": 7,
     "name": "API Layer",
-    "description": "Layer 7: API Layer",
+    "description": "Describes the HTTP API surface the application exposes or consumes: the API document and its servers, paths and operations, parameters, request bodies and responses, media types, headers, links and callbacks, reusable components and schemas, security schemes and webhooks (OpenAPI 3.0). Route handlers, controllers and generated API clients are evidence for elements here; the application behaviour behind an operation belongs to the application layer.",
     "inspired_by": {
       "standard": "OpenAPI 3.0",
       "version": "3.0",
@@ -1273,8 +1273,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.components.aggregates.callback": {
-      "id": "api.components.aggregates.callback",
+    "api.components.aggregates.api.callback": {
+      "id": "api.components.aggregates.api.callback",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.callback",
@@ -1295,8 +1295,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.components.aggregates.link": {
-      "id": "api.components.aggregates.link",
+    "api.components.aggregates.api.link": {
+      "id": "api.components.aggregates.api.link",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.link",
@@ -1306,8 +1306,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.components.aggregates.requestbody": {
-      "id": "api.components.aggregates.requestbody",
+    "api.components.aggregates.api.requestbody": {
+      "id": "api.components.aggregates.api.requestbody",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.requestbody",
@@ -1416,17 +1416,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.encoding.associated-with.api.mediatype": {
-      "id": "api.encoding.associated-with.api.mediatype",
-      "source_spec_node_id": "api.encoding",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.mediatype",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.encoding.associated-with.api.parameter": {
       "id": "api.encoding.associated-with.api.parameter",
       "source_spec_node_id": "api.encoding",
@@ -1434,17 +1423,6 @@
       "destination_spec_node_id": "api.parameter",
       "destination_layer": "api",
       "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.encoding.composes.api.header": {
-      "id": "api.encoding.composes.api.header",
-      "source_spec_node_id": "api.encoding",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.header",
-      "destination_layer": "api",
-      "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1500,17 +1478,6 @@
       "destination_spec_node_id": "api.info",
       "destination_layer": "api",
       "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.externaldocumentation.serves.api.openapidocument": {
-      "id": "api.externaldocumentation.serves.api.openapidocument",
-      "source_spec_node_id": "api.externaldocumentation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.openapidocument",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1599,17 +1566,6 @@
       "destination_spec_node_id": "api.license",
       "destination_layer": "api",
       "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.info.associated-with.api.openapidocument": {
-      "id": "api.info.associated-with.api.openapidocument",
-      "source_spec_node_id": "api.info",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.openapidocument",
-      "destination_layer": "api",
-      "predicate": "associated-with",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1779,17 +1735,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.oauthflow.associated-with.api.oauthflows": {
-      "id": "api.oauthflow.associated-with.api.oauthflows",
-      "source_spec_node_id": "api.oauthflow",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.oauthflows",
-      "destination_layer": "api",
-      "predicate": "associated-with",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.oauthflow.associated-with.api.ratelimit": {
       "id": "api.oauthflow.associated-with.api.ratelimit",
       "source_spec_node_id": "api.oauthflow",
@@ -1834,17 +1779,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.oauthflows.aggregates.api.oauthflow": {
-      "id": "api.oauthflows.aggregates.api.oauthflow",
-      "source_spec_node_id": "api.oauthflows",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.oauthflow",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.oauthflows.associated-with.api.components": {
       "id": "api.oauthflows.associated-with.api.components",
       "source_spec_node_id": "api.oauthflows",
@@ -1874,17 +1808,6 @@
       "destination_spec_node_id": "api.oauthflow",
       "destination_layer": "api",
       "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.oauthflows.serves.api.securityscheme": {
-      "id": "api.oauthflows.serves.api.securityscheme",
-      "source_spec_node_id": "api.oauthflows",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.securityscheme",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2076,17 +1999,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.operation.aggregates.api.tag": {
-      "id": "api.operation.aggregates.api.tag",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.tag",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.operation.composes.api.paths": {
       "id": "api.operation.composes.api.paths",
       "source_spec_node_id": "api.operation",
@@ -2109,17 +2021,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.operation.composes.api.schema": {
-      "id": "api.operation.composes.api.schema",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.schema",
-      "destination_layer": "api",
-      "predicate": "composes",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.operation.delivers.api.response": {
       "id": "api.operation.delivers.api.response",
       "source_spec_node_id": "api.operation",
@@ -2127,6 +2028,17 @@
       "destination_spec_node_id": "api.response",
       "destination_layer": "api",
       "predicate": "delivers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.exposes.product.feature": {
+      "id": "api.operation.exposes.product.feature",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "exposes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2362,17 +2274,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.operation.triggers.business.businessprocess": {
-      "id": "api.operation.triggers.business.businessprocess",
-      "source_spec_node_id": "api.operation",
-      "source_layer": "api",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.operation.triggers.api.callback": {
       "id": "api.operation.triggers.api.callback",
       "source_spec_node_id": "api.operation",
@@ -2422,17 +2323,6 @@
       "source_spec_node_id": "api.parameter",
       "source_layer": "api",
       "destination_spec_node_id": "api.example",
-      "destination_layer": "api",
-      "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.parameter.references.api.operation": {
-      "id": "api.parameter.references.api.operation",
-      "source_spec_node_id": "api.parameter",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
       "destination_layer": "api",
       "predicate": "references",
       "cardinality": "many-to-many",
@@ -2560,17 +2450,6 @@
       "strength": "medium",
       "required": false
     },
-    "api.paths.aggregates.api.pathitem": {
-      "id": "api.paths.aggregates.api.pathitem",
-      "source_spec_node_id": "api.paths",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.pathitem",
-      "destination_layer": "api",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "api.paths.aggregates.api.server": {
       "id": "api.paths.aggregates.api.server",
       "source_spec_node_id": "api.paths",
@@ -2670,13 +2549,13 @@
       "strength": "medium",
       "required": false
     },
-    "api.ratelimit.implements.security.countermeasure": {
-      "id": "api.ratelimit.implements.security.countermeasure",
+    "api.ratelimit.realizes.security.countermeasure": {
+      "id": "api.ratelimit.realizes.security.countermeasure",
       "source_spec_node_id": "api.ratelimit",
       "source_layer": "api",
       "destination_spec_node_id": "security.countermeasure",
       "destination_layer": "security",
-      "predicate": "implements",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2688,17 +2567,6 @@
       "destination_spec_node_id": "motivation.constraint",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.ratelimit.serves.api.operation": {
-      "id": "api.ratelimit.serves.api.operation",
-      "source_spec_node_id": "api.ratelimit",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -2809,17 +2677,6 @@
       "destination_spec_node_id": "api.schema",
       "destination_layer": "api",
       "predicate": "references",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "api.requestbody.serves.api.operation": {
-      "id": "api.requestbody.serves.api.operation",
-      "source_spec_node_id": "api.requestbody",
-      "source_layer": "api",
-      "destination_spec_node_id": "api.operation",
-      "destination_layer": "api",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3055,8 +2912,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.securityscheme.composes.oauthflows": {
-      "id": "api.securityscheme.composes.oauthflows",
+    "api.securityscheme.composes.api.oauthflows": {
+      "id": "api.securityscheme.composes.api.oauthflows",
       "source_spec_node_id": "api.securityscheme",
       "source_layer": "api",
       "destination_spec_node_id": "api.oauthflows",
@@ -3064,17 +2921,6 @@
       "predicate": "composes",
       "cardinality": "one-to-one",
       "strength": "high",
-      "required": false
-    },
-    "api.securityscheme.implements.security.securitypolicy": {
-      "id": "api.securityscheme.implements.security.securitypolicy",
-      "source_spec_node_id": "api.securityscheme",
-      "source_layer": "api",
-      "destination_spec_node_id": "security.securitypolicy",
-      "destination_layer": "security",
-      "predicate": "implements",
-      "cardinality": "many-to-many",
-      "strength": "medium",
       "required": false
     },
     "api.securityscheme.maps-to.security.actor": {
@@ -3095,6 +2941,17 @@
       "destination_spec_node_id": "data-store.collection",
       "destination_layer": "data-store",
       "predicate": "maps-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.realizes.security.securitypolicy": {
+      "id": "api.securityscheme.realizes.security.securitypolicy",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

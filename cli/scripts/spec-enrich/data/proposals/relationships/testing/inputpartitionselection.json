@@ -1,0 +1,20 @@
+{
+  "source": "testing.inputpartitionselection",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.053Z",
+  "relationships": [
+    {
+      "id": "testing.inputpartitionselection.aggregates.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.inputpartitionselection aggregates testing.contextvariation",
+      "description": "The partition-selection rule groups the test-design contexts (such as functional, load or security conditions) under which its chosen equivalence classes must be exercised, while those contexts remain independently defined and reusable by other coverage requirements.",
+      "evidence": "The coverage requirement's YAML or test-plan document lists, inside a specific input partition selection entry, the IDs of named context variations (e.g. 'load', 'smoke') that apply to that selection's included partition values."
+    },
+    {
+      "id": "testing.inputpartitionselection.aggregates.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.inputpartitionselection aggregates testing.partitionvalue",
+      "description": "The partition-selection rule gathers the specific equivalence or boundary classes of its named input-space partition that the coverage requirement demands be exercised, either by listing them explicitly or by taking all of the partition's values minus an exclude list, without owning those classes.",
+      "evidence": "The coverage requirement definition contains a selection block naming one InputSpacePartition with an include list (or an exclude list) of PartitionValue IDs that resolve to values declared under that same partition."
+    }
+  ],
+  "notes": "Aggregating ContextVariation looks misplaced: a selection is defined as naming one partition and its values, so contexts belong to the CoverageRequirement, not the selection. For PartitionValue, 'references' fits better than 'aggregates', since values are owned by the InputSpacePartition and an exclude-form selection only points at them."
+}

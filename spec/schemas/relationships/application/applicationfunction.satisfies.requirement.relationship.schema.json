@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction satisfies Requirement",
-  "description": "Defines relationship: application.applicationfunction satisfies motivation.requirement",
+  "description": "The application function's behavior meets the stated need, so the requirement is fulfilled by what the function does.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A requirements-traceability matrix, ticket link or code annotation ties the function's implementation to the requirement ID, and acceptance tests for the requirement exercise the function."
+  ]
 }

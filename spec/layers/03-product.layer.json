@@ -2,7 +2,7 @@
   "id": "product",
   "number": 3,
   "name": "Product Layer",
-  "description": "Layer 3: Product Layer",
+  "description": "Frames the system from a product-management point of view: the personas it serves, the capabilities it must possess, the features that deliver them, the user workflows that exercise them and the milestones that schedule delivery (ArchiMate 3.2 strategy elements combined with product-management practice). Product elements link motivation to the business and application layers without describing how anything is built.",
   "inspired_by": {
     "standard": "ArchiMate 3.2 Strategy Extension + Product Management Practice",
     "version": "3.2",
@@ -13,6 +13,7 @@
     "product.feature",
     "product.milestone",
     "product.persona",
-    "product.userworkflow"
+    "product.userworkflow",
+    "product.workflowstep"
   ]
 }

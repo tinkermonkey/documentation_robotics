@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "data-model.reference",
+  "previous_description": "A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment, enabling schema reuse without duplication. In JSON Schema Draft 7, all sibling keywords alongside $ref are ignored — use allOf to combine a $ref with additional constraints.",
+  "definition": "A schema node whose only effective content is a $ref keyword holding a URI or JSON Pointer fragment (e.g. '#/definitions/Address') that delegates validation of an instance to another schema, adding no constraints of its own. A usage site that points at a type declared elsewhere, not the declaration of that type.",
+  "distinguish_from": [
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the element is the named, reusable type being pointed at (the target under 'definitions'), rather than the pointer to it"
+    },
+    {
+      "type": "data-model.schemaproperty",
+      "when": "the element is a named property of an object schema that also carries its own type, description, default or other constraints, even if it uses $ref to obtain its type"
+    },
+    {
+      "type": "data-model.schemacomposition",
+      "when": "the $ref must be combined with further constraints or alternatives, which in Draft 7 requires wrapping it in allOf/anyOf/oneOf"
+    },
+    {
+      "type": "data-model.jsonschema",
+      "when": "the element is the whole root schema document with $schema and $id, not a pointer into or toward one"
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 (draft-handrews-json-schema-01) §8.3 Schema References With \"$ref\"",
+  "code_evidence": [
+    "A literal \"$ref\": \"#/definitions/...\" or \"$ref\": \"other.schema.json#/...\" entry in a JSON/YAML schema or an OpenAPI components file",
+    "A field in a DTO, Pydantic model or TypeScript interface typed by another separately declared model class (e.g. 'billing: Address'), which schema generators emit as a $ref",
+    "Schema-generator configuration or decorators that hoist nested types into shared definitions, such as Pydantic's ref_template, zod-to-json-schema $refStrategy, or @ApiProperty({ type: () => Address })"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The maps-to application.applicationservice relationship looks wrong, because a schema pointer does not realise a service. SchemaProperty also carries a $ref attribute, so the boundary is fuzzy. There is no attribute that distinguishes internal fragment references from external URI references. The 'references' target is limited to schemadefinition, but a $ref may also point at a jsonschema root or another external schema.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

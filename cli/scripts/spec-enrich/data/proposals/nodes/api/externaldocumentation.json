@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "api.externaldocumentation",
+  "previous_description": "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Can be attached to the root OpenAPI document, individual Tags, Operations, and Schema objects.",
+  "definition": "A metadata object holding a single URL (plus optional descriptive text) that points to documentation hosted outside the OpenAPI document. It attaches through an 'externalDocs' field to the root document, a Tag, an Operation or a Schema.",
+  "distinguish_from": [
+    {
+      "type": "api.contact",
+      "when": "the URL or email identifies a person or team to reach for support, not a documentation resource."
+    },
+    {
+      "type": "api.license",
+      "when": "the URL points to the legal license terms under which the API is offered."
+    },
+    {
+      "type": "api.info",
+      "when": "the text is the API's own inline title, description or termsOfService rather than a link to an outside documentation page."
+    },
+    {
+      "type": "api.example",
+      "when": "the URL (externalValue) points to a sample payload value rather than to human-readable documentation."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 External Documentation Object",
+  "code_evidence": [
+    "an 'externalDocs:' block containing a 'url:' key in an openapi.yaml/json file, at root level, under a tag, an operation or a schema",
+    "a springdoc/swagger-core @ExternalDocumentation(url=...) or @ExternalDocs annotation on a controller method, OpenAPIDefinition or model class",
+    "a NestJS DocumentBuilder().setExternalDoc(description, url) call, or a FastAPI openapi_tags entry with an 'externalDocs' dict"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Short CommonMark-capable text describing what the linked documentation covers; set it when the URL alone does not make the target's purpose clear."
+    },
+    {
+      "name": "url",
+      "description": "Absolute URL of the external documentation resource (e.g. https://docs.example.com/guide), always required."
+    }
+  ],
+  "notes": "Incoming 'references' from api.pathitem and api.paths, and the outgoing 'associated-with' to api.info, have no basis in OpenAPI 3.0: those objects have no externalDocs field. A 'serves' edge to api.tag is missing. Schema.externalDocs is typed object while OpenAPIDocument.externalDocs is typed string. Make both consistent reference types.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.207Z"
+}

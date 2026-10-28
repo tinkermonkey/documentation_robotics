@@ -1,0 +1,200 @@
+{
+  "source": "testing.testcoveragemodel",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.063Z",
+  "relationships": [
+    {
+      "id": "testing.testcoveragemodel.aggregates.contextvariation",
+      "previous_description": "Defines relationship: testing.testcoveragemodel aggregates testing.contextvariation",
+      "description": "The coverage model collects the named test-design conditions (functional, load, security and so on) under which its targets are to be exercised, while each condition can still be reused or exist independently of this particular plan.",
+      "evidence": "The coverage model file lists the context variation under its contextVariations section, or references a shared variation by id that is also defined outside the model."
+    },
+    {
+      "id": "testing.testcoveragemodel.aggregates.inputspacepartition",
+      "previous_description": "Defines relationship: testing.testcoveragemodel aggregates testing.inputspacepartition",
+      "description": "The coverage model gathers the equivalence-class partitions of the input fields used by its targets, and a partition such as one for a shared schema property may be reused across plans.",
+      "evidence": "The coverage model document lists the partition, keyed by its field path, in its inputPartitions collection or imports it from a shared partition catalog."
+    },
+    {
+      "id": "testing.testcoveragemodel.aggregates.testcasesketch",
+      "previous_description": "Defines relationship: testing.testcoveragemodel aggregates testing.testcasesketch",
+      "description": "The coverage model holds the test case designs drafted for its targets, each of which may later be linked to and outlive the plan through the concrete test function or scenario that implements it.",
+      "evidence": "The coverage model lists the sketch in its testCaseSketches section, and the sketch's source link points at a test file in the repository's test suite."
+    },
+    {
+      "id": "testing.testcoveragemodel.aggregates.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.testcoveragemodel aggregates testing.testcoveragetarget",
+      "description": "The coverage model groups the in-scope production artifacts, such as API operations, views and jobs, whose behaviour the plan must verify.",
+      "evidence": "The coverage model's targets list contains an entry naming the operation, view or job, for example by operationId or route path."
+    },
+    {
+      "id": "testing.testcoveragemodel.composes.testing.coverageexclusion",
+      "previous_description": "Defines relationship: testing.testcoveragemodel composes testing.coverageexclusion",
+      "description": "The coverage model owns the signed-off decisions that remove specific targets or requirements from its required coverage, and an exclusion has no meaning outside the plan whose scope it narrows.",
+      "evidence": "The coverage model contains an exclusions entry naming the excluded target or requirement id together with its rationale, risk acceptance flag and approver."
+    },
+    {
+      "id": "testing.testcoveragemodel.composes.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.testcoveragemodel composes testing.coveragerequirement",
+      "description": "The coverage model owns the coverage criteria, such as boundary-values or pairwise, that its targets' test cases must satisfy, and these criteria cease to exist when the plan is removed.",
+      "evidence": "The coverage model declares a coverage requirement nested under one of its targets, specifying the criterion name and the selected partitions, variations and outcome categories."
+    },
+    {
+      "id": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "previous_description": "Defines relationship: testing.testcoveragemodel composes testing.coveragesummary",
+      "description": "The coverage model owns the point-in-time summary reports that total its own targets, requirements and sketches, which describe nothing once the model is gone.",
+      "evidence": "A generated coverage summary record carries the model's id and version and reports totals computed from that model's targets and requirements."
+    },
+    {
+      "id": "testing.testcoveragemodel.composes.testing.inputpartitionselection",
+      "previous_description": "Defines relationship: testing.testcoveragemodel composes testing.inputpartitionselection",
+      "description": "The coverage model ultimately owns each partition-value selection rule declared within its coverage requirements, fixing which equivalence classes of a partition must be exercised.",
+      "evidence": "Within the coverage model file, a coverage requirement contains a selection naming one partition id with an include list or an all-except exclude list of its values."
+    },
+    {
+      "id": "testing.testcoveragemodel.composes.testing.outcomecategory",
+      "previous_description": "Defines relationship: testing.testcoveragemodel composes testing.outcomecategory",
+      "description": "The coverage model owns the result classes, such as success, validation error or timeout, that its targets can produce and that its requirements and sketches must exercise.",
+      "evidence": "The coverage model defines outcome categories under its targets, for example one per documented response status class of an API operation."
+    },
+    {
+      "id": "testing.testcoveragemodel.composes.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.testcoveragemodel composes testing.testcoveragetarget",
+      "description": "The coverage model owns its test-scope entries, so that each target exists only as part of this one application's plan and is removed with it.",
+      "evidence": "The coverage model file defines the target inline in its targets section with a model-scoped id, with no standalone definition elsewhere."
+    },
+    {
+      "id": "testing.testcoveragemodel.constrained-by.motivation.constraint",
+      "previous_description": "Defines relationship: testing.testcoveragemodel constrained-by motivation.constraint",
+      "description": "The test plan's scope, techniques or schedule are limited by a stated restriction, such as a mandated test tool, a release deadline or a ban on using production data.",
+      "evidence": "The coverage model metadata or an ADR cites the constraint, for example 'no production data in test environments', as the reason for limited scope or a chosen technique."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.application.applicationcomponent",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers application.applicationcomponent",
+      "description": "The test plan includes the application component, such as a service or module, within the scope of behaviour it requires to be verified.",
+      "evidence": "Coverage model targets name operations or classes belonging to the component, and the model's application reference matches the component's repository or package name."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.application.applicationservice",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers application.applicationservice",
+      "description": "The test plan brings the operations offered by the application service into its verification scope.",
+      "evidence": "The coverage model contains targets whose identifiers match the operations listed in the application service's interface or contract."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.business.businessfunction",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers business.businessfunction",
+      "description": "The test plan verifies the software behaviour that supports a business competency area, such as Claims Handling, across the targets it scopes.",
+      "evidence": "Coverage model targets or the model's documentation tag workflows with the business function name, traced in the test plan's scope section."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.business.businessprocess",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers business.businessprocess",
+      "description": "The test plan includes the business process's sequence of activities, from triggering event to end result, as a workflow whose behaviour must be verified.",
+      "evidence": "A coverage target of kind business workflow names the process, and test case sketches walk its steps from start event to end state."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.business.businessservice",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers business.businessservice",
+      "description": "The test plan scopes verification of the externally visible business service, confirming that consumers receive the promised outcome through the application.",
+      "evidence": "The coverage model's scope or targets reference the business service by name, and acceptance-level sketches check the service's stated outcomes."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.data-model.objectschema",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers data-model.objectschema",
+      "description": "The test plan brings the structured object schema's properties into scope, partitioning their values and exercising required and undeclared-key rules.",
+      "evidence": "Input space partitions in the coverage model reference property paths of the schema, such as a JSON pointer into its definition or fields of the matching DTO class."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.api.openapidocument",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers api.openapidocument",
+      "description": "The test plan takes the API surface described by the OpenAPI document as its scope, with the document's operations becoming its coverage targets.",
+      "evidence": "The coverage model's application reference points at the openapi.yaml file, and its targets' ids match operationIds declared in that document."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.navigation.route",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers navigation.route",
+      "description": "The test plan includes the client-side route, its path pattern and parameters, and the view it renders among the behaviours to be verified.",
+      "evidence": "A coverage target of kind UI view names the route path from the front-end router table, and partitions cover its route parameters."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.security.securitypolicy",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers security.securitypolicy",
+      "description": "The test plan scopes the access-control decisions produced by the security policy, requiring its rules to be exercised for permit and deny outcomes.",
+      "evidence": "Coverage requirements or sketches in the model reference the policy id and include authorization-error outcome categories for its protected targets."
+    },
+    {
+      "id": "testing.testcoveragemodel.covers.ux.uxapplication",
+      "previous_description": "Defines relationship: testing.testcoveragemodel covers ux.uxapplication",
+      "description": "The test plan takes the front-end application as its scope, verifying the views and experiences delivered through that client.",
+      "evidence": "The coverage model's application reference names the SPA or mobile app bundle, and its targets are views and routes of that app."
+    },
+    {
+      "id": "testing.testcoveragemodel.fulfills-requirements.motivation.requirement",
+      "previous_description": "Defines relationship: testing.testcoveragemodel fulfills-requirements motivation.requirement",
+      "description": "The test plan provides the verification that a stated requirement is met, translating its acceptance criteria into coverage targets and requirements.",
+      "evidence": "Coverage requirements or sketches in the model carry the requirement's id, such as REQ-123, in a traceability field mapping tests to acceptance criteria."
+    },
+    {
+      "id": "testing.testcoveragemodel.governed-by-principles.motivation.principle",
+      "previous_description": "Defines relationship: testing.testcoveragemodel governed-by-principles motivation.principle",
+      "description": "The design of the test plan follows a general normative principle, such as 'test at the boundaries' or 'shift-left security testing'.",
+      "evidence": "The coverage model's documentation or the team's test strategy cites the principle as the rationale for its chosen criteria and scope."
+    },
+    {
+      "id": "testing.testcoveragemodel.measures-outcome.motivation.outcome",
+      "previous_description": "Defines relationship: testing.testcoveragemodel measures-outcome motivation.outcome",
+      "description": "The coverage figures the test plan produces serve as the measure for checking whether a target outcome, such as 90% requirement coverage before release, has been reached.",
+      "evidence": "The outcome's stated metric is computed from the model's coverage summary, for example a dashboard or quality gate reading its totals."
+    },
+    {
+      "id": "testing.testcoveragemodel.references.data-store.database",
+      "previous_description": "Defines relationship: testing.testcoveragemodel references data-store.database",
+      "description": "The test plan points to the database whose stored collections supply input fields or migration targets, without depending on it to exist as a plan.",
+      "evidence": "Input space partitions or data-migration targets in the model name the database by its connection name or catalog identifier."
+    },
+    {
+      "id": "testing.testcoveragemodel.references.motivation.driver",
+      "previous_description": "Defines relationship: testing.testcoveragemodel references motivation.driver",
+      "description": "The test plan cites the condition, such as a new regulation or a history of production incidents, that prompted its scope or rigour.",
+      "evidence": "The coverage model's metadata or rationale field names the driver, for example a regulation identifier, as the reason for its existence or extent."
+    },
+    {
+      "id": "testing.testcoveragemodel.references.apm.instrumentationscope",
+      "previous_description": "Defines relationship: testing.testcoveragemodel references apm.instrumentationscope",
+      "description": "The test plan points to the telemetry-producer identity whose emitted spans or metrics are used to observe or attribute test execution against its targets.",
+      "evidence": "The coverage model or its test harness configuration names the instrumentation scope name and version used to filter telemetry from tests."
+    },
+    {
+      "id": "testing.testcoveragemodel.references.security.threat",
+      "previous_description": "Defines relationship: testing.testcoveragemodel references security.threat",
+      "description": "The test plan cites the threat-model entry, such as SQL injection, that its security context variations and sketches are designed to probe.",
+      "evidence": "Security-type context variations or sketches in the model carry the threat's id from the threat model in a traceability field."
+    },
+    {
+      "id": "testing.testcoveragemodel.references.apm.traceconfiguration",
+      "previous_description": "Defines relationship: testing.testcoveragemodel references apm.traceconfiguration",
+      "description": "The test plan points to the tracing configuration, including its sampler and exporters, relied on to capture traces during load or integration testing of its targets.",
+      "evidence": "A context variation's environment factors or the test harness refer to the service's tracer provider configuration, for example an OTEL sampler setting for test runs."
+    },
+    {
+      "id": "testing.testcoveragemodel.supports-goals.motivation.goal",
+      "previous_description": "Defines relationship: testing.testcoveragemodel supports-goals motivation.goal",
+      "description": "The test plan contributes to achieving a stakeholder goal, such as improved release quality or regulatory confidence, through the verification it requires.",
+      "evidence": "The coverage model's metadata or a test strategy document links the plan to the goal by name or id."
+    },
+    {
+      "id": "testing.testcoveragemodel.tests.technology.systemsoftware",
+      "previous_description": "Defines relationship: testing.testcoveragemodel tests technology.systemsoftware",
+      "description": "The test plan verifies the behaviour of a third-party platform product, such as a database engine version or message broker, as configured for the application.",
+      "evidence": "Context variations or targets in the model name the system software and version, for example a PostgreSQL 15 environment factor, and sketches check its configured behaviour."
+    },
+    {
+      "id": "testing.testcoveragemodel.tests.technology.technologyservice",
+      "previous_description": "Defines relationship: testing.testcoveragemodel tests technology.technologyservice",
+      "description": "The test plan verifies an infrastructure capability, such as messaging or identity, that the application relies on, for example through integration or failover tests.",
+      "evidence": "Integration-flow targets or context variations in the model name the technology service, and sketches exercise its interface such as a queue or token endpoint."
+    }
+  ],
+  "notes": "TestCoverageTarget is both aggregated and composed by the model, which is contradictory; composition fits the 'root container' definition, as it also does for ContextVariation, InputSpacePartition and TestCaseSketch. Composing InputPartitionSelection directly duplicates its composition via CoverageRequirement. 'tests' for technology elements versus 'covers' elsewhere is inconsistent. A test plan verifies rather than fulfills requirements, so 'validates' is apter."
+}

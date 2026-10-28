@@ -1,0 +1,29 @@
+{
+  "spec_node_id": "ux.componentreference",
+  "previous_description": "A declarative placeholder in a parent component's named slot, pointing to another component to be rendered there. Unlike ComponentInstance (a concrete rendered occurrence), ComponentReference is a composition declaration that says 'render this component in this slot of the parent', analogous to the HTML slot element.",
+  "definition": "A composition declaration attached to a parent component that names one of the parent's slots and identifies, by specNodeId, the library component or component instance to be rendered into that slot. It records the slot-filling relationship only; it carries no props of its own and is not itself a rendered occurrence.",
+  "distinguish_from": [
+    {
+      "type": "ux.componentinstance",
+      "when": "the element is a concrete, configured usage of a library component with its own props and render order inside a View or SubView, rather than a pointer filling a parent's named slot."
+    },
+    {
+      "type": "ux.librarycomponent",
+      "when": "the element defines a reusable component's props, slots and events schema, rather than declaring what fills one slot of a parent."
+    },
+    {
+      "type": "ux.subview",
+      "when": "the embedded content is a grouping of several components placed in a View's subViews list, not a single component placed into a named slot of a parent component."
+    }
+  ],
+  "standard_reference": "HTML 5.3 §4.12.4 The slot element (Web Components named slots)",
+  "code_evidence": [
+    "A child element carrying a slot=\"header\"/slot=\"actions\" attribute, a Vue <template #footer> / v-slot directive, or an Angular <ng-content select=...> projection target being filled.",
+    "A React prop typed as ReactNode or render-prop (e.g. header={<Toolbar/>}, actions={<Button variant=\"compact\"/>}) passed to a layout or container component.",
+    "A Storybook or design-system doc listing a component's slots together with the allowed child components for each slot (e.g. 'Card.footer accepts Button | Link')."
+  ],
+  "attribute_descriptions": [],
+  "notes": "The 'implements → librarycomponent' relationship is semantically odd for a slot pointer; 'references' fits better. Self-referential 'renders' is listed twice (outgoing and incoming). 'variant' must match variants on the referenced component, but LibraryComponent declares no variants attribute, so this constraint is unverifiable. Consider a 'props' override, or state explicitly that props are not permitted.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.233Z"
+}

@@ -1,0 +1,116 @@
+{
+  "source": "data-store.database",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.048Z",
+  "relationships": [
+    {
+      "id": "data-store.database.composes.data-store.collection",
+      "previous_description": "Defines relationship: data-store.database composes data-store.collection",
+      "description": "The database is the persistence boundary that owns the collection, so the table, bucket or document collection exists only inside that database and is dropped with it.",
+      "evidence": "A DDL migration, schema dump or infrastructure-as-code resource creates the collection under the database's connection, such as CREATE TABLE in that database or a Terraform collection resource referencing the database."
+    },
+    {
+      "id": "data-store.database.composes.data-store.field",
+      "previous_description": "Defines relationship: data-store.database composes data-store.field",
+      "description": "The database contains the field as part of its physical schema, so the column, document path or property exists only within the database's stored structures.",
+      "evidence": "The database's schema dump, information_schema.columns query or ORM migration lists the field on a collection held in that database."
+    },
+    {
+      "id": "data-store.database.composes.data-store.index",
+      "previous_description": "Defines relationship: data-store.database composes data-store.index",
+      "description": "The database engine holds and maintains the index as one of its own objects, so the index cannot outlive the database that stores it.",
+      "evidence": "A CREATE INDEX statement or index definition in the migration history or schema catalog of that database declares the index."
+    },
+    {
+      "id": "data-store.database.composes.data-store.namespace",
+      "previous_description": "Defines relationship: data-store.database composes data-store.namespace",
+      "description": "The database contains the namespace as a logical scope for its object names, such as an SQL schema or Cassandra keyspace, and the namespace has no existence outside that database.",
+      "evidence": "A CREATE SCHEMA or keyspace definition run against the database's connection, or the namespace listed in the database's system catalog, shows the containment."
+    },
+    {
+      "id": "data-store.database.composes.data-store.validationrule",
+      "previous_description": "Defines relationship: data-store.database composes data-store.validationrule",
+      "description": "The database declares and enforces the validation rule as part of its own schema, so the check, unique, foreign-key or JSON-schema constraint exists only within that database.",
+      "evidence": "The database's DDL or collection configuration declares the constraint, such as an ALTER TABLE ADD CONSTRAINT or a MongoDB $jsonSchema validator, and it appears in the engine's constraint catalog."
+    },
+    {
+      "id": "data-store.database.composes.data-store.view",
+      "previous_description": "Defines relationship: data-store.database composes data-store.view",
+      "description": "The database holds the view as a registered derived collection whose stored query runs against data in that same database.",
+      "evidence": "A CREATE VIEW or CREATE MATERIALIZED VIEW statement in the database's migrations or schema catalog defines the view."
+    },
+    {
+      "id": "data-store.database.depends-on.technology.node",
+      "previous_description": "Defines relationship: data-store.database depends-on technology.node",
+      "description": "The database runs on the node as its host, so the database becomes unavailable if that virtual machine, container or cluster goes down.",
+      "evidence": "Deployment manifests or Terraform place the database on the node, for example a StatefulSet scheduled to the cluster or an RDS instance bound to a specific host or instance class."
+    },
+    {
+      "id": "data-store.database.depends-on.technology.systemsoftware",
+      "previous_description": "Defines relationship: data-store.database depends-on technology.systemsoftware",
+      "description": "The database is hosted by the database engine product, such as PostgreSQL or MongoDB, and can be created, stored and queried only through that engine.",
+      "evidence": "The infrastructure configuration or container image names the engine and version that hosts the database, such as engine = \"postgres\" with engine_version in Terraform or a postgres:16 image in docker-compose."
+    },
+    {
+      "id": "data-store.database.federates.data-store.database",
+      "previous_description": "Defines relationship: data-store.database federates data-store.database",
+      "description": "The source database exposes the destination database's data through a federated query layer, so applications can query remote collections as if they were local without copying them.",
+      "evidence": "A foreign data wrapper, linked server, database link or federated catalog configuration in the source database points at the destination database's connection endpoint."
+    },
+    {
+      "id": "data-store.database.realizes.business.businessservice",
+      "previous_description": "Defines relationship: data-store.database realizes business.businessservice",
+      "description": "The database is the persistent store that makes the business service's information concrete, such as the records that constitute a customer's claims or orders.",
+      "evidence": "Architecture documentation or a service catalog entry names the database as the system of record that backs the business service's information."
+    },
+    {
+      "id": "data-store.database.replicates.data-store.database",
+      "previous_description": "Defines relationship: data-store.database replicates data-store.database",
+      "description": "The source database copies its data continuously to the destination database, which acts as a read replica, standby or geographically distributed copy.",
+      "evidence": "The replication configuration, such as a read-replica resource with replicate_source_db, a PostgreSQL publication and subscription, or a MongoDB replica-set member definition, links the two databases."
+    },
+    {
+      "id": "data-store.database.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: data-store.database satisfies motivation.constraint",
+      "description": "The database's choice of engine, hosting region, edition or configuration stays within a stated restriction, such as a mandated vendor or a data-residency jurisdiction.",
+      "evidence": "An architecture decision record or compliance record cites the constraint, and the database's infrastructure configuration shows the matching engine, region or setting."
+    },
+    {
+      "id": "data-store.database.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: data-store.database satisfies motivation.requirement",
+      "description": "The database delivers a verifiable property that a requirement asks for, such as durability, retention, encryption at rest or a recovery-point objective.",
+      "evidence": "The database's configuration provides the required property, such as backup retention, multi-AZ or storage encryption flags, and is traced to the requirement ID in documentation or tests."
+    },
+    {
+      "id": "data-store.database.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: data-store.database satisfies security.securitypolicy",
+      "description": "The database's access controls and settings conform to the security policy that governs data access, so the policy's access decisions hold for this database.",
+      "evidence": "The database's grants, row-level security policies, role definitions or encryption settings implement the policy's rules, and a security review or policy-as-code check against the database passes."
+    },
+    {
+      "id": "data-store.database.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: data-store.database serves application.applicationcomponent",
+      "description": "The database provides persistent storage that the application component reads from and writes to through its own connection.",
+      "evidence": "The component's configuration holds the database's connection string or a datasource definition, and its repositories or ORM models query collections in that database."
+    },
+    {
+      "id": "data-store.database.serves.application.applicationservice",
+      "previous_description": "Defines relationship: data-store.database serves application.applicationservice",
+      "description": "The database supplies the stored data that the application service's operations retrieve and persist when they handle consumer requests.",
+      "evidence": "The code that implements the service's operations issues queries or writes against the database, as data-access calls traced from the service's endpoints show."
+    },
+    {
+      "id": "data-store.database.serves.business.businessprocess",
+      "previous_description": "Defines relationship: data-store.database serves business.businessprocess",
+      "description": "The database keeps the business records that the business process creates, consults and updates as it moves from start to result.",
+      "evidence": "Process documentation or a data-flow diagram maps the process's steps to records stored in the database, and the applications that support those steps write to it."
+    },
+    {
+      "id": "data-store.database.uses.technology.technologyservice",
+      "previous_description": "Defines relationship: data-store.database uses technology.technologyservice",
+      "description": "The database relies on an infrastructure capability, such as block storage, backup, key management or monitoring, to persist, protect or observe its data.",
+      "evidence": "The database's infrastructure definition references the service, such as a KMS key ARN for encryption, an attached storage volume class, or a backup vault or monitoring integration."
+    }
+  ],
+  "notes": "Composing field, index and validationrule directly from database is redundant with database→namespace→collection composition. Realizes businessservice is doubtful, since a store serves rather than realizes business behavior. Satisfies securitypolicy reads better as governed-by, because the database is a policy target. Depends-on systemsoftware and uses technologyservice overlap, and federates vs replicates need clear distinction."
+}

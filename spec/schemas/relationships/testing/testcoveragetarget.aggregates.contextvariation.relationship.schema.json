@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.testcoveragetarget.aggregates.contextvariation"
+      "const": "testing.testcoveragetarget.aggregates.testing.contextvariation"
     },
     "source_spec_node_id": {
       "const": "testing.testcoveragetarget"

@@ -1,0 +1,80 @@
+{
+  "source": "security.securitypolicy",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.070Z",
+  "relationships": [
+    {
+      "id": "security.securitypolicy.aggregates.security.policyrule",
+      "previous_description": "Defines relationship: security.securitypolicy aggregates security.policyrule",
+      "description": "The security policy groups an ordered set of policy rules whose individual permit or deny effects it combines, by priority and order, into a single access-control decision.",
+      "evidence": "The policy definition file (e.g. an XACML Policy element or OPA/Cedar policy bundle) lists the rule identifiers in its rules array, along with their evaluation order."
+    },
+    {
+      "id": "security.securitypolicy.constrains.business.businessprocess",
+      "previous_description": "Defines relationship: security.securitypolicy constrains business.businessprocess",
+      "description": "The security policy restricts which actors may carry out the activities of the business process, and on which data, so that the process can only proceed in ways the policy permits.",
+      "evidence": "The policy's target or scope references the workflow or process identifier, and the process engine or BPMN tasks invoke the policy decision point before steps execute."
+    },
+    {
+      "id": "security.securitypolicy.constrains.security.permission",
+      "previous_description": "Defines relationship: security.securitypolicy constrains security.permission",
+      "description": "The security policy limits when a granted permission actually takes effect, adding runtime conditions or overriding denials on top of the bare action-resource grant.",
+      "evidence": "The policy rules match on the permission's action and resource names, and the enforcement point evaluates the policy in addition to checking the role's permission assignment."
+    },
+    {
+      "id": "security.securitypolicy.enforces-requirement.security.accesscondition",
+      "previous_description": "Defines relationship: security.securitypolicy enforces-requirement security.accesscondition",
+      "description": "The security policy makes the access condition binding at decision time, so a request that fails the attribute comparison is denied with the condition's message.",
+      "evidence": "The policy's rule bodies embed or reference the condition expression (attribute, operator, value), and decision logs show denials citing that condition's message."
+    },
+    {
+      "id": "security.securitypolicy.fulfills.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: security.securitypolicy fulfills security.accountabilityrequirement",
+      "description": "The security policy meets the accountability obligation by making the named action on the named resource attributable to the acting principal, typically through audit or signing obligations attached to its rules.",
+      "evidence": "The policy's rules for that action and resource declare an audit-log or digital-signature obligation, and audit records show the actor identity captured for each such decision."
+    },
+    {
+      "id": "security.securitypolicy.governs.business.businessservice",
+      "previous_description": "Defines relationship: security.securitypolicy governs business.businessservice",
+      "description": "The security policy sets the access rules that determine which customers or stakeholders may consume the business service and under what conditions.",
+      "evidence": "The policy's target names the endpoints or applications that realize the business service, and the service's documentation or service catalogue entry cites the policy as its access-control policy."
+    },
+    {
+      "id": "security.securitypolicy.governs.security.passwordpolicy",
+      "previous_description": "Defines relationship: security.securitypolicy governs security.passwordpolicy",
+      "description": "The security policy is the higher-level rule set under which the password policy's length, complexity, expiry and lockout settings are defined and must remain compliant.",
+      "evidence": "The password policy configuration (e.g. identity provider settings) references the parent security policy identifier, or the security policy document mandates the specific password parameters."
+    },
+    {
+      "id": "security.securitypolicy.governs.security.secureresource",
+      "previous_description": "Defines relationship: security.securitypolicy governs security.secureresource",
+      "description": "The security policy is the decision authority for access to the secure resource, determining whether each requested operation on it is permitted or denied.",
+      "evidence": "The policy's target clause matches the resource's identifier or type, and the resource's enforcement point (gateway, middleware, database grant) queries that policy."
+    },
+    {
+      "id": "security.securitypolicy.mandates.security.countermeasure",
+      "previous_description": "Defines relationship: security.securitypolicy mandates security.countermeasure",
+      "description": "The security policy obliges the organisation to put the countermeasure in place, so that the control is a required part of compliance with the policy.",
+      "evidence": "The policy document or its obligation clauses explicitly name the control (e.g. MFA, encryption at rest), and compliance checklists trace the countermeasure's implementation status back to the policy."
+    },
+    {
+      "id": "security.securitypolicy.realizes.motivation.principle",
+      "previous_description": "Defines relationship: security.securitypolicy realizes motivation.principle",
+      "description": "The security policy is a concrete, enforceable expression of the architectural principle, turning its general guidance (e.g. least privilege, deny by default) into specific access rules.",
+      "evidence": "The policy's documentation or metadata cites the principle, and its rules exhibit the principle's stance, such as a default-deny combining algorithm for a deny-by-default principle."
+    },
+    {
+      "id": "security.securitypolicy.requires.security.countermeasure",
+      "previous_description": "Defines relationship: security.securitypolicy requires security.countermeasure",
+      "description": "The security policy depends on the countermeasure being operational for its decisions to be effective, for example relying on authentication or transport encryption to make subject attributes trustworthy.",
+      "evidence": "The policy evaluates attributes only produced by the control (e.g. an MFA claim or mTLS client identity), and deployment configuration lists the control as a prerequisite of the policy."
+    },
+    {
+      "id": "security.securitypolicy.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: security.securitypolicy satisfies motivation.requirement",
+      "description": "The security policy is the mechanism that meets the stated access-control requirement, so the requirement's acceptance criteria are verified by the policy's decisions.",
+      "evidence": "A traceability matrix or requirement ticket links the requirement ID to the policy, and policy tests assert the permit or deny outcomes specified in the acceptance criteria."
+    }
+  ],
+  "notes": "mandates and requires to Countermeasure largely overlap; keep one or sharpen the distinction. aggregates PolicyRule arguably should be composes, since rules don't exist outside their policy. enforces-requirement to AccessCondition is odd: conditions are evaluated within rules, not requirements; consider composed-of via PolicyRule or evaluates. realizes Principle and satisfies Requirement may overlap."
+}

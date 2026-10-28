@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent Provides Applicationinterface",
-  "description": "Defines relationship: application.applicationcomponent provides application.applicationinterface",
+  "description": "The component offers the access point to users or other components, making its services reachable through that controller, endpoint or channel.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The component's codebase declares and exposes the interface, for example by mounting the route, publishing the gRPC service definition or subscribing the listener at startup."
+  ]
 }

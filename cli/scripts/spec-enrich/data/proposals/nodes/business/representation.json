@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "business.representation",
+  "previous_description": "A passive structure element representing the perceptible form in which a BusinessObject is manifested (e.g., a printed report, a digital document, or an on-screen form). Multiple representations can carry the same BusinessObject.",
+  "definition": "A passive structure element that is a concrete, perceptible form (document layout, file format, printed or on-screen rendering) in which the information of a BusinessObject or Contract is conveyed to people. It captures how the information looks or is encoded, not what the information means.",
+  "distinguish_from": [
+    {
+      "type": "business.businessobject",
+      "when": "the element is the business information concept itself (e.g., Invoice, Order) independent of any rendering or file format."
+    },
+    {
+      "type": "business.contract",
+      "when": "the element is the agreement with its obligations and terms, rather than the signed PDF or printed form carrying it."
+    },
+    {
+      "type": "business.businessinterface",
+      "when": "the element is an access point (portal, counter, call centre) through which a service is offered, rather than the form of information delivered through it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.4.2 Representation",
+  "code_evidence": [
+    "a document or report template (e.g., Jasper/Thymeleaf/Handlebars/LaTeX template, .docx template) that renders a business entity such as an invoice or statement",
+    "a PDF/CSV/XML export generator, such as a class named InvoicePdfRenderer or StatementExporter, that produces a file with a fixed layout for end users",
+    "a printable or on-screen form definition (HTML form template, print stylesheet, email template) that presents a business document to customers or staff"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the representation, such as its audience, layout, channel (printed, emailed, on-screen), and which business object it carries. Set it whenever the name alone does not identify the rendering."
+    }
+  ],
+  "notes": "The format enum mixes media types with serialization formats and has no values for paper/print, spreadsheet (xlsx/csv), image, or email. On-screen forms fit poorly under 'html'. Consider aligning the values with MIME types or adding 'paper' and 'other'. Without guidance, application-layer DataObject serializations such as JSON API payloads risk being modelled as Representation.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.233Z"
+}

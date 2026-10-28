@@ -1,0 +1,32 @@
+{
+  "source": "technology.device",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.084Z",
+  "relationships": [
+    {
+      "id": "technology.device.composes.technology.node",
+      "previous_description": "Defines relationship: technology.device composes technology.node",
+      "description": "The physical hardware unit is an integral part of the hosting node, supplying the processing and storage capacity that makes up the deployment target and that would have no hosting role outside it.",
+      "evidence": "An infrastructure inventory or Terraform/bare-metal provisioning file lists the server chassis or board by serial or asset ID as a member of the named host or cluster node, for example a Kubernetes node object or MAAS machine bound to that hardware."
+    },
+    {
+      "id": "technology.device.composes.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.device composes technology.systemsoftware",
+      "description": "The hardware is a built-in constituent of an appliance-style platform product, such as a router OS bundle or storage array controller, where the system software is shipped and operated only as a unit with that specific hardware.",
+      "evidence": "Vendor documentation or a hardware bill of materials identifies the device model as a required, non-replaceable component of the system software product, for example a firmware or appliance image tied to that hardware SKU."
+    },
+    {
+      "id": "technology.device.satisfies.security.securitypolicy",
+      "previous_description": "Defines relationship: technology.device satisfies security.securitypolicy",
+      "description": "The hardware unit is configured so that it meets the access-control requirements laid down by the security policy for the resources it hosts or exposes, such as management-port access or physical console restrictions.",
+      "evidence": "A device hardening baseline, compliance scan report or configuration-management run (e.g. CIS benchmark or Ansible audit) records the device as passing the controls mapped to that named security policy."
+    },
+    {
+      "id": "technology.device.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: technology.device serves application.applicationcomponent",
+      "description": "The physical hardware directly provides the processing, storage or peripheral capability that the application component relies on to run, such as a phone or embedded board hosting a mobile or firmware-level module.",
+      "evidence": "A deployment manifest, device provisioning script or build target configuration names the specific hardware model or host as the runtime target for the component's built artifact, for example a device profile in a mobile or IoT deployment pipeline."
+    }
+  ],
+  "notes": "Device composes SystemSoftware is questionable: software is installed on hardware, not a structural part of it; ArchiMate would use assignment or a 'hosts' notion. Device satisfies SecurityPolicy is odd since an XACML-style access-control policy is evaluated, not satisfied by hardware; 'constrained-by' or 'governed-by' fits better. Device serves ApplicationComponent bypasses Node."
+}

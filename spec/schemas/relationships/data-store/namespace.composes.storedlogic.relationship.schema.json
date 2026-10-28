@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.namespace.composes.storedlogic"
+      "const": "data-store.namespace.composes.data-store.storedlogic"
     },
     "source_spec_node_id": {
       "const": "data-store.namespace"

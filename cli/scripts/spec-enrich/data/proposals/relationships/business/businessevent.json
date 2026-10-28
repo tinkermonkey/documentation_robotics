@@ -1,0 +1,26 @@
+{
+  "source": "business.businessevent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.104Z",
+  "relationships": [
+    {
+      "id": "business.businessevent.triggers.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessevent triggers business.businessfunction",
+      "description": "The occurrence of the business event, such as month-end being reached, prompts the business function to carry out a portion of its ongoing competency-based behavior, for example Accounting starting its period-close work.",
+      "evidence": "A business architecture model or operating procedure states that the named event initiates work within the function, for instance a runbook saying 'on month-end, Accounting performs reconciliation', or an event subscription owned by the function's team."
+    },
+    {
+      "id": "business.businessevent.triggers.business.businessinteraction",
+      "previous_description": "Defines relationship: business.businessevent triggers business.businessinteraction",
+      "description": "The business event is the occurrence that sets off the joint behavior the collaborating roles perform together, as when receipt of a counter-offer opens a negotiation between buyer and seller.",
+      "evidence": "A collaboration diagram, BPMN choreography or partner agreement names the event as the start condition of the joint activity, or an integration message triggers a shared workflow that requires several parties to take part."
+    },
+    {
+      "id": "business.businessevent.triggers.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessevent triggers business.businessprocess",
+      "description": "The business event is the defined start of the process, so each occurrence (e.g., 'order placed') launches a new instance of the ordered sequence of activities, such as order fulfilment.",
+      "evidence": "A BPMN start event bearing the event's name begins the process model, or a workflow engine or message listener starts a process instance whenever the corresponding domain event is published."
+    }
+  ],
+  "notes": "Triggering a BusinessFunction is semantically weak, because functions have no defined start or sequence. ArchiMate allows it, but it should be read as initiating behavior within the function rather than starting the function itself. Consider modeling the triggered behavior as a process that the function contains."
+}

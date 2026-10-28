@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent realizes Businessservice",
-  "description": "Defines relationship: application.applicationcomponent realizes business.businessservice",
+  "description": "The component is the automated system that concretely delivers the business service to its customers or stakeholders.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Architecture documentation or a service catalog maps the business service to the component, and the component's operations carry out the service's core transactions."
+  ]
 }

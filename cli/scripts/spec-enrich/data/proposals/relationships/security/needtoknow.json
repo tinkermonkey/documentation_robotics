@@ -1,0 +1,38 @@
+{
+  "source": "security.needtoknow",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.057Z",
+  "relationships": [
+    {
+      "id": "security.needtoknow.associated-with.security.role",
+      "previous_description": "Defines relationship: security.needtoknow associated-with security.role",
+      "description": "The need-to-know constraint is linked to the roles whose holders are candidates for purpose-gated access, so that role membership alone is insufficient and the stated purpose must also match before the resource opens to them.",
+      "evidence": "The security model's need-to-know entry lists the applicable role identifiers, or the role definition references the need-to-know constraint as an additional purpose check for its members."
+    },
+    {
+      "id": "security.needtoknow.constrained-by.security.dataclassification",
+      "previous_description": "Defines relationship: security.needtoknow constrained-by security.dataclassification",
+      "description": "The classification tier of the guarded data limits how the need-to-know constraint may be configured, for example by forcing a mandatory justification or a narrower purpose list for higher sensitivity labels.",
+      "evidence": "The classification's handling rules state need-to-know or justification requirements for its level, and the need-to-know definition cites that classification level as the basis for its settings."
+    },
+    {
+      "id": "security.needtoknow.constrains.security.permission",
+      "previous_description": "Defines relationship: security.needtoknow constrains security.permission",
+      "description": "The need-to-know constraint narrows an otherwise granted permission so that the action on the named resource is allowed only when the actor's declared purpose matches the stated objective.",
+      "evidence": "The permission definition or its enforcement-point check references the need-to-know constraint, and the authorization code verifies the declared purpose or justification before honouring the permission."
+    },
+    {
+      "id": "security.needtoknow.implements.security.policyrule",
+      "previous_description": "Defines relationship: security.needtoknow implements security.policyrule",
+      "description": "The need-to-know constraint is made executable as a policy rule whose condition tests the request's declared purpose, and any required justification, and yields a permit or deny decision.",
+      "evidence": "A policy file (e.g. Rego, Cedar or XACML) contains a rule whose condition compares the request's purpose attribute against the need-to-know objective, and that rule is traceably named after or annotated with the constraint."
+    },
+    {
+      "id": "security.needtoknow.protects.security.informationentity",
+      "previous_description": "Defines relationship: security.needtoknow protects security.informationentity",
+      "description": "The need-to-know constraint shields a category of information, such as medical records or customer PII, by limiting access to actors with a matching business purpose.",
+      "evidence": "The need-to-know definition names the information entity as its guarded resource, and access logs or the access-request workflow capture purpose justifications for reads of that information category."
+    }
+  ],
+  "notes": "constrains→Permission and implements→PolicyRule overlap: if the need-to-know constraint is realized as a policy rule, the rule (not the constraint) is what restricts the permission. associated-with→Role is vague; a more specific predicate (e.g. constrains) would better express that it narrows role-based access."
+}

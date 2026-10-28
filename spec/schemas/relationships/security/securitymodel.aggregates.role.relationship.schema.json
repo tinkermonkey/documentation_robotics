@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "security.securitymodel.aggregates.role"
+      "const": "security.securitymodel.aggregates.security.role"
     },
     "source_spec_node_id": {
       "const": "security.securitymodel"

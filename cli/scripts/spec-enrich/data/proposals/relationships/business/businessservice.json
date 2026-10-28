@@ -1,0 +1,50 @@
+{
+  "source": "business.businessservice",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.044Z",
+  "relationships": [
+    {
+      "id": "business.businessservice.accesses.business.contract",
+      "previous_description": "Defines relationship: business.businessservice accesses business.contract",
+      "description": "The business service reads or updates the contract that sets the terms, service levels and obligations under which it is offered to its consumers, for example checking entitlement or recording usage against the agreement.",
+      "evidence": "The service catalog entry or service design document names the contract or SLA it operates under, and the realizing process steps consult or amend that contract record."
+    },
+    {
+      "id": "business.businessservice.delivers-value.motivation.value",
+      "previous_description": "Defines relationship: business.businessservice delivers-value motivation.value",
+      "description": "Offering the business service gives its stakeholders the stated benefit or utility, so the value statement describes why consumers want the service.",
+      "evidence": "The service definition or business case states the stakeholder benefit, such as faster claim payout, and cites that value element as the justification for offering the service."
+    },
+    {
+      "id": "business.businessservice.delivers.business.businessobject",
+      "previous_description": "Defines relationship: business.businessservice delivers business.businessobject",
+      "description": "The business service hands the business object to its consumer as the tangible result of the service, such as a settled claim or a delivered order confirmation.",
+      "evidence": "The service description lists the business object as its output or deliverable, and the realizing process's end state produces that object for the consumer."
+    },
+    {
+      "id": "business.businessservice.realizes.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessservice realizes business.businessprocess",
+      "description": "The business service is described as the concrete external manifestation of the business process, linking the externally offered behavior to the internal sequence of activities behind it.",
+      "evidence": "A process model or service blueprint maps the service to the process that carries it out, for example a BPMN diagram titled for the service whose end event produces the service outcome."
+    },
+    {
+      "id": "business.businessservice.realizes.motivation.goal",
+      "previous_description": "Defines relationship: business.businessservice realizes motivation.goal",
+      "description": "Putting the business service into operation achieves the stakeholder goal, making the service one of the concrete means by which the intended end state is reached.",
+      "evidence": "A strategy or capability-mapping document traces the goal to the service as its delivery mechanism, and the service charter cites the goal as its objective."
+    },
+    {
+      "id": "business.businessservice.satisfies.motivation.requirement",
+      "previous_description": "Defines relationship: business.businessservice satisfies motivation.requirement",
+      "description": "The business service, as offered, meets the verifiable need stated in the requirement, so the requirement's acceptance criteria are met by the service's behavior or terms.",
+      "evidence": "A requirements traceability matrix or service specification links the requirement ID to the service, and acceptance or service-level reviews confirm the criteria are met."
+    },
+    {
+      "id": "business.businessservice.serves.business.businessactor",
+      "previous_description": "Defines relationship: business.businessservice serves business.businessactor",
+      "description": "The business service is offered to the business actor, such as a customer, partner or internal department, who consumes it and receives its outcome.",
+      "evidence": "The service catalog or customer-facing documentation names the actor as a consumer of the service, and contracts, channel records or usage logs show that actor invoking it."
+    }
+  ],
+  "notes": "realizes BusinessProcess is inverted: in ArchiMate, processes realize services. realizes Goal and satisfies Requirement overlap with traceability predicates such as supports-goals and fulfills-requirements. ArchiMate typically links core elements to goals via influence or requirement realization. delivers-value duplicates the motivation-layer delivers predicate."
+}

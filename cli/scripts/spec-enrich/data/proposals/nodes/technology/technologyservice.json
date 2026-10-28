@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologyservice",
+  "previous_description": "An externally visible unit of technology functionality exposed to other technology elements, per ArchiMate 3.2 TechnologyService. Encapsulates a discrete infrastructure capability — such as compute, storage, messaging, caching, identity, or monitoring — that is made available through a defined interface. Unlike application services, a TechnologyService operates at the infrastructure tier: it is consumed by application components or other technology services, not directly by end users or business processes.",
+  "definition": "An externally visible infrastructure capability, such as compute, storage, messaging, database, cache, identity or monitoring, that a node, system software or managed platform offers to application components or other technology elements through a technology interface. It is identified by the capability consumers rely on, not by the product, host or endpoint that delivers it.",
+  "distinguish_from": [
+    {
+      "type": "technology.systemsoftware",
+      "when": "the element is the specific installed engine or product (e.g. a PostgreSQL 15 server, a Redis binary, a RabbitMQ broker) rather than the capability that consumers use."
+    },
+    {
+      "type": "technology.technologyinterface",
+      "when": "the element is the access point itself, such as an endpoint URL, port or protocol binding through which the service is reached."
+    },
+    {
+      "type": "technology.technologyfunction",
+      "when": "the behavior is internal to a node and not offered to consumers, such as replication, log rotation or internal load balancing."
+    },
+    {
+      "type": "technology.node",
+      "when": "the element is the host, VM, container or cluster that provides the computational resource, not the capability exposed from it."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.3.1 Technology Service",
+  "code_evidence": [
+    "an infrastructure-as-code resource for a managed backing service (e.g. aws_sqs_queue, aws_db_instance, google_pubsub_topic, azurerm_redis_cache) whose outputs are wired into application configuration",
+    "a docker-compose or Helm service entry for a backing service (postgres, redis, kafka, keycloak) whose connection string is injected into application containers via environment variables such as DATABASE_URL or REDIS_URL",
+    "a client SDK constructed against an infrastructure endpoint (S3 client, KMS client, OIDC issuer URL, OTLP exporter endpoint) and used by application code to store, publish, authenticate or emit telemetry"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the capability the service offers, its provider (self-hosted or managed vendor), and its consumers; set it whenever the name alone does not make the capability and provider clear."
+    }
+  ],
+  "notes": "The serviceType enum lacks networking/DNS/CDN, secrets/key-management, search and scheduling values. 'database' overlaps 'storage'. The description cites IaaS/PaaS/SaaS but the enum does not encode it. Serves relationships to business processes and stakeholders contradict the 'not directly by end users or business processes' clause. The flows-to and serves self-relations are listed twice.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

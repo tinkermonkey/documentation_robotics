@@ -210,7 +210,7 @@ properties:
       to: idle
       trigger: retry
   motivation:
-    supports-goals:
+    supports:
       - motivation.goal.user-authentication
   api:
     operationId: login

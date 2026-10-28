@@ -1,0 +1,50 @@
+{
+  "source": "navigation.routemeta",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.057Z",
+  "relationships": [
+    {
+      "id": "navigation.routemeta.governs.navigation.navigationguard",
+      "previous_description": "Defines relationship: navigation.routemeta governs navigation.navigationguard",
+      "description": "The route's metadata supplies the access hints (requiresAuth, roles, permissions) that a navigation guard reads to decide whether navigation to that route may proceed, so the metadata shapes the guard's decision without containing any guard logic itself.",
+      "evidence": "A router guard function (e.g. router.beforeEach or a canActivate hook) reads to.meta.requiresAuth or to.meta.roles, and the route's meta object in the route table declares those keys."
+    },
+    {
+      "id": "navigation.routemeta.references.navigation.breadcrumbconfig",
+      "previous_description": "Defines relationship: navigation.routemeta references navigation.breadcrumbconfig",
+      "description": "The route metadata's breadcrumb label is a per-route entry that the navigation-wide breadcrumb configuration resolves and renders, so the metadata points to the configuration that governs how its label appears in the trail.",
+      "evidence": "The route's meta declares a breadcrumb label or key, and the breadcrumb configuration's label-resolution setting reads that meta field when building the trail from the matched route hierarchy."
+    },
+    {
+      "id": "navigation.routemeta.references.api.operation",
+      "previous_description": "Defines relationship: navigation.routemeta references api.operation",
+      "description": "The route metadata names a backend API operation associated with the route, such as a data prefetch or permission-check endpoint, as a pointer without itself invoking it.",
+      "evidence": "The route's meta object contains an operationId, endpoint path or generated client method name that matches an operation in the OpenAPI document or API client."
+    },
+    {
+      "id": "navigation.routemeta.references.security.securitypolicy",
+      "previous_description": "Defines relationship: navigation.routemeta references security.securitypolicy",
+      "description": "The route metadata identifies the named security policy whose rules decide whether the current user may access the route, leaving the guard to evaluate that policy.",
+      "evidence": "The route's meta declares a policy name or ID (e.g. meta.policy: 'admin-console') that matches a policy defined in the authorization configuration or policy store."
+    },
+    {
+      "id": "navigation.routemeta.serves.navigation.route",
+      "previous_description": "Defines relationship: navigation.routemeta serves navigation.route",
+      "description": "The metadata record is attached to a single route and supplies the rendering and access settings the router applies when that route is matched.",
+      "evidence": "The route table entry for the route includes a meta property (e.g. { path: '/orders', component: Orders, meta: {...} }) containing this record."
+    },
+    {
+      "id": "navigation.routemeta.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: navigation.routemeta uses ux.layoutconfig",
+      "description": "The route metadata selects the layout wrapper whose container arrangement rules are applied around the route's view when it is rendered.",
+      "evidence": "The route's meta declares a layout key (e.g. meta.layout: 'dashboard') and the app shell or layout resolver maps that key to the corresponding layout definition."
+    },
+    {
+      "id": "navigation.routemeta.uses.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.routemeta uses navigation.navigationtransition",
+      "description": "The route metadata specifies the enter/leave animation applied when a permitted route change into or out of its route occurs.",
+      "evidence": "The route's meta declares a transition name (e.g. meta.transition: 'slide-left') that the router-view wrapper reads when animating the navigation between the source and destination routes."
+    }
+  ],
+  "notes": "'serves' for RouteMeta→Route is weak; metadata is a part of the route, so composition (Route composes RouteMeta) fits better. 'uses NavigationTransition' conflates the visual animation in meta with the route-change edge element. 'governs' NavigationGuard overstates the role: meta only supplies hints, and the guard does the governing; 'references' would fit better."
+}

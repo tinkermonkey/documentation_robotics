@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "business.businessevent",
+  "previous_description": "A behavior element that represents an organizational state change, such as a customer order placed or a contract signed, that can trigger or result from a BusinessProcess or BusinessFunction.",
+  "definition": "A behavior element that denotes an instantaneous, named occurrence of a business state change (e.g., order placed, contract signed, month-end reached) with no duration and no performer of its own. It exists only to trigger, or to be the outcome of, a BusinessProcess, BusinessFunction or BusinessInteraction.",
+  "distinguish_from": [
+    {
+      "type": "business.businessprocess",
+      "when": "the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time."
+    },
+    {
+      "type": "business.businessobject",
+      "when": "the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced)."
+    },
+    {
+      "type": "business.businessinteraction",
+      "when": "the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.3.4 Business Event",
+  "code_evidence": [
+    "Past-tense domain-event classes or records such as OrderPlaced or ContractSigned that are published to an event bus, outbox or message broker topic named after a business occurrence.",
+    "Cron or scheduler entries (e.g., a month-end or renewal-due job) whose firing starts a business workflow, indicating a timer-type event.",
+    "Start, intermediate or end events in BPMN or workflow-engine definitions, or business-named channels in an AsyncAPI or event-catalog document."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text explanation of the business occurrence, giving the state change it marks, its source, and the condition under which it is raised; set it whenever the event name alone does not make the trigger condition unambiguous."
+    }
+  ],
+  "notes": "businessrole --triggers--> businessevent is invalid in ArchiMate, where triggers links behavior only; use assignment or drop it. The enum mixes origin (internal/external) with mechanism (message/timer), so it cannot express an external message. The name 'type' collides with the element type. The definition should add BusinessInteraction to match the relationships.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.261Z"
+}

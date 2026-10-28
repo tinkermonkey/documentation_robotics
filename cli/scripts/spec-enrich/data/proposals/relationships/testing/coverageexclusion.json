@@ -1,0 +1,26 @@
+{
+  "source": "testing.coverageexclusion",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.067Z",
+  "relationships": [
+    {
+      "id": "testing.coverageexclusion.references.testing.coveragegap",
+      "previous_description": "Defines relationship: testing.coverageexclusion references testing.coveragegap",
+      "description": "The approved exclusion points to the recorded coverage gap it disposes of, documenting that the identified shortfall is being closed by a signed-off scope decision rather than by writing tests.",
+      "evidence": "The exclusion record's gap reference field (e.g. gapId or resolvesGap) holds the identifier of an existing coverage gap entry, and that gap's remediation status reads 'excluded' or 'accepted risk' with a link back to the exclusion."
+    },
+    {
+      "id": "testing.coverageexclusion.references.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.coverageexclusion references testing.coveragerequirement",
+      "description": "The exclusion names a specific coverage criterion, such as boundary-values or MC/DC for one target, that is waived and therefore no longer counts toward the coverage that must be achieved.",
+      "evidence": "The exclusion entry in the coverage model file lists the coverage requirement's identifier as its excluded item, alongside a rationale, a risk-acceptance flag and a named approver."
+    },
+    {
+      "id": "testing.coverageexclusion.references.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.coverageexclusion references testing.testcoveragetarget",
+      "description": "The exclusion names a whole in-scope production artifact, such as an API operation or scheduled job, whose behaviour the team has formally decided not to verify.",
+      "evidence": "The exclusion record's excluded-item field contains the coverage target's identifier, and coverage reports or CI gates skip that target while citing the exclusion and its approver sign-off."
+    }
+  ],
+  "notes": "The requirement and target references are alternative forms of the single 'excluded item' and should likely be mutually exclusive (exactly one per exclusion). The gap reference is optional context, since an exclusion can be approved before any gap is recorded. Plain 'references' understates the waiver semantics; a dedicated 'excludes' predicate would be clearer."
+}

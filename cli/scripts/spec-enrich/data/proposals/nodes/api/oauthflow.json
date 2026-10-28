@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "api.oauthflow",
+  "previous_description": "Configuration for a single OAuth 2.0 grant type (implicit, password, clientCredentials, or authorizationCode). authorizationUrl is required for implicit and authorizationCode flows; tokenUrl is required for password, clientCredentials, and authorizationCode flows; scopes is required for all flows. The flow type is not an explicit field — it is implied by which attribute of the parent OAuthFlows object references this OAuthFlow.",
+  "definition": "A configuration object describing one OAuth 2.0 grant type (implicit, password, clientCredentials or authorizationCode) within an oauth2 security scheme, giving the endpoint URLs that grant uses and the map of scopes it can issue. Its grant type is determined by the OAuthFlows field that holds it, not by a field of its own.",
+  "distinguish_from": [
+    {
+      "type": "api.oauthflows",
+      "when": "the element is the container grouping all grant types for one oauth2 scheme (the 'flows' object) rather than the settings of a single grant."
+    },
+    {
+      "type": "api.securityscheme",
+      "when": "the element declares the authentication mechanism itself (type oauth2, apiKey, http, openIdConnect) and its registry name, rather than the URLs and scopes of one OAuth grant."
+    },
+    {
+      "type": "api.server",
+      "when": "the URL is a base address where the API itself is deployed, not an authorization, token or refresh endpoint of an identity provider."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 OAuth Flow Object",
+  "code_evidence": [
+    "An entry under components.securitySchemes.<name>.flows.authorizationCode (or implicit/password/clientCredentials) in an openapi.yaml containing authorizationUrl, tokenUrl and scopes keys",
+    "A framework security declaration such as FastAPI OAuth2PasswordBearer(tokenUrl=...)/OAuth2AuthorizationCodeBearer, springdoc @OAuthFlow(authorizationUrl=..., tokenUrl=..., scopes=@OAuthScope(...)), or NestJS addOAuth2({ flows: { ... } })",
+    "A scopes dictionary mapping scope strings (e.g. 'read:users') to descriptions, used in both the spec generator config and route-level scope checks"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "authorizationUrl",
+      "description": "Absolute URL of the authorization endpoint where the user grants consent; required for implicit and authorizationCode flows and omitted for password and clientCredentials."
+    },
+    {
+      "name": "tokenUrl",
+      "description": "Absolute URL of the token endpoint that exchanges a grant or credentials for an access token; required for password, clientCredentials and authorizationCode flows and omitted for implicit."
+    },
+    {
+      "name": "refreshUrl",
+      "description": "Optional absolute URL of the endpoint used to obtain refreshed access tokens; set only when the provider issues refresh tokens via a distinct endpoint."
+    }
+  ],
+  "notes": "The grant type is implied only by the parent field; consider an explicit flowType enum for classification. Outgoing relationships to api.tag (aggregates), api.ratelimit, api.server and api.operation (serves) look spurious—an OAuth flow is consumed only via its SecurityScheme. OAuthFlows both aggregates and composes OAuthFlow; keep composes only.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

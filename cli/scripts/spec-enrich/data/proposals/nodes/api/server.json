@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "api.server",
+  "previous_description": "Defines a server URL (optionally templated with {variable} placeholders) where the API is deployed. Supports multiple server entries for different environments (production, staging, dev). The 'url' field is required. A 'servers' array can appear at three levels: root document, PathItem, and Operation — each level overrides the previous for that scope.",
+  "definition": "A base-URL declaration in an API description that names a network location (absolute or relative, optionally containing {variable} placeholders) to which operation paths are appended to form request URLs. It is declared in a 'servers' array at document, path or operation scope.",
+  "distinguish_from": [
+    {
+      "type": "api.servervariable",
+      "when": "the element is a single {placeholder} inside a server URL, with its default and allowed values, rather than the URL entry itself"
+    },
+    {
+      "type": "api.pathitem",
+      "when": "the element is a path template such as /users/{id} appended after the base URL, not the scheme/host/base-path prefix"
+    },
+    {
+      "type": "api.openapidocument",
+      "when": "the element is the whole API description that contains the servers array, not one entry within it"
+    },
+    {
+      "type": "api.externaldocumentation",
+      "when": "the URL points to human-readable documentation rather than to a location where API requests are sent"
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Server Object",
+  "code_evidence": [
+    "a 'servers:' list with 'url:' entries in an openapi.yaml/json file, or a @Server(url=...) / @OpenAPIDefinition(servers=...) annotation",
+    "a generated API client configured with a basePath or baseURL constant such as 'https://api.example.com/v1', often switched per environment",
+    "a framework OpenAPI setup call that sets server URLs, e.g. FastAPI(servers=[{'url': ...}]) or springdoc OpenAPI().servers(List.of(new Server().url(...)))"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "url",
+      "description": "Base URL of the target host, given as an absolute URL or one relative to the document's location, and optionally containing {name} placeholders defined in 'variables'. Always set it; operation paths are appended to it."
+    },
+    {
+      "name": "description",
+      "description": "Optional human-readable text, CommonMark allowed, identifying the host or environment the URL designates (e.g. 'Production', 'EU staging'). Set it when several servers are listed."
+    }
+  ],
+  "notes": "'variables' is typed string but is a map to api.servervariable; make it an object or rely on the aggregates relationship alone. The outgoing 'references api.securityscheme' has no OpenAPI basis, since servers do not bind security. 'serves application.applicationcomponent' inverts the usual dependency and should be reviewed. Deployment hosts belong to technology.node; api.server is only the declared URL.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.242Z"
+}

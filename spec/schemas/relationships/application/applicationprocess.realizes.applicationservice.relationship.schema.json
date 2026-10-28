@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationprocess realizes Applicationservice",
+  "description": "The multi-step workflow or orchestration supplies the behaviour that makes the externally offered application service worth consuming, so the service's outcome is produced by running the process to completion.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationprocess.realizes.application.applicationservice"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationprocess"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationservice"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "realizes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "The service's public operation (e.g. an API handler or service-interface method) delegates its work to the workflow, saga or pipeline entry point and returns that process's end result to the caller."
+  ]
+}

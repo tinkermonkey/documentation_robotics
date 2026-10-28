@@ -4,7 +4,7 @@
     "id": "business",
     "number": 2,
     "name": "Business Layer",
-    "description": "Layer 2: Business Layer",
+    "description": "Describes what the organization does independently of the software that supports it: business actors and roles, collaborations and interfaces, processes, functions, interactions and events, business services and business objects (ArchiMate 3.2 business layer). Elements here are realized by application services and consume no implementation detail.",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -846,17 +846,6 @@
       "strength": "medium",
       "required": false
     },
-    "business.businessprocess.aggregates.application.applicationprocess": {
-      "id": "business.businessprocess.aggregates.application.applicationprocess",
-      "source_spec_node_id": "business.businessprocess",
-      "source_layer": "business",
-      "destination_spec_node_id": "application.applicationprocess",
-      "destination_layer": "application",
-      "predicate": "aggregates",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
     "business.businessprocess.constrained-by.security.securityconstraints": {
       "id": "business.businessprocess.constrained-by.security.securityconstraints",
       "source_spec_node_id": "business.businessprocess",
@@ -875,17 +864,6 @@
       "destination_spec_node_id": "security.separationofduty",
       "destination_layer": "security",
       "predicate": "constrained-by",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "business.businessprocess.delivers.business.businessobject": {
-      "id": "business.businessprocess.delivers.business.businessobject",
-      "source_spec_node_id": "business.businessprocess",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessobject",
-      "destination_layer": "business",
-      "predicate": "delivers",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1062,28 +1040,6 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "performs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "business.businessrole.performs.business.businessprocess": {
-      "id": "business.businessrole.performs.business.businessprocess",
-      "source_spec_node_id": "business.businessrole",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "performs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "business.businessrole.serves.business.businessactor": {
-      "id": "business.businessrole.serves.business.businessactor",
-      "source_spec_node_id": "business.businessrole",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessactor",
-      "destination_layer": "business",
-      "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

@@ -1,0 +1,29 @@
+{
+  "spec_node_id": "api.oauthflows",
+  "previous_description": "Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. At least one flow attribute must be specified. Always nested within a SecurityScheme where type is 'oauth2' — cannot be used independently.",
+  "definition": "A container object nested in an oauth2-type SecurityScheme that maps each supported OAuth 2.0 grant type (implicit, password, clientCredentials, authorizationCode) to one OAuthFlow configuration. It holds no URLs or scopes of its own; it only selects which grant types the scheme offers.",
+  "distinguish_from": [
+    {
+      "type": "api.oauthflow",
+      "when": "the element carries the authorizationUrl, tokenUrl, refreshUrl or scopes of a single grant type rather than the set of grant-type slots."
+    },
+    {
+      "type": "api.securityscheme",
+      "when": "the element declares the authentication mechanism itself (type, description, name/in, scheme) rather than the flows block inside an oauth2 scheme."
+    },
+    {
+      "type": "api.components",
+      "when": "the element is the document-wide registry holding named securitySchemes, not the flows object within one scheme."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 OAuth Flows Object",
+  "code_evidence": [
+    "A 'flows:' map with keys such as authorizationCode or clientCredentials under a securitySchemes entry whose type is oauth2 in openapi.yaml or openapi.json",
+    "A springdoc/swagger-annotations @OAuthFlows(...) passed as the flows argument of @SecurityScheme(type = SecuritySchemeType.OAUTH2)",
+    "A framework flows model instantiated for an OAuth2 scheme, e.g. FastAPI OAuthFlowsModel(password=...) or .NET Swashbuckle new OpenApiOAuthFlows { AuthorizationCode = ... }"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The type has no attributes for its four grant-type slots. As a result, the grant type of each child OAuthFlow cannot be recorded anywhere, although api.oauthflow says the type is implied by the parent slot. Consider modelling the slots as an attribute or as a relationship qualifier. The oauthflows→oauthflow link is listed as both 'aggregates' and 'composes'. The associations to operation and components look spurious.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.228Z"
+}

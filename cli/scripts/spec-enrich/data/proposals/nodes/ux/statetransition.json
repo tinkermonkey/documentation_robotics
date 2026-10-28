@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.statetransition",
+  "previous_description": "A directed edge in the ExperienceState machine, owned by its source ExperienceState. Specifies the trigger event, destination state, optional guard condition, and side-effect actions. The 'from' state is implicitly the ExperienceState that contains this transition via relationship.",
+  "definition": "A directed edge in an ExperienceState machine that moves the experience from its owning source ExperienceState to one destination ExperienceState when a named UI event occurs. It may carry a guard condition that must hold and an ordered list of StateActions run as side effects when it fires.",
+  "distinguish_from": [
+    {
+      "type": "ux.transitiontemplate",
+      "when": "the element describes reusable motion or animation (fade, slide, duration, easing) applied to a state or page change, not which state the event leads to"
+    },
+    {
+      "type": "ux.stateaction",
+      "when": "the element is the side-effect operation itself (navigate, submit, dispatch, validate) bound to a lifecycle hook, rather than the edge between two states"
+    },
+    {
+      "type": "ux.experiencestate",
+      "when": "the element is a node the experience can rest in (loading, error, confirmed), with entry and exit actions and component visibility, rather than the move between such nodes"
+    },
+    {
+      "type": "ux.actionpattern",
+      "when": "the element is a reusable trigger-plus-feedback interaction recipe (e.g. confirm-and-delete) applied to components, not a specific source-to-destination edge in one state machine"
+    }
+  ],
+  "standard_reference": "W3C SCXML <transition> element (event, cond, target, executable content) for state-machine semantics; trigger values follow the HTML 5.3 event handler / DOM event model",
+  "code_evidence": [
+    "An XState or similar statechart config entry such as `on: { SUBMIT: { target: 'confirmed', guard: 'isValid', actions: ['track'] } }` inside a state node",
+    "A reducer or useReducer case that switches on the current status together with an event or action type and returns a different status value (e.g. `case 'editing': if (action.type === 'SAVE') return 'saving'`)",
+    "A transitions table or map literal of `{ from, event, to }` records, or a `canTransition(from, event)` / `transition(state, event)` helper that a component's onClick or onSubmit handler calls"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "A plain-language sentence saying what user event moves the experience from the source state to the destination and why. Example: 'User submits valid payment form; moves to processing'. Set it whenever the trigger, guard or destination does not make the transition's intent obvious on its own."
+    }
+  ],
+  "notes": "The trigger enum has no keyboard value, although ActionPattern has one. It also has no timeout or data events (API success or failure), and 'load' is a weak proxy for these. 'to' is optional even though every edge needs a destination, and it duplicates the navigates-to relationship. TransitionTemplate's required to/trigger attributes blur its motion-only role. Navigation-layer NavigationTransition overlaps this type for route changes.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

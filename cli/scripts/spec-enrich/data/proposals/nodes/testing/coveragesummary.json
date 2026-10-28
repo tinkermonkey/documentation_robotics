@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "testing.coveragesummary",
+  "previous_description": "Aggregated coverage status across all targets and requirements within a test coverage model, suitable for test summary reporting.",
+  "definition": "A model-wide test summary report record that totals the coverage targets, coverage requirements and test case sketches of exactly one TestCoverageModel at a point in time. Per-target figures are rolled up from the model's TargetCoverageSummary records.",
+  "distinguish_from": [
+    {
+      "type": "testing.targetcoveragesummary",
+      "when": "the metrics (sketch, implemented and automated counts or a percentage) describe a single TestCoverageTarget rather than the whole model."
+    },
+    {
+      "type": "testing.coveragegap",
+      "when": "the artifact records one specific shortfall between required and achieved coverage, with a severity and a remediation status, rather than aggregate totals."
+    },
+    {
+      "type": "testing.testcoveragemodel",
+      "when": "the artifact is the coverage specification itself, holding the targets, partitions and requirements, rather than a generated report about it."
+    },
+    {
+      "type": "testing.coverageexclusion",
+      "when": "the artifact is an approved decision to leave a target or requirement uncovered, rather than a count of what is covered."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Master Test Report / Level Test Report (overview and summary of results; the Test Summary Report in IEEE 829-1998)",
+  "code_evidence": [
+    "A script or CI job that loads the test coverage model (YAML or JSON) and emits totals of targets, requirements and test cases with a generation timestamp.",
+    "A generated report artifact (e.g. coverage-model-summary.json or a Markdown table in docs/testing) that lists overall counts per model and links to per-target summaries.",
+    "A test-reporting dashboard or README section that publishes model-level totals of covered features, requirements and designed test cases for a named application."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "generatedAt",
+      "description": "ISO 8601 date-time at which the summary was computed; set it every time the summary is regenerated so stale reports can be detected."
+    },
+    {
+      "name": "totalTargets",
+      "description": "Non-negative count of TestCoverageTarget nodes in the referenced model at generation time, including targets that have exclusions or gaps."
+    },
+    {
+      "name": "totalRequirements",
+      "description": "Non-negative count of CoverageRequirement nodes across all targets in the referenced model at generation time."
+    },
+    {
+      "name": "totalSketches",
+      "description": "Non-negative count of TestCaseSketch nodes across all targets in the model regardless of status; this equals the sum of sketchCount over the model's TargetCoverageSummary records."
+    }
+  ],
+  "notes": "Holds only design-time inventory counts, with no achieved-coverage metrics (implemented, automated, percentage, open gaps or exclusions), so it cannot summarise coverage status as defined. Line or branch coverage outputs such as istanbul coverage-summary.json do not map to it. modelRef is optional despite the composes relationship. The aggregates, references and serves edges to testcoveragemodel are redundant.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

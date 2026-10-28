@@ -1,0 +1,92 @@
+{
+  "source": "api.openapidocument",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.069Z",
+  "relationships": [
+    {
+      "id": "api.openapidocument.aggregates.api.server",
+      "previous_description": "Defines relationship: api.openapidocument aggregates api.server",
+      "description": "The API description lists the server as one of the base URLs against which its operation paths can be called, and the same server declaration may be shared or reused by other API descriptions.",
+      "evidence": "The root 'servers' array of the openapi.yaml contains an entry whose 'url' matches the server's base URL."
+    },
+    {
+      "id": "api.openapidocument.aggregates.api.tag",
+      "previous_description": "Defines relationship: api.openapidocument aggregates api.tag",
+      "description": "The API description gathers the tag into its catalogue of operation categories, which documentation tools use to group endpoints, while the tag itself remains an independent label.",
+      "evidence": "The tag's name appears in the document's root 'tags' array, or in the 'tags' field of an operation within that document."
+    },
+    {
+      "id": "api.openapidocument.composes.api.components",
+      "previous_description": "Defines relationship: api.openapidocument composes api.components",
+      "description": "The API description owns the single components container that holds its reusable definitions, and that container has no meaning outside the document whose $ref pointers resolve into it.",
+      "evidence": "The openapi.yaml has a root-level 'components' key, and '#/components/...' references in the same file resolve against it."
+    },
+    {
+      "id": "api.openapidocument.composes.api.info",
+      "previous_description": "Defines relationship: api.openapidocument composes api.info",
+      "description": "The API description contains exactly one info block that gives the API's title, version and descriptive metadata, and that block exists only as part of this document.",
+      "evidence": "The openapi.yaml has a root 'info' object with 'title' and 'version' fields, and those values match the Info element."
+    },
+    {
+      "id": "api.openapidocument.composes.api.paths",
+      "previous_description": "Defines relationship: api.openapidocument composes api.paths",
+      "description": "The API description contains the single paths map that lists every endpoint URL template the API exposes, and that map cannot exist apart from the document.",
+      "evidence": "The openapi.yaml has a root 'paths' object whose keys, such as '/users/{id}', are the path templates recorded for the Paths element."
+    },
+    {
+      "id": "api.openapidocument.composes.api.responses",
+      "previous_description": "Defines relationship: api.openapidocument composes api.responses",
+      "description": "The API description contains this status-code-to-outcome map as part of one of its operations, so the map exists only within the document's path hierarchy.",
+      "evidence": "A 'responses' object sits under paths.<template>.<method> in the openapi.yaml, with status-code keys matching the Responses element."
+    },
+    {
+      "id": "api.openapidocument.composes.api.schema",
+      "previous_description": "Defines relationship: api.openapidocument composes api.schema",
+      "description": "The API description contains the data-shape definition, either as a named component schema or as an inline schema, and that definition is meaningful only inside this document.",
+      "evidence": "The schema appears under 'components/schemas/<name>' or inline within a media type, parameter or header of the openapi.yaml."
+    },
+    {
+      "id": "api.openapidocument.depends-on.technology.technologyservice",
+      "previous_description": "Defines relationship: api.openapidocument depends-on technology.technologyservice",
+      "description": "The API surface described by the document can only be served if a particular infrastructure capability, such as an API gateway, identity provider or hosting runtime, is available.",
+      "evidence": "The document's server URLs point at a gateway or hosting endpoint, or vendor extensions such as 'x-amazon-apigateway-integration' or a security scheme's OIDC/OAuth URLs, name the infrastructure service."
+    },
+    {
+      "id": "api.openapidocument.realizes.application.applicationservice",
+      "previous_description": "Defines relationship: api.openapidocument realizes application.applicationservice",
+      "description": "The API description is the concrete, machine-readable contract through which the application service's operations are made available to consumers.",
+      "evidence": "The document's title, operations or tags correspond one-to-one with the operations of the application service, or the service's design documentation names the openapi.yaml as its contract."
+    },
+    {
+      "id": "api.openapidocument.realizes.business.businessservice",
+      "previous_description": "Defines relationship: api.openapidocument realizes business.businessservice",
+      "description": "The API description defines the digital channel through which the business service is offered to customers or partners, so the published API puts that business offering into practice.",
+      "evidence": "A product or API-catalog entry, such as a developer-portal listing, links the openapi.yaml to the named business service, or the document's info.description identifies that service."
+    },
+    {
+      "id": "api.openapidocument.references.api.externaldocumentation",
+      "previous_description": "Defines relationship: api.openapidocument references api.externaldocumentation",
+      "description": "The API description points readers to the guide, portal or specification hosted outside the document that explains the API in more depth.",
+      "evidence": "The openapi.yaml has a root 'externalDocs' object whose 'url' matches the ExternalDocumentation element."
+    },
+    {
+      "id": "api.openapidocument.requires.api.securityscheme",
+      "previous_description": "Defines relationship: api.openapidocument requires api.securityscheme",
+      "description": "Callers of the API described by the document must present credentials using the named mechanism, such as a bearer token, API key or OAuth flow, by default for every operation.",
+      "evidence": "The document's root 'security' array names the scheme, and the scheme is defined under components.securitySchemes."
+    },
+    {
+      "id": "api.openapidocument.serves.application.applicationcomponent",
+      "previous_description": "Defines relationship: api.openapidocument serves application.applicationcomponent",
+      "description": "The API description is a contract that a client application component relies on to call the API, typically through generated client code or a validated integration.",
+      "evidence": "The component's build configuration runs a code generator, such as openapi-generator, against the document, or the component's code imports the client SDK generated from it."
+    },
+    {
+      "id": "api.openapidocument.serves.motivation.stakeholder",
+      "previous_description": "Defines relationship: api.openapidocument serves motivation.stakeholder",
+      "description": "The API description is published for a stakeholder group, such as partner developers or internal consumer teams, who use it to understand and integrate with the API.",
+      "evidence": "The document's info.contact or audience extensions, or a developer-portal listing, identify the stakeholder group as the intended audience of the spec."
+    }
+  ],
+  "notes": "composes responses: a Responses map is scoped to an operation, so it belongs to Operation, not the document. composes schema duplicates the path through Components. depends-on technologyservice belongs to the implementing component, not the document. realizes businessservice skips the application layer. serves stakeholder is weak."
+}

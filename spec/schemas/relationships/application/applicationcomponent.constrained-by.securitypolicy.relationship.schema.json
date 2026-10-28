@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent constrained-by Securitypolicy",
-  "description": "Defines relationship: application.applicationcomponent constrained-by security.securitypolicy",
+  "description": "The component's permitted operations and data access are limited by the rules of the security policy, so its behaviour must stay within what the policy allows.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
+  ]
 }

@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "api.header",
+  "previous_description": "Defines a reusable HTTP header for responses or request components. The header name is derived from its map key — the OpenAPI 3.0 Header Object does not include a 'name' field (use the 'name' attribute as a local identifier only). The 'in' location is implicitly 'header' and must not be specified, distinguishing Header from Parameter.",
+  "definition": "A named HTTP header declaration, keyed by header name in a Response's headers map, an Encoding's headers map, or the Components headers registry, that describes the header value's schema, serialization and examples. It carries no 'name' or 'in' field because the name comes from the map key and the location is always header.",
+  "distinguish_from": [
+    {
+      "type": "api.parameter",
+      "when": "the header is a client-supplied input to an operation, declared in the operation's or path's parameters list with in: header."
+    },
+    {
+      "type": "api.securityscheme",
+      "when": "the header carries credentials (e.g. Authorization, X-API-Key) and what is being modelled is the authentication mechanism, i.e. an apiKey scheme with in: header or an http bearer scheme."
+    },
+    {
+      "type": "api.ratelimit",
+      "when": "what is being modelled is the throttling policy itself (request count, window, scope), not the X-RateLimit-* response header that reports it."
+    },
+    {
+      "type": "api.encoding",
+      "when": "the intent is to set the MIME type of a multipart part; use Encoding.contentType rather than a Content-Type header, which OpenAPI ignores."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Header Object",
+  "code_evidence": [
+    "An OpenAPI YAML/JSON 'headers:' map under a response (e.g. responses.200.headers.X-Request-Id with a schema) or an entry under components.headers.",
+    "A springdoc/swagger annotation such as @ApiResponse(headers = @Header(name = \"X-Rate-Limit-Remaining\", schema = @Schema(type = \"integer\"))), or a FastAPI/NestJS responses= declaration with a 'headers' dict.",
+    "A route handler that sets a fixed response header (e.g. res.setHeader('Location', ...) or response.headers['ETag'] = ...) whose value is documented as part of the response contract."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Human-readable explanation of the header's meaning and value format, in CommonMark; set it whenever the header's purpose is not obvious from its name."
+    },
+    {
+      "name": "required",
+      "description": "Boolean stating whether the header is always present in the enclosing response or multipart part. Defaults to false; set true only when the header is guaranteed to be sent."
+    },
+    {
+      "name": "deprecated",
+      "description": "Boolean marking the header as deprecated so consumers stop relying on it. Defaults to false; set true when the header is scheduled for removal."
+    }
+  ],
+  "notes": "The definition's 'request components' wording is misleading: request headers are Parameters (in: header). The definition mentions a 'name' attribute that is not listed. OAS 3.0 restricts header style to 'simple' and applies allowEmptyValue and allowReserved only to query parameters. The enum and those two attributes should be narrowed or removed.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.199Z"
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationService",
-  "description": "Service that exposes application functionality",
+  "description": "An externally visible unit of application behavior that a component, function, process or interaction makes available to consumers (users, business processes, or other components) as a named set of operations, defined by what it offers rather than how it is implemented or accessed. Use ApplicationFunction instead when the behavior is internal to a component, such as a private helper, mapper or validation routine, and is not offered as a named capability to callers outside that component. Use ApplicationInterface instead when the symbol is the access point or binding through which a service is reached, such as an HTTP controller, gRPC endpoint, WebSocket handler or message listener, carrying a specific protocol. Use ApplicationComponent instead when the symbol is the deployable or replaceable structural unit (module, package, microservice, class as a unit of deployment) that performs or realizes behavior, rather than the behavior it exposes. Use ApplicationProcess instead when the symbol is an ordered sequence of steps, such as a saga, workflow or orchestrator method, that achieves a result rather than an offered capability.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of what the service offers to its consumers, including its main operations and intended callers; set it whenever the service name alone does not convey its scope."
         },
         "serviceType": {
           "type": "string",
@@ -36,5 +37,17 @@
       "required": ["serviceType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.3 Application Service",
+  "x-dr-evidence": [
+    "A service interface or abstract contract, such as IOrderService or a gRPC 'service' block in a .proto file, whose operations are injected into or called from controllers, handlers or other modules",
+    "A class annotated @Service, @Injectable or registered in a DI container whose public methods are invoked across module or component boundaries rather than only within its own package",
+    "A queue consumer, scheduled batch job or event subscriber documented or configured to fulfil requests from other systems under a named capability, for example a 'payment-processing' worker bound in messaging or cron configuration"
+  ],
+  "x-dr-distinguish": {
+    "application.applicationfunction": "the behavior is internal to a component, such as a private helper, mapper or validation routine, and is not offered as a named capability to callers outside that component",
+    "application.applicationinterface": "the symbol is the access point or binding through which a service is reached, such as an HTTP controller, gRPC endpoint, WebSocket handler or message listener, carrying a specific protocol",
+    "application.applicationcomponent": "the symbol is the deployable or replaceable structural unit (module, package, microservice, class as a unit of deployment) that performs or realizes behavior, rather than the behavior it exposes",
+    "application.applicationprocess": "the symbol is an ordered sequence of steps, such as a saga, workflow or orchestrator method, that achieves a result rather than an offered capability"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationservice depends-on Applicationservice",
-  "description": "Defines relationship: application.applicationservice depends-on application.applicationservice",
+  "description": "The application service cannot fulfil its operations without calling another application service, so the latter's unavailability breaks it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service's implementation contains client calls, SDK imports or service-mesh configuration targeting the other service's endpoint, and its health check or failure handling reflects that dependency."
+  ]
 }

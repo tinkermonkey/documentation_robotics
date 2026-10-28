@@ -1,0 +1,44 @@
+{
+  "source": "security.fieldaccesscontrol",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.081Z",
+  "relationships": [
+    {
+      "id": "security.fieldaccesscontrol.constrained-by.security.accesscondition",
+      "previous_description": "Defines relationship: security.fieldaccesscontrol constrained-by security.accesscondition",
+      "description": "The field-level masking rule applies only when the access condition's request-context test holds, so the condition decides at runtime whether the field is shown in clear or masked.",
+      "evidence": "The field masking configuration or policy file lists a condition (e.g. subject.department == resource.owner_department) that the masking interceptor evaluates before choosing clear or masked output for that field."
+    },
+    {
+      "id": "security.fieldaccesscontrol.constrained-by.security.dataclassification",
+      "previous_description": "Defines relationship: security.fieldaccesscontrol constrained-by security.dataclassification",
+      "description": "The sensitivity tier assigned to the protected field sets the minimum masking, hashing or tokenization strength that the field-level rule must apply.",
+      "evidence": "The schema or data catalog tags the column with a classification label (e.g. PII/Confidential), and the field's masking rule references that label or meets the protection obligation the label declares."
+    },
+    {
+      "id": "security.fieldaccesscontrol.governs.security.secureresource",
+      "previous_description": "Defines relationship: security.fieldaccesscontrol governs security.secureresource",
+      "description": "The field-level rule dictates how one named field of the protected resource must be presented to unprivileged principals, setting handling rules the resource's data exposure must follow.",
+      "evidence": "The resource's access-control definition or entity annotations (e.g. @Masked on a model property, a column masking policy on a table) attach the field rule to a named field of that resource."
+    },
+    {
+      "id": "security.fieldaccesscontrol.implements.security.policyrule",
+      "previous_description": "Defines relationship: security.fieldaccesscontrol implements security.policyrule",
+      "description": "The field masking rule is the concrete field-level enforcement of a policy rule's permit/deny decision, turning a deny into redaction of the field's value instead of refusing the whole request.",
+      "evidence": "The policy definition (e.g. an OPA/Rego rule or XACML rule) is referenced by ID from the field masking configuration, or the serializer's masking code branches on that rule's evaluated effect."
+    },
+    {
+      "id": "security.fieldaccesscontrol.protects.security.secureresource",
+      "previous_description": "Defines relationship: security.fieldaccesscontrol protects security.secureresource",
+      "description": "The field-level rule shields the sensitive value of one field of the protected resource from disclosure to principals who lack clear-text access.",
+      "evidence": "API responses or query results for the resource show the named field masked, hashed or truncated for an unprivileged test principal, driven by the masking rule bound to that field."
+    },
+    {
+      "id": "security.fieldaccesscontrol.requires.security.permission",
+      "previous_description": "Defines relationship: security.fieldaccesscontrol requires security.permission",
+      "description": "The field is revealed in clear only to principals who hold the named permission, and everyone else receives the masked, redacted or tokenized form.",
+      "evidence": "The masking rule declares an unmask permission (e.g. 'customer.ssn:read-clear'), and the enforcement code checks that permission on the caller before skipping the masking step."
+    }
+  ],
+  "notes": "governs and protects toward SecureResource overlap. Both describe the field rule acting on the resource's field. Consider keeping only protects. Also, SecureResource is described as owning its FieldAccessControls, so a composition from the resource side would be more accurate than governs."
+}

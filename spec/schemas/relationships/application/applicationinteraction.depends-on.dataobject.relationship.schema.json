@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinteraction depends-on Dataobject",
-  "description": "Defines relationship: application.applicationinteraction depends-on application.dataobject",
+  "description": "The interaction needs a particular data structure to carry state between its participants, such as the message payload or saga state record exchanged across the handshake.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The saga state class, message schema or payload type is imported and serialized/deserialized by the participants' interaction handlers, or declared in the protocol's schema definitions."
+  ]
 }

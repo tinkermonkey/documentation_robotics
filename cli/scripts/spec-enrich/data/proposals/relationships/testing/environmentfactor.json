@@ -1,0 +1,74 @@
+{
+  "source": "testing.environmentfactor",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.051Z",
+  "relationships": [
+    {
+      "id": "testing.environmentfactor.composes.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.environmentfactor composes testing.contextvariation",
+      "description": "The environmental condition is one of the pinned settings that together make up a context variation's concrete execution environment, so the context variation is defined partly by the factors bound to it.",
+      "evidence": "The coverage model file lists the factor (e.g. os: ubuntu-22.04) under the context variation's environment-factor bindings, or a CI matrix entry for that variation sets the factor's value."
+    },
+    {
+      "id": "testing.environmentfactor.composes.testing.inputspacepartition",
+      "previous_description": "Defines relationship: testing.environmentfactor composes testing.inputspacepartition",
+      "description": "The environmental condition is treated as a constituent dimension of an input partition, contributing an environment-dependent axis (such as locale) to the equivalence classes that divide that input field's domain.",
+      "evidence": "The partition definition in the coverage model embeds the factor as one of its dimensions, or the partition's classes are keyed on the factor's value (e.g. locale-specific date formats)."
+    },
+    {
+      "id": "testing.environmentfactor.flows-to.testing.coveragesummary",
+      "previous_description": "Defines relationship: testing.environmentfactor flows-to testing.coveragesummary",
+      "description": "The factor's pinned value is passed into the model-wide coverage summary so the report records the environment under which the totals were measured.",
+      "evidence": "The generated coverage summary report contains an environment section listing the factor name and value captured from the test run's configuration."
+    },
+    {
+      "id": "testing.environmentfactor.references.apm.instrumentationconfig",
+      "previous_description": "Defines relationship: testing.environmentfactor references apm.instrumentationconfig",
+      "description": "The environmental condition points at a telemetry instrumentation setting, such as whether an auto-instrumentation plugin is enabled, because that setting changes how the tests behave or perform.",
+      "evidence": "The factor's definition names the instrumentation config entry (e.g. OTEL_INSTRUMENTATION_HTTP_ENABLED=false) that the test harness sets before SDK bootstrap."
+    },
+    {
+      "id": "testing.environmentfactor.references.technology.node",
+      "previous_description": "Defines relationship: testing.environmentfactor references technology.node",
+      "description": "The environmental condition identifies the deployment host, such as a specific VM size, container instance or cluster, whose characteristics the test run is pinned to.",
+      "evidence": "The factor value matches a node declared in infrastructure code (e.g. a Terraform instance or Kubernetes cluster name) that the CI job targets as its test runner or deployment environment."
+    },
+    {
+      "id": "testing.environmentfactor.references.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.environmentfactor references testing.partitionvalue",
+      "description": "The environmental condition points at a specific equivalence class whose representative value it adopts, for example a locale factor pinned to the class used for a locale-sensitive input.",
+      "evidence": "The factor's constraint in the coverage model cites the partition value's identifier as the source of its pinned value."
+    },
+    {
+      "id": "testing.environmentfactor.references.security.securitypolicy",
+      "previous_description": "Defines relationship: testing.environmentfactor references security.securitypolicy",
+      "description": "The environmental condition records which access-control policy is active in the test environment, because the policy in force changes which authorization outcomes tests observe.",
+      "evidence": "The test environment configuration loads a named policy bundle (e.g. an OPA or XACML policy file) and the factor entry names that policy as its value."
+    },
+    {
+      "id": "testing.environmentfactor.references.technology.systemsoftware",
+      "previous_description": "Defines relationship: testing.environmentfactor references technology.systemsoftware",
+      "description": "The environmental condition pins the version or variant of a platform product, such as the operating system, language runtime or database engine, that the tests run against.",
+      "evidence": "The CI matrix, Dockerfile base image or docker-compose service image tag (e.g. postgres:15.4, node:20) matches the system software and version named by the factor."
+    },
+    {
+      "id": "testing.environmentfactor.serves.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.environmentfactor serves testing.coveragerequirement",
+      "description": "The environmental condition supplies one of the environment values a coverage requirement's combinatorial criterion must be exercised across, for example pairwise combination of OS and browser.",
+      "evidence": "The coverage requirement's criterion definition lists the factor among the dimensions it combines, and the generated combination table includes the factor's values."
+    },
+    {
+      "id": "testing.environmentfactor.serves.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.environmentfactor serves testing.testcasesketch",
+      "description": "The environmental condition provides the concrete environment setting under which a test case sketch is designed to execute.",
+      "evidence": "The test case sketch, or the parameterized test row or pytest marker that realizes it, specifies the factor's value as a precondition or fixture parameter."
+    },
+    {
+      "id": "testing.environmentfactor.serves.testing.testcoveragemodel",
+      "previous_description": "Defines relationship: testing.environmentfactor serves testing.testcoveragemodel",
+      "description": "The environmental condition is made available as a reusable environment definition within the coverage model that plans testing for the application.",
+      "evidence": "The coverage model document declares the factor in its environment-factor catalogue, and context variations within that model refer to it by identifier."
+    }
+  ],
+  "notes": "Composes into InputSpacePartition contradicts the factor's definition (environment, not SUT input); references PartitionValue is similarly suspect. Composes into ContextVariation should likely be aggregates, since factors are optionally bound and shareable. Flows-to CoverageSummary is odd: summaries total targets, requirements and sketches, not factors. Serves TestCoverageModel likely should be composed-by/aggregated-by."
+}

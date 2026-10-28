@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "technology.technologycollaboration",
+  "previous_description": "An aggregate of two or more technology active structure elements that work together to perform collective technology behavior, such as a cluster of servers, a distributed cache, or a microservice mesh.",
+  "definition": "An aggregate of two or more technology active structure elements (nodes, devices or system software instances) that are configured to cooperate as peers and jointly perform behavior none performs alone. Examples are a replicated database ensemble, a consensus cluster, a sharded cache cluster or a service mesh. It is identified by explicit peer membership or coordination configuration, not merely by co-location or shared hosting.",
+  "distinguish_from": [
+    {
+      "type": "technology.node",
+      "when": "the thing is a single hosting resource, or a cluster managed and addressed as one computational unit (e.g. a Kubernetes cluster as a deployment target), rather than a grouping of individually modelled cooperating members."
+    },
+    {
+      "type": "technology.technologyinteraction",
+      "when": "the element is the joint behavior itself (a failover protocol, leader election, distributed commit) rather than the group of elements that performs it."
+    },
+    {
+      "type": "technology.systemsoftware",
+      "when": "a single installed software product or instance is meant (e.g. one Redis or PostgreSQL server) with no modelled peer membership."
+    },
+    {
+      "type": "technology.communicationnetwork",
+      "when": "the element only transports data between members and performs no collective processing itself."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §10.2 Technology Collaboration",
+  "code_evidence": [
+    "A StatefulSet, Helm chart or docker-compose file declaring multiple replicas of the same server with peer discovery settings, such as Kafka/ZooKeeper ensembles, etcd initial-cluster, Redis cluster-enabled yes or Elasticsearch discovery.seed_hosts.",
+    "Infrastructure-as-code resources that define a multi-member cooperative group, such as aws_elasticache_replication_group, aws_rds_cluster, aws_msk_cluster or a Patroni/Galera cluster configuration listing member addresses.",
+    "Service mesh configuration grouping workloads into one mesh, such as Istio IstioOperator/MeshConfig, Linkerd injection annotations across namespaces, or Consul Connect service definitions."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description naming the collaborating members, how they coordinate (replication, consensus, sharding, sidecar proxying) and the collective behavior they provide. Set it whenever membership or coordination is not evident from the element name."
+    }
+  ],
+  "notes": "The node enum value kubernetes-cluster overlaps with this type; the spec needs a rule for when a cluster is a Node versus a Collaboration. 'technologyinteraction realizes technologycollaboration' inverts ArchiMate, where a collaboration is assigned to an interaction. 'communicationnetwork assigned-to technologycollaboration' is not valid ArchiMate. Consider adding collaborationType (replication|consensus|sharding|mesh) and memberCount attributes.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

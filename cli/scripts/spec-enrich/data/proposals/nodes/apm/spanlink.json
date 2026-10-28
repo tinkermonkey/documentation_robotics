@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "apm.spanlink",
+  "previous_description": "Non-hierarchical causality link to a span in a different trace or batch context (e.g., async message consumer linking to producer spans). Distinct from parent-child relationships, which are expressed via the parentSpanId attribute on the Span.",
+  "definition": "A reference attached to a span that identifies another span by its SpanContext (traceId, spanId, traceState) to record a causal relationship that is not parent-child, such as a batch consumer span pointing to each producer span whose message it processes. It is added when the span is created and belongs to the span that carries it.",
+  "distinguish_from": [
+    {
+      "type": "apm.span",
+      "when": "the element is the timed unit of work itself, or the referenced span is the direct parent, which is expressed through the span's parentSpanId rather than a link"
+    },
+    {
+      "type": "apm.spanevent",
+      "when": "the element is a timestamped annotation of something that happened inside the same span (e.g., an exception) and points to no other span"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Trace API/SDK Specification – Link (Span.Links); OTLP trace.proto Span.Link message",
+  "code_evidence": [
+    "a span started with a links option, e.g. tracer.startSpan(name, { links: [{ context: spanCtx, attributes }] }) in JS or start_as_current_span(name, links=[trace.Link(ctx)]) in Python",
+    "Java SpanBuilder.addLink(spanContext[, attributes]) calls made before startSpan()",
+    "a messaging consumer that extracts propagated trace context from each message header in a batch and passes the extracted contexts as links instead of setting a parent"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "traceId",
+      "description": "W3C trace ID of the linked span, a 32-character lowercase hex string (16 bytes); always set, and it may differ from the owning span's trace."
+    },
+    {
+      "name": "spanId",
+      "description": "Span ID of the linked span, a 16-character lowercase hex string (8 bytes); always set to identify the exact target span."
+    },
+    {
+      "name": "traceState",
+      "description": "W3C tracestate value (comma-separated vendor key=value list) carried by the linked span context; set only when the linked context propagated a non-empty tracestate."
+    },
+    {
+      "name": "droppedAttributesCount",
+      "description": "Number of attributes on this link that the SDK discarded because of attribute limits (e.g., the per-link attribute count limit); set to 0 when none were dropped."
+    }
+  ],
+  "notes": "Missing OTLP Link 'flags' (sampled/isRemote). traceId/spanId duplicate the references→apm.span relationship; state which one is authoritative. The definition says 'different trace', but links may target spans in the same trace. On Span, droppedLinksCount and droppedEventsCount are typed string while droppedAttributesCount is integer; use integer for all three.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.224Z"
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinteraction depends-on Applicationservice",
-  "description": "Defines relationship: application.applicationinteraction depends-on application.applicationservice",
+  "description": "The interaction calls on another application service's operations to complete one or more of its steps, so it cannot finish if that service is unavailable.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A saga step or choreography handler invokes the service's client, endpoint or RPC method, or the interaction's specification lists the service as a required dependency."
+  ]
 }

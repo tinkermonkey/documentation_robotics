@@ -72,8 +72,9 @@ describe("Dependency Tracing Commands", () => {
     expect(Array.isArray(incomingRefs)).toBe(true);
   });
 
-  it("should validate cross-layer reference direction", async () => {
-    // Higher layers should only reference lower layers
+  it("should resolve the target layer of every cross-layer reference", async () => {
+    // Direction follows the predicate, not the layer order (spec/DESIGN_CHARTER.md); only
+    // check that each target layer is a known layer.
     const applicationLayer = await model.getLayer("application");
     expect(applicationLayer).toBeDefined();
 
@@ -88,8 +89,6 @@ describe("Dependency Tracing Commands", () => {
         // Extract layer from target element ID
         const [targetLayer] = ref.target.split(".");
 
-        // Application (layer 4) should only reference lower layers (1-3)
-        const appIndex = 4;
         const targetIndex = getLayerIndex(targetLayer);
 
         // Validate that the target layer was found in the lookup table
@@ -97,9 +96,6 @@ describe("Dependency Tracing Commands", () => {
           0,
           `Could not find layer index for target layer "${targetLayer}" from element ${element.id}`
         );
-
-        // Now verify the cross-layer direction rule
-        expect(targetIndex).toBeLessThan(appIndex);
       }
     }
   });

@@ -1,0 +1,44 @@
+{
+  "source": "security.validationrule",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.057Z",
+  "relationships": [
+    {
+      "id": "security.validationrule.constrains.security.accesscondition",
+      "previous_description": "Defines relationship: security.validationrule constrains security.accesscondition",
+      "description": "The validation rule restricts which values the access condition's tested request-context attribute or comparison operand may legitimately take, so malformed or out-of-range input is rejected before the condition is evaluated.",
+      "evidence": "The validation schema (e.g. a regex, enum or range declaration) is attached to the same request attribute or claim name that the access condition's predicate references, and the validator runs ahead of the condition in the request pipeline."
+    },
+    {
+      "id": "security.validationrule.constrains.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: security.validationrule constrains security.fieldaccesscontrol",
+      "description": "The validation rule limits the format, length or allowed values of the protected field governed by the field access control, so the masking, hashing or tokenization strategy only ever operates on well-formed values.",
+      "evidence": "The field's validation annotation or schema constraint (e.g. @Pattern, maxLength) is declared on the same property or column that the field access control's masking or redaction configuration targets."
+    },
+    {
+      "id": "security.validationrule.enforces-requirement.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: security.validationrule enforces-requirement security.fieldaccesscontrol",
+      "description": "The validation rule actively enforces an input requirement stated by the field access control, such as rejecting values whose format would break the declared masking, truncation or tokenization of that field.",
+      "evidence": "The field access control's specification or design document lists a required input format, and a validator on that field rejects violating writes with the rule's violation message and severity."
+    },
+    {
+      "id": "security.validationrule.enforces-requirement.security.securityconstraints",
+      "previous_description": "Defines relationship: security.validationrule enforces-requirement security.securityconstraints",
+      "description": "The validation rule enforces a value-level requirement raised by the duty and need-to-know constraints of the security constraints container, for example checking that a declared purpose or approver attribute is present and well-formed.",
+      "evidence": "A NeedToKnow, SeparationOfDuty or BindingOfDuty definition in the security constraints names a required request attribute, and a validation rule on that attribute is registered in the same security model."
+    },
+    {
+      "id": "security.validationrule.realizes.security.policyrule",
+      "previous_description": "Defines relationship: security.validationrule realizes security.policyrule",
+      "description": "The validation rule provides the concrete input check through which part of the policy rule's intent is carried out, so that a request failing validation is handled in line with the rule's deny effect.",
+      "evidence": "The policy rule's condition or obligation references the validation rule by identifier, and the enforcement point invokes the validator as the implementation of that rule before returning the permit or deny decision."
+    },
+    {
+      "id": "security.validationrule.supports.security.securitypolicy",
+      "previous_description": "Defines relationship: security.validationrule supports security.securitypolicy",
+      "description": "The validation rule contributes to the security policy's protection of its target category by guaranteeing that inputs reaching the policy's rules are sanitized and within expected bounds.",
+      "evidence": "The security policy definition or its target endpoint configuration lists the validation rule among its pre-evaluation input checks, and both are bound to the same endpoint, service or resource."
+    }
+  ],
+  "notes": "constrains and enforces-requirement toward FieldAccessControl largely overlap; keep one. ValidationRule realizes PolicyRule is doubtful: validation rules accept/reject values and explicitly do not decide access, while PolicyRule yields access decisions. Enforcing SecurityConstraints (procedural duty rules) and constraining AccessCondition are weak fits for a value-validation construct."
+}

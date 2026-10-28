@@ -2,7 +2,7 @@
   "id": "api",
   "number": 7,
   "name": "API Layer",
-  "description": "Layer 7: API Layer",
+  "description": "Describes the HTTP API surface the application exposes or consumes: the API document and its servers, paths and operations, parameters, request bodies and responses, media types, headers, links and callbacks, reusable components and schemas, security schemes and webhooks (OpenAPI 3.0). Route handlers, controllers and generated API clients are evidence for elements here; the application behaviour behind an operation belongs to the application layer.",
   "inspired_by": {
     "standard": "OpenAPI 3.0",
     "version": "3.0",

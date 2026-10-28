@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction realizes Applicationservice",
-  "description": "Defines relationship: application.applicationfunction realizes application.applicationservice",
+  "description": "The application function is the internal behavior that concretely implements the operations the application service exposes to its consumers.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The service interface or API contract is implemented by classes or methods belonging to the function, for example a service implementation class that contains the function's logic."
+  ]
 }

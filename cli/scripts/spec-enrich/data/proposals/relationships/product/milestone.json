@@ -1,0 +1,14 @@
+{
+  "source": "product.milestone",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.082Z",
+  "relationships": [
+    {
+      "id": "product.milestone.precedes.product.milestone",
+      "previous_description": "Defines relationship: product.milestone precedes product.milestone",
+      "description": "The earlier delivery target, such as a release or roadmap phase, is scheduled to be reached before the later one, so the later milestone's scope and date are sequenced after it on the roadmap.",
+      "evidence": "A roadmap or release plan (e.g. a Jira fix-version list, GitHub milestone set or roadmap document) shows the first milestone with an earlier target date or an explicit 'after'/'depends on' ordering ahead of the second, for example v1.2 dated before v1.3."
+    }
+  ],
+  "notes": ""
+}

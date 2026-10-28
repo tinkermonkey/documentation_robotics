@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "data-model.schemacomposition",
+  "previous_description": "Combines multiple schemas using boolean logic. allOf requires all subschemas to validate; anyOf requires at least one; oneOf requires exactly one; not inverts the result of the subschema.",
+  "definition": "A schema node whose validation outcome is computed by applying boolean logic (allOf, anyOf, oneOf, not) to the outcomes of one or more subschemas, rather than by constraining the instance's type, properties, items, length or bounds directly. In code it corresponds to union, intersection, discriminated-variant or negation types built from other data types.",
+  "distinguish_from": [
+    {
+      "type": "data-model.reference",
+      "when": "the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition."
+    },
+    {
+      "type": "data-model.objectschema",
+      "when": "the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf)."
+    },
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition that aggregates a composition."
+    },
+    {
+      "type": "data-model.stringschema",
+      "when": "a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas."
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 (draft-handrews-json-schema-validation-01) §6.7 Keywords for Applying Subschemas With Boolean Logic (allOf, anyOf, oneOf, not)",
+  "code_evidence": [
+    "A TypeScript union or intersection type alias (type Payment = Card | BankTransfer; type Admin = User & Permissions), or a Python Union[...]/Annotated discriminated union field in a Pydantic model",
+    "Serialization polymorphism annotations such as Jackson @JsonTypeInfo/@JsonSubTypes, a Pydantic Field(discriminator=...), or OpenAPI/JSON Schema files containing allOf, anyOf, oneOf or not keys",
+    "Validator-library combinators that join other schemas: zod z.union/z.discriminatedUnion/z.intersection/.and(), Joi alternatives().try(), or io-ts t.union/t.intersection"
+  ],
+  "attribute_descriptions": [],
+  "notes": "No discriminator attribute exists for oneOf variants (OpenAPI discriminator, Pydantic discriminator), so tagged unions lose their tag. The 'not' attribute is typed string but holds a subschema; the outgoing composes relationships carry the real link. No composes edge to data-model.reference, although subschemas are usually $refs. Draft 7 if/then/else conditional keywords have no home type.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

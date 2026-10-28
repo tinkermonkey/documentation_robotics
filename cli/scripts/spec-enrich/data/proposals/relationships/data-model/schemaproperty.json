@@ -1,0 +1,68 @@
+{
+  "source": "data-model.schemaproperty",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.085Z",
+  "relationships": [
+    {
+      "id": "data-model.schemaproperty.maps-to.api.parameter",
+      "previous_description": "Defines relationship: data-model.schemaproperty maps-to api.parameter",
+      "description": "The entity or DTO field supplies the value carried by an API operation's path, query, header or cookie parameter, so the parameter is the transport-level projection of that field.",
+      "evidence": "An OpenAPI parameter whose name matches the property and whose schema $refs or copies the property's subschema, or a controller binding such as @PathVariable or @RequestParam that populates that model field."
+    },
+    {
+      "id": "data-model.schemaproperty.references.data-model.arrayschema",
+      "previous_description": "Defines relationship: data-model.schemaproperty references data-model.arrayschema",
+      "description": "The field's value is a list, and the array subschema defines the item type, cardinality bounds and uniqueness that the field's collection value must obey.",
+      "evidence": "The property entry under 'properties' declares type 'array' with items or minItems, or $refs an array schema, matching a List or array-typed field in the entity class."
+    },
+    {
+      "id": "data-model.schemaproperty.references.data-model.numericschema",
+      "previous_description": "Defines relationship: data-model.schemaproperty references data-model.numericschema",
+      "description": "The field holds a number or integer whose permitted value range and step are defined by the referenced numeric subschema.",
+      "evidence": "The property entry declares type 'number' or 'integer' with minimum, maximum, exclusive bounds or multipleOf, or a $ref to such a schema, matching numeric field annotations like @Min/@Max."
+    },
+    {
+      "id": "data-model.schemaproperty.references.data-model.objectschema",
+      "previous_description": "Defines relationship: data-model.schemaproperty references data-model.objectschema",
+      "description": "The field holds a nested structured record whose own properties and required set are defined by the referenced object schema.",
+      "evidence": "The property entry declares type 'object' with its own properties or $refs an object schema, corresponding to a field typed as another entity, embedded value object or nested DTO class."
+    },
+    {
+      "id": "data-model.schemaproperty.references.data-model.schemadefinition",
+      "previous_description": "Defines relationship: data-model.schemaproperty references data-model.schemadefinition",
+      "description": "The field reuses a named shared type, such as an entity, value object or enumeration, by pointing to its reusable definition rather than declaring its schema inline.",
+      "evidence": "The property entry contains '$ref: #/definitions/{name}' resolving to an entry under the document's 'definitions' keyword, mirroring a field typed with that shared class or enum."
+    },
+    {
+      "id": "data-model.schemaproperty.references.data-model.stringschema",
+      "previous_description": "Defines relationship: data-model.schemaproperty references data-model.stringschema",
+      "description": "The field holds text whose length limits, pattern or format are governed by the referenced string subschema.",
+      "evidence": "The property entry declares type 'string' together with minLength, maxLength, pattern or format, or $refs such a schema, matching annotations like @Size or @Pattern on the field."
+    },
+    {
+      "id": "data-model.schemaproperty.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: data-model.schemaproperty satisfies motivation.constraint",
+      "description": "The field's shape, such as a mandated identifier format, retention-driven attribute or jurisdiction-required element, is defined so that the data model complies with a stated restriction on the solution.",
+      "evidence": "A decision record, policy or requirement text citing the restriction is linked from the property's description or annotation, and the property's type, format or enum matches what the restriction mandates."
+    },
+    {
+      "id": "data-model.schemaproperty.satisfies.security.dataclassification",
+      "previous_description": "Defines relationship: data-model.schemaproperty satisfies security.dataclassification",
+      "description": "The field is labelled with a sensitivity tier and its declared handling, for instance encryption or write-only exposure, meets the minimum protection obligations of that tier.",
+      "evidence": "The property carries a classification annotation or extension such as x-classification: confidential, and the ORM mapping or schema shows the required protection, for example an encrypted-column converter or writeOnly flag."
+    },
+    {
+      "id": "data-model.schemaproperty.satisfies.security.fieldaccesscontrol",
+      "previous_description": "Defines relationship: data-model.schemaproperty satisfies security.fieldaccesscontrol",
+      "description": "The field is the named attribute whose exposure is masked, redacted, hashed or tokenized by a field-level protection rule, and its schema accommodates the protected representation.",
+      "evidence": "A security policy or serializer configuration names the property, such as a @JsonMask or redaction rule targeting that field path, and the property schema allows the masked format returned to unprivileged principals."
+    },
+    {
+      "id": "data-model.schemaproperty.satisfies.security.validationrule",
+      "previous_description": "Defines relationship: data-model.schemaproperty satisfies security.validationrule",
+      "description": "The field's subschema restrictions encode the input-validation check, such as a regex, range, length limit or allowed-value list, that values of that field must pass.",
+      "evidence": "The property's pattern, minimum/maximum, maxLength or enum keywords, or a bean-validation annotation on the field, equal the constraint and message declared in the validation rule."
+    }
+  ],
+  "notes": "The five 'references' relationships treat the property's own value subschema as a separate referenced element, yet the property has no meaning apart from it; 'composes' or a typed-by predicate may fit better. satisfies→validationrule overlaps with references→string/numericschema, since both express the same value restrictions."
+}

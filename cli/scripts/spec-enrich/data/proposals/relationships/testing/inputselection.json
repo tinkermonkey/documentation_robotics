@@ -1,0 +1,26 @@
+{
+  "source": "testing.inputselection",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.046Z",
+  "relationships": [
+    {
+      "id": "testing.inputselection.references.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.inputselection references testing.coveragerequirement",
+      "description": "An input selection may point to the coverage criterion (such as boundary-values or pairwise) that motivated choosing this particular partition and datum, documenting which design rule the test case's input contributes toward satisfying.",
+      "evidence": "The input selection entry in the test coverage model YAML carries a coverage-requirement id field (e.g. 'satisfiesRequirement: boundary-values-amount') that resolves to a coverage requirement declared under the same target."
+    },
+    {
+      "id": "testing.inputselection.references.testing.partitionvalue",
+      "previous_description": "Defines relationship: testing.inputselection references testing.partitionvalue",
+      "description": "An input selection names the specific equivalence or boundary class of its input field from which the test case's submitted datum is drawn, recording which class the test exercises.",
+      "evidence": "The input selection's partition-value reference resolves to a value entry inside the input space partition for the same field, and the selected datum satisfies that partition value's boundary condition."
+    },
+    {
+      "id": "testing.inputselection.references.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.inputselection references testing.testcoveragetarget",
+      "description": "An input selection points back to the coverage target, the production artifact under test, whose partitioned input field it is binding a value for within its owning test case sketch.",
+      "evidence": "The input selection's target reference matches the id of the test coverage target that owns both the enclosing test case sketch and the input field being bound in the coverage model document."
+    }
+  ],
+  "notes": "The reference to TestCoverageTarget looks redundant: the owning TestCaseSketch already attaches to exactly one target, and PartitionValue reaches it via InputSpacePartition, so the link is derivable and risks inconsistency. The CoverageRequirement reference is better placed on the TestCaseSketch, since requirements apply to combinations of selections, not single bindings."
+}

@@ -1,0 +1,50 @@
+{
+  "spec_node_id": "ux.actioncomponent",
+  "previous_description": "Interactive element that triggers actions (button, menu, link, voice command)",
+  "definition": "A user-operable control (button, hyperlink, menu entry, icon button or spoken command) whose activation starts an operation, a navigation or a state change. It is the trigger point that user input reaches, as opposed to the input fields, display components or layout containers around it.",
+  "distinguish_from": [
+    {
+      "type": "ux.actionpattern",
+      "when": "you are modelling the reusable trigger-plus-feedback behaviour (e.g. confirm-and-delete) that many controls share, rather than one concrete control in the interface"
+    },
+    {
+      "type": "ux.librarycomponent",
+      "when": "the symbol is the generic, reusable Button/Link/Menu definition in a design system with a props schema, rather than a specific control that triggers a specific action"
+    },
+    {
+      "type": "ux.componentinstance",
+      "when": "the element is a configured placement of a non-action library component (table, chart, display, input) inside a View or SubView"
+    },
+    {
+      "type": "ux.statetransition",
+      "when": "you are modelling the state-machine edge that the activation causes (trigger event, destination state, guard), not the control the user operates"
+    }
+  ],
+  "standard_reference": "HTML 5.3 interactive content: the button element, the a element with href, and the menu element",
+  "code_evidence": [
+    "A <button>, <a href> or design-system <Button>/<IconButton>/<Link> element rendered in a template with an onClick/onSelect/@click handler or a router 'to' target",
+    "A menu or toolbar configuration array whose entries carry a label, icon and handler or command id (e.g. items: [{label:'Delete', icon:'trash', onClick: ...}])",
+    "A voice or chat intent or command registration (e.g. an Alexa intent handler or a slash-command definition) that maps an utterance to an action invocation"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "label",
+      "description": "The visible text or accessible name of the control (the button text, link text or spoken phrase). Set it whenever the control is not icon-only; for icon-only controls, set it to the aria-label value."
+    },
+    {
+      "name": "icon",
+      "description": "Identifier of the icon displayed on the control, as a design-system icon name or asset path (e.g. 'trash', 'mdi-plus'). Set it when the control shows a glyph."
+    },
+    {
+      "name": "disabled",
+      "description": "When true, the control is rendered but cannot be activated, corresponding to the HTML disabled attribute or aria-disabled. Set it only when the control is statically disabled; state-dependent disabling belongs on ExperienceState.disabledComponents."
+    },
+    {
+      "name": "tooltip",
+      "description": "Short helper text shown on hover or focus, corresponding to the HTML title attribute or a tooltip component. Set it when the control's purpose is not obvious from its label or icon."
+    }
+  ],
+  "notes": "The validations attribute fits poorly: HTML Constraint Validation applies to form-associated input controls, not buttons or links, and the layer has no input-field type to hold it. The style values 'link' and 'icon' duplicate the type values 'link' and 'icon-button'. 'menu' is a container of actions and arguably needs child items. The renders→librarycomponent relationship blurs the type/instance boundary.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.201Z"
+}

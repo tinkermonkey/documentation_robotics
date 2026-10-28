@@ -1,0 +1,32 @@
+{
+  "source": "navigation.breadcrumbconfig",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.082Z",
+  "relationships": [
+    {
+      "id": "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph",
+      "previous_description": "Defines relationship: navigation.breadcrumbconfig associated-with navigation.navigationgraph",
+      "description": "The breadcrumb configuration is scoped to one application's router configuration, so its label resolution, home link, separator and truncation rules apply to every route that router can reach.",
+      "evidence": "The router bootstrap file registers the breadcrumb settings object, or passes it as an option to the breadcrumb plugin, against the same router instance that holds the top-level route table."
+    },
+    {
+      "id": "navigation.breadcrumbconfig.provides.navigation.routemeta",
+      "previous_description": "Defines relationship: navigation.breadcrumbconfig provides navigation.routemeta",
+      "description": "The breadcrumb configuration supplies the default breadcrumb behaviour, such as the label key convention and fallback label, that each route's metadata record inherits unless the route sets its own breadcrumb label.",
+      "evidence": "The breadcrumb resolver merges the config's default label or label-key setting into each route's meta object when the route meta omits a breadcrumb field, and this is visible in the resolver code or its typed meta interface."
+    },
+    {
+      "id": "navigation.breadcrumbconfig.references.navigation.route",
+      "previous_description": "Defines relationship: navigation.breadcrumbconfig references navigation.route",
+      "description": "The breadcrumb configuration points at a specific client-side route, for example as the home link target or as an explicitly excluded or overridden crumb, without depending on that route to function.",
+      "evidence": "The breadcrumb config declares a route name or path, such as a homeRoute or excludeRoutes entry, that matches a named entry in the front-end route table."
+    },
+    {
+      "id": "navigation.breadcrumbconfig.tracks.navigation.navigationflow",
+      "previous_description": "Defines relationship: navigation.breadcrumbconfig tracks navigation.navigationflow",
+      "description": "The breadcrumb configuration follows the user's position within a multi-step journey such as checkout or onboarding, so the trail shows the steps already completed and the current step of that flow.",
+      "evidence": "The breadcrumb component or config subscribes to the flow's current-step state, or maps the flow's ordered FlowSteps to crumbs, and this appears in the flow definition or the breadcrumb state selector."
+    }
+  ],
+  "notes": "provides→RouteMeta looks inverted, because RouteMeta normally supplies the breadcrumb label that BreadcrumbConfig consumes. associated-with→NavigationGraph is weak, since the graph's scope definition implies composition or aggregation. tracks→NavigationFlow borrows an APM predicate for UI progress display, and 'binds-to' or 'renders' may fit better."
+}

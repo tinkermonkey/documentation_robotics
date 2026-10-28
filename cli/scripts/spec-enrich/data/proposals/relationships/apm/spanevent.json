@@ -1,0 +1,50 @@
+{
+  "source": "apm.spanevent",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "apm.spanevent.depends-on.apm.instrumentationscope",
+      "previous_description": "Defines relationship: apm.spanevent depends-on apm.instrumentationscope",
+      "description": "The span event relies on the instrumentation scope of the tracer that created its parent span, because the event has no origin attribution of its own and gets its library identity only through that span.",
+      "evidence": "The code calling span.addEvent() or span.recordException() acts on a span started from a Tracer obtained via getTracer(name, version), and the exported OTLP ScopeSpans block that contains the span carries that scope name."
+    },
+    {
+      "id": "apm.spanevent.depends-on.apm.resource",
+      "previous_description": "Defines relationship: apm.spanevent depends-on apm.resource",
+      "description": "The span event is attributed to the service, host or process described by the SDK resource only because its parent span carries that resource; without the resource the occurrence cannot be placed on any producing entity.",
+      "evidence": "The exported OTLP ResourceSpans block that encloses the event's parent span lists the resource attributes, such as service.name and host.name, that the TracerProvider's Resource builder or detectors set."
+    },
+    {
+      "id": "apm.spanevent.depends-on.apm.traceconfiguration",
+      "previous_description": "Defines relationship: apm.spanevent depends-on apm.traceconfiguration",
+      "description": "Whether the span event is kept at all, and how many events and event attributes survive, depends on the tracer provider's configuration: its sampler decision for the parent span and its span limits on events.",
+      "evidence": "The TracerProvider setup or environment for the emitting service defines the sampler and SpanLimits settings that govern recorded events, such as OTEL_SPAN_EVENT_COUNT_LIMIT or setMaxNumberOfEvents."
+    },
+    {
+      "id": "apm.spanevent.flows-to.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.spanevent flows-to apm.exporterconfig",
+      "description": "When its parent span finishes, the span event is serialized inside that span and travels to the destination that the exporter configuration defines, using the configured endpoint and protocol.",
+      "evidence": "The span processor pipeline in the service's tracing setup, or the Collector traces pipeline, references the exporter whose endpoint receives OTLP spans whose events arrays contain the named event."
+    },
+    {
+      "id": "apm.spanevent.monitors.ux.actioncomponent",
+      "previous_description": "Defines relationship: apm.spanevent monitors ux.actioncomponent",
+      "description": "The span event marks the instant a user activated the action component during the traced operation, giving an observable record of that control's use.",
+      "evidence": "The control's click or command handler calls span.addEvent() with an event name or attributes identifying the button, link or menu entry, for example through RUM or user-interaction instrumentation."
+    },
+    {
+      "id": "apm.spanevent.references.apm.logrecord",
+      "previous_description": "Defines relationship: apm.spanevent references apm.logrecord",
+      "description": "The span event refers to the log record that describes the same occurrence, such as an exception logged and also recorded on the span, so the two signals can be correlated without either depending on the other.",
+      "evidence": "The same call site emits both span.recordException() or addEvent() and a logger call with a matching event name or message template, and the log record's trace_id and span_id point to the event's parent span."
+    },
+    {
+      "id": "apm.spanevent.triggers.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.spanevent triggers apm.metricinstrument",
+      "description": "Each time the notable occurrence is recorded as a span event, it causes a measurement to be recorded on the metric instrument, for example a retry event incrementing a retry counter.",
+      "evidence": "The code path that adds the event also calls counter.add() or histogram.record() on the named instrument, or a Collector spanmetrics/count connector is configured to derive that metric from the event name."
+    }
+  ],
+  "notes": "The depends-on links to InstrumentationScope and Resource are indirect: both attach to the parent span or batch, not to the event, so 'inherits via span' is more accurate. monitors→ActionComponent is doubtful because a span event records an occurrence rather than observing a UI control. triggers→MetricInstrument is usually co-emission, not causation."
+}

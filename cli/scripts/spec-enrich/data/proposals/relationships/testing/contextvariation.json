@@ -1,0 +1,26 @@
+{
+  "source": "testing.contextvariation",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:43:24.527Z",
+  "relationships": [
+    {
+      "id": "testing.contextvariation.depends-on.testing.contextvariation",
+      "previous_description": "Defines relationship: testing.contextvariation depends-on testing.contextvariation",
+      "description": "One test-design condition can only be exercised once another condition has been established or passed, as when a regression context presupposes a successful smoke context or a load context reuses the setup of a functional one.",
+      "evidence": "The test coverage model or test plan declares a prerequisite or 'requires' link from one named context variation to another, or the CI pipeline gates the suite for one context on the successful completion of the other's stage."
+    },
+    {
+      "id": "testing.contextvariation.references.testing.environmentfactor",
+      "previous_description": "Defines relationship: testing.contextvariation references testing.environmentfactor",
+      "description": "The test-design condition pins its concrete execution environment by naming an environmental factor, such as a specific OS, locale or dependency version, as one of the settings in force whenever tests run under that condition.",
+      "evidence": "The context variation entry in the coverage model lists the environment factor's identifier among its environment factors, or a test matrix or CI job for that context sets the factor's value, such as a pinned OS image or locale variable."
+    },
+    {
+      "id": "testing.contextvariation.serves.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.contextvariation serves testing.testcoveragetarget",
+      "description": "The test-design condition supplies one of the execution contexts in which the in-scope production artifact named by the coverage target must have its behaviour verified.",
+      "evidence": "The coverage target's entry in the test coverage model lists the context variation among its applicable contexts, or test cases for that target are tagged with the context's name and test type, such as 'load' or 'security'."
+    }
+  ],
+  "notes": "'serves' (ContextVariation→TestCoverageTarget) is an odd fit; the context does not provide a service to the target, it qualifies the conditions under which the target is tested. 'applies-to' or 'covers' would express this more accurately."
+}

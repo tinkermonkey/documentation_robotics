@@ -2,7 +2,7 @@
   "id": "ux",
   "number": 10,
   "name": "UX Layer",
-  "description": "Layer 10: UX Layer",
+  "description": "Models the user interface: views and screens, library components and their application-specific instances, forms, action and state patterns, component properties and the visual hierarchy they compose (HTML 5.3 vocabulary with component-library conventions). Rendered components, templates and view classes are evidence for elements here; the logic they call belongs to the application layer and the paths that reach them to the navigation layer.",
   "inspired_by": {
     "standard": "HTML 5.3",
     "version": "5.3",

@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.actionpattern",
+  "previous_description": "Reusable action configuration for common user interactions. Defines the trigger, feedback mechanism, and optional target for recurring UX patterns. Example: 'confirm-and-delete' pattern — trigger: click on delete button, feedback: confirmation modal then success toast, targetRef: the item being deleted.",
+  "definition": "A reusable interaction recipe that pairs a user input modality with a prescribed feedback sequence (toast, modal, route change, etc.) and is applied across multiple action components. It is not tied to one rendered control or one state, and is defined once to be reused wherever the same interaction recurs.",
+  "distinguish_from": [
+    {
+      "type": "ux.actioncomponent",
+      "when": "the element is a single concrete button, link, menu or voice command rendered in a view, rather than the shared interaction convention it follows."
+    },
+    {
+      "type": "ux.stateaction",
+      "when": "the element is one operation (navigate, submit, dispatch…) bound to a specific ExperienceState lifecycle hook, not a user-triggered interaction with feedback reused across components."
+    },
+    {
+      "type": "ux.statepattern",
+      "when": "the reusable thing is a multi-state machine (wizard, optimistic-update, tab-panel) with states and transitions, rather than a single trigger-and-feedback interaction."
+    },
+    {
+      "type": "ux.stateactiontemplate",
+      "when": "the reusable definition is a parameterized system-side operation executed during state transitions, with no user trigger or feedback mechanism."
+    }
+  ],
+  "standard_reference": null,
+  "code_evidence": [
+    "A shared hook or higher-order helper (e.g. useConfirmDelete, withConfirmation, useOptimisticAction) that wraps a click/keyboard handler with a confirmation modal and a success or error toast, and is imported by several components.",
+    "A design-system document or Storybook 'Patterns' page describing an interaction such as 'confirm-and-delete' or 'bulk select then act', with its trigger and the feedback the user sees.",
+    "A configuration map or registry of named interaction behaviours (e.g. actions: { delete: { confirm: true, toast: 'Deleted' } }) that buttons, table row actions or menus look up by key."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of the interaction sequence: what the user does, what feedback follows and in what order, and when the pattern applies. Set it whenever the name alone does not convey the steps, e.g. 'click delete → confirm modal → success toast'."
+    }
+  ],
+  "notes": "feedback is single-valued, but the canonical example (modal then toast) needs an ordered list. trigger enum (click|swipe|voice|keyboard) diverges from StateTransition.trigger values (voice vs voice-command). targetRef conflicts with reusability: a reusable pattern should not point at one instance. The governs→stateaction and stateaction uses→actionpattern relationships are redundant; one direction should be kept.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

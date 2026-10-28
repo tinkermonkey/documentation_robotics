@@ -1,0 +1,26 @@
+{
+  "source": "data-model.reference",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.103Z",
+  "relationships": [
+    {
+      "id": "data-model.reference.maps-to.application.applicationservice",
+      "previous_description": "Defines relationship: data-model.reference maps-to application.applicationservice",
+      "description": "The $ref usage site is traced to the application service whose operations accept or return instances of the type it points at, linking a reused data shape to the behavior that handles it.",
+      "evidence": "A mapping annotation on the $ref node (e.g. an x-service extension) or a traceability document names the application service, and that service's operation signatures use the type the $ref resolves to."
+    },
+    {
+      "id": "data-model.reference.maps-to.api.schema",
+      "previous_description": "Defines relationship: data-model.reference maps-to api.schema",
+      "description": "The $ref pointer in the data model corresponds to an OpenAPI schema, so the value it delegates to is exchanged over the API with the shape that API schema defines.",
+      "evidence": "The OpenAPI document contains a matching $ref (e.g. '#/components/schemas/Address') or an inline schema generated from or resolving to the same JSON Schema definition, as shown by a code-generation config or a shared schema file."
+    },
+    {
+      "id": "data-model.reference.references.data-model.schemadefinition",
+      "previous_description": "Defines relationship: data-model.reference references data-model.schemadefinition",
+      "description": "The $ref usage site points at the named reusable definition, which supplies all the validation rules applied to instances at that position.",
+      "evidence": "The $ref value (e.g. '#/definitions/Address') resolves through JSON Pointer evaluation to an existing entry under the document's 'definitions' keyword with that name."
+    }
+  ],
+  "notes": "maps-to application.applicationservice looks misplaced: a $ref adds no content of its own, so any service mapping belongs on the SchemaDefinition it resolves to. The same applies, less strongly, to maps-to api.schema, which duplicates what the resolved definition would map to."
+}

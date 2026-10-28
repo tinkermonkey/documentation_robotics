@@ -7,7 +7,7 @@
 
 import { RelationshipCatalog, RelationshipType } from "../core/relationship-catalog.js";
 import { ClassifiedRelationship } from "../core/report-data-model.js";
-import { getLayerOrder, isValidLayerName } from "../core/layers.js";
+import { isValidLayerName } from "../core/layers.js";
 import type { Relationship } from "../types/index.js";
 
 /**
@@ -255,21 +255,13 @@ export class RelationshipClassifier {
         warnings.push(`Predicate "${rel.predicate}" is symmetric but may be unidirectional`);
       }
 
-      // Check layer direction for cross-layer relationships
+      // Cross-layer relationships: both layers must exist. Direction is a property of the
+      // predicate, not of the layers (spec/DESIGN_CHARTER.md), so no hierarchy check.
       if (rel.isCrossLayer) {
-        // First check if both layers are valid
         if (!isValidLayerName(rel.sourceLayer) || !isValidLayerName(rel.targetLayer)) {
           warnings.push(
             `Cross-layer relationship references unknown layer(s): ${rel.sourceLayer} → ${rel.targetLayer}`
           );
-        } else {
-          // Only check hierarchy if both layers are known
-          const layerOrder = this.getLayerOrder(rel.sourceLayer, rel.targetLayer);
-          if (layerOrder < 0) {
-            warnings.push(
-              `Cross-layer relationship violates layer hierarchy: ${rel.sourceLayer} → ${rel.targetLayer}`
-            );
-          }
         }
       }
     }
@@ -376,14 +368,5 @@ export class RelationshipClassifier {
     }
 
     return RelationshipStrength.Medium;
-  }
-
-  /**
-   * Get layer ordering for compliance checking
-   */
-  private getLayerOrder(layer1: string, layer2: string): number {
-    const order1 = getLayerOrder(layer1);
-    const order2 = getLayerOrder(layer2);
-    return order1 - order2;
   }
 }

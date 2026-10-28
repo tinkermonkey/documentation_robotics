@@ -1,0 +1,14 @@
+{
+  "source": "api.license",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.047Z",
+  "relationships": [
+    {
+      "id": "api.license.associated-with.api.openapidocument",
+      "previous_description": "Defines relationship: api.license associated-with api.openapidocument",
+      "description": "The license declares the legal terms of use that apply to the API contract described by the OpenAPI document, attached to that document through its Info object.",
+      "evidence": "The openapi.yaml/json file contains an info.license block with a name (and optionally url or identifier) nested under the root document's info object."
+    }
+  ],
+  "notes": "Structurally, License is nested inside Info, which is composed into OpenAPIDocument, so this is really transitive containment. A composes relationship from License to Info, or reached through Info, would be more precise. A direct associated-with link to the document is redundant if the Info-to-document composition is already modeled."
+}

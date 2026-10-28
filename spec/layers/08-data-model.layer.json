@@ -2,11 +2,21 @@
   "id": "data-model",
   "number": 8,
   "name": "Data Model Layer",
-  "description": "Layer 8: Data Model Layer",
+  "description": "Defines the logical data model: object schemas and their properties, enumerations, validation rules and the relationships between entities, independent of any particular storage technology (JSON Schema Draft 7). Entity classes, ORM models, DTO and record types, and type definitions that describe domain data are evidence for elements here; how that data is persisted belongs to the data-store layer.",
   "inspired_by": {
     "standard": "JSON Schema Draft 7",
     "version": "Draft 7",
     "url": "https://json-schema.org/draft-07/"
   },
-  "node_types": []
+  "node_types": [
+    "data-model.arrayschema",
+    "data-model.jsonschema",
+    "data-model.numericschema",
+    "data-model.objectschema",
+    "data-model.reference",
+    "data-model.schemacomposition",
+    "data-model.schemadefinition",
+    "data-model.schemaproperty",
+    "data-model.stringschema"
+  ]
 }

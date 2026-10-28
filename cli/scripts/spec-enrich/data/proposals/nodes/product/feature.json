@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "product.feature",
+  "previous_description": "A user-visible unit of product functionality that delivers one or more capabilities",
+  "definition": "A unit of product functionality that a persona can directly perceive and invoke, such as a screen, command, setting or behaviour. It is described in user terms and can be prioritised, sized and scheduled on its own, and it realises one or more product capabilities.",
+  "distinguish_from": [
+    {
+      "type": "product.capability",
+      "when": "the element names an ability the product must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable"
+    },
+    {
+      "type": "product.userworkflow",
+      "when": "the element is a goal-directed sequence of user actions that passes through one or more features rather than a single piece of functionality"
+    },
+    {
+      "type": "product.workflowstep",
+      "when": "the element is one ordered action or experience within a specific user journey that exercises a feature, rather than the functionality itself"
+    },
+    {
+      "type": "product.milestone",
+      "when": "the element is a dated delivery target that groups features, rather than functionality the user interacts with"
+    }
+  ],
+  "standard_reference": "Product Management Practice: Feature (backlog/roadmap item). There is no direct ArchiMate 3.2 element; it is modelled as realising a Strategy Capability (§7.3.2).",
+  "code_evidence": [
+    "a feature-flag definition (e.g. LaunchDarkly, Unleash or a features.yml key) that gates a user-visible behaviour such as 'bulk-export' or 'dark-mode'",
+    "a Gherkin .feature file whose 'Feature:' block describes user-facing functionality with acceptance scenarios",
+    "a release-notes, changelog or user-guide entry announcing user-visible functionality (e.g. 'New: export reports to CSV') that is traceable to a set of routes, views or endpoints"
+  ],
+  "attribute_descriptions": [],
+  "notes": "Both 'realizes' and 'uses' edges to product.capability exist without guidance on when to use each; define them, or drop 'uses'. The 'informational' priority value reads as a severity level and does not fit a deliverable. The 'size' enum lacks a stated scale (story points vs. effort). The depends-on self-relationship appears in both the outgoing and incoming lists.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.200Z"
+}

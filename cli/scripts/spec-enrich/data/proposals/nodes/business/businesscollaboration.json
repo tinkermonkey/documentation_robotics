@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businesscollaboration",
+  "previous_description": "An active structure element representing an aggregate of two or more BusinessRoles that work together to perform collective behavior (BusinessInteraction). The collaboration is meaningful only in the context of its participating roles.",
+  "definition": "An active structure element that is a temporary or permanent grouping of two or more BusinessRoles (or BusinessActors) jointly assigned to collective behavior that none of them performs alone. It has no identity apart from its participants: removing participants below two dissolves it.",
+  "distinguish_from": [
+    {
+      "type": "business.businessrole",
+      "when": "the element is a single set of responsibilities assignable to one actor, even if many actors may fill it"
+    },
+    {
+      "type": "business.businessactor",
+      "when": "the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines"
+    },
+    {
+      "type": "business.businessinteraction",
+      "when": "you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it"
+    },
+    {
+      "type": "business.contract",
+      "when": "you are modelling the recorded agreement binding the parties rather than the parties acting together"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.2.3 Business Collaboration",
+  "code_evidence": [
+    "a BPMN collaboration diagram or workflow definition declaring two or more participant pools/lanes (e.g. Buyer and Seller) that exchange messages within one flow",
+    "a domain class or config entity such as ReviewBoard, Partnership or JointVenture whose fields reference multiple distinct participant role types and which is used to gate a multi-party step (e.g. requires approvals from each role)",
+    "approval or sign-off rules (e.g. a four-eyes or dual-control policy) listing several named roles that must act together before a business step completes"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text prose describing the collaboration's purpose, its participating roles and the collective behavior it exists to perform; set whenever the element name alone does not make the participants and scope clear."
+    }
+  ],
+  "notes": "The 'composes' relationship to BusinessRole conflicts with ArchiMate, which uses aggregation because roles exist independently of the collaboration. ArchiMate 3.2 also allows actors as participants; the definition says only roles. 'performs' should map to ArchiMate assignment. BusinessInteraction's sibling definition misstates that functions are performed by actors.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.232Z"
+}

@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "security.securitypolicy",
+  "previous_description": "A named, prioritized security policy containing ordered evaluation rules that determine access control decisions for targeted resources or operations. Policies are evaluated in priority order with the highest-priority matching policy determining the outcome. Implements NIST SP 800-53 AC-1 policy requirements.",
+  "definition": "A named, prioritized container of ordered PolicyRules that together produce an access-control decision for one category of target (endpoint, service, data, user, role or resource). When several policies match, they are evaluated by priority. It corresponds to an XACML Policy, not to a single rule, condition or enforcement action.",
+  "distinguish_from": [
+    {
+      "type": "security.policyrule",
+      "when": "the element is a single condition-plus-effect (permit/deny) evaluation unit rather than a named, prioritized grouping of such units"
+    },
+    {
+      "type": "security.policyaction",
+      "when": "the element is the enforcement response (deny, log, rate-limit, mask, etc.) executed when a rule matches, not the policy that contains the rules"
+    },
+    {
+      "type": "security.securityconstraints",
+      "when": "the element groups procedural SeparationOfDuty, BindingOfDuty or NeedToKnow constraints rather than ordered access-decision rules"
+    },
+    {
+      "type": "security.securitymodel",
+      "when": "the element is the application-wide root aggregating authentication, roles, threats and all policies, rather than one targeted policy"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-1 (Policy and Procedures); XACML 3.0 Policy element",
+  "code_evidence": [
+    "A named policy file or block (OPA/Rego package, Cedar policy set, XACML <Policy>, Casbin policy, AWS IAM policy document) containing multiple allow/deny rules",
+    "A policy registry or middleware that loads named policies with an explicit priority, order or weight and evaluates them in sequence against a request",
+    "A configuration entry that pairs a list of rules with a target selector (route pattern, service name, data type) and carries an enabled or disabled flag"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of the policy's intent and the access decisions it governs; set it whenever the policy name alone does not convey its purpose."
+    },
+    {
+      "name": "enabled",
+      "description": "Boolean indicating whether the policy is currently active in evaluation; set it to false for policies that are defined but switched off, and omit it or set it to true otherwise."
+    },
+    {
+      "name": "priority",
+      "description": "Integer evaluation rank used to order policies against the same target, with higher values evaluated first and taking precedence when multiple policies match; always set it, using distinct values where order matters."
+    }
+  ],
+  "notes": "There is no rule- or policy-combining algorithm attribute (e.g., deny-overrides, first-applicable), which XACML requires. Priority direction, whether higher or lower wins, should be stated normatively. The 'target' attribute holds only a category; the concrete target identifier is missing. The duplicate 'mandates' and 'requires' edges to Countermeasure overlap. The AuthenticationConfig 'constrained-by' and PasswordPolicy 'governs' edges stretch the type beyond access decisions.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.226Z"
+}

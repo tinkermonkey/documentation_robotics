@@ -83,8 +83,8 @@ Activate when the user:
 
 **Outgoing (Testing → Other Layers):**
 
-- `motivation.supports-goals` → Motivation Layer (quality goals)
-- `motivation.fulfills-requirements` → Motivation Layer (test requirements)
+- `motivation.supports` → Motivation Layer (quality goals)
+- `motivation.fulfills` → Motivation Layer (test requirements)
 - `business.covers-process` → Business Layer (process coverage)
 - `api.tests-operation` → API Layer (API endpoint testing)
 - `data.validates-schema` → Data Model Layer (data validation)
@@ -149,9 +149,9 @@ properties:
     - network: [high-speed, low-speed, offline]
     - device: [desktop, mobile, tablet]
   motivation:
-    supports-goals:
+    supports:
       - motivation.goal.quality-assurance
-    fulfills-requirements:
+    fulfills:
       - motivation.requirement.comprehensive-testing
 ```
 
@@ -214,7 +214,7 @@ properties:
       token: JWT token present
       user: User object with id and email
   motivation:
-    supports-goals:
+    supports:
       - motivation.goal.secure-authentication
 ```
 

@@ -1,0 +1,122 @@
+{
+  "source": "navigation.navigationguard",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.075Z",
+  "relationships": [
+    {
+      "id": "navigation.navigationguard.accesses.data-store.collection",
+      "previous_description": "Defines relationship: navigation.navigationguard accesses data-store.collection",
+      "description": "The guard reads records from a persistent client-reachable store, such as an IndexedDB object store or a synced local cache, to obtain the state its decision depends on before letting the route activate.",
+      "evidence": "The guard function's body opens the named IndexedDB object store or local database collection and reads from it, for example via a get or query call, before returning its allow or deny result."
+    },
+    {
+      "id": "navigation.navigationguard.accesses.api.operation",
+      "previous_description": "Defines relationship: navigation.navigationguard accesses api.operation",
+      "description": "The guard calls a specific backend HTTP endpoint during route resolution, for example to fetch the current session, check entitlement or verify that a resource exists, and uses the response to allow or block the navigation.",
+      "evidence": "The guard's code issues a fetch, axios or generated-client call whose method and path match the operation in the OpenAPI document, and awaits it before resolving."
+    },
+    {
+      "id": "navigation.navigationguard.constrains.navigation.navigationtransition",
+      "previous_description": "Defines relationship: navigation.navigationguard constrains navigation.navigationtransition",
+      "description": "The guard restricts when a particular route-to-route move may complete, so that the transition is permitted only when the guard's check passes.",
+      "evidence": "The router configuration attaches the guard to the destination route or to a beforeEach hook that inspects both the from and to routes of that transition, and the guard returns false or a redirect for that from/to pair."
+    },
+    {
+      "id": "navigation.navigationguard.consumes.navigation.contextvariable",
+      "previous_description": "Defines relationship: navigation.navigationguard consumes navigation.contextvariable",
+      "description": "The guard reads a flow context value written by an earlier step, such as a cart ID or a completed-step marker, to decide whether the user may enter the target step.",
+      "evidence": "The guard's code reads the context variable's key from the declared storage mechanism (session storage, flow store or query string) and branches on its value."
+    },
+    {
+      "id": "navigation.navigationguard.evaluates.navigation.guardcondition",
+      "previous_description": "Defines relationship: navigation.navigationguard evaluates navigation.guardcondition",
+      "description": "On each intercepted navigation the guard runs this boolean predicate, honouring its timeout for asynchronous checks, and uses its true or false result as the allow-or-deny decision.",
+      "evidence": "The guard's implementation invokes the condition function, such as isAuthenticated() or hasFeature('x'), and returns or redirects based on its result, or the guard's declaration names the condition in its condition field."
+    },
+    {
+      "id": "navigation.navigationguard.implements.security.securitypolicy",
+      "previous_description": "Defines relationship: navigation.navigationguard implements security.securitypolicy",
+      "description": "The guard is the client-side enforcement point that applies an access-control policy's decision to route activation, hiding or blocking views the policy denies to the current user.",
+      "evidence": "The guard's code evaluates the rules of the named policy, or calls a policy-decision helper generated from it, and denies navigation when that policy yields a deny result."
+    },
+    {
+      "id": "navigation.navigationguard.intercepts.navigation.navigationflow",
+      "previous_description": "Defines relationship: navigation.navigationguard intercepts navigation.navigationflow",
+      "description": "The guard is registered on a multi-step flow so that every attempt to enter or advance within the flow passes through it first, for example to stop users from skipping checkout steps.",
+      "evidence": "The flow's route group or parent route declares the guard in its beforeEnter, canActivateChild or flow-level guard list, so the guard runs for all of the flow's step routes."
+    },
+    {
+      "id": "navigation.navigationguard.protects.navigation.route",
+      "previous_description": "Defines relationship: navigation.navigationguard protects navigation.route",
+      "description": "The guard stands in front of the route so that its view is rendered only for users or sessions that pass the guard's check.",
+      "evidence": "The route table entry lists the guard in its canActivate, beforeEnter or meta.guards property, or a global hook applies the guard to that route's path."
+    },
+    {
+      "id": "navigation.navigationguard.realizes.motivation.principle",
+      "previous_description": "Defines relationship: navigation.navigationguard realizes motivation.principle",
+      "description": "The guard is a concrete embodiment of an architectural principle, such as least privilege or protecting every screen by default, expressed as a route-level check.",
+      "evidence": "The guard's documentation or an architecture decision record cites the principle as the reason the guard exists, or the guard is applied globally in line with a default-deny convention."
+    },
+    {
+      "id": "navigation.navigationguard.references.business.businessrole",
+      "previous_description": "Defines relationship: navigation.navigationguard references business.businessrole",
+      "description": "The guard names an organizational responsibility, such as Approver or Claims Adjuster, as the audience for the routes it allows, without depending on the business layer to run.",
+      "evidence": "The guard's configuration or route metadata includes a role label that matches a business role in the business model, for example meta.audience: 'Approver'."
+    },
+    {
+      "id": "navigation.navigationguard.requires.security.role",
+      "previous_description": "Defines relationship: navigation.navigationguard requires security.role",
+      "description": "The guard lets navigation proceed only when the current user has been assigned the named security role.",
+      "evidence": "The guard's code or route metadata checks for the role identifier, for example user.roles.includes('admin') or data: { roles: ['admin'] }, against the token claims or session."
+    },
+    {
+      "id": "navigation.navigationguard.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: navigation.navigationguard satisfies motivation.constraint",
+      "description": "The guard exists to meet a recorded restriction, such as blocking access from a forbidden jurisdiction or requiring consent before data screens, by refusing navigation that would violate it.",
+      "evidence": "A decision record, compliance document or code comment links the guard to the constraint, and the guard's condition tests the restricted criterion, such as geolocation or consent status."
+    },
+    {
+      "id": "navigation.navigationguard.triggers.ux.experiencestate",
+      "previous_description": "Defines relationship: navigation.navigationguard triggers ux.experiencestate",
+      "description": "Running or resolving the guard moves the user experience's state machine into a particular state, for example loading while an asynchronous check is pending or error when access is denied.",
+      "evidence": "The guard's code dispatches a state-machine event or sets the state store, for example send('LOADING') or setState('denied'), while it is evaluating or after it denies."
+    },
+    {
+      "id": "navigation.navigationguard.triggers.navigation.guardaction",
+      "previous_description": "Defines relationship: navigation.navigationguard triggers navigation.guardaction",
+      "description": "When its condition fails, the guard runs this denial outcome, such as redirecting to login while preserving the attempted URL, cancelling in place or prompting for confirmation.",
+      "evidence": "The guard's failure branch returns the redirect UrlTree or path, calls next(false) or opens the confirm dialog, or the guard declaration names the action in its onDeny field."
+    },
+    {
+      "id": "navigation.navigationguard.uses.application.applicationservice",
+      "previous_description": "Defines relationship: navigation.navigationguard uses application.applicationservice",
+      "description": "The guard relies on an application service, such as an authentication, entitlement or feature-flag service, for the facts it needs to make its navigation decision.",
+      "evidence": "The guard injects or imports the service's client, for example inject(AuthService) or useFeatureFlags(), and calls one of its operations within the guard body."
+    },
+    {
+      "id": "navigation.navigationguard.uses.navigation.guardcondition",
+      "previous_description": "Defines relationship: navigation.navigationguard uses navigation.guardcondition",
+      "description": "The guard draws on a reusable condition definition as part of its logic, sharing that predicate with other guards rather than defining its own test.",
+      "evidence": "The guard module imports the shared condition function or references it by identifier in its guard declaration."
+    },
+    {
+      "id": "navigation.navigationguard.uses.data-model.objectschema",
+      "previous_description": "Defines relationship: navigation.navigationguard uses data-model.objectschema",
+      "description": "The guard relies on a structured data shape, such as the session, user profile or route metadata type, to interpret the data it checks.",
+      "evidence": "The guard's TypeScript signature or body uses the interface or model class generated from the schema, for example typing the fetched user as UserProfile, or validates data against that schema."
+    },
+    {
+      "id": "navigation.navigationguard.uses.api.securityscheme",
+      "previous_description": "Defines relationship: navigation.navigationguard uses api.securityscheme",
+      "description": "The guard depends on a declared credential mechanism, such as a bearer token or an OpenID Connect session, to determine whether the user is authenticated before allowing the route.",
+      "evidence": "The guard inspects or refreshes the credential defined by the scheme, for example checking that a bearer token in storage is valid or initiating the OIDC flow from the scheme's discovery URL."
+    },
+    {
+      "id": "navigation.navigationguard.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: navigation.navigationguard uses technology.systemsoftware",
+      "description": "The guard runs within a third-party platform, such as the browser runtime or the SPA framework and its router library, and depends on that platform's interception hooks to execute.",
+      "evidence": "The package manifest declares the router or framework dependency at a pinned version, and the guard is written against that library's guard API, such as CanActivateFn or beforeEach."
+    }
+  ],
+  "notes": "evaluates and uses toward guardcondition are redundant; keep evaluates. Accesses to data-store.collection is odd for client-side code unless the store is browser-local. Implements securitypolicy overstates what a client guard does; enforces fits better and real enforcement belongs on the server. Requires security.role overlaps with references businessrole. Uses systemsoftware stretches the type, since router libraries aren't system software."
+}

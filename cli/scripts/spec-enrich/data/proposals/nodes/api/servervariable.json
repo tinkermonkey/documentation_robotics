@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "api.servervariable",
+  "previous_description": "A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants.",
+  "definition": "A substitution rule for a single {placeholder} token in an api.server URL template. It declares the default value, used when no other value is supplied, and may restrict the token to an enumerated set of allowed values. It is identified by the placeholder name used as its key in the parent Server's variables map.",
+  "distinguish_from": [
+    {
+      "type": "api.server",
+      "when": "the element is the server URL template itself, or a concrete fixed base URL with no substitutable placeholder, rather than the definition of one placeholder within it."
+    },
+    {
+      "type": "api.parameter",
+      "when": "the placeholder sits in a path template such as /users/{id}, or is a query, header or cookie input. Such inputs are supplied per request by the caller, not when the client selects its base URL."
+    },
+    {
+      "type": "api.example",
+      "when": "the value is only an illustrative sample for a request, response or parameter, not a default or allowed value constraining a server URL token."
+    }
+  ],
+  "standard_reference": "OpenAPI 3.0 Server Variable Object",
+  "code_evidence": [
+    "An OpenAPI YAML/JSON 'servers' entry whose url contains {tenant} or {env}, with a matching 'variables' map entry declaring 'default' and optionally 'enum'.",
+    "A springdoc/swagger-annotations @ServerVariable(name=..., defaultValue=..., allowableValues=...) nested inside a @Server annotation. Alternatively, a FastAPI/swagger-jsdoc servers definition carrying a 'variables' dict.",
+    "A generated API client exposing a server_variables/serverVariables configuration map, with documented defaults and allowed values used to build the base URL."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Optional human-readable explanation of what the placeholder represents, such as tenant subdomain or deployment region; CommonMark is allowed. Set it whenever the variable's purpose is not obvious from its name."
+    }
+  ],
+  "notes": "Attribute 'enum' is typed string but OpenAPI requires a non-empty array of strings. There is no explicit name attribute, although the map key is the identity. The outgoing relationships 'serves api.operation', 'associated-with api.parameter' and 'references api.example' have no basis in OpenAPI. 'governs api.server' duplicates the inverse 'aggregates'. Review these relationships.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.202Z"
+}

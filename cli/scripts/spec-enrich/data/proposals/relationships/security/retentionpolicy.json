@@ -1,0 +1,38 @@
+{
+  "source": "security.retentionpolicy",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.100Z",
+  "relationships": [
+    {
+      "id": "security.retentionpolicy.constrains.security.informationentity",
+      "previous_description": "Defines relationship: security.retentionpolicy constrains security.informationentity",
+      "description": "The retention policy limits how long a category of information may or must be kept and dictates its storage location and disposal method once the retention period ends.",
+      "evidence": "The retention policy document or configuration names the information category (e.g. customer PII) in its scope, with a minimum retention period and a deletion or anonymization procedure."
+    },
+    {
+      "id": "security.retentionpolicy.governs.security.auditconfig",
+      "previous_description": "Defines relationship: security.retentionpolicy governs security.auditconfig",
+      "description": "The retention policy sets how long, where and by what disposal method the audit records produced by an audit logging configuration are kept, which the audit configuration itself does not decide.",
+      "evidence": "The log sink, bucket or SIEM index receiving the audit configuration's output has a retention period, archive tier and purge rule that match the values declared in the retention policy."
+    },
+    {
+      "id": "security.retentionpolicy.governs.security.evidence",
+      "previous_description": "Defines relationship: security.retentionpolicy governs security.evidence",
+      "description": "The retention policy determines how long a kind of proof artifact, such as a signed log, timestamp or audit trail, must be preserved to stay verifiable, and how it is disposed of afterwards.",
+      "evidence": "An evidence store's lifecycle or legal-hold configuration, such as an S3 Object Lock retention period or a WORM archive setting, applies the duration and disposal rule defined in the retention policy for that artifact type."
+    },
+    {
+      "id": "security.retentionpolicy.mandates.security.countermeasure",
+      "previous_description": "Defines relationship: security.retentionpolicy mandates security.countermeasure",
+      "description": "The retention policy obliges the organization to put a specific security control in place, for example immutable storage, encryption at rest or secure deletion, so that retained data is protected and disposed of as the policy requires.",
+      "evidence": "The policy text or a compliance control mapping lists the control as an obligation arising from the retention rule, and the control's record cites the policy as its source."
+    },
+    {
+      "id": "security.retentionpolicy.requires.security.countermeasure",
+      "previous_description": "Defines relationship: security.retentionpolicy requires security.countermeasure",
+      "description": "The retention policy depends on a security control being operational, for example tamper-proof archival or automated purge jobs, before it can actually be enforced on the retained data.",
+      "evidence": "The implementation of the retention rule, such as a lifecycle job or archive pipeline, calls or relies on the control's mechanism (e.g. a KMS key, WORM bucket or deletion service), and the policy is marked unenforceable without it."
+    }
+  ],
+  "notes": "The mandates and requires relationships to Countermeasure overlap heavily: both say the policy needs a control. Consider keeping mandates for the normative obligation and dropping requires, or redefining requires strictly as an operational dependency. Also, constrains on InformationEntity and governs on Evidence express similar lifecycle control."
+}

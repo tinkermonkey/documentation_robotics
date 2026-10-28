@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "security.needtoknow",
+  "previous_description": "Restricts access to a resource to only those actors whose stated purpose requires it, implementing the NIST SP 800-53 AC-3(3) mandatory access control principle. JustificationRequired enforces that actors must declare their purpose before access is granted.",
+  "definition": "A procedural access constraint that limits access to a named resource to actors whose declared business or operational purpose matches a stated objective, optionally requiring the actor to submit an explicit justification before access is granted. It gates access by purpose, not by identity, role or attribute match alone.",
+  "distinguish_from": [
+    {
+      "type": "security.informationright",
+      "when": "the rule grants specific operations on an information entity to a named actor under a constraint expression, with no purpose declaration involved."
+    },
+    {
+      "type": "security.accountabilityrequirement",
+      "when": "the purpose declaration is recorded as evidence that an action occurred, and is not checked as a gate before access."
+    },
+    {
+      "type": "security.accesscondition",
+      "when": "the check is a generic field/operator/value predicate on request context inside a PolicyRule chain, rather than a purpose-of-use restriction."
+    },
+    {
+      "type": "security.permission",
+      "when": "the element is an atomic action grant on a resource assigned to roles, with no justification or purpose requirement."
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AC-6 (Least Privilege, need-to-know) with AC-3 Access Enforcement; purpose specification per PT-3",
+  "code_evidence": [
+    "Middleware or an interceptor that rejects requests to a sensitive endpoint when a purpose or reason field (e.g. X-Access-Reason, purposeOfUse) is missing or not in an allowed set.",
+    "A UI dialog or 'break-glass' prompt that forces the user to enter or select a reason before showing a protected record such as a patient chart or customer PII.",
+    "A configuration map from resources to permitted purpose codes (e.g. HIPAA TREAT/PAYMENT/OPS), together with a denial message shown when the stated purpose does not match."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "resource",
+      "description": "Identifier of the protected resource or information entity (e.g. 'customer.pii' or '/api/patients/{id}') to which the need-to-know restriction applies; always set it to the same name used by the corresponding SecureResource or InformationEntity."
+    },
+    {
+      "name": "message",
+      "description": "Human-readable denial text returned or logged when an actor's stated purpose does not satisfy the objective or when a required justification is missing."
+    },
+    {
+      "name": "justificationRequired",
+      "description": "When true, the actor must supply an explicit purpose or justification before each access is evaluated; set it to false when the purpose is inferred from context such as role or assignment."
+    }
+  ],
+  "notes": "AC-3(3) is Mandatory Access Control (label-based), which does not describe purpose-based restriction; cite AC-6 and PT-3 instead. The 'resource' string duplicates the 'protects' relationship to InformationEntity. The name 'objective' collides with Actor.objectives; consider renaming it to 'purpose'. There is no attribute for a set of allowed purposes.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.223Z"
+}

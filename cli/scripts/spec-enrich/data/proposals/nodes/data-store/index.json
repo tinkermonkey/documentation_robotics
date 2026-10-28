@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "data-store.index",
+  "previous_description": "A database index for query optimization. Paradigm-neutral: covers B-tree and hash indexes (relational), compound and multikey indexes (document stores), vector approximate nearest neighbor indexes (HNSW, IVF), inverted indexes (search engines), geospatial indexes, and secondary indexes (wide-column stores).",
+  "definition": "A lookup structure the data store engine maintains alongside a collection's or view's records, keyed on one or more of its fields with a declared access method (B-tree, hash, inverted, ANN, geospatial and similar). Queries use it to locate matching entries without scanning the whole collection.",
+  "distinguish_from": [
+    {
+      "type": "data-store.validationrule",
+      "when": "the declaration is a PRIMARY KEY, UNIQUE or FOREIGN KEY constraint whose purpose is rejecting invalid data, even if the engine backs it with an implicit index; model a separate Index only when the index is declared explicitly."
+    },
+    {
+      "type": "data-store.collection",
+      "when": "the thing called an 'index' is itself the container of documents or vectors, such as an Elasticsearch/OpenSearch index (collectionType SEARCH_INDEX) or a Pinecone index, rather than an auxiliary structure over another container's fields."
+    },
+    {
+      "type": "data-store.accesspattern",
+      "when": "the code or documentation describes the shape of a read or write (key condition, filter, frequency) rather than a structure declared to the engine."
+    },
+    {
+      "type": "data-store.view",
+      "when": "the structure holds derived rows that are queried directly, such as a materialized view or continuous aggregate, rather than pointers back to the source records."
+    }
+  ],
+  "standard_reference": "None in ISO/IEC 9075: indexes are implementation-defined; the de facto reference is the vendor CREATE INDEX statement (e.g. PostgreSQL CREATE INDEX).",
+  "code_evidence": [
+    "A CREATE INDEX / CREATE UNIQUE INDEX statement (optionally with USING gin|hnsw|ivfflat or a WHERE predicate) in a migration script, or a migration-tool call such as op.create_index, add_index, or knex table.index().",
+    "An ORM or schema declaration of an index: Prisma @@index, Django Meta.indexes, SQLAlchemy Index(...) in __table_args__, JPA @Table(indexes=@Index(...)), or a Mongoose schema.index({...}) call.",
+    "Engine-specific index provisioning: a MongoDB createIndex({...}, {partialFilterExpression, sparse}) call, DynamoDB GlobalSecondaryIndexes/LocalSecondaryIndexes in CloudFormation or Terraform, or a Cassandra CREATE CUSTOM INDEX / SAI statement."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "unique",
+      "description": "Boolean that is true when the index rejects duplicate key values across indexed entries (CREATE UNIQUE INDEX, MongoDB {unique: true}); set it only when the index declaration itself enforces uniqueness, and otherwise leave it false or unset."
+    }
+  ],
+  "notes": "The method enum mixes access methods with key shapes: COMPOUND/MULTIKEY are orthogonal to BTREE. The fields attribute is a plain string, with no per-field sort direction or opclass. The Elasticsearch 'index' is claimed by both the collection and namespace definitions. Unique indexes overlap with ValidationRule UNIQUE. AccessPattern→Index has redundant aggregates and uses relationships.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

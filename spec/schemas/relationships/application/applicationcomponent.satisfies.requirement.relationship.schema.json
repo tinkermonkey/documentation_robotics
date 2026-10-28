@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent satisfies Requirement",
-  "description": "Defines relationship: application.applicationcomponent satisfies motivation.requirement",
+  "description": "The component meets the stated need, so the requirement is considered fulfilled by its delivered behaviour or qualities.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "A traceability matrix links the requirement ID to the component, and acceptance tests for that requirement pass against the component."
+  ]
 }

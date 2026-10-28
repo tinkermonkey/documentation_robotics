@@ -1,0 +1,98 @@
+{
+  "source": "ux.componentinstance",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.067Z",
+  "relationships": [
+    {
+      "id": "ux.componentinstance.accesses.application.applicationservice",
+      "previous_description": "Defines relationship: ux.componentinstance accesses application.applicationservice",
+      "description": "The placed component occurrence reads from or invokes operations of the application service, for example loading the records it displays or submitting the values the user enters through it.",
+      "evidence": "The component usage in the view template is wired to a hook, store action or client call that invokes a named operation of the application service, such as a useOrdersService().list() call feeding that instance's props."
+    },
+    {
+      "id": "ux.componentinstance.aggregates.ux.chartseries",
+      "previous_description": "Defines relationship: ux.componentinstance aggregates ux.chartseries",
+      "description": "The chart occurrence groups one or more series configurations, each plotting one value field of the chart's bound data, and the series definitions are reusable independently of this particular placement.",
+      "evidence": "The chart instance's props contain a series array, such as <LineChart series={[{field:'revenue', label:'Revenue', color:'#06c'}]}>, or the UX spec lists chartseries nodes under that instance."
+    },
+    {
+      "id": "ux.componentinstance.aggregates.ux.componentreference",
+      "previous_description": "Defines relationship: ux.componentinstance aggregates ux.componentreference",
+      "description": "The placed component holds the slot-filling declarations that state which library component or nested instance goes into each of its named slots.",
+      "evidence": "The UX spec lists componentreference entries naming a slot and a target specNodeId under the instance, or the markup passes named slot children, such as <Card header={<Toolbar/>}> or <template #header>."
+    },
+    {
+      "id": "ux.componentinstance.aggregates.ux.tablecolumn",
+      "previous_description": "Defines relationship: ux.componentinstance aggregates ux.tablecolumn",
+      "description": "The table-type occurrence holds the column definitions that bind each header label to a row field and set that column's width, alignment, sort and filter behavior for this usage.",
+      "evidence": "The table instance receives a columns prop listing field, header, width and sortable entries, such as <DataTable columns={[{field:'name', header:'Name'}]}>, or the spec nests tablecolumn nodes under the instance."
+    },
+    {
+      "id": "ux.componentinstance.binds-to.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.componentinstance binds-to ux.dataconfig",
+      "description": "The placed component draws its displayed or edited values from the data source and field path declared in the data-binding configuration.",
+      "evidence": "The instance's spec node references a dataConfig with a source and path, or the code passes data={useQuery('orders').data.items} or a store selector into that specific usage."
+    },
+    {
+      "id": "ux.componentinstance.implements.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.componentinstance implements ux.librarycomponent",
+      "description": "The placed occurrence is a concrete, configured usage of the reusable library component definition and must conform to that component's prop schema, slots and events.",
+      "evidence": "The instance's spec node carries a componentRef to the library component's id, or the view imports and renders that component, such as import { Button } from '@ds/button'."
+    },
+    {
+      "id": "ux.componentinstance.maps-to.data-model.objectschema",
+      "previous_description": "Defines relationship: ux.componentinstance maps-to data-model.objectschema",
+      "description": "The fields that the placed component shows or edits correspond to the properties of the object schema, so that each form field or display prop maps to a schema property.",
+      "evidence": "The instance's field bindings or form validation are generated from, or typed against, the schema, for example a form using zodResolver(OrderSchema) or props typed as Order from the JSON Schema."
+    },
+    {
+      "id": "ux.componentinstance.provides.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.componentinstance provides ux.componentinstance",
+      "description": "A parent occurrence supplies context, data or callbacks to a nested child occurrence, for example a form instance providing field state or a provider instance supplying a theme.",
+      "evidence": "The parent instance passes props, a context value or render-prop arguments to the child instance in the markup, such as <FormProvider value={form}><Field/></FormProvider>."
+    },
+    {
+      "id": "ux.componentinstance.realizes.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.componentinstance realizes ux.librarycomponent",
+      "description": "The placed occurrence makes the abstract library component concrete on a specific screen by supplying actual prop values and a render position.",
+      "evidence": "The view template renders the library component with concrete prop values, and the spec node's componentRef resolves to that library component's specNodeId."
+    },
+    {
+      "id": "ux.componentinstance.renders.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.componentinstance renders ux.actioncomponent",
+      "description": "The placed component displays a user-operable control, such as a button, link or menu entry, within its rendered output, and that control is where user activation starts an operation or navigation.",
+      "evidence": "The instance's markup or slot content contains the action control, such as <Toolbar><Button onClick={save}>Save</Button></Toolbar>, or the spec nests the actioncomponent under the instance."
+    },
+    {
+      "id": "ux.componentinstance.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.componentinstance renders ux.componentinstance",
+      "description": "The parent occurrence draws a nested child occurrence as part of its own rendered output, which forms the screen's component tree.",
+      "evidence": "The child component element appears inside the parent instance's JSX or template children, or the spec lists the child instance under the parent's children or slot entries."
+    },
+    {
+      "id": "ux.componentinstance.renders.ux.componentreference",
+      "previous_description": "Defines relationship: ux.componentinstance renders ux.componentreference",
+      "description": "The placed component draws the target named by the slot-filling declaration into the designated slot when it renders.",
+      "evidence": "The instance's render output includes the slot outlet, such as {props.header} or <slot name='header'>, and that outlet is filled by the component named in the componentreference."
+    },
+    {
+      "id": "ux.componentinstance.renders.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.componentinstance renders ux.layoutconfig",
+      "description": "The placed component arranges its children according to the layout rules for grid tracks, spacing, alignment and width constraints that the layout configuration declares.",
+      "evidence": "The instance carries a layout prop or class set, such as <Stack direction='row' gap={4}> or style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)'}}, or the spec attaches a layoutConfig to the instance."
+    },
+    {
+      "id": "ux.componentinstance.renders.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.componentinstance renders ux.librarycomponent",
+      "description": "The placed occurrence causes the library component's markup and behavior to be drawn on screen at this position, using this usage's prop values.",
+      "evidence": "The view's rendered tree or template contains the library component's element at this instance's position, as shown by the component tag in JSX or by the DOM produced in a snapshot test."
+    },
+    {
+      "id": "ux.componentinstance.uses.ux.errorconfig",
+      "previous_description": "Defines relationship: ux.componentinstance uses ux.errorconfig",
+      "description": "The placed component relies on the error display configuration to decide whether to notify the user when its data or action fails, how severe the notice is, and which message or fallback text to show.",
+      "evidence": "The instance is wrapped in, or passed, an error setting, such as <ErrorBoundary fallback='Could not load orders'> or onError={toast.error(msg)}, or its spec node references an errorConfig."
+    }
+  ],
+  "notes": "implements and realizes to librarycomponent are redundant, and renders librarycomponent also overlaps them. Keep one predicate, preferably realizes. renders layoutconfig is wrong because a layout config renders nothing, so applies fits better. aggregates and renders componentreference overlap. provides on a self-reference is vague. maps-to objectschema arguably belongs on dataconfig rather than on the instance."
+}

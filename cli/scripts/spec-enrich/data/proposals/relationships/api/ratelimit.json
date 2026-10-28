@@ -1,0 +1,68 @@
+{
+  "source": "api.ratelimit",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.073Z",
+  "relationships": [
+    {
+      "id": "api.ratelimit.associated-with.api.header",
+      "previous_description": "Defines relationship: api.ratelimit associated-with api.header",
+      "description": "The throttling policy is advertised to clients through a response header, such as X-RateLimit-Remaining or Retry-After, that reports the consumer's remaining quota, window reset time or back-off interval.",
+      "evidence": "The rate-limit extension in the OpenAPI document names the header, and the corresponding Response headers map declares that same X-RateLimit-* or Retry-After header."
+    },
+    {
+      "id": "api.ratelimit.associated-with.api.securityscheme",
+      "previous_description": "Defines relationship: api.ratelimit associated-with api.securityscheme",
+      "description": "The throttling policy derives its counting key from the credential presented under a security scheme, so the API key, bearer token subject or OAuth client ID identifies whose requests are counted.",
+      "evidence": "The rate-limit key configuration (for example key: header:X-API-Key or key: jwt.sub) refers to the credential defined by the security scheme under components.securitySchemes."
+    },
+    {
+      "id": "api.ratelimit.governs.api.operation",
+      "previous_description": "Defines relationship: api.ratelimit governs api.operation",
+      "description": "The throttling policy sets the request quota and window that a specific method-path operation must honor, and it determines when calls to that operation are rejected.",
+      "evidence": "The operation carries an x-ratelimit extension or references the policy, or a gateway policy file or throttle decorator on the route handler binds the limit to that method and path."
+    },
+    {
+      "id": "api.ratelimit.implements.security.countermeasure",
+      "previous_description": "Defines relationship: api.ratelimit implements security.countermeasure",
+      "description": "The throttling policy is the concrete API configuration that puts a recorded abuse-prevention or denial-of-service countermeasure into effect.",
+      "evidence": "The threat model or security register lists the countermeasure, such as brute-force or DoS throttling, with its implementation pointing to this rate-limit definition or the gateway configuration that deploys it."
+    },
+    {
+      "id": "api.ratelimit.satisfies.motivation.constraint",
+      "previous_description": "Defines relationship: api.ratelimit satisfies motivation.constraint",
+      "description": "The throttling policy keeps API usage within a stated restriction, such as a contractual tier quota, an upstream provider's usage cap or a cost ceiling, by enforcing a matching request cap.",
+      "evidence": "A decision record, SLA or contract clause states the usage limit, and the rate-limit's requests-per-window value is traced to or derived from that clause."
+    },
+    {
+      "id": "api.ratelimit.serves.api.operation",
+      "previous_description": "Defines relationship: api.ratelimit serves api.operation",
+      "description": "The throttling policy is applied in front of an operation as a shared protective service that meters every invocation of that method-path pair before the handler runs.",
+      "evidence": "The gateway or middleware configuration attaches the limiter to the operation's route, for example a Kong rate-limiting plugin scoped to that route or a throttle middleware registered on the handler."
+    },
+    {
+      "id": "api.ratelimit.serves.api.pathitem",
+      "previous_description": "Defines relationship: api.ratelimit serves api.pathitem",
+      "description": "The throttling policy applies across all methods under one URL path template and meters their combined traffic against a shared quota.",
+      "evidence": "The path item carries the rate-limit extension, or the gateway configuration scopes a limiter to the path pattern with no method qualifier."
+    },
+    {
+      "id": "api.ratelimit.specializes.api.ratelimit",
+      "previous_description": "Defines relationship: api.ratelimit specializes api.ratelimit",
+      "description": "A narrower throttling policy, such as a premium-tier or per-operation override, inherits the counting key and enforcement behavior of a broader base policy and changes only some parameters, such as the quota or window.",
+      "evidence": "The rate-limit definition declares an extends or base reference to another named policy, or a tier configuration overrides selected fields of a default limit."
+    },
+    {
+      "id": "api.ratelimit.triggers.api.response",
+      "previous_description": "Defines relationship: api.ratelimit triggers api.response",
+      "description": "Exceeding the throttling policy's quota causes the API to return a designated rejection response, typically HTTP 429 Too Many Requests with a Retry-After header.",
+      "evidence": "The operation's responses map declares a 429 (or 503) response tied to the limit, and the limiter middleware or gateway is configured to emit that status when the quota is exhausted."
+    },
+    {
+      "id": "api.ratelimit.uses.technology.systemsoftware",
+      "previous_description": "Defines relationship: api.ratelimit uses technology.systemsoftware",
+      "description": "The throttling policy is enforced through platform software, such as an API gateway, reverse proxy or Redis cache, that stores the request counters and applies the cap at runtime.",
+      "evidence": "The gateway, NGINX or Envoy configuration contains the limit_req or rate-limit filter for this policy, or the limiter library is configured with a Redis connection string for its counter store."
+    }
+  ],
+  "notes": "governs.api.operation and serves.api.operation overlap; both attach a limit to an operation. 'governs' fits the semantics better. 'serves' toward an operation or path item inverts the usual meaning: a rate limit restricts rather than provides functionality. Consider merging into governs/constrains."
+}

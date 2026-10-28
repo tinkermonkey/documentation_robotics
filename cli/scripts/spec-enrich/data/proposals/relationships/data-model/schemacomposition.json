@@ -1,0 +1,44 @@
+{
+  "source": "data-model.schemacomposition",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.074Z",
+  "relationships": [
+    {
+      "id": "data-model.schemacomposition.composes.data-model.arrayschema",
+      "previous_description": "Defines relationship: data-model.schemacomposition composes data-model.arrayschema",
+      "description": "The composite schema embeds the array-typed subschema as one of the branches of its allOf, anyOf, oneOf or not keyword, so that branch's list constraints count toward the combined validation outcome.",
+      "evidence": "The JSON Schema document contains an inline subschema with type 'array' directly inside the composition's allOf/anyOf/oneOf array or not keyword, or the code declares a union or intersection type with a list or array type as one of its members."
+    },
+    {
+      "id": "data-model.schemacomposition.composes.data-model.numericschema",
+      "previous_description": "Defines relationship: data-model.schemacomposition composes data-model.numericschema",
+      "description": "The composite schema embeds the number or integer subschema as a branch, so its bounds or multipleOf rule is one of the alternatives or conjuncts that decide whether an instance is valid.",
+      "evidence": "An inline subschema with type 'number' or 'integer' and keywords such as minimum, maximum or multipleOf appears as an element of the composition's allOf/anyOf/oneOf array or as its not operand."
+    },
+    {
+      "id": "data-model.schemacomposition.composes.data-model.objectschema",
+      "previous_description": "Defines relationship: data-model.schemacomposition composes data-model.objectschema",
+      "description": "The composite schema embeds the object subschema as a variant or conjunct, for example one record shape in a discriminated union or one mixin merged by allOf.",
+      "evidence": "An inline subschema with type 'object' and its own properties/required appears inside the composition's allOf/anyOf/oneOf or not keyword, or a sealed-class or tagged-union declaration lists the record type as a variant."
+    },
+    {
+      "id": "data-model.schemacomposition.composes.data-model.schemadefinition",
+      "previous_description": "Defines relationship: data-model.schemacomposition composes data-model.schemadefinition",
+      "description": "The composite schema builds its combined type from a named reusable definition, using it as one of the union, intersection or negated members.",
+      "evidence": "A branch of the composition's allOf/anyOf/oneOf array or not keyword is a '$ref: #/definitions/{name}' that resolves to the definition, or a code-level type alias such as 'type X = A | B' names the defined type as a member."
+    },
+    {
+      "id": "data-model.schemacomposition.composes.data-model.stringschema",
+      "previous_description": "Defines relationship: data-model.schemacomposition composes data-model.stringschema",
+      "description": "The composite schema embeds the constrained string subschema as a branch, so its pattern, format or length rule is one of the alternatives or conditions in the combined outcome.",
+      "evidence": "An inline subschema with type 'string' and at least one of minLength, maxLength, pattern or format appears as an element of the composition's allOf/anyOf/oneOf array or as its not operand."
+    },
+    {
+      "id": "data-model.schemacomposition.serves.application.applicationfunction",
+      "previous_description": "Defines relationship: data-model.schemacomposition serves application.applicationfunction",
+      "description": "The composite type gives the internal application function the polymorphic or combined data contract it validates, deserializes or branches on when it processes inputs or produces outputs.",
+      "evidence": "The function's code imports the union or intersection type as a parameter or return type, or calls a validator configured with the composed schema, for example a oneOf payload schema used by a handler that switches on the discriminator."
+    }
+  ],
+  "notes": "'composes' with SchemaDefinition is questionable: a named definition exists independently and is reused through $ref, so 'aggregates' or 'references' fits better than composition. 'serves' (behavioral) is odd for a passive schema; 'used-by' (the inverse of uses) or an ArchiMate access relationship from the function would express this more accurately."
+}

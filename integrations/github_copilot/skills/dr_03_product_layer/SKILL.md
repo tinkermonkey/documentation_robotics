@@ -51,6 +51,7 @@ This layer uses a **custom specification** designed for product planning, priori
 | **Capability**   | Product ability independent of implementation              | status (proposed, planned, developing, delivered, deprecated), properties                             |
 | **Feature**      | User-visible unit of functionality delivering capabilities | priority (critical, high, medium, low, informational), status, size (xs, s, m, l, xl)                 |
 | **UserWorkflow** | Sequence of user-facing steps to accomplish a goal         | complexity (simple, moderate, complex), properties                                                    |
+| **WorkflowStep** | One ordered, user-facing step within a UserWorkflow        | sequence, action, outcome, optional, properties                                                       |
 | **Milestone**    | Time-bound delivery target grouping features/capabilities  | status (proposed, planned, active, completed, cancelled)                                              |
 
 ---
@@ -59,17 +60,25 @@ This layer uses a **custom specification** designed for product planning, priori
 
 The Product layer models product structure and planning via these core relationships:
 
-| Source                 | Predicate       | Destination          | Cardinality  | Rationale                                      |
-| ---------------------- | --------------- | -------------------- | ------------ | ---------------------------------------------- |
-| `product.capability`   | `aggregates`    | `product.capability` | many-to-many | Capability decomposition into sub-capabilities |
-| `product.feature`      | `realizes`      | `product.capability` | many-to-many | Feature delivers a capability                  |
-| `product.feature`      | `serves`        | `product.persona`    | many-to-many | Feature targets a persona                      |
-| `product.feature`      | `scheduled-for` | `product.milestone`  | many-to-many | Feature assigned to delivery milestone         |
-| `product.capability`   | `scheduled-for` | `product.milestone`  | many-to-many | Capability assigned to milestone               |
-| `product.userworkflow` | `serves`        | `product.persona`    | many-to-many | Workflow designed for a persona                |
-| `product.userworkflow` | `composes`      | `product.feature`    | many-to-many | Workflow composed of features                  |
-| `product.milestone`    | `precedes`      | `product.milestone`  | many-to-many | Milestone sequencing                           |
-| `product.feature`      | `depends-on`    | `product.feature`    | many-to-many | Feature dependency                             |
+| Source                 | Predicate       | Destination            | Cardinality  | Rationale                                         |
+| ---------------------- | --------------- | ---------------------- | ------------ | ------------------------------------------------- |
+| `product.capability`   | `aggregates`    | `product.capability`   | many-to-many | Capability decomposition into sub-capabilities    |
+| `product.feature`      | `realizes`      | `product.capability`   | many-to-many | Feature delivers a capability                     |
+| `product.feature`      | `serves`        | `product.persona`      | many-to-many | Feature targets a persona                         |
+| `product.feature`      | `scheduled-for` | `product.milestone`    | many-to-many | Feature assigned to delivery milestone            |
+| `product.capability`   | `scheduled-for` | `product.milestone`    | many-to-many | Capability assigned to milestone                  |
+| `product.userworkflow` | `serves`        | `product.persona`      | many-to-many | Workflow designed for a persona                   |
+| `product.userworkflow` | `composes`      | `product.feature`      | many-to-many | Workflow composed of features                     |
+| `product.milestone`    | `precedes`      | `product.milestone`    | many-to-many | Milestone sequencing                              |
+| `product.feature`      | `depends-on`    | `product.feature`      | many-to-many | Feature dependency                                |
+| `product.feature`      | `uses`          | `product.capability`   | many-to-many | Feature consumes a capability it does not deliver |
+| `product.userworkflow` | `uses`          | `product.capability`   | many-to-many | Workflow relies on a capability                   |
+| `product.capability`   | `depends-on`    | `product.capability`   | many-to-many | Capability needs another capability               |
+| `product.userworkflow` | `composes`      | `product.workflowstep` | many-to-many | Workflow is made of ordered steps                 |
+| `product.workflowstep` | `flows-to`      | `product.workflowstep` | many-to-many | Step order                                        |
+| `product.workflowstep` | `uses`          | `product.feature`      | many-to-many | Step exercises a feature                          |
+| `product.workflowstep` | `uses`          | `product.capability`   | many-to-many | Step relies on a capability                       |
+| `product.workflowstep` | `serves`        | `product.persona`      | many-to-many | Step performed by / for a persona                 |
 
 ---
 
@@ -101,12 +110,21 @@ Product layer references Business layer to align with organizational services an
 
 ### Incoming References (Lower Layers → Product)
 
-Higher layers (Security through Testing) reference Product layer for feature-level concerns:
+Lower layers reference Product elements to record what implements, exposes or verifies them. These are the relationship schemas in the catalog (`dr catalog info <predicate>` to confirm):
 
-- Application → Feature: Application components implement features
-- UX → Feature: UI views render features
-- Testing → Feature: Test cases validate features
-- API → Feature: API operations expose features
+| Predicate  | Source                           | Target       | Rationale                                                             |
+| ---------- | -------------------------------- | ------------ | --------------------------------------------------------------------- |
+| `realizes` | application.applicationservice   | Capability   | A service is the technical realization of a capability                |
+| `realizes` | application.applicationcomponent | Capability   | A component realizes a (platform) capability                          |
+| `realizes` | technology.technologyservice     | Capability   | Infrastructure realizes a platform capability (e-mail, SMS, payments) |
+| `realizes` | application.applicationservice   | Feature      | A service implements a user-visible feature                           |
+| `realizes` | application.applicationcomponent | Feature      | A component implements a feature                                      |
+| `exposes`  | api.operation                    | Feature      | An API operation exposes a feature                                    |
+| `realizes` | ux.view                          | Feature      | A view realizes a feature in the UI                                   |
+| `realizes` | navigation.navigationflow        | UserWorkflow | A navigation flow is the technical form of a workflow                 |
+| `realizes` | navigation.flowstep              | WorkflowStep | A route-bound step realizes a product-level step                      |
+| `tests`    | testing.testcasesketch           | Feature      | A test case validates a feature                                       |
+| `covers`   | testing.testcoveragetarget       | Feature      | Coverage target covers a feature                                      |
 
 ---
 
@@ -190,6 +208,25 @@ A UserWorkflow is a **sequence of user-facing steps** through the product to acc
 - **Simple** - Linear flow, 2–3 steps, minimal decision points
 - **Moderate** - Multiple branches, 5–10 steps, some conditional logic
 - **Complex** - Many decision points, 10+ steps, cross-system integration
+
+---
+
+**Steps as elements (WorkflowStep):**
+
+Model the steps as `product.workflowstep` elements when you need to trace which feature or capability
+each step relies on, or to link steps to navigation routes. Example: a platform has the capability
+_Send email_; the _Password reset_ feature `uses` it; the _Password reset_ workflow composes steps:
+
+```
+UserWorkflow: "Password Reset"
+├── composes → WorkflowStep 1 "Request reset link"   (uses → Feature: Password Reset)
+├── composes → WorkflowStep 2 "Receive reset email"  (uses → Capability: Send Email)
+├── composes → WorkflowStep 3 "Choose new password"  (uses → Feature: Password Reset)
+└── realized-by ← NavigationFlow: "password-reset"    (its FlowSteps realize the WorkflowSteps)
+
+Capability: "Send Email"  ← realized-by application.applicationservice "EmailService"
+                          ← realized-by technology.technologyservice "SMTP relay"
+```
 
 ---
 

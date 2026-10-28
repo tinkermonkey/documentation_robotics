@@ -1,0 +1,38 @@
+{
+  "source": "ux.chartseries",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.104Z",
+  "relationships": [
+    {
+      "id": "ux.chartseries.accesses.data-store.collection",
+      "previous_description": "Defines relationship: ux.chartseries accesses data-store.collection",
+      "description": "The chart series reads the plotted values directly from the persistent collection (table, measurement or index) that holds the records behind its value and category fields.",
+      "evidence": "The series' value-field or data source configuration names the physical collection, e.g. a dashboard query or series definition referencing the time-series measurement or table by name."
+    },
+    {
+      "id": "ux.chartseries.binds-to.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.chartseries binds-to ux.dataconfig",
+      "description": "The chart series takes its value and category fields from the data-binding declaration that selects the field path within the chart's bound data source.",
+      "evidence": "The series spec declares a dataConfig or binding reference, such as a field path like 'data.revenue', that resolves to the DataConfig attached to the parent chart."
+    },
+    {
+      "id": "ux.chartseries.maps-to.data-model.arrayschema",
+      "previous_description": "Defines relationship: ux.chartseries maps-to data-model.arrayschema",
+      "description": "The chart series plots the elements of an array-typed data shape, so each item described by the array schema becomes one data point of the series.",
+      "evidence": "The series' bound field path points to a JSON Schema property of type 'array' whose item schema defines the value and category fields named in the series configuration."
+    },
+    {
+      "id": "ux.chartseries.references.ux.librarycomponent",
+      "previous_description": "Defines relationship: ux.chartseries references ux.librarycomponent",
+      "description": "The chart series names the reusable chart component type, or a mark-rendering library component, whose property schema defines the series options it configures.",
+      "evidence": "The series definition carries a component type identifier, such as 'LineChart' or 'BarSeries', that matches a registered LibraryComponent whose props schema accepts series entries."
+    },
+    {
+      "id": "ux.chartseries.uses.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.chartseries uses ux.experiencestate",
+      "description": "The chart series changes its visibility, styling or data while a given experience state is active, for example hiding itself in the loading state or highlighting in the editing state.",
+      "evidence": "The experience state machine's component rules list the series as enabled, disabled or hidden for that state, or the series' visibility condition references the state name."
+    }
+  ],
+  "notes": "accesses data-store.collection bypasses the layering: the DataConfig description says endpoints and entities belong to other layers, so a direct UX-to-collection access duplicates the binds-to path and should be derived through it. maps-to arrayschema overlaps with the binding's field path. uses experiencestate reads inverted, because states govern components rather than series using states."
+}

@@ -1,0 +1,152 @@
+{
+  "source": "apm.span",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "apm.span.accesses.data-store.collection",
+      "previous_description": "Defines relationship: apm.span accesses data-store.collection",
+      "description": "The span wraps a database client call that reads or writes the collection, recording which table, document collection or index the instrumented operation touched.",
+      "evidence": "The span is started around a query or driver call and sets db.collection.name (or db.sql.table) to the collection's name, or driver auto-instrumentation emits it for calls against that collection."
+    },
+    {
+      "id": "apm.span.aggregates.spanlink",
+      "previous_description": "Defines relationship: apm.span aggregates apm.spanlink",
+      "description": "The span carries span links that point to other spans' contexts, recording non-parent causal relationships such as a batch consumer span referencing each producer span whose message it processes.",
+      "evidence": "At the span's creation site, spanBuilder.addLink(spanContext) or a links option on startSpan attaches the link to that span."
+    },
+    {
+      "id": "apm.span.composes.apm.metricinstrument",
+      "previous_description": "Defines relationship: apm.span composes apm.metricinstrument",
+      "description": "The span's instrumentation embeds a metric instrument that exists only to measure the span's operation, such as a duration histogram or error counter derived from it.",
+      "evidence": "The instrumentation code block that starts the span also creates and records to the instrument, or a span-metrics connector derives the instrument from the span's name."
+    },
+    {
+      "id": "apm.span.composes.apm.spanevent",
+      "previous_description": "Defines relationship: apm.span composes apm.spanevent",
+      "description": "The span owns the timestamped events recorded within its start–end window, such as caught exceptions or retries, which have no existence apart from that span.",
+      "evidence": "Calls to span.addEvent(...) or span.recordException(...) appear within the code that starts and ends the span."
+    },
+    {
+      "id": "apm.span.composes.apm.traceconfiguration",
+      "previous_description": "Defines relationship: apm.span composes apm.traceconfiguration",
+      "description": "The span is produced under the tracing configuration whose sampler, propagators and processors decide whether it is recorded, how its context travels and where it is forwarded.",
+      "evidence": "The tracer that starts the span comes from the TracerProvider constructed with that sampler, propagator and span processor setup."
+    },
+    {
+      "id": "apm.span.depends-on.apm.instrumentationscope",
+      "previous_description": "Defines relationship: apm.span depends-on apm.instrumentationscope",
+      "description": "The span is emitted through a tracer obtained under the instrumentation scope, which stamps the span with the name and version of the library or module that produced it.",
+      "evidence": "A trace.getTracer(\"scope-name\", \"version\") call returns the tracer used to start the span, or the instrumentation library registers that scope."
+    },
+    {
+      "id": "apm.span.depends-on.apm.resource",
+      "previous_description": "Defines relationship: apm.span depends-on apm.resource",
+      "description": "The span relies on the process's resource to identify the service, host or container that produced it, since the SDK attaches those attributes to every exported span.",
+      "evidence": "The SDK setup of the emitting process builds the resource via Resource.create, resource detectors, or OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES."
+    },
+    {
+      "id": "apm.span.flows-to.apm.exporterconfig",
+      "previous_description": "Defines relationship: apm.span flows-to apm.exporterconfig",
+      "description": "Once ended, the span is sent through the exporter to the configured backend endpoint over the specified protocol.",
+      "evidence": "The SDK or Collector traces pipeline registers a span processor with an exporter whose endpoint is that destination, and the span shows up in the backend."
+    },
+    {
+      "id": "apm.span.flows-to.apm.logprocessor",
+      "previous_description": "Defines relationship: apm.span flows-to apm.logprocessor",
+      "description": "Log records emitted while the span is active carry its trace and span identifiers into the log pipeline, or its events are routed as logs, which correlates log output with the span.",
+      "evidence": "Log records produced inside the span's active context carry its trace_id and span_id through the registered LogRecordProcessor, or a Collector pipeline converts span events into logs."
+    },
+    {
+      "id": "apm.span.flows-to.apm.span",
+      "previous_description": "Defines relationship: apm.span flows-to apm.span",
+      "description": "The span's trace context propagates to a downstream span, such as a parent to its child or a client span to the server span handling its request.",
+      "evidence": "The destination span is started with the source span as active context, or the client span injects traceparent headers that the server span's instrumentation extracts."
+    },
+    {
+      "id": "apm.span.maps-to.business.businessprocess",
+      "previous_description": "Defines relationship: apm.span maps-to business.businessprocess",
+      "description": "The span's operation corresponds to the business process or one of its activities, so trace timings and failures can be read as business process performance.",
+      "evidence": "The span name or a business attribute (e.g. business.process=\"order-fulfillment\") matches the process, or observability documentation maps the span to it."
+    },
+    {
+      "id": "apm.span.monitors.application.applicationcomponent",
+      "previous_description": "Defines relationship: apm.span monitors application.applicationcomponent",
+      "description": "The span instruments work performed inside the application component, capturing latency, status and errors of that component's behaviour.",
+      "evidence": "The span is started in the component's source code or by instrumentation of it, and its service.name or code.namespace attribute identifies that component."
+    },
+    {
+      "id": "apm.span.monitors.application.applicationservice",
+      "previous_description": "Defines relationship: apm.span monitors application.applicationservice",
+      "description": "The span measures each invocation of the application service's operations, giving consumer-facing latency and error visibility for that service.",
+      "evidence": "The span wraps the service's public entry-point method and its name or attributes match the service operation."
+    },
+    {
+      "id": "apm.span.monitors.data-store.database",
+      "previous_description": "Defines relationship: apm.span monitors data-store.database",
+      "description": "The client span records calls from the application to the database, exposing query latency, failures and connection behaviour against that store.",
+      "evidence": "A CLIENT span carries db.system, db.namespace and server.address values matching the database's engine and connection endpoint."
+    },
+    {
+      "id": "apm.span.monitors.navigation.navigationflow",
+      "previous_description": "Defines relationship: apm.span monitors navigation.navigationflow",
+      "description": "The span covers a user's progress through the multi-step navigation flow, measuring how long the journey takes and where it is abandoned or fails.",
+      "evidence": "Front-end code starts the span at the flow's first step and ends it at the final step, with an attribute naming the flow."
+    },
+    {
+      "id": "apm.span.monitors.navigation.navigationguard",
+      "previous_description": "Defines relationship: apm.span monitors navigation.navigationguard",
+      "description": "The span times the guard's execution during route resolution and records whether the navigation was allowed or denied.",
+      "evidence": "The router hook (beforeEach, canActivate or similar) is wrapped in tracer.startActiveSpan with the guard name and a decision-outcome attribute."
+    },
+    {
+      "id": "apm.span.monitors.data-model.objectschema",
+      "previous_description": "Defines relationship: apm.span monitors data-model.objectschema",
+      "description": "The span tracks processing of instances of the object schema, such as validation, serialization or mapping of that domain record.",
+      "evidence": "The span wraps validation or (de)serialization of the corresponding DTO or entity class and carries an attribute naming that type."
+    },
+    {
+      "id": "apm.span.monitors.api.operation",
+      "previous_description": "Defines relationship: apm.span monitors api.operation",
+      "description": "The server or client span records each HTTP request to the operation's method-path pair, capturing its latency, status code and errors.",
+      "evidence": "HTTP framework instrumentation emits a SERVER or CLIENT span whose http.request.method and http.route match the operation's method and path template."
+    },
+    {
+      "id": "apm.span.monitors.navigation.route",
+      "previous_description": "Defines relationship: apm.span monitors navigation.route",
+      "description": "The span covers a client-side navigation to the route, timing route resolution and the loading of its target view.",
+      "evidence": "Browser router instrumentation emits a span named with, or carrying an attribute of, the route's path pattern when the route matches."
+    },
+    {
+      "id": "apm.span.monitors.security.secureresource",
+      "previous_description": "Defines relationship: apm.span monitors security.secureresource",
+      "description": "The span records access attempts and authorization decisions against the protected resource, making permitted and denied use observable.",
+      "evidence": "The span wraps the authorization check or resource access and sets attributes identifying the resource and the decision outcome."
+    },
+    {
+      "id": "apm.span.monitors.technology.technologyservice",
+      "previous_description": "Defines relationship: apm.span monitors technology.technologyservice",
+      "description": "The span traces the application's calls to the infrastructure capability, such as a message broker, cache or managed storage, capturing their latency and failures.",
+      "evidence": "A CLIENT or PRODUCER span carries semantic-convention attributes such as messaging.system, db.system=redis or cloud.service naming that service."
+    },
+    {
+      "id": "apm.span.monitors.ux.view",
+      "previous_description": "Defines relationship: apm.span monitors ux.view",
+      "description": "The span measures loading and rendering of the UI view, exposing how long the page, screen or dialog takes to become usable.",
+      "evidence": "Front-end instrumentation starts the span when the view mounts and ends it after first render, with the view's name as span name or attribute."
+    },
+    {
+      "id": "apm.span.references.data-model.schemadefinition",
+      "previous_description": "Defines relationship: apm.span references data-model.schemadefinition",
+      "description": "The span's attributes or captured payload point to the reusable schema definition that describes the data type the operation handles, without depending on it to run.",
+      "evidence": "A span attribute (e.g. a payload type name) or a telemetry schema entry for the span names or $refs that definition."
+    },
+    {
+      "id": "apm.span.references.apm.span",
+      "previous_description": "Defines relationship: apm.span references apm.span",
+      "description": "The span points to another span definition it is causally related to, outside the parent-child hierarchy, such as a follows-from or batch relationship.",
+      "evidence": "The span's creation code adds a link carrying the other span's context, or tracing documentation declares the follows-from relation."
+    }
+  ],
+  "notes": "composes metricinstrument is dubious: instruments are independent of spans (prefer generates/measures). composes traceconfiguration is inverted; configuration governs many spans (use governed-by). flows-to logprocessor is a weak cross-signal path. references apm.span duplicates aggregates spanlink. monitors objectschema is a stretch; spans observe operations, not schemas."
+}

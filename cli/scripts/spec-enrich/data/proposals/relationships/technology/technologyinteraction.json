@@ -1,0 +1,56 @@
+{
+  "source": "technology.technologyinteraction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "technology.technologyinteraction.accesses.technology.artifact",
+      "previous_description": "Defines relationship: technology.technologyinteraction accesses technology.artifact",
+      "description": "The jointly performed infrastructure exchange reads or writes a concrete file or data unit during its execution, such as a replication sync shipping write-ahead-log segments or a consensus round persisting a snapshot file.",
+      "evidence": "The cluster software's configuration or source names the artifact path (e.g. a WAL directory, snapshot file or shared config document) that the coordination protocol reads or writes while the peers execute the interaction."
+    },
+    {
+      "id": "technology.technologyinteraction.composes.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.technologyinteraction composes technology.technologyfunction",
+      "description": "The collaborative exchange is an integral part of a broader ongoing infrastructure capability and has no independent existence outside it, as when a peer replication handshake exists only as a constituent of the data replication function.",
+      "evidence": "Product or architecture documentation describes the function (e.g. replication or failover) as including this multi-peer protocol step, and the protocol code lives inside the module that implements that function."
+    },
+    {
+      "id": "technology.technologyinteraction.flows-to.technology.technologyinteraction",
+      "previous_description": "Defines relationship: technology.technologyinteraction flows-to technology.technologyinteraction",
+      "description": "The result or control state produced by one joint peer exchange is passed on to start or feed a subsequent joint exchange, as when a leader election hands the elected leader identity to the following log replication round.",
+      "evidence": "Protocol code or design documentation shows the output of the first coordination phase (e.g. an elected term or prepared transaction ID) being passed as input to the second multi-peer protocol phase."
+    },
+    {
+      "id": "technology.technologyinteraction.realizes.technology.technologycollaboration",
+      "previous_description": "Defines relationship: technology.technologyinteraction realizes technology.technologycollaboration",
+      "description": "The joint peer behavior gives concrete operational form to the cooperating group of nodes or system software instances, since the collaboration exists precisely to carry out this exchange.",
+      "evidence": "The cluster membership configuration (e.g. a Raft peer list or Galera wsrep_cluster_address) defines the peer group whose members execute the coordination protocol together."
+    },
+    {
+      "id": "technology.technologyinteraction.realizes.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyinteraction realizes technology.technologyservice",
+      "description": "The collaborative peer exchange is the behavior that actually delivers an externally visible infrastructure capability, such as a distributed commit protocol delivering a strongly consistent database service to consumers.",
+      "evidence": "Service documentation or an SLA states that the offered capability (e.g. highly available storage or consistent key-value access) is provided by the cluster's quorum, replication or failover protocol."
+    },
+    {
+      "id": "technology.technologyinteraction.triggers.technology.technologyevent",
+      "previous_description": "Defines relationship: technology.technologyinteraction triggers technology.technologyevent",
+      "description": "Completion or failure of the joint peer exchange produces a discrete infrastructure state change, such as a finished leader election emitting a leader-changed event or a failed handover raising a failover alert.",
+      "evidence": "The cluster software's source, logs or alerting rules show a named event or notification (e.g. 'leader_elected', 'failover_completed') being emitted at the end of the coordination protocol."
+    },
+    {
+      "id": "technology.technologyinteraction.triggers.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyinteraction triggers technology.technologyprocess",
+      "description": "The outcome of the joint peer exchange starts an ordered automated workflow on a node or system software, as when a completed failover handover kicks off a DNS repointing or connection-pool reconfiguration procedure.",
+      "evidence": "A hook, callback or orchestration script (e.g. a Patroni on_role_change callback or Pacemaker resource agent) is configured to launch the process when the coordination protocol completes."
+    },
+    {
+      "id": "technology.technologyinteraction.uses.technology.technologyinterface",
+      "previous_description": "Defines relationship: technology.technologyinteraction uses technology.technologyinterface",
+      "description": "The participating peers carry out their joint exchange by communicating through a specific protocol endpoint, such as a cluster peer port or replication listener exposed by each member.",
+      "evidence": "The cluster configuration declares the peer or replication endpoint (e.g. etcd listen-peer-urls, a gossip port or a replication socket) over which members exchange the protocol messages, and firewall or security-group rules open that port between peers."
+    }
+  ],
+  "notes": "realizes→TechnologyCollaboration is semantically wrong: behavior does not realize active structure; in ArchiMate the collaboration is assigned to the interaction (use assigned-to inverse). composes→TechnologyFunction is questionable: a function is performed by a single node, so a multi-participant interaction being part of it conflicts with both definitions; aggregation or flow fits better."
+}

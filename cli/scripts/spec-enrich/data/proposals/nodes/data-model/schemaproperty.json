@@ -1,0 +1,66 @@
+{
+  "spec_node_id": "data-model.schemaproperty",
+  "previous_description": "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.",
+  "definition": "A single named field of an object schema, such as one attribute of a domain entity, DTO or record type, together with the subschema that governs its value: type, value restrictions (enum, const, format, default) and annotations (title, description, readOnly, writeOnly, examples). It corresponds to one entry under an ObjectSchema's 'properties' keyword and has no meaning apart from its owning object.",
+  "distinguish_from": [
+    {
+      "type": "data-model.objectschema",
+      "when": "the element is the whole entity, class or record that owns several fields, rather than one field of it."
+    },
+    {
+      "type": "data-model.schemadefinition",
+      "when": "the schema is a named, reusable type declared under 'definitions' (for example a shared enum or value type referenced by several fields) rather than a field belonging to one owning object."
+    },
+    {
+      "type": "data-model.stringschema",
+      "when": "you are modelling a reusable bundle of string constraints (minLength, maxLength, pattern) that a property points to, rather than the field itself."
+    },
+    {
+      "type": "data-model.numericschema",
+      "when": "you are modelling a reusable bundle of numeric bounds or a multipleOf rule that a property points to, rather than the field itself."
+    }
+  ],
+  "standard_reference": "JSON Schema Draft 7 Validation, §6.5.4 'properties' (a member subschema), with §6.1.2 enum, §6.1.3 const, §7 format and §10 annotation keywords",
+  "code_evidence": [
+    "An attribute declared on an ORM entity class, such as a JPA @Column field, a SQLAlchemy Column(...) or a Django models.CharField.",
+    "A typed member of a DTO, Pydantic/dataclass model, TypeScript interface or protobuf message, often carrying a validator, default value or Field(...) metadata.",
+    "A key nested under 'properties' in a JSON Schema file or an OpenAPI components/schemas entry, with its own 'type', 'format' or 'enum'."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "title",
+      "description": "A short human-readable label for the property, used for example as a form label or table header; set it when the field's code name is not suitable for display."
+    },
+    {
+      "name": "format",
+      "description": "A JSON Schema Draft 7 semantic format hint for string values, such as date-time, email or uuid; set it when the field's value follows a recognised format, for example a UUID-typed id or a timestamp column."
+    },
+    {
+      "name": "default",
+      "description": "The value assumed when an instance omits the property, written as a JSON literal; set it when the code, ORM column or DTO declares a default."
+    },
+    {
+      "name": "enum",
+      "description": "The fixed list of allowed values, written as a JSON array; set it when the field is restricted to an enumeration, such as a language enum type, a union of literals or a CHECK-constrained column."
+    },
+    {
+      "name": "const",
+      "description": "The single value the property must always hold, written as a JSON literal; set it for discriminator or type-tag fields that have a fixed value within this object."
+    },
+    {
+      "name": "readOnly",
+      "description": "Set to true when the value is assigned by the owning system and must not be supplied by clients, such as generated ids, audit timestamps or computed fields."
+    },
+    {
+      "name": "writeOnly",
+      "description": "Set to true when the value may be submitted but is never returned in representations, such as passwords, secrets or one-time tokens."
+    },
+    {
+      "name": "examples",
+      "description": "Sample valid values for the property, written as a JSON array; set it to document typical content for consumers and test generation."
+    }
+  ],
+  "notes": "Several attributes are typed string but hold other JSON values: enum and examples are arrays, and default and const are arbitrary JSON. Siblings type enum as array, so the types are inconsistent. There is no per-property required or nullable flag; required lives on objectschema. The format attribute lacks the enum that stringschema.format has. The property name is implicit in the element name.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.256Z"
+}

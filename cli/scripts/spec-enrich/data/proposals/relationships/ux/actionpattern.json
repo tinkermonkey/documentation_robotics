@@ -1,0 +1,38 @@
+{
+  "source": "ux.actionpattern",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.099Z",
+  "relationships": [
+    {
+      "id": "ux.actionpattern.associated-with.ux.statepattern",
+      "previous_description": "Defines relationship: ux.actionpattern associated-with ux.statepattern",
+      "description": "The interaction recipe is paired with a reusable state machine whose flow (e.g. loading/success/error) it typically drives or accompanies, so the two are reused together wherever that interaction recurs.",
+      "evidence": "The action pattern's definition file or design-system documentation names the state pattern it is designed to work with, or both are co-referenced by the same set of components in the UX spec."
+    },
+    {
+      "id": "ux.actionpattern.governs.ux.actioncomponent",
+      "previous_description": "Defines relationship: ux.actionpattern governs ux.actioncomponent",
+      "description": "The action pattern prescribes the input modality and feedback sequence that a button, link, menu entry or voice command must follow when activated, making the control a conforming instance of the recipe.",
+      "evidence": "The action component's spec or code declares a pattern reference (e.g. pattern: 'confirm-then-toast') and its click handler emits exactly the feedback steps the pattern defines."
+    },
+    {
+      "id": "ux.actionpattern.governs.ux.stateaction",
+      "previous_description": "Defines relationship: ux.actionpattern governs ux.stateaction",
+      "description": "The action pattern dictates how a lifecycle-bound side effect such as submit or navigate must behave and what feedback it produces, so state actions executing that interaction comply with the recipe's prescribed sequence.",
+      "evidence": "The state action's definition references the action pattern id, and its on-enter/on-transition handler produces the toast, modal or route change listed in that pattern's feedback sequence."
+    },
+    {
+      "id": "ux.actionpattern.triggers.ux.statetransition",
+      "previous_description": "Defines relationship: ux.actionpattern triggers ux.statetransition",
+      "description": "Completing the interaction recipe emits the named UI event that fires a state transition, moving the experience from one state to the next as part of the pattern's feedback sequence.",
+      "evidence": "The action pattern's feedback or outcome step dispatches an event name that matches the trigger event declared on the state transition in the state machine definition."
+    },
+    {
+      "id": "ux.actionpattern.uses.ux.transitiontemplate",
+      "previous_description": "Defines relationship: ux.actionpattern uses ux.transitiontemplate",
+      "description": "The action pattern relies on a shared motion definition to animate the UI changes in its feedback sequence, such as a modal appearing or a route change, rather than defining its own animation.",
+      "evidence": "The action pattern spec references the transition template id for one of its feedback steps, and the rendered animation uses that template's type, duration and easing tokens."
+    }
+  ],
+  "notes": "Governing both ActionComponent and StateAction blurs the pattern's scope: it is described as applied to action components, whereas StateActions are automatic lifecycle effects. Also, triggering a StateTransition directly from a reusable pattern is odd; instance-level ActionComponents usually emit the triggering event, so 'triggers' may belong on ActionComponent instead."
+}

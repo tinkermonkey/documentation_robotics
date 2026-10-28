@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "data-store.collection",
+  "previous_description": "A container for records, documents, or entries within a data store. Paradigm-neutral: maps to SQL table, document store collection, key-value bucket/hash, wide-column table/column family, vector collection, time-series measurement/hypertable, graph node label or edge type, and search engine index.",
+  "definition": "A named, persistent container that directly stores base records, documents, key-value entries, nodes or edges inside a database or namespace, and whose contents are written to it rather than derived from other containers. It maps to a SQL base table, document collection, key-value bucket or structure, column family, vector collection, time-series measurement or hypertable, graph node label or edge type, and search-engine index.",
+  "distinguish_from": [
+    {
+      "type": "data-store.view",
+      "when": "the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly."
+    },
+    {
+      "type": "data-store.namespace",
+      "when": "the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records."
+    },
+    {
+      "type": "data-store.index",
+      "when": "the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection."
+    },
+    {
+      "type": "data-store.field",
+      "when": "the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records."
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 (SQL/Foundation) §11.3 <table definition> (persistent base table), generalised by the paradigm extensions",
+  "code_evidence": [
+    "A CREATE TABLE, CREATE COLUMNFAMILY or create_hypertable statement in a migration or DDL file, or a db.createCollection / client.indices.create call with mappings.",
+    "An ORM or ODM mapping that binds a class to a named store container, such as a JPA @Entity/@Table, SQLAlchemy __tablename__, Django Model Meta.db_table, Mongoose model('Order', schema) or Spring @Document(collection=...).",
+    "An infrastructure-as-code resource declaring a container with keys or TTL, such as a Terraform aws_dynamodb_table with hash_key/range_key, a Pinecone or Qdrant collection with a vector size, or a Neo4j label used in MERGE (:Label) setup scripts."
+  ],
+  "attribute_descriptions": [],
+  "notes": "The Elasticsearch index is assigned both to namespace and to collection (SEARCH_INDEX). The graph NODE_LABEL value collides with field fieldRole LABEL. collectionType should probably be required. The outgoing 'collection composes namespace' relationship appears inverted. Per-key Redis structures (HASH, SORTED_SET) need a granularity rule: model the key pattern, not each key.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.226Z"
+}

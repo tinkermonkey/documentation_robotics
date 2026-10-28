@@ -1,0 +1,68 @@
+{
+  "claim_id": "node:application.applicationcomponent#4",
+  "first_pass": {
+    "choice": "works_as_designed",
+    "probabilities": {
+      "real_defect": 0.259,
+      "works_as_designed": 0.438,
+      "judgment_call": 0.171,
+      "out_of_scope": 0.132
+    },
+    "confidence": 0.074
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified facts list exactly one relationship schema between application.applicationcomponent and itself: application.applicationcomponent.uses.application.applicationcomponent.",
+      "The claimed duplicate is refuted at the schema level; the predicate list for this pair contains only 'uses' once.",
+      "The 'reverse direction' entry also shows [uses], but for a self-relationship the forward and reverse views describe the same schema. This likely explains the perceived duplication.",
+      "Nothing in the facts shows a second schema id or a repeated entry that removal could act on."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "If a rendered view or generated doc shows the self-'uses' twice, modellers could be confused about whether two distinct relationships exist.",
+          "The facts' forward and reverse listings both show [uses], so a duplicate display exists somewhere in derived output."
+        ],
+        "arguments_against": [
+          "The verified facts list exactly one schema; there is no second entry in the spec to remove.",
+          "The forward and reverse views of a self-relationship naturally coincide, so this is not a duplicated definition.",
+          "The proposed change cannot be applied because only one schema exists."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "Exactly one 'uses' self-relationship schema exists, as the facts show, so the spec already lists it once.",
+          "Component-to-component 'uses' dependency is a legitimate, intended relationship for modelling service and module dependencies.",
+          "The reverse-direction listing is a query artefact of a self-referential pair, not a second spec entry."
+        ],
+        "arguments_against": [
+          "If modellers routinely misread the double display as two relationships, a clarifying note in the spec could help.",
+          "The claim may reflect a real presentation issue, even though the schema itself is correct."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Whether self-relationships should appear once or in both directions in summaries is a presentation choice."
+        ],
+        "arguments_against": [
+          "There is no modelling choice at stake; the schema count is a verifiable fact, and it is one.",
+          "No product decision is needed to confirm a single existing schema."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "Any apparent duplication likely comes from tooling or rendering that shows forward and reverse views, not from the spec itself.",
+          "How CLI or doc generators display self-referential relationships is a tooling concern."
+        ],
+        "arguments_against": [
+          "The claim is explicitly about the spec's relationship list, which is in scope even though the facts refute it.",
+          "No evidence identifies a specific tool output as the source of the duplicate."
+        ]
+      }
+    ]
+  }
+}

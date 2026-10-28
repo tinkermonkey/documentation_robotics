@@ -1,0 +1,38 @@
+{
+  "source": "testing.outcomecategory",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.067Z",
+  "relationships": [
+    {
+      "id": "testing.outcomecategory.aggregates.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.outcomecategory aggregates testing.testcasesketch",
+      "description": "The outcome category acts as a grouping bucket that collects every test case sketch designed to produce that class of result, while each sketch remains an independent design that could be regrouped if its expected outcome changes.",
+      "evidence": "The test coverage model file lists test case sketches whose expected-outcome field names the outcome category's identifier, or nests them under that category's entry."
+    },
+    {
+      "id": "testing.outcomecategory.constrained-by.testing.environmentfactor",
+      "previous_description": "Defines relationship: testing.outcomecategory constrained-by testing.environmentfactor",
+      "description": "Whether an outcome category such as timeout or server error can actually be observed is limited by a pinned environmental condition, for example a throttled network or a specific dependency version that must be in place to provoke it.",
+      "evidence": "The outcome category definition declares a required environment factor (e.g. network latency ≥ 5s for timeout), and test harness or CI configuration pins that factor for the sketches expecting the outcome."
+    },
+    {
+      "id": "testing.outcomecategory.flows-to.testing.coveragesummary",
+      "previous_description": "Defines relationship: testing.outcomecategory flows-to testing.coveragesummary",
+      "description": "The count of sketches and requirements exercising each outcome category feeds into the model-wide coverage summary, which reports how many result classes are covered at that point in time.",
+      "evidence": "The coverage report generator reads the outcome categories of the model and writes per-category totals or a covered-outcome count into the coverage summary record."
+    },
+    {
+      "id": "testing.outcomecategory.references.testing.targetinputfield",
+      "previous_description": "Defines relationship: testing.outcomecategory references testing.targetinputfield",
+      "description": "The outcome category points to the input field whose invalid, missing or out-of-range value is the cause of that result class, such as a validation error triggered by a particular API parameter, without depending on it to exist.",
+      "evidence": "The outcome category entry carries a field reference (e.g. triggeringField) naming the target input field identifier, matching a parameter in the OpenAPI spec or data model."
+    },
+    {
+      "id": "testing.outcomecategory.serves.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.outcomecategory serves testing.coveragerequirement",
+      "description": "The outcome category supplies a result class that a coverage requirement's criterion must exercise, making it one of the dimensions the requirement combines with input partitions and context variations.",
+      "evidence": "The coverage requirement definition lists the outcome category identifier among its required outcomes, and the coverage checker fails when no sketch for the requirement expects that category."
+    }
+  ],
+  "notes": "aggregates to TestCaseSketch overlaps with the sketch's own expected-outcome reference; likely redundant with an inverse sketch→outcome link. flows-to CoverageSummary is weak: the summary totals targets, requirements and sketches, not outcome categories. constrained-by EnvironmentFactor and references TargetInputField are plausible but loose, since outcomes are classified per target rather than per field or environment."
+}

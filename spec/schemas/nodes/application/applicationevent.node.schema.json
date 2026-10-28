@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationEvent",
-  "description": "A state change in an application element that triggers reactive application behavior.",
+  "description": "An application behavior element representing a named, instantaneous occurrence of a state change that an application component emits or receives, and that triggers or is consumed by other application behavior. It has no duration and performs no work itself; reacting is done by processes, functions or interactions. Use DataObject instead when the symbol is a data structure that components read, store or transform, and it is never published, emitted or subscribed to as a notification of something that happened. Use ApplicationProcess instead when the symbol is the handler, listener body or workflow that runs in response to the event, or that produces it, rather than the occurrence itself. Use ApplicationService instead when the symbol is an exposed capability that consumers invoke or subscribe to, such as an event stream offered as a service, rather than one specific kind of occurrence. Use ApplicationInteraction instead when the symbol describes the joint publish-subscribe or messaging behavior between two or more components rather than a single event type exchanged within it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the event: what state change it signals, which component emits it, its typical consumers and any delivery guarantees. Set it whenever the event name alone does not make these clear."
         },
         "eventType": {
           "type": "string",
@@ -36,5 +37,17 @@
       "required": ["eventType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.3.4 Application Event",
+  "x-dr-evidence": [
+    "A class or record named in the past tense (e.g. OrderPlaced, UserRegisteredEvent) that extends a framework event base type such as Spring ApplicationEvent or a DomainEvent marker, and is passed to a publisher (eventPublisher.publish, mediator.Publish, bus.emit).",
+    "A string or constant event or topic name used in both an emit or publish call and a subscription (emitter.on('invoice.paid'), @EventListener, @KafkaListener(topics=...), RabbitMQ routing key).",
+    "A message entry in an AsyncAPI document, event catalog or CloudEvents type registry that declares the event's name and payload and lists its producers and consumers."
+  ],
+  "x-dr-distinguish": {
+    "application.dataobject": "the symbol is a data structure that components read, store or transform, and it is never published, emitted or subscribed to as a notification of something that happened.",
+    "application.applicationprocess": "the symbol is the handler, listener body or workflow that runs in response to the event, or that produces it, rather than the occurrence itself.",
+    "application.applicationservice": "the symbol is an exposed capability that consumers invoke or subscribe to, such as an event stream offered as a service, rather than one specific kind of occurrence.",
+    "application.applicationinteraction": "the symbol describes the joint publish-subscribe or messaging behavior between two or more components rather than a single event type exchanged within it."
   }
 }

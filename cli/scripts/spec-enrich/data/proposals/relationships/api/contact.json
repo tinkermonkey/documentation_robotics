@@ -1,0 +1,14 @@
+{
+  "source": "api.contact",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.070Z",
+  "relationships": [
+    {
+      "id": "api.contact.associated-with.api.openapidocument",
+      "previous_description": "Defines relationship: api.contact associated-with api.openapidocument",
+      "description": "The contact identifies the person or team accountable for maintaining the API contract described by the OpenAPI document, giving consumers of that document a named point of escalation for questions about its paths and behaviour.",
+      "evidence": "The OpenAPI file (openapi.yaml/json, or the generated spec endpoint) contains an info.contact object whose name, email or url fields populate this contact for that specific document."
+    }
+  ],
+  "notes": "Contact is structurally nested in the Info object, which the document composes, so associated-with to OpenAPIDocument is an indirect shortcut. A composes/aggregated-by relationship with api.info would express the containment more precisely. This document-level link may then be redundant."
+}

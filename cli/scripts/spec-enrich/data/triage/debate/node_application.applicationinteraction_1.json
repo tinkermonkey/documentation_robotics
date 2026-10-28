@@ -1,0 +1,68 @@
+{
+  "claim_id": "node:application.applicationinteraction#1",
+  "first_pass": {
+    "choice": "judgment_call",
+    "probabilities": {
+      "real_defect": 0.116,
+      "works_as_designed": 0.318,
+      "judgment_call": 0.416,
+      "out_of_scope": 0.15
+    },
+    "confidence": 0.081
+  },
+  "arguments": {
+    "fact_checks": [
+      "The verified-facts section has no structured evidence for the named ids, so the claim that every sibling has 'properties' is unconfirmed.",
+      "The current schema lists only two attributes for applicationinteraction, 'documentation' and a required 'pattern' enum; neither is a 'properties' attribute.",
+      "The layer skill overview mentions 'optional properties for external specifications (OpenAPI, orchestration definitions, event schemas)', which suggests some siblings carry such attributes. It does not say all of them do."
+    ],
+    "options": [
+      {
+        "validity": "real_defect",
+        "arguments_for": [
+          "If every sibling really has 'properties', its absence here is an inconsistency that leaves modellers no place to attach saga or choreography spec references.",
+          "The layer intent names orchestration definitions as a use of optional properties, and interactions such as sagas are exactly where orchestration specs live.",
+          "A uniform attribute set across element types makes CLI validation and tooling simpler."
+        ],
+        "arguments_against": [
+          "No verified fact shows that any sibling, let alone every sibling, has a 'properties' attribute, so the inconsistency itself is unproven.",
+          "Interaction already has a type-specific 'pattern' attribute, which suggests a deliberately tailored schema rather than an omission."
+        ]
+      },
+      {
+        "validity": "works_as_designed",
+        "arguments_for": [
+          "The skill overview calls properties 'optional' and scopes them to external specifications, so they may be intended only for types with OpenAPI or event schemas.",
+          "The required 'pattern' enum shows interaction was given its own attribute set on purpose.",
+          "ArchiMate 3.2 defines no generic properties bag per element type, so leaving it out may be intentional."
+        ],
+        "arguments_against": [
+          "The overview names orchestration definitions explicitly, which maps naturally onto interactions like sagas, so excluding them looks accidental rather than designed.",
+          "Nothing in the definition or distinctions states that properties are intentionally withheld from interaction."
+        ]
+      },
+      {
+        "validity": "judgment_call",
+        "arguments_for": [
+          "Whether interactions need an extension bag for orchestration specs is a product decision about how much metadata modellers attach.",
+          "The facts neither confirm nor refute sibling consistency, so the case rests on design preference rather than a provable error.",
+          "Adding an optional attribute is low-risk either way, so this is a matter of preference, not correctness."
+        ],
+        "arguments_against": [
+          "If the siblings do uniformly have 'properties', this becomes a plain consistency defect, not a matter of preference.",
+          "If the omission is deliberate per the 'optional external spec' intent, this is simply works-as-designed."
+        ]
+      },
+      {
+        "validity": "out_of_scope",
+        "arguments_for": [
+          "A generic 'properties' bag may be a tooling or serialization convention rather than part of the ArchiMate element model the spec describes."
+        ],
+        "arguments_against": [
+          "The claim is about the attribute schema of a spec element type, which is squarely within the spec's own content.",
+          "The layer overview itself discusses properties as part of the layer, so the topic is in scope."
+        ]
+      }
+    ]
+  }
+}

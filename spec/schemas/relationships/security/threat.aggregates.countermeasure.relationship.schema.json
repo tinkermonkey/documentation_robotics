@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "security.threat.aggregates.countermeasure"
+      "const": "security.threat.aggregates.security.countermeasure"
     },
     "source_spec_node_id": {
       "const": "security.threat"

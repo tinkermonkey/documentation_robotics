@@ -1,0 +1,11 @@
+{
+  "name": "dr-spec-enrich",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Phase 1 tooling: propose and apply enriched node-type definitions, attribute descriptions and relationship descriptions for the DR spec using the Claude Batch API.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "zod": "^4.3.6"
+  }
+}

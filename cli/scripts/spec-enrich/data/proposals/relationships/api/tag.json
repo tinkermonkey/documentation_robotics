@@ -1,0 +1,38 @@
+{
+  "source": "api.tag",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.086Z",
+  "relationships": [
+    {
+      "id": "api.tag.aggregates.api.operation",
+      "previous_description": "Defines relationship: api.tag aggregates api.operation",
+      "description": "The tag acts as a documentation category that groups the operation, which still exists independently and may belong to several tags at once.",
+      "evidence": "The operation object in the OpenAPI document lists the tag's name in its 'tags' array, e.g. a @Tag annotation or tags=['Orders'] decorator on the route handler."
+    },
+    {
+      "id": "api.tag.associated-with.api.schema",
+      "previous_description": "Defines relationship: api.tag associated-with api.schema",
+      "description": "The tag is loosely related to the schema because the schema models the resources exchanged by the operations filed under that tag, such as an 'Orders' tag and the Order schema.",
+      "evidence": "Operations carrying the tag reference the schema via $ref in their request bodies or responses, or a vendor extension such as x-tags on the schema names the tag."
+    },
+    {
+      "id": "api.tag.associated-with.api.securityscheme",
+      "previous_description": "Defines relationship: api.tag associated-with api.securityscheme",
+      "description": "The tag is loosely related to the security scheme because the operations grouped under that category are protected by that credential mechanism, such as an 'Admin' tag whose operations all require OAuth2.",
+      "evidence": "Operations listing the tag declare security requirements naming the scheme, or the tag's description documents the scheme required for its operations."
+    },
+    {
+      "id": "api.tag.references.api.externaldocumentation",
+      "previous_description": "Defines relationship: api.tag references api.externaldocumentation",
+      "description": "The tag points to external documentation that explains the category of operations it labels in more depth than the in-document description.",
+      "evidence": "The tag entry in the root 'tags' array contains an 'externalDocs' object whose url points to the hosted documentation."
+    },
+    {
+      "id": "api.tag.serves.api.operation",
+      "previous_description": "Defines relationship: api.tag serves api.operation",
+      "description": "The tag provides the operation with a documentation and tooling grouping that renderers and client generators use to place it in a section or client class.",
+      "evidence": "The operation's 'tags' field names the tag, and generated docs or SDKs, such as a Swagger UI section or an OrdersApi client class, place the operation under it."
+    }
+  ],
+  "notes": "aggregates and serves both express the same fact for tag→operation: the operation lists the tag name. serves is semantically weak because tags provide no behavior. Consider keeping only aggregates. The two associated-with links to schema and security scheme are indirect, derived via operations, and are likely redundant."
+}

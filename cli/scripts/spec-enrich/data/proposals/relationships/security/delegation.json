@@ -1,0 +1,32 @@
+{
+  "source": "security.delegation",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.081Z",
+  "relationships": [
+    {
+      "id": "security.delegation.authorizes.security.role",
+      "previous_description": "Defines relationship: security.delegation authorizes security.role",
+      "description": "The delegation grant confers on the delegatee the authority of a specific role that the delegator holds, so the delegatee may act in that role until the grant expires or the delegator revokes it.",
+      "evidence": "A delegation record in the IAM configuration or policy store names the role being transferred (e.g. a 'role' or 'scope' field referencing the role's identifier), and the authorization engine resolves the delegatee's effective roles through that record."
+    },
+    {
+      "id": "security.delegation.constrained-by.security.securitypolicy",
+      "previous_description": "Defines relationship: security.delegation constrained-by security.securitypolicy",
+      "description": "The security policy limits what a delegation may transfer, to whom, and for how long, for example by forbidding re-delegation of privileged roles or capping the expiry.",
+      "evidence": "A policy definition contains rules whose target is delegation requests, such as maximum duration, permitted delegation types or excluded roles, and the delegation service evaluates that policy before persisting a grant."
+    },
+    {
+      "id": "security.delegation.requires.security.actor",
+      "previous_description": "Defines relationship: security.delegation requires security.actor",
+      "description": "The delegation cannot exist without named actors filling the delegator and delegatee roles, since its authority is derived from, and revocable by, the delegating principal.",
+      "evidence": "The delegation schema or record has mandatory delegator and delegatee fields referencing actor identifiers (user, service account), enforced as non-null foreign keys or required attributes."
+    },
+    {
+      "id": "security.delegation.triggers.security.evidence",
+      "previous_description": "Defines relationship: security.delegation triggers security.evidence",
+      "description": "Creating, exercising or revoking the delegation causes the system to produce a proof artifact, such as an audit-trail entry or signed record, so that the transfer of authority can later be verified and attributed to the delegator.",
+      "evidence": "The delegation grant/revoke handler emits an audit log event or signed record containing the delegation ID, delegator and delegatee, visible in the audit logging configuration or the code path that writes it."
+    }
+  ],
+  "notes": "requires→actor collapses two distinct roles (delegator and delegatee) into one edge; consider separate relationships or role-qualified attributes. authorizes→role covers only role delegation, not delegation of individual permissions, which the source definition also allows."
+}

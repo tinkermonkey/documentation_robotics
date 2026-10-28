@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "motivation.principle",
+  "previous_description": "Normative property of all systems in a given context, or a statement governing how an organization intends to fulfill its mission and guide decision-making.",
+  "definition": "A normative statement, applying across all systems or decisions within a stated scope (enterprise, domain, or programme), that prescribes how design and implementation choices should generally be made, without targeting one specific system or being directly verifiable as met by it.",
+  "distinguish_from": [
+    {
+      "type": "motivation.requirement",
+      "when": "the statement names a specific system, component or solution and can be verified as satisfied or not for that system (e.g. 'the Orders API must use OAuth 2.0')."
+    },
+    {
+      "type": "motivation.constraint",
+      "when": "the statement is an externally imposed or fixed restriction on the solution space for a particular realization (e.g. a mandated vendor, deadline or budget) rather than a self-adopted guideline."
+    },
+    {
+      "type": "motivation.goal",
+      "when": "the statement expresses a desired end state or direction to reach (e.g. 'reduce time-to-market') rather than a rule for how decisions are made."
+    },
+    {
+      "type": "motivation.value",
+      "when": "the element captures the worth or importance of something to stakeholders rather than a prescription governing choices."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.3.3 Principle",
+  "code_evidence": [
+    "An architecture-principles document or ADR section listing broad prescriptive statements (e.g. 'API-first', 'Data is owned by a single service') each with rationale and implications.",
+    "An engineering handbook or CONTRIBUTING.md passage stating repository-wide conventions phrased as 'we always/never …' that are cited as justification in multiple ADRs or code reviews.",
+    "An architecture fitness test or lint rule set (e.g. ArchUnit, dependency-cruiser, eslint config) whose comments or names cite a named principle enforced across all modules rather than one feature."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text statement of the principle, ideally with its rationale and implications, written as a single prescriptive sentence followed by explanatory prose; set it for every principle."
+    }
+  ],
+  "notes": "No attributes for TOGAF-style statement/rationale/implications, forcing them into documentation. Category enum lacks business and usability/UX domains. Direct realizations from code-level types (systemsoftware implements, applicationcomponent realizes) bypass requirements; ArchiMate expects principles realized via requirements. 'governed-by-principles' is a non-standard relationship name.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.199Z"
+}

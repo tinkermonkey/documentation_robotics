@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "navigation.navigationflow",
+  "previous_description": "An ordered sequence of FlowSteps that together realize a multi-step user process — such as a checkout wizard, onboarding tour, or multi-page form — by linking discrete routes into a directed path with defined entry and exit points. A NavigationFlow is the top-level container for a user journey: it groups FlowSteps, imposes traversal order, and provides the orchestration context that connects navigation structure to a business process outcome.",
+  "definition": "A named, ordered grouping of FlowSteps that links two or more routes into a single multi-step user process, such as a checkout, onboarding sequence or wizard, with a defined first step, a defined final step and an imposed traversal order. It is the container for the journey as a whole, not for any individual step, route or edge.",
+  "distinguish_from": [
+    {
+      "type": "navigation.flowstep",
+      "when": "the symbol is one position in the sequence, binding a single index to a single route, rather than the whole ordered journey."
+    },
+    {
+      "type": "navigation.navigationgraph",
+      "when": "the symbol is the application's complete route table or router instance, covering all routes, rather than one bounded multi-step process."
+    },
+    {
+      "type": "navigation.navigationtransition",
+      "when": "the symbol is a single from-to route change with a trigger, such as a next button handler or a redirect, rather than an ordered set of steps."
+    },
+    {
+      "type": "navigation.route",
+      "when": "the symbol is one URL path pattern resolving to a view, even if that view internally renders a stepper without changing route."
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: multi-step flow / wizard pattern",
+  "code_evidence": [
+    "A configuration array or object listing ordered step entries, each naming a route path (e.g. steps: [{path: '/checkout/cart'}, {path: '/checkout/shipping'}, ...]), consumed by a stepper or wizard component or hook.",
+    "A parent route with ordered child routes that share a flow layout showing a progress indicator, plus next/back handlers that compute the following child path from the current index.",
+    "A state machine or flow store (e.g. XState machine, Redux slice, useWizard hook) whose states map to routes and that exposes start, next, previous and complete transitions, often carrying shared flow state between steps."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text summary of the user process the flow realizes, naming its purpose, its entry and exit steps and its completion outcome (e.g. 'Guest checkout from cart review to order confirmation'); set it whenever the flow's name alone does not convey its scope."
+    }
+  ],
+  "notes": "The definition promises entry and exit points, but no attribute records them. Consider adding entryStep, exitStep and an explicit name. Both the aggregates and composes relationships to flowstep exist, which is redundant: pick composes. The flow both realizes and triggers business.businessprocess, which is ambiguous. ContextVariable scope 'flow' implies a flow identifier that is not modeled.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

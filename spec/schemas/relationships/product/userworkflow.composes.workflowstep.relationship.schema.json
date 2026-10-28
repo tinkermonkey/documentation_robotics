@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Userworkflow composes Workflowstep",
+  "description": "Defines relationship: product.userworkflow composes product.workflowstep",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "product.userworkflow.composes.product.workflowstep"
+    },
+    "source_spec_node_id": {
+      "const": "product.userworkflow"
+    },
+    "source_layer": {
+      "const": "product"
+    },
+    "destination_spec_node_id": {
+      "const": "product.workflowstep"
+    },
+    "destination_layer": {
+      "const": "product"
+    },
+    "predicate": {
+      "const": "composes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "high"
+    }
+  }
+}

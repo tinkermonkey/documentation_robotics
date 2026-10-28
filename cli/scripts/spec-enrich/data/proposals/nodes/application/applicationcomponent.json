@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationcomponent",
+  "previous_description": "Modular, deployable, and replaceable part of a system",
+  "definition": "An active structural application element that encapsulates a cohesive set of application behaviour and data behind its interfaces and can be built, deployed, or replaced as a unit, such as a service, module, package, or dependency-injected class with its own responsibility. It is the thing that performs behaviour, not the behaviour itself.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationfunction",
+      "when": "the symbol is a unit of behaviour, such as a method, function, or handler body, that a component performs, rather than the structural unit that owns that behaviour"
+    },
+    {
+      "type": "application.applicationinterface",
+      "when": "the symbol is only the access point through which a component's services are reached, such as a controller endpoint set, client stub, or exported port, rather than the implementing unit"
+    },
+    {
+      "type": "application.applicationcollaboration",
+      "when": "the symbol represents a grouping of several components that work together, such as a system-of-services or a composite deployment, rather than a single replaceable unit"
+    },
+    {
+      "type": "application.dataobject",
+      "when": "the symbol is a passive data structure, such as a DTO, record, or entity without behaviour of its own, that components read or write"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.2.1 Application Component",
+  "code_evidence": [
+    "a module, package, or service directory with its own build manifest or deployment descriptor (package.json, pom.xml, go.mod, Dockerfile, Kubernetes Deployment)",
+    "a class annotated or registered as a managed component in a DI container (@Component, @Service, @Injectable, Module providers) whose instances are injected into other classes",
+    "an entry in docker-compose, Helm charts, or an architecture/service catalogue (e.g. Backstage catalog-info.yaml) naming the unit as a separately deployable service or library"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text narrative describing the component's responsibility, boundaries, and notable dependencies. Set it whenever the component's name alone does not convey what it owns or why it exists."
+    }
+  ],
+  "notes": "The attribute named 'type' collides with the element-type concept and mixes two axes: ownership (internal/external) and style (service-component), with 'generic' as a catch-all. Consider splitting it into 'sourcing' and 'kind'. Granularity is unclear: are plain classes components or should only deployables qualify? The self 'uses' relationship is listed twice.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:23:35.503Z"
+}

@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "motivation.requirement",
+  "previous_description": "Statement of need that must be realized by a system, component, or solution, and that can be associated with stakeholders, goals, or constraints.",
+  "definition": "A statement of need that a system, component, or solution must realize, phrased as a specific, verifiable behavior or property (typically a 'shall/must' statement with acceptance criteria) and traceable to the stakeholders, drivers, or goals that motivate it.",
+  "distinguish_from": [
+    {
+      "type": "motivation.goal",
+      "when": "the statement expresses a high-level desired direction or end state that cannot be directly verified against a specific system, rather than a concrete need the system must meet"
+    },
+    {
+      "type": "motivation.constraint",
+      "when": "the statement limits the design or implementation options (e.g. a mandated technology, budget, deadline, or regulation) rather than stating something the system must do or exhibit"
+    },
+    {
+      "type": "motivation.principle",
+      "when": "the statement is a general normative rule that applies to all systems in a context and guides decisions, rather than a need assigned to a particular system or solution"
+    },
+    {
+      "type": "motivation.outcome",
+      "when": "the statement describes a measurable end result the organization intends or has achieved, rather than a property the system must have to contribute to it"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.3.4 Requirement",
+  "code_evidence": [
+    "A requirements document, PRD, or SRS entry with a stable identifier (e.g. REQ-042, FR-7, NFR-3) and 'shall'/'must' wording",
+    "A user story or issue tracker ticket labeled as a requirement, with acceptance criteria that tests or reviewers check against",
+    "Test annotations, docstrings, or traceability matrices that reference a requirement ID (e.g. @Requirement(\"REQ-042\"), '# Verifies NFR-3') linking code or tests back to the stated need"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text statement of the requirement, including its full wording, rationale, source, and acceptance or verification criteria; set it whenever the name alone does not make the need verifiable."
+    }
+  ],
+  "notes": "ArchiMate treats Constraint as a specialization of Requirement; the boundary needs explicit rules. requirementType 'regulatory' overlaps constraintType 'regulatory', and 'non-functional' overlaps 'quality'. Consider merging these values. 'requirement aggregates goal' inverts the normal direction. Incoming links mix 'satisfies', 'realizes', and 'fulfills' inconsistently. Consider adding a verification/acceptanceCriteria attribute.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "navigation.route",
+  "previous_description": "A named, addressable destination in the application's navigation graph, representing a URL path pattern and the view or component it resolves to. Routes are the atomic unit of the navigation layer — each route maps a URL pattern to a specific UX artifact and carries an access classification (public, protected, redirect, alias, or lazy-loaded) that governs how the router handles incoming requests. Routes may be composed into NavigationFlows to model multi-step user journeys.",
+  "definition": "A client-side router entry that binds a URL path pattern, with any route parameters, to the view or component the single-page-application router renders, lazily loads, or forwards to when the browser location matches it. It is one entry in a front-end route table, not a server-side HTTP endpoint.",
+  "distinguish_from": [
+    {
+      "type": "navigation.navigationtransition",
+      "when": "the element is a movement from one route to another, such as a Link, router.push call or redirect between two paths, rather than the destination path itself."
+    },
+    {
+      "type": "navigation.flowstep",
+      "when": "the element is an ordered position in a multi-step wizard or checkout that refers to a route, rather than the route definition itself."
+    },
+    {
+      "type": "navigation.routemeta",
+      "when": "the element is the meta or data object attached to a route entry, holding layout, keepAlive, transition, breadcrumb or role hints, rather than the path-to-component mapping."
+    },
+    {
+      "type": "navigation.navigationguard",
+      "when": "the element is a beforeEnter, canActivate or loader function that decides whether a route may be activated, rather than the route entry it protects."
+    }
+  ],
+  "standard_reference": "SPA Navigation Patterns: Route definition (route-table entry mapping a path pattern to a view component)",
+  "code_evidence": [
+    "An object in a client-side router's routes array, such as Vue Router createRouter({routes}), Angular Routes or React Router createBrowserRouter, that has a path property together with component/element, loadComponent/lazy, redirect/redirectTo, or alias.",
+    "A file in a file-system routing convention whose location defines a URL path, such as Next.js app/**/page.tsx, SvelteKit +page.svelte, Nuxt pages/*.vue or Remix routes/*.tsx, including dynamic segments like [id] or $id.",
+    "A named path constant or route-name enum, such as ROUTES.USER_DETAIL = '/users/:id', that is passed to router.push, navigate(), <Link to> or <router-link :to> elsewhere in the front-end code."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "title",
+      "description": "Human-readable page title for the route, usually taken from route meta or document.title, used for headings, tab titles and default breadcrumb text. Set it when the route renders a user-visible page."
+    },
+    {
+      "name": "description",
+      "description": "Free-text prose explaining what the route displays and why a user reaches it. Set it when the path and title alone do not convey the route's purpose."
+    }
+  ],
+  "notes": "The type has no path or name attribute, so the defining URL pattern and route parameters cannot be recorded. The type enum mixes three independent dimensions: access (public/protected), behaviour (redirect/alias) and loading (lazy). As a result, a protected lazy route cannot be expressed. Several relationship pairs look redundant: aggregates/composes and flows-to/triggers/navigates-to. The boundary with api.pathitem also needs stating.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

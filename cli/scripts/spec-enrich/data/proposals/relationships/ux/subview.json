@@ -1,0 +1,80 @@
+{
+  "source": "ux.subview",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.097Z",
+  "relationships": [
+    {
+      "id": "ux.subview.accesses.data-store.collection",
+      "previous_description": "Defines relationship: ux.subview accesses data-store.collection",
+      "description": "The sub-view region reads or writes records held in the persistent collection, for example listing or editing the rows of a table shown within its parent view.",
+      "evidence": "The sub-view's data binding or the handler it invokes queries or mutates the named table, document collection or index, as shown by the repository call or query traced from that UI region."
+    },
+    {
+      "id": "ux.subview.aggregates.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.subview aggregates ux.componentinstance",
+      "description": "The sub-view groups the component instance as one of its member parts, while the instance remains a separately identifiable placement that could be moved to another region.",
+      "evidence": "The sub-view definition lists the component instance's id among its children or components array in the UX spec or layout file."
+    },
+    {
+      "id": "ux.subview.binds-to.ux.dataconfig",
+      "previous_description": "Defines relationship: ux.subview binds-to ux.dataconfig",
+      "description": "The sub-view draws the data it displays from the source and field path declared by the data-binding configuration.",
+      "evidence": "The sub-view's spec entry carries a dataConfig or binding attribute that points to the configuration, or its code passes the configured store selector or API hook result into its children."
+    },
+    {
+      "id": "ux.subview.realizes.business.businessprocess",
+      "previous_description": "Defines relationship: ux.subview realizes business.businessprocess",
+      "description": "The sub-view is the screen region through which users carry out the steps of the business process, such as the approval panel in which an order-approval process is completed.",
+      "evidence": "Design documentation or the sub-view's spec annotation maps the region's actions to the activities of the named business process, for example a trace link in the process model."
+    },
+    {
+      "id": "ux.subview.realizes.ux.librarysubview",
+      "previous_description": "Defines relationship: ux.subview realizes ux.librarysubview",
+      "description": "The sub-view is a concrete placement in a particular parent view of the reusable library sub-view definition it instantiates.",
+      "evidence": "The sub-view's ref field names the library sub-view's id, or the parent view's markup embeds the shared library sub-view component."
+    },
+    {
+      "id": "ux.subview.references.data-model.objectschema",
+      "previous_description": "Defines relationship: ux.subview references data-model.objectschema",
+      "description": "The sub-view points to the object schema that describes the shape of the domain record it presents, without depending on it for runtime behavior.",
+      "evidence": "The sub-view spec or its TypeScript props type references the schema's $id or the generated DTO or interface for the domain record."
+    },
+    {
+      "id": "ux.subview.renders.ux.componentinstance",
+      "previous_description": "Defines relationship: ux.subview renders ux.componentinstance",
+      "description": "When its parent view is displayed, the sub-view produces the visual output of the component instance at that instance's configured position with its prop values.",
+      "evidence": "The sub-view's template or JSX emits the library component with the instance's props, matching the instance's render position in the UX spec."
+    },
+    {
+      "id": "ux.subview.requires.security.permission",
+      "previous_description": "Defines relationship: ux.subview requires security.permission",
+      "description": "The sub-view is shown or enabled only for users holding the permission, so the region is hidden or disabled for principals who lack that grant.",
+      "evidence": "The sub-view is wrapped in a permission guard, or its spec declares a requiredPermission, or its visibility check calls the authorization helper with that permission's action and resource."
+    },
+    {
+      "id": "ux.subview.serves.application.applicationservice",
+      "previous_description": "Defines relationship: ux.subview serves application.applicationservice",
+      "description": "The sub-view provides the user-facing entry point through which consumers invoke the operations of the application service.",
+      "evidence": "The sub-view's event handlers or submit actions call the application service's client or operations, for example a form region that triggers the service's create or update endpoint."
+    },
+    {
+      "id": "ux.subview.uses.ux.errorconfig",
+      "previous_description": "Defines relationship: ux.subview uses ux.errorconfig",
+      "description": "The sub-view applies the error display configuration to decide how failures in its region are surfaced, including whether a notification appears, its severity and its message text.",
+      "evidence": "The sub-view spec references the error configuration id, or its error boundary or catch handler reads that configuration's severity and message text."
+    },
+    {
+      "id": "ux.subview.uses.ux.layoutconfig",
+      "previous_description": "Defines relationship: ux.subview uses ux.layoutconfig",
+      "description": "The sub-view arranges its child component instances according to the container rules of the layout configuration, such as grid tracks, spacing and alignment.",
+      "evidence": "The sub-view's spec includes a layout reference to the configuration, or its container element carries the grid or flex classes and styles that the configuration defines."
+    },
+    {
+      "id": "ux.subview.uses.ux.librarysubview",
+      "previous_description": "Defines relationship: ux.subview uses ux.librarysubview",
+      "description": "The sub-view embeds the shared library sub-view composition and depends on it to supply the arrangement of components it shows.",
+      "evidence": "The sub-view's ref attribute or an import in its source names the library sub-view, which is then mounted within the region."
+    }
+  ],
+  "notes": "uses.ux.librarysubview duplicates realizes.ux.librarysubview, since both express the ref placement. Keep realizes. renders and aggregates of componentinstance overlap. Prefer composes for inline sub-views. uses.layoutconfig fits applies better. serves.applicationservice reverses the usual direction: the service serves the UI. accesses.collection skips the API layer."
+}

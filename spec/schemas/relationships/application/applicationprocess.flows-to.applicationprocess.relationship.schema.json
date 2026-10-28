@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationprocess flows-to Applicationprocess",
-  "description": "Defines relationship: application.applicationprocess flows-to application.applicationprocess",
+  "description": "When the upstream workflow completes or reaches a hand-off point, control or its output data passes to the downstream workflow, which continues the end-to-end sequence.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The upstream process's final step starts the downstream workflow, publishes the message it consumes, or is chained to it in the orchestration definition (e.g. Step Functions, Airflow DAG, Temporal child workflow)."
+  ]
 }

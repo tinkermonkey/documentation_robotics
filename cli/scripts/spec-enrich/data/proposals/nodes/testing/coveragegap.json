@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.coveragegap",
+  "previous_description": "An identified deficit between required and achieved test coverage for a target or requirement, typically surfaced during test summary reporting per IEEE 829-2008. Gaps require remediation, risk acceptance (CoverageExclusion), or deferral.",
+  "definition": "A recorded finding that a specific coverage requirement or coverage target lacks the implemented or executed tests it needs. It names what is uncovered, how severe the gap is, and where it stands in remediation. It records a shortfall against required coverage, not a deliberate, approved scope decision and not an aggregate metric.",
+  "distinguish_from": [
+    {
+      "type": "testing.coverageexclusion",
+      "when": "the uncovered item has been formally approved as out of scope, with a rationale, accepted risk and a named approver, rather than merely found to be missing coverage"
+    },
+    {
+      "type": "testing.targetcoveragesummary",
+      "when": "you are recording counts or percentages of sketches and implemented tests for a target, rather than a specific uncovered requirement that needs action"
+    },
+    {
+      "type": "testing.coveragesummary",
+      "when": "the artifact aggregates coverage totals across the whole model instead of describing one identified deficit"
+    },
+    {
+      "type": "testing.coveragerequirement",
+      "when": "you are specifying the criteria that must be met, rather than recording that those criteria are currently unmet"
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 §11 Master/Level Test Report (Test Summary Report): comprehensive assessment and variances, i.e. identification of features or combinations not sufficiently tested",
+  "code_evidence": [
+    "Coverage tool output (e.g. lcov, JaCoCo, coverage.py) or a CI gate failure listing files or endpoints below a configured threshold such as `fail_under` or `coverageThreshold`.",
+    "Test files carrying skip or todo markers (`@pytest.mark.skip`, `it.todo`, `xit`, `@Disabled`) with a comment or ticket ID explaining that a requirement or partition is not yet tested.",
+    "Issue-tracker items or TEST_GAPS / test-report markdown entries labelled 'coverage gap' or 'missing tests', naming an endpoint or requirement ID and a severity."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what is not covered (for example, missing partitions, contexts or outcome categories) and how the gap was detected. Set it whenever the severity and affected requirement alone do not make the gap clear."
+    }
+  ],
+  "notes": "affectedRequirements is a single string but may hold several references; prefer an array of coveragerequirement IDs, which matches the references relationship. targetRef is optional, though every gap belongs to some target. Consider adding detectedAt and an owner/assignee attribute. The relationship 'triggers coveragerequirement' is semantically unclear: a gap is detected against a requirement, not triggering one.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.255Z"
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationinterface serves Businessrole",
-  "description": "Defines relationship: application.applicationinterface serves business.businessrole",
+  "description": "Holders of the business role use the interface as their point of access to the application's functionality when carrying out their responsibilities.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The interface's authorization configuration, UI/API documentation or access policy names the role as an intended consumer, e.g. role-restricted routes or a role-specific portal endpoint."
+  ]
 }

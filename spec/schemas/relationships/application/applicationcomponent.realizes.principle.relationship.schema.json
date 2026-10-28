@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent realizes Principle",
-  "description": "Defines relationship: application.applicationcomponent realizes motivation.principle",
+  "description": "The component's design is a concrete embodiment of the architectural principle, demonstrating how that principle is applied in practice.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "An architecture decision record or design document for the component explicitly cites the principle, and its structure reflects it, for example statelessness or API-first design."
+  ]
 }

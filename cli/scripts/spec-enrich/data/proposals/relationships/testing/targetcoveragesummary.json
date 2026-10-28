@@ -1,0 +1,38 @@
+{
+  "source": "testing.targetcoveragesummary",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.070Z",
+  "relationships": [
+    {
+      "id": "testing.targetcoveragesummary.aggregates.testing.testcasesketch",
+      "previous_description": "Defines relationship: testing.targetcoveragesummary aggregates testing.testcasesketch",
+      "description": "The coverage summary rolls up the test case sketches designed for its target, counting each as designed, implemented or automated while the sketches continue to exist independently in the coverage model.",
+      "evidence": "The summary record's counts are computed from, or list by ID, the test case sketches whose target field matches the summary's target, and those totals agree with the sketches' implementation status."
+    },
+    {
+      "id": "testing.targetcoveragesummary.references.testing.coverageexclusion",
+      "previous_description": "Defines relationship: testing.targetcoveragesummary references testing.coverageexclusion",
+      "description": "The coverage summary cites an approved exclusion so a reader can see why certain coverage requirements of the target are left out of its exercised share.",
+      "evidence": "The summary record carries an exclusion ID field, or lists excluded items, that resolves to a signed-off CoverageExclusion naming the same target or one of its coverage requirements."
+    },
+    {
+      "id": "testing.targetcoveragesummary.references.testing.coveragegap",
+      "previous_description": "Defines relationship: testing.targetcoveragesummary references testing.coveragegap",
+      "description": "The coverage summary points to recorded gap findings that explain which of its target's coverage requirements still lack implemented tests behind the unexercised share it reports.",
+      "evidence": "The summary record lists gap IDs that resolve to CoverageGap entries whose uncovered item is the summary's target or one of that target's coverage requirements."
+    },
+    {
+      "id": "testing.targetcoveragesummary.validates.testing.coveragerequirement",
+      "previous_description": "Defines relationship: testing.targetcoveragesummary validates testing.coveragerequirement",
+      "description": "The coverage summary reports whether each coverage requirement of its target is exercised by at least one implemented test, providing measured evidence of whether the criterion is met.",
+      "evidence": "The summary's per-requirement status or exercised-share calculation names the requirement's ID and links it to at least one implemented test case sketch whose source points to a real test function or scenario."
+    },
+    {
+      "id": "testing.targetcoveragesummary.validates.testing.testcoveragetarget",
+      "previous_description": "Defines relationship: testing.targetcoveragesummary validates testing.testcoveragetarget",
+      "description": "The coverage summary is the single measured status report for one coverage target, stating how far that in-scope artifact's required verification has actually been achieved.",
+      "evidence": "The summary record's target field holds the ID of exactly one TestCoverageTarget, and a coverage report generated from the test model produces that summary for that target."
+    }
+  ],
+  "notes": "Both 'validates' edges overstate the summary's role. It reports measured status and does not itself verify anything, so 'measures' or 'tracks' would fit better. The target edge is also redundant with the requirement edge, because requirements attach to the target. 'aggregates' to sketches is closer to counting, which suggests 'references' or 'measures'."
+}

@@ -1,0 +1,56 @@
+{
+  "source": "business.businessfunction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.082Z",
+  "relationships": [
+    {
+      "id": "business.businessfunction.accesses.business.businessobject",
+      "previous_description": "Defines relationship: business.businessfunction accesses business.businessobject",
+      "description": "The business function reads, creates, updates or deletes the business object as part of its ongoing work, as when Accounting maintains Invoice records.",
+      "evidence": "A CRUD matrix, operating procedure or ArchiMate access relationship records that staff working in the function create, read or update instances of that business object."
+    },
+    {
+      "id": "business.businessfunction.composes.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessfunction composes business.businessfunction",
+      "description": "The parent business function contains the destination sub-function as an integral part of its competency area, so the sub-function has no organizational standing outside it, as with Accounts Payable within Accounting.",
+      "evidence": "A functional decomposition or business capability map lists the sub-function as a child node beneath the parent function, with no other parent."
+    },
+    {
+      "id": "business.businessfunction.flows-to.business.businessfunction",
+      "previous_description": "Defines relationship: business.businessfunction flows-to business.businessfunction",
+      "description": "The source business function hands over information, goods or work results to the destination business function, as when Procurement passes approved purchase orders to Accounts Payable.",
+      "evidence": "A value-stream diagram, interface agreement or ArchiMate flow relationship documents a named hand-off of a work product from one function's output to the other function's intake."
+    },
+    {
+      "id": "business.businessfunction.flows-to.business.businessprocess",
+      "previous_description": "Defines relationship: business.businessfunction flows-to business.businessprocess",
+      "description": "The business function passes its output or work result into the business process, which takes it as an input to its ordered sequence of activities.",
+      "evidence": "A BPMN model or process specification shows the process's start or intermediate input coming from the function, such as a message or data object originating in that functional lane."
+    },
+    {
+      "id": "business.businessfunction.realizes.business.businessservice",
+      "previous_description": "Defines relationship: business.businessfunction realizes business.businessservice",
+      "description": "The business function supplies the internal behavior through which the externally visible business service is actually delivered to its consumers.",
+      "evidence": "A service catalog or service blueprint names the function as the delivering organizational unit or competency behind the service offering."
+    },
+    {
+      "id": "business.businessfunction.realizes.motivation.goal",
+      "previous_description": "Defines relationship: business.businessfunction realizes motivation.goal",
+      "description": "The business function's ongoing behavior brings about the end state that stakeholders have set as a goal, making the function the means by which that intent is achieved.",
+      "evidence": "A strategy or capability-to-goal traceability document maps the goal to the function as its primary contributor, with function objectives that restate the goal."
+    },
+    {
+      "id": "business.businessfunction.serves.business.businessrole",
+      "previous_description": "Defines relationship: business.businessfunction serves business.businessrole",
+      "description": "The business function provides its behavior to support the business role in carrying out its responsibilities, as when an HR function serves the Line Manager role.",
+      "evidence": "An internal service-level agreement, RACI chart or operating model names the role as a consumer or beneficiary of the function's output."
+    },
+    {
+      "id": "business.businessfunction.triggers.business.businessevent",
+      "previous_description": "Defines relationship: business.businessfunction triggers business.businessevent",
+      "description": "Completion or a state change within the business function produces the business event, signaling a named occurrence such as 'month-end close completed' to which other behavior can react.",
+      "evidence": "A BPMN or event model shows the event emitted by the function's lane, or a procedure states that the function's action marks the occurrence of that event."
+    }
+  ],
+  "notes": "Function realizes Goal is questionable: ArchiMate lets core elements realize requirements and influence goals, so 'supports' or 'influence' fits better. The composes self-relationship has ambiguous direction (whole vs. part as source); it should be documented explicitly. The function serves role relationship is valid but weak, since roles are typically assigned to functions."
+}

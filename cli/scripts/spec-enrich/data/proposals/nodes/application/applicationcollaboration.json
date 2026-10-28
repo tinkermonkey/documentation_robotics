@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "application.applicationcollaboration",
+  "previous_description": "Aggregate of application components working together",
+  "definition": "An active structure element that names a grouping of two or more application components (or nested collaborations) which jointly perform collective behaviour. It is a logical or configured grouping of independently deployable parts, not a deployable unit or behaviour in its own right.",
+  "distinguish_from": [
+    {
+      "type": "application.applicationcomponent",
+      "when": "the symbol is a single modular, deployable unit, even if it internally composes sub-modules or calls other services"
+    },
+    {
+      "type": "application.applicationinteraction",
+      "when": "the symbol describes the joint behaviour itself, such as a message exchange, saga step sequence or protocol between components, rather than the group of participants"
+    },
+    {
+      "type": "application.applicationprocess",
+      "when": "the symbol is an ordered sequence of steps that achieves a result, even if those steps span several components"
+    },
+    {
+      "type": "application.applicationservice",
+      "when": "the symbol is the externally exposed functionality the group offers rather than the group of participating components"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §9.2.2 Application Collaboration",
+  "code_evidence": [
+    "a saga or choreography definition (e.g. Temporal/Camunda workflow config, event-flow manifest) that enumerates several named participating services under one collective name",
+    "a docker-compose file, Helm umbrella chart or Kubernetes namespace that groups multiple separately built services as one named subsystem delivering a shared capability",
+    "an architecture document, ADR or C4 diagram boundary that names a set of cooperating services (e.g. 'checkout subsystem: cart, pricing, payment') as a unit"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "A free-text description of the collaboration that names its participating components and the joint purpose they serve. Set it whenever the element name alone does not make membership or purpose clear."
+    }
+  ],
+  "notes": "Rarely maps to a single code symbol, so a classifier will seldom match it from a state card. ArchiMate assigns a collaboration to an interaction, but the spec models this as depends-on/delivers-value; consider an 'assigned-to' relationship. The parallel aggregates and depends-on links to applicationcomponent are redundant. A 'members' or minimum-cardinality constraint is missing.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:23:38.484Z"
+}

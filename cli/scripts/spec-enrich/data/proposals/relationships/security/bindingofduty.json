@@ -1,0 +1,38 @@
+{
+  "source": "security.bindingofduty",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.072Z",
+  "relationships": [
+    {
+      "id": "security.bindingofduty.associated-with.security.separationofduty",
+      "previous_description": "Defines relationship: security.bindingofduty associated-with security.separationofduty",
+      "description": "A binding-of-duty rule is the complementary counterpart of a separation-of-duty rule over the same workflow, one forcing the same actor to continue a task instance while the other forces a different actor onto a conflicting step, so the two must be designed together to avoid contradictory demands on the same steps.",
+      "evidence": "The workflow's access policy file or authorization design document defines both the same-actor continuation rule and the different-actor conflict rule for the same process, cross-referencing the step identifiers they cover."
+    },
+    {
+      "id": "security.bindingofduty.constrains.security.role",
+      "previous_description": "Defines relationship: security.bindingofduty constrains security.role",
+      "description": "The binding-of-duty rule narrows what holders of a role may do, so possessing the role's permissions is not enough to perform a follow-on step unless the role holder is the same actor who performed the initiating step of that task instance.",
+      "evidence": "The authorization policy (e.g. an OPA/Rego rule or an RBAC policy extension) conditions a role's grant for a follow-on step on a check that the current subject equals the recorded initiator of the task instance."
+    },
+    {
+      "id": "security.bindingofduty.governs.security.resourceoperation",
+      "previous_description": "Defines relationship: security.bindingofduty governs security.resourceoperation",
+      "description": "The binding-of-duty rule dictates when a follow-on action on a secured resource, such as completing or submitting a case, may be invoked, admitting the call only from the actor who performed the designated earlier operation on the same item.",
+      "evidence": "The authorization check for that operation's endpoint or handler compares the caller's identity with the stored actor of the prior step (e.g. a `startedBy` field) and rejects mismatches, with the rule named in the operation's access conditions."
+    },
+    {
+      "id": "security.bindingofduty.requires.security.evidence",
+      "previous_description": "Defines relationship: security.bindingofduty requires security.evidence",
+      "description": "Enforcing the binding-of-duty rule depends on retained proof, such as audit-trail records or signed step logs, identifying which actor performed each earlier step, since without it the system cannot determine whether the actor attempting a follow-on step is the same one.",
+      "evidence": "The enforcement code reads the initiating actor from an audit log, workflow history table or signed step record before authorizing the follow-on step, and the policy specification names that record as its input."
+    },
+    {
+      "id": "security.bindingofduty.supports.security.accountabilityrequirement",
+      "previous_description": "Defines relationship: security.bindingofduty supports security.accountabilityrequirement",
+      "description": "Keeping every step of a task instance in one actor's hands helps meet an accountability obligation, because the whole action, from initiation to completion, can be attributed to a single, unambiguous responsible person.",
+      "evidence": "The security requirements or control-mapping document lists the binding-of-duty rule as a control satisfying the attributability obligation for that action on that resource, and the workflow audit records show a single actor across all of its steps."
+    }
+  ],
+  "notes": "The constrains (Role) and governs (ResourceOperation) relationships both express the rule restricting access through the influence family; they differ only in target and could be unified. The requires predicate is labelled ArchiMate Access, but for Evidence it is better read as data dependency. Binding and separation of duty are best modelled as complementary, not merely 'associated'."
+}

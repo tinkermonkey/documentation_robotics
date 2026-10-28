@@ -1,0 +1,50 @@
+{
+  "source": "security.role",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.106Z",
+  "relationships": [
+    {
+      "id": "security.role.accesses.security.secureresource",
+      "previous_description": "Defines relationship: security.role accesses security.secureresource",
+      "description": "Actors holding the role are able to read or modify the protected resource, by virtue of the role's permissions naming operations on that resource.",
+      "evidence": "The role's policy or RBAC definition (e.g. a Kubernetes RoleBinding rule, IAM policy, or Casbin policy line) lists the resource's identifier as an object it may act on."
+    },
+    {
+      "id": "security.role.aggregates.security.permission",
+      "previous_description": "Defines relationship: security.role aggregates security.permission",
+      "description": "The role bundles the permission as one of its member grants, while the permission remains an independent definition that other roles may also include.",
+      "evidence": "The role definition file or role_permissions join table lists the permission's identifier among the role's grants, and the same permission appears under other roles."
+    },
+    {
+      "id": "security.role.authorizes.security.permission",
+      "previous_description": "Defines relationship: security.role authorizes security.permission",
+      "description": "Being assigned the role is what entitles an actor to exercise the permission at enforcement points, so authorization checks for that permission succeed for role holders.",
+      "evidence": "An authorization check such as hasPermission or @PreAuthorize resolves the permission by looking up the caller's roles, and the role's mapping includes that permission."
+    },
+    {
+      "id": "security.role.constrained-by.security.separationofduty",
+      "previous_description": "Defines relationship: security.role constrained-by security.separationofduty",
+      "description": "The role is one of the conflicting positions named by the separation-of-duty rule, so its assignment or use is restricted relative to the other role or task in the conflicting pair.",
+      "evidence": "An SoD policy or mutual-exclusion constraint in the IAM configuration names the role as conflicting with another role or workflow step, and role-assignment or approval code rejects violations."
+    },
+    {
+      "id": "security.role.maps-to.business.businessrole",
+      "previous_description": "Defines relationship: security.role maps-to business.businessrole",
+      "description": "The technical access role corresponds to the organizational responsibility position, granting system access to whoever fills that business role.",
+      "evidence": "An access-provisioning matrix, identity-governance mapping, or directory group naming convention ties the security role to the business role (e.g. 'Claims Adjuster' group grants the CLAIMS_ADJUSTER role)."
+    },
+    {
+      "id": "security.role.provides.security.permission",
+      "previous_description": "Defines relationship: security.role provides security.permission",
+      "description": "The role makes the permission available to every actor assigned to it, so actors gain the grant through the role rather than individually.",
+      "evidence": "The role-to-permission mapping in the RBAC configuration is used by the user-permission resolver to compute an actor's effective permissions from their assigned roles."
+    },
+    {
+      "id": "security.role.specializes.security.role",
+      "previous_description": "Defines relationship: security.role specializes security.role",
+      "description": "The child role is a more specific variant of its parent role, inheriting all of the parent's permissions and adding its own, typically at a higher privilege tier.",
+      "evidence": "The role definition declares a parent or inherits attribute (e.g. a role hierarchy entry 'admin inherits editor') and permission resolution unions in the parent's permissions."
+    }
+  ],
+  "notes": "aggregates, authorizes and provides from Role to Permission all express the same role-grants-permission membership; one (aggregates) suffices. Role accesses SecureResource is derivable via Permission and is redundant. specializes duplicates single-parent inheritance correctly but should be restricted to one parent."
+}

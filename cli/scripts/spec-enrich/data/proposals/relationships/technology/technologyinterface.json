@@ -1,0 +1,56 @@
+{
+  "source": "technology.technologyinterface",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.060Z",
+  "relationships": [
+    {
+      "id": "technology.technologyinterface.assigned-to.technology.node",
+      "previous_description": "Defines relationship: technology.technologyinterface assigned-to technology.node",
+      "description": "The protocol endpoint, such as a listening port or endpoint URL, is bound to and offered by a particular host, VM, container instance or cluster, which is the node that consumers actually reach when they connect to it.",
+      "evidence": "A Kubernetes Service, container port mapping, load balancer listener or Terraform resource declares the port or endpoint on that specific VM, pod or cluster, or a DNS record resolves the endpoint to that host."
+    },
+    {
+      "id": "technology.technologyinterface.assigned-to.technology.systemsoftware",
+      "previous_description": "Defines relationship: technology.technologyinterface assigned-to technology.systemsoftware",
+      "description": "The endpoint is opened and answered by a specific platform product, such as the PostgreSQL listener on 5432, the Kafka broker listener or the Redis port, so that software instance is what accepts connections on it.",
+      "evidence": "The product's configuration file, such as postgresql.conf listen_addresses/port, Kafka listeners or redis.conf port, or the container image's exposed port, declares the endpoint."
+    },
+    {
+      "id": "technology.technologyinterface.assigned-to.technology.technologyservice",
+      "previous_description": "Defines relationship: technology.technologyinterface assigned-to technology.technologyservice",
+      "description": "The endpoint is the concrete access point through which consumers obtain the infrastructure capability, for example the broker URL through which the messaging service is used or the JDBC endpoint through which the database service is offered.",
+      "evidence": "Service documentation, a service catalog entry or a connection-string definition lists the endpoint URL or port as the way to consume that capability, for example a managed-service console output or a Terraform output named after the service."
+    },
+    {
+      "id": "technology.technologyinterface.serves.technology.technologycollaboration",
+      "previous_description": "Defines relationship: technology.technologyinterface serves technology.technologycollaboration",
+      "description": "Members of the peer cluster coordinate through the endpoint, for example a replication port, gossip port or mesh control-plane endpoint, so the collaboration depends on it to perform its joint behavior.",
+      "evidence": "Cluster configuration, such as Raft/etcd peer URLs, Cassandra seeds and storage port, Redis cluster bus port or Istio control-plane address, references the endpoint as the coordination channel among the members."
+    },
+    {
+      "id": "technology.technologyinterface.serves.technology.technologyfunction",
+      "previous_description": "Defines relationship: technology.technologyinterface serves technology.technologyfunction",
+      "description": "An ongoing infrastructure behavior, such as health checking, replication or log shipping, is carried out by calling or reading through the endpoint, which gives the function the access it needs.",
+      "evidence": "The function's configuration targets the endpoint, for example a health-check probe pointing at a /healthz port, a replication config naming the primary's replication port, or a log-forwarder output URL."
+    },
+    {
+      "id": "technology.technologyinterface.serves.technology.technologyprocess",
+      "previous_description": "Defines relationship: technology.technologyinterface serves technology.technologyprocess",
+      "description": "One or more steps of the automated sequence, such as a deployment pipeline, backup job or certificate renewal, connect to the endpoint to perform their work, so the process depends on the endpoint being available.",
+      "evidence": "The pipeline definition, cron job script or workflow manifest contains a step that connects to the endpoint URL or port, for example a kubectl API-server address, a pg_dump host:port or an ACME directory URL."
+    },
+    {
+      "id": "technology.technologyinterface.uses.technology.communicationnetwork",
+      "previous_description": "Defines relationship: technology.technologyinterface uses technology.communicationnetwork",
+      "description": "The endpoint is reachable only on a particular LAN, VPC, subnet or the public internet, which carries all traffic to and from the endpoint.",
+      "evidence": "The infrastructure definition places the listener in that network, for example a load balancer or ENI attached to the subnet, an IP address inside the VPC CIDR, or a security group or firewall rule scoped to that network."
+    },
+    {
+      "id": "technology.technologyinterface.uses.technology.path",
+      "previous_description": "Defines relationship: technology.technologyinterface uses technology.path",
+      "description": "Connections to the endpoint travel over a specific logical link between named hosts, such as the service-to-database connection or the VPN tunnel, which the endpoint depends on for data exchange.",
+      "evidence": "A connection definition, tunnel config, peering or private-link resource, or network policy permits traffic between the two specific nodes to that endpoint's port."
+    }
+  ],
+  "notes": "Assigning an interface to node or system software inverts the ArchiMate convention, in which nodes or system software compose or are assigned their interfaces; composed-of would fit better. Interface assigned-to technology service matches ArchiMate. 'uses' toward network and path duplicates ArchiMate Association/Realization semantics, and the two uses relationships overlap when a path is realized by a network."
+}

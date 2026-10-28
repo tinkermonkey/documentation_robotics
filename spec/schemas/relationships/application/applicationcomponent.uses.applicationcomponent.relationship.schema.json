@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent uses Applicationcomponent",
-  "description": "Defines relationship: application.applicationcomponent uses application.applicationcomponent",
+  "description": "The source component relies on the target component's functionality at runtime, so the target is a dependency the source needs to do its work.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "The source component injects, imports or calls the target, for example through a dependency-injection binding, package dependency or HTTP/gRPC client configured with the target's address."
+  ]
 }

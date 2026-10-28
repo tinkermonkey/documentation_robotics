@@ -1,0 +1,46 @@
+{
+  "spec_node_id": "testing.inputselection",
+  "previous_description": "A concrete input value assignment for a TestCaseSketch, binding an abstract partition representative value (selectedValue) to a specific concrete test datum (concreteValue), per test case input specification in IEEE 829-2008.",
+  "definition": "A single input binding inside one TestCaseSketch that assigns, for one partitioned input field, the chosen equivalence class (a PartitionValue) and the exact datum the test will submit for it. It is owned by exactly one test case, so it records the data that one test actually uses rather than a coverage obligation.",
+  "distinguish_from": [
+    {
+      "type": "testing.inputpartitionselection",
+      "when": "the element states which partition values a CoverageRequirement obliges tests to exercise (cover/exclude lists), without fixing a concrete datum for any particular test case"
+    },
+    {
+      "type": "testing.partitionvalue",
+      "when": "the element defines an equivalence class itself (label, constraint, category, representative value) independent of any test case that uses it"
+    },
+    {
+      "type": "testing.testcasesketch",
+      "when": "the element is the whole test case design (status, implementation format, source) that groups several input bindings"
+    },
+    {
+      "type": "testing.targetinputfield",
+      "when": "the element only associates an input field of the target with its InputSpacePartition, without choosing a value for a specific test"
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 §10.2.3 Level Test Case — Inputs",
+  "code_evidence": [
+    "A row in a parametrized test table (e.g. pytest.mark.parametrize, JUnit @CsvSource, Jest test.each) that supplies a specific literal for one argument, often named or commented after its class, such as 'age=-1  # invalid: negative'",
+    "A test-data file (CSV/JSON/YAML) with one column per input field and one row per test case, consumed by a data-driven runner",
+    "A fixture or factory call inside a single test that builds a specific value for a request field, e.g. build_user(email='a@b') or a Faker/hypothesis strategy pinned to a boundary such as max length 255"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "partitionRef",
+      "description": "ID of the testing.inputspacepartition whose input field this binding supplies a value for; set it on every selection so the concrete value can be traced to its input dimension."
+    },
+    {
+      "name": "selectedValue",
+      "description": "Label or ID of the testing.partitionvalue (equivalence class) chosen from that partition for this test case, e.g. 'boundary-max' or 'null-empty'."
+    },
+    {
+      "name": "concreteValue",
+      "description": "The exact datum the test submits for the field, serialized as a string (literal, JSON fragment, or fixture key), e.g. '255', '\"\"', or 'fixtures/user_admin.json'."
+    }
+  ],
+  "notes": "TestCaseSketch.inputSelections says it references InputPartitionSelection, yet sketches compose InputSelection. Fix one of them. The outgoing references to coveragerequirement and testcoveragetarget duplicate what the owning sketch already implies. partitionRef plus selectedValue would be simpler as a single partitionValueRef. The coveragerequirement-accesses-inputselection edge mixes design-level and case-level concerns.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.224Z"
+}

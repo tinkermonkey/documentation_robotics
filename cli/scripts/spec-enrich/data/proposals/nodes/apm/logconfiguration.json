@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "apm.logconfiguration",
+  "previous_description": "OTel LoggerProvider configuration, covering the LogRecordProcessor pipeline, LogRecordExporter wiring, and minimum severity filtering for log emission.",
+  "definition": "A provider-level logging SDK configuration that bootstraps the log pipeline for one service: the OTel LoggerProvider, or an equivalent logging-framework root configuration, that registers log record processors and exporters and sets the minimum severity for emitted log records. It covers the pipeline as a whole, not any single processor, exporter or log record.",
+  "distinguish_from": [
+    {
+      "type": "apm.logprocessor",
+      "when": "the symbol is one processing stage (simple, batch or custom filter/enricher) that is attached to the log pipeline, rather than the provider setup that assembles the pipeline"
+    },
+    {
+      "type": "apm.exporterconfig",
+      "when": "the symbol only specifies an export destination (endpoint, protocol, auth, compression) that a log, trace or metric pipeline sends data to"
+    },
+    {
+      "type": "apm.resource",
+      "when": "the symbol defines service identity attributes (service.name, service.version, deployment.environment) that are merged into all signals rather than log-pipeline settings"
+    },
+    {
+      "type": "apm.logrecord",
+      "when": "the symbol is an individual emitted log event or the structure of one, rather than the configuration governing emission"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Logs SDK specification – LoggerProvider (with LogRecordProcessor and LogRecordExporter configuration)",
+  "code_evidence": [
+    "Construction of an OTel LoggerProvider or SdkLoggerProvider builder that chains addLogRecordProcessor(...) calls and is then registered globally, e.g. via set_logger_provider or OpenTelemetrySdk.builder().setLoggerProvider",
+    "Environment or SDK config keys such as OTEL_LOGS_EXPORTER, OTEL_BLRP_SCHEDULE_DELAY or a 'logger_provider:' block in an OTel declarative config file",
+    "A logging framework root configuration, such as logback.xml, log4j2.xml or Python logging.config dictConfig, that sets the root level and attaches an OpenTelemetry appender or handler"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "serviceName",
+      "description": "Logical name of the service whose log pipeline this configuration sets up, given as a plain string matching the Resource's service.name (e.g. 'checkout-api'); set it to tie the configuration to its emitting service."
+    }
+  ],
+  "notes": "serviceName conflicts with TraceConfiguration's stated rule that service identity belongs on Resource; consider removing it and relying on the depends-on Resource link. The minimumSeverity enum collapses OTel's 24-level severityNumber scale into six SeverityText names. No attribute captures attached processors or exporters inline; the aggregates relationships carry that information. The 'monitors business service' link is questionable.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.207Z"
+}

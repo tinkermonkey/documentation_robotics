@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "data-store.namespace",
+  "previous_description": "A logical grouping of database objects within a database instance. Paradigm-neutral: maps to SQL schema, MongoDB database, Cassandra keyspace, Redis namespace/prefix, Elasticsearch index, vector database namespace, and graph database named graph.",
+  "definition": "A named logical container inside a single database instance that scopes the names of collections, views, indexes, stored logic and other database objects, but does not itself hold records. Corresponds to an SQL schema, a MongoDB database, a Cassandra keyspace, a Redis key prefix convention, a vector-store namespace, or a graph named graph.",
+  "distinguish_from": [
+    {
+      "type": "data-store.database",
+      "when": "the element is the deployed engine instance or server/cluster that you connect to (host, engine, version, deployment model), not a name-scoping container within it"
+    },
+    {
+      "type": "data-store.collection",
+      "when": "the element directly stores records, documents, keys or vectors, such as a table, a MongoDB collection, a Cassandra table, or an Elasticsearch index that holds documents"
+    },
+    {
+      "type": "data-store.view",
+      "when": "the element is a derived or virtual record set defined by a query or alias over source collections rather than a container that scopes object names"
+    }
+  ],
+  "standard_reference": "ISO/IEC 9075-2 Clause 11.1 <schema definition> (CREATE SCHEMA)",
+  "code_evidence": [
+    "a migration or DDL script containing CREATE SCHEMA, CREATE KEYSPACE, or CREATE DATABASE inside a MongoDB/MySQL-style server, or a USE <name> statement",
+    "ORM or mapping configuration that qualifies tables with a schema name, e.g. @Table(schema=\"billing\"), SQLAlchemy MetaData(schema=\"billing\"), or Prisma @@schema(\"billing\")",
+    "client code selecting a scoped container by name, e.g. mongoClient.getDatabase(\"orders\"), session.execute(\"USE analytics\"), a Pinecone upsert(namespace=\"tenant-42\"), or a constant Redis key prefix such as \"cart:\" applied to every key"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "owner",
+      "description": "The database role, user or principal that owns the namespace and holds default privileges over its objects, e.g. the AUTHORIZATION role in CREATE SCHEMA. Set it when ownership is declared in DDL or provisioning code, and leave it empty for paradigms without an ownership concept, such as Redis prefixes."
+    }
+  ],
+  "notes": "The mapping of an Elasticsearch index to Namespace conflicts with Collection's SEARCH_INDEX type; pick one. The relationships 'collection composes namespace' and 'namespace composes field' look inverted or skip a level. A Redis prefix is only a convention, not an engine object. Namespace lacks attributes for Cassandra replication strategy and for a per-namespace charset or collation.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.238Z"
+}

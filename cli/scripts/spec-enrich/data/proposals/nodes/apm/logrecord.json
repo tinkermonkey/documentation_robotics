@@ -1,0 +1,62 @@
+{
+  "spec_node_id": "apm.logrecord",
+  "previous_description": "Structured log record in the OTel data model, capturing an event with dual timestamps (timeUnixNano for event occurrence, observedTimeUnixNano for ingestion), a 1–24 severity scale, and an unstructured body. Supports trace context correlation to link logs to distributed traces.",
+  "definition": "A structured log event emitted by application or library code through a logging API or the OTel Logs Bridge API. It is identified by a stable message template or event name together with its severity, body and attributes. It models the kind of record a log call site produces, not a transient annotation on a span.",
+  "distinguish_from": [
+    {
+      "type": "apm.spanevent",
+      "when": "the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record"
+    },
+    {
+      "type": "apm.logconfiguration",
+      "when": "the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event"
+    },
+    {
+      "type": "apm.logprocessor",
+      "when": "the code filters, enriches, batches or routes log records in the pipeline instead of producing them"
+    },
+    {
+      "type": "apm.metricinstrument",
+      "when": "the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body"
+    }
+  ],
+  "standard_reference": "OpenTelemetry Logs Data Model – LogRecord (Log and Event Record Definition)",
+  "code_evidence": [
+    "A structured logger call with a stable message template or event name plus key-value fields, e.g. logger.warn('payment.declined', {orderId, reason}) or log.info().addKeyValue(...)",
+    "A direct OTel Logs Bridge API emission such as logger.emit({severityNumber, severityText, body, attributes}) or LogRecordBuilder.setBody(...).emit()",
+    "Documented log or audit event catalogs, or constants enumerating log event names and their fields, e.g. AUDIT_USER_LOGIN = 'user.login' referenced from logging calls"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "timeUnixNano",
+      "description": "Time the described event occurred, given as nanoseconds since the Unix epoch encoded as a decimal string; set it when the emitting source supplies an event time, otherwise use '0' (unknown)."
+    },
+    {
+      "name": "observedTimeUnixNano",
+      "description": "Time the record was observed by the collection pipeline (SDK or collector), given as nanoseconds since the Unix epoch encoded as a decimal string; it is normally set by the pipeline and falls back to timeUnixNano when no separate observation time exists."
+    },
+    {
+      "name": "severityNumber",
+      "description": "OTel numeric severity from 1 to 24 (1–4 TRACE, 5–8 DEBUG, 9–12 INFO, 13–16 WARN, 17–20 ERROR, 21–24 FATAL), with 0 meaning unspecified; set it to the level used by the emitting call."
+    },
+    {
+      "name": "severityText",
+      "description": "Original severity label as produced by the source logging framework (e.g., 'WARNING', 'err'); set it to preserve the native level name alongside severityNumber."
+    },
+    {
+      "name": "body",
+      "description": "The log message or event payload, typically the message template (e.g., 'Order {orderId} created') or a serialized structured body; set it to the stable content that identifies this record."
+    },
+    {
+      "name": "flags",
+      "description": "W3C trace flags byte from the span context active at emission, as a hex string (e.g., '01' = sampled); set it when the record is correlated with a trace, otherwise use '00'."
+    },
+    {
+      "name": "droppedAttributesCount",
+      "description": "Number of attributes discarded because of attribute count or length limits, as a non-negative integer; use 0 for modelled records unless limits are known to truncate them."
+    }
+  ],
+  "notes": "The type lacks traceId and spanId, so the claimed trace correlation is not expressible; it also lacks eventName. severityNumber should be an integer constrained to 0–24. The required instance-level fields (timestamps, flags) conflict with modelling design-time log event types. Consider making them optional, or splitting the type into a log event definition versus a record instance.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.233Z"
+}

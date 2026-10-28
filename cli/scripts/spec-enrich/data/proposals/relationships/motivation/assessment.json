@@ -1,0 +1,50 @@
+{
+  "source": "motivation.assessment",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.103Z",
+  "relationships": [
+    {
+      "id": "motivation.assessment.associated-with.motivation.constraint",
+      "previous_description": "Defines relationship: motivation.assessment associated-with motivation.constraint",
+      "description": "The finding is linked to a restriction on the solution space, either because the analysis revealed the need for that limit (e.g. a risk prompting a forbidden technology) or because it evaluated the impact of an existing constraint such as a budget ceiling or deadline.",
+      "evidence": "A gap analysis, risk register entry or ADR records the finding and explicitly cites the constraint's identifier or text as its origin or as the condition being assessed."
+    },
+    {
+      "id": "motivation.assessment.associated-with.motivation.outcome",
+      "previous_description": "Defines relationship: motivation.assessment associated-with motivation.outcome",
+      "description": "The finding relates to a measurable end result, typically as the baseline or gap measurement that shows how far the current state is from the outcome's target value, or as a judgement on whether it was reached.",
+      "evidence": "An assessment report, KPI review or OKR retrospective states the measured current value alongside the outcome's target and references the outcome by name or ID."
+    },
+    {
+      "id": "motivation.assessment.influence.motivation.assessment",
+      "previous_description": "Defines relationship: motivation.assessment influence motivation.assessment",
+      "description": "One finding shapes another finding, as when an identified weakness or risk leads analysts to a further conclusion such as a feasibility verdict or a derived risk.",
+      "evidence": "A SWOT, risk register or architecture review document lists one finding as the cause, input or justification of another, for example a risk entry citing a weakness ID in its rationale field."
+    },
+    {
+      "id": "motivation.assessment.influence.motivation.driver",
+      "previous_description": "Defines relationship: motivation.assessment influence motivation.driver",
+      "description": "The finding affects how a driving condition is perceived or prioritized, for example an analysis showing rising operating cost is severe enough to raise that cost pressure to a primary driver of change.",
+      "evidence": "A strategy paper or driver catalogue records the driver's priority or scope and cites the assessment's analysis as the reason for its weighting or inclusion."
+    },
+    {
+      "id": "motivation.assessment.influence.motivation.goal",
+      "previous_description": "Defines relationship: motivation.assessment influence motivation.goal",
+      "description": "The finding motivates or reshapes a stakeholder goal, as when an identified gap or weakness leads stakeholders to set or revise an intended end state that addresses it.",
+      "evidence": "A strategy document, roadmap or goal-setting record states the goal and names the assessment (e.g. a gap analysis or audit finding) as its rationale."
+    },
+    {
+      "id": "motivation.assessment.influence.motivation.principle",
+      "previous_description": "Defines relationship: motivation.assessment influence motivation.principle",
+      "description": "The finding prompts the adoption or adjustment of a normative design principle, for example recurring integration failures leading to an enterprise principle favouring loosely coupled interfaces.",
+      "evidence": "The architecture principles catalogue lists the principle with a rationale or implications section that references the assessment or review that motivated it."
+    },
+    {
+      "id": "motivation.assessment.influence.motivation.requirement",
+      "previous_description": "Defines relationship: motivation.assessment influence motivation.requirement",
+      "description": "The finding motivates or alters a specific verifiable requirement, such as a security risk assessment leading to a 'shall encrypt data at rest' requirement or a feasibility verdict relaxing an acceptance criterion.",
+      "evidence": "The requirement's specification or tracking ticket records the assessment ID in its source, rationale or traceability field, e.g. a threat-model or audit finding linked as the requirement's origin."
+    }
+  ],
+  "notes": "Associated-with to outcome and constraint is inconsistent with influence to goal, requirement and principle; an assessment shaping an outcome or constraint would likewise be influence. Influence toward driver inverts ArchiMate's convention, where assessments are associated with drivers they evaluate. Assessment-to-assessment influence risks overlapping generic association."
+}

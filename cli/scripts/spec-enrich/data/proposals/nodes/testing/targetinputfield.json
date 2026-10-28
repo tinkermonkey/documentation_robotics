@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.targetinputfield",
+  "previous_description": "An association between a TestCoverageTarget and a specific input field of the target artifact, defining which InputSpacePartition applies to that field and documenting its coverage relevance per IEEE 829-2008 test case specification.",
+  "definition": "A test-design association that binds one input field of a TestCoverageTarget's artifact (an API parameter, data-model property or UI input) to the InputSpacePartition used to divide that field into equivalence classes. It also records whether the field must appear in test inputs for that target.",
+  "distinguish_from": [
+    {
+      "type": "testing.inputspacepartition",
+      "when": "you are defining the equivalence classes of an input dimension itself, independent of which target or field uses them."
+    },
+    {
+      "type": "testing.inputpartitionselection",
+      "when": "you are stating which values of a partition a specific CoverageRequirement must exercise, rather than which partition governs a target's field."
+    },
+    {
+      "type": "testing.inputselection",
+      "when": "you are binding a concrete test datum to a partition value for an individual TestCaseSketch."
+    },
+    {
+      "type": "testing.testcoveragetarget",
+      "when": "the symbol represents the endpoint, workflow or component under test as a whole, not one of its input fields."
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Level Test Case Specification, Inputs (§10.2.3), informed by Level Test Design equivalence-partitioning features",
+  "code_evidence": [
+    "A parameterized test (pytest.mark.parametrize, JUnit @ParameterizedTest/@MethodSource) whose parameter is named after one request field of the endpoint under test, with value sets grouped as valid/invalid/boundary.",
+    "A per-endpoint test-data map or fixture keyed by request field name (e.g. {\"email\": EMAIL_CASES, \"age\": AGE_BOUNDARIES}) that pairs each field with a reusable case list.",
+    "A property-based or schema-driven generator bound to a single DTO/OpenAPI parameter (Hypothesis st.builds field override, fast-check arbitrary, Schemathesis hook for one parameter)."
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text note on why this field matters for testing the target, such as validation rules or known defect history. Set it when the field's relevance or chosen partition is not self-evident from fieldRef and partitionRef."
+    }
+  ],
+  "notes": "relevance duplicates InputSpacePartition.presenceRule with a different enum (forbidden and mutually-exclusive are missing here). fieldRef also appears on InputSpacePartition, which makes that partition non-reusable. fieldRef's description omits UX fields, although maps-to ux.actioncomponent exists. The aggregates→partitionvalue relationship is redundant with partitionRef. There is no targetRef attribute; the target link is carried only by composition.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.222Z"
+}

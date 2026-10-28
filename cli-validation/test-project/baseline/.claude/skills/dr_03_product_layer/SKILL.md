@@ -48,6 +48,7 @@ This layer uses a **custom specification** designed for product planning, priori
 | **Capability**   | Product ability independent of implementation              | status (proposed, planned, developing, delivered, deprecated), properties                             |
 | **Feature**      | User-visible unit of functionality delivering capabilities | priority (critical, high, medium, low, informational), status, size (xs, s, m, l, xl)                 |
 | **UserWorkflow** | Sequence of user-facing steps to accomplish a goal         | complexity (simple, moderate, complex), properties                                                    |
+| **WorkflowStep** | One ordered, user-facing step within a UserWorkflow        | sequence, action, outcome, optional, properties                                                       |
 | **Milestone**    | Time-bound delivery target grouping features/capabilities  | status (proposed, planned, active, completed, cancelled)                                              |
 
 ---
@@ -64,6 +65,13 @@ This layer uses a **custom specification** designed for product planning, priori
 - UserWorkflow → Feature (composes)
 - Milestone → Milestone (precedes)
 - Feature → Feature (depends-on)
+- Feature → Capability (uses)
+- UserWorkflow → Capability (uses)
+- Capability → Capability (depends-on)
+- UserWorkflow → WorkflowStep (composes)
+- WorkflowStep → WorkflowStep (flows-to)
+- WorkflowStep → Feature / Capability (uses)
+- WorkflowStep → Persona (serves)
 
 **Cross-Layer (Product → Motivation):**
 
@@ -79,6 +87,13 @@ This layer uses a **custom specification** designed for product planning, priori
 - UserWorkflow → BusinessProcess (aggregates)
 - Capability → BusinessFunction (realizes)
 - Persona → BusinessRole (serves)
+
+**Cross-Layer (Lower layers → Product):**
+
+- ApplicationService / ApplicationComponent / TechnologyService → Capability (realizes)
+- ApplicationService / ApplicationComponent / UX View → Feature (realizes); API Operation → Feature (exposes)
+- NavigationFlow → UserWorkflow (realizes); FlowStep → WorkflowStep (realizes)
+- TestCaseSketch → Feature (tests); TestCoverageTarget → Feature (covers)
 
 ---
 

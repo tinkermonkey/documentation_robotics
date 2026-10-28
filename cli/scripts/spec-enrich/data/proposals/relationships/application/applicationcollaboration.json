@@ -1,0 +1,56 @@
+{
+  "source": "application.applicationcollaboration",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:24:53.359Z",
+  "relationships": [
+    {
+      "id": "application.applicationcollaboration.aggregates.application.applicationcomponent",
+      "previous_description": "Defines relationship: application.applicationcollaboration aggregates application.applicationcomponent",
+      "description": "The collaboration counts the component as one of its participating members, while the component stays independently deployable and may also belong to other collaborations.",
+      "evidence": "A docker-compose file, Helm umbrella chart, or architecture document lists the component as a member service of the named collaboration, for example among the declared participants of a saga."
+    },
+    {
+      "id": "application.applicationcollaboration.delivers-value.application.applicationinteraction",
+      "previous_description": "Defines relationship: application.applicationcollaboration delivers-value application.applicationinteraction",
+      "description": "The collaboration is the joint actor whose members together carry out the interaction, so the interaction's outcome is the value the collaboration exists to produce.",
+      "evidence": "A saga or choreography definition, such as a Temporal workflow, Step Functions state machine, or event-flow document, has every step executed by member components of the collaboration."
+    },
+    {
+      "id": "application.applicationcollaboration.delivers-value.application.applicationservice",
+      "previous_description": "Defines relationship: application.applicationcollaboration delivers-value application.applicationservice",
+      "description": "The collaboration's combined behaviour is what makes the externally visible service available, so the service's operations exist only because the members work together.",
+      "evidence": "An API gateway route or service-catalog entry for the service is fulfilled by orchestrating calls across several member components of the collaboration."
+    },
+    {
+      "id": "application.applicationcollaboration.depends-on.application.applicationcomponent",
+      "previous_description": "Defines relationship: application.applicationcollaboration depends-on application.applicationcomponent",
+      "description": "The collaboration cannot perform its collective behaviour unless the component, such as a shared platform service outside its membership, is available.",
+      "evidence": "The member components' runtime configuration or readiness checks reference the component's endpoint, and the collaborative flow fails when that component is unavailable."
+    },
+    {
+      "id": "application.applicationcollaboration.depends-on.application.applicationinteraction",
+      "previous_description": "Defines relationship: application.applicationcollaboration depends-on application.applicationinteraction",
+      "description": "The collaboration relies on a separate interaction, such as a prerequisite handshake or upstream saga, completing before its own collective behaviour can proceed.",
+      "evidence": "The collaboration's workflow or choreography definition waits on the completion event or callback emitted by that other interaction."
+    },
+    {
+      "id": "application.applicationcollaboration.depends-on.application.applicationinterface",
+      "previous_description": "Defines relationship: application.applicationcollaboration depends-on application.applicationinterface",
+      "description": "The collaboration's members must reach the interface, such as an external API endpoint or message channel, to carry out their joint behaviour.",
+      "evidence": "Client configuration in the member components, such as a base URL, generated gRPC stub, or queue subscription, targets that interface."
+    },
+    {
+      "id": "application.applicationcollaboration.depends-on.application.dataobject",
+      "previous_description": "Defines relationship: application.applicationcollaboration depends-on application.dataobject",
+      "description": "The collaboration's members must share and agree on the data object, such as a common event payload or saga state record, to coordinate their joint work.",
+      "evidence": "A shared contract package, such as a protobuf message or Avro schema, is imported by multiple member components and exchanged between them during the collaborative flow."
+    },
+    {
+      "id": "application.applicationcollaboration.provides.application.applicationinterface",
+      "previous_description": "Defines relationship: application.applicationcollaboration provides application.applicationinterface",
+      "description": "The collaboration offers a single access point, such as a gateway endpoint or shared topic, through which consumers reach the services its members deliver jointly.",
+      "evidence": "An API gateway, ingress, or BFF controller configuration mounts a route that fans out to the member components and is documented as the collaboration's entry point."
+    }
+  ],
+  "notes": "delivers-value is a traceability predicate. ArchiMate would use assigned-to for collaboration→interaction and realizes for collaboration→service. depends-on component overlaps aggregates when the target is a member. depends-on interaction partly inverts the performer relationship. provides interface conflicts with the interface definition, which says an interface is owned by a component."
+}

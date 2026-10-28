@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationcollaboration assigned-to Applicationinteraction",
+  "description": "The collaboration is the joint actor whose member components together carry out the interaction; no single member performs it alone.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationcollaboration.assigned-to.application.applicationinteraction"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationcollaboration"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationinteraction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "assigned-to"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A saga or choreography definition, such as a Temporal workflow, Step Functions state machine, or event-flow document, has every step executed by member components of the collaboration."
+  ]
+}

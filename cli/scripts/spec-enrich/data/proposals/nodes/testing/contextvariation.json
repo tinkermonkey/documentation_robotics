@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "testing.contextvariation",
+  "previous_description": "A distinct test type or environmental context under which a coverage target may be invoked, used to parameterize test design across different execution conditions (functional correctness, load behavior, security posture, regression state). Maps to environmental needs documented in IEEE 829-2008 test design specifications.",
+  "definition": "A named test-design condition, classified by test type (functional, load, security, regression, smoke, exploratory), under which a TestCoverageTarget is to be exercised, optionally bound to a set of EnvironmentFactors that fix the concrete environment for that condition. It names the whole execution context. It does not name a single environmental variable or an input value.",
+  "distinguish_from": [
+    {
+      "type": "testing.environmentfactor",
+      "when": "the element is a single concrete environmental variable and its value (e.g. 'Ubuntu 22.04', 'en-US', 'latency < 100ms'), not a named test context that groups such variables"
+    },
+    {
+      "type": "testing.coveragerequirement",
+      "when": "the element states coverage criteria (pairwise, boundary-values, MC/DC) that must be met, possibly across several contexts, rather than defining one context"
+    },
+    {
+      "type": "testing.inputspacepartition",
+      "when": "the variation is in the data fed to the target (an input field's equivalence classes), not in the type of test or the execution environment"
+    },
+    {
+      "type": "testing.outcomecategory",
+      "when": "the element classifies the expected result (success, timeout, validation-error), not the conditions under which the test runs"
+    }
+  ],
+  "standard_reference": "IEEE 829-2008 Test Design Specification – Approach refinements and Environmental needs (Level Test Plan §8.3.x Environmental needs)",
+  "code_evidence": [
+    "Separate test suites or directories split by test type, such as tests/load, tests/security, tests/smoke, or pytest markers / JUnit @Tag('smoke'|'regression') used to select runs",
+    "CI pipeline jobs or matrix entries that run the same targets under named contexts, e.g. a 'load' job invoking k6/JMeter or a 'security' job invoking OWASP ZAP, each with its own environment variables",
+    "Test configuration profiles bundling environment settings per context, e.g. playwright.config projects, tox envs, or application-test-load.yml, that set OS, locale, network throttling or dependency versions"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of the execution condition this variation represents: its purpose, scope and how it differs from other contexts applied to the same target, such as 'peak-load run at 500 rps against staging'. Set it whenever the contextType alone does not identify the context uniquely."
+    }
+  ],
+  "notes": "The contextType enum mixes test levels and kinds (smoke, regression, exploratory) with quality-attribute contexts (load, security). It lacks performance/stress, accessibility and compatibility. The environmentFactors attribute duplicates the references relationship, and EnvironmentFactor 'composes' ContextVariation conflicts with the direction of 'references'. Consider a name/label attribute. The duplicated self depends-on relationship should be deduplicated.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.239Z"
+}

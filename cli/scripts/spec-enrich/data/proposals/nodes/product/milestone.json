@@ -1,0 +1,25 @@
+{
+  "spec_node_id": "product.milestone",
+  "previous_description": "A time-bound delivery target grouping features or capabilities",
+  "definition": "A named, time-bound delivery target, such as a release, version or roadmap phase, against which features and capabilities are scheduled. It is defined by its target date or period and the scope assigned to it, not by any functionality of its own.",
+  "distinguish_from": [
+    {
+      "type": "product.feature",
+      "when": "the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in."
+    },
+    {
+      "type": "product.capability",
+      "when": "the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point."
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §13.2.4 Plateau (closest analogue; partly §13.2.3 Implementation Event). The Strategy Extension has no direct equivalent.",
+  "code_evidence": [
+    "An issue-tracker milestone or fixVersion (e.g. a GitHub milestone, Jira release) with a due date and a set of linked feature issues.",
+    "A ROADMAP.md or planning document section headed by a version or quarter (e.g. 'v2.0 — Q3 2025') that lists the features targeted for it.",
+    "Feature-flag or configuration entries annotated with a target release (e.g. 'enabled_in: 3.1', 'since: v2.0'), or an 'Unreleased' or upcoming-version section in CHANGELOG.md."
+  ],
+  "attribute_descriptions": [],
+  "notes": "'Time-bound' is not supported by any attribute: add a targetDate (ISO 8601) and optionally a startDate or version label. The status enum differs from the capability/feature lifecycle, which is acceptable but should be documented. The precedes relationship is listed twice. Consider whether a completed milestone should link to the release tag that realized it.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.228Z"
+}

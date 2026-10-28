@@ -1,0 +1,26 @@
+{
+  "source": "navigation.guardaction",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.083Z",
+  "relationships": [
+    {
+      "id": "navigation.guardaction.depends-on.navigation.guardcondition",
+      "previous_description": "Defines relationship: navigation.guardaction depends-on navigation.guardcondition",
+      "description": "The denial-handling outcome only comes into play when its guard's boolean check fails, so the redirect, cancel, message or confirmation it specifies relies on that condition's false result to be triggered.",
+      "evidence": "The guard definition pairs a condition expression with an onDeny/onFail block, and the router code executes that action branch only when the condition returns false or times out."
+    },
+    {
+      "id": "navigation.guardaction.navigates-to.navigation.route",
+      "previous_description": "Defines relationship: navigation.guardaction navigates-to navigation.route",
+      "description": "When the guard denies activation, the action redirects the user to this fallback route, such as a login or access-denied page, and may preserve the originally attempted route for a later return.",
+      "evidence": "The guard's denial handler names the route as its redirect target, for example a returned router.createUrlTree(['/login']) or a redirect: { name: 'login', query: { returnUrl } }, in the route configuration."
+    },
+    {
+      "id": "navigation.guardaction.uses.navigation.contextvariable",
+      "previous_description": "Defines relationship: navigation.guardaction uses navigation.contextvariable",
+      "description": "The action reads or writes flow-scoped state when handling a denial, for example storing the attempted URL as a return-to variable or filling its message or redirect parameters from carried flow data.",
+      "evidence": "The denial handler code writes a flow context key such as returnUrl to session storage or reads a declared context variable to build the redirect query or message text."
+    }
+  ],
+  "notes": "depends-on from GuardAction to GuardCondition is indirect: both attach to a NavigationGuard, which evaluates the condition and then invokes the action. A Guard-level 'evaluates' relationship plus a Guard-composes-Action relationship may express this more accurately. The navigates-to relationship applies only to redirect-type actions, not to cancel, message or confirm actions."
+}

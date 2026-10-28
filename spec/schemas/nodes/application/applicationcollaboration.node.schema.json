@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationCollaboration",
-  "description": "Aggregate of application components working together",
+  "description": "An active structure element that names a grouping of two or more application components (or nested collaborations) which jointly perform collective behaviour. It is a logical or configured grouping of independently deployable parts, not a deployable unit or behaviour in its own right. Use ApplicationComponent instead when the symbol is a single modular, deployable unit, even if it internally composes sub-modules or calls other services. Use ApplicationInteraction instead when the symbol describes the joint behaviour itself, such as a message exchange, saga step sequence or protocol between components, rather than the group of participants. Use ApplicationProcess instead when the symbol is an ordered sequence of steps that achieves a result, even if those steps span several components. Use ApplicationService instead when the symbol is the externally exposed functionality the group offers rather than the group of participating components.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "A free-text description of the collaboration that names its participating components and the joint purpose they serve. Set it whenever the element name alone does not make membership or purpose clear."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §9.2.2 Application Collaboration",
+  "x-dr-evidence": [
+    "a saga or choreography definition (e.g. Temporal/Camunda workflow config, event-flow manifest) that enumerates several named participating services under one collective name",
+    "a docker-compose file, Helm umbrella chart or Kubernetes namespace that groups multiple separately built services as one named subsystem delivering a shared capability",
+    "an architecture document, ADR or C4 diagram boundary that names a set of cooperating services (e.g. 'checkout subsystem: cart, pricing, payment') as a unit"
+  ],
+  "x-dr-distinguish": {
+    "application.applicationcomponent": "the symbol is a single modular, deployable unit, even if it internally composes sub-modules or calls other services",
+    "application.applicationinteraction": "the symbol describes the joint behaviour itself, such as a message exchange, saga step sequence or protocol between components, rather than the group of participants",
+    "application.applicationprocess": "the symbol is an ordered sequence of steps that achieves a result, even if those steps span several components",
+    "application.applicationservice": "the symbol is the externally exposed functionality the group offers rather than the group of participating components"
   }
 }

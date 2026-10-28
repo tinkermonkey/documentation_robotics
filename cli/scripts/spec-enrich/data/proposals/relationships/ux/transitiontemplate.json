@@ -1,0 +1,44 @@
+{
+  "source": "ux.transitiontemplate",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:42:14.097Z",
+  "relationships": [
+    {
+      "id": "ux.transitiontemplate.flows-to.ux.experiencestate",
+      "previous_description": "Defines relationship: ux.transitiontemplate flows-to ux.experiencestate",
+      "description": "The motion definition animates the UI into the target experience state, so the state's entry is presented through this template's animation type, duration and easing.",
+      "evidence": "A state machine definition (e.g. an XState state node or a state config) references the transition template by name as its enter animation, or the CSS/Framer Motion variant keyed to that state imports the shared template."
+    },
+    {
+      "id": "ux.transitiontemplate.flows-to.ux.subview",
+      "previous_description": "Defines relationship: ux.transitiontemplate flows-to ux.subview",
+      "description": "The motion definition carries the UI into the sub-view region, animating that region's enter or leave within its parent view.",
+      "evidence": "The sub-view's markup or component wrapper (e.g. an AnimatePresence or Vue <Transition> around the region) is configured with the shared template's name, duration and easing tokens."
+    },
+    {
+      "id": "ux.transitiontemplate.governs.ux.statetransition",
+      "previous_description": "Defines relationship: ux.transitiontemplate governs ux.statetransition",
+      "description": "The motion definition dictates how the state transition is visually animated when it fires, without determining which event or guard causes the transition.",
+      "evidence": "The state transition's specification or code declares an animation/transition property pointing to the template id, and the rendered animation uses the template's duration and easing values."
+    },
+    {
+      "id": "ux.transitiontemplate.navigates-to.ux.view",
+      "previous_description": "Defines relationship: ux.transitiontemplate navigates-to ux.view",
+      "description": "The motion definition is used to animate the route change that brings the user to the view, governing how the view appears when navigated to.",
+      "evidence": "The router configuration or route entry for the view (e.g. a route meta transition field or page transition wrapper) names the template as the animation applied on navigation to that view."
+    },
+    {
+      "id": "ux.transitiontemplate.specializes.ux.transitiontemplate",
+      "previous_description": "Defines relationship: ux.transitiontemplate specializes ux.transitiontemplate",
+      "description": "The more specific motion definition is a variant of a base template, inheriting its animation type, duration and easing and overriding only some of them.",
+      "evidence": "The design-token or motion spec declares the template with an extends/base reference to another template, or the animation config object spreads the base template and overrides selected properties."
+    },
+    {
+      "id": "ux.transitiontemplate.triggers.ux.stateaction",
+      "previous_description": "Defines relationship: ux.transitiontemplate triggers ux.stateaction",
+      "description": "Completion or a lifecycle point of the animation defined by the template initiates the state action, such as navigating or closing once the exit animation finishes.",
+      "evidence": "An animation-end callback (e.g. onAnimationComplete, transitionend listener, or onAfterLeave hook) tied to the template dispatches or invokes the state action."
+    }
+  ],
+  "notes": "A TransitionTemplate describes how a change animates, not which change occurs, so flows-to ExperienceState/SubView and navigates-to View misstate its role; applies (template applied to these elements) fits better and would be consistent across targets. triggers StateAction conflicts with StateAction being executed by state/transition lifecycle hooks, not animations. governs StateTransition also overlaps with applies."
+}

@@ -1,0 +1,33 @@
+{
+  "spec_node_id": "security.evidence",
+  "previous_description": "An artifact that provides verifiable proof of an action or event for non-repudiation and audit purposes. Anchored to NIST SP 800-53 AU-10 (Non-repudiation), evidence types range from cryptographic signatures to plain audit log entries, with strength characterizing the assurance level per NIST SP 800-63-3.",
+  "definition": "A kind of proof artifact — log record, digital signature, trusted timestamp, hash, certificate or audit trail — produced or retained by the system so that a specific action or event can later be verified as having occurred and attributed to an actor. It is the artifact itself as a modelled category, not the obligation to produce it or the logging configuration that emits it.",
+  "distinguish_from": [
+    {
+      "type": "security.auditconfig",
+      "when": "the code configures which events are logged, verbosity, payload inclusion or field sanitisation rather than defining a specific proof artifact and its origin"
+    },
+    {
+      "type": "security.accountabilityrequirement",
+      "when": "the element states who must prove an action took place and whether that proof is challengeable, rather than the artifact that constitutes the proof"
+    },
+    {
+      "type": "security.retentionpolicy",
+      "when": "the concern is how long evidence or logs are kept, where they are archived and how they are destroyed"
+    },
+    {
+      "type": "security.countermeasure",
+      "when": "the element is a control such as signing middleware or a tamper-detection mechanism that mitigates a threat, rather than the record it produces"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 AU-10 Non-repudiation (with AU-3 Content of Audit Records)",
+  "code_evidence": [
+    "code that computes and persists a digital signature or HMAC over a transaction or request payload alongside the record (e.g. a signature column, JWS detached signature, or signed receipt object)",
+    "an append-only or hash-chained audit trail table, WORM bucket or ledger write (e.g. an audit_events table with previous_hash, AWS QLDB, S3 Object Lock) recording actor, action and timestamp",
+    "calls to an RFC 3161 timestamping authority or certificate-based signing service (e.g. TSA client, KMS Sign API, X.509 cert attached to a document approval)"
+  ],
+  "attribute_descriptions": [],
+  "notes": "The strength enum mixes an ordinal scale (strong/moderate/weak) with a mechanism ('cryptographic'), which overlaps the type enum; consider separate scales. SP 800-63-3 defines authenticator/identity assurance, not evidence strength, so the citation is loose. 'source' as a required string conflicts with sibling 'source' attributes that are source-code reference objects; consider renaming to 'origin'.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.261Z"
+}

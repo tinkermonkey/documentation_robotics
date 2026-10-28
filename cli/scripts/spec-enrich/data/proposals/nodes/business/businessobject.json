@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businessobject",
+  "previous_description": "A passive structure element that has relevance from a business perspective, representing information or data that active elements (actors, roles) act upon. Examples include documents, messages, contracts, and reports.",
+  "definition": "A passive structure element representing a business concept or unit of information (e.g., Order, Invoice, Claim, Customer record) that business behavior creates, reads, updates or deletes. It is identified by its business meaning and lifecycle, independent of storage format, schema or presentation.",
+  "distinguish_from": [
+    {
+      "type": "business.contract",
+      "when": "the information is specifically an agreement that sets out obligations, rights or terms between a provider and a consumer (e.g., SLA, policy terms, subscription agreement)"
+    },
+    {
+      "type": "business.representation",
+      "when": "the element is the perceptible form or media format in which the information is shown or exchanged (a PDF invoice, an HTML order form), not the information concept itself"
+    },
+    {
+      "type": "business.businessevent",
+      "when": "the thing being modelled is a state change or occurrence (an order was placed) rather than the information entity that the occurrence concerns (the order)"
+    },
+    {
+      "type": "business.product",
+      "when": "the element is a bundle of services and contracts offered to customers as a value proposition, rather than a piece of information acted upon"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.4.1 Business Object",
+  "code_evidence": [
+    "a domain-model class or aggregate root named with a business noun (Order, Invoice, Claim) in a domain/model package, referenced by several workflow or use-case handlers",
+    "a lifecycle status enum or state machine on that entity (e.g., DRAFT, SUBMITTED, APPROVED, CANCELLED) whose transitions are driven by business process steps",
+    "an entry in a business glossary, ubiquitous-language document or requirements spec that defines the term, with matching names in database tables, API schemas or JSON Schema titles"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text business definition of the object: what it means to the organization, its key information content and its lifecycle. Write it in domain vocabulary without storage or schema detail, and set it whenever the name alone is ambiguous."
+    }
+  ],
+  "notes": "In ArchiMate, Contract is a specialization of BusinessObject, but here they are modelled as siblings. The 'contract --accesses--> businessobject' relationship (passive accessing passive) is invalid and should be aggregation or specialization. 'composes' is listed twice. The 'messages' example overlaps with businessevent type=message. Consider dropping 'contracts' from the examples.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.262Z"
+}

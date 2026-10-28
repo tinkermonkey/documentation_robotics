@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "business.businessinterface",
+  "previous_description": "An active structure element representing a point of access at which a BusinessService is made available to the environment, used by BusinessActors or external parties.",
+  "definition": "An active structure element representing a channel or point of access, such as a branch counter, call centre, customer portal or mailroom, through which a BusinessService is offered to and used by actors in the environment. It identifies where and how the service is reached, not the service itself or the person or role who staffs it.",
+  "distinguish_from": [
+    {
+      "type": "business.businessservice",
+      "when": "the element describes what value or behavior is offered to the consumer, independent of the channel through which it is reached"
+    },
+    {
+      "type": "business.businessrole",
+      "when": "the element is a set of responsibilities performed behind the access point, such as a call-centre agent, rather than the access point itself"
+    },
+    {
+      "type": "business.representation",
+      "when": "the element is the perceptible form of information exchanged, such as an on-screen form or a printed letter, rather than the channel through which the service is accessed"
+    },
+    {
+      "type": "business.businessactor",
+      "when": "the element is the concrete organizational unit or person, such as a customer-service department, rather than the channel it operates"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §8.2.3 Business Interface",
+  "code_evidence": [
+    "an enum or lookup table of customer contact channels (e.g. Channel { WEB, PHONE, BRANCH, EMAIL, PARTNER_PORTAL }) used to tag incoming requests or orders",
+    "channel-specific intake configuration, such as IVR or call-routing menus, a contact-centre queue definition, or a branch/portal entry module that routes customers to a named service",
+    "product or support documentation stating how customers reach a service (e.g. 'claims can be filed via the self-service portal, by phone, or at a branch')"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the access channel, stating which BusinessServices it exposes, who uses it, and its medium (e.g. phone, web, in person); set it for every instance so the channel's scope is unambiguous."
+    }
+  ],
+  "notes": "Outgoing accesses/flows-to to BusinessObject and triggers to BusinessProcess/BusinessFunction are not direct ArchiMate relationships for an active structure element. Interface–service is 'assigned-to', not 'provides'. Links from api.operation risk conflating this type with ApplicationInterface. Consider a 'channelType' enum (in-person, phone, web, mail, partner).",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.208Z"
+}

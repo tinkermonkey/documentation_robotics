@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.testcoveragemodel.aggregates.testcasesketch"
+      "const": "testing.testcoveragemodel.aggregates.testing.testcasesketch"
     },
     "source_spec_node_id": {
       "const": "testing.testcoveragemodel"

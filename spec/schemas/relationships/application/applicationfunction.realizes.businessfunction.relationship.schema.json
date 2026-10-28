@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationfunction realizes Businessfunction",
-  "description": "Defines relationship: application.applicationfunction realizes business.businessfunction",
+  "description": "The application function automates the competency described by the business function, so that software carries out work the business function groups.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -32,5 +32,8 @@
     "strength": {
       "const": "medium"
     }
-  }
+  },
+  "x-dr-evidence": [
+    "Architecture or capability-mapping documentation maps the application module to the business function, and the module's logic implements that business area's rules, such as payroll calculation for HR management."
+  ]
 }

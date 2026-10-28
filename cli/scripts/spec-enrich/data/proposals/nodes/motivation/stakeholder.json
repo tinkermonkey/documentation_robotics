@@ -1,0 +1,34 @@
+{
+  "spec_node_id": "motivation.stakeholder",
+  "previous_description": "Individual, team, or organization that has an interest in, or is affected by, the effects of the architecture.",
+  "definition": "A motivation element naming a person, group, team, organization, or class of such parties, by its role or perspective, whose interests or concerns about the architecture are what drivers, goals, and requirements are traced back to. It captures who cares and why, not who performs behavior.",
+  "distinguish_from": [
+    {
+      "type": "motivation.driver",
+      "when": "the element states the concern or condition itself (e.g. 'GDPR fines', 'customer churn') rather than the party who holds it"
+    },
+    {
+      "type": "motivation.requirement",
+      "when": "the text is a need the system must satisfy, such as a user story 'As a clerk I want…', where the clerk is only the associated stakeholder"
+    },
+    {
+      "type": "motivation.value",
+      "when": "the element expresses the worth or benefit a party gains, rather than the party itself"
+    }
+  ],
+  "standard_reference": "ArchiMate 3.2 §6.2.1 Stakeholder",
+  "code_evidence": [
+    "A 'Stakeholders' section or RACI table in a README, architecture document, or ADR that lists named roles or teams together with their concerns",
+    "MADR or ADR front-matter fields such as 'deciders', 'consulted', or 'informed' that list teams, roles, or external bodies",
+    "Compliance or requirements documents that name an external authority or audience (e.g. 'PCI SSC', 'data protection officer', 'merchant partners') as the source of an obligation or concern"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "documentation",
+      "description": "Free-text description of the stakeholder's role, scope, and principal concerns or interests in the architecture. Set it whenever the name alone does not make clear who the party is or what it cares about."
+    }
+  ],
+  "notes": "The enum 'type' mixes orthogonal axes: internal/external relationship, role (sponsor, customer, end-user), and kind (system, regulatory). Its values are not mutually exclusive. The attribute name 'type' also collides with the element-type field. 'system' departs from ArchiMate. Boundary with business.businessactor/businessrole needs stating. A 'concerns' attribute is missing.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.249Z"
+}

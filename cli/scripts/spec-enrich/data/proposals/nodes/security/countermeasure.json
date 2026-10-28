@@ -1,0 +1,42 @@
+{
+  "spec_node_id": "security.countermeasure",
+  "previous_description": "A security control or mitigation technique that reduces the likelihood or impact of a specific threat. Maps to NIST SP 800-53 controls by type (technical, operational, management) and tracks implementation status and residual risk.",
+  "definition": "A security control or mitigation mechanism, recorded against one or more identified Threats, that reduces their likelihood or impact and is characterised by control class, implementation status and assessed effectiveness. It is the threat-mitigation view of a control; the concrete configuration that realises it (password rules, auth settings, rate limits) is modelled by other types that implement or mandate it.",
+  "distinguish_from": [
+    {
+      "type": "security.securitypolicy",
+      "when": "the element is a named, prioritised set of evaluation rules that produces access-control decisions for a target, rather than a mitigation linked to a threat"
+    },
+    {
+      "type": "security.policyaction",
+      "when": "the element is the runtime response (deny, alert, mask, quarantine) executed when a specific policy rule fires, not the standing control that the response helps realise"
+    },
+    {
+      "type": "security.passwordpolicy",
+      "when": "the element is the concrete credential complexity, rotation and lockout parameters; model the anti-brute-force mitigation those parameters deliver as a Countermeasure"
+    },
+    {
+      "type": "security.threat",
+      "when": "the element describes what could go wrong (attacker, vulnerability, likelihood, impact) rather than the measure taken against it"
+    }
+  ],
+  "standard_reference": "NIST SP 800-53 Rev. 5 security and privacy controls (as risk responses per NIST SP 800-30 Rev. 1 / SP 800-39)",
+  "code_evidence": [
+    "a threat-model artifact (STRIDE/LINDDUN table, OWASP Threat Dragon or MS TMT file) whose 'mitigation' or 'countermeasure' entries name a control against a listed threat",
+    "security middleware or filters registered globally (e.g. helmet, CSRF token filter, input sanitiser, WAF rule set) with comments or config referencing a CWE, OWASP Top 10 item or NIST control ID",
+    "a control-implementation record such as an OSCAL component-definition, system security plan or compliance matrix mapping control IDs (e.g. SC-8, SI-10) to an implementation status"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "description",
+      "description": "Free-text explanation of what the control does, which mechanism or procedure realises it, and which threat behaviour it counters; set whenever the name alone does not identify the mechanism."
+    },
+    {
+      "name": "implemented",
+      "description": "True when the control is deployed and active in the system under model, false when it is planned, proposed or only documented; set from evidence such as deployed config or code, not from intent."
+    }
+  ],
+  "notes": "Definition mentions residual risk but no attribute captures it. The type enum follows the SP 800-53 Rev. 3 control classes, which Rev. 4/5 removed, and 'physical' was never one of them. A controlId attribute (e.g. 'SC-8') is missing. The boolean implemented is too coarse; consider planned|partial|implemented. The parallel mandates/requires incoming edges are redundant.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.259Z"
+}

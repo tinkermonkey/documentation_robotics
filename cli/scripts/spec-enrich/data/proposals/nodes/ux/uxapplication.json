@@ -1,0 +1,38 @@
+{
+  "spec_node_id": "ux.uxapplication",
+  "previous_description": "Application-level UX configuration that groups UXSpecs and defines shared settings",
+  "definition": "A top-level, independently deployable user-facing client for one delivery channel that aggregates one or more UXSpecs and fixes the settings they share: theme, design system, and default locale. It corresponds to a single front-end app root, such as an SPA bundle, mobile app, or voice skill, not to a reusable package or a single experience.",
+  "distinguish_from": [
+    {
+      "type": "ux.uxspec",
+      "when": "the artifact describes a single experience (its views and state machine) within an app rather than the deployable app root that bundles experiences and carries app-wide theme, locale and design-system settings"
+    },
+    {
+      "type": "ux.uxlibrary",
+      "when": "the artifact is a versioned package of reusable components, sub-views or patterns consumed by applications (e.g. a published npm design-system package) rather than an end-user application itself"
+    },
+    {
+      "type": "ux.view",
+      "when": "the artifact is a single routable screen, page, modal or dialog rather than the whole application containing many screens"
+    }
+  ],
+  "standard_reference": "HTML 5.3 §4.1.1 the html element (document root) with Web Application Manifest (W3C) application-level metadata",
+  "code_evidence": [
+    "A front-end entry point that mounts the root component and wires app-wide providers, e.g. ReactDOM.createRoot(...).render(<ThemeProvider><IntlProvider locale=...><App/>), createApp(App).use(router).mount('#app'), or an Angular bootstrapApplication/AppModule",
+    "An application manifest or build descriptor defining a distinct deliverable, e.g. manifest.json/manifest.webmanifest with name and start_url, AndroidManifest.xml or Info.plist, an Alexa skill.json, or a separate app package in a monorepo apps/ folder",
+    "App-level configuration declaring shared settings, such as a theme/design-token selection, i18n config with defaultLocale (next.config.js i18n, i18next init), and a dependency on an internal design-system package"
+  ],
+  "attribute_descriptions": [
+    {
+      "name": "version",
+      "description": "Release version of the application as shipped to users, typically a semantic version string (e.g. '2.3.1') taken from package.json, the app manifest or store listing; set it when the app is versioned independently of its UXSpecs."
+    },
+    {
+      "name": "description",
+      "description": "Free-text summary of the application's purpose and audience (e.g. 'Customer self-service web portal'); set it to distinguish this application from others on the same channel."
+    }
+  ],
+  "notes": "The channel enum (web|mobile|...) differs from UXSpec.experience (visual|voice|chat|sms); the overlap between 'web'/'mobile' and 'visual' is undocumented. 'experiences' duplicates the aggregates relationship to UXSpec. designSystem accepts either a free identifier or a uxlibrary specNodeId; it should be a reference relationship. A name/identifier attribute is missing, as is an entry-point or source reference like View.source.",
+  "model": "claude-opus-5-5",
+  "generated_at": "2026-10-25T11:37:10.209Z"
+}

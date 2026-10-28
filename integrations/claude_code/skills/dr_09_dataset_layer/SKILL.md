@@ -143,19 +143,19 @@ Cross-layer links are created via `dr relate`, not inline YAML attributes. Key r
 
 **Outgoing (Data Store → Other Layers):**
 
-| Relationship                                         | Example                                       |
-| ---------------------------------------------------- | --------------------------------------------- |
-| `collection.realizes.api.schema`                     | Users collection → API response schema        |
-| `collection.maps-to.api.requestbody`                 | Orders collection → POST /orders body         |
-| `collection.serves.api.operation`                    | Products collection → GET /products operation |
-| `collection.implements.security.secureresource`      | PII collection → SecureResource policy        |
-| `collection.satisfies.security.dataclassification`   | Payments collection → PCI data class          |
-| `field.satisfies.security.dataclassification`        | email field → PII data classification         |
-| `field.requires.security.fieldaccesscontrol`         | SSN field → FieldAccessControl rule           |
-| `field.maps-to.api.parameter`                        | user_id field → API path parameter            |
-| `database.satisfies.security.securitypolicy`         | DB → encryption-at-rest policy                |
-| `database.depends-on.technology.systemsoftware`      | PostgreSQL DB → pg systemsoftware             |
-| `retentionpolicy.satisfies.security.retentionpolicy` | Retention rule → security retention policy    |
+| Relationship                                           | Example                                       |
+| ------------------------------------------------------ | --------------------------------------------- |
+| `api.schema.maps-to.data-store.collection` (API layer) | API response schema → Users collection        |
+| `collection.maps-to.api.requestbody`                   | Orders collection → POST /orders body         |
+| `collection.serves.api.operation`                      | Products collection → GET /products operation |
+| `collection.realizes.security.secureresource`          | PII collection → SecureResource policy        |
+| `collection.satisfies.security.dataclassification`     | Payments collection → PCI data class          |
+| `field.satisfies.security.dataclassification`          | email field → PII data classification         |
+| `field.requires.security.fieldaccesscontrol`           | SSN field → FieldAccessControl rule           |
+| `field.maps-to.api.parameter`                          | user_id field → API path parameter            |
+| `database.satisfies.security.securitypolicy`           | DB → encryption-at-rest policy                |
+| `database.depends-on.technology.systemsoftware`        | PostgreSQL DB → pg systemsoftware             |
+| `retentionpolicy.satisfies.security.retentionpolicy`   | Retention rule → security retention policy    |
 
 **Incoming (Other Layers → Data Store):**
 

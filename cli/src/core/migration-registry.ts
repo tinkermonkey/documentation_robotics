@@ -7,6 +7,11 @@
 
 import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
+import {
+  migrateRelationshipsFile,
+  migrateStagedChangesets,
+  summarizeRelationshipChanges,
+} from "./relationship-migration.js";
 
 /**
  * Represents a single version migration
@@ -284,112 +289,47 @@ export class MigrationRegistry {
       },
     });
 
-    // Migration from v0.9.0 to v0.10.0: Data Model objectschema.required type change
+    // Migration from v0.9.0 to v0.10.0: objectschema.required type change and relationship catalog rewrites
     this.migrations.push({
       fromVersion: "0.9.0",
       toVersion: "0.10.0",
-      description: "Data Model objectschema.required type change (Spec v0.10.0)",
+      description:
+        "Data Model objectschema.required type change and relationship catalog rewrites (Spec v0.10.0)",
       apply: async (model: Model) => {
-        const fs = await import("fs/promises");
-        const pathModule = await import("path");
-        const YAML = await import("yaml");
+        const required = await migrateObjectSchemaRequired(model);
 
-        const modelDir = `${model.rootPath}/documentation-robotics/model`;
-        const dataModelDir = pathModule.join(modelDir, "08_data-model");
-        let filesModified = 0;
+        // The 0.10.0 catalog retires the implements predicate and removes, renames or reverses
+        // relationship schemas; rewrite the relationships recorded against them, both committed
+        // and staged in changesets that are not committed yet.
+        const relationships = await migrateRelationshipsFile(model);
+        const staged = relationships.error
+          ? { changesetsModified: 0, changes: [], errors: [] }
+          : await migrateStagedChangesets(model, relationships.committed);
 
-        try {
-          // Verify data model directory exists
-          await fs.access(dataModelDir);
-        } catch (error) {
-          const err = error as { code?: string };
-          // ENOENT means the directory doesn't exist - nothing to migrate
-          if (err.code === "ENOENT") {
-            return {
-              migrationsApplied: 1,
-              filesModified: 0,
-              description:
-                "Spec version updated to 0.10.0 (objectschema.required type changed from string to array; no model data to migrate)",
-            };
-          }
-          // Re-throw other errors
-          throw error;
-        }
-
-        // Scan all YAML files in the data model directory
-        const files = await fs.readdir(dataModelDir);
-        const migrationErrors: string[] = [];
-
-        for (const file of files) {
-          if (!file.endsWith(".yaml") && !file.endsWith(".yml")) {
-            continue;
-          }
-
-          const filePath = pathModule.join(dataModelDir, file);
-          try {
-            const content = await fs.readFile(filePath, "utf-8");
-            let modified = false;
-            const doc = YAML.parse(content);
-
-            if (!doc || typeof doc !== "object") {
-              continue;
-            }
-
-            // Iterate through all elements in the file
-            for (const [, element] of Object.entries(doc)) {
-              if (
-                !element ||
-                typeof element !== "object" ||
-                (element as Record<string, unknown>).spec_node_id !== "data-model.objectschema"
-              ) {
-                continue;
-              }
-
-              const elem = element as Record<string, unknown>;
-              const attributes = elem.attributes as Record<string, unknown> | undefined;
-
-              if (attributes && typeof attributes === "object") {
-                const required = attributes.required;
-
-                // Check if required field exists and is a string
-                if (required && typeof required === "string") {
-                  // Convert comma-separated string to array
-                  attributes.required = required
-                    .split(",")
-                    .map((item: string) => item.trim())
-                    .filter((item: string) => item.length > 0);
-                  modified = true;
-                }
-              }
-            }
-
-            // Write back if modified
-            if (modified) {
-              await fs.writeFile(filePath, YAML.stringify(doc), "utf-8");
-              filesModified++;
-            }
-          } catch (error) {
-            migrationErrors.push(
-              `Failed to migrate ${file}: ${getErrorMessage(error)}`
-            );
-          }
-        }
-
-        if (migrationErrors.length > 0) {
-          return {
-            migrationsApplied: 1,
-            filesModified,
-            description:
-              "Spec version updated to 0.10.0 (objectschema.required converted from string to array)",
-            error: migrationErrors.join("; "),
-          };
-        }
+        const errors = [
+          ...required.errors,
+          ...(relationships.error ? [relationships.error] : []),
+          ...staged.errors,
+        ];
+        const summaries = [
+          relationships.changes.length > 0
+            ? summarizeRelationshipChanges(relationships.changes)
+            : "no relationships to rewrite",
+          ...(staged.changes.length > 0
+            ? [summarizeRelationshipChanges(staged.changes, "staged relationship changes")]
+            : []),
+        ];
 
         return {
           migrationsApplied: 1,
-          filesModified,
-          description:
-            "Spec version updated to 0.10.0 (objectschema.required converted from string to array)",
+          filesModified:
+            required.filesModified + relationships.filesModified + staged.changesetsModified,
+          description: `Spec version updated to 0.10.0 (objectschema.required converted from string to array; ${summaries.join("; ")})`,
+          ...(errors.length > 0 && { error: errors.join("; ") }),
+          details: {
+            relationshipChanges: relationships.changes,
+            stagedRelationshipChanges: staged.changes,
+          },
         };
       },
     });
@@ -591,4 +531,119 @@ export interface ApplyMigrationsResult {
   currentVersion: string;
   targetVersion: string;
   totalChanges: number;
+}
+
+/**
+ * Spec v0.10.0: data-model.objectschema `required` changed from a comma-separated string to an
+ * array of property names. Converts every string value in 08_data-model/*.yaml, and in the
+ * data-model layer when the model has it loaded: `dr upgrade` saves the loaded layers after
+ * migrating, which would otherwise write the old strings back over the converted files.
+ */
+async function migrateObjectSchemaRequired(
+  model: Model
+): Promise<{ filesModified: number; errors: string[] }> {
+  const result = await migrateObjectSchemaRequiredFiles(model);
+  migrateLoadedObjectSchemaRequired(model);
+  return result;
+}
+
+/** A comma-separated `required` string as an array of property names; null for any other value */
+function requiredAsArray(required: unknown): string[] | null {
+  if (!required || typeof required !== "string") {
+    return null;
+  }
+  return required
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function migrateLoadedObjectSchemaRequired(model: Model): void {
+  // The committed layer: getLayer() would merge in an active changeset's staged changes
+  const layer = model.layers.get("data-model");
+  if (!layer) {
+    return;
+  }
+  for (const element of layer.listElements()) {
+    if (element.spec_node_id !== "data-model.objectschema") {
+      continue;
+    }
+    const required = requiredAsArray(element.attributes.required);
+    if (required) {
+      element.attributes = { ...element.attributes, required };
+      layer.updateElement(element);
+    }
+  }
+}
+
+async function migrateObjectSchemaRequiredFiles(
+  model: Model
+): Promise<{ filesModified: number; errors: string[] }> {
+  const fs = await import("fs/promises");
+  const pathModule = await import("path");
+  const YAML = await import("yaml");
+
+  const dataModelDir = pathModule.join(model.rootPath, "documentation-robotics/model/08_data-model");
+  let filesModified = 0;
+
+  try {
+    await fs.access(dataModelDir);
+  } catch (error) {
+    // ENOENT means the directory doesn't exist - nothing to migrate
+    if ((error as { code?: string }).code === "ENOENT") {
+      return { filesModified: 0, errors: [] };
+    }
+    throw error;
+  }
+
+  const files = await fs.readdir(dataModelDir);
+  const errors: string[] = [];
+
+  for (const file of files) {
+    if (!file.endsWith(".yaml") && !file.endsWith(".yml")) {
+      continue;
+    }
+
+    const filePath = pathModule.join(dataModelDir, file);
+    try {
+      const content = await fs.readFile(filePath, "utf-8");
+      let modified = false;
+      const doc = YAML.parse(content);
+
+      if (!doc || typeof doc !== "object") {
+        continue;
+      }
+
+      for (const [, element] of Object.entries(doc)) {
+        if (
+          !element ||
+          typeof element !== "object" ||
+          (element as Record<string, unknown>).spec_node_id !== "data-model.objectschema"
+        ) {
+          continue;
+        }
+
+        const attributes = (element as Record<string, unknown>).attributes as
+          | Record<string, unknown>
+          | undefined;
+
+        if (attributes && typeof attributes === "object") {
+          const required = requiredAsArray(attributes.required);
+          if (required) {
+            attributes.required = required;
+            modified = true;
+          }
+        }
+      }
+
+      if (modified) {
+        await fs.writeFile(filePath, YAML.stringify(doc), "utf-8");
+        filesModified++;
+      }
+    } catch (error) {
+      errors.push(`Failed to migrate ${file}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  return { filesModified, errors };
 }
