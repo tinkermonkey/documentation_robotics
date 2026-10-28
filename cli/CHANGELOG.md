@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI runs on pull requests.** `cli-tests.yml` now triggers on `pull_request` against `main`
+  (build, smoke suite and spec validation); the comprehensive job still runs on manual dispatch
+  only. Previously every workflow was dispatch-only, so pull requests carried no checks.
+- **Node-type index test follows the spec.** `tests/unit/core/node-types.test.ts` (moved from
+  `tests/unit/`, where no test script ran it) asserts the generated index has one entry per node
+  schema in `src/schemas/bundled/` instead of a literal 184, which had been stale since the spec
+  grew to 192 types.
+
 ### Added
 
 - **`dr upgrade` rewrites relationships retired by the spec 0.10.0 catalog.** The 0.9.0 → 0.10.0
