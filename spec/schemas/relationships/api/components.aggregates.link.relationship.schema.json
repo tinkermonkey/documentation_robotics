@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.components.aggregates.link"
+      "const": "api.components.aggregates.api.link"
     },
     "source_spec_node_id": {
       "const": "api.components"

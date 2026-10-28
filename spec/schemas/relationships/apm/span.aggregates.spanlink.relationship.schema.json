@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.span.aggregates.spanlink"
+      "const": "apm.span.aggregates.apm.spanlink"
     },
     "source_spec_node_id": {
       "const": "apm.span"

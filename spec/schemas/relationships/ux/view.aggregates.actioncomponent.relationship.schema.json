@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "ux.view.aggregates.actioncomponent"
+      "const": "ux.view.aggregates.ux.actioncomponent"
     },
     "source_spec_node_id": {
       "const": "ux.view"

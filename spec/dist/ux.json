@@ -3192,8 +3192,8 @@
       "strength": "medium",
       "required": false
     },
-    "ux.view.aggregates.actioncomponent": {
-      "id": "ux.view.aggregates.actioncomponent",
+    "ux.view.aggregates.ux.actioncomponent": {
+      "id": "ux.view.aggregates.ux.actioncomponent",
       "source_spec_node_id": "ux.view",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.actioncomponent",

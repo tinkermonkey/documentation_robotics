@@ -2846,8 +2846,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.actor": {
-      "id": "security.securitymodel.aggregates.actor",
+    "security.securitymodel.aggregates.security.actor": {
+      "id": "security.securitymodel.aggregates.security.actor",
       "source_spec_node_id": "security.securitymodel",
       "source_layer": "security",
       "destination_spec_node_id": "security.actor",
@@ -2857,8 +2857,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.delegation": {
-      "id": "security.securitymodel.aggregates.delegation",
+    "security.securitymodel.aggregates.security.delegation": {
+      "id": "security.securitymodel.aggregates.security.delegation",
       "source_spec_node_id": "security.securitymodel",
       "source_layer": "security",
       "destination_spec_node_id": "security.delegation",
@@ -2868,8 +2868,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.informationentity": {
-      "id": "security.securitymodel.aggregates.informationentity",
+    "security.securitymodel.aggregates.security.informationentity": {
+      "id": "security.securitymodel.aggregates.security.informationentity",
       "source_spec_node_id": "security.securitymodel",
       "source_layer": "security",
       "destination_spec_node_id": "security.informationentity",
@@ -2879,8 +2879,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.permission": {
-      "id": "security.securitymodel.aggregates.permission",
+    "security.securitymodel.aggregates.security.permission": {
+      "id": "security.securitymodel.aggregates.security.permission",
       "source_spec_node_id": "security.securitymodel",
       "source_layer": "security",
       "destination_spec_node_id": "security.permission",
@@ -2890,8 +2890,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.role": {
-      "id": "security.securitymodel.aggregates.role",
+    "security.securitymodel.aggregates.security.role": {
+      "id": "security.securitymodel.aggregates.security.role",
       "source_spec_node_id": "security.securitymodel",
       "source_layer": "security",
       "destination_spec_node_id": "security.role",
@@ -2901,8 +2901,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.securitymodel.aggregates.secureresource": {
-      "id": "security.securitymodel.aggregates.secureresource",
+    "security.securitymodel.aggregates.security.secureresource": {
+      "id": "security.securitymodel.aggregates.security.secureresource",
       "source_spec_node_id": "security.securitymodel",
       "source_layer": "security",
       "destination_spec_node_id": "security.secureresource",
@@ -3187,8 +3187,8 @@
       "strength": "medium",
       "required": false
     },
-    "security.threat.aggregates.countermeasure": {
-      "id": "security.threat.aggregates.countermeasure",
+    "security.threat.aggregates.security.countermeasure": {
+      "id": "security.threat.aggregates.security.countermeasure",
       "source_spec_node_id": "security.threat",
       "source_layer": "security",
       "destination_spec_node_id": "security.countermeasure",

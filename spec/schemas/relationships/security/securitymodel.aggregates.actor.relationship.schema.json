@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "security.securitymodel.aggregates.actor"
+      "const": "security.securitymodel.aggregates.security.actor"
     },
     "source_spec_node_id": {
       "const": "security.securitymodel"

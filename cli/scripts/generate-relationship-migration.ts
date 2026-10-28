@@ -5,7 +5,8 @@
  *   bun scripts/generate-relationship-migration.ts --check   exit 1 if the committed table is stale
  *
  * Inputs: every applied-*.json change record under cli/scripts/spec-enrich/data (the reflection
- * tiers written by spec-enrich/apply-reflect-plan.ts, and applied-implements.json), oldest
+ * tiers written by spec-enrich/apply-reflect-plan.ts and apply-walk.ts, and the maintainer records
+ * applied-implements.json and applied-synonyms.json), oldest
  * applied_at first, plus the current catalog in spec/dist. Each record lists actions:
  *
  *   rename | create | delete   {from: <old triple>, to: <new triple> | null, kind}

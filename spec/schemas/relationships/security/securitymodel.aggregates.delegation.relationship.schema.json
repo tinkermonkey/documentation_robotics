@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "security.securitymodel.aggregates.delegation"
+      "const": "security.securitymodel.aggregates.security.delegation"
     },
     "source_spec_node_id": {
       "const": "security.securitymodel"

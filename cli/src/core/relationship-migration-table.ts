@@ -13,10 +13,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
   "sources": [
     "cli/scripts/spec-enrich/data/applied-implements.json",
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-tier1.json",
-    "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-application.json"
+    "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-application.json",
+    "cli/scripts/spec-enrich/data/applied-synonyms.json"
   ],
   "predicateRenames": {
-    "implements": "realizes"
+    "fulfills-requirements": "fulfills",
+    "implements": "realizes",
+    "supports-goals": "supports"
   },
   "triples": {
     "api.encoding.associated-with.api.mediatype": {
@@ -712,6 +715,27 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
+      "to": "testing.coveragerequirement.fulfills.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
+    "testing.coveragerequirement.supports-goals.motivation.goal": {
+      "to": "testing.coveragerequirement.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
+    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
+      "to": "testing.coveragesummary.fulfills.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
     "testing.partitionvalue.composes.testing.inputspacepartition": {
       "to": "testing.inputspacepartition.composes.testing.partitionvalue",
       "swap": true,
@@ -726,6 +750,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
+      "to": "testing.testcasesketch.fulfills.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
     "testing.testcasesketch.references.testing.testcoveragetarget": {
       "to": "testing.testcasesketch.validates.testing.testcoveragetarget",
       "swap": false,
@@ -733,11 +764,46 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "testing.testcasesketch.supports-goals.motivation.goal": {
+      "to": "testing.testcasesketch.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
     "testing.testcoveragemodel.aggregates.testing.testcoveragetarget": {
       "to": "testing.testcoveragemodel.composes.testing.testcoveragetarget",
       "swap": false,
       "records": [
         "tier1"
+      ]
+    },
+    "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
+      "to": "testing.testcoveragemodel.fulfills.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
+    "testing.testcoveragemodel.supports-goals.motivation.goal": {
+      "to": "testing.testcoveragemodel.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
+    "testing.testcoveragetarget.fulfills-requirements.motivation.requirement": {
+      "to": "testing.testcoveragetarget.fulfills.motivation.requirement",
+      "swap": false,
+      "records": [
+        "synonyms"
+      ]
+    },
+    "testing.testcoveragetarget.supports-goals.motivation.goal": {
+      "to": "testing.testcoveragetarget.supports.motivation.goal",
+      "swap": false,
+      "records": [
+        "synonyms"
       ]
     },
     "ux.actioncomponent.implements.ux.actionpattern": {

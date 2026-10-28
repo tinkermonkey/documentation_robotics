@@ -105,7 +105,7 @@ x-supports-goals: [motivation.goal.revenue]
 
 ```yaml
 motivation:
-  supports-goals: [motivation.goal.revenue]
+  supports: [motivation.goal.revenue]
 business:
   realizes-services: [business.service.orders]
 ```

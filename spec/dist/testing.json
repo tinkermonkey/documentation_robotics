@@ -1191,13 +1191,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
-      "id": "testing.coveragerequirement.fulfills-requirements.motivation.requirement",
+    "testing.coveragerequirement.fulfills.motivation.requirement": {
+      "id": "testing.coveragerequirement.fulfills.motivation.requirement",
       "source_spec_node_id": "testing.coveragerequirement",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
-      "predicate": "fulfills-requirements",
+      "predicate": "fulfills",
       "cardinality": "many-to-many",
       "strength": "high",
       "required": false
@@ -1279,13 +1279,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragerequirement.supports-goals.motivation.goal": {
-      "id": "testing.coveragerequirement.supports-goals.motivation.goal",
+    "testing.coveragerequirement.supports.motivation.goal": {
+      "id": "testing.coveragerequirement.supports.motivation.goal",
       "source_spec_node_id": "testing.coveragerequirement",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
-      "predicate": "supports-goals",
+      "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1345,13 +1345,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
-      "id": "testing.coveragesummary.fulfills-requirements.motivation.requirement",
+    "testing.coveragesummary.fulfills.motivation.requirement": {
+      "id": "testing.coveragesummary.fulfills.motivation.requirement",
       "source_spec_node_id": "testing.coveragesummary",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
-      "predicate": "fulfills-requirements",
+      "predicate": "fulfills",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -1620,8 +1620,8 @@
       "strength": "high",
       "required": false
     },
-    "testing.inputspacepartition.depends-on.inputspacepartition": {
-      "id": "testing.inputspacepartition.depends-on.inputspacepartition",
+    "testing.inputspacepartition.depends-on.testing.inputspacepartition": {
+      "id": "testing.inputspacepartition.depends-on.testing.inputspacepartition",
       "source_spec_node_id": "testing.inputspacepartition",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.inputspacepartition",
@@ -2104,13 +2104,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
-      "id": "testing.testcasesketch.fulfills-requirements.motivation.requirement",
+    "testing.testcasesketch.fulfills.motivation.requirement": {
+      "id": "testing.testcasesketch.fulfills.motivation.requirement",
       "source_spec_node_id": "testing.testcasesketch",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
-      "predicate": "fulfills-requirements",
+      "predicate": "fulfills",
       "cardinality": "many-to-many",
       "strength": "high",
       "required": false
@@ -2170,13 +2170,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcasesketch.supports-goals.motivation.goal": {
-      "id": "testing.testcasesketch.supports-goals.motivation.goal",
+    "testing.testcasesketch.supports.motivation.goal": {
+      "id": "testing.testcasesketch.supports.motivation.goal",
       "source_spec_node_id": "testing.testcasesketch",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
-      "predicate": "supports-goals",
+      "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "high",
       "required": false
@@ -2434,8 +2434,8 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.aggregates.contextvariation": {
-      "id": "testing.testcoveragemodel.aggregates.contextvariation",
+    "testing.testcoveragemodel.aggregates.testing.contextvariation": {
+      "id": "testing.testcoveragemodel.aggregates.testing.contextvariation",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.contextvariation",
@@ -2445,8 +2445,8 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.aggregates.inputspacepartition": {
-      "id": "testing.testcoveragemodel.aggregates.inputspacepartition",
+    "testing.testcoveragemodel.aggregates.testing.inputspacepartition": {
+      "id": "testing.testcoveragemodel.aggregates.testing.inputspacepartition",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.inputspacepartition",
@@ -2456,8 +2456,8 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.aggregates.testcasesketch": {
-      "id": "testing.testcoveragemodel.aggregates.testcasesketch",
+    "testing.testcoveragemodel.aggregates.testing.testcasesketch": {
+      "id": "testing.testcoveragemodel.aggregates.testing.testcasesketch",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.testcasesketch",
@@ -2654,13 +2654,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
-      "id": "testing.testcoveragemodel.fulfills-requirements.motivation.requirement",
+    "testing.testcoveragemodel.fulfills.motivation.requirement": {
+      "id": "testing.testcoveragemodel.fulfills.motivation.requirement",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
-      "predicate": "fulfills-requirements",
+      "predicate": "fulfills",
       "cardinality": "many-to-many",
       "strength": "high",
       "required": false
@@ -2742,13 +2742,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragemodel.supports-goals.motivation.goal": {
-      "id": "testing.testcoveragemodel.supports-goals.motivation.goal",
+    "testing.testcoveragemodel.supports.motivation.goal": {
+      "id": "testing.testcoveragemodel.supports.motivation.goal",
       "source_spec_node_id": "testing.testcoveragemodel",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
-      "predicate": "supports-goals",
+      "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "high",
       "required": false
@@ -2775,8 +2775,8 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragetarget.aggregates.contextvariation": {
-      "id": "testing.testcoveragetarget.aggregates.contextvariation",
+    "testing.testcoveragetarget.aggregates.testing.contextvariation": {
+      "id": "testing.testcoveragetarget.aggregates.testing.contextvariation",
       "source_spec_node_id": "testing.testcoveragetarget",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.contextvariation",
@@ -2918,13 +2918,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragetarget.fulfills-requirements.motivation.requirement": {
-      "id": "testing.testcoveragetarget.fulfills-requirements.motivation.requirement",
+    "testing.testcoveragetarget.fulfills.motivation.requirement": {
+      "id": "testing.testcoveragetarget.fulfills.motivation.requirement",
       "source_spec_node_id": "testing.testcoveragetarget",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
-      "predicate": "fulfills-requirements",
+      "predicate": "fulfills",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
@@ -3006,13 +3006,13 @@
       "strength": "medium",
       "required": false
     },
-    "testing.testcoveragetarget.supports-goals.motivation.goal": {
-      "id": "testing.testcoveragetarget.supports-goals.motivation.goal",
+    "testing.testcoveragetarget.supports.motivation.goal": {
+      "id": "testing.testcoveragetarget.supports.motivation.goal",
       "source_spec_node_id": "testing.testcoveragetarget",
       "source_layer": "testing",
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
-      "predicate": "supports-goals",
+      "predicate": "supports",
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false

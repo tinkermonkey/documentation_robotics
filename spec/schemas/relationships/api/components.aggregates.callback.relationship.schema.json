@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.components.aggregates.callback"
+      "const": "api.components.aggregates.api.callback"
     },
     "source_spec_node_id": {
       "const": "api.components"

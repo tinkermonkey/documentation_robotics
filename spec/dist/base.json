@@ -568,7 +568,6 @@
         "federates",
         "flows-to",
         "fulfills",
-        "fulfills-requirements",
         "generates",
         "governed-by",
         "governed-by-principles",
@@ -603,7 +602,6 @@
         "serves",
         "specializes",
         "supports",
-        "supports-goals",
         "targets",
         "tests",
         "traces",
@@ -1361,32 +1359,6 @@
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "supports-goals": {
-      "predicate": "supports-goals",
-      "inverse": "supported-by",
-      "category": "traceability",
-      "description": "Implementation contributes to achieving goal",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      }
-    },
-    "fulfills-requirements": {
-      "predicate": "fulfills-requirements",
-      "inverse": "fulfilled-by",
-      "category": "traceability",
-      "description": "Implementation satisfies requirement",
-      "archimate_alignment": null,
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       }

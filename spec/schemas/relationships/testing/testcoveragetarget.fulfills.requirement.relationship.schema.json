@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Testcoveragemodel Supports Goals Goal",
-  "description": "Defines relationship: testing.testcoveragemodel supports-goals motivation.goal",
+  "title": "Testcoveragetarget Fulfills Requirement",
+  "description": "Defines relationship: testing.testcoveragetarget fulfills motivation.requirement",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,28 +9,28 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.testcoveragemodel.supports-goals.motivation.goal"
+      "const": "testing.testcoveragetarget.fulfills.motivation.requirement"
     },
     "source_spec_node_id": {
-      "const": "testing.testcoveragemodel"
+      "const": "testing.testcoveragetarget"
     },
     "source_layer": {
       "const": "testing"
     },
     "destination_spec_node_id": {
-      "const": "motivation.goal"
+      "const": "motivation.requirement"
     },
     "destination_layer": {
       "const": "motivation"
     },
     "predicate": {
-      "const": "supports-goals"
+      "const": "fulfills"
     },
     "cardinality": {
       "const": "many-to-many"
     },
     "strength": {
-      "const": "high"
+      "const": "medium"
     }
   }
 }

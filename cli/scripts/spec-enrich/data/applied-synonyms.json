@@ -1,0 +1,78 @@
+{
+  "backend": "maintainer",
+  "record": "synonyms",
+  "applied_at": "2026-10-28T11:37:13.000Z",
+  "derived_from": "relationshipSchemas with predicate supports-goals or fulfills-requirements in spec/dist before this change",
+  "counts": {
+    "retire-predicate": 2,
+    "rename": 9
+  },
+  "actions": [
+    {
+      "action": "retire-predicate",
+      "from": "supports-goals",
+      "to": "supports",
+      "note": "supports-goals (traceability) and supports (motivation) had one meaning; every relationship recorded with supports-goals becomes supports on the same pair"
+    },
+    {
+      "action": "retire-predicate",
+      "from": "fulfills-requirements",
+      "to": "fulfills",
+      "note": "fulfills-requirements (traceability) and fulfills (motivation) had one meaning; every relationship recorded with fulfills-requirements becomes fulfills on the same pair"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.coveragerequirement.supports-goals.motivation.goal",
+      "to": "testing.coveragerequirement.supports.motivation.goal"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.testcasesketch.supports-goals.motivation.goal",
+      "to": "testing.testcasesketch.supports.motivation.goal"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.testcoveragemodel.supports-goals.motivation.goal",
+      "to": "testing.testcoveragemodel.supports.motivation.goal"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.testcoveragetarget.supports-goals.motivation.goal",
+      "to": "testing.testcoveragetarget.supports.motivation.goal"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.coveragerequirement.fulfills-requirements.motivation.requirement",
+      "to": "testing.coveragerequirement.fulfills.motivation.requirement"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.coveragesummary.fulfills-requirements.motivation.requirement",
+      "to": "testing.coveragesummary.fulfills.motivation.requirement"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.testcasesketch.fulfills-requirements.motivation.requirement",
+      "to": "testing.testcasesketch.fulfills.motivation.requirement"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.testcoveragemodel.fulfills-requirements.motivation.requirement",
+      "to": "testing.testcoveragemodel.fulfills.motivation.requirement"
+    },
+    {
+      "action": "rename",
+      "kind": "rename-predicate",
+      "from": "testing.testcoveragetarget.fulfills-requirements.motivation.requirement",
+      "to": "testing.testcoveragetarget.fulfills.motivation.requirement"
+    }
+  ]
+}

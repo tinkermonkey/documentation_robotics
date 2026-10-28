@@ -9282,7 +9282,7 @@
     ]
   },
   {
-    "triple": "testing.testcoveragetarget.fulfills-requirements.motivation.requirement",
+    "triple": "testing.testcoveragetarget.fulfills.motivation.requirement",
     "source": "testing.testcoveragetarget",
     "predicate": "fulfills-requirements",
     "destination": "motivation.requirement",
@@ -9757,14 +9757,14 @@
     "alternatives": ["target=api.operation|0.32", "predicate=validates|0.54"]
   },
   {
-    "triple": "testing.testcasesketch.supports-goals.motivation.goal",
+    "triple": "testing.testcasesketch.supports.motivation.goal",
     "source": "testing.testcasesketch",
     "predicate": "supports-goals",
     "destination": "motivation.goal",
     "layer": "testing",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["testing.testcoveragemodel.supports-goals.motivation.goal"],
+    "replacement": ["testing.testcoveragemodel.supports.motivation.goal"],
     "replacement_exists": true,
     "p": 0.309,
     "claims": ["rel:testing.testcasesketch#6"],
@@ -9839,14 +9839,14 @@
     "alternatives": ["target=testing.inputpartitionselection|0.29"]
   },
   {
-    "triple": "testing.testcoveragetarget.supports-goals.motivation.goal",
+    "triple": "testing.testcoveragetarget.supports.motivation.goal",
     "source": "testing.testcoveragetarget",
     "predicate": "supports-goals",
     "destination": "motivation.goal",
     "layer": "testing",
     "kind": "retarget",
     "current_exists": true,
-    "replacement": ["testing.testcoveragemodel.supports-goals.motivation.goal"],
+    "replacement": ["testing.testcoveragemodel.supports.motivation.goal"],
     "replacement_exists": true,
     "p": 0.283,
     "claims": ["rel:testing.testcoveragetarget#4"],
@@ -9857,7 +9857,7 @@
     "alternatives": ["source=testing.testcoveragemodel|0.28"]
   },
   {
-    "triple": "testing.testcoveragemodel.fulfills-requirements.motivation.requirement",
+    "triple": "testing.testcoveragemodel.fulfills.motivation.requirement",
     "source": "testing.testcoveragemodel",
     "predicate": "fulfills-requirements",
     "destination": "motivation.requirement",

@@ -1526,8 +1526,8 @@
       "strength": "medium",
       "required": false
     },
-    "data-store.namespace.composes.storedlogic": {
-      "id": "data-store.namespace.composes.storedlogic",
+    "data-store.namespace.composes.data-store.storedlogic": {
+      "id": "data-store.namespace.composes.data-store.storedlogic",
       "source_spec_node_id": "data-store.namespace",
       "source_layer": "data-store",
       "destination_spec_node_id": "data-store.storedlogic",

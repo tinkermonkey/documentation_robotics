@@ -36,6 +36,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 - **`08-data-model.layer.json` listed no node types** (`node_types: []`) although nine data-model node
   schemas exist and compiled into `spec/dist/data-model.json`; the build read the schema directory
   and warned about the inconsistency. The layer file now lists all nine types.
+- **18 relationship schemas carried a four-part `id`** (the destination layer segment was missing,
+  e.g. `security.securitymodel.aggregates.role` for `security.securitymodel.aggregates.security.role`):
+  `api.components aggregates callback / link / requestbody`, `apm.span aggregates spanlink`,
+  `data-store.namespace composes storedlogic`, `security.securitymodel aggregates actor / delegation /
+  informationentity / permission / role / secureresource`, `security.threat aggregates countermeasure`,
+  `testing.inputspacepartition depends-on inputspacepartition`, `testing.testcoveragemodel aggregates
+  contextvariation / inputspacepartition / testcasesketch`, `testing.testcoveragetarget aggregates
+  contextvariation`, `ux.view aggregates actioncomponent`. All ids are now the five-part
+  `{layer}.{type}.{predicate}.{layer}.{type}` form; no other field changed.
 
 ### Changed
 
@@ -68,6 +77,17 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   Feature that did not exist in the catalog; it now matches the relationship schemas added above.
 
 ### Breaking Changes
+
+- **BREAKING: `supports-goals` and `fulfills-requirements` predicates retired.** Each was a
+  traceability-category twin of a motivation-category predicate with the same meaning and the same
+  inverse (`supports` / `supported-by`, `fulfills` / `fulfilled-by`), which the charter forbids. The
+  nine testing-layer schemas that used them now use `supports` (coveragerequirement, testcasesketch,
+  testcoveragemodel, testcoveragetarget `supports motivation.goal`) and `fulfills` (the same four
+  plus coveragesummary `fulfills motivation.requirement`); both predicates are removed from
+  `predicates.json` (69 predicates). Models that recorded either predicate are rewritten to the
+  surviving one on the same pair by `dr upgrade` (`cli/scripts/spec-enrich/data/applied-synonyms.json`).
+  The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
+  are unchanged.
 
 - **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
   maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six

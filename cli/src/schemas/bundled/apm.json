@@ -1872,8 +1872,8 @@
       "strength": "medium",
       "required": false
     },
-    "apm.span.aggregates.spanlink": {
-      "id": "apm.span.aggregates.spanlink",
+    "apm.span.aggregates.apm.spanlink": {
+      "id": "apm.span.aggregates.apm.spanlink",
       "source_spec_node_id": "apm.span",
       "source_layer": "apm",
       "destination_spec_node_id": "apm.spanlink",

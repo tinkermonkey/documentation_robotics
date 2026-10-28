@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Testcasesketch Fulfills Requirements Requirement",
-  "description": "Defines relationship: testing.testcasesketch fulfills-requirements motivation.requirement",
+  "title": "Coveragesummary Fulfills Requirement",
+  "description": "Defines relationship: testing.coveragesummary fulfills motivation.requirement",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,10 +9,10 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.testcasesketch.fulfills-requirements.motivation.requirement"
+      "const": "testing.coveragesummary.fulfills.motivation.requirement"
     },
     "source_spec_node_id": {
-      "const": "testing.testcasesketch"
+      "const": "testing.coveragesummary"
     },
     "source_layer": {
       "const": "testing"
@@ -24,13 +24,13 @@
       "const": "motivation"
     },
     "predicate": {
-      "const": "fulfills-requirements"
+      "const": "fulfills"
     },
     "cardinality": {
       "const": "many-to-many"
     },
     "strength": {
-      "const": "high"
+      "const": "medium"
     }
   }
 }

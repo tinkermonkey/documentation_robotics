@@ -1273,8 +1273,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.components.aggregates.callback": {
-      "id": "api.components.aggregates.callback",
+    "api.components.aggregates.api.callback": {
+      "id": "api.components.aggregates.api.callback",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.callback",
@@ -1295,8 +1295,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.components.aggregates.link": {
-      "id": "api.components.aggregates.link",
+    "api.components.aggregates.api.link": {
+      "id": "api.components.aggregates.api.link",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.link",
@@ -1306,8 +1306,8 @@
       "strength": "medium",
       "required": false
     },
-    "api.components.aggregates.requestbody": {
-      "id": "api.components.aggregates.requestbody",
+    "api.components.aggregates.api.requestbody": {
+      "id": "api.components.aggregates.api.requestbody",
       "source_spec_node_id": "api.components",
       "source_layer": "api",
       "destination_spec_node_id": "api.requestbody",
