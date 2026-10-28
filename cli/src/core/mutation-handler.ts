@@ -10,6 +10,7 @@
 
 import { Model } from "./model.js";
 import { Element } from "./element.js";
+import { elementIdentifiers } from "./relationships.js";
 import { StagingAreaManager } from "./staging-area.js";
 import { isValidLayerName } from "./layers.js";
 import { CLIError } from "../utils/errors.js";
@@ -181,10 +182,16 @@ export class MutationHandler {
     this.context.before = element.toJSON() as unknown as Record<string, unknown>;
     this.context.after = undefined;
 
+    // Every identifier relationships.yaml may use for this element: UUID id, dotted
+    // path, and whatever the caller addressed it by.
+    const identifiers = elementIdentifiers(element, this.context.elementId);
+
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
     if (activeChangeset && activeChangeset.status === "staged") {
-      // Staging path: stage the deletion only
+      // Staging path: stage the deletion, then stage the removal of every
+      // relationship that names the element so the commit leaves no dangling rows
+      // (and so commit validation does not reject the changeset for them).
       await this.stagingManager.stage(activeChangeset.id, {
         type: "delete",
         elementId: this.context.elementId,
@@ -192,6 +199,36 @@ export class MutationHandler {
         before: this.context.before,
         timestamp: new Date().toISOString(),
       });
+
+      const ids = new Set(identifiers);
+      // A cascade delete stages one handler per element; a row between two deleted
+      // elements must not be staged for removal twice.
+      const alreadyStaged = new Set(
+        activeChangeset.changes
+          .filter((change) => change.type === "relationship-delete")
+          .map((change) => change.elementId)
+      );
+      const dangling = this.context.model.relationships
+        .getAll()
+        .filter((rel) => ids.has(rel.source) || ids.has(rel.target))
+        .filter((rel) => !alreadyStaged.has(`${rel.source}::${rel.predicate}::${rel.target}`));
+      for (const rel of dangling) {
+        alreadyStaged.add(`${rel.source}::${rel.predicate}::${rel.target}`);
+        await this.stagingManager.stage(activeChangeset.id, {
+          type: "relationship-delete",
+          elementId: `${rel.source}::${rel.predicate}::${rel.target}`,
+          layerName: rel.layer,
+          before: {
+            source: rel.source,
+            target: rel.target,
+            predicate: rel.predicate,
+            layer: rel.layer,
+            ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+            ...(rel.properties ? { properties: rel.properties } : {}),
+          },
+          timestamp: new Date().toISOString(),
+        });
+      }
       return;
     }
 
@@ -205,8 +242,8 @@ export class MutationHandler {
       ]);
     }
 
-    // Delete relationships
-    this.context.model.relationships.deleteForElement(this.context.elementId);
+    // Delete relationships that name the element by UUID or by path
+    this.context.model.relationships.deleteForElement(identifiers);
 
     // Track and save atomically
     await this._persistChanges("delete");

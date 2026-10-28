@@ -751,8 +751,11 @@ export class Model {
 
   /**
    * Save relationships to relationships.yaml
+   *
+   * @param options.preserveHeader - Keep the file's existing leading comment block
+   *   (refreshing its `# Last updated:` line) instead of writing the standard header.
    */
-  async saveRelationships(): Promise<void> {
+  async saveRelationships(options: { preserveHeader?: boolean } = {}): Promise<void> {
     const fs = await import("fs/promises");
     const yaml = await import("yaml");
     const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`;
@@ -763,11 +766,23 @@ export class Model {
 
     // Add header comment with timestamp to ensure file always changes
     const timestamp = new Date().toISOString();
-    const header = `# Intra-layer relationships
+    let header = `# Intra-layer relationships
 # Format: source_id -> predicate -> target_id
 # Last updated: ${timestamp}
 
 `;
+    if (options.preserveHeader) {
+      try {
+        const { extractRelationshipsHeader } = await import("./relationship-prune.js");
+        const existing = extractRelationshipsHeader(await fs.readFile(relationshipsPath, "utf-8"));
+        if (existing) {
+          header =
+            existing.replace(/^(# Last updated:).*$/m, `$1 ${timestamp}`) + "\n";
+        }
+      } catch {
+        // Missing or unreadable file: fall back to the standard header
+      }
+    }
     const yamlContent = header + yaml.stringify(data);
 
     await fs.writeFile(relationshipsPath, yamlContent, "utf-8");

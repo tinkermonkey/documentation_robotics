@@ -19,7 +19,16 @@
  * - fields use DR vocabulary (predicate, source_spec_node_id, destination_spec_node_id, title,
  *   description), changed fields only, at least one for an update; the importer maps them onto
  *   canonical_predicate, domain_class_id, range_class_id and the identifier
- * - a row whose replacement already exists as a schema is a delete (no merge in Context Studio)
+ * - a row whose replacement already exists as a schema, or is produced by an earlier operation in
+ *   the same file, is a delete naming the twin (no merge in Context Studio); checked against the
+ *   live catalog at export time, not the plan's stale replacement_exists
+ * - one operation per target: a target deleted by two rows keeps one delete (the one carrying the
+ *   walk decision), with the other row's evidence merged and its number in dr.merged_plan_rows
+ * - an update whose predicate, source or destination changes also carries the new description
+ *   (boilerplate regenerated for the new triple; an enriched description carried as it stands,
+ *   except on a reversal, where it is reset to boilerplate)
+ * - a reversal flips the type's domain and range only; model relationships are re-pointed by
+ *   DR's migration (dr upgrade) and a re-import of the model, never by Context Studio
  * - status is always pending; probability is 0..1 or null; scope is null (Context Studio decides)
  * - base is DR's view and is ignored by the importer (kept for DR's own staleness check)
  * - evidence entries carry claim_id, not entity_id; `dr` is DR bookkeeping the importer ignores
@@ -50,7 +59,7 @@ export interface Operation {
   scope: null;
   status: "pending";
   /** DR bookkeeping; Context Studio ignores it, proposal-import.ts uses it */
-  dr: { plan_row: number; plan_kind: string; triple: string; replacement: string[]; claims: string[]; walk_decision?: WalkRow["decision"]; walk_rationale?: string };
+  dr: { plan_row: number; plan_kind: string; triple: string; replacement: string[]; claims: string[]; walk_decision?: WalkRow["decision"]; walk_rationale?: string; extra?: "also_delete" | "add"; merged_plan_rows?: number[] };
 }
 
 export interface Proposal {
@@ -94,15 +103,84 @@ function currentFields(id: string, catalog: Map<string, RelationshipSchema>): Re
   };
 }
 
-/** Changed fields only, plus the title the new triple implies. */
+const BOILERPLATE = /^Defines relationship: /;
+
+/**
+ * Changed fields only, plus the title and description the new triple implies. The description
+ * follows apply-reflect-plan.ts: boilerplate is regenerated for the new triple, and so is any text
+ * when the direction flips; an enriched description is carried as it stands.
+ */
 function changedFields(base: Record<string, unknown>, to: string): Record<string, unknown> {
   const t = triple(to);
   const fields: Record<string, unknown> = {};
   if (t.predicate !== base.predicate) fields.predicate = t.predicate;
   if (t.source !== base.source_spec_node_id) fields.source_spec_node_id = t.source;
   if (t.destination !== base.destination_spec_node_id) fields.destination_spec_node_id = t.destination;
-  if (Object.keys(fields).length) fields.title = `${t.source} ${t.predicate} ${t.destination}`;
+  if (Object.keys(fields).length) {
+    fields.title = `${t.source} ${t.predicate} ${t.destination}`;
+    const swapped = t.source === base.destination_spec_node_id && t.destination === base.source_spec_node_id;
+    const current = typeof base.description === "string" ? base.description : "";
+    fields.description = !current || BOILERPLATE.test(current) || swapped ? `Defines relationship: ${t.source} ${t.predicate} ${t.destination}` : current;
+  }
   return fields;
+}
+
+/** The triple an update or create produces. */
+export function producedTriple(o: Operation): string | null {
+  if (o.op === "create") return String(o.fields.relationship_id);
+  if (o.op !== "update") return null;
+  const f = o.fields as Record<string, string>;
+  const b = o.base as Record<string, string>;
+  return `${f.source_spec_node_id ?? b.source_spec_node_id}.${f.predicate ?? b.predicate}.${f.destination_spec_node_id ?? b.destination_spec_node_id}`;
+}
+
+/**
+ * Make the file importable by Context Studio: one operation per target (a target deleted twice,
+ * by a plan row and by another row's also_delete, keeps the operation that carries the walk
+ * decision, with the other row's evidence merged and its number in dr.merged_plan_rows), and no
+ * update onto a triple that already exists in the catalog or that an earlier operation in the
+ * file produces (that is a delete naming the twin, since Context Studio has no merge). Then
+ * renumber seq and the create refs.
+ */
+export function normalize(operations: Operation[], catalog: Map<string, RelationshipSchema>): Operation[] {
+  const byTarget = new Map<string, Operation>();
+  const out: Operation[] = [];
+  for (const o of operations) {
+    if (o.op !== "delete") {
+      out.push(o);
+      continue;
+    }
+    const prior = byTarget.get(o.target_id!);
+    if (!prior) {
+      byTarget.set(o.target_id!, o);
+      out.push(o);
+      continue;
+    }
+    // keep the operation that carries a walk decision; merge the other into it
+    const [keep, drop] = o.dr.walk_decision && !prior.dr.walk_decision ? [o, prior] : [prior, o];
+    const seen = new Set(keep.evidence.map((e) => e.quote));
+    keep.evidence.push(...drop.evidence.filter((e) => !seen.has(e.quote)));
+    keep.rationale = `${keep.rationale} Also plan row ${drop.dr.plan_row} (${drop.dr.plan_kind}): ${drop.rationale}`;
+    keep.dr = { ...keep.dr, merged_plan_rows: [...(keep.dr.merged_plan_rows ?? []), drop.dr.plan_row], claims: [...new Set([...keep.dr.claims, ...drop.dr.claims])] };
+    if (keep === o) out[out.indexOf(prior)] = o;
+    byTarget.set(o.target_id!, keep);
+  }
+  const produced = new Set<string>();
+  const result = out.map((o) => {
+    const t = producedTriple(o);
+    if (!t) return o;
+    if (o.op === "update" && (catalog.has(t) || produced.has(t))) {
+      const twin = catalog.has(t) ? `${t} already exists` : `${t} is produced by an earlier operation in this proposal`;
+      return { ...o, op: "delete" as const, fields: {}, rationale: `Remove ${o.target_id}: ${twin} and expresses it. ${o.rationale}`, dr: { ...o.dr, replacement: [t, ...o.dr.replacement.filter((r) => r !== t)] } };
+    }
+    produced.add(t);
+    return o;
+  });
+  result.forEach((o, i) => {
+    o.seq = i + 1;
+    if (o.op === "create") o.ref = `c${o.seq}`;
+  });
+  return result;
 }
 
 /** The operation a plan row implies, before anyone decides on it. */
@@ -121,7 +199,9 @@ export function operationFor(row: PlannedChange, seq: number, catalog: Map<strin
   const common = { kind: "property" as const, base, evidence, probability: Math.round(row.p * 1000) / 1000, scope: null, status: "pending" as const, dr };
   const rep = row.replacement[0];
   const why = (what: string) => `${what} Plan kind ${row.kind}, p ${row.p.toFixed(2)}; claims ${row.claims.join(", ")}.`;
-  if (row.kind === "remove-duplicate" || row.replacement_exists) {
+  // row.replacement_exists was computed when the plan was written; the catalog has changed since,
+  // so check it live (normalize() also catches a twin that an earlier operation produces)
+  if (row.kind === "remove-duplicate" || catalog.has(rep)) {
     return { seq, op: "delete", target_id: row.triple, ref: null, fields: {}, rationale: why(`Remove ${row.triple}: ${rep} already exists and expresses it.`), ...common };
   }
   const fields = changedFields(base, rep);
@@ -139,7 +219,9 @@ export function operationFor(row: PlannedChange, seq: number, catalog: Map<strin
  * each added counterpart, and the plan's own operation for a keep (which a reviewer rejects).
  */
 export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: Map<string, RelationshipSchema>): Operation[] {
-  const mark = (o: Operation, extraTriple?: string): Operation => ({ ...o, dr: { ...o.dr, ...(extraTriple ? { triple: extraTriple } : {}), walk_decision: w.decision, walk_rationale: w.rationale } });
+  // dr.triple stays the plan row's own triple on every operation of the row (the importer groups
+  // by plan_row and finds the row's primary operation by it); an extra names its role in dr.extra
+  const mark = (o: Operation, extra?: "also_delete" | "add"): Operation => ({ ...o, dr: { ...o.dr, ...(extra ? { extra } : {}), walk_decision: w.decision, walk_rationale: w.rationale } });
   if (w.decision === "keep") return [mark(planOp)];
   const out: Operation[] = [];
   const common = { kind: "property" as const, evidence: planOp.evidence, probability: planOp.probability, scope: null, status: "pending" as const, dr: planOp.dr };
@@ -147,14 +229,15 @@ export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: M
     const dr = { ...planOp.dr, replacement: w.replacement ? [w.replacement] : planOp.dr.replacement };
     out.push(mark({ seq: 0, op: "delete", target_id: w.triple, ref: null, fields: {}, base: planOp.base, rationale: w.rationale, ...common, dr }));
   } else {
-    out.push(mark({ seq: 0, op: "update", target_id: w.triple, ref: null, fields: changedFields(planOp.base, w.replacement!), base: planOp.base, rationale: w.rationale, ...common }));
+    const dr = { ...planOp.dr, replacement: [w.replacement!, ...planOp.dr.replacement.filter((r) => r !== w.replacement)] };
+    out.push(mark({ seq: 0, op: "update", target_id: w.triple, ref: null, fields: changedFields(planOp.base, w.replacement!), base: planOp.base, rationale: w.rationale, ...common, dr }));
   }
   for (const extra of w.also_delete ?? []) {
-    out.push(mark({ seq: 0, op: "delete", target_id: extra, ref: null, fields: {}, base: currentFields(extra, catalog), rationale: `Also removed with ${w.triple}: ${w.rationale}`, ...common }, extra));
+    out.push(mark({ seq: 0, op: "delete", target_id: extra, ref: null, fields: {}, base: currentFields(extra, catalog), rationale: `Also removed with ${w.triple}: ${w.rationale}`, ...common }, "also_delete"));
   }
   for (const extra of w.add ?? []) {
     const t = triple(extra);
-    out.push(mark({ seq: 0, op: "create", target_id: null, ref: "c", fields: { relationship_id: extra, predicate: t.predicate, source_spec_node_id: t.source, destination_spec_node_id: t.destination, title: `${t.source} ${t.predicate} ${t.destination}` }, base: {}, rationale: `Added as counterpart of ${w.replacement}: ${w.rationale}`, ...common }, extra));
+    out.push(mark({ seq: 0, op: "create", target_id: null, ref: "c", fields: { relationship_id: extra, predicate: t.predicate, source_spec_node_id: t.source, destination_spec_node_id: t.destination, title: `${t.source} ${t.predicate} ${t.destination}` }, base: {}, rationale: `Added as counterpart of ${w.replacement}: ${w.rationale}`, ...common }, "add"));
   }
   return out;
 }
@@ -181,23 +264,20 @@ function main() {
   const claims = new Map(readJsonl<Claim>(path.join(harnessDir(), "data", "triage", "claims.jsonl")).map((c) => [c.id, c]));
   const refl = readReflectionsFor(layer);
   const walk = new Map(readJsonl<WalkRow>(path.join(reflDir, `walk-${layer}.jsonl`)).map((w) => [w.triple, w]));
-  const operations: Operation[] = [];
+  const raw: Operation[] = [];
   plan.forEach((row, i) => {
     const planOp = operationFor(row, i + 1, catalog, refl.get(row.triple) ?? [], claims);
     const w = walk.get(row.triple);
-    operations.push(...(w ? operationsFromDecision(w, planOp, catalog) : [planOp]));
+    raw.push(...(w ? operationsFromDecision(w, planOp, catalog) : [planOp]));
   });
-  operations.forEach((o, i) => {
-    o.seq = i + 1;
-    if (o.op === "create") o.ref = `c${o.seq}`;
-  });
+  const operations = normalize(raw, catalog);
   const proposal: Proposal = {
     format: "dr-reflection-plan/1",
     taxonomy_id: "dr_spec",
     title: `DR reflection plan: ${layer} layer (${operations.length} relationship changes)`,
     rationale: `Relationship schemas in the ${layer} layer that the maintainer-note triage and the sorting-question reflection (cli/scripts/spec-enrich) want removed, renamed, reversed or retargeted. Each operation carries the claims and Clef's sorting answers as evidence and the plan's probability. Accepting an operation means DR applies it with apply-walk.ts; rejecting means the schema stays.`,
     source: "pipeline",
-    source_detail: `documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json, branch feature/extraction-eval-harness`,
+    source_detail: `documentation_robotics cli/scripts/spec-enrich/proposal-export.ts, plan-clef.json`,
     created_at: new Date().toISOString(),
     layer,
     operations,
