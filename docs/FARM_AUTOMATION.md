@@ -34,7 +34,10 @@ dr farm status [--format json]
 
 Shows registered projects and pending changes status.
 
-- `--format json` — Includes `hasPendingChanges`, `lastSyncCommit`, `currentCommit` for each project
+- `--format json` — Includes `has_pending_changes`, `last_sync_commit`, `current_commit` for each project
+- A project whose codebase folder cannot be read is reported with `codebase_error`; one whose
+  `.farm-sync.yaml` cannot be parsed with `sync_state_error`. In either case `has_pending_changes`
+  is omitted, the command warns on stderr (text mode) and exits 1.
 
 ### `dr farm validate`
 
@@ -74,7 +77,7 @@ Options:
 - `--verbose` — Show per-project details
 - `--dry-run` — Preview changes without creating changesets
 - `--force` — Proceed despite ambiguous file-to-element mappings
-- `--output <path>` — Write JSON report to file
+- `--output <path>` — Write JSON report to file (`.json` only; any other extension is rejected before the sync runs)
 - `--auto-commit` — **Automatically commit changes** (bypasses staged review step)
 - `--concurrency <n>` — Process up to N projects in parallel (default: 1)
 
@@ -324,24 +327,40 @@ farm-status-webhook:
 ```json
 {
   "status": "ok",
+  "code": 0,
   "farm": {
     "name": "Main Architecture Farm",
     "path": "/opt/architecture-farm",
     "created": "2024-01-15T10:30:00Z",
-    "modified": "2024-09-02T15:45:30Z"
+    "modified": "2024-09-02T15:45:30Z",
+    "platform_view": false
   },
   "projects": [
     {
       "name": "auth-service",
-      "codebase_path": "services/auth-service",
-      "model_folder": "auth-service-model",
-      "remote_url": "https://github.com/org/auth-service.git",
-      "lastSyncCommit": "a1b2c3d4e5f6g7h8",
-      "currentCommit": "x9y8z7w6v5u4t3s2",
-      "hasPendingChanges": true
+      "source": "services/auth-service",
+      "model": "auth-service-model",
+      "remote": "https://github.com/org/auth-service.git",
+      "last_sync_commit": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+      "current_commit": "0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e",
+      "has_pending_changes": true
     }
   ],
   "project_count": 1
+}
+```
+
+When a project cannot be checked, `status` is `"error"`, `code` is `1` and the command exits 1.
+The affected entry carries `codebase_error` (codebase folder missing or HEAD unreadable) or
+`sync_state_error` (`.farm-sync.yaml` present but unreadable) instead of `has_pending_changes`:
+
+```json
+{
+  "name": "auth-service",
+  "source": "services/auth-service",
+  "model": "auth-service-model",
+  "last_sync_commit": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+  "codebase_error": "Codebase directory not found: services/auth-service"
 }
 ```
 

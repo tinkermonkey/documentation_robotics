@@ -11,13 +11,14 @@ import { findFarmRoot } from "../utils/project-paths.js";
 import { fileExists } from "../utils/file-io.js";
 import { execSync, execFileSync } from "child_process";
 import * as prompts from "@clack/prompts";
-import { getErrorMessage, handleSuccess, handleInfo } from "../utils/errors.js";
+import { getErrorMessage, handleSuccess, handleInfo, handleWarning } from "../utils/errors.js";
 import { isJson } from "../utils/globals.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { Model } from "../core/model.js";
 import { ComposedReferenceValidator } from "../validators/composed-reference-validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { FarmSyncEngine } from "../core/farm-sync-engine.js";
+import { FarmSyncState, FarmSyncStateNotFoundError } from "../core/farm-sync-state.js";
 
 interface FarmSyncResultEntry {
   project: string;
@@ -31,6 +32,10 @@ interface FarmSyncResultEntry {
   auto_committed?: boolean;
   committed_changes?: number;
   commit_error?: string;
+  /** Whether the model changes were committed to the farm-level git repository */
+  git_committed?: boolean;
+  /** Set when the farm git repository could not be checked; changes were saved but not committed */
+  git_warning?: string;
   message?: string;
 }
 
@@ -42,36 +47,53 @@ interface ProjectStatus {
   last_sync_commit: string | undefined;
   current_commit: string | undefined;
   has_pending_changes: boolean | undefined;
+  /** Set when .farm-sync.yaml exists but could not be read (corrupt YAML, permissions, ...) */
   sync_state_error?: string;
+  /** Set when the project's codebase directory is missing or its HEAD cannot be read */
+  codebase_error?: string;
 }
 
 /**
- * Check if a directory is a git repository.
- * Returns true if git rev-parse succeeds, false if the directory is not a git repo
- * or if unexpected errors occur (which are logged in DEBUG mode only).
- * Does not re-throw errors; unexpected git errors are logged diagnostically but do not
- * prevent the operation from proceeding.
+ * Result of checking whether a directory is a git repository.
+ * - `isRepo: true` — git rev-parse succeeded; auto-commits can proceed.
+ * - `isRepo: false, error: undefined` — git reported "not a git repository"; auto-commits are
+ *   skipped silently (the farm was never put under version control).
+ * - `isRepo: false, error: string` — git could not answer (binary missing, permission denied,
+ *   ...). Callers must surface `error` so a change that was saved but not committed is visible.
  */
-function isGitRepository(cwd: string): boolean {
+interface GitRepositoryCheck {
+  isRepo: boolean;
+  error?: string;
+}
+
+/**
+ * Check if a directory is a git repository, distinguishing "not a repository" from
+ * unexpected failures of the git command itself.
+ */
+function checkGitRepository(cwd: string): GitRepositoryCheck {
   try {
     execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
-    return true;
+    return { isRepo: true };
   } catch (error) {
     const errorMsg = getErrorMessage(error);
 
-    // Only return false for the "not a git repository" case
     // Pattern: "fatal: not a git repository" (case insensitive check for safety)
     if (errorMsg.toLowerCase().includes("not a git repository")) {
-      return false;
+      return { isRepo: false };
     }
 
-    // For unexpected errors (missing git binary, permission denied, etc), log diagnostically
-    // but return false to preserve existing behavior of not blocking operations
-    if (process.env.DEBUG) {
-      console.warn(`Warning: Unexpected error checking git repository at ${cwd}: ${errorMsg}`);
-    }
-    return false;
+    // Missing git binary, permission denied, corrupt .git, ... — the caller decides
+    // how to report it; the change itself has already been saved to disk.
+    return { isRepo: false, error: errorMsg.trim() };
   }
+}
+
+/**
+ * Build the user-facing warning for a change that was saved to disk but could not be
+ * committed because the farm git repository could not be checked.
+ */
+function uncommittedChangeWarning(what: string, farmRoot: string, gitError: string): string {
+  return `${what} was saved but not committed: could not check git repository at ${farmRoot}: ${gitError}`;
 }
 
 /**
@@ -286,17 +308,24 @@ export async function farmAddCommand(
     await manifest.save(farmYamlPath);
 
     // Commit farm.yaml changes to farm-level git repository if git is available
-    // Check for git repo first
-    const gitRepoExists = isGitRepository(farmRoot);
+    const gitCheck = checkGitRepository(farmRoot);
+    let gitCommitted = false;
+    let gitWarning: string | undefined;
 
-    // If git repo exists, proceed with commit (handle commit errors independently)
-    if (gitRepoExists) {
+    if (gitCheck.error) {
+      gitWarning = uncommittedChangeWarning("farm.yaml", farmRoot, gitCheck.error);
+      if (!useJson) {
+        handleWarning(gitWarning);
+      }
+    } else if (gitCheck.isRepo) {
+      // Proceed with commit (handle commit errors independently)
       try {
         execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
         execFileSync("git", ["commit", "-m", `Add project: ${name}`], {
           cwd: farmRoot,
           stdio: useJson ? "pipe" : "inherit",
         });
+        gitCommitted = true;
       } catch (commitError) {
         const errorMsg = getErrorMessage(commitError);
         // If nothing to commit, that's fine
@@ -313,6 +342,8 @@ export async function farmAddCommand(
           project: name,
           source: codebasePath,
           model: modelFolder,
+          git_committed: gitCommitted,
+          ...(gitWarning ? { git_warning: gitWarning } : {}),
         })
       );
     } else {
@@ -397,17 +428,24 @@ export async function farmRemoveCommand(
     await manifest.save(farmYamlPath);
 
     // Commit farm.yaml changes to farm-level git repository if git is available
-    // Check for git repo first
-    const gitRepoExists = isGitRepository(farmRoot);
+    const gitCheck = checkGitRepository(farmRoot);
+    let gitCommitted = false;
+    let gitWarning: string | undefined;
 
-    // If git repo exists, proceed with commit (handle commit errors independently)
-    if (gitRepoExists) {
+    if (gitCheck.error) {
+      gitWarning = uncommittedChangeWarning("farm.yaml", farmRoot, gitCheck.error);
+      if (!useJson) {
+        handleWarning(gitWarning);
+      }
+    } else if (gitCheck.isRepo) {
+      // Proceed with commit (handle commit errors independently)
       try {
         execSync("git add farm.yaml", { cwd: farmRoot, stdio: "pipe" });
         execFileSync("git", ["commit", "-m", `Remove project: ${name}`], {
           cwd: farmRoot,
           stdio: useJson ? "pipe" : "inherit",
         });
+        gitCommitted = true;
       } catch (commitError) {
         const errorMsg = getErrorMessage(commitError);
         // If nothing to commit, that's fine
@@ -423,6 +461,8 @@ export async function farmRemoveCommand(
           status: "ok",
           project: name,
           modelDeleted: options.deleteModel ?? false,
+          git_committed: gitCommitted,
+          ...(gitWarning ? { git_warning: gitWarning } : {}),
         })
       );
     } else {
@@ -468,70 +508,70 @@ export async function farmStatusCommand(options: {
     const projects = manifest.getAllProjects();
     const engine = new FarmSyncEngine(farmRoot);
 
+    const useJson = options.format === "json" || isJson();
+
     // Compute pending changes using lightweight commit comparison
     const projectsWithStatus = await Promise.all(
       projects.map(async (p) => {
+        const result: ProjectStatus = {
+          name: p.name,
+          source: p.source,
+          model: p.model,
+          remote: p.remote,
+          last_sync_commit: undefined,
+          current_commit: undefined,
+          has_pending_changes: undefined,
+        };
+
+        // Step 1: sync state. A missing .farm-sync.yaml means the project has never been
+        // synced (loadOrCreate returns an empty state); anything else is a real error.
+        let lastSyncCommit: string | undefined;
         try {
           const syncStatePath = path.join(farmRoot, p.model, ".farm-sync.yaml");
-          const syncState = await (await import("../core/farm-sync-state.js")).FarmSyncState.loadOrCreate(
-            syncStatePath,
-            p.name
-          );
-
-          // Use lightweight commit comparison instead of full diff
-          const currentCommit = await engine.getCurrentCommit(p.source);
-          const lastSyncCommit = syncState.lastSyncCommit;
-          const hasPendingChanges = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
-
-          const result: ProjectStatus = {
-            name: p.name,
-            source: p.source,
-            model: p.model,
-            remote: p.remote,
-            last_sync_commit: lastSyncCommit,
-            current_commit: currentCommit,
-            has_pending_changes: hasPendingChanges,
-          };
-          return result;
+          const syncState = await FarmSyncState.loadOrCreate(syncStatePath, p.name);
+          lastSyncCommit = syncState.lastSyncCommit;
+          result.last_sync_commit = lastSyncCommit;
         } catch (error) {
-          // If sync state doesn't exist yet, that's expected - treat as no sync yet
-          // For unexpected errors (YAML parse, git permission, etc), always log them
-          const errorMsg = getErrorMessage(error);
-          const isMissingFile =
-            errorMsg.includes("not found") ||
-            errorMsg.includes("does not exist") ||
-            errorMsg.includes("ENOENT");
-
-          if (!isMissingFile) {
-            // Unexpected error (corrupt YAML, permission denied, etc) - always log it to surface issues
-            console.error(`Warning: Error reading sync state for ${p.name}: ${errorMsg}`);
+          if (error instanceof FarmSyncStateNotFoundError) {
+            // Not synced yet (defensive: loadOrCreate does not normally throw this)
+            result.has_pending_changes = false;
+            return result;
           }
-
-          const result: ProjectStatus = {
-            name: p.name,
-            source: p.source,
-            model: p.model,
-            remote: p.remote,
-            last_sync_commit: undefined,
-            current_commit: undefined,
-            has_pending_changes: isMissingFile ? false : undefined,
-          };
-
-          // Track sync state errors separately from missing files
-          if (!isMissingFile) {
-            result.sync_state_error = errorMsg;
+          // Corrupt YAML, permission denied, ... — report it on the project
+          result.sync_state_error = getErrorMessage(error);
+          if (!useJson) {
+            handleWarning(`${p.name}: could not read sync state: ${result.sync_state_error}`);
           }
-
           return result;
         }
+
+        // Step 2: codebase HEAD. A missing codebase directory is an error on the project,
+        // never "not synced yet".
+        try {
+          const currentCommit = await engine.getCurrentCommit(p.source);
+          result.current_commit = currentCommit;
+          result.has_pending_changes = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
+        } catch (error) {
+          result.codebase_error = getErrorMessage(error);
+          if (!useJson) {
+            handleWarning(`${p.name}: ${result.codebase_error}`);
+          }
+        }
+
+        return result;
       })
     );
 
-    const useJson = options.format === "json" || isJson();
+    const projectsWithErrors = projectsWithStatus.filter(
+      (p) => p.sync_state_error !== undefined || p.codebase_error !== undefined
+    );
+    const allHealthy = projectsWithErrors.length === 0;
+
     if (useJson) {
       console.log(
         JSON.stringify({
-          status: "ok",
+          status: allHealthy ? "ok" : "error",
+          code: allHealthy ? 0 : 1,
           farm: {
             name: manifest.name,
             path: farmRoot,
@@ -564,6 +604,9 @@ export async function farmStatusCommand(options: {
           if (project.sync_state_error) {
             console.log(`    Status:   ${ansis.red("✗ Sync state corrupted")}`);
             console.log(`    Error:    ${project.sync_state_error}`);
+          } else if (project.codebase_error) {
+            console.log(`    Status:   ${ansis.red("✗ Codebase unavailable")}`);
+            console.log(`    Error:    ${project.codebase_error}`);
           } else if (project.has_pending_changes) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
           } else if (project.last_sync_commit) {
@@ -573,9 +616,18 @@ export async function farmStatusCommand(options: {
           }
         });
       }
+
+      if (!allHealthy) {
+        console.error(
+          ansis.red(`\n${projectsWithErrors.length} project(s) could not be checked (see errors above)`)
+        );
+      }
     }
 
     if (span) endSpan(span);
+    if (!allHealthy) {
+      process.exit(1);
+    }
   } catch (error) {
     const useJsonError = options.format === "json" || isJson();
     if (useJsonError) {
@@ -1080,6 +1132,15 @@ export async function farmSyncCommand(options: {
       );
     }
 
+    // Validate the report path before any project is synced so an unsupported extension
+    // fails fast instead of silently writing nothing after the work is done
+    if (options.output) {
+      const outputExt = path.extname(options.output).toLowerCase();
+      if (outputExt !== ".json") {
+        throw new Error(`Unsupported output format: ${outputExt || "(no extension)"}. Use .json`);
+      }
+    }
+
     const useJson = options.format === "json" || isJson();
     if (!useJson && !options.verbose) {
       handleInfo(`Syncing ${projectsToSync.length} project(s) (concurrency: ${concurrency})...`);
@@ -1138,11 +1199,21 @@ export async function farmSyncCommand(options: {
 
               // Commit changes to the farm-level git repository if git is available
               // Scope git add to the project's model folder to avoid staging unrelated changes
-              // Check for git repo first
-              const gitRepoExists = isGitRepository(farmRoot);
+              const gitCheck = checkGitRepository(farmRoot);
 
-              // If git repo exists, proceed with commit (handle commit errors independently)
-              if (gitRepoExists) {
+              if (gitCheck.error) {
+                // The model changes are on disk; say so rather than silently skipping the commit
+                resultEntry.git_committed = false;
+                resultEntry.git_warning = uncommittedChangeWarning(
+                  `Model '${project.model}'`,
+                  farmRoot,
+                  gitCheck.error
+                );
+                if (!useJson) {
+                  handleWarning(`${project.name}: ${resultEntry.git_warning}`);
+                }
+              } else if (gitCheck.isRepo) {
+                // Proceed with commit (handle commit errors independently)
                 try {
                   execFileSync("git", ["add", project.model], { cwd: farmRoot, stdio: "pipe" });
                   execFileSync(
@@ -1150,12 +1221,16 @@ export async function farmSyncCommand(options: {
                     ["commit", "-m", `Sync: ${result.changesetId} - ${commitResult.committed} change(s)`],
                     { cwd: farmRoot, stdio: "pipe" }
                   );
+                  resultEntry.git_committed = true;
                 } catch (gitCommitError) {
                   // If there's nothing to commit (no changes), that's fine
                   if (!getErrorMessage(gitCommitError).includes("nothing to commit")) {
                     throw gitCommitError;
                   }
+                  resultEntry.git_committed = true;
                 }
+              } else {
+                resultEntry.git_committed = false;
               }
 
               if (options.verbose && !useJson) {
@@ -1166,7 +1241,7 @@ export async function farmSyncCommand(options: {
               resultEntry.commit_error = getErrorMessage(commitError);
               resultEntry.status = "error";
               if (!useJson) {
-                handleInfo(`  Auto-commit failed: ${getErrorMessage(commitError)}`);
+                handleWarning(`${project.name}: auto-commit failed: ${getErrorMessage(commitError)}`);
               }
             }
           }
@@ -1267,24 +1342,23 @@ export async function farmSyncCommand(options: {
       }
     }
 
-    // Write output file if requested
+    // Write output file if requested (extension validated above; only .json is supported)
     if (options.output) {
       const { writeFile } = await import("../utils/file-io.js");
-      const outputExt = path.extname(options.output).toLowerCase();
-
-      if (outputExt === ".json") {
-        await writeFile(
-          options.output,
-          JSON.stringify(
-            {
-              timestamp: new Date().toISOString(),
-              farm_root: farmRoot,
-              projects: allResults,
-            },
-            null,
-            2
-          )
-        );
+      await writeFile(
+        options.output,
+        JSON.stringify(
+          {
+            timestamp: new Date().toISOString(),
+            farm_root: farmRoot,
+            projects: allResults,
+          },
+          null,
+          2
+        )
+      );
+      if (!useJson) {
+        handleInfo(`Report written to ${options.output}`);
       }
     }
 
@@ -1448,7 +1522,7 @@ Examples:
     .option("--verbose", "Show verbose output")
     .option("--dry-run", "Preview without creating changesets")
     .option("--force", "Proceed despite ambiguous file-to-element mappings")
-    .option("--output <path>", "Export sync report to file (JSON)")
+    .option("--output <path>", "Export sync report to file (.json only)")
     .option("--format <format>", "Output format: text, json", "text")
     .option("--auto-commit", "Automatically commit changes (bypasses staged review)")
     .option("--concurrency <n>", "Process multiple projects in parallel (default: 1)", "1")

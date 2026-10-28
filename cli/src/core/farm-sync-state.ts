@@ -39,6 +39,22 @@ export interface FarmSyncStateData {
 }
 
 /**
+ * Thrown by FarmSyncState.load when the .farm-sync.yaml file does not exist.
+ * Callers that treat "never synced" differently from other failures check `code`
+ * (or `instanceof`) rather than matching the message text.
+ */
+export class FarmSyncStateNotFoundError extends Error {
+  readonly code = "FARM_SYNC_STATE_NOT_FOUND";
+  readonly filePath: string;
+
+  constructor(filePath: string) {
+    super(`Farm sync state file not found: ${filePath}`);
+    this.name = "FarmSyncStateNotFoundError";
+    this.filePath = filePath;
+  }
+}
+
+/**
  * FarmSyncState class - Load, validate, and save farm sync state per project
  */
 export class FarmSyncState {
@@ -78,7 +94,7 @@ export class FarmSyncState {
    */
   static async load(filePath: string): Promise<FarmSyncState> {
     if (!(await fileExists(filePath))) {
-      throw new Error(`Farm sync state file not found: ${filePath}`);
+      throw new FarmSyncStateNotFoundError(filePath);
     }
 
     const content = await readFile(filePath);
