@@ -3,6 +3,8 @@
  */
 
 import { describe, it, expect } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import {
   NODE_TYPES,
   getNodeType,
@@ -14,12 +16,24 @@ import {
   type NodeType,
   type LayerId,
   type NodeTypeInfo,
-} from "../../src/generated/node-types.js";
+} from "../../../src/generated/node-types.js";
 
 describe("Node Type Index", () => {
   describe("NODE_TYPES Map", () => {
-    it("should contain all 184 node types", () => {
-      expect(NODE_TYPES.size).toBe(184);
+    it("should contain one entry per node schema in the bundled spec", () => {
+      // The index is generated from cli/src/schemas/bundled/{layer}.json, so the
+      // count follows the spec rather than a literal that goes stale.
+      const bundled = path.resolve(import.meta.dir, "../../../src/schemas/bundled");
+      let expected = 0;
+      for (const file of readdirSync(bundled)) {
+        if (!file.endsWith(".json") || file === "manifest.json" || file === "base.json") continue;
+        const layer = JSON.parse(readFileSync(path.join(bundled, file), "utf8")) as {
+          nodeSchemas?: Record<string, unknown>;
+        };
+        expected += Object.keys(layer.nodeSchemas ?? {}).length;
+      }
+      expect(expected).toBeGreaterThan(0);
+      expect(NODE_TYPES.size).toBe(expected);
     });
 
     it("should have NodeTypeInfo for each entry", () => {
