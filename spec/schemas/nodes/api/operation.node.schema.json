@@ -34,7 +34,7 @@
         },
         "tags": {
           "type": "string",
-          "description": "One or more tag names used to group this operation in documentation, typically the resource or controller name; each name should match an api.tag element where one is declared."
+          "description": "Tag name used to group this operation in documentation, typically the resource or controller name; it should match an api.tag element where one is declared. This schema stores the value as a single string although OpenAPI allows a list."
         },
         "deprecated": {
           "type": "boolean",

@@ -30,7 +30,7 @@
         },
         "servers": {
           "type": "string",
-          "description": "Reference(s) to api.server nodes giving the base URLs where the API is deployed; set when the spec declares root-level servers, otherwise tooling defaults to '/'."
+          "description": "Reference to the api.server nodes giving the base URLs where the API is deployed; set when the spec declares root-level servers, otherwise tooling defaults to '/'. This schema stores the reference as a single string."
         },
         "paths": {
           "type": "string",
@@ -46,7 +46,7 @@
         },
         "tags": {
           "type": "string",
-          "description": "Ordered reference list of root-level api.tag nodes that supply descriptions and external docs for tag names used by operations; set when the spec declares a root tags array."
+          "description": "Reference to the root-level api.tag nodes that supply descriptions and external docs for the tag names operations use; set when the spec declares a root tags array. This schema stores the reference as a single string."
         },
         "externalDocs": {
           "type": "string",

@@ -89,7 +89,7 @@
       "additionalProperties": false
     }
   },
-  "x-dr-standard": "HTML 5.3 interactive content: the button element, the a element with href, and the menu element",
+  "x-dr-standard": "HTML 5.3 interactive content: the button element and the a element with href; menu entries per the WAI-ARIA 1.2 menu and menuitem roles",
   "x-dr-evidence": [
     "A <button>, <a href> or design-system <Button>/<IconButton>/<Link> element rendered in a template with an onClick/onSelect/@click handler or a router 'to' target",
     "A menu or toolbar configuration array whose entries carry a label, icon and handler or command id (e.g. items: [{label:'Delete', icon:'trash', onClick: ...}])",

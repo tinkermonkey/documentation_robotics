@@ -42,7 +42,7 @@
         },
         "enum": {
           "type": "string",
-          "description": "The closed list of literal values the data may take, each valid against the schema's type. Set it for fixed vocabularies such as status codes or modes."
+          "description": "The closed set of literal values the data may take, each valid against the schema's type, as declared by the enum keyword. Set it for fixed vocabularies such as status codes or modes. This schema stores the set as a single string."
         },
         "nullable": {
           "type": "boolean",

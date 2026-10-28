@@ -39,7 +39,7 @@
         },
         "allowEmptyValue": {
           "type": "boolean",
-          "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when style is set, and is discouraged in OpenAPI 3.0.3."
+          "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when the chosen style cannot serialize an empty value, and is NOT RECOMMENDED in OpenAPI 3.0.3."
         },
         "style": {
           "type": "string",

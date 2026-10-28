@@ -37,7 +37,7 @@
       "additionalProperties": false
     }
   },
-  "x-dr-standard": "HTML 5.3 §4.13 Custom elements: an element occurrence in the document tree created from a custom element definition, with attributes set per usage",
+  "x-dr-standard": "HTML 5.3 §4.12.5 Custom elements: an element occurrence in the document tree created from a custom element definition, with attributes set per usage",
   "x-dr-evidence": [
     "a JSX/TSX, Vue or Angular template tag for an imported design-system component (e.g. <DataTable columns={cols} pageSize={20} />) inside a page or screen component",
     "a declarative layout or page-config entry such as { \"component\": \"Chart\", \"props\": { ... } } in a low-code, CMS or server-driven-UI JSON/YAML file",

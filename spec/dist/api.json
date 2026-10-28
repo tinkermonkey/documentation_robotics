@@ -781,7 +781,7 @@
             },
             "servers": {
               "type": "string",
-              "description": "Reference(s) to api.server nodes giving the base URLs where the API is deployed; set when the spec declares root-level servers, otherwise tooling defaults to '/'."
+              "description": "Reference to the api.server nodes giving the base URLs where the API is deployed; set when the spec declares root-level servers, otherwise tooling defaults to '/'. This schema stores the reference as a single string."
             },
             "paths": {
               "type": "string",
@@ -797,7 +797,7 @@
             },
             "tags": {
               "type": "string",
-              "description": "Ordered reference list of root-level api.tag nodes that supply descriptions and external docs for tag names used by operations; set when the spec declares a root tags array."
+              "description": "Reference to the root-level api.tag nodes that supply descriptions and external docs for the tag names operations use; set when the spec declares a root tags array. This schema stores the reference as a single string."
             },
             "externalDocs": {
               "type": "string",
@@ -858,7 +858,7 @@
             },
             "tags": {
               "type": "string",
-              "description": "One or more tag names used to group this operation in documentation, typically the resource or controller name; each name should match an api.tag element where one is declared."
+              "description": "Tag name used to group this operation in documentation, typically the resource or controller name; it should match an api.tag element where one is declared. This schema stores the value as a single string although OpenAPI allows a list."
             },
             "deprecated": {
               "type": "boolean",
@@ -943,7 +943,7 @@
             },
             "allowEmptyValue": {
               "type": "boolean",
-              "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when style is set, and is discouraged in OpenAPI 3.0.3."
+              "description": "Permits a query parameter to be sent with an empty value (e.g. '?flag='). It is valid only when in is 'query', is ignored when the chosen style cannot serialize an empty value, and is NOT RECOMMENDED in OpenAPI 3.0.3."
             },
             "style": {
               "type": "string",
@@ -1329,7 +1329,7 @@
             },
             "enum": {
               "type": "string",
-              "description": "The closed list of literal values the data may take, each valid against the schema's type. Set it for fixed vocabularies such as status codes or modes."
+              "description": "The closed set of literal values the data may take, each valid against the schema's type, as declared by the enum keyword. Set it for fixed vocabularies such as status codes or modes. This schema stores the set as a single string."
             },
             "nullable": {
               "type": "boolean",
