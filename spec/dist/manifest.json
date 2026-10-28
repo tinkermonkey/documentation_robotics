@@ -69,7 +69,7 @@
       "number": 10,
       "name": "UX Layer",
       "nodeTypeCount": 22,
-      "relationshipCount": 179
+      "relationshipCount": 181
     },
     {
       "id": "navigation",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 192,
-    "relationships": 1524
+    "relationships": 1526
   }
 }

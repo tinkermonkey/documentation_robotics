@@ -2455,6 +2455,21 @@
       "strength": "medium",
       "required": false
     },
+    "ux.librarycomponent.realizes.application.applicationcomponent": {
+      "id": "ux.librarycomponent.realizes.application.applicationcomponent",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "A reusable UI component in a library is the concrete presentation implementation of an application component: the library component is how that component exists in the user interface.",
+      "evidence": [
+        "A UI library module (React/Vue/Angular component, design-system entry) whose name or documented purpose matches an application component in the same codebase, or that is the only presentation code of that component."
+      ]
+    },
     "ux.librarycomponent.renders.ux.actioncomponent": {
       "id": "ux.librarycomponent.renders.ux.actioncomponent",
       "source_spec_node_id": "ux.librarycomponent",
@@ -2553,6 +2568,21 @@
       "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
+    },
+    "ux.librarycomponent.uses.application.applicationfunction": {
+      "id": "ux.librarycomponent.uses.application.applicationfunction",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "A reusable UI component invokes an application function to do its work, for example to load, validate or submit the data it presents.",
+      "evidence": [
+        "The component's source calls a service method, store action, hook or client function that is modelled as the application function (an import plus a call in an event handler or effect)."
+      ]
     },
     "ux.librarycomponent.uses.ux.statepattern": {
       "id": "ux.librarycomponent.uses.ux.statepattern",
