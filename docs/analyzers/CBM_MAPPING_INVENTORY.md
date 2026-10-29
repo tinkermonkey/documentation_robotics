@@ -2,6 +2,26 @@
 
 Phase 2 of [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md) widens `spec/analyzers/cbm` to the rest of codebase-memory-mcp's (CBM) vocabulary. This document is the starting inventory: every CBM node label and edge type, what `spec/analyzers/cbm/*.json` says about it today, and, for the unmapped ones, the candidate Documentation Robotics (DR) type or predicate checked against the relationship catalog in `spec/dist/*.json`. It changes nothing; it is the list the mapping work is scoped from.
 
+**Progress (2026-10-29):** steps 1 to 4 of the widening order below are applied on the
+`feature/phase2-cascade` branch, with two departures from the plan. `HTTP_CALLS` was downgraded to
+traversal-only rather than kept with a note, so no relationship-creating edge names a missing
+triple. The `Interface` fallback narrows to the application layer only (data object, application
+interface, application event), not to data-model as well: Clef put 35 of dr-cli's 60 interfaces in
+data-model when it was offered, against a charter-labelled gold that files in-code interfaces as
+application data objects. Steps 2 and 4 are Tier-0 rules in `extraction-heuristics.json`, measured
+in the Phase 2 results of [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md).
+`cli/tests/unit/analyzers/cbm-mapping-catalog.test.ts` keeps the mapping consistent with the
+catalog from now on.
+
+Later the same day steps 5 to 7 landed too, and every one of the 48 edge types is now in
+`edge-mapping.json`: 17 create relationships through a per-pair catalog lookup over an ordered list
+of predicates (`cli/src/analyzers/edge-relationships.ts`), and the other 31 say why they do not.
+Of the ten catalog additions below, eight (eleven triples) are proposed to Context Studio as create
+operations (`cli/scripts/spec-enrich/data/catalog-additions-cbm.json`); addition 6 duplicates
+`application.applicationservice serves application.applicationcomponent`, and additions 8 and 10
+duplicate the reversed triples `SPAWNS` and `DEPLOYS` now use. The compose `depends_on` half of
+addition 9 is proposed as `technology.node depends-on technology.node`, not `composes`.
+
 ## Sources
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |

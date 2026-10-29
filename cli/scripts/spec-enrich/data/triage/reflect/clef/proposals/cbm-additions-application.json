@@ -1,0 +1,336 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR catalog additions for codebase-memory-mcp edges: application layer (9 new relationship types)",
+  "rationale": "Phase 2 maps every codebase-memory-mcp (CBM) edge the relationship catalog can hold (spec/analyzers/cbm/edge-mapping.json). These CBM edges have no catalog triple to land on: INHERITS, OVERRIDE, EMITS, ASYNC_CALLS, RAISES, LISTENS_ON (interface level), CONTAINS_FOLDER, HTTP_CALLS (and the gRPC, GraphQL and tRPC variants) and CONNECTS_TO. Each addition below is a new meaning between its pair, checked against the catalog so that none restates an existing relationship in the other direction (design charter: one meaning, one predicate). The inventory's addition 6 (component uses application service) was dropped for that reason: application.applicationservice serves application.applicationcomponent already says it. Additions 8 and 10 were dropped because the existing reversed triples (technology.systemsoftware serves application.applicationcomponent; technology.node composes technology.artifact) express SPAWNS and DEPLOYS. Source: docs/analyzers/CBM_MAPPING_INVENTORY.md, 'Catalog additions the edge mapping would need'.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/catalog-additions.ts, data/catalog-additions-cbm.json",
+  "created_at": "2026-10-29T13:36:11.900Z",
+  "layer": "application",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c1",
+      "fields": {
+        "relationship_id": "application.applicationcomponent.specializes.application.applicationcomponent",
+        "predicate": "specializes",
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "application.applicationcomponent specializes application.applicationcomponent",
+        "description": "An application component is a specialised kind of another component: it inherits the general component's structure and behaviour and refines part of it, and can stand wherever the general one is expected."
+      },
+      "base": {},
+      "rationale": "An application component is a specialised kind of another component: it inherits the general component's structure and behaviour and refines part of it, and can stand wherever the general one is expected. Needed to map the CBM edge INHERITS (inventory addition 1).",
+      "evidence": [
+        {
+          "quote": "A class extending another class of the same codebase where both are modelled as components (class FileStore extends BaseStore, class Owner(Person) with behaviour), recorded by CBM as an INHERITS edge."
+        },
+        {
+          "quote": "Observed in the eval corpora: INHERITS 12 / 6 / 8 (dr-cli / fastapi / petclinic)."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationcomponent.specializes.application.applicationcomponent",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 2,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c2",
+      "fields": {
+        "relationship_id": "application.dataobject.specializes.application.dataobject",
+        "predicate": "specializes",
+        "source_spec_node_id": "application.dataobject",
+        "destination_spec_node_id": "application.dataobject",
+        "title": "application.dataobject specializes application.dataobject",
+        "description": "A data object is a subtype of another data object: it carries every field of the general one and adds or narrows some, so an instance of it is also an instance of the general one."
+      },
+      "base": {},
+      "rationale": "A data object is a subtype of another data object: it carries every field of the general one and adds or narrows some, so an instance of it is also an instance of the general one. Needed to map the CBM edges INHERITS, EXTENDS (inventory addition 1).",
+      "evidence": [
+        {
+          "quote": "A TypeScript interface or type extending another (interface ImportResult extends BaseResult), or a data class deriving from another data class, both classified as application data objects; CBM INHERITS."
+        },
+        {
+          "quote": "Observed in the eval corpora: INHERITS between interfaces and data classes (counts included above)."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "catalog-addition",
+        "triple": "application.dataobject.specializes.application.dataobject",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 3,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c3",
+      "fields": {
+        "relationship_id": "application.applicationfunction.specializes.application.applicationfunction",
+        "predicate": "specializes",
+        "source_spec_node_id": "application.applicationfunction",
+        "destination_spec_node_id": "application.applicationfunction",
+        "title": "application.applicationfunction specializes application.applicationfunction",
+        "description": "An application function refines another function's behaviour for a more specific case: it overrides the general function and is used in its place for that case."
+      },
+      "base": {},
+      "rationale": "An application function refines another function's behaviour for a more specific case: it overrides the general function and is used in its place for that case. Needed to map the CBM edge OVERRIDE (inventory addition 2).",
+      "evidence": [
+        {
+          "quote": "A method marked @Override, or a subclass method with the same name and signature as its parent's, both modelled as functions; CBM OVERRIDE."
+        },
+        {
+          "quote": "Observed in the eval corpora: OVERRIDE 7 / 0 / 0."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 3,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationfunction.specializes.application.applicationfunction",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 4,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c4",
+      "fields": {
+        "relationship_id": "application.applicationfunction.triggers.application.applicationevent",
+        "predicate": "triggers",
+        "source_spec_node_id": "application.applicationfunction",
+        "destination_spec_node_id": "application.applicationevent",
+        "title": "application.applicationfunction triggers application.applicationevent",
+        "description": "An application function raises or publishes an application event when it runs; the event exists because the function emitted it."
+      },
+      "base": {},
+      "rationale": "An application function raises or publishes an application event when it runs; the event exists because the function emitted it. Needed to map the CBM edges EMITS, ASYNC_CALLS, RAISES (inventory addition 3).",
+      "evidence": [
+        {
+          "quote": "emit('order-placed'), eventBus.publish(...), producer.send(topic, ...) or raising a domain event inside a function body; CBM EMITS to a Channel, or ASYNC_CALLS to a queue or topic route."
+        },
+        {
+          "quote": "Observed in the eval corpora: EMITS and ASYNC_CALLS documented by CBM, not observed in the eval corpora; RAISES 75 / 0 / 0."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 4,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationfunction.triggers.application.applicationevent",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 5,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c5",
+      "fields": {
+        "relationship_id": "application.applicationcomponent.triggers.application.applicationevent",
+        "predicate": "triggers",
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "application.applicationevent",
+        "title": "application.applicationcomponent triggers application.applicationevent",
+        "description": "An application component publishes an application event on a channel, queue or topic as part of its behaviour, without one function of it being modelled as the publisher."
+      },
+      "base": {},
+      "rationale": "An application component publishes an application event on a channel, queue or topic as part of its behaviour, without one function of it being modelled as the publisher. Needed to map the CBM edges EMITS, ASYNC_CALLS (inventory addition 3).",
+      "evidence": [
+        {
+          "quote": "A class or module that owns a message producer or socket emitter for a named channel, queue or topic, where the emitting functions are below element granularity; CBM EMITS or ASYNC_CALLS from the file."
+        },
+        {
+          "quote": "Observed in the eval corpora: file-level EMITS and ASYNC_CALLS."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 5,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationcomponent.triggers.application.applicationevent",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 6,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c6",
+      "fields": {
+        "relationship_id": "application.applicationinterface.depends-on.application.applicationevent",
+        "predicate": "depends-on",
+        "source_spec_node_id": "application.applicationinterface",
+        "destination_spec_node_id": "application.applicationevent",
+        "title": "application.applicationinterface depends-on application.applicationevent",
+        "description": "An application interface is an entry point that listens for an application event: it does its work when the event arrives and cannot work without it."
+      },
+      "base": {},
+      "rationale": "An application interface is an entry point that listens for an application event: it does its work when the event arrives and cannot work without it. Needed to map the CBM edge LISTENS_ON (inventory addition 4).",
+      "evidence": [
+        {
+          "quote": "A message-listener class or handler entry point such as @KafkaListener, @EventListener, @RabbitListener, a socket.io on('event') handler set or a webhook receiver, modelled as an application interface; CBM LISTENS_ON."
+        },
+        {
+          "quote": "Observed in the eval corpora: LISTENS_ON 3 / 0 / 0."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 6,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationinterface.depends-on.application.applicationevent",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 7,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c7",
+      "fields": {
+        "relationship_id": "application.applicationcomponent.composes.application.applicationcomponent",
+        "predicate": "composes",
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "application.applicationcomponent",
+        "title": "application.applicationcomponent composes application.applicationcomponent",
+        "description": "An application component is made up of sub-components that exist only as its parts, such as a package or directory-level component and the modules inside it."
+      },
+      "base": {},
+      "rationale": "An application component is made up of sub-components that exist only as its parts, such as a package or directory-level component and the modules inside it. Needed to map the CBM edges CONTAINS_FOLDER, CONTAINS_FILE (inventory addition 5).",
+      "evidence": [
+        {
+          "quote": "A directory or package modelled as a component (src/analyzers/, a Java package, a Python package with __init__.py) containing modules or subpackages modelled as components; CBM CONTAINS_FOLDER and CONTAINS_FILE."
+        },
+        {
+          "quote": "Observed in the eval corpora: CONTAINS_FOLDER 75 / 38 / 30."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 7,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationcomponent.composes.application.applicationcomponent",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 8,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c8",
+      "fields": {
+        "relationship_id": "application.applicationfunction.consumes.api.operation",
+        "predicate": "consumes",
+        "source_spec_node_id": "application.applicationfunction",
+        "destination_spec_node_id": "api.operation",
+        "title": "application.applicationfunction consumes api.operation",
+        "description": "An application function calls an API operation as a client: it consumes the operation's functionality over the network."
+      },
+      "base": {},
+      "rationale": "An application function calls an API operation as a client: it consumes the operation's functionality over the network. Needed to map the CBM edges HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS, TRPC_CALLS (inventory addition 7).",
+      "evidence": [
+        {
+          "quote": "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
+        },
+        {
+          "quote": "Observed in the eval corpora: HTTP_CALLS between corpus symbols and routes (fastapi frontend client calls)."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 8,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationfunction.consumes.api.operation",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 9,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c9",
+      "fields": {
+        "relationship_id": "application.applicationcomponent.consumes.api.operation",
+        "predicate": "consumes",
+        "source_spec_node_id": "application.applicationcomponent",
+        "destination_spec_node_id": "api.operation",
+        "title": "application.applicationcomponent consumes api.operation",
+        "description": "An application component is a client of an API operation: code inside it calls the operation, and the calling functions are below element granularity."
+      },
+      "base": {},
+      "rationale": "An application component is a client of an API operation: code inside it calls the operation, and the calling functions are below element granularity. Needed to map the CBM edges HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS, TRPC_CALLS (inventory addition 7).",
+      "evidence": [
+        {
+          "quote": "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
+        },
+        {
+          "quote": "Observed in the eval corpora: file-level HTTP_CALLS."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 9,
+        "plan_kind": "catalog-addition",
+        "triple": "application.applicationcomponent.consumes.api.operation",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    }
+  ]
+}

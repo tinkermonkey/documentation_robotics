@@ -133,7 +133,9 @@ describe("MappingLoader", () => {
       const httpCallsMapping = loader.getEdgeMapping("HTTP_CALLS");
       expect(httpCallsMapping).toBeDefined();
       expect(httpCallsMapping?.cbm_edge).toBe("HTTP_CALLS");
-      expect(httpCallsMapping?.dr_relationship).toBe("consumes");
+      // traversal only until the catalog has a consumer-calls-operation triple
+      expect(httpCallsMapping?.dr_relationship).toBeNull();
+      expect(httpCallsMapping?.usage).toBe("traversal_only");
     });
 
     it("should return undefined for unknown edge types", () => {
@@ -144,22 +146,24 @@ describe("MappingLoader", () => {
     it("should return HANDLES mapping", () => {
       const mapping = loader.getEdgeMapping("HANDLES");
       expect(mapping).toBeDefined();
-      expect(mapping?.dr_relationship).toBe("provides");
+      // api.operation realizes application.applicationfunction: inverted from CBM's handler -> route
+      expect(mapping?.dr_relationship).toBe("realizes");
+      expect(mapping?.directionality_transform).toBe("invert");
       expect(mapping?.confidence).toBe("high");
     });
 
-    it("should return CALLS mapping (traversal only)", () => {
+    it("should return CALLS mapping (depends-on between functions)", () => {
       const mapping = loader.getEdgeMapping("CALLS");
       expect(mapping).toBeDefined();
-      expect(mapping?.dr_relationship).toBeNull();
-      expect(mapping?.usage).toBe("traversal_only");
+      expect(mapping?.dr_relationship).toBe("depends-on");
+      expect(mapping?.usage).toBe("verification_and_mapping");
     });
 
     it("should return IMPORTS mapping", () => {
       const mapping = loader.getEdgeMapping("IMPORTS");
       expect(mapping).toBeDefined();
-      expect(mapping?.dr_relationship).toBeNull();
-      expect(mapping?.usage).toBe("traversal_only");
+      expect(mapping?.dr_relationship).toBe("uses");
+      expect(mapping?.usage).toBe("verification_and_mapping");
     });
 
     it("should have correct confidence levels", () => {

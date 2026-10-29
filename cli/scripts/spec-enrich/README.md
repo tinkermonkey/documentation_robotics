@@ -157,6 +157,15 @@ round-trip check. The contract is in the header of `proposal-export.ts`;
 the api layer is the fixture (`proposals/api.json`, 63 operations). A reversal only flips the
 type's domain and range in Context Studio; model relationships are re-pointed by `dr upgrade`.
 
+`catalog-additions.ts` does the same for new relationship types. It reads
+`data/catalog-additions-cbm.json` (the triples the codebase-memory-mcp edge mapping needs, each
+with a description and evidence lines), checks each against the live catalog (types and predicate
+exist, the triple is new, and the reverse with the same predicate does not exist unless the entry
+says in `reverse_differs` why the two mean different things), and writes
+`proposals/cbm-additions-<layer>.json`, one create operation per triple. `--apply --layer <id>
+--decisions <file>` writes a schema for each applied create, using the reviewer's triple when the
+decision was edited; additions need no model migration.
+
 The outcome is the useful signal: `reproduced` (all three answers are the current triple) and
 `no_better` (the alternatives were `none` or the current value) argue for keeping the
 relationship, `alternative` names a concrete different source, destination or predicate to weigh

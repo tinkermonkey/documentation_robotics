@@ -35,6 +35,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The cbm analyzer mapping names only what the spec has** (Phase 2, inventory steps 1 to 3;
+  `docs/analyzers/CBM_MAPPING_INVENTORY.md`). `HANDLES` maps to `api.operation realizes
+  application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
+  `provides` triple the catalog lacks. `HTTP_CALLS` is traversal-only until the catalog has a
+  consumer-calls-operation triple. The five edges CBM never emits (`CREATES`, `USES`,
+  `REFERENCES`, `RETURNS`, `MODIFIES`) are gone. `DEFINES_METHOD` (component assigned-to function)
+  and `IMPORTS` (component uses component) now create relationships, and `DEFINES` is recorded as
+  provenance. `Interface`, `Type`, `Enum`, `Struct` and `Trait` map to `application.dataobject`.
+  `datastore_detection` names the spec's real types. Every CBM 0.10.2 label is either mapped or
+  listed as unmapped, and a unit test fails if a mapping names a type or triple the catalog lacks.
+- **Every CBM edge type is in the cbm edge mapping, and edges become relationships by catalog
+  lookup** (`src/analyzers/edge-relationships.ts`). Each relationship-creating edge lists the
+  predicates that can express it in order of preference; the relationship is the first catalog
+  triple between the two classified element types. 17 of CBM's 48 edge types create relationships
+  (adding `CALLS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`, `TESTS`,
+  `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`); the
+  other 31 are traversal-only with the reason, and the unit tests fail if an edge type is missing,
+  names a nonexistent predicate, or lacks a reason.
+- **`dr analyzer services` takes candidates only from behavioural and structural labels.** With
+  the new `Interface` family mappings, data-object labels would otherwise have become service
+  candidates.
+- **Call-graph root nodes default to `CALLS`.** `dr analyzer callers` and `callees` used the first
+  edge mapping as the default edge type, which was `HTTP_CALLS`; `CALLS` is now listed first.
 - **A corrupt active changeset now fails `Model.load`.** When
   `documentation-robotics/changesets/.active` names a changeset whose files cannot be read or
   parsed, `Model.load` used to fall back silently to the base model, so every command ran as if
@@ -56,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
+  analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
+  regular-expression conditions on decorators, declaration line, file path and name, and a
+  `decide` or `narrow` outcome). The cbm analyzer ships 17: route-mapping decorators to
+  `api.operation`, controllers to `application.applicationinterface`, JPA and SQLModel classes to
+  object schemas or collections, Spring Data repositories to `data-store.accesspattern`, generated
+  client code and component props to `none`, and narrowing rules for UI library directories,
+  file-based routes, Spring services, tests and other interfaces. `MappingLoader.getHeuristics()`
+  returns them in order. Not yet called by a command; the design is
+  `docs/analyzers/CASCADE_DESIGN.md`.
 - **`dr farm add` adopts a codebase's own model instead of scaffolding a duplicate.** Before
   creating `<name>-model`, the command looks for a model at the codebase path using the same
   lookup order as composed validation (`documentation-robotics/model`, `model`, then the path

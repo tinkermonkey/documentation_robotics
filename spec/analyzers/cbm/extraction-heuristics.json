@@ -131,10 +131,10 @@
       "name": "datastore_detection",
       "description": "Patterns and conventions that identify datastore-related elements (tables, schemas, migrations)",
       "applies_to": [
-        "data-store.table",
-        "data-store.column",
-        "data-model.entity",
-        "data-model.attribute"
+        "data-store.collection",
+        "data-store.field",
+        "data-model.objectschema",
+        "data-model.schemaproperty"
       ],
       "parameters": {
         "patterns": [
@@ -155,8 +155,299 @@
           "model"
         ]
       },
-      "rule": "If element resides in datastore-related directories or files, or follows datastore naming conventions, identify as data-store or data-model layer element",
+      "rule": "If element resides in datastore-related directories or files, or follows datastore naming conventions, identify it as a data-store collection or field, or a data-model object schema or schema property",
       "confidence_adjustment": 0.25
+    },
+    {
+      "name": "tier0_generated_code",
+      "description": "Symbols in generated client code are not elements",
+      "rule": "An interface, type, enum or function in a generated file (*.gen.ts, client/core/) is generator output, not a modelled element; the published API it was generated from is",
+      "parameters": {
+        "tier0": {
+          "labels": ["Interface", "Type", "Enum", "Function"],
+          "when": {
+            "file": "(\\.gen\\.[cm]?[jt]sx?$|(^|/)client/core/)"
+          },
+          "decide": "none",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_component_props",
+      "description": "A component's props type belongs to the component",
+      "rule": "An interface or type named ...Props in a .tsx or .jsx file declares a UI component's inputs and is part of that component, not an element of its own",
+      "parameters": {
+        "tier0": {
+          "labels": ["Interface", "Type"],
+          "when": {
+            "name": "Props$",
+            "file": "\\.(tsx|jsx)$"
+          },
+          "decide": "none",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_spring_data_repository",
+      "description": "Repository interfaces are data-store access patterns",
+      "applies_to": ["data-store.accesspattern"],
+      "rule": "An interface or class extending a Spring Data style repository (JpaRepository, CrudRepository, Repository) declares how the store is queried",
+      "parameters": {
+        "tier0": {
+          "labels": ["Interface", "Class"],
+          "when": {
+            "declaration": "\\bextends\\s+[\\w.]*Repository\\b"
+          },
+          "decide": "data-store.accesspattern",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_repository_query",
+      "description": "Query annotations mark data-store access patterns",
+      "applies_to": ["data-store.accesspattern"],
+      "rule": "A method annotated @Query or @Modifying is a declared store query",
+      "parameters": {
+        "tier0": {
+          "labels": ["Method"],
+          "when": {
+            "decorator": "^(Query|Modifying)$"
+          },
+          "decide": "data-store.accesspattern",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_route_handler",
+      "description": "Route-mapping decorators mark API operations",
+      "applies_to": ["api.operation"],
+      "rule": "A method or function decorated with a route mapping (@GetMapping, @PostMapping, @RequestMapping, router.get, app.post, ...) is the implementation of an API operation",
+      "parameters": {
+        "tier0": {
+          "labels": ["Method", "Function"],
+          "when": {
+            "decorator": "^((Get|Post|Put|Patch|Delete|Request)Mapping|(router|app|api|bp|blueprint)\\.(get|post|put|patch|delete|head|options|route|api_route))$"
+          },
+          "decide": "api.operation",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_controller",
+      "description": "Controller annotations mark application interfaces",
+      "applies_to": ["application.applicationinterface"],
+      "rule": "A class annotated @Controller or @RestController is the application interface its routes are served through",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class"],
+          "when": {
+            "decorator": "^(Rest)?Controller$"
+          },
+          "decide": "application.applicationinterface",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_persistent_entity",
+      "description": "Persistence annotations mark data-model object schemas",
+      "applies_to": ["data-model.objectschema"],
+      "rule": "A class annotated @Entity, @Table, @MappedSuperclass, @Embeddable or @Document defines the shape of persisted data",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class"],
+          "when": {
+            "decorator": "^(Entity|Table|MappedSuperclass|Embeddable|Document)$"
+          },
+          "decide": "data-model.objectschema",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_sqlmodel_table",
+      "description": "SQLModel table classes are data-store collections",
+      "applies_to": ["data-store.collection"],
+      "rule": "A SQLModel class declared with table=True is a database table",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class"],
+          "when": {
+            "declaration": "\\btable\\s*=\\s*True\\b"
+          },
+          "decide": "data-store.collection",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_sqlmodel_schema",
+      "description": "SQLModel classes without a table are object schemas",
+      "applies_to": ["data-model.objectschema"],
+      "rule": "A class deriving directly from SQLModel without table=True defines a data shape (request, response or base schema)",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class"],
+          "when": {
+            "declaration": "\\(\\s*SQLModel\\s*\\)"
+          },
+          "decide": "data-model.objectschema",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_accessor",
+      "description": "Accessor and binder annotations are implementation details",
+      "rule": "A property accessor, serialization accessor or web-data binder hook is below element granularity",
+      "parameters": {
+        "tier0": {
+          "labels": ["Method"],
+          "when": {
+            "decorator": "^(property|computed_field|XmlElement|XmlAttribute|JsonProperty|InitBinder)$"
+          },
+          "decide": "none",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_spring_component",
+      "description": "Spring component stereotypes mark application components",
+      "applies_to": ["application.applicationcomponent"],
+      "rule": "A class annotated @Component or @SpringBootApplication is a deployable application component",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class"],
+          "when": {
+            "decorator": "^(Component|SpringBootApplication)$"
+          },
+          "decide": "application.applicationcomponent",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_spring_service",
+      "description": "Spring service stereotype narrows to service or component",
+      "applies_to": [
+        "application.applicationservice",
+        "application.applicationcomponent"
+      ],
+      "rule": "A class annotated @Service exposes application behaviour; it is the service or the component providing it",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class"],
+          "when": {
+            "decorator": "^Service$"
+          },
+          "narrow": [
+            "application.applicationservice",
+            "application.applicationcomponent"
+          ],
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_test_annotation",
+      "description": "Test annotations narrow to the testing layer",
+      "rule": "A test, test fixture or test configuration belongs to the testing layer",
+      "parameters": {
+        "tier0": {
+          "labels": ["Class", "Method", "Function"],
+          "when": {
+            "decorator": "^(Test|ParameterizedTest|DataJpaTest|WebMvcTest|SpringBootTest|pytest\\.fixture|pytest\\.mark\\..+)$"
+          },
+          "narrow": ["testing.*"],
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_test_file",
+      "description": "Symbols in test files belong to the testing layer",
+      "applies_to": ["testing.testcasesketch", "testing.testcoveragetarget"],
+      "rule": "A function, method or class in a test file (test_*.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java, tests/ directories) is a test case sketch or coverage target; the separate test pass classifies it (inventory step 7)",
+      "parameters": {
+        "tier0": {
+          "labels": ["Function", "Method", "Class"],
+          "when": {
+            "file": "((^|/)(tests?|__tests__)/|(^|/)test_[^/]*\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
+          },
+          "narrow": ["testing.testcasesketch", "testing.testcoveragetarget"],
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_ui_library",
+      "description": "Shared UI library directories hold library components",
+      "applies_to": ["ux.librarycomponent", "ux.actioncomponent"],
+      "rule": "A component in a shared UI library directory (components/ui, packages/*/ui, design-system) is a reusable library component or a single action trigger, not a placed view",
+      "parameters": {
+        "tier0": {
+          "labels": ["Function", "Module", "Class"],
+          "when": {
+            "file": "(^|/)(components/ui|packages/[^/]+/ui|design-system|ui-kit)/[^/]+\\.(tsx|jsx|vue|svelte)$"
+          },
+          "narrow": ["ux.librarycomponent", "ux.actioncomponent"],
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_file_route",
+      "description": "File-based route modules are views or routes",
+      "applies_to": [
+        "ux.view",
+        "ux.subview",
+        "navigation.route",
+        "navigation.navigationgraph"
+      ],
+      "rule": "A module in a file-based routing directory (routes/, pages/, app/) is reached by navigation: a view, a subview placed in a layout, or the route itself",
+      "parameters": {
+        "tier0": {
+          "labels": ["Function", "Module", "Class"],
+          "when": {
+            "file": "(^|/)(src/)?(routes|pages|app)/.+\\.(tsx|jsx|vue|svelte)$"
+          },
+          "narrow": [
+            "ux.view",
+            "ux.subview",
+            "navigation.route",
+            "navigation.navigationgraph"
+          ],
+          "confidence": "medium"
+        }
+      }
+    },
+    {
+      "name": "tier0_interface_default",
+      "description": "Other interfaces are application data objects or contracts",
+      "applies_to": [
+        "application.dataobject",
+        "application.applicationinterface",
+        "application.applicationevent"
+      ],
+      "rule": "Any interface-like symbol no earlier rule decided is an in-code data structure or contract: an application data object, application interface or application event (published schemas are data-model, but an in-code interface is not a published schema; design charter, 2026-10-25 relabelling); the classifier chooses, or says none",
+      "parameters": {
+        "tier0": {
+          "labels": ["Interface", "Type", "Enum", "Struct", "Trait"],
+          "when": {},
+          "narrow": [
+            "application.dataobject",
+            "application.applicationinterface",
+            "application.applicationevent"
+          ],
+          "confidence": "medium"
+        }
+      }
     }
   ],
   "inference_rules": [
@@ -203,6 +494,6 @@
   "metadata": {
     "version": "1.0",
     "created_at": "2026-04-17T00:00:00Z",
-    "updated_at": "2026-04-17T00:00:00Z"
+    "updated_at": "2026-10-29T00:00:00Z"
   }
 }

@@ -1,0 +1,117 @@
+{
+  "title": "Relationship types the codebase-memory-mcp edges need",
+  "rationale": "Phase 2 maps every codebase-memory-mcp (CBM) edge the relationship catalog can hold (spec/analyzers/cbm/edge-mapping.json). These CBM edges have no catalog triple to land on: INHERITS, OVERRIDE, EMITS, ASYNC_CALLS, RAISES, LISTENS_ON (interface level), CONTAINS_FOLDER, HTTP_CALLS (and the gRPC, GraphQL and tRPC variants) and CONNECTS_TO. Each addition below is a new meaning between its pair, checked against the catalog so that none restates an existing relationship in the other direction (design charter: one meaning, one predicate). The inventory's addition 6 (component uses application service) was dropped for that reason: application.applicationservice serves application.applicationcomponent already says it. Additions 8 and 10 were dropped because the existing reversed triples (technology.systemsoftware serves application.applicationcomponent; technology.node composes technology.artifact) express SPAWNS and DEPLOYS. Source: docs/analyzers/CBM_MAPPING_INVENTORY.md, 'Catalog additions the edge mapping would need'.",
+  "additions": [
+    {
+      "id": "application.applicationcomponent.specializes.application.applicationcomponent",
+      "inventory_addition": 1,
+      "cbm_edges": ["INHERITS"],
+      "observed": "INHERITS 12 / 6 / 8 (dr-cli / fastapi / petclinic)",
+      "description": "An application component is a specialised kind of another component: it inherits the general component's structure and behaviour and refines part of it, and can stand wherever the general one is expected.",
+      "evidence": [
+        "A class extending another class of the same codebase where both are modelled as components (class FileStore extends BaseStore, class Owner(Person) with behaviour), recorded by CBM as an INHERITS edge."
+      ]
+    },
+    {
+      "id": "application.dataobject.specializes.application.dataobject",
+      "inventory_addition": 1,
+      "cbm_edges": ["INHERITS", "EXTENDS"],
+      "observed": "INHERITS between interfaces and data classes (counts included above)",
+      "description": "A data object is a subtype of another data object: it carries every field of the general one and adds or narrows some, so an instance of it is also an instance of the general one.",
+      "evidence": [
+        "A TypeScript interface or type extending another (interface ImportResult extends BaseResult), or a data class deriving from another data class, both classified as application data objects; CBM INHERITS."
+      ]
+    },
+    {
+      "id": "application.applicationfunction.specializes.application.applicationfunction",
+      "inventory_addition": 2,
+      "cbm_edges": ["OVERRIDE"],
+      "observed": "OVERRIDE 7 / 0 / 0",
+      "description": "An application function refines another function's behaviour for a more specific case: it overrides the general function and is used in its place for that case.",
+      "evidence": [
+        "A method marked @Override, or a subclass method with the same name and signature as its parent's, both modelled as functions; CBM OVERRIDE."
+      ]
+    },
+    {
+      "id": "application.applicationfunction.triggers.application.applicationevent",
+      "inventory_addition": 3,
+      "cbm_edges": ["EMITS", "ASYNC_CALLS", "RAISES"],
+      "observed": "EMITS and ASYNC_CALLS documented by CBM, not observed in the eval corpora; RAISES 75 / 0 / 0",
+      "description": "An application function raises or publishes an application event when it runs; the event exists because the function emitted it.",
+      "evidence": [
+        "emit('order-placed'), eventBus.publish(...), producer.send(topic, ...) or raising a domain event inside a function body; CBM EMITS to a Channel, or ASYNC_CALLS to a queue or topic route."
+      ]
+    },
+    {
+      "id": "application.applicationcomponent.triggers.application.applicationevent",
+      "inventory_addition": 3,
+      "cbm_edges": ["EMITS", "ASYNC_CALLS"],
+      "observed": "file-level EMITS and ASYNC_CALLS",
+      "description": "An application component publishes an application event on a channel, queue or topic as part of its behaviour, without one function of it being modelled as the publisher.",
+      "evidence": [
+        "A class or module that owns a message producer or socket emitter for a named channel, queue or topic, where the emitting functions are below element granularity; CBM EMITS or ASYNC_CALLS from the file."
+      ]
+    },
+    {
+      "id": "application.applicationinterface.depends-on.application.applicationevent",
+      "inventory_addition": 4,
+      "cbm_edges": ["LISTENS_ON"],
+      "observed": "LISTENS_ON 3 / 0 / 0",
+      "description": "An application interface is an entry point that listens for an application event: it does its work when the event arrives and cannot work without it.",
+      "evidence": [
+        "A message-listener class or handler entry point such as @KafkaListener, @EventListener, @RabbitListener, a socket.io on('event') handler set or a webhook receiver, modelled as an application interface; CBM LISTENS_ON."
+      ]
+    },
+    {
+      "id": "application.applicationcomponent.composes.application.applicationcomponent",
+      "inventory_addition": 5,
+      "cbm_edges": ["CONTAINS_FOLDER", "CONTAINS_FILE"],
+      "observed": "CONTAINS_FOLDER 75 / 38 / 30",
+      "description": "An application component is made up of sub-components that exist only as its parts, such as a package or directory-level component and the modules inside it.",
+      "evidence": [
+        "A directory or package modelled as a component (src/analyzers/, a Java package, a Python package with __init__.py) containing modules or subpackages modelled as components; CBM CONTAINS_FOLDER and CONTAINS_FILE."
+      ]
+    },
+    {
+      "id": "application.applicationfunction.consumes.api.operation",
+      "inventory_addition": 7,
+      "cbm_edges": ["HTTP_CALLS", "GRPC_CALLS", "GRAPHQL_CALLS", "TRPC_CALLS"],
+      "observed": "HTTP_CALLS between corpus symbols and routes (fastapi frontend client calls)",
+      "description": "An application function calls an API operation as a client: it consumes the operation's functionality over the network.",
+      "evidence": [
+        "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
+      ]
+    },
+    {
+      "id": "application.applicationcomponent.consumes.api.operation",
+      "inventory_addition": 7,
+      "cbm_edges": ["HTTP_CALLS", "GRPC_CALLS", "GRAPHQL_CALLS", "TRPC_CALLS"],
+      "observed": "file-level HTTP_CALLS",
+      "description": "An application component is a client of an API operation: code inside it calls the operation, and the calling functions are below element granularity.",
+      "evidence": [
+        "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
+      ]
+    },
+    {
+      "id": "technology.node.depends-on.technology.technologyservice",
+      "inventory_addition": 9,
+      "cbm_edges": ["CONNECTS_TO"],
+      "observed": "CONNECTS_TO documented by CBM, not observed (needs the infrastructure pass)",
+      "description": "A node (a workload or compose service) depends on a technology service it connects to; it cannot run correctly when that service is unavailable. This is the consumer side, distinct from technology.technologyservice depends-on technology.node, where the service depends on the node that hosts it.",
+      "evidence": [
+        "A Kubernetes Deployment or docker-compose service whose environment, config or code addresses another Service by name (DATABASE_URL=postgres://db:5432, http://payments-svc); CBM CONNECTS_TO."
+      ],
+      "reverse_differs": "technology.technologyservice depends-on technology.node is the hosting dependency (a service needs the node it runs on); this is the consumer dependency (a workload needs a service it calls). depends-on is directional, so the two are different meanings."
+    },
+    {
+      "id": "technology.node.depends-on.technology.node",
+      "inventory_addition": 9,
+      "cbm_edges": ["DEPENDS_ON"],
+      "observed": "infrastructure DEPENDS_ON (docker-compose depends_on between services); needs the infrastructure pass",
+      "description": "A node depends on another node to run: it is started after it and fails without it, as a compose service declares depends_on another service.",
+      "evidence": [
+        "A docker-compose service with depends_on: [db], or an init container or startup probe that waits for another workload, each side modelled as a technology node; CBM DEPENDS_ON between infrastructure nodes."
+      ]
+    }
+  ]
+}

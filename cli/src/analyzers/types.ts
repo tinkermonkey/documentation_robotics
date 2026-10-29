@@ -244,6 +244,8 @@ export interface AnalyzerEdgeMapping {
   usage: string;
   dr_scope?: string;
   direction?: string;
+  /** "invert" when the DR relationship runs opposite to the CBM edge (HANDLES) */
+  directionality_transform?: "invert" | "bidirectional" | "symmetric" | null;
   confidence_from_property?: string;
   dr_pattern?: string;
   implementation_note?: string;

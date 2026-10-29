@@ -97,12 +97,22 @@ export function scoreOf(a: ClefAnswer | undefined, levels: number): { score: num
 }
 
 /** The stage-1 question set (layer, significance, concerns); exported for --dry-run. */
-export function stage1Questions(): Record<string, Question> {
+/** Tier-0 narrowing handed to the classifier: the only layer.type answers allowed (type null = any type of that layer). */
+export type Narrowing = Array<{ layer: string; type: string | null }>;
+
+export function stage1Questions(narrow?: Narrowing): Record<string, Question> {
+  let criteria = layerCriteria();
+  let note = "";
+  if (narrow?.length) {
+    const layers = new Set(narrow.map((n) => n.layer));
+    criteria = Object.fromEntries(Object.entries(criteria).filter(([k]) => k === NONE_OPTION || layers.has(k)));
+    note = " Only the layers this kind of symbol can belong to are listed.";
+  }
   const stage1: Record<string, Question> = {
     layer: {
       type: "choice",
-      instructions: "Which Documentation Robotics architecture layer would this code symbol be recorded in if it were modelled as an element? Choose 'none' if it is not an architecturally meaningful element on its own.",
-      criteria: layerCriteria(),
+      instructions: `Which Documentation Robotics architecture layer would this code symbol be recorded in if it were modelled as an element? Choose 'none' if it is not an architecturally meaningful element on its own.${note}`,
+      criteria,
     },
     significance: {
       type: "score",
@@ -131,9 +141,16 @@ export const KIND_CANDIDATES: Record<string, Record<string, string[]>> = {
   },
 };
 
-export function stage2Questions(layer: string, kind?: string, kindNarrow = false): Record<string, Question> {
+export function stage2Questions(layer: string, kind?: string, kindNarrow = false, narrow?: Narrowing): Record<string, Question> {
   let criteria = typeCriteria(layer);
   let kindNote = "";
+  const allowedHere = narrow?.filter((n) => n.layer === layer);
+  if (allowedHere?.length && !allowedHere.some((n) => n.type === null)) {
+    const ids = new Set(allowedHere.map((n) => n.type));
+    criteria = Object.fromEntries(Object.entries(criteria).filter(([k]) => k === NONE_OPTION || ids.has(k)));
+    kindNote = " Only the element types this symbol can be are listed.";
+    kindNarrow = false; // the Tier-0 rule is more specific than the kind rule
+  }
   if (kindNarrow && kind) {
     const allowed = KIND_CANDIDATES[layer]?.[kind];
     if (allowed) {
@@ -150,10 +167,10 @@ export function stage2Questions(layer: string, kind?: string, kindNarrow = false
   };
 }
 
-export async function classifyWithClef(backend: string, cardId: string, state: string, opts: { kind?: string; kindNarrow?: boolean } = {}): Promise<Prediction> {
+export async function classifyWithClef(backend: string, cardId: string, state: string, opts: { kind?: string; kindNarrow?: boolean; narrow?: Narrowing } = {}): Promise<Prediction> {
   const t0 = Date.now();
   const cfg = CLEF_MODELS[backend];
-  const stage1 = stage1Questions();
+  const stage1 = stage1Questions(opts.narrow);
   const r1 = await callClef(backend, state, stage1);
   const layer = choiceOf(r1.answers.layer);
   const sig = scoreOf(r1.answers.significance, SIGNIFICANCE_LEVELS.length);
@@ -163,7 +180,7 @@ export async function classifyWithClef(backend: string, cardId: string, state: s
 
   let etype: { choice: string | null; probabilities: Record<string, number>; confidence: number | null } = { choice: null, probabilities: {}, confidence: null };
   if (layer.choice && layer.choice !== NONE_OPTION) {
-    const stage2 = stage2Questions(layer.choice, opts.kind, opts.kindNarrow);
+    const stage2 = stage2Questions(layer.choice, opts.kind, opts.kindNarrow, opts.narrow);
     if (Object.keys(stage2.element_type.type === "choice" ? stage2.element_type.criteria : {}).length >= 2) {
       const r2 = await callClef(backend, state, stage2);
       etype = choiceOf(r2.answers.element_type);

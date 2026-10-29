@@ -211,6 +211,16 @@ export class MappingLoader {
   }
 
   /**
+   * Get every heuristic, in file order (Tier-0 rules among them; see tier0-rules.ts)
+   *
+   * @returns Array of heuristics
+   */
+  getHeuristics(): AnalyzerHeuristic[] {
+    const heuristics = this.artifact.heuristics.heuristics;
+    return Array.isArray(heuristics) ? heuristics : [];
+  }
+
+  /**
    * Get all filtering rules
    *
    * @returns Array of filtering rules

@@ -118,6 +118,18 @@
         },
         "return_type": {
           "from": "return_type"
+        },
+        "decorators": {
+          "from": "decorators"
+        },
+        "decorator_tags": {
+          "from": "decorator_tags"
+        },
+        "route_method": {
+          "from": "route_method"
+        },
+        "route_path": {
+          "from": "route_path"
         }
       },
       "conditions": {
@@ -168,6 +180,18 @@
         },
         "overrides": {
           "from": "overrides"
+        },
+        "decorators": {
+          "from": "decorators"
+        },
+        "decorator_tags": {
+          "from": "decorator_tags"
+        },
+        "route_method": {
+          "from": "route_method"
+        },
+        "route_path": {
+          "from": "route_path"
         }
       },
       "conditions": {
@@ -206,6 +230,12 @@
         },
         "properties_count": {
           "from": "properties_count"
+        },
+        "decorators": {
+          "from": "decorators"
+        },
+        "decorator_tags": {
+          "from": "decorator_tags"
         }
       }
     },
@@ -224,115 +254,629 @@
           "from": "name"
         }
       }
+    },
+    "Interface": {
+      "cbm_label": "Interface",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "medium",
+      "description": "In-code interface maps to an application data object. Tier-0 rules in extraction-heuristics.json take precedence: a Spring Data repository interface is data-store.accesspattern, an interface in generated client code or a component's props interface is not an element, and any other interface is narrowed to data object, application interface, application event or data-model object schema for the classifier to decide.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    "Type": {
+      "cbm_label": "Type",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Type alias or object type follows the Interface rules: an application data object unless generated or a component's props type.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    "Enum": {
+      "cbm_label": "Enum",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Enumeration of values held in code follows the Interface rules: an application data object.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    "Struct": {
+      "cbm_label": "Struct",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Plain struct maps to an application data object; one with receiver methods or an impl block behaves like a class (application component), which the classifier decides.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    "Trait": {
+      "cbm_label": "Trait",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Behavioural contract implemented by types follows the Interface rules.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
     }
   },
   "edges_by_type": {
-    "HTTP_CALLS": {
-      "cbm_edge": "HTTP_CALLS",
-      "dr_relationship": "consumes",
-      "confidence": "high",
-      "description": "HTTP API call between services maps to consumes relationship",
+    "CALLS": {
+      "cbm_edge": "CALLS",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A function calls another function: the caller depends on the callee",
       "usage": "verification_and_mapping",
-      "dr_scope": "cross-layer",
-      "direction": "caller_to_callee",
-      "confidence_from_property": "confidence",
-      "dr_pattern": "application.applicationservice → api.operation",
-      "implementation_note": "Requires HTTP verb and endpoint analysis to create cross-layer reference"
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationfunction",
+      "implementation_note": "Listed first: it is the call-graph default edge type for dr analyzer callers and callees. Creates a relationship only between functions that both survive classification.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "triggers",
+            "invert": false
+          },
+          {
+            "predicate": "flows-to",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
+      }
     },
     "HANDLES": {
       "cbm_edge": "HANDLES",
-      "dr_relationship": "provides",
+      "dr_relationship": "realizes",
       "confidence": "high",
-      "description": "HTTP request handler maps to provides relationship",
+      "description": "A function or method handles an HTTP route: the API operation for that route realizes the application function",
+      "directionality_transform": "invert",
       "usage": "verification_and_mapping",
       "dr_scope": "cross-layer",
       "direction": "forward",
-      "confidence_from_property": "handler_decorator",
-      "dr_pattern": "application.applicationfunction → api.operation",
-      "implementation_note": "HTTP handler decoration indicates implementation relationship"
+      "dr_pattern": "api.operation → application.applicationfunction",
+      "implementation_note": "CBM writes the edge handler → Route; the DR relationship runs from the operation to the function it realizes (api.operation.realizes.application.applicationfunction), so the direction is inverted. HANDLES names routes by path while Route nodes are named __route__METHOD__/path.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "realizes",
+            "invert": true
+          }
+        ]
+      }
     },
-    "CALLS": {
-      "cbm_edge": "CALLS",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "Function/method call within codebase",
-      "usage": "traversal_only",
+    "DEFINES_METHOD": {
+      "cbm_edge": "DEFINES_METHOD",
+      "dr_relationship": "assigned-to",
+      "confidence": "high",
+      "description": "A class defines a method: the application component is assigned the application function",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "dr_pattern": "application.applicationcomponent → application.applicationfunction",
+      "implementation_note": "Deterministic. Map only when both ends survive Tier-1 classification as these types. A controller class (application interface) defining handler methods (API operations) becomes api.operation uses application.applicationinterface, the catalog's triple for that pair.",
       "conditions": {
-        "usage_detail": "intra-layer behavioral"
+        "predicates": [
+          {
+            "predicate": "assigned-to",
+            "invert": false
+          },
+          {
+            "predicate": "composes",
+            "invert": false
+          },
+          {
+            "predicate": "aggregates",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": true
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
       }
     },
     "IMPORTS": {
       "cbm_edge": "IMPORTS",
-      "dr_relationship": null,
+      "dr_relationship": "uses",
       "confidence": "high",
-      "description": "Module/file import dependency",
-      "usage": "traversal_only",
+      "description": "Module or file import dependency: one application component uses another",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "dr_pattern": "application.applicationcomponent → application.applicationcomponent",
+      "implementation_note": "Map only between modules both classified as application components; imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
       "conditions": {
-        "usage_detail": "intra-layer structural"
+        "predicates": [
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "references",
+            "invert": false
+          },
+          {
+            "predicate": "composes",
+            "invert": false
+          },
+          {
+            "predicate": "aggregates",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ]
+      }
+    },
+    "CALL_REFERENCE": {
+      "cbm_edge": "CALL_REFERENCE",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A callable is used as a value (handler or callback registration): the registering function depends on it",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationfunction",
+      "implementation_note": "Same treatment as CALLS.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "triggers",
+            "invert": false
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
+      }
+    },
+    "DATA_FLOWS": {
+      "cbm_edge": "DATA_FLOWS",
+      "dr_relationship": "flows-to",
+      "confidence": "medium",
+      "description": "An argument flows into a parameter: data flows from the calling function to the called one",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationfunction",
+      "implementation_note": "Documented by CBM, not observed in the eval corpora.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "flows-to",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
+      }
+    },
+    "USAGE": {
+      "cbm_edge": "USAGE",
+      "dr_relationship": "accesses",
+      "confidence": "low",
+      "description": "A function or component uses a data structure without calling it: it accesses the data object",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.dataobject",
+      "implementation_note": "The largest-reach edge (387 gold cards). Map only when the target was accepted as a data object (an Interface, Type, Enum or data class); usage of variables and anything else is traversal only. CBM rates USAGE as identifier use without a proven target, so confidence is low. A data-model object schema used by a function or component is the provider: data-model.objectschema serves the user (inverted).",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "references",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ],
+        "gate": "target accepted as a data structure (application.dataobject, data-model or api schema); usage of plain variables is traversal only"
+      }
+    },
+    "WRITES": {
+      "cbm_edge": "WRITES",
+      "dr_relationship": "accesses",
+      "confidence": "medium",
+      "description": "A function or component mutates a data structure's state: it accesses the data object",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.dataobject",
+      "implementation_note": "Same triples as USAGE; only when the written variable or field belongs to an accepted data object.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ]
+      }
+    },
+    "IMPLEMENTS": {
+      "cbm_edge": "IMPLEMENTS",
+      "dr_relationship": "provides",
+      "confidence": "high",
+      "description": "A class implements an interface that was classified as an application interface: the component provides that interface",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationcomponent → application.applicationinterface",
+      "implementation_note": "Only when the implemented interface was accepted as application.applicationinterface. Implementing a data-object interface creates no relationship (the catalog has no component-to-dataobject structural triple, by design).",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "provides",
+            "invert": false
+          },
+          {
+            "predicate": "realizes",
+            "invert": false
+          },
+          {
+            "predicate": "specializes",
+            "invert": false
+          }
+        ]
+      }
+    },
+    "TESTS": {
+      "cbm_edge": "TESTS",
+      "dr_relationship": "tests",
+      "confidence": "high",
+      "description": "A test function exercises a symbol: the test case sketch tests that function, interface, service or operation",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "forward",
+      "dr_pattern": "testing.testcasesketch → application.applicationfunction",
+      "implementation_note": "Requires the separate test pass (inventory step 7): test code is excluded from the main candidates by filtering_rules, so test functions are classified on their own as testing.testcasesketch.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "tests",
+            "invert": false
+          }
+        ]
+      }
+    },
+    "TESTS_FILE": {
+      "cbm_edge": "TESTS_FILE",
+      "dr_relationship": "tests",
+      "confidence": "high",
+      "description": "A test file covers a source file: the coverage target tests the component",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "forward",
+      "dr_pattern": "testing.testcoveragetarget → application.applicationcomponent",
+      "implementation_note": "File-level counterpart of TESTS; same test pass.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "tests",
+            "invert": false
+          }
+        ]
+      }
+    },
+    "ASYNC_CALLS": {
+      "cbm_edge": "ASYNC_CALLS",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A function publishes to a queue or topic: it depends on the application event the queue carries",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationevent",
+      "implementation_note": "The queue or topic Route (__route__sqs__..., __route__kafka__...) is modelled as an application event. The 'triggers' reading from a function or component waits on catalog addition 3.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "triggers",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
+      }
+    },
+    "LISTENS_ON": {
+      "cbm_edge": "LISTENS_ON",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A function listens on a channel: it depends on the application event",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationevent",
+      "implementation_note": "Function-level listeners. The interface-level reading waits on catalog addition 4.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
+      }
+    },
+    "SPAWNS": {
+      "cbm_edge": "SPAWNS",
+      "dr_relationship": "serves",
+      "confidence": "medium",
+      "description": "Code starts an external program: the system software serves the calling component",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "dr_pattern": "technology.systemsoftware → application.applicationcomponent",
+      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Documented by CBM, not observed in the eval corpora.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "serves",
+            "invert": true
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
       }
     },
     "DEPENDS_ON": {
       "cbm_edge": "DEPENDS_ON",
-      "dr_relationship": null,
+      "dr_relationship": "depends-on",
       "confidence": "medium",
-      "description": "Runtime dependency relationship",
-      "usage": "traversal_only",
+      "description": "Infrastructure dependency between artifacts (charts, packages, base images) or system software",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "dr_pattern": "technology.artifact → technology.artifact",
+      "implementation_note": "Infrastructure only in CBM 0.10.2 (charts, package files, base images, compose depends_on).",
       "conditions": {
-        "usage_detail": "intra-layer dependency"
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
       }
+    },
+    "INFRA_MAPS": {
+      "cbm_edge": "INFRA_MAPS",
+      "dr_relationship": "realizes",
+      "confidence": "high",
+      "description": "A Kubernetes Service selects workloads: each workload node realizes the technology service",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "technology.node → technology.technologyservice",
+      "implementation_note": "Inverted: CBM writes Service → workload. Needs the infrastructure pass (Resource nodes).",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "realizes",
+            "invert": true
+          }
+        ]
+      }
+    },
+    "DEPLOYS": {
+      "cbm_edge": "DEPLOYS",
+      "dr_relationship": "composes",
+      "confidence": "medium",
+      "description": "Manifests, charts or Terraform are deployed onto a cluster: the node composes the artifact",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "technology.node → technology.artifact",
+      "implementation_note": "Inverted: CBM writes artifact → cluster. Needs the infrastructure pass.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "composes",
+            "invert": true
+          },
+          {
+            "predicate": "assigned-to",
+            "invert": false
+          }
+        ]
+      }
+    },
+    "HTTP_CALLS": {
+      "cbm_edge": "HTTP_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound HTTP call from code to an API route",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "confidence_from_property": "confidence",
+      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+    },
+    "GRPC_CALLS": {
+      "cbm_edge": "GRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound gRPC call",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "Same as HTTP_CALLS; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+    },
+    "GRAPHQL_CALLS": {
+      "cbm_edge": "GRAPHQL_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound GraphQL call",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "Same as HTTP_CALLS; in the binary and UI only. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+    },
+    "TRPC_CALLS": {
+      "cbm_edge": "TRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound tRPC call",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "Same as HTTP_CALLS; in the binary and UI only. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
     },
     "INHERITS": {
       "cbm_edge": "INHERITS",
       "dr_relationship": null,
       "confidence": "high",
-      "description": "Class inheritance relationship",
+      "description": "Class or interface inheritance",
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "implementation_note": "specializes between components and between data objects; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 1); map once accepted.",
       "conditions": {
         "usage_detail": "intra-layer structural"
-      }
-    },
-    "IMPLEMENTS": {
-      "cbm_edge": "IMPLEMENTS",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "Interface implementation relationship",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer structural"
-      }
-    },
-    "CREATES": {
-      "cbm_edge": "CREATES",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "Object instantiation or component creation",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer behavioral"
-      }
-    },
-    "USES": {
-      "cbm_edge": "USES",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "General usage relationship",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer dependency"
       }
     },
     "EXTENDS": {
@@ -345,42 +889,317 @@
       "direction": "forward",
       "conditions": {
         "usage_detail": "intra-layer structural"
-      }
+      },
+      "implementation_note": "Present in the CBM 0.10.2 binary only, not in its documented vocabulary or any observed graph; kept for forward compatibility. INHERITS is the edge CBM emits for class extension."
     },
-    "REFERENCES": {
-      "cbm_edge": "REFERENCES",
+    "OVERRIDE": {
+      "cbm_edge": "OVERRIDE",
       "dr_relationship": null,
       "confidence": "medium",
-      "description": "Reference to variable, field, or constant",
+      "description": "Method override",
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "implementation_note": "specializes between functions; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 2); map once accepted. Also Kustomize patches in infrastructure.",
       "conditions": {
-        "usage_detail": "intra-layer dependency"
+        "usage_detail": "intra-layer structural"
       }
     },
-    "RETURNS": {
-      "cbm_edge": "RETURNS",
+    "EMITS": {
+      "cbm_edge": "EMITS",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "A function emits on a channel",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "triggers an application event from a function or component; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 3); map once accepted."
+    },
+    "RAISES": {
+      "cbm_edge": "RAISES",
       "dr_relationship": null,
       "confidence": "low",
-      "description": "Return type relationship (type information only)",
+      "description": "A function raises an exception class",
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "conditions": {
-        "usage_detail": "type-level metadata"
-      }
+      "implementation_note": "Evidence for error-handling concerns; triggers an application event when the exception is a domain event, proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 3); map once accepted."
     },
-    "MODIFIES": {
-      "cbm_edge": "MODIFIES",
+    "THROWS": {
+      "cbm_edge": "THROWS",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "A method throws an exception class",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Same as RAISES: evidence for error-handling concerns; the triggers reading waits on catalog addition 3."
+    },
+    "CONTAINS_FOLDER": {
+      "cbm_edge": "CONTAINS_FOLDER",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Folder contains folder",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "composes between directory-level components; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 5); map once accepted."
+    },
+    "CONNECTS_TO": {
+      "cbm_edge": "CONNECTS_TO",
       "dr_relationship": null,
       "confidence": "medium",
-      "description": "State modification relationship",
+      "description": "A workload addresses a Service",
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "implementation_note": "depends-on from a node to a technology service; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 9); map once accepted."
+    },
+    "DEFINES": {
+      "cbm_edge": "DEFINES",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "A file defines a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Provenance: supplies source_reference.file for every element mapped from a symbol. Not a relationship between elements.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    "DECORATES": {
+      "cbm_edge": "DECORATES",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "A decorator applies to a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence: decorator names feed the Tier-0 rules (extraction-heuristics.json) and the card. Decorator is not an element.",
+      "conditions": {
+        "usage_detail": "evidence"
+      }
+    },
+    "CONFIGURES": {
+      "cbm_edge": "CONFIGURES",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "A symbol reads a config key, or a config key names a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for security and APM concerns (EnvVar is not an element).",
+      "conditions": {
+        "usage_detail": "evidence"
+      }
+    },
+    "CONTAINS_FILE": {
+      "cbm_edge": "CONTAINS_FILE",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Folder contains file",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Traversal only: the directory structure behind placement facts.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    "CONTAINS_PACKAGE": {
+      "cbm_edge": "CONTAINS_PACKAGE",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Package containment",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Binary and graph UI only; treat as CONTAINS_FOLDER if emitted.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    "MEMBER_OF": {
+      "cbm_edge": "MEMBER_OF",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Membership",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Binary and graph UI only; treat as DEFINES if emitted.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    "RESOLVED_CALLS": {
+      "cbm_edge": "RESOLVED_CALLS",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Resolved call",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Binary and graph UI only; treat as CALLS if emitted.",
       "conditions": {
         "usage_detail": "intra-layer behavioral"
+      }
+    },
+    "SEMANTICALLY_RELATED": {
+      "cbm_edge": "SEMANTICALLY_RELATED",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Vocabulary-mismatch similarity (score >= 0.80)",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "No DR counterpart; for Tier-0 clustering and duplicate detection.",
+      "conditions": {
+        "usage_detail": "similarity"
+      }
+    },
+    "SIMILAR_TO": {
+      "cbm_edge": "SIMILAR_TO",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "MinHash near-clone",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "No DR counterpart; for duplicate detection.",
+      "conditions": {
+        "usage_detail": "similarity"
+      }
+    },
+    "FILE_CHANGES_WITH": {
+      "cbm_edge": "FILE_CHANGES_WITH",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Files that change together in history",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "No DR counterpart; evidence for component boundaries.",
+      "conditions": {
+        "usage_detail": "history"
+      }
+    },
+    "HAS_BRANCH": {
+      "cbm_edge": "HAS_BRANCH",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Git branch metadata",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Provenance for source_reference; not a relationship.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    "REFERENCES_FILE": {
+      "cbm_edge": "REFERENCES_FILE",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Documentation references a file",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for descriptions and for Tier 2's upper-layer inference.",
+      "conditions": {
+        "usage_detail": "documentation"
+      }
+    },
+    "MENTIONS": {
+      "cbm_edge": "MENTIONS",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Documentation mentions a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for descriptions and for Tier 2's upper-layer inference.",
+      "conditions": {
+        "usage_detail": "documentation"
+      }
+    },
+    "CROSS_HTTP_CALLS": {
+      "cbm_edge": "CROSS_HTTP_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    "CROSS_GRPC_CALLS": {
+      "cbm_edge": "CROSS_GRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    "CROSS_GRAPHQL_CALLS": {
+      "cbm_edge": "CROSS_GRAPHQL_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    "CROSS_TRPC_CALLS": {
+      "cbm_edge": "CROSS_TRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    "CROSS_ASYNC_CALLS": {
+      "cbm_edge": "CROSS_ASYNC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    "CROSS_CHANNEL": {
+      "cbm_edge": "CROSS_CHANNEL",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
       }
     }
   },
@@ -517,10 +1336,10 @@
         "name": "datastore_detection",
         "description": "Patterns and conventions that identify datastore-related elements (tables, schemas, migrations)",
         "applies_to": [
-          "data-store.table",
-          "data-store.column",
-          "data-model.entity",
-          "data-model.attribute"
+          "data-store.collection",
+          "data-store.field",
+          "data-model.objectschema",
+          "data-model.schemaproperty"
         ],
         "parameters": {
           "patterns": [
@@ -541,8 +1360,299 @@
             "model"
           ]
         },
-        "rule": "If element resides in datastore-related directories or files, or follows datastore naming conventions, identify as data-store or data-model layer element",
+        "rule": "If element resides in datastore-related directories or files, or follows datastore naming conventions, identify it as a data-store collection or field, or a data-model object schema or schema property",
         "confidence_adjustment": 0.25
+      },
+      {
+        "name": "tier0_generated_code",
+        "description": "Symbols in generated client code are not elements",
+        "rule": "An interface, type, enum or function in a generated file (*.gen.ts, client/core/) is generator output, not a modelled element; the published API it was generated from is",
+        "parameters": {
+          "tier0": {
+            "labels": ["Interface", "Type", "Enum", "Function"],
+            "when": {
+              "file": "(\\.gen\\.[cm]?[jt]sx?$|(^|/)client/core/)"
+            },
+            "decide": "none",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_component_props",
+        "description": "A component's props type belongs to the component",
+        "rule": "An interface or type named ...Props in a .tsx or .jsx file declares a UI component's inputs and is part of that component, not an element of its own",
+        "parameters": {
+          "tier0": {
+            "labels": ["Interface", "Type"],
+            "when": {
+              "name": "Props$",
+              "file": "\\.(tsx|jsx)$"
+            },
+            "decide": "none",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_spring_data_repository",
+        "description": "Repository interfaces are data-store access patterns",
+        "applies_to": ["data-store.accesspattern"],
+        "rule": "An interface or class extending a Spring Data style repository (JpaRepository, CrudRepository, Repository) declares how the store is queried",
+        "parameters": {
+          "tier0": {
+            "labels": ["Interface", "Class"],
+            "when": {
+              "declaration": "\\bextends\\s+[\\w.]*Repository\\b"
+            },
+            "decide": "data-store.accesspattern",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_repository_query",
+        "description": "Query annotations mark data-store access patterns",
+        "applies_to": ["data-store.accesspattern"],
+        "rule": "A method annotated @Query or @Modifying is a declared store query",
+        "parameters": {
+          "tier0": {
+            "labels": ["Method"],
+            "when": {
+              "decorator": "^(Query|Modifying)$"
+            },
+            "decide": "data-store.accesspattern",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_route_handler",
+        "description": "Route-mapping decorators mark API operations",
+        "applies_to": ["api.operation"],
+        "rule": "A method or function decorated with a route mapping (@GetMapping, @PostMapping, @RequestMapping, router.get, app.post, ...) is the implementation of an API operation",
+        "parameters": {
+          "tier0": {
+            "labels": ["Method", "Function"],
+            "when": {
+              "decorator": "^((Get|Post|Put|Patch|Delete|Request)Mapping|(router|app|api|bp|blueprint)\\.(get|post|put|patch|delete|head|options|route|api_route))$"
+            },
+            "decide": "api.operation",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_controller",
+        "description": "Controller annotations mark application interfaces",
+        "applies_to": ["application.applicationinterface"],
+        "rule": "A class annotated @Controller or @RestController is the application interface its routes are served through",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class"],
+            "when": {
+              "decorator": "^(Rest)?Controller$"
+            },
+            "decide": "application.applicationinterface",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_persistent_entity",
+        "description": "Persistence annotations mark data-model object schemas",
+        "applies_to": ["data-model.objectschema"],
+        "rule": "A class annotated @Entity, @Table, @MappedSuperclass, @Embeddable or @Document defines the shape of persisted data",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class"],
+            "when": {
+              "decorator": "^(Entity|Table|MappedSuperclass|Embeddable|Document)$"
+            },
+            "decide": "data-model.objectschema",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_sqlmodel_table",
+        "description": "SQLModel table classes are data-store collections",
+        "applies_to": ["data-store.collection"],
+        "rule": "A SQLModel class declared with table=True is a database table",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class"],
+            "when": {
+              "declaration": "\\btable\\s*=\\s*True\\b"
+            },
+            "decide": "data-store.collection",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_sqlmodel_schema",
+        "description": "SQLModel classes without a table are object schemas",
+        "applies_to": ["data-model.objectschema"],
+        "rule": "A class deriving directly from SQLModel without table=True defines a data shape (request, response or base schema)",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class"],
+            "when": {
+              "declaration": "\\(\\s*SQLModel\\s*\\)"
+            },
+            "decide": "data-model.objectschema",
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_accessor",
+        "description": "Accessor and binder annotations are implementation details",
+        "rule": "A property accessor, serialization accessor or web-data binder hook is below element granularity",
+        "parameters": {
+          "tier0": {
+            "labels": ["Method"],
+            "when": {
+              "decorator": "^(property|computed_field|XmlElement|XmlAttribute|JsonProperty|InitBinder)$"
+            },
+            "decide": "none",
+            "confidence": "high"
+          }
+        }
+      },
+      {
+        "name": "tier0_spring_component",
+        "description": "Spring component stereotypes mark application components",
+        "applies_to": ["application.applicationcomponent"],
+        "rule": "A class annotated @Component or @SpringBootApplication is a deployable application component",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class"],
+            "when": {
+              "decorator": "^(Component|SpringBootApplication)$"
+            },
+            "decide": "application.applicationcomponent",
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_spring_service",
+        "description": "Spring service stereotype narrows to service or component",
+        "applies_to": [
+          "application.applicationservice",
+          "application.applicationcomponent"
+        ],
+        "rule": "A class annotated @Service exposes application behaviour; it is the service or the component providing it",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class"],
+            "when": {
+              "decorator": "^Service$"
+            },
+            "narrow": [
+              "application.applicationservice",
+              "application.applicationcomponent"
+            ],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_test_annotation",
+        "description": "Test annotations narrow to the testing layer",
+        "rule": "A test, test fixture or test configuration belongs to the testing layer",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class", "Method", "Function"],
+            "when": {
+              "decorator": "^(Test|ParameterizedTest|DataJpaTest|WebMvcTest|SpringBootTest|pytest\\.fixture|pytest\\.mark\\..+)$"
+            },
+            "narrow": ["testing.*"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_test_file",
+        "description": "Symbols in test files belong to the testing layer",
+        "applies_to": ["testing.testcasesketch", "testing.testcoveragetarget"],
+        "rule": "A function, method or class in a test file (test_*.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java, tests/ directories) is a test case sketch or coverage target; the separate test pass classifies it (inventory step 7)",
+        "parameters": {
+          "tier0": {
+            "labels": ["Function", "Method", "Class"],
+            "when": {
+              "file": "((^|/)(tests?|__tests__)/|(^|/)test_[^/]*\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
+            },
+            "narrow": ["testing.testcasesketch", "testing.testcoveragetarget"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_ui_library",
+        "description": "Shared UI library directories hold library components",
+        "applies_to": ["ux.librarycomponent", "ux.actioncomponent"],
+        "rule": "A component in a shared UI library directory (components/ui, packages/*/ui, design-system) is a reusable library component or a single action trigger, not a placed view",
+        "parameters": {
+          "tier0": {
+            "labels": ["Function", "Module", "Class"],
+            "when": {
+              "file": "(^|/)(components/ui|packages/[^/]+/ui|design-system|ui-kit)/[^/]+\\.(tsx|jsx|vue|svelte)$"
+            },
+            "narrow": ["ux.librarycomponent", "ux.actioncomponent"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_file_route",
+        "description": "File-based route modules are views or routes",
+        "applies_to": [
+          "ux.view",
+          "ux.subview",
+          "navigation.route",
+          "navigation.navigationgraph"
+        ],
+        "rule": "A module in a file-based routing directory (routes/, pages/, app/) is reached by navigation: a view, a subview placed in a layout, or the route itself",
+        "parameters": {
+          "tier0": {
+            "labels": ["Function", "Module", "Class"],
+            "when": {
+              "file": "(^|/)(src/)?(routes|pages|app)/.+\\.(tsx|jsx|vue|svelte)$"
+            },
+            "narrow": [
+              "ux.view",
+              "ux.subview",
+              "navigation.route",
+              "navigation.navigationgraph"
+            ],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_interface_default",
+        "description": "Other interfaces are application data objects or contracts",
+        "applies_to": [
+          "application.dataobject",
+          "application.applicationinterface",
+          "application.applicationevent"
+        ],
+        "rule": "Any interface-like symbol no earlier rule decided is an in-code data structure or contract: an application data object, application interface or application event (published schemas are data-model, but an in-code interface is not a published schema; design charter, 2026-10-25 relabelling); the classifier chooses, or says none",
+        "parameters": {
+          "tier0": {
+            "labels": ["Interface", "Type", "Enum", "Struct", "Trait"],
+            "when": {},
+            "narrow": [
+              "application.dataobject",
+              "application.applicationinterface",
+              "application.applicationevent"
+            ],
+            "confidence": "medium"
+          }
+        }
       }
     ],
     "inference_rules": [
@@ -589,7 +1699,7 @@
     "metadata": {
       "version": "1.0",
       "created_at": "2026-04-17T00:00:00Z",
-      "updated_at": "2026-04-17T00:00:00Z"
+      "updated_at": "2026-10-29T00:00:00Z"
     }
   }
 }
