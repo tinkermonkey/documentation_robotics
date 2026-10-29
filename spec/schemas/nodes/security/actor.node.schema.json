@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Actor",
-  "description": "A named principal \u2014 human user, service account, automated system, or external entity \u2014 whose identity and trust level govern what operations it may perform. Associates with Roles for permission grouping and with SeparationOfDuty and Delegation controls, per NIST SP 800-53 AC-2 (Account Management) and SP 800-207 (Zero Trust Architecture).",
+  "description": "A named principal (a human user population, service account, automated system, or external party) that is the subject of authentication and authorization decisions, typed by category and optionally assigned a trust level. It represents who acts, as distinct from the permission bundle it holds or the authority it receives temporarily. Use Role instead when the element is a named bundle of permissions that many principals can be assigned, such as 'admin' or 'editor', rather than the principal itself. Use Delegation instead when the element records a transfer of authority from one principal to another, with a scope or expiry, rather than the principal that delegates or receives it. Use AuthenticationConfig instead when the element describes how principals prove identity, such as the provider, MFA or session timeout, rather than who is being identified. Use Threat instead when the element models an adversary or attack scenario with a likelihood and impact, rather than a legitimate principal that the system recognises and authorizes.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,7 +26,8 @@
           "description": "Category of actor, per NIST AC-2 (Account Management) subject classification."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of who or what this actor represents, for example 'nightly billing batch job' or 'external payment partner'. Set it whenever the actor's name alone does not make its identity source or purpose clear."
         },
         "trustLevel": {
           "type": "string",
@@ -45,5 +46,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-2 (Account Management); NIST SP 800-207 subject/principal",
+  "x-dr-evidence": [
+    "A principal or user-context class (e.g. UserPrincipal, ServiceIdentity) populated from a verified token and passed to authorization checks.",
+    "Declared service accounts or machine identities in configuration, such as a Kubernetes ServiceAccount, cloud IAM users or roles for workloads, or OAuth client_credentials client registrations.",
+    "Branching in authorization code on the principal's kind or trust level, such as `if principal.type == 'service'` or checks on an `is_internal` or `partner` flag."
+  ],
+  "x-dr-distinguish": {
+    "security.role": "the element is a named bundle of permissions that many principals can be assigned, such as 'admin' or 'editor', rather than the principal itself.",
+    "security.delegation": "the element records a transfer of authority from one principal to another, with a scope or expiry, rather than the principal that delegates or receives it.",
+    "security.authenticationconfig": "the element describes how principals prove identity, such as the provider, MFA or session timeout, rather than who is being identified.",
+    "security.threat": "the element models an adversary or attack scenario with a likelihood and impact, rather than a legitimate principal that the system recognises and authorizes."
   }
 }

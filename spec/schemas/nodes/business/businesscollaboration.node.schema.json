@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessCollaboration",
-  "description": "An active structure element representing an aggregate of two or more BusinessRoles that work together to perform collective behavior (BusinessInteraction). The collaboration is meaningful only in the context of its participating roles.",
+  "description": "An active structure element that is a temporary or permanent grouping of two or more BusinessRoles (or BusinessActors) jointly assigned to collective behavior that none of them performs alone. It has no identity apart from its participants: removing participants below two dissolves it. Use BusinessRole instead when the element is a single set of responsibilities assignable to one actor, even if many actors may fill it. Use BusinessActor instead when the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines. Use BusinessInteraction instead when you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it. Use Contract instead when you are modelling the recorded agreement binding the parties rather than the parties acting together.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text prose describing the collaboration's purpose, its participating roles and the collective behavior it exists to perform; set whenever the element name alone does not make the participants and scope clear."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.2.3 Business Collaboration",
+  "x-dr-evidence": [
+    "a BPMN collaboration diagram or workflow definition declaring two or more participant pools/lanes (e.g. Buyer and Seller) that exchange messages within one flow",
+    "a domain class or config entity such as ReviewBoard, Partnership or JointVenture whose fields reference multiple distinct participant role types and which is used to gate a multi-party step (e.g. requires approvals from each role)",
+    "approval or sign-off rules (e.g. a four-eyes or dual-control policy) listing several named roles that must act together before a business step completes"
+  ],
+  "x-dr-distinguish": {
+    "business.businessrole": "the element is a single set of responsibilities assignable to one actor, even if many actors may fill it",
+    "business.businessactor": "the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines",
+    "business.businessinteraction": "you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it",
+    "business.contract": "you are modelling the recorded agreement binding the parties rather than the parties acting together"
   }
 }

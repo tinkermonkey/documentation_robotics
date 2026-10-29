@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Path",
-  "description": "A link between two or more nodes through which those nodes can exchange data, representing a logical communication channel such as a network route, API connection, or message channel.",
+  "description": "A logical communication link between two or more specific nodes or devices over which they exchange data, independent of the physical medium that carries it, such as a service-to-database connection, a VPN tunnel between two sites, or a queue channel between a producer host and a consumer host. Use CommunicationNetwork instead when the element is the shared transmission medium or address space (LAN, VPC, subnet, VPN as a whole) connecting many nodes, rather than a particular link between identified endpoints. Use TechnologyInterface instead when the element is the access point on one node (a listening port, endpoint or protocol binding) through which a service is offered, not the link between two nodes. Use TechnologyInteraction instead when the element is the collective behavior exchanged over the link (handshake, replication protocol, failover exchange), not the channel itself. Use TechnologyService instead when the element is an infrastructure capability offered to consumers, such as a managed messaging or load-balancing service, rather than a point-to-point data channel.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the path naming its endpoints, the direction and purpose of the data flow, and any notable constraints such as ports, encryption or latency; set whenever the endpoints or purpose are not obvious from the name."
         },
         "pathType": {
           "type": "string",
@@ -50,5 +51,17 @@
       "required": ["pathType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.2.6 Path",
+  "x-dr-evidence": [
+    "a connection string or endpoint URL in configuration that names another deployed host and port, e.g. DATABASE_URL=postgres://orders-db:5432 or a gRPC target address in an environment file",
+    "an infrastructure-as-code resource that links two specific endpoints, e.g. a Terraform aws_vpc_peering_connection, an IPsec VPN tunnel, or a security-group/NetworkPolicy rule allowing traffic from workload A to workload B on a given port",
+    "a docker-compose depends_on/links entry or a service-mesh route (Istio VirtualService, DestinationRule) that directs traffic from one named service to another"
+  ],
+  "x-dr-distinguish": {
+    "technology.communicationnetwork": "the element is the shared transmission medium or address space (LAN, VPC, subnet, VPN as a whole) connecting many nodes, rather than a particular link between identified endpoints",
+    "technology.technologyinterface": "the element is the access point on one node (a listening port, endpoint or protocol binding) through which a service is offered, not the link between two nodes",
+    "technology.technologyinteraction": "the element is the collective behavior exchanged over the link (handshake, replication protocol, failover exchange), not the channel itself",
+    "technology.technologyservice": "the element is an infrastructure capability offered to consumers, such as a managed messaging or load-balancing service, rather than a point-to-point data channel"
   }
 }

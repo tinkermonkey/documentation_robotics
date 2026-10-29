@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SchemaComposition",
-  "description": "Combines multiple schemas using boolean logic. allOf requires all subschemas to validate; anyOf requires at least one; oneOf requires exactly one; not inverts the result of the subschema.",
+  "description": "A schema node whose validation outcome is computed by applying boolean logic (allOf, anyOf, oneOf, not) to the outcomes of one or more subschemas, rather than by constraining the instance's type, properties, items, length or bounds directly. In code it corresponds to union, intersection, discriminated-variant or negation types built from other data types. Use Reference instead when the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition. Use ObjectSchema instead when the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf). Use SchemaDefinition instead when the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition that aggregates a composition. Use StringSchema instead when a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,17 +22,23 @@
       "properties": {
         "allOf": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "All listed subschemas must validate against the instance"
         },
         "anyOf": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "At least one of the listed subschemas must validate against the instance"
         },
         "oneOf": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Exactly one of the listed subschemas must validate against the instance"
         },
         "not": {
@@ -42,5 +48,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "JSON Schema Draft 7 (draft-handrews-json-schema-validation-01) §6.7 Keywords for Applying Subschemas With Boolean Logic (allOf, anyOf, oneOf, not)",
+  "x-dr-evidence": [
+    "A TypeScript union or intersection type alias (type Payment = Card | BankTransfer; type Admin = User & Permissions), or a Python Union[...]/Annotated discriminated union field in a Pydantic model",
+    "Serialization polymorphism annotations such as Jackson @JsonTypeInfo/@JsonSubTypes, a Pydantic Field(discriminator=...), or OpenAPI/JSON Schema files containing allOf, anyOf, oneOf or not keys",
+    "Validator-library combinators that join other schemas: zod z.union/z.discriminatedUnion/z.intersection/.and(), Joi alternatives().try(), or io-ts t.union/t.intersection"
+  ],
+  "x-dr-distinguish": {
+    "data-model.reference": "the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition.",
+    "data-model.objectschema": "the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf).",
+    "data-model.schemadefinition": "the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition that aggregates a composition.",
+    "data-model.stringschema": "a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas."
   }
 }

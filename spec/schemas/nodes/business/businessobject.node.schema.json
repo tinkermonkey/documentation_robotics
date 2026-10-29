@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessObject",
-  "description": "A passive structure element that has relevance from a business perspective, representing information or data that active elements (actors, roles) act upon. Examples include documents, messages, contracts, and reports.",
+  "description": "A passive structure element representing a business concept or unit of information (e.g., Order, Invoice, Claim, Customer record) that business behavior creates, reads, updates or deletes. It is identified by its business meaning and lifecycle, independent of storage format, schema or presentation. Use Contract instead when the information is specifically an agreement that sets out obligations, rights or terms between a provider and a consumer (e.g., SLA, policy terms, subscription agreement). Use Representation instead when the element is the perceptible form or media format in which the information is shown or exchanged (a PDF invoice, an HTML order form), not the information concept itself. Use BusinessEvent instead when the thing being modelled is a state change or occurrence (an order was placed) rather than the information entity that the occurrence concerns (the order). Use Product instead when the element is a bundle of services and contracts offered to customers as a value proposition, rather than a piece of information acted upon.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text business definition of the object: what it means to the organization, its key information content and its lifecycle. Write it in domain vocabulary without storage or schema detail, and set it whenever the name alone is ambiguous."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.4.1 Business Object",
+  "x-dr-evidence": [
+    "a domain-model class or aggregate root named with a business noun (Order, Invoice, Claim) in a domain/model package, referenced by several workflow or use-case handlers",
+    "a lifecycle status enum or state machine on that entity (e.g., DRAFT, SUBMITTED, APPROVED, CANCELLED) whose transitions are driven by business process steps",
+    "an entry in a business glossary, ubiquitous-language document or requirements spec that defines the term, with matching names in database tables, API schemas or JSON Schema titles"
+  ],
+  "x-dr-distinguish": {
+    "business.contract": "the information is specifically an agreement that sets out obligations, rights or terms between a provider and a consumer (e.g., SLA, policy terms, subscription agreement)",
+    "business.representation": "the element is the perceptible form or media format in which the information is shown or exchanged (a PDF invoice, an HTML order form), not the information concept itself",
+    "business.businessevent": "the thing being modelled is a state change or occurrence (an order was placed) rather than the information entity that the occurrence concerns (the order)",
+    "business.product": "the element is a bundle of services and contracts offered to customers as a value proposition, rather than a piece of information acted upon"
   }
 }

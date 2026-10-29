@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Collection",
-  "description": "A container for records, documents, or entries within a data store. Paradigm-neutral: maps to SQL table, document store collection, key-value bucket/hash, wide-column table/column family, vector collection, time-series measurement/hypertable, graph node label or edge type, and search engine index.",
+  "description": "A named, persistent container that directly stores base records, documents, key-value entries, nodes or edges inside a database or namespace, and whose contents are written to it rather than derived from other containers. It maps to a SQL base table, document collection, key-value bucket or structure, column family, vector collection, time-series measurement or hypertable, graph node label or edge type, and search-engine index. Use View instead when the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly. Use Namespace instead when the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records. Use Index instead when the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection. Use Field instead when the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -62,5 +62,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) §11.3 <table definition> (persistent base table), generalised by the paradigm extensions",
+  "x-dr-evidence": [
+    "A CREATE TABLE, CREATE COLUMNFAMILY or create_hypertable statement in a migration or DDL file, or a db.createCollection / client.indices.create call with mappings.",
+    "An ORM or ODM mapping that binds a class to a named store container, such as a JPA @Entity/@Table, SQLAlchemy __tablename__, Django Model Meta.db_table, Mongoose model('Order', schema) or Spring @Document(collection=...).",
+    "An infrastructure-as-code resource declaring a container with keys or TTL, such as a Terraform aws_dynamodb_table with hash_key/range_key, a Pinecone or Qdrant collection with a vector size, or a Neo4j label used in MERGE (:Label) setup scripts."
+  ],
+  "x-dr-distinguish": {
+    "data-store.view": "the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly.",
+    "data-store.namespace": "the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records.",
+    "data-store.index": "the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection.",
+    "data-store.field": "the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records."
   }
 }

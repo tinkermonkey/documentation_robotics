@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PolicyAction",
-  "description": "The enforcement action executed when a SecurityPolicy rule condition is met. Defines the system response to a policy match (allow, deny, remediation, notification), ensuring consistent policy enforcement across the security model per NIST SP 800-53 CA-9 (Internal System Connections) and SI-3 (Malicious Code Protection).",
+  "description": "A response step that the enforcement point carries out when a PolicyRule or Condition matches, such as blocking, redirecting, challenging, masking, quarantining, or notifying. It is parameterised by a type and its configuration, and corresponds to an obligation or advice attached to a policy decision rather than to the decision itself. Use PolicyRule instead when the element is the condition-plus-effect unit that yields the permit/deny decision, not the side-effect or response carried out after the decision. Use Countermeasure instead when the element is a standing control or mitigation assessed against a threat, with effectiveness and implementation status, rather than a per-match runtime response. Use AuditConfig instead when the element configures which events are logged and at what verbosity system-wide, rather than a single 'log' or 'alert' step fired by a rule match. Use FieldAccessControl instead when masking or redaction is declared statically for a named data field, independent of any policy rule firing.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -49,5 +49,17 @@
       "required": ["type", "parameters"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "XACML 3.0 §5.39–5.40 ObligationExpression/AdviceExpression (enforcement per NIST SP 800-53 AC-3)",
+  "x-dr-evidence": [
+    "A WAF or gateway rule config whose action field is set to a verb such as block, captcha, challenge, redirect, or count (e.g. AWS WAF Action, Cloudflare firewall action, Envoy RBAC action).",
+    "A policy-decision handler that switches on the decision or obligation ID and dispatches to a 403 response, a step-up MFA challenge, a redirect, or a notification sender.",
+    "An OPA/Rego or Cedar policy output that returns obligations or advice objects alongside allow/deny (e.g. {\"action\":\"notify\",\"recipient\":...}), consumed by enforcement middleware."
+  ],
+  "x-dr-distinguish": {
+    "security.policyrule": "the element is the condition-plus-effect unit that yields the permit/deny decision, not the side-effect or response carried out after the decision.",
+    "security.countermeasure": "the element is a standing control or mitigation assessed against a threat, with effectiveness and implementation status, rather than a per-match runtime response.",
+    "security.auditconfig": "the element configures which events are logged and at what verbosity system-wide, rather than a single 'log' or 'alert' step fired by a rule match.",
+    "security.fieldaccesscontrol": "masking or redaction is declared statically for a named data field, independent of any policy rule firing."
   }
 }

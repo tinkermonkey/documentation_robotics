@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Milestone",
-  "description": "A time-bound delivery target grouping features or capabilities",
+  "description": "A named, time-bound delivery target, such as a release, version or roadmap phase, against which features and capabilities are scheduled. It is defined by its target date or period and the scope assigned to it, not by any functionality of its own. Use Feature instead when the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in. Use Capability instead when the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,5 +33,15 @@
       "required": ["status"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §12.2.4 Plateau (closest analogue; partly §12.2.3 Implementation Event). The Strategy Layer has no direct equivalent.",
+  "x-dr-evidence": [
+    "An issue-tracker milestone or fixVersion (e.g. a GitHub milestone, Jira release) with a due date and a set of linked feature issues.",
+    "A ROADMAP.md or planning document section headed by a version or quarter (e.g. 'v2.0 — Q3 2025') that lists the features targeted for it.",
+    "Feature-flag or configuration entries annotated with a target release (e.g. 'enabled_in: 3.1', 'since: v2.0'), or an 'Unreleased' or upcoming-version section in CHANGELOG.md."
+  ],
+  "x-dr-distinguish": {
+    "product.feature": "the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in.",
+    "product.capability": "the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point."
   }
 }

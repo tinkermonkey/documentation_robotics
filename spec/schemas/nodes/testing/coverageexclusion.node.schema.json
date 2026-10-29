@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageExclusion",
-  "description": "A formally approved exclusion of a coverage target or requirement from the test coverage model, documenting the rationale, accepted risk, and accountable approver per test plan scope documentation in IEEE 829-2008.",
+  "description": "A recorded governance decision that removes a specific coverage target or coverage requirement from the coverage that must be achieved. It names the excluded item, gives the rationale, states whether the residual risk is accepted, and identifies the accountable approver. It exists only once someone has explicitly decided and signed off on not testing the item, not merely when the item is observed to be untested. Use CoverageGap instead when the missing coverage has been detected (e.g. in a summary report) but no one has yet approved leaving it untested; a gap may later flow into an exclusion. Use InputPartitionSelection instead when specific partition values are carved out of a single requirement's selection as a test-design choice (excludeValues), without a formal waiver, approver or risk acceptance. Use CoverageRequirement instead when the element states coverage criteria that must be satisfied rather than a sanctioned decision not to satisfy them. Use TestCaseSketch instead when an individual designed test case is being retired (status deprecated) rather than an entire target or requirement being waived from coverage.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,16 +21,20 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of what is excluded and the scope of the exclusion; set it when the reason alone does not make the boundary of the excluded item clear."
         },
         "reason": {
-          "type": "string"
+          "type": "string",
+          "description": "Plain-language justification for excluding the item from coverage (e.g. 'third-party code', 'deprecated endpoint scheduled for removal', 'not testable in CI environment'); always required."
         },
         "riskAccepted": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "True when the approver has explicitly accepted the residual risk of the item going untested. False when the exclusion rests on the item having no meaningful risk (e.g. dead or generated code)."
         },
         "approvedBy": {
-          "type": "string"
+          "type": "string",
+          "description": "Name, role or identity reference of the person or body accountable for authorising the exclusion (e.g. 'QA Lead', 'jane.doe', 'Change Advisory Board'); always required."
         },
         "affectedTargetRef": {
           "type": "string",
@@ -45,5 +49,17 @@
       "required": ["reason", "riskAccepted", "approvedBy"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 9 Level Test Plan: features not to be tested (with risk justification under risks and contingencies)",
+  "x-dr-evidence": [
+    "A coverage-tool ignore entry with a justification comment that cites an approval or ticket, such as a `# pragma: no cover` or `/* istanbul ignore next */` line, `omit` in .coveragerc, or `coveragePathIgnorePatterns` in jest.config.",
+    "A test-waiver or exclusions file (YAML, JSON or Markdown) listing excluded endpoints, workflows or requirements with fields such as reason, approver and date.",
+    "A skipped or disabled test annotation that carries a reason and a waiver reference, such as `@pytest.mark.skip(reason=\"waived per QA-123, approved by J. Doe\")` or `@Disabled(\"Excluded: risk accepted, see ADR-12\")`."
+  ],
+  "x-dr-distinguish": {
+    "testing.coveragegap": "the missing coverage has been detected (e.g. in a summary report) but no one has yet approved leaving it untested; a gap may later flow into an exclusion.",
+    "testing.inputpartitionselection": "specific partition values are carved out of a single requirement's selection as a test-design choice (excludeValues), without a formal waiver, approver or risk acceptance.",
+    "testing.coveragerequirement": "the element states coverage criteria that must be satisfied rather than a sanctioned decision not to satisfy them.",
+    "testing.testcasesketch": "an individual designed test case is being retired (status deprecated) rather than an entire target or requirement being waived from coverage."
   }
 }

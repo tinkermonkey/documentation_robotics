@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Meaning",
-  "description": "Knowledge or expertise present in, or the interpretation given to, a concept in a particular context, as understood by stakeholders.",
+  "description": "A motivation element recording the interpretation or knowledge that stakeholders attach to a specific concept (a term, data item, artifact, or other architecture element) within a stated context, expressed as an explanatory statement of what the concept signifies rather than as an intent, need, condition, or worth. Use Value instead when the statement expresses how much a concept is worth or how useful it is to a stakeholder (financial, strategic, reputational benefit), not what it signifies. Use Principle instead when the statement is normative, prescribing how systems or decisions should behave, rather than explaining what a concept means. Use Requirement instead when the statement declares a need that a system must realize, including a requirement that a term be interpreted a certain way. Use Assessment instead when the statement is a finding from analysing the current state of affairs (strength, weakness, risk, gap), not the interpretation of a concept.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,23 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text statement of the interpretation itself: which concept it applies to, the context or stakeholder group in which the interpretation holds, and the meaning given; set it on every instance, since it is the substance of the element."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.4.1 Meaning",
+  "x-dr-evidence": [
+    "a glossary or ubiquitous-language document (e.g. GLOSSARY.md, docs/domain-terms.md) defining business terms as used in a specific bounded context",
+    "a docstring or comment on a domain class, enum value, or field explaining the business interpretation of the concept, e.g. 'An \"active\" customer means one with a purchase in the last 90 days'",
+    "a data dictionary or schema description entry (e.g. dbt schema.yml column description, JSON Schema 'description', OpenAPI field description) stating what a field signifies for its consumers"
+  ],
+  "x-dr-distinguish": {
+    "motivation.value": "the statement expresses how much a concept is worth or how useful it is to a stakeholder (financial, strategic, reputational benefit), not what it signifies",
+    "motivation.principle": "the statement is normative, prescribing how systems or decisions should behave, rather than explaining what a concept means",
+    "motivation.requirement": "the statement declares a need that a system must realize, including a requirement that a term be interpreted a certain way",
+    "motivation.assessment": "the statement is a finding from analysing the current state of affairs (strength, weakness, risk, gap), not the interpretation of a concept"
   }
 }

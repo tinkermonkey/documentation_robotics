@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "EventHandler",
-  "description": "A reactive mechanism that executes in response to data change events. Paradigm-neutral: covers SQL triggers, MongoDB change streams, DynamoDB Streams, Cassandra CDC, Redis keyspace notifications, Elasticsearch watchers, Neo4j APOC triggers, and time-series alerting rules.",
+  "description": "A registered binding, declared in or against a data store, that attaches to a collection or database scope and runs an action automatically when specified data-change events or data conditions occur there (SQL trigger, change-stream or CDC subscription, keyspace notification, watcher or alert rule). It is the activation wiring (event, timing, granularity, filter), not the computation body it invokes. Use StoredLogic instead when the symbol is the function, procedure, Lua script or pipeline body that does the work (e.g. the trigger function created by CREATE FUNCTION ... RETURNS trigger), not the declaration that binds it to events. Use ValidationRule instead when integrity is enforced declaratively by the engine (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator) rather than by a BEFORE trigger that runs code to reject or rewrite rows. Use RetentionPolicy instead when the mechanism is a TTL, ILM or downsampling policy that expires or moves data by age, rather than reacting to individual insert, update, delete or expiry events with custom logic. Use View instead when derived data is kept current by a materialized view or continuous aggregate refresh policy rather than by a handler that writes to another collection on each change.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -79,11 +79,24 @@
           "description": "Optional filter condition. Only events matching this condition activate the handler. Maps to SQL WHEN clause, MongoDB pipeline $match stage, or Elasticsearch watcher condition."
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the handler is currently active and will fire; set false when it is declared but disabled (e.g. ALTER TABLE ... DISABLE TRIGGER, a paused connector or deactivated watcher), otherwise true, which is the default."
         }
       },
       "required": ["handlerType", "events"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) <trigger definition> (CREATE TRIGGER), extended to change streams, CDC and keyspace notifications",
+  "x-dr-evidence": [
+    "A migration or DDL file containing CREATE TRIGGER ... BEFORE|AFTER INSERT OR UPDATE ON <table> FOR EACH ROW EXECUTE FUNCTION <fn>()",
+    "Code or config opening a change feed on a store, e.g. MongoDB collection.watch([{ $match: ... }]), a DynamoDB StreamSpecification with a Lambda event source mapping, or a Debezium connector config listing table.include.list",
+    "Redis setup issuing CONFIG SET notify-keyspace-events (or notify-keyspace-events in redis.conf) together with a PSUBSCRIBE on __keyspace@*__ or __keyevent@*__ channels"
+  ],
+  "x-dr-distinguish": {
+    "data-store.storedlogic": "the symbol is the function, procedure, Lua script or pipeline body that does the work (e.g. the trigger function created by CREATE FUNCTION ... RETURNS trigger), not the declaration that binds it to events.",
+    "data-store.validationrule": "integrity is enforced declaratively by the engine (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator) rather than by a BEFORE trigger that runs code to reject or rewrite rows.",
+    "data-store.retentionpolicy": "the mechanism is a TTL, ILM or downsampling policy that expires or moves data by age, rather than reacting to individual insert, update, delete or expiry events with custom logic.",
+    "data-store.view": "derived data is kept current by a materialized view or continuous aggregate refresh policy rather than by a handler that writes to another collection on each change."
   }
 }

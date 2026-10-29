@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Alert",
-  "description": "A named alerting rule that evaluates a condition against observed signals (metrics, traces, logs) on a schedule and fires a notification when the condition is met. Represents the alert definition in the monitoring backend (e.g., Prometheus alertmanager, Grafana alerting, Datadog monitors), not an individual alert event.",
+  "description": "A declarative rule configured in a monitoring backend that evaluates a threshold or query expression over telemetry (metrics, spans, logs) at a recurring interval and sends a notification to one or more destinations when the expression holds. It is the persisted rule definition, not a single firing or incident instance. Use Dashboard instead when the artifact only visualizes signals in panels and has no triggering condition or notification routing of its own. Use MetricInstrument instead when the symbol defines the measured quantity itself (a Counter, Histogram or Gauge created via a Meter) rather than a rule that evaluates that quantity. Use LogRecord instead when the thing is a single emitted event or log entry, including a record of an alert having fired, rather than the standing rule that decides when to fire. Use LogConfiguration instead when the severity threshold only filters which log records the SDK emits, rather than triggering a notification when a condition over signals is met.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -35,7 +35,9 @@
         },
         "notificationChannels": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Identifiers of notification destinations (e.g., Slack channel names, PagerDuty service keys, email addresses) that receive alerts when the condition fires."
         },
         "description": {
@@ -46,5 +48,16 @@
       "required": ["severity", "condition"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A Prometheus rules YAML file with a groups[].rules[] entry that has an 'alert:' name, an 'expr:' PromQL condition, an optional 'for:' duration and a 'labels.severity' value",
+    "An infrastructure-as-code resource such as Terraform 'datadog_monitor', 'grafana_rule_group', 'newrelic_alert_condition' or 'aws_cloudwatch_metric_alarm' (or CloudFormation AWS::CloudWatch::Alarm) that declares a query or threshold and notification targets",
+    "An Alertmanager or Grafana contact-point/route configuration, or a monitor JSON export, that binds a named rule to Slack, PagerDuty or email receivers"
+  ],
+  "x-dr-distinguish": {
+    "apm.dashboard": "the artifact only visualizes signals in panels and has no triggering condition or notification routing of its own",
+    "apm.metricinstrument": "the symbol defines the measured quantity itself (a Counter, Histogram or Gauge created via a Meter) rather than a rule that evaluates that quantity",
+    "apm.logrecord": "the thing is a single emitted event or log entry, including a record of an alert having fired, rather than the standing rule that decides when to fire",
+    "apm.logconfiguration": "the severity threshold only filters which log records the SDK emits, rather than triggering a notification when a condition over signals is met"
   }
 }

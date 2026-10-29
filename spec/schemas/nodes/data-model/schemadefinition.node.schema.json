@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SchemaDefinition",
-  "description": "A reusable JSON Schema definition declared under the 'definitions' keyword and referenced via '$ref: #/definitions/{name}'. Enables DRY schema design and consistent type definitions across entities.",
+  "description": "A named, reusable subschema declared under a JSON Schema document's 'definitions' keyword and addressable as '$ref: #/definitions/{name}'. It describes one domain data type, such as an entity, value object, DTO or enumeration, that other schemas or properties reuse by name rather than declaring inline. Use ObjectSchema instead when you are modelling the structural constraints of an object (its properties, required list, additionalProperties) rather than the named, reusable type entry that carries them. Use SchemaProperty instead when the schema is a single field declared inline within a parent schema's properties and is not reused by name elsewhere. Use JSONSchema instead when the element is the root schema document with its own $schema and $id, not an entry within its definitions. Use Reference instead when the element is only the $ref pointer that points at a definition, not the definition itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name of the definition, normally matching its key under 'definitions' or the source class or type name (e.g. 'CustomerAddress'). Always set it, because it is the label other elements use to identify the reusable type."
         },
         "type": {
           "type": "string",
@@ -46,17 +47,33 @@
         },
         "enum": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Restricts the value of this definition to a fixed set of allowed values"
         },
         "examples": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Sample values illustrating valid instances of this definition (JSON Schema Draft 7 annotation keyword)"
         }
       },
       "required": ["title", "type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "JSON Schema Draft 7 (draft-handrews-json-schema-validation-01) §9 Schema Re-Use With \"definitions\"",
+  "x-dr-evidence": [
+    "an entry under \"definitions\" (or \"$defs\", or OpenAPI \"components.schemas\") in a .schema.json or spec file that is targeted by one or more \"$ref\": \"#/definitions/...\" pointers",
+    "an exported entity, DTO or record class, a TypeScript interface or type alias, or a Pydantic/zod model that other types import and use as a field type",
+    "an exported enum type (e.g. a Java enum, TypeScript enum or Python Enum subclass) whose values represent a fixed domain vocabulary used by several models"
+  ],
+  "x-dr-distinguish": {
+    "data-model.objectschema": "you are modelling the structural constraints of an object (its properties, required list, additionalProperties) rather than the named, reusable type entry that carries them",
+    "data-model.schemaproperty": "the schema is a single field declared inline within a parent schema's properties and is not reused by name elsewhere",
+    "data-model.jsonschema": "the element is the root schema document with its own $schema and $id, not an entry within its definitions",
+    "data-model.reference": "the element is only the $ref pointer that points at a definition, not the definition itself"
   }
 }

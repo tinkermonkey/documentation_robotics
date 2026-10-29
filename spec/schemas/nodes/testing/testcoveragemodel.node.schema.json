@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TestCoverageModel",
-  "description": "The root artifact of a testing layer coverage specification, aggregating all TestCoverageTargets, InputSpacePartitions, ContextVariations, CoverageRequirements, and TestCaseSketches for an application. Corresponds to the test plan document structure in IEEE 829-2008, providing a single point of reference for coverage governance.",
+  "description": "A versioned, application-scoped coverage specification that acts as the root container for the coverage targets, input partitions, context variations, coverage requirements, exclusions and test case sketches of exactly one application or API. It corresponds to a test plan as a whole, not to any individual target, test, suite or results report. Use TestCoverageTarget instead when the element identifies one endpoint, workflow, UI component, job or integration flow that needs coverage, rather than the whole application's coverage specification. Use CoverageSummary instead when the element reports aggregated counts or status across a model's targets, requirements and sketches, rather than defining the coverage scope itself. Use CoverageRequirement instead when the element states the criteria (partitions, contexts, outcomes, coverage strategy) that a single target must satisfy, rather than containing all targets and requirements.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,14 +21,16 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version identifier of this coverage model, as a semantic version or date stamp (e.g. '1.2.0' or '2024-05-01'); increment it whenever targets, requirements or exclusions are added, removed or changed."
         },
         "application": {
           "type": "string",
           "description": "Cross-layer reference ID to the application or API element (application layer or api layer) being covered by this model"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the model's scope, the application release or test level it addresses, and any overall test approach; set it whenever the scope is not obvious from the application reference."
         },
         "source": {
           "type": "object",
@@ -38,5 +40,16 @@
       "required": ["version", "application"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 8 Master Test Plan / Clause 9 Level Test Plan",
+  "x-dr-evidence": [
+    "A top-level test plan or coverage manifest file (e.g. test-plan.yaml, coverage-model.json) carrying a version and an application or service identifier, and listing the endpoints or features to be tested.",
+    "A TEST_PLAN.md or docs/testing/plan document for one service that has 'Features to be tested', 'Approach' and 'Pass/fail criteria' sections.",
+    "A test-generation configuration that imports one OpenAPI document or application spec (e.g. a schemathesis, dredd or contract-test config pointing at openapi.yaml) and produces the set of coverage targets for that application."
+  ],
+  "x-dr-distinguish": {
+    "testing.testcoveragetarget": "the element identifies one endpoint, workflow, UI component, job or integration flow that needs coverage, rather than the whole application's coverage specification.",
+    "testing.coveragesummary": "the element reports aggregated counts or status across a model's targets, requirements and sketches, rather than defining the coverage scope itself.",
+    "testing.coveragerequirement": "the element states the criteria (partitions, contexts, outcomes, coverage strategy) that a single target must satisfy, rather than containing all targets and requirements."
   }
 }

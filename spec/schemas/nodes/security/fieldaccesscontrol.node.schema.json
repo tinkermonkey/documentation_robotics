@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FieldAccessControl",
-  "description": "Defines access restrictions and transformation rules for a specific data field, controlling how sensitive values are masked or redacted when exposed to unauthorized principals. Used within SecureResource fieldAccess to enforce field-level data protection per NIST SP 800-53 AC-3 and SC-28.",
+  "description": "A field-level protection rule bound to one named field (property, column or attribute) of a SecureResource. It states how that field's value is masked, redacted, hashed, tokenized or truncated when the field is exposed to a principal that lacks the permission to see it in clear. Use ValidationRule instead when the constraint governs which values a field may accept or contain (pattern, range, length), not how its value is hidden from unauthorized readers. Use SecureResource instead when the control applies to the whole resource, endpoint or table and its operations, not to an individual field within it. Use DataClassification instead when the element assigns a sensitivity tier or encryption obligation to data, rather than naming the masking technique for one specific field. Use PolicyAction instead when masking is the generic enforcement response fired by a PolicyRule match, not a standing rule attached to a named field.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "field": {
-          "type": "string"
+          "type": "string",
+          "description": "Name or dotted path of the protected field within the parent SecureResource (e.g. 'customer.ssn' or 'card_number'); always set it, matching the field name as it appears in the resource's schema or payload."
         },
         "maskingStrategy": {
           "type": "string",
@@ -29,11 +30,24 @@
           "description": "Technique used to protect sensitive field values when exposed to unauthorized principals, per NIST SP 800-53 SC-28 data-at-rest protection controls."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of why the field is protected and who may see it unmasked; set it when the masking rationale or exemption is not obvious from the field name and strategy."
         }
       },
       "required": ["field"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-3 Access Enforcement (field-level), with SC-28 Protection of Information at Rest",
+  "x-dr-evidence": [
+    "A DTO or serializer field carrying a masking or redaction annotation or type, e.g. @Sensitive, @JsonSerialize(using = MaskingSerializer.class), Pydantic SecretStr, or a custom redact() field transformer.",
+    "Response-shaping code that replaces or drops a specific field after a permission check, e.g. `if not user.has_perm('view_ssn'): data['ssn'] = mask(data['ssn'])`.",
+    "Declarative column- or field-level masking configuration: a GraphQL @auth or @mask directive on a field, Hasura column permissions, SQL Server `MASKED WITH (FUNCTION = ...)`, or a Snowflake/Postgres masking policy on a column."
+  ],
+  "x-dr-distinguish": {
+    "security.validationrule": "the constraint governs which values a field may accept or contain (pattern, range, length), not how its value is hidden from unauthorized readers.",
+    "security.secureresource": "the control applies to the whole resource, endpoint or table and its operations, not to an individual field within it.",
+    "security.dataclassification": "the element assigns a sensitivity tier or encryption obligation to data, rather than naming the masking technique for one specific field.",
+    "security.policyaction": "masking is the generic enforcement response fired by a PolicyRule match, not a standing rule attached to a named field."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessService",
-  "description": "An externally visible behavior element that fulfills a business need for a customer or stakeholder. Defined from the consumer perspective; the internal realization (via BusinessProcess or BusinessFunction) is encapsulated and not exposed.",
+  "description": "A behavior element that names an explicitly defined, externally visible unit of business behavior offered to customers or other stakeholders, such as 'Claims Handling' or 'Order Delivery'. It is described by the value and outcome the consumer receives, independent of the processes, functions, or software that realize it. Use BusinessProcess instead when the element describes the internal ordered steps, triggers, and hand-offs that produce a result, rather than the offering as the consumer sees it. Use BusinessFunction instead when the element is an internal grouping of behavior by competency or organizational capability, such as Finance or HR, that is not offered to a consumer as a named service. Use BusinessInterface instead when the element is the access point or channel through which the service is obtained, such as a call center, web portal, or branch counter, rather than the behavior itself. Use Product instead when the element is a marketed bundle of one or more services together with contracts or terms, sold or offered as a single package.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the service from the consumer's perspective: the need it fulfills, its intended consumers, and any service levels. Set it whenever the name alone does not make the offered outcome clear."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.3.5 Business Service",
+  "x-dr-evidence": [
+    "A service catalog, SLA, or operating-level document entry that names a customer-facing offering (e.g. 'Claims Handling') with its consumers, availability hours, and service levels.",
+    "An OpenAPI tag, bounded-context module, or top-level domain package whose description states a business outcome for external consumers and groups several operations that support it.",
+    "A pricing page, terms-of-service text, or plan/entitlement configuration listing named services a customer is entitled to receive (e.g. 'Premium Support', 'Same-day Shipping')."
+  ],
+  "x-dr-distinguish": {
+    "business.businessprocess": "the element describes the internal ordered steps, triggers, and hand-offs that produce a result, rather than the offering as the consumer sees it.",
+    "business.businessfunction": "the element is an internal grouping of behavior by competency or organizational capability, such as Finance or HR, that is not offered to a consumer as a named service.",
+    "business.businessinterface": "the element is the access point or channel through which the service is obtained, such as a call center, web portal, or branch counter, rather than the behavior itself.",
+    "business.product": "the element is a marketed bundle of one or more services together with contracts or terms, sold or offered as a single package."
   }
 }

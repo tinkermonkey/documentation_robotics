@@ -46,7 +46,7 @@
     "accesscondition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AccessCondition",
-      "description": "Defines a single boolean predicate evaluated against a request context attribute (field), comparing the runtime value using a specified operator. Composed inside a PolicyRule condition chain to form compound access control expressions.",
+      "description": "A single comparison predicate that tests one named request-context attribute (subject claim, resource property, environment value) against a literal or referenced value using one operator, and yields a denial message when false. It carries no effect of its own; it is evaluated as one term within a PolicyRule, ResourceOperation or InformationRight authorization check. Use Condition instead when the logic is a reusable, free-form or compound expression (time windows, combined attribute logic) rather than one field-operator-value test. Use PolicyRule instead when the unit carries a permit/deny effect or obligations, not just a boolean test. Use ValidationRule instead when the check enforces format, range or integrity of field data rather than deciding whether a principal may access something. Use InformationRight instead when the element grants named operations on an information entity to a specific actor, even if it embeds a constraint.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -66,7 +66,8 @@
           "type": "object",
           "properties": {
             "field": {
-              "type": "string"
+              "type": "string",
+              "description": "Dot-path name of the request-context attribute being tested (e.g. 'subject.role', 'resource.ownerId', 'env.ipAddress'), as it is resolved at evaluation time."
             },
             "operator": {
               "type": "string",
@@ -83,25 +84,40 @@
               "description": "Comparison operator applied to the field value, per XACML 3.0 match function semantics."
             },
             "value": {
-              "type": "string"
+              "type": "string",
+              "description": "Comparison operand as a string: a literal, a comma-separated list for 'in', a regex for 'matches', or a context reference such as '${subject.id}'. Leave empty only for operator 'exists'."
             },
             "message": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable denial reason returned or logged when the predicate evaluates to false, e.g. 'Caller must belong to the resource tenant'."
             },
             "source": {
-              "type": "string"
+              "type": "string",
+              "description": "Where the field value is read from in the request context, such as 'token', 'header', 'path', 'query', 'body', 'session' or 'environment'. Set it so evaluators know which input to resolve."
             }
           },
           "required": ["field", "operator", "value", "message", "source"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-3 (Access Enforcement); XACML 3.0 Match element / NIST SP 800-162 ABAC attribute predicate",
+      "x-dr-evidence": [
+        "A guard clause in a handler or middleware that compares one request attribute to a value and throws or returns 403 with a message, e.g. if (req.user.tenantId !== resource.tenantId) throw new ForbiddenError('Tenant mismatch')",
+        "A declarative policy or config entry holding a field/operator/value triple, e.g. { attribute: 'token.scope', op: 'contains', value: 'orders:write' } in a Casbin, OPA input or custom rules file",
+        "A route or method annotation that asserts a single claim or attribute, e.g. @PreAuthorize(\"hasAuthority('SCOPE_read')\") or requireClaim('email_verified', true)"
+      ],
+      "x-dr-distinguish": {
+        "security.condition": "the logic is a reusable, free-form or compound expression (time windows, combined attribute logic) rather than one field-operator-value test",
+        "security.policyrule": "the unit carries a permit/deny effect or obligations, not just a boolean test",
+        "security.validationrule": "the check enforces format, range or integrity of field data rather than deciding whether a principal may access something",
+        "security.informationright": "the element grants named operations on an information entity to a specific actor, even if it embeds a constraint"
+      },
       "$id": "urn:dr:spec:node:security.accesscondition"
     },
     "accountabilityrequirement": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AccountabilityRequirement",
-      "description": "Expresses who is obligated to provide evidence that a specific action occurred and under what conditions that evidence can be challenged. Distinct from AuditConfig, which defines what events are captured — this node defines the obligation to prove an action took place. Implements NIST SP 800-53 AU-10 non-repudiation.",
+      "description": "A security obligation stating that the performance of one named action on one named resource must be provably attributable to the actor who performed it. It records whether non-repudiation is mandatory, the purpose that justifies the obligation, and whether the resulting proof may be disputed. Use AuditConfig instead when the element specifies which events are logged, at what verbosity, and with which fields sanitized, rather than the obligation to prove that a particular action happened. Use Evidence instead when the element is the concrete proof artifact itself (a signature, hash, timestamp or audit-trail entry), not the requirement that such proof exist. Use NeedToKnow instead when the declared purpose is a precondition an actor must state before being granted access, rather than a justification attached to proving an action after it occurs. Use RetentionPolicy instead when the concern is how long the proof or logs are kept and how they are disposed of.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -121,19 +137,24 @@
           "type": "object",
           "properties": {
             "action": {
-              "type": "string"
+              "type": "string",
+              "description": "The operation whose occurrence must be provable, named as a verb or operation identifier (e.g. 'approve-payment', 'delete'), ideally matching a ResourceOperation's operation value."
             },
             "resource": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the secured resource or information entity on which the action is performed, matching a SecureResource resource name or InformationEntity name."
             },
             "nonRepudiation": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when the actor must be unable to deny having performed the action, requiring strong or cryptographic evidence such as a digital signature. False when attributable logging alone suffices."
             },
             "purposeDeclaration": {
-              "type": "string"
+              "type": "string",
+              "description": "A free-text statement of the business, legal or regulatory reason the action must be provable (e.g. 'SOX approval trail', 'GDPR consent record'). Set it from the governing requirement."
             },
             "challengeable": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when the acting party or a third party may formally dispute the recorded proof through a defined process. False when the evidence is treated as final once recorded."
             }
           },
           "required": [
@@ -146,12 +167,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AU-10 Non-repudiation",
+      "x-dr-evidence": [
+        "A sensitive operation, such as payment approval, contract acceptance or record deletion, that signs a payload with the acting user's key or a server HSM and persists the signer ID, signature and timestamp alongside the record.",
+        "An append-only or write-once audit table, ledger, or hash-chained log that the code requires for a specific action-resource pair, often with a mandatory 'reason' or 'justification' field captured from the user.",
+        "Compliance or control-mapping documentation (SSP, control matrix, ADR) that cites AU-10 or 'non-repudiation' for a named action, or a dispute/chargeback workflow that retrieves the stored proof of that action."
+      ],
+      "x-dr-distinguish": {
+        "security.auditconfig": "the element specifies which events are logged, at what verbosity, and with which fields sanitized, rather than the obligation to prove that a particular action happened.",
+        "security.evidence": "the element is the concrete proof artifact itself (a signature, hash, timestamp or audit-trail entry), not the requirement that such proof exist.",
+        "security.needtoknow": "the declared purpose is a precondition an actor must state before being granted access, rather than a justification attached to proving an action after it occurs.",
+        "security.retentionpolicy": "the concern is how long the proof or logs are kept and how they are disposed of."
+      },
       "$id": "urn:dr:spec:node:security.accountabilityrequirement"
     },
     "actor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Actor",
-      "description": "A named principal — human user, service account, automated system, or external entity — whose identity and trust level govern what operations it may perform. Associates with Roles for permission grouping and with SeparationOfDuty and Delegation controls, per NIST SP 800-53 AC-2 (Account Management) and SP 800-207 (Zero Trust Architecture).",
+      "description": "A named principal (a human user population, service account, automated system, or external party) that is the subject of authentication and authorization decisions, typed by category and optionally assigned a trust level. It represents who acts, as distinct from the permission bundle it holds or the authority it receives temporarily. Use Role instead when the element is a named bundle of permissions that many principals can be assigned, such as 'admin' or 'editor', rather than the principal itself. Use Delegation instead when the element records a transfer of authority from one principal to another, with a scope or expiry, rather than the principal that delegates or receives it. Use AuthenticationConfig instead when the element describes how principals prove identity, such as the provider, MFA or session timeout, rather than who is being identified. Use Threat instead when the element models an adversary or attack scenario with a likelihood and impact, rather than a legitimate principal that the system recognises and authorizes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -176,7 +209,8 @@
               "description": "Category of actor, per NIST AC-2 (Account Management) subject classification."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of who or what this actor represents, for example 'nightly billing batch job' or 'external payment partner'. Set it whenever the actor's name alone does not make its identity source or purpose clear."
             },
             "trustLevel": {
               "type": "string",
@@ -196,12 +230,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-2 (Account Management); NIST SP 800-207 subject/principal",
+      "x-dr-evidence": [
+        "A principal or user-context class (e.g. UserPrincipal, ServiceIdentity) populated from a verified token and passed to authorization checks.",
+        "Declared service accounts or machine identities in configuration, such as a Kubernetes ServiceAccount, cloud IAM users or roles for workloads, or OAuth client_credentials client registrations.",
+        "Branching in authorization code on the principal's kind or trust level, such as `if principal.type == 'service'` or checks on an `is_internal` or `partner` flag."
+      ],
+      "x-dr-distinguish": {
+        "security.role": "the element is a named bundle of permissions that many principals can be assigned, such as 'admin' or 'editor', rather than the principal itself.",
+        "security.delegation": "the element records a transfer of authority from one principal to another, with a scope or expiry, rather than the principal that delegates or receives it.",
+        "security.authenticationconfig": "the element describes how principals prove identity, such as the provider, MFA or session timeout, rather than who is being identified.",
+        "security.threat": "the element models an adversary or attack scenario with a likelihood and impact, rather than a legitimate principal that the system recognises and authorizes."
+      },
       "$id": "urn:dr:spec:node:security.actor"
     },
     "auditconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AuditConfig",
-      "description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
+      "description": "A logging configuration that determines which security-relevant events on protected resources or operations are written to an audit trail, at what verbosity, and which request elements (payload, headers) are captured or sanitized before recording. It covers audit record generation and content only. How long records are kept and how they are disposed of belong to RetentionPolicy. Use RetentionPolicy instead when the code or config specifies how long audit or access records are kept, where they are archived, or how they are securely deleted, rather than what is captured. Use AccountabilityRequirement instead when the artifact states an obligation that a party must be able to prove an action occurred (non-repudiation, challengeability), independent of the logging mechanism. Use Evidence instead when the symbol is a produced artifact, such as a log entry, signature, hash or timestamp, rather than the configuration that causes such artifacts to be generated. Use PolicyAction instead when logging is a one-off enforcement response (type 'log' or 'alert') fired by a specific policy rule match, rather than a standing capture configuration for a resource or operation.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -221,7 +267,8 @@
           "type": "object",
           "properties": {
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether audit capture is active for the governed resources or operations; set false to model a defined but switched-off audit configuration (defaults to true when omitted)."
             },
             "level": {
               "type": "string",
@@ -229,13 +276,16 @@
               "description": "Verbosity of audit event capture, from no logging to full payload-level tracing, per NIST SP 800-53 AU-2 Event Logging."
             },
             "includePayload": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether request and response bodies are recorded in audit entries; set true only when forensic needs justify capturing body content, after applying sanitizeFields."
             },
             "includeHeaders": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether HTTP or message headers are recorded in audit entries; set true when headers such as client IP, user agent or correlation IDs are needed, with credentials redacted via sanitizeFields."
             },
             "sanitizeFields": {
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated list of field names or JSON paths (e.g. 'password,authorization,card.number') whose values are redacted or masked before an audit entry is written; use an empty string when nothing is sanitized."
             },
             "source": {
               "type": "object",
@@ -246,12 +296,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AU-2 Event Logging, AU-3 Content of Audit Records, AU-12 Audit Record Generation",
+      "x-dr-evidence": [
+        "Audit middleware, interceptor or filter registered on a router or service, configured with options such as level, includeBody/includeHeaders and a redact or mask field list.",
+        "Decorators or annotations such as @Audited, @Auditable or auditlog.register(Model) attached to handlers or entities, optionally with parameters controlling captured detail.",
+        "A configuration block named audit/auditLog (YAML, JSON, env vars) with keys like enabled, level, logRequestBody and sensitiveFields, distinct from general application logging settings."
+      ],
+      "x-dr-distinguish": {
+        "security.retentionpolicy": "the code or config specifies how long audit or access records are kept, where they are archived, or how they are securely deleted, rather than what is captured.",
+        "security.accountabilityrequirement": "the artifact states an obligation that a party must be able to prove an action occurred (non-repudiation, challengeability), independent of the logging mechanism.",
+        "security.evidence": "the symbol is a produced artifact, such as a log entry, signature, hash or timestamp, rather than the configuration that causes such artifacts to be generated.",
+        "security.policyaction": "logging is a one-off enforcement response (type 'log' or 'alert') fired by a specific policy rule match, rather than a standing capture configuration for a resource or operation."
+      },
       "$id": "urn:dr:spec:node:security.auditconfig"
     },
     "authenticationconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AuthenticationConfig",
-      "description": "Specifies how principals are verified before accessing protected resources, including the identity provider, multi-factor requirements, session lifetime, and credential policy references. Scoped per application or service. Maps to NIST SP 800-53 IA-2, IA-5, and IA-11.",
+      "description": "A configuration element that fixes, for one application or service, the mechanism by which principals prove their identity: the authentication protocol or identity provider, whether a second factor is required, how long an authenticated session remains valid, and which credential policy applies. It describes identity verification only, not what an authenticated principal may do afterwards. Use PasswordPolicy instead when the element only specifies credential complexity, rotation, reuse or lockout rules rather than the provider, MFA and session settings of the login mechanism. Use Actor instead when the element is the principal being authenticated (user, service account, external system) rather than the mechanism that verifies it. Use SecurityPolicy instead when the element is a prioritized set of rules deciding access to targeted resources after identity is established, rather than how identity is established. Use Permission instead when the code checks whether an already-identified principal may perform an action on a resource (authorization) rather than verifying who the principal is.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -288,13 +350,16 @@
               "description": "Identity Assurance Level, per NIST SP 800-63A: IAL1 (self-asserted), IAL2 (remote identity proofing), IAL3 (in-person proofing)."
             },
             "sessionTimeout": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Maximum lifetime of an authenticated session in seconds before the principal must re-authenticate (IA-11). Set it from the configured session max-age or access-token expiry."
             },
             "mfaRequired": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when principals must present a second authentication factor (TOTP, WebAuthn, SMS, push) in addition to the primary credential (IA-2(1)/(2)). Set it false or omit it when MFA is optional or absent."
             },
             "passwordPolicy": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the security.passwordpolicy node governing credentials for this configuration. Set it only when the provider uses locally managed passwords, typically provider 'local' or 'ldap'."
             },
             "source": {
               "type": "object",
@@ -305,12 +370,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 IA-2 (Identification and Authentication), IA-5 (Authenticator Management), IA-11 (Re-authentication)",
+      "x-dr-evidence": [
+        "Authentication middleware or framework setup, e.g. passport.use(new OIDCStrategy(...)), Spring Security oauth2Login()/saml2Login(), or NextAuth providers array, with issuer, client ID and callback URLs.",
+        "Configuration files or environment variables declaring identity-provider settings such as OIDC_ISSUER_URL, SAML metadata URL, LDAP bind DN, or JWT issuer/audience and signing keys.",
+        "Session or token lifetime settings alongside MFA enforcement, e.g. SESSION_MAX_AGE, JWT expiresIn, refresh-token TTL, or an 'mfa: required' / TOTP or WebAuthn enrollment flag in auth config."
+      ],
+      "x-dr-distinguish": {
+        "security.passwordpolicy": "the element only specifies credential complexity, rotation, reuse or lockout rules rather than the provider, MFA and session settings of the login mechanism.",
+        "security.actor": "the element is the principal being authenticated (user, service account, external system) rather than the mechanism that verifies it.",
+        "security.securitypolicy": "the element is a prioritized set of rules deciding access to targeted resources after identity is established, rather than how identity is established.",
+        "security.permission": "the code checks whether an already-identified principal may perform an action on a resource (authorization) rather than verifying who the principal is."
+      },
       "$id": "urn:dr:spec:node:security.authenticationconfig"
     },
     "bindingofduty": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BindingOfDuty",
-      "description": "Obligation control requiring that a single actor who initiates a task must also complete it, preventing task hijacking or inconsistent workflow state that could be exploited by a different actor. Complements SeparationOfDuty by enforcing task continuity rather than task segregation. Anchored to NIST SP 800-53 CM-5 (Access Restrictions for Change) and workflow integrity controls.",
+      "description": "A procedural access constraint requiring that the actor who performs one step of a multi-step task or workflow also performs its designated follow-on steps, so that any attempt by a different actor to continue or complete that task instance is rejected. Use SeparationOfDuty instead when the rule requires that two steps be performed by different actors or roles, rather than by the same actor. Use AccessCondition instead when the check is a standalone predicate on a single request (e.g. resource.ownerId eq currentUser) with no link to a task instance the actor started. Use NeedToKnow instead when access is restricted according to the actor's declared purpose rather than its participation in an earlier workflow step. Use PolicyRule instead when the logic is a general condition-plus-effect rule in a policy rather than a task-continuity obligation tied to workflow steps.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -330,10 +407,12 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of which task steps are bound together and why the same actor must perform them; set it whenever the bound steps are not obvious from the element name."
             },
             "message": {
-              "type": "string"
+              "type": "string",
+              "description": "The human-readable error or log message emitted when a different actor attempts to continue or complete the bound task, taken verbatim from the code where one exists."
             },
             "scope": {
               "type": "string",
@@ -344,12 +423,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "STS-ml Binding of Duties (BoD) organizational constraint; complements NIST SP 800-53 AC-5 Separation of Duties",
+      "x-dr-evidence": [
+        "a workflow or state-machine transition guard that compares the stored initiator, claimant or assignee of a task instance (e.g. startedBy, claimedBy) with the current user id and throws or returns 403 when they differ",
+        "BPMN/Camunda or similar workflow configuration that assigns a later user task to the process initiator (e.g. assignee=\"${initiator}\") or locks a claimed task to a single user until completion",
+        "a dedicated exception or error message such as 'Only the user who started this request may submit it' or a class named like TaskOwnershipViolation or SameUserRequired raised in multi-step flows"
+      ],
+      "x-dr-distinguish": {
+        "security.separationofduty": "the rule requires that two steps be performed by different actors or roles, rather than by the same actor.",
+        "security.accesscondition": "the check is a standalone predicate on a single request (e.g. resource.ownerId eq currentUser) with no link to a task instance the actor started.",
+        "security.needtoknow": "access is restricted according to the actor's declared purpose rather than its participation in an earlier workflow step.",
+        "security.policyrule": "the logic is a general condition-plus-effect rule in a policy rather than a task-continuity obligation tied to workflow steps."
+      },
       "$id": "urn:dr:spec:node:security.bindingofduty"
     },
     "condition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Condition",
-      "description": "A reusable logical expression evaluated against request context (time, location, user attributes, resource state) to determine when a SecurityPolicy rule applies. Distinct from AccessCondition, which is a concrete field+operator+value predicate composed inside a PolicyRule condition chain.",
+      "description": "A named, reusable boolean expression over request context (time, location, subject attributes, environment or resource state) that is defined once and referenced by one or more PolicyRules or SecurityPolicies to decide whether they apply. It may be a free-form expression or a composition of AccessCondition predicates. Use AccessCondition instead when the predicate is a single concrete field + operator + value comparison written inline in one rule's condition chain rather than a named expression reused across rules. Use PolicyRule instead when the element carries an effect (permit/deny) and enforcement outcome, not just the applicability test. Use InformationRight instead when the constraint expression is bound to a specific actor and the operations they may perform on an InformationEntity. Use PolicyAction instead when the element describes what happens after a match (deny, alert, mask, redirect) rather than the test that produces the match.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -369,10 +460,12 @@
           "type": "object",
           "properties": {
             "expression": {
-              "type": "string"
+              "type": "string",
+              "description": "The boolean expression text in its source language (e.g. SpEL, CEL, Rego, IAM condition JSON, or pseudocode such as 'request.time between 08:00 and 18:00'). Always set this; copy it verbatim from code where possible."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "A plain-language sentence stating what the condition tests and why policies reference it. Set it when the expression is not self-explanatory to a reviewer."
             },
             "operator": {
               "type": "string",
@@ -393,12 +486,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "XACML 3.0 §5.26 Condition element; NIST SP 800-162 ABAC environment conditions (supports NIST SP 800-53 AC-3)",
+      "x-dr-evidence": [
+        "A named predicate function or helper rule (e.g. isBusinessHours(ctx), fromTrustedNetwork(req), rego `allow_if_mfa` helper) referenced by several authorization rules",
+        "A Condition block in a policy document (AWS IAM `Condition`, Azure ABAC condition, Cedar `when` clause) defined once and reused by multiple statements",
+        "A Spring Security SpEL expression or CEL/OPA expression string stored in config and referenced by name from @PreAuthorize annotations or policy rule entries"
+      ],
+      "x-dr-distinguish": {
+        "security.accesscondition": "the predicate is a single concrete field + operator + value comparison written inline in one rule's condition chain rather than a named expression reused across rules.",
+        "security.policyrule": "the element carries an effect (permit/deny) and enforcement outcome, not just the applicability test.",
+        "security.informationright": "the constraint expression is bound to a specific actor and the operations they may perform on an InformationEntity.",
+        "security.policyaction": "the element describes what happens after a match (deny, alert, mask, redirect) rather than the test that produces the match."
+      },
       "$id": "urn:dr:spec:node:security.condition"
     },
     "countermeasure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Countermeasure",
-      "description": "A security control or mitigation technique that reduces the likelihood or impact of a specific threat. Maps to NIST SP 800-53 controls by type (technical, operational, management) and tracks implementation status and residual risk.",
+      "description": "A security control or mitigation mechanism, recorded against one or more identified Threats, that reduces their likelihood or impact and is characterised by control class, implementation status and assessed effectiveness. It is the threat-mitigation view of a control; the concrete configuration that realises it (password rules, auth settings, rate limits) is modelled by other types that realize or mandate it. Use SecurityPolicy instead when the element is a named, prioritised set of evaluation rules that produces access-control decisions for a target, rather than a mitigation linked to a threat. Use PolicyAction instead when the element is the runtime response (deny, alert, mask, quarantine) executed when a specific policy rule fires, not the standing control that the response helps realise. Use PasswordPolicy instead when the element is the concrete credential complexity, rotation and lockout parameters; model the anti-brute-force mitigation those parameters deliver as a Countermeasure. Use Threat instead when the element describes what could go wrong (attacker, vulnerability, likelihood, impact) rather than the measure taken against it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -423,7 +528,8 @@
               "description": "NIST SP 800-53 control family classification: technical (hardware/software mechanisms), operational (people and procedures), management (governance), or physical (facility/environmental)."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what the control does, which mechanism or procedure realises it, and which threat behaviour it counters; set whenever the name alone does not identify the mechanism."
             },
             "effectiveness": {
               "type": "string",
@@ -431,7 +537,8 @@
               "description": "Assessed effectiveness of the countermeasure in reducing threat risk, per NIST SP 800-30 risk treatment evaluation."
             },
             "implemented": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when the control is deployed and active in the system under model, false when it is planned, proposed or only documented; set from evidence such as deployed config or code, not from intent."
             },
             "source": {
               "type": "object",
@@ -442,12 +549,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 Rev. 5 security and privacy controls (as risk responses per NIST SP 800-30 Rev. 1 / SP 800-39)",
+      "x-dr-evidence": [
+        "a threat-model artifact (STRIDE/LINDDUN table, OWASP Threat Dragon or MS TMT file) whose 'mitigation' or 'countermeasure' entries name a control against a listed threat",
+        "security middleware or filters registered globally (e.g. helmet, CSRF token filter, input sanitiser, WAF rule set) with comments or config referencing a CWE, OWASP Top 10 item or NIST control ID",
+        "a control-implementation record such as an OSCAL component-definition, system security plan or compliance matrix mapping control IDs (e.g. SC-8, SI-10) to an implementation status"
+      ],
+      "x-dr-distinguish": {
+        "security.securitypolicy": "the element is a named, prioritised set of evaluation rules that produces access-control decisions for a target, rather than a mitigation linked to a threat",
+        "security.policyaction": "the element is the runtime response (deny, alert, mask, quarantine) executed when a specific policy rule fires, not the standing control that the response helps realise",
+        "security.passwordpolicy": "the element is the concrete credential complexity, rotation and lockout parameters; model the anti-brute-force mitigation those parameters deliver as a Countermeasure",
+        "security.threat": "the element describes what could go wrong (attacker, vulnerability, likelihood, impact) rather than the measure taken against it"
+      },
       "$id": "urn:dr:spec:node:security.countermeasure"
     },
     "dataclassification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DataClassification",
-      "description": "Data classification and protection policies",
+      "description": "A labelled data-sensitivity tier that assigns a classification level to data and states the minimum protection obligations, such as encryption, that any data carrying that label must meet. It is the label and its handling rules, not the data asset, field or store being labelled. Use InformationEntity instead when the element is the named information asset (e.g. customer PII, payment records) that receives a classification, rather than the classification tier and its handling rules. Use FieldAccessControl instead when the element specifies how one particular field is masked, redacted or tokenized for unauthorized principals, rather than a sensitivity tier applied across many fields. Use RetentionPolicy instead when the element defines how long data is kept and how it is disposed of, even if that period is selected by classification level. Use SecurityPolicy instead when the element is a prioritized set of evaluation rules producing access decisions, rather than a sensitivity label those rules may reference.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -467,7 +586,8 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version identifier of this classification definition, as semver or an ISO 8601 date; set it when the tier's handling rules are revised so that labelled data can be traced to the rules in force at the time."
             },
             "encryptionRequirement": {
               "type": "string",
@@ -495,12 +615,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 RA-2 Security Categorization (FIPS 199 impact levels), with SC-8/SC-28 protection obligations",
+      "x-dr-evidence": [
+        "an enum or constant set of sensitivity labels (e.g. PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED) referenced by annotations, schema tags or column metadata such as @Sensitive(level=...) or x-data-classification",
+        "a configuration map or policy file keyed by classification label that sets handling requirements, e.g. 'restricted: encrypt at-rest with KMS key, TLS required, no export'",
+        "a data-handling or data-classification policy document or data-catalog taxonomy that defines each sensitivity tier and its required controls"
+      ],
+      "x-dr-distinguish": {
+        "security.informationentity": "the element is the named information asset (e.g. customer PII, payment records) that receives a classification, rather than the classification tier and its handling rules.",
+        "security.fieldaccesscontrol": "the element specifies how one particular field is masked, redacted or tokenized for unauthorized principals, rather than a sensitivity tier applied across many fields.",
+        "security.retentionpolicy": "the element defines how long data is kept and how it is disposed of, even if that period is selected by classification level.",
+        "security.securitypolicy": "the element is a prioritized set of evaluation rules producing access decisions, rather than a sensitivity label those rules may reference."
+      },
       "$id": "urn:dr:spec:node:security.dataclassification"
     },
     "delegation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Delegation",
-      "description": "Explicit transfer of permissions or authority from a delegator to a delegatee, subject to scope constraints and optional time bounds. Supports least-privilege enforcement (NIST AC-6) by enabling time-limited privilege elevation rather than permanent role assignment.",
+      "description": "An authority grant record in which one named actor (the delegator) transfers some or all of its own permissions or role to another actor (the delegatee), qualified by a delegation type and optionally an expiry. It differs from a role assignment or a standing permission in that the authority is derived from, and revocable by, the delegating actor rather than granted directly by administration. Use Role instead when the authority is a standing, administratively assigned collection of permissions rather than one actor passing its own authority to another. Use Permission instead when you are modelling the atomic action-on-resource grant itself, not the act of handing it from one actor to another. Use InformationRight instead when the grant is an ABAC rule giving an actor operations on an InformationEntity under a constraint expression, with no delegating party. Use Actor instead when the symbol represents the principal (user, service account) itself rather than the transfer of authority between principals.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -520,10 +652,12 @@
           "type": "object",
           "properties": {
             "delegator": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the security.actor granting its authority; set to the actor whose permissions or role are being transferred, and that actor must hold that authority itself."
             },
             "delegatee": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the security.actor receiving the delegated authority; set to the principal who will act on the delegator's behalf."
             },
             "delegationType": {
               "type": "string",
@@ -541,19 +675,32 @@
               "description": "ISO 8601 datetime after which this delegation automatically expires. Required for delegationType 'temporary' and recommended for 'conditional' to enforce time-bounded privilege grants per AC-6."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what authority is delegated, for what purpose, and any scope limits not captured by delegationType or validUntil."
             }
           },
           "required": ["delegator", "delegatee", "delegationType"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-6 (Least Privilege); NIST SP 800-162 delegation of attributes; OAuth 2.0 Token Exchange (RFC 8693) act/may_act delegation",
+      "x-dr-evidence": [
+        "A persisted entity or table such as Delegation, ProxyAssignment or ActingAs with columns like delegator_id, delegatee_id, scope and expires_at",
+        "An OAuth 2.0 token-exchange or impersonation flow (e.g. RFC 8693 'act' claim, 'on_behalf_of' or 'impersonate' endpoint) that issues a token for one principal acting for another",
+        "Authorization middleware that, when checking permissions, merges in roles from active, unexpired delegation records granted to the current user and logs the delegation in the audit trail"
+      ],
+      "x-dr-distinguish": {
+        "security.role": "the authority is a standing, administratively assigned collection of permissions rather than one actor passing its own authority to another.",
+        "security.permission": "you are modelling the atomic action-on-resource grant itself, not the act of handing it from one actor to another.",
+        "security.informationright": "the grant is an ABAC rule giving an actor operations on an InformationEntity under a constraint expression, with no delegating party.",
+        "security.actor": "the symbol represents the principal (user, service account) itself rather than the transfer of authority between principals."
+      },
       "$id": "urn:dr:spec:node:security.delegation"
     },
     "evidence": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Evidence",
-      "description": "An artifact that provides verifiable proof of an action or event for non-repudiation and audit purposes. Anchored to NIST SP 800-53 AU-10 (Non-repudiation), evidence types range from cryptographic signatures to plain audit log entries, with strength characterizing the assurance level per NIST SP 800-63-3.",
+      "description": "A kind of proof artifact — log record, digital signature, trusted timestamp, hash, certificate or audit trail — produced or retained by the system so that a specific action or event can later be verified as having occurred and attributed to an actor. It is the artifact itself as a modelled category, not the obligation to produce it or the logging configuration that emits it. Use AuditConfig instead when the code configures which events are logged, verbosity, payload inclusion or field sanitisation rather than defining a specific proof artifact and its origin. Use AccountabilityRequirement instead when the element states who must prove an action took place and whether that proof is challengeable, rather than the artifact that constitutes the proof. Use RetentionPolicy instead when the concern is how long evidence or logs are kept, where they are archived and how they are destroyed. Use Countermeasure instead when the element is a control such as signing middleware or a tamper-detection mechanism that mitigates a threat, rather than the record it produces.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -598,12 +745,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AU-10 Non-repudiation (with AU-3 Content of Audit Records)",
+      "x-dr-evidence": [
+        "code that computes and persists a digital signature or HMAC over a transaction or request payload alongside the record (e.g. a signature column, JWS detached signature, or signed receipt object)",
+        "an append-only or hash-chained audit trail table, WORM bucket or ledger write (e.g. an audit_events table with previous_hash, AWS QLDB, S3 Object Lock) recording actor, action and timestamp",
+        "calls to an RFC 3161 timestamping authority or certificate-based signing service (e.g. TSA client, KMS Sign API, X.509 cert attached to a document approval)"
+      ],
+      "x-dr-distinguish": {
+        "security.auditconfig": "the code configures which events are logged, verbosity, payload inclusion or field sanitisation rather than defining a specific proof artifact and its origin",
+        "security.accountabilityrequirement": "the element states who must prove an action took place and whether that proof is challengeable, rather than the artifact that constitutes the proof",
+        "security.retentionpolicy": "the concern is how long evidence or logs are kept, where they are archived and how they are destroyed",
+        "security.countermeasure": "the element is a control such as signing middleware or a tamper-detection mechanism that mitigates a threat, rather than the record it produces"
+      },
       "$id": "urn:dr:spec:node:security.evidence"
     },
     "fieldaccesscontrol": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FieldAccessControl",
-      "description": "Defines access restrictions and transformation rules for a specific data field, controlling how sensitive values are masked or redacted when exposed to unauthorized principals. Used within SecureResource fieldAccess to enforce field-level data protection per NIST SP 800-53 AC-3 and SC-28.",
+      "description": "A field-level protection rule bound to one named field (property, column or attribute) of a SecureResource. It states how that field's value is masked, redacted, hashed, tokenized or truncated when the field is exposed to a principal that lacks the permission to see it in clear. Use ValidationRule instead when the constraint governs which values a field may accept or contain (pattern, range, length), not how its value is hidden from unauthorized readers. Use SecureResource instead when the control applies to the whole resource, endpoint or table and its operations, not to an individual field within it. Use DataClassification instead when the element assigns a sensitivity tier or encryption obligation to data, rather than naming the masking technique for one specific field. Use PolicyAction instead when masking is the generic enforcement response fired by a PolicyRule match, not a standing rule attached to a named field.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -623,7 +782,8 @@
           "type": "object",
           "properties": {
             "field": {
-              "type": "string"
+              "type": "string",
+              "description": "Name or dotted path of the protected field within the parent SecureResource (e.g. 'customer.ssn' or 'card_number'); always set it, matching the field name as it appears in the resource's schema or payload."
             },
             "maskingStrategy": {
               "type": "string",
@@ -638,19 +798,32 @@
               "description": "Technique used to protect sensitive field values when exposed to unauthorized principals, per NIST SP 800-53 SC-28 data-at-rest protection controls."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of why the field is protected and who may see it unmasked; set it when the masking rationale or exemption is not obvious from the field name and strategy."
             }
           },
           "required": ["field"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-3 Access Enforcement (field-level), with SC-28 Protection of Information at Rest",
+      "x-dr-evidence": [
+        "A DTO or serializer field carrying a masking or redaction annotation or type, e.g. @Sensitive, @JsonSerialize(using = MaskingSerializer.class), Pydantic SecretStr, or a custom redact() field transformer.",
+        "Response-shaping code that replaces or drops a specific field after a permission check, e.g. `if not user.has_perm('view_ssn'): data['ssn'] = mask(data['ssn'])`.",
+        "Declarative column- or field-level masking configuration: a GraphQL @auth or @mask directive on a field, Hasura column permissions, SQL Server `MASKED WITH (FUNCTION = ...)`, or a Snowflake/Postgres masking policy on a column."
+      ],
+      "x-dr-distinguish": {
+        "security.validationrule": "the constraint governs which values a field may accept or contain (pattern, range, length), not how its value is hidden from unauthorized readers.",
+        "security.secureresource": "the control applies to the whole resource, endpoint or table and its operations, not to an individual field within it.",
+        "security.dataclassification": "the element assigns a sensitivity tier or encryption obligation to data, rather than naming the masking technique for one specific field.",
+        "security.policyaction": "masking is the generic enforcement response fired by a PolicyRule match, not a standing rule attached to a named field."
+      },
       "$id": "urn:dr:spec:node:security.fieldaccesscontrol"
     },
     "informationentity": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InformationEntity",
-      "description": "Named information asset subject to fine-grained access rights and data classification. Represents a logical grouping of data (e.g., customer PII, financial records) whose access is governed by associated InformationRight grants and AccountabilityRequirements, per NIST SP 800-53 AC-3 and IP-1.",
+      "description": "A named logical category of information (e.g. customer PII, payment card data, medical records) defined independently of where or how it is stored, which carries a sensitivity classification and is the object to which InformationRights grant actors access. It names *what* the data is, not the endpoint, table or field that holds it. Use SecureResource instead when the protected thing is a concrete technical artefact (an API endpoint, database table, file store, service or UI) with operations performed on it, rather than a storage-independent category of data. Use DataClassification instead when you are modelling the classification scheme itself (levels, encryption obligations) rather than a specific data category that is assigned one of those levels. Use FieldAccessControl instead when the control applies to one named field and its masking or redaction strategy, rather than to a whole logical grouping of data that may span many fields and stores.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -670,7 +843,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what data this information asset comprises (example fields, data subjects, and systems where it appears); set it whenever the entity name alone does not make the boundary of the asset clear."
             },
             "classification": {
               "type": "string",
@@ -685,12 +859,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "STS-ml Information entity; NIST SP 800-53 Rev. 5 RA-2 (Security Categorization) and AC-3 (Access Enforcement)",
+      "x-dr-evidence": [
+        "A data inventory, record-of-processing (ROPA) or data-catalog document listing named data categories such as 'Customer PII' or 'Cardholder Data', each with a sensitivity level.",
+        "An enum or constant set of data categories (e.g. DataCategory.PII, DataCategory.PHI, DataCategory.PCI) referenced by authorization checks or masking logic across several classes.",
+        "Marker annotations or catalog tags (e.g. @PersonalData(category=\"contact\"), BigQuery policy tags, AWS Macie or Purview classifications) applied consistently to fields in multiple models or tables to group them into one asset."
+      ],
+      "x-dr-distinguish": {
+        "security.secureresource": "the protected thing is a concrete technical artefact (an API endpoint, database table, file store, service or UI) with operations performed on it, rather than a storage-independent category of data.",
+        "security.dataclassification": "you are modelling the classification scheme itself (levels, encryption obligations) rather than a specific data category that is assigned one of those levels.",
+        "security.fieldaccesscontrol": "the control applies to one named field and its masking or redaction strategy, rather than to a whole logical grouping of data that may span many fields and stores."
+      },
       "$id": "urn:dr:spec:node:security.informationentity"
     },
     "informationright": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InformationRight",
-      "description": "A granular access grant specifying which operations a named actor may perform on an InformationEntity, subject to a qualifying constraint expression. Implements attribute-based access control (ABAC) at the information asset level, per NIST SP 800-162 (ABAC Guide) and NIST SP 800-53 AC-3(14).",
+      "description": "An access grant that authorizes one specific actor to perform a listed set of operations on a single InformationEntity. The grant applies only while an attribute-based constraint expression evaluates to true at decision time. It differs from a role-assigned Permission because it names the grantee directly and carries its own qualifying condition. Use Permission instead when the grant is a reusable resource+action entitlement assigned to Roles rather than to a named actor, and has no per-grant constraint expression. Use Delegation instead when authority is transferred from one actor (delegator) to another (delegatee), possibly time-bounded, rather than granted directly on an information asset. Use NeedToKnow instead when access is gated by the actor declaring a purpose or justification rather than by an attribute-based boolean constraint. Use AccessCondition instead when the element is only the field/operator/value predicate itself, not the grant binding an actor and operations to an information asset.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -737,12 +922,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 Rev.5 AC-3(13) Attribute-Based Access Control; NIST SP 800-162 ABAC policy; STS-ml authorisation",
+      "x-dr-evidence": [
+        "An ABAC policy line naming a concrete subject, data asset, actions and condition, e.g. Casbin `p, billing-svc, customer_pii, read, r.sub.region == r.obj.region`",
+        "A cloud IAM or KMS policy statement whose Principal is a specific user or service, whose Resource is a named data store or dataset, and which has an Action list and a Condition block",
+        "An OPA/Rego or Cedar `permit` rule keyed on a specific principal id and data category, with a `when`/`if` clause comparing subject attributes to resource attributes"
+      ],
+      "x-dr-distinguish": {
+        "security.permission": "the grant is a reusable resource+action entitlement assigned to Roles rather than to a named actor, and has no per-grant constraint expression",
+        "security.delegation": "authority is transferred from one actor (delegator) to another (delegatee), possibly time-bounded, rather than granted directly on an information asset",
+        "security.needtoknow": "access is gated by the actor declaring a purpose or justification rather than by an attribute-based boolean constraint",
+        "security.accesscondition": "the element is only the field/operator/value predicate itself, not the grant binding an actor and operations to an information asset"
+      },
       "$id": "urn:dr:spec:node:security.informationright"
     },
     "needtoknow": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NeedToKnow",
-      "description": "Restricts access to a resource to only those actors whose stated purpose requires it, implementing the NIST SP 800-53 AC-3(3) mandatory access control principle. JustificationRequired enforces that actors must declare their purpose before access is granted.",
+      "description": "A procedural access constraint that limits access to a named resource to actors whose declared business or operational purpose matches a stated objective, optionally requiring the actor to submit an explicit justification before access is granted. It gates access by purpose, not by identity, role or attribute match alone. Use InformationRight instead when the rule grants specific operations on an information entity to a named actor under a constraint expression, with no purpose declaration involved. Use AccountabilityRequirement instead when the purpose declaration is recorded as evidence that an action occurred, and is not checked as a gate before access. Use AccessCondition instead when the check is a generic field/operator/value predicate on request context inside a PolicyRule chain, rather than a purpose-of-use restriction. Use Permission instead when the element is an atomic action grant on a resource assigned to roles, with no justification or purpose requirement.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -762,17 +959,20 @@
           "type": "object",
           "properties": {
             "resource": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the protected resource or information entity (e.g. 'customer.pii' or '/api/patients/{id}') to which the need-to-know restriction applies; always set it to the same name used by the corresponding SecureResource or InformationEntity."
             },
             "objective": {
               "type": "string",
-              "description": "A free-text statement of the business or operational purpose that justifies access. This is a purpose declaration string, not a reference to an ActorObjective node."
+              "description": "A free-text statement of the business or operational purpose that justifies access. This is a purpose declaration string, not a reference to another node."
             },
             "message": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable denial text returned or logged when an actor's stated purpose does not satisfy the objective or when a required justification is missing."
             },
             "justificationRequired": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "When true, the actor must supply an explicit purpose or justification before each access is evaluated; set it to false when the purpose is inferred from context such as role or assignment."
             }
           },
           "required": [
@@ -784,12 +984,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-6 (Least Privilege, need-to-know) with AC-3 Access Enforcement; purpose specification per PT-3",
+      "x-dr-evidence": [
+        "Middleware or an interceptor that rejects requests to a sensitive endpoint when a purpose or reason field (e.g. X-Access-Reason, purposeOfUse) is missing or not in an allowed set.",
+        "A UI dialog or 'break-glass' prompt that forces the user to enter or select a reason before showing a protected record such as a patient chart or customer PII.",
+        "A configuration map from resources to permitted purpose codes (e.g. HIPAA TREAT/PAYMENT/OPS), together with a denial message shown when the stated purpose does not match."
+      ],
+      "x-dr-distinguish": {
+        "security.informationright": "the rule grants specific operations on an information entity to a named actor under a constraint expression, with no purpose declaration involved.",
+        "security.accountabilityrequirement": "the purpose declaration is recorded as evidence that an action occurred, and is not checked as a gate before access.",
+        "security.accesscondition": "the check is a generic field/operator/value predicate on request context inside a PolicyRule chain, rather than a purpose-of-use restriction.",
+        "security.permission": "the element is an atomic action grant on a resource assigned to roles, with no justification or purpose requirement."
+      },
       "$id": "urn:dr:spec:node:security.needtoknow"
     },
     "passwordpolicy": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PasswordPolicy",
-      "description": "Defines password complexity, rotation, and lockout requirements for credential-based authentication. Implements NIST SP 800-53 IA-5(1) controls including minimum length, character class requirements, history enforcement, and brute-force lockout thresholds.",
+      "description": "A credential rule set that fixes the length bounds, required character classes, reuse history, expiry interval and failed-attempt lockout for memorized secrets (passwords or passphrases) accepted by an authenticator. It covers only the rules a password must satisfy and how repeated failures are handled, not how the principal is authenticated overall. Use AuthenticationConfig instead when the symbol configures the identity provider, MFA, session timeout or verification level, of which password rules are at most one referenced part. Use ValidationRule instead when a regex, length or range check validates an ordinary data field rather than the composition of a login credential. Use Countermeasure instead when the code implements a general brute-force or credential-stuffing mitigation (IP throttling, CAPTCHA, breached-password screening) not expressed as password composition or account lockout parameters.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -809,46 +1021,67 @@
           "type": "object",
           "properties": {
             "minLength": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Minimum number of characters a password must contain; set whenever a lower length bound is enforced (NIST SP 800-63B suggests at least 8, commonly 12+)."
             },
             "maxLength": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Maximum number of characters accepted for a password; set only when the system caps length, and leave unset if no cap exists."
             },
             "requireUppercase": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when a password must contain at least one uppercase letter (A-Z); omit or set false when no such rule is enforced."
             },
             "requireLowercase": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when a password must contain at least one lowercase letter (a-z); omit or set false when no such rule is enforced."
             },
             "requireNumbers": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when a password must contain at least one decimal digit (0-9); omit or set false when no such rule is enforced."
             },
             "requireSpecialChars": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when a password must contain at least one non-alphanumeric symbol; omit or set false when no such rule is enforced."
             },
             "preventReuse": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of previous passwords per account that a new password may not match; 0 or unset means no history check."
             },
             "expiryDays": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of days after which a password must be changed; use 0 when passwords never expire by age."
             },
             "lockoutAttempts": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of consecutive failed authentication attempts that triggers account lockout; leave unset when no lockout is enforced."
             },
             "lockoutDuration": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Length of time, in minutes, that an account stays locked after reaching lockoutAttempts; use 0 when unlock requires administrator action."
             }
           },
           "required": ["expiryDays"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 IA-5(1) Password-Based Authentication (with AC-7 Unsuccessful Logon Attempts for lockout)",
+      "x-dr-evidence": [
+        "Framework password option blocks such as Django AUTH_PASSWORD_VALIDATORS (MinimumLengthValidator), ASP.NET Identity PasswordOptions/LockoutOptions, or Spring Security password constraint beans.",
+        "Identity-provider or infrastructure declarations such as a Keycloak realm passwordPolicy string ('length(12) and upperCase(1) and passwordHistory(5)'), an AWS Cognito PasswordPolicy block, or a Terraform aws_iam_account_password_policy resource.",
+        "A password-change or registration routine that tests character-class regexes, compares the new hash against stored previous hashes, and returns messages like 'Password must contain a special character', or a failed-login counter that sets a locked-until timestamp."
+      ],
+      "x-dr-distinguish": {
+        "security.authenticationconfig": "the symbol configures the identity provider, MFA, session timeout or verification level, of which password rules are at most one referenced part.",
+        "security.validationrule": "a regex, length or range check validates an ordinary data field rather than the composition of a login credential.",
+        "security.countermeasure": "the code implements a general brute-force or credential-stuffing mitigation (IP throttling, CAPTCHA, breached-password screening) not expressed as password composition or account lockout parameters."
+      },
       "$id": "urn:dr:spec:node:security.passwordpolicy"
     },
     "permission": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Permission",
-      "description": "An atomic grant authorizing a specific action (e.g., read, write, execute) on a resource within a defined scope. Permissions are assigned to Roles and enforced by SecureResource access control lists. Implements NIST SP 800-53 AC-3 access enforcement and AC-6 least privilege.",
+      "description": "An atomic authorization grant that pairs one action with one named resource at a stated access scope, independent of any particular principal, and is assigned to Roles and checked at enforcement points such as routes, API operations and UI components. It names what may be done. Who holds it, and under what runtime conditions, is captured elsewhere. Use ResourceOperation instead when the symbol declares which operations a SecureResource supports, along with that operation's conditions, rate limits and audit bindings, rather than a grantable entitlement that is assigned to roles. Use Role instead when the symbol is a named bundle of permissions with a privilege level or inheritance, such as 'admin' or 'editor', rather than a single action-on-resource grant. Use InformationRight instead when the grant is bound to a specific actor on an InformationEntity and is qualified by a constraint expression (ABAC), rather than being an actor-independent entitlement handed out via roles. Use PolicyRule instead when the symbol evaluates a condition and yields a permit or deny effect at decision time, rather than naming a static entitlement that the check looks up.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -868,7 +1101,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable sentence explaining what the grant allows and why it exists; set it whenever the permission identifier alone is not self-explanatory to auditors."
             },
             "scope": {
               "type": "string",
@@ -882,7 +1116,8 @@
               "description": "Access level granted by this permission, ranging from read-only to full administrative control."
             },
             "resource": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier of the protected resource the action applies to, ideally the 'resource' name of a security.secureresource (e.g. 'orders' or 'billing-api'), or a wildcard pattern such as 'orders/*' when the grant spans a resource family."
             },
             "action": {
               "type": "string",
@@ -894,12 +1129,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-3 (Access Enforcement); AC-6 (Least Privilege)",
+      "x-dr-evidence": [
+        "Permission identifier constants or enum members such as 'orders:read' or 'INVOICE_DELETE', defined in a central permissions file or seeded into a permissions table by migrations or fixtures.",
+        "Enforcement annotations or guards that take a permission name, such as @PreAuthorize(\"hasAuthority('report.export')\"), @RequiresPermission, a requirePermission('user.update') middleware, or a CASL can('update','Article') rule.",
+        "OAuth scope or role-to-permission mapping entries, for example OpenAPI securitySchemes scopes or a YAML/JSON policy file listing the permissions granted to each role."
+      ],
+      "x-dr-distinguish": {
+        "security.resourceoperation": "the symbol declares which operations a SecureResource supports, along with that operation's conditions, rate limits and audit bindings, rather than a grantable entitlement that is assigned to roles.",
+        "security.role": "the symbol is a named bundle of permissions with a privilege level or inheritance, such as 'admin' or 'editor', rather than a single action-on-resource grant.",
+        "security.informationright": "the grant is bound to a specific actor on an InformationEntity and is qualified by a constraint expression (ABAC), rather than being an actor-independent entitlement handed out via roles.",
+        "security.policyrule": "the symbol evaluates a condition and yields a permit or deny effect at decision time, rather than naming a static entitlement that the check looks up."
+      },
       "$id": "urn:dr:spec:node:security.permission"
     },
     "policyaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PolicyAction",
-      "description": "The enforcement action executed when a SecurityPolicy rule condition is met. Defines the system response to a policy match (allow, deny, remediation, notification), ensuring consistent policy enforcement across the security model per NIST SP 800-53 CA-9 (Internal System Connections) and SI-3 (Malicious Code Protection).",
+      "description": "A response step that the enforcement point carries out when a PolicyRule or Condition matches, such as blocking, redirecting, challenging, masking, quarantining, or notifying. It is parameterised by a type and its configuration, and corresponds to an obligation or advice attached to a policy decision rather than to the decision itself. Use PolicyRule instead when the element is the condition-plus-effect unit that yields the permit/deny decision, not the side-effect or response carried out after the decision. Use Countermeasure instead when the element is a standing control or mitigation assessed against a threat, with effectiveness and implementation status, rather than a per-match runtime response. Use AuditConfig instead when the element configures which events are logged and at what verbosity system-wide, rather than a single 'log' or 'alert' step fired by a rule match. Use FieldAccessControl instead when masking or redaction is declared statically for a named data field, independent of any policy rule firing.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -948,12 +1195,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "XACML 3.0 §5.39–5.40 ObligationExpression/AdviceExpression (enforcement per NIST SP 800-53 AC-3)",
+      "x-dr-evidence": [
+        "A WAF or gateway rule config whose action field is set to a verb such as block, captcha, challenge, redirect, or count (e.g. AWS WAF Action, Cloudflare firewall action, Envoy RBAC action).",
+        "A policy-decision handler that switches on the decision or obligation ID and dispatches to a 403 response, a step-up MFA challenge, a redirect, or a notification sender.",
+        "An OPA/Rego or Cedar policy output that returns obligations or advice objects alongside allow/deny (e.g. {\"action\":\"notify\",\"recipient\":...}), consumed by enforcement middleware."
+      ],
+      "x-dr-distinguish": {
+        "security.policyrule": "the element is the condition-plus-effect unit that yields the permit/deny decision, not the side-effect or response carried out after the decision.",
+        "security.countermeasure": "the element is a standing control or mitigation assessed against a threat, with effectiveness and implementation status, rather than a per-match runtime response.",
+        "security.auditconfig": "the element configures which events are logged and at what verbosity system-wide, rather than a single 'log' or 'alert' step fired by a rule match.",
+        "security.fieldaccesscontrol": "masking or redaction is declared statically for a named data field, independent of any policy rule firing."
+      },
       "$id": "urn:dr:spec:node:security.policyaction"
     },
     "policyrule": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PolicyRule",
-      "description": "An atomic policy evaluation unit consisting of a condition predicate and an enforcement effect (PERMIT or DENY), with optional obligation actions executed upon match. Multiple PolicyRules compose a SecurityPolicy evaluated in priority order.",
+      "description": "A single evaluation unit inside a security policy that pairs one condition predicate over the request context with a decision effect (permit or deny, or indeterminate / not-applicable where the source engine records those outcomes). It may also trigger obligation actions when the condition matches. It is the smallest construct that both tests a condition and yields an access decision. Use SecurityPolicy instead when the element is the named, prioritized container with a target that groups and orders several rules, rather than one condition-plus-effect pair. Use AccessCondition instead when the element is only a field/operator/value predicate that yields true or false and carries no permit/deny effect of its own. Use PolicyAction instead when the element is the response executed after a rule matches (log, alert, redirect, rate-limit, mask), not the decision itself. Use Permission instead when the element is a static grant of an action on a resource assigned to a role, with no runtime condition evaluated to produce a decision.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -973,7 +1232,8 @@
           "type": "object",
           "properties": {
             "condition": {
-              "type": "string"
+              "type": "string",
+              "description": "The predicate expression that must evaluate true for the rule to fire, recorded verbatim in the source policy language or as a normalized boolean expression (e.g. \"user.department == resource.owner && time < 18:00\"). Always set it; when the rule is composed from AccessCondition nodes, summarize their conjunction here."
             },
             "effect": {
               "type": "string",
@@ -981,7 +1241,8 @@
               "description": "Policy decision outcome, per XACML 3.0 Rule element effect values."
             },
             "message": {
-              "type": "string"
+              "type": "string",
+              "description": "A human-readable explanation returned to the caller or written to logs when the rule fires, typically the denial reason (e.g. \"Only owners may delete reports\"). Set it when the code or policy emits a specific message for this rule."
             },
             "source": {
               "type": "object",
@@ -992,12 +1253,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OASIS XACML 3.0 Rule element (Target/Condition/Effect/Obligations); NIST SP 800-53 AC-3 Access Enforcement",
+      "x-dr-evidence": [
+        "A statement in a policy language file with an explicit effect and condition, such as an AWS IAM Statement with \"Effect\": \"Deny\" and a Condition block, a Cedar `permit(...) when { ... };` clause, or an OPA Rego `deny[msg] { ... }` rule.",
+        "An entry in a rules array of a policy config or Casbin policy file whose fields include a match expression and an effect value (e.g. `p, alice, /reports, GET, allow`, or `{condition: ..., effect: 'deny'}`).",
+        "A branch in a policy-evaluator or authorization middleware that tests a predicate on user, resource or request attributes and returns an ALLOW or DENY decision, often with a denial reason string."
+      ],
+      "x-dr-distinguish": {
+        "security.securitypolicy": "the element is the named, prioritized container with a target that groups and orders several rules, rather than one condition-plus-effect pair",
+        "security.accesscondition": "the element is only a field/operator/value predicate that yields true or false and carries no permit/deny effect of its own",
+        "security.policyaction": "the element is the response executed after a rule matches (log, alert, redirect, rate-limit, mask), not the decision itself",
+        "security.permission": "the element is a static grant of an action on a resource assigned to a role, with no runtime condition evaluated to produce a decision"
+      },
       "$id": "urn:dr:spec:node:security.policyrule"
     },
     "resourceoperation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ResourceOperation",
-      "description": "A permitted operation that an actor may perform on a secured resource, forming the verb component of a subject-verb-object access control policy. Bound to AccessConditions, RateLimits, and AuditConfig nodes via the security policy model, per NIST SP 800-53 AC-3 (Access Enforcement).",
+      "description": "An action declared on a single SecureResource (create, read, approve, export, etc.) that the authorization layer can permit or refuse. It carries the access conditions, rate limits and audit settings that apply whenever an actor invokes that action on that resource, and so forms the verb in a subject-verb-object access decision. Use Permission instead when the element is the grant authorizing a role or actor to perform an action, i.e. who may do it, rather than the action as exposed and guarded on the resource. Use SecureResource instead when the element is the protected API, table, file or service itself rather than one of the actions that can be performed on it. Use PolicyAction instead when the element is the enforcement response a policy rule produces (deny, log, redirect, mask), not the operation an actor requests. Use AccessCondition instead when the element is the field-operator-value predicate that must hold before the operation is allowed, rather than the operation it gates.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1033,7 +1306,8 @@
               "description": "Permitted operation type on the secured resource."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what invoking this operation does to the resource and any business significance (e.g. 'Approves a pending invoice for payment'); set it when the operation verb alone does not make the effect or the sensitivity clear."
             },
             "conditions": {
               "type": "array",
@@ -1052,12 +1326,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-3 (Access Enforcement); XACML 3.0 Action attribute category",
+      "x-dr-evidence": [
+        "An authorization check naming both a resource type and an action verb, e.g. @PreAuthorize(\"hasPermission(#id, 'Invoice', 'approve')\") or authorize(user, 'export', report).",
+        "A per-resource list of actions in an authorization schema or policy file, e.g. an Oso/Cedar/OpenFGA resource block with actions = [\"read\", \"update\", \"share\"].",
+        "A controller handler for one verb on one resource wrapped with its own guard, rate-limit and audit-log middleware, e.g. router.post('/orders/:id/approve', requireRole, rateLimit, auditLog, handler)."
+      ],
+      "x-dr-distinguish": {
+        "security.permission": "the element is the grant authorizing a role or actor to perform an action, i.e. who may do it, rather than the action as exposed and guarded on the resource.",
+        "security.secureresource": "the element is the protected API, table, file or service itself rather than one of the actions that can be performed on it.",
+        "security.policyaction": "the element is the enforcement response a policy rule produces (deny, log, redirect, mask), not the operation an actor requests.",
+        "security.accesscondition": "the element is the field-operator-value predicate that must hold before the operation is allowed, rather than the operation it gates."
+      },
       "$id": "urn:dr:spec:node:security.resourceoperation"
     },
     "retentionpolicy": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RetentionPolicy",
-      "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
+      "description": "A data-lifecycle rule for one category of security-relevant data (audit logs, access records, evidence, cryptographic keys) that sets the minimum time the data must be kept, where it is kept, and how it is disposed of once that period ends. Use AuditConfig instead when the element decides which security events are captured, at what verbosity, and which fields are sanitized, rather than how long captured records are kept or how they are destroyed. Use Evidence instead when the element is the retained artifact itself (a log stream, signature, hash or audit trail), not the rule that governs how long it is kept. Use DataClassification instead when the element assigns a sensitivity tier or encryption obligation to data, rather than a retention duration and disposal method. Use AccountabilityRequirement instead when the element states who must prove that an action occurred and whether that proof can be challenged, independent of how long the proof is stored.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1077,7 +1363,8 @@
           "type": "object",
           "properties": {
             "period": {
-              "type": "string"
+              "type": "string",
+              "description": "Minimum duration for which the governed data must be retained before disposal, expressed as an ISO 8601 duration (e.g. 'P90D', 'P7Y'); always set it, using the longest applicable regulatory or contractual requirement."
             },
             "destination": {
               "type": "string",
@@ -1103,19 +1390,32 @@
               "description": "Secure disposal technique applied when data reaches end of retention period, per NIST SP 800-88 Guidelines for Media Sanitization."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of which security data this policy covers and the regulation or internal mandate that justifies the period (e.g. 'SOX audit trail, 7 years'); set it whenever the period or scope is not self-evident."
             }
           },
           "required": ["period"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AU-11 Audit Record Retention (with SI-12 Information Management and Retention)",
+      "x-dr-evidence": [
+        "Log-store retention settings scoped to audit or security streams, such as CloudWatch retentionInDays on an audit log group, an Elasticsearch/OpenSearch ILM policy with a delete phase, or Loki retention_period.",
+        "An S3, GCS or Azure Blob lifecycle rule on an audit or evidence bucket with expiration or transition-to-archive days, or an object-lock/WORM retention configuration.",
+        "A scheduled job or cron task that purges, crypto-shreds or archives audit, access-log or key records older than a configured age, often citing a compliance period such as '7 years' or 'P90D'."
+      ],
+      "x-dr-distinguish": {
+        "security.auditconfig": "the element decides which security events are captured, at what verbosity, and which fields are sanitized, rather than how long captured records are kept or how they are destroyed.",
+        "security.evidence": "the element is the retained artifact itself (a log stream, signature, hash or audit trail), not the rule that governs how long it is kept.",
+        "security.dataclassification": "the element assigns a sensitivity tier or encryption obligation to data, rather than a retention duration and disposal method.",
+        "security.accountabilityrequirement": "the element states who must prove that an action occurred and whether that proof can be challenged, independent of how long the proof is stored."
+      },
       "$id": "urn:dr:spec:node:security.retentionpolicy"
     },
     "role": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Role",
-      "description": "A named collection of Permissions implementing RBAC per NIST SP 800-53 AC-2 and AC-6. Roles can inherit from parent roles (role hierarchy), accumulating permissions transitively. The level attribute defines the role privilege tier for least-privilege enforcement.",
+      "description": "A named, assignable grouping of Permissions that actors receive by being assigned to it, rather than by individual grants. It optionally inherits all permissions of a single parent role and carries a privilege tier. Use Actor instead when the element is the principal itself (a user, service account or external system) that holds roles, not the grouping it is assigned to. Use Permission instead when the element is a single action-on-resource grant (e.g. 'orders:delete') rather than a named bundle of such grants. Use Delegation instead when authority is transferred from one specific actor to another, usually time-bounded or revocable, rather than held through standing role membership. Use InformationRight instead when access is granted directly to a named actor on an InformationEntity under a constraint expression, with no intermediate role.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1135,13 +1435,16 @@
           "type": "object",
           "properties": {
             "displayName": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable label for the role as shown in admin UIs or documentation (e.g. 'Billing Administrator'). Set it whenever the machine name differs from what users see."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text statement of the role's intended responsibilities and the kind of actor expected to hold it. Set it when the purpose is not obvious from the name."
             },
             "level": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Integer privilege tier used for least-privilege comparison, where higher values denote broader privilege by convention. Set it consistently across all roles in the same SecurityModel."
             },
             "inheritsFrom": {
               "type": "string",
@@ -1152,12 +1455,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-3(7) Role-Based Access Control (with AC-2 and AC-6)",
+      "x-dr-evidence": [
+        "An enum, constant set or database 'roles' table of role names (e.g. ADMIN, EDITOR, VIEWER) referenced by user-to-role assignment code.",
+        "Authorization guards keyed on a role name, such as @RolesAllowed(\"admin\"), @PreAuthorize(\"hasRole('ADMIN')\"), requireRole('editor') middleware, or a route/navigation guard checking user.roles.",
+        "A configuration or manifest mapping a role name to a permission list and optional parent, e.g. roles.yaml with 'permissions:' and 'inherits:' keys, Keycloak realm/composite roles, or Kubernetes Role/ClusterRole objects."
+      ],
+      "x-dr-distinguish": {
+        "security.actor": "the element is the principal itself (a user, service account or external system) that holds roles, not the grouping it is assigned to.",
+        "security.permission": "the element is a single action-on-resource grant (e.g. 'orders:delete') rather than a named bundle of such grants.",
+        "security.delegation": "authority is transferred from one specific actor to another, usually time-bounded or revocable, rather than held through standing role membership.",
+        "security.informationright": "access is granted directly to a named actor on an InformationEntity under a constraint expression, with no intermediate role."
+      },
       "$id": "urn:dr:spec:node:security.role"
     },
     "secureresource": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SecureResource",
-      "description": "Represents a named resource subject to security controls, defining the operations that can be performed on it and optional field-level access restrictions. Acts as the resource component in subject-action-resource access control triples per NIST SP 800-53 AC-3.",
+      "description": "A protected object in an access control model — an API, database, file, service, UI area or stream — named as the target of authorization decisions and owning the set of ResourceOperations permitted on it and any FieldAccessControls over its fields. It is the 'object' of a subject-action-object triple, not the grant, rule or operation applied to it. Use InformationEntity instead when the thing protected is a logical information asset (e.g. customer PII) governed by InformationRight grants and classification, independent of the system resource that stores or exposes it. Use ResourceOperation instead when the element is a specific verb (read, approve, export) permitted on the resource rather than the resource itself. Use Permission instead when the element is a grant of an action on a resource assigned to a role, rather than the resource being protected. Use FieldAccessControl instead when the restriction applies to a single field's masking or redaction inside a resource rather than to the resource as a whole.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1177,7 +1492,8 @@
           "type": "object",
           "properties": {
             "resource": {
-              "type": "string"
+              "type": "string",
+              "description": "Canonical identifier of the protected object as used in authorization checks — e.g. an API path pattern ('/api/orders/*'), table name, bucket URI or permission-string resource key; set it to the exact value enforcement code matches against."
             },
             "type": {
               "type": "string",
@@ -1185,19 +1501,32 @@
               "description": "Category of protected resource, used to apply appropriate access control and audit policies per NIST SP 800-53 AC-3."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what the resource contains or exposes and why it requires protection; set it when the identifier alone does not convey sensitivity or scope."
             }
           },
           "required": ["resource", "type"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-3 (Access Enforcement) — protected object; XACML 3.0 Resource attribute category",
+      "x-dr-evidence": [
+        "A route group, controller or API path prefix wrapped by an authorization guard or middleware (e.g. @PreAuthorize, router.use(requireAuth), [Authorize]) that names the protected resource",
+        "A resource identifier string used as the object argument in permission checks (e.g. can(user, 'update', 'invoice'), enforcer.enforce(sub, 'orders', act)) or as a resource entry in a Casbin/OPA/IAM policy file",
+        "A database table, bucket or topic declared in an IAM/RLS/ACL configuration (e.g. Postgres row-level security policy, S3 bucket policy, Kafka ACL) restricting which principals may operate on it"
+      ],
+      "x-dr-distinguish": {
+        "security.informationentity": "the thing protected is a logical information asset (e.g. customer PII) governed by InformationRight grants and classification, independent of the system resource that stores or exposes it",
+        "security.resourceoperation": "the element is a specific verb (read, approve, export) permitted on the resource rather than the resource itself",
+        "security.permission": "the element is a grant of an action on a resource assigned to a role, rather than the resource being protected",
+        "security.fieldaccesscontrol": "the restriction applies to a single field's masking or redaction inside a resource rather than to the resource as a whole"
+      },
       "$id": "urn:dr:spec:node:security.secureresource"
     },
     "securityconstraints": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SecurityConstraints",
-      "description": "An aggregate container defining the procedural access control constraints for an application, grouping SeparationOfDuty, BindingOfDuty, and NeedToKnow rules. Applied within SecurityModel to enforce AC-5 and workflow integrity controls.",
+      "description": "An application-scoped container that groups the procedural, workflow-level access constraints (SeparationOfDuty, BindingOfDuty and NeedToKnow rules) applied within a SecurityModel. It holds no predicate or decision logic of its own; its content is the set of duty and purpose constraints it aggregates. Use SeparationOfDuty instead when modelling one specific rule that two tasks or roles must be held by different actors, rather than the collection of all such rules for the application. Use SecurityPolicy instead when the artifact is a prioritized set of evaluable rules with permit/deny effects targeting endpoints, data or roles, rather than a grouping of duty and need-to-know constraints. Use SecurityModel instead when the element is the root security specification for the application, composing authentication, roles, threats, classification and policies, not only the procedural constraints. Use NeedToKnow instead when modelling a single purpose-justification requirement for one resource rather than the grouping container.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1217,18 +1546,31 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version identifier of this constraint set (e.g. semantic version '1.2.0' or a dated revision), set when the grouped duty and need-to-know rules are versioned independently of the enclosing SecurityModel."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "NIST SP 800-53 AC-5 (Separation of Duties), with AC-6 need-to-know restrictions",
+      "x-dr-evidence": [
+        "a dedicated configuration block or file (e.g. 'constraints:' or 'duty-rules.yaml') listing separation-of-duty pairs, binding-of-duty tasks and need-to-know resources together",
+        "a registry or module (e.g. WorkflowConstraintRegistry, DutyConstraintService) that loads and applies several SoD/BoD/purpose checks to workflow transitions such as request/approve",
+        "a documentation section titled e.g. 'Procedural Access Constraints' or 'Segregation of Duties Matrix' enumerating mutually exclusive roles and task-continuity rules for one application"
+      ],
+      "x-dr-distinguish": {
+        "security.separationofduty": "modelling one specific rule that two tasks or roles must be held by different actors, rather than the collection of all such rules for the application",
+        "security.securitypolicy": "the artifact is a prioritized set of evaluable rules with permit/deny effects targeting endpoints, data or roles, rather than a grouping of duty and need-to-know constraints",
+        "security.securitymodel": "the element is the root security specification for the application, composing authentication, roles, threats, classification and policies, not only the procedural constraints",
+        "security.needtoknow": "modelling a single purpose-justification requirement for one resource rather than the grouping container"
       },
       "$id": "urn:dr:spec:node:security.securityconstraints"
     },
     "securitymodel": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SecurityModel",
-      "description": "The root aggregate for an application's security posture, composing authentication, authorization (roles, permissions, resources), threat model, data classification, accountability requirements, and policies into a unified security specification. Scoped to a single application or bounded context.",
+      "description": "A root container element that groups every security element (actors, authentication configuration, roles, permissions, secure resources, policies, constraints, threats, data classification and accountability requirements) defined for exactly one application or bounded context. There is one instance per application; it names that application and its access control paradigm. Use SecurityConstraints instead when the container groups only procedural constraints (SeparationOfDuty, BindingOfDuty, NeedToKnow) and not the whole security posture of the application. Use SecurityPolicy instead when the element is a single prioritized set of evaluation rules targeting particular resources or operations, not the umbrella specification for the application. Use AuthenticationConfig instead when the code or config only sets up identity verification (provider, MFA, session timeout) and does not also cover authorization, threats or policies.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1248,7 +1590,8 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version identifier of this security specification, as a semantic version or date string such as '2.1.0' or '2024-06'. Increment it when the composed roles, policies, constraints or threat model change, so that audits can reference a specific posture."
             },
             "application": {
               "type": "string",
@@ -1264,12 +1607,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 PL-2 (System Security and Privacy Plans)",
+      "x-dr-evidence": [
+        "A top-level security configuration entry point for one application (e.g. a Spring class annotated @EnableWebSecurity, a NestJS SecurityModule, or a root security.yaml/policy bundle) that wires together the authentication provider, role/permission definitions and access policies.",
+        "A central registry module that exports the application's role, permission and resource-action maps together with the authorization strategy in use (e.g. a Casbin model file declaring RBAC/ABAC, or an OPA bundle manifest scoped to one service).",
+        "A per-application security architecture or threat-model document (system security plan, STRIDE worksheet, security.md) that lists actors, protected resources, threats, data classifications and controls under a single version number."
+      ],
+      "x-dr-distinguish": {
+        "security.securityconstraints": "the container groups only procedural constraints (SeparationOfDuty, BindingOfDuty, NeedToKnow) and not the whole security posture of the application.",
+        "security.securitypolicy": "the element is a single prioritized set of evaluation rules targeting particular resources or operations, not the umbrella specification for the application.",
+        "security.authenticationconfig": "the code or config only sets up identity verification (provider, MFA, session timeout) and does not also cover authorization, threats or policies."
+      },
       "$id": "urn:dr:spec:node:security.securitymodel"
     },
     "securitypolicy": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SecurityPolicy",
-      "description": "A named, prioritized security policy containing ordered evaluation rules that determine access control decisions for targeted resources or operations. Policies are evaluated in priority order with the highest-priority matching policy determining the outcome. Implements NIST SP 800-53 AC-1 policy requirements.",
+      "description": "A named, prioritized container of ordered PolicyRules that together produce an access-control decision for one category of target (endpoint, service, data, user, role or resource). When several policies match, they are evaluated by priority. It corresponds to an XACML Policy, not to a single rule, condition or enforcement action. Use PolicyRule instead when the element is a single condition-plus-effect (permit/deny) evaluation unit rather than a named, prioritized grouping of such units. Use PolicyAction instead when the element is the enforcement response (deny, log, rate-limit, mask, etc.) executed when a rule matches, not the policy that contains the rules. Use SecurityConstraints instead when the element groups procedural SeparationOfDuty, BindingOfDuty or NeedToKnow constraints rather than ordered access-decision rules. Use SecurityModel instead when the element is the application-wide root aggregating authentication, roles, threats and all policies, rather than one targeted policy.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1289,13 +1643,16 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the policy's intent and the access decisions it governs; set it whenever the policy name alone does not convey its purpose."
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean indicating whether the policy is currently active in evaluation; set it to false for policies that are defined but switched off, and omit it or set it to true otherwise."
             },
             "priority": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Integer evaluation rank used to order policies against the same target, with higher values evaluated first and taking precedence when multiple policies match; always set it, using distinct values where order matters."
             },
             "target": {
               "type": "string",
@@ -1323,12 +1680,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-1 (Policy and Procedures); XACML 3.0 Policy element",
+      "x-dr-evidence": [
+        "A named policy file or block (OPA/Rego package, Cedar policy set, XACML <Policy>, Casbin policy, AWS IAM policy document) containing multiple allow/deny rules",
+        "A policy registry or middleware that loads named policies with an explicit priority, order or weight and evaluates them in sequence against a request",
+        "A configuration entry that pairs a list of rules with a target selector (route pattern, service name, data type) and carries an enabled or disabled flag"
+      ],
+      "x-dr-distinguish": {
+        "security.policyrule": "the element is a single condition-plus-effect (permit/deny) evaluation unit rather than a named, prioritized grouping of such units",
+        "security.policyaction": "the element is the enforcement response (deny, log, rate-limit, mask, etc.) executed when a rule matches, not the policy that contains the rules",
+        "security.securityconstraints": "the element groups procedural SeparationOfDuty, BindingOfDuty or NeedToKnow constraints rather than ordered access-decision rules",
+        "security.securitymodel": "the element is the application-wide root aggregating authentication, roles, threats and all policies, rather than one targeted policy"
+      },
       "$id": "urn:dr:spec:node:security.securitypolicy"
     },
     "separationofduty": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SeparationOfDuty",
-      "description": "Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + approval, initiate + authorize) are performed by different actors or roles, preventing fraud, collusion, and undetected errors. MutuallyExclusive indicates roles that cannot be assigned to the same individual.",
+      "description": "A procedural access-control constraint requiring that two or more conflicting tasks or roles in a workflow (e.g., request and approve, initiate and authorize) are held or performed by different actors. It may be static, where the roles are mutually exclusive in assignment, or dynamic, where the same subject is barred from executing a later step on an item it acted on earlier. Use BindingOfDuty instead when the rule requires the same actor who started a task to also complete it, rather than forbidding the same actor from performing both steps. Use PolicyRule instead when the logic is a generic condition-plus-effect evaluation (permit/deny) not specifically about preventing one subject from holding or exercising conflicting duties. Use Role instead when the thing being modelled is the named permission bundle itself rather than the exclusion constraint between bundles. Use NeedToKnow instead when access is restricted by the actor's declared purpose rather than by conflict with another task or role the actor holds.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1348,10 +1717,12 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of which tasks or roles are separated and the risk being controlled (e.g., 'Invoice creators may not approve invoices they created'); set whenever the rule's intent is not obvious from its name."
             },
             "message": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable violation text returned to the user or written to logs when the constraint blocks an assignment or action (e.g., 'You cannot approve a request you submitted')."
             },
             "mutuallyExclusive": {
               "type": "boolean",
@@ -1362,12 +1733,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 AC-5 Separation of Duties",
+      "x-dr-evidence": [
+        "An approval handler that rejects the request when approver.id equals the request's createdBy/submittedBy field, often with an error like 'cannot approve your own request'.",
+        "A role-assignment validator or config list of mutually exclusive role pairs (e.g., 'conflictingRoles: [payment_creator, payment_approver]') checked when granting roles.",
+        "A maker-checker or four-eyes workflow configuration requiring a distinct second user to authorize a step, such as a minimum-distinct-approvers setting or a branch-protection rule that disallows self-approval."
+      ],
+      "x-dr-distinguish": {
+        "security.bindingofduty": "the rule requires the same actor who started a task to also complete it, rather than forbidding the same actor from performing both steps.",
+        "security.policyrule": "the logic is a generic condition-plus-effect evaluation (permit/deny) not specifically about preventing one subject from holding or exercising conflicting duties.",
+        "security.role": "the thing being modelled is the named permission bundle itself rather than the exclusion constraint between bundles.",
+        "security.needtoknow": "access is restricted by the actor's declared purpose rather than by conflict with another task or role the actor holds."
+      },
       "$id": "urn:dr:spec:node:security.separationofduty"
     },
     "threat": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Threat",
-      "description": "Represents an identified security threat with assessed likelihood and impact, targeting specific resources or controls. Linked to Countermeasures that reduce exposure. Supports NIST SP 800-53 RA-3 risk assessment and enables residual risk tracking.",
+      "description": "A threat-model entry naming a potential adverse event or attack technique (e.g., credential stuffing, SQL injection, privilege escalation) against an identified asset, rated by likelihood and impact. It records what could go wrong and how badly. It does not record the control that prevents it or the principal who carries it out. Use Countermeasure instead when the item is the control, check or mitigation technique that reduces a threat's likelihood or impact, such as input sanitisation, CSRF tokens or a WAF rule, rather than the attack itself. Use Actor instead when the item is the principal or adversary (human, service, external entity) whose identity and trust level are modelled, rather than the adverse event that principal might cause. Use PolicyRule instead when the item is an evaluable condition-plus-effect rule that permits or denies requests, even if it was written in response to a threat. Use ValidationRule instead when the item is a concrete pattern, range or length constraint on a field that blocks malicious input, rather than the injection or tampering risk it guards against.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1387,10 +1770,12 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text narrative of the threat scenario: attack vector, preconditions and the adverse outcome, optionally citing CWE/CAPEC/STRIDE identifiers; set whenever the name alone does not make the attack clear."
             },
             "threatens": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier or name of the primary asset the threat endangers, such as a SecureResource, InformationEntity, business service or process; set to the most critical target when several apply."
             },
             "likelihood": {
               "type": "string",
@@ -1416,12 +1801,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "NIST SP 800-53 RA-3 Risk Assessment (threat events per NIST SP 800-30 Rev.1 Appendix E)",
+      "x-dr-evidence": [
+        "A threat-model artefact checked into the repository that lists threat entries with likelihood/impact or risk ratings, such as an OWASP Threat Dragon JSON file, a Microsoft Threat Modeling Tool .tm7 file, or a threat-model.md with a STRIDE table.",
+        "Code comments, ADRs or security docs that cite CWE, CAPEC or OWASP Top 10 identifiers (e.g., '// guards against CWE-89 SQL injection') adjacent to the code they protect.",
+        "Security test cases or abuse-case specs named after attack scenarios (e.g., test_rejects_sql_injection, it('blocks replayed JWT')) that assert a specific attack fails."
+      ],
+      "x-dr-distinguish": {
+        "security.countermeasure": "the item is the control, check or mitigation technique that reduces a threat's likelihood or impact, such as input sanitisation, CSRF tokens or a WAF rule, rather than the attack itself.",
+        "security.actor": "the item is the principal or adversary (human, service, external entity) whose identity and trust level are modelled, rather than the adverse event that principal might cause.",
+        "security.policyrule": "the item is an evaluable condition-plus-effect rule that permits or denies requests, even if it was written in response to a threat.",
+        "security.validationrule": "the item is a concrete pattern, range or length constraint on a field that blocks malicious input, rather than the injection or tampering risk it guards against."
+      },
       "$id": "urn:dr:spec:node:security.threat"
     },
     "validationrule": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ValidationRule",
-      "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
+      "description": "A single input-validation constraint (regex pattern, numeric range, length limit, allowed-value list or custom check) that the value of a protected field or request attribute must satisfy, with a violation message and severity. It accepts or rejects the value itself and does not decide who may access it. Use AccessCondition instead when the predicate tests a request-context attribute (user, role, time, IP) to decide whether the request is authorized, rather than checking that a supplied value is well-formed. Use FieldAccessControl instead when the concern is how a field's value is masked, redacted or hidden from unauthorized principals, rather than which values are acceptable. Use PolicyRule instead when the unit produces a permit/deny decision with optional obligations, rather than a pass/fail check with a violation message. Use PasswordPolicy instead when the constraints are the complete credential complexity, rotation and lockout regime, rather than one individual check that such a policy might use.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -1466,6 +1863,18 @@
           "required": ["type", "value", "message"],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "NIST SP 800-53 SI-10 Information Input Validation",
+      "x-dr-evidence": [
+        "Bean Validation, Pydantic, Joi or Zod constraints such as @Pattern, @Size, constr(regex=...) or .max() declared on security-sensitive DTO fields like email, account number, token or redirect URL.",
+        "Input-sanitization middleware or allowlist regexes that reject a request with HTTP 400/422 and a specific error message when a parameter fails the check.",
+        "A validator function or schema entry named for the check (e.g. validateIban, SAFE_FILENAME_RE) referenced from an access-control or field-protection layer, with configurable severity or logging on failure."
+      ],
+      "x-dr-distinguish": {
+        "security.accesscondition": "the predicate tests a request-context attribute (user, role, time, IP) to decide whether the request is authorized, rather than checking that a supplied value is well-formed.",
+        "security.fieldaccesscontrol": "the concern is how a field's value is masked, redacted or hidden from unauthorized principals, rather than which values are acceptable.",
+        "security.policyrule": "the unit produces a permit/deny decision with optional obligations, rather than a pass/fail check with a violation message.",
+        "security.passwordpolicy": "the constraints are the complete credential complexity, rotation and lockout regime, rather than one individual check that such a policy might use."
       },
       "$id": "urn:dr:spec:node:security.validationrule"
     }

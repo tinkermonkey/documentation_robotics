@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Dashboard",
-  "description": "A named monitoring dashboard that groups visualizations of APM signals (metrics, traces, logs) to provide operational visibility into system behavior. Represents the dashboard definition in the monitoring platform (e.g., Grafana, Datadog, CloudWatch), serving as the primary observability artifact teams consult during incidents and reviews.",
+  "description": "A persisted monitoring-platform view definition that arranges one or more visualization panels, each querying metrics, traces, logs or alert state, into a single named page for human inspection. It is the definition of the view (e.g., Grafana dashboard JSON, Datadog dashboard resource), not the underlying signals or the queries' alerting logic. Use Alert instead when the artifact evaluates a condition on a schedule and sends notifications, even if it is defined in the same platform or shown on a dashboard panel. Use MetricInstrument instead when the code creates or records a measurement (Counter, Histogram, Gauge) rather than displaying or querying one. Use ExporterConfig instead when the configuration sends telemetry to a backend (endpoint, protocol, auth) rather than defining how that backend visualizes it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -74,5 +74,15 @@
       "required": ["tool"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "a Grafana dashboard JSON file (with 'panels', 'targets' and 'templating' keys) under a dashboards/ or provisioning/ directory, or a grafana-dashboard ConfigMap in Kubernetes manifests",
+    "an infrastructure-as-code resource such as Terraform 'datadog_dashboard', 'grafana_dashboard', 'aws_cloudwatch_dashboard' or 'newrelic_one_dashboard' containing widget definitions",
+    "a dashboard-as-code module (e.g., grafonnet/Jsonnet, grafanalib Python, CDK Dashboard construct) that builds panels with PromQL, LogQL or trace queries"
+  ],
+  "x-dr-distinguish": {
+    "apm.alert": "the artifact evaluates a condition on a schedule and sends notifications, even if it is defined in the same platform or shown on a dashboard panel.",
+    "apm.metricinstrument": "the code creates or records a measurement (Counter, Histogram, Gauge) rather than displaying or querying one.",
+    "apm.exporterconfig": "the configuration sends telemetry to a backend (endpoint, protocol, auth) rather than defining how that backend visualizes it."
   }
 }

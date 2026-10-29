@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "GuardCondition",
-  "description": "Boolean predicate evaluated by a NavigationGuard to determine whether route access should be permitted. Expressions may reference user session state, roles, or feature flags. Async conditions (e.g., token validation API calls) are supported with a configurable timeout; on timeout, the condition fails closed (access denied) to preserve security.",
+  "description": "A boolean predicate, possibly asynchronous with a millisecond timeout, that a NavigationGuard evaluates against session state, roles, permissions, feature flags, route metadata or flow context to decide whether activation of a target route is allowed. It is the test only: it neither registers interception on routes nor specifies what happens on denial. Use NavigationGuard instead when the symbol is the interceptor registered with the router (beforeEach hook, canActivate class, route-level beforeEnter) that carries a guard type and execution order, rather than the predicate expression it calls. Use GuardAction instead when the code describes the denial response, such as a redirect to '/login', returning false to block, showing a toast, or prompting for confirmation, rather than the true/false test that precedes it. Use RouteMeta instead when the symbol is declarative per-route data like requiresAuth, roles or permissions that a predicate reads, rather than the logic that evaluates that data. Use ContextVariable instead when the symbol is the flow-scoped state value itself (e.g. a stored cartId or wizard progress) that a condition may inspect, rather than a predicate over it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,7 +22,7 @@
       "properties": {
         "expression": {
           "type": "string",
-          "description": "Boolean predicate expression to evaluate \u2014 may be a JavaScript expression, CEL expression, or logical reference to a named predicate (e.g., 'user.isAuthenticated && user.roles.includes(route.meta.roles)')."
+          "description": "Boolean predicate expression to evaluate — may be a JavaScript expression, CEL expression, or logical reference to a named predicate (e.g., 'user.isAuthenticated && user.roles.includes(route.meta.roles)')."
         },
         "async": {
           "type": "boolean",
@@ -36,5 +36,17 @@
       "required": ["expression", "timeout"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: route guard predicate (e.g. the boolean/Promise<boolean> result of Angular CanActivate or the condition inside a Vue Router beforeEach guard)",
+  "x-dr-evidence": [
+    "A named function or method returning boolean, Promise<boolean> or Observable<boolean> (e.g. isAuthenticated(), hasRole(route.meta.roles), isFeatureEnabled('beta')) that is invoked from inside a router guard hook.",
+    "An inline conditional expression in a beforeEach/canActivate/loader body, such as `if (!store.user || !to.meta.roles.includes(store.user.role))`, whose result selects between next()/true and a redirect or block.",
+    "An awaited token or permission check (e.g. `await authService.validateToken()`), often wrapped in Promise.race or a timeout option, that returns false or throws on expiry before a route is allowed to activate."
+  ],
+  "x-dr-distinguish": {
+    "navigation.navigationguard": "the symbol is the interceptor registered with the router (beforeEach hook, canActivate class, route-level beforeEnter) that carries a guard type and execution order, rather than the predicate expression it calls.",
+    "navigation.guardaction": "the code describes the denial response, such as a redirect to '/login', returning false to block, showing a toast, or prompting for confirmation, rather than the true/false test that precedes it.",
+    "navigation.routemeta": "the symbol is declarative per-route data like requiresAuth, roles or permissions that a predicate reads, rather than the logic that evaluates that data.",
+    "navigation.contextvariable": "the symbol is the flow-scoped state value itself (e.g. a stored cartId or wizard progress) that a condition may inspect, rather than a predicate over it."
   }
 }

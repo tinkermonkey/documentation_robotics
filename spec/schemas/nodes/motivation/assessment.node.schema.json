@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Assessment",
-  "description": "Outcome of analysis of the state of affairs of the enterprise or any part of it, and its environment. Assessments commonly take the form of strengths, weaknesses, opportunities, or threats (SWOT).",
+  "description": "A recorded finding or judgement produced by analysing the current state of the enterprise, a system, or its environment, such as an identified strength, weakness, risk, gap, or feasibility verdict. It states what is the case, not a desired end state, a result to achieve, or an obligation on the solution. Use Driver instead when the element names the motivating condition or concern itself (e.g. 'GDPR compliance', 'rising cloud cost') rather than an analytical finding about it (e.g. 'current logging stores PII unencrypted'). Use Outcome instead when the statement describes an end result the organization plans to achieve or has achieved, with a lifecycle status, rather than a diagnosis of the present situation. Use Constraint instead when the statement restricts which design or implementation options are allowed, rather than reporting an evaluated fact about the current state. Use Requirement instead when the statement prescribes a need the system must satisfy (e.g. 'must encrypt PII at rest') instead of describing the observed deficiency that prompted it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text statement of the finding, including what was analysed, the evidence or source (e.g. audit, ADR, threat model), and when it was assessed. Set it for every assessment so the finding can be verified."
         },
         "assessmentType": {
           "type": "string",
@@ -32,5 +33,17 @@
       "required": ["assessmentType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.2.3 Assessment",
+  "x-dr-evidence": [
+    "The 'Context' or 'Problem Statement' section of an ADR stating an observed weakness, limitation, or risk of the existing design that the decision responds to.",
+    "Entries in a risk register, threat model (e.g. STRIDE table in threat-model.md), or security/audit findings file listing identified threats or vulnerabilities with likelihood or severity.",
+    "A tech-debt, gap-analysis, or readiness/feasibility document (or tracked issue labelled tech-debt/gap) recording that a current capability is missing, inadequate, or viable."
+  ],
+  "x-dr-distinguish": {
+    "motivation.driver": "the element names the motivating condition or concern itself (e.g. 'GDPR compliance', 'rising cloud cost') rather than an analytical finding about it (e.g. 'current logging stores PII unencrypted').",
+    "motivation.outcome": "the statement describes an end result the organization plans to achieve or has achieved, with a lifecycle status, rather than a diagnosis of the present situation.",
+    "motivation.constraint": "the statement restricts which design or implementation options are allowed, rather than reporting an evaluated fact about the current state.",
+    "motivation.requirement": "the statement prescribes a need the system must satisfy (e.g. 'must encrypt PII at rest') instead of describing the observed deficiency that prompted it."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DataClassification",
-  "description": "Data classification and protection policies",
+  "description": "A labelled data-sensitivity tier that assigns a classification level to data and states the minimum protection obligations, such as encryption, that any data carrying that label must meet. It is the label and its handling rules, not the data asset, field or store being labelled. Use InformationEntity instead when the element is the named information asset (e.g. customer PII, payment records) that receives a classification, rather than the classification tier and its handling rules. Use FieldAccessControl instead when the element specifies how one particular field is masked, redacted or tokenized for unauthorized principals, rather than a sensitivity tier applied across many fields. Use RetentionPolicy instead when the element defines how long data is kept and how it is disposed of, even if that period is selected by classification level. Use SecurityPolicy instead when the element is a prioritized set of evaluation rules producing access decisions, rather than a sensitivity label those rules may reference.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version identifier of this classification definition, as semver or an ISO 8601 date; set it when the tier's handling rules are revised so that labelled data can be traced to the rules in force at the time."
         },
         "encryptionRequirement": {
           "type": "string",
@@ -48,5 +49,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 RA-2 Security Categorization (FIPS 199 impact levels), with SC-8/SC-28 protection obligations",
+  "x-dr-evidence": [
+    "an enum or constant set of sensitivity labels (e.g. PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED) referenced by annotations, schema tags or column metadata such as @Sensitive(level=...) or x-data-classification",
+    "a configuration map or policy file keyed by classification label that sets handling requirements, e.g. 'restricted: encrypt at-rest with KMS key, TLS required, no export'",
+    "a data-handling or data-classification policy document or data-catalog taxonomy that defines each sensitivity tier and its required controls"
+  ],
+  "x-dr-distinguish": {
+    "security.informationentity": "the element is the named information asset (e.g. customer PII, payment records) that receives a classification, rather than the classification tier and its handling rules.",
+    "security.fieldaccesscontrol": "the element specifies how one particular field is masked, redacted or tokenized for unauthorized principals, rather than a sensitivity tier applied across many fields.",
+    "security.retentionpolicy": "the element defines how long data is kept and how it is disposed of, even if that period is selected by classification level.",
+    "security.securitypolicy": "the element is a prioritized set of evaluation rules producing access decisions, rather than a sensitivity label those rules may reference."
   }
 }

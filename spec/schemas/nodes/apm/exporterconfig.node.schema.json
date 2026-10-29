@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExporterConfig",
-  "description": "Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.",
+  "description": "A telemetry export configuration that binds one OpenTelemetry exporter (SpanExporter, MetricExporter/pull reader, or LogRecordExporter, or an OTel Collector exporter) to a concrete destination, specifying the exporter kind, endpoint, wire protocol, authentication and compression used to send or expose observability data outside the process. Use LogProcessor instead when the element filters, enriches, batches or routes log records before they reach an exporter, rather than defining the destination and transport itself. Use TraceConfiguration instead when the element is the TracerProvider setup (sampler, propagators, span processor pipeline) that merely registers an exporter, not the exporter's endpoint and transport settings. Use MetricConfiguration instead when the element sets MeterProvider-wide behaviour such as export interval, timeout, cardinality limits or exemplar filtering, rather than where and how metrics are delivered. Use LogConfiguration instead when the element configures the LoggerProvider pipeline and minimum severity, with the exporter only wired in as a component.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,13 +33,16 @@
           "description": "The type of exporter"
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether this exporter is active and receives telemetry; set to false to keep the configuration defined but disabled (e.g. per environment), defaulting to true when omitted."
         },
         "endpoint": {
-          "type": "string"
+          "type": "string",
+          "description": "URL or host:port of the export destination (e.g. 'http://otel-collector:4318/v1/traces' or 'collector:4317'); for pull-based exporters such as Prometheus it is the local listen address scraped by the backend, and for stdout/logging it may be 'stdout'."
         },
         "protocol": {
-          "type": "string"
+          "type": "string",
+          "description": "Wire transport and encoding used to deliver data, using OTel values 'grpc', 'http/protobuf' or 'http/json' for OTLP, or the exporter-native transport (e.g. 'thrift' for Jaeger); set whenever the exporter supports more than one protocol."
         },
         "authType": {
           "type": "string",
@@ -55,5 +58,17 @@
       "required": ["type", "endpoint"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry SDK Specification: SpanExporter, MetricExporter and LogRecordExporter interfaces; OpenTelemetry Protocol Exporter configuration (OTEL_EXPORTER_OTLP_*)",
+  "x-dr-evidence": [
+    "Instantiation of an exporter class with destination options, e.g. new OTLPTraceExporter({ url, headers }), OTLPMetricExporter, JaegerExporter, ZipkinExporter, PrometheusExporter({ port }), or ConsoleSpanExporter.",
+    "Environment or deployment variables such as OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_PROTOCOL, OTEL_EXPORTER_OTLP_HEADERS, OTEL_EXPORTER_OTLP_COMPRESSION or OTEL_TRACES_EXPORTER in .env files, Helm values or Kubernetes manifests.",
+    "An 'exporters:' block in an OpenTelemetry Collector YAML config (e.g. otlp, otlphttp, prometheus, debug) with endpoint, tls and headers keys, referenced from a service pipeline."
+  ],
+  "x-dr-distinguish": {
+    "apm.logprocessor": "the element filters, enriches, batches or routes log records before they reach an exporter, rather than defining the destination and transport itself.",
+    "apm.traceconfiguration": "the element is the TracerProvider setup (sampler, propagators, span processor pipeline) that merely registers an exporter, not the exporter's endpoint and transport settings.",
+    "apm.metricconfiguration": "the element sets MeterProvider-wide behaviour such as export interval, timeout, cardinality limits or exemplar filtering, rather than where and how metrics are delivered.",
+    "apm.logconfiguration": "the element configures the LoggerProvider pipeline and minimum severity, with the exporter only wired in as a component."
   }
 }

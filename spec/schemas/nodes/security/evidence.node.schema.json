@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Evidence",
-  "description": "An artifact that provides verifiable proof of an action or event for non-repudiation and audit purposes. Anchored to NIST SP 800-53 AU-10 (Non-repudiation), evidence types range from cryptographic signatures to plain audit log entries, with strength characterizing the assurance level per NIST SP 800-63-3.",
+  "description": "A kind of proof artifact — log record, digital signature, trusted timestamp, hash, certificate or audit trail — produced or retained by the system so that a specific action or event can later be verified as having occurred and attributed to an actor. It is the artifact itself as a modelled category, not the obligation to produce it or the logging configuration that emits it. Use AuditConfig instead when the code configures which events are logged, verbosity, payload inclusion or field sanitisation rather than defining a specific proof artifact and its origin. Use AccountabilityRequirement instead when the element states who must prove an action took place and whether that proof is challengeable, rather than the artifact that constitutes the proof. Use RetentionPolicy instead when the concern is how long evidence or logs are kept, where they are archived and how they are destroyed. Use Countermeasure instead when the element is a control such as signing middleware or a tamper-detection mechanism that mitigates a threat, rather than the record it produces.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -45,5 +45,17 @@
       "required": ["type", "source"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AU-10 Non-repudiation (with AU-3 Content of Audit Records)",
+  "x-dr-evidence": [
+    "code that computes and persists a digital signature or HMAC over a transaction or request payload alongside the record (e.g. a signature column, JWS detached signature, or signed receipt object)",
+    "an append-only or hash-chained audit trail table, WORM bucket or ledger write (e.g. an audit_events table with previous_hash, AWS QLDB, S3 Object Lock) recording actor, action and timestamp",
+    "calls to an RFC 3161 timestamping authority or certificate-based signing service (e.g. TSA client, KMS Sign API, X.509 cert attached to a document approval)"
+  ],
+  "x-dr-distinguish": {
+    "security.auditconfig": "the code configures which events are logged, verbosity, payload inclusion or field sanitisation rather than defining a specific proof artifact and its origin",
+    "security.accountabilityrequirement": "the element states who must prove an action took place and whether that proof is challengeable, rather than the artifact that constitutes the proof",
+    "security.retentionpolicy": "the concern is how long evidence or logs are kept, where they are archived and how they are destroyed",
+    "security.countermeasure": "the element is a control such as signing middleware or a tamper-detection mechanism that mitigates a threat, rather than the record it produces"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FlowStep",
-  "description": "A single ordered node in a NavigationFlow, binding a sequence position to a specific route that the user must visit as part of a multi-step process. Each step carries a sequence index (determines order), a route reference, an optional required flag (whether the step may be skipped), and a waitBehavior governing whether the flow advances immediately or blocks until the step completes. FlowSteps compose into NavigationFlows that realize multi-page business processes such as checkout, onboarding, or wizards.",
+  "description": "An ordered position within a NavigationFlow that binds a sequence index to one route the user visits as part of a multi-step process, together with whether the step may be skipped and how the flow waits on it before advancing. It exists only as a member of a flow; the same route outside any ordered process is not a step. Use Route instead when the symbol declares a URL path pattern and the component it resolves to, independent of any position in an ordered multi-step process. Use NavigationFlow instead when the symbol is the whole ordered wizard, checkout or onboarding sequence that contains the steps, not a single position within it. Use NavigationTransition instead when the symbol describes the edge between two routes and what triggers it (click, redirect, back) rather than a numbered stop in a flow. Use ContextVariable instead when the symbol is state carried between steps (e.g. a cart or form draft held in sessionStorage) rather than the step itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,16 +21,20 @@
       "type": "object",
       "properties": {
         "sequence": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Integer position of the step within its NavigationFlow, starting at 1 and unique within the flow, that sets traversal order; always set it, taking the value from the array index or explicit step number in code."
         },
         "route": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier or path of the navigation.route the user visits at this step (e.g. 'checkout-payment' or '/checkout/payment'); set it to the route ID where one exists, otherwise to the literal path."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of what the user accomplishes at this step (e.g. 'enter shipping address'); set it when the route name alone does not convey the step's purpose."
         },
         "required": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean flag; true means the flow cannot advance past this step without completing it, and false means the step may be skipped. Set it to false for steps marked optional or skippable in code."
         },
         "waitBehavior": {
           "type": "string",
@@ -41,5 +45,17 @@
       "required": ["sequence", "route"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns – multi-step wizard / stepper step",
+  "x-dr-evidence": [
+    "An entry in a steps array of a wizard or stepper configuration (e.g. `steps: [{ path: '/checkout/shipping', ... }, { path: '/checkout/payment', ... }]`) whose position or explicit index defines order",
+    "A stepper component child (e.g. `<Step>`, `<mat-step>`, `<el-step>`) bound to a route path, carrying an `optional` or `required` flag or a completion or validation gate",
+    "Next/previous step logic, such as `goToStep(n)`, `currentStep + 1` or a state-machine state in an onboarding or checkout flow, that resolves a step index to a router push of a specific path"
+  ],
+  "x-dr-distinguish": {
+    "navigation.route": "the symbol declares a URL path pattern and the component it resolves to, independent of any position in an ordered multi-step process",
+    "navigation.navigationflow": "the symbol is the whole ordered wizard, checkout or onboarding sequence that contains the steps, not a single position within it",
+    "navigation.navigationtransition": "the symbol describes the edge between two routes and what triggers it (click, redirect, back) rather than a numbered stop in a flow",
+    "navigation.contextvariable": "the symbol is state carried between steps (e.g. a cart or form draft held in sessionStorage) rather than the step itself"
   }
 }

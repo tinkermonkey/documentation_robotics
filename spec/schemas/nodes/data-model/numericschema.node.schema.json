@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NumericSchema",
-  "description": "Defines validation rules for JSON numeric instances (number or integer types), including inclusive/exclusive bounds and divisibility constraints. Note: in JSON Schema Draft 7, exclusiveMinimum and exclusiveMaximum are numeric boundary values (e.g., exclusiveMinimum: 0), not the boolean flags used in Draft 4.",
+  "description": "A schema constraining JSON number or integer values through validation keywords: inclusive or exclusive lower and upper bounds, or a divisibility step (multipleOf). It describes the value space of a numeric datum, independent of the field that carries it or how the value is stored. Use SchemaProperty instead when the element is a named field of an object (e.g. Order.quantity) carrying its own title, default, readOnly or description; the numeric constraints it applies may be modelled as a NumericSchema that the property references. Use SchemaDefinition instead when the numeric type is a named, reusable definition under 'definitions' (e.g. a 'Percentage' type referenced via $ref), especially one restricted to an enum of fixed values rather than a range. Use StringSchema instead when the value is serialized as a string even though it looks numeric, e.g. a decimal-as-string money amount, a zero-padded code or a phone number constrained by pattern or length. Use SchemaComposition instead when the numeric constraint is formed by combining subschemas with allOf/anyOf/oneOf/not, e.g. 'positive OR null', rather than by a single set of bounds.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,23 +26,40 @@
           "description": "JSON Schema Draft 7 numeric type: 'number' for any numeric value, 'integer' for whole numbers only"
         },
         "minimum": {
-          "type": "number"
+          "type": "number",
+          "description": "Inclusive lower bound: valid instances must be greater than or equal to this number, in the same units as the value. Set it when the domain forbids smaller values, e.g. 0 for quantities."
         },
         "maximum": {
-          "type": "number"
+          "type": "number",
+          "description": "Inclusive upper bound: valid instances must be less than or equal to this number, in the same units as the value. Set it when the domain caps the value, e.g. 100 for a percentage."
         },
         "exclusiveMinimum": {
-          "type": "number"
+          "type": "number",
+          "description": "Exclusive lower bound given as a number (Draft 7 semantics): valid instances must be strictly greater than this value. Set it instead of minimum when the boundary itself is invalid, e.g. 0 for a strictly positive price."
         },
         "exclusiveMaximum": {
-          "type": "number"
+          "type": "number",
+          "description": "Exclusive upper bound given as a number (Draft 7 semantics): valid instances must be strictly less than this value. Set it instead of maximum when the boundary itself is invalid, e.g. 1 for a probability strictly below one."
         },
         "multipleOf": {
-          "type": "number"
+          "type": "number",
+          "description": "Strictly positive number that every valid instance must divide into evenly, expressing a step or precision such as 0.01 for cents or 5 for five-minute intervals. Set it only when the domain imposes such a granularity."
         }
       },
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "JSON Schema Draft 7 Validation §6.2 Validation Keywords for Numeric Instances (multipleOf, maximum, exclusiveMaximum, minimum, exclusiveMinimum), with type 'number'/'integer' (§6.1.1)",
+  "x-dr-evidence": [
+    "a JSON Schema or OpenAPI fragment with \"type\": \"integer\" or \"number\" plus minimum, maximum, exclusiveMinimum or multipleOf keywords",
+    "a numeric field annotated with range validators, e.g. Java @Min/@Max/@DecimalMin/@Positive, Pydantic Field(ge=0, le=100) or conint(gt=0), or Zod z.number().int().min(1)",
+    "a declared numeric value type or constrained alias with range checks in its constructor or validator, e.g. a Percentage or Quantity class that rejects values outside 0..100 or non-integers"
+  ],
+  "x-dr-distinguish": {
+    "data-model.schemaproperty": "the element is a named field of an object (e.g. Order.quantity) carrying its own title, default, readOnly or description; the numeric constraints it applies may be modelled as a NumericSchema that the property references.",
+    "data-model.schemadefinition": "the numeric type is a named, reusable definition under 'definitions' (e.g. a 'Percentage' type referenced via $ref), especially one restricted to an enum of fixed values rather than a range.",
+    "data-model.stringschema": "the value is serialized as a string even though it looks numeric, e.g. a decimal-as-string money amount, a zero-padded code or a phone number constrained by pattern or length.",
+    "data-model.schemacomposition": "the numeric constraint is formed by combining subschemas with allOf/anyOf/oneOf/not, e.g. 'positive OR null', rather than by a single set of bounds."
   }
 }

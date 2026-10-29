@@ -28,7 +28,7 @@
     "accesspattern": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AccessPattern",
-      "description": "A documented data access pattern that describes how applications read or write data. Critical for NoSQL data modeling where schema design is driven by access patterns rather than normalization.",
+      "description": "A single named read or write operation against one collection, characterized by its key condition, optional sort and filter conditions, and operation category, as issued by application code or listed in a data-model design. It describes the request shape the application sends to the store, not a structure or computation stored in the engine. Use StoredLogic instead when the computation is defined and registered inside the database engine (SQL function or procedure, aggregation pipeline saved server-side, Lua script loaded via SCRIPT LOAD) rather than issued as a query from application code. Use View instead when the query is persisted in the schema as a named derived collection (CREATE VIEW, materialized view, search alias) that other queries read from. Use Index instead when the element is the physical lookup structure (CREATE INDEX, GSI, vector index) that makes a lookup efficient, not the lookup itself. Use EventHandler instead when the logic runs reactively in response to a data-change event (trigger, change stream, CDC consumer) rather than being requested by an application call.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -113,12 +113,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-2 (Foundation) query specification and SQL-data change statements (approximate; the access pattern is a NoSQL data-modeling construct with no direct SQL counterpart)",
+      "x-dr-evidence": [
+        "a repository or DAO method that issues one parameterized query against a single table or collection, e.g. Spring Data findByCustomerIdAndStatus, an @Query annotation, or a Mongoose Model.find({customerId}) call",
+        "a DynamoDB GetItem/Query/PutItem/BatchWriteItem call, or a Cassandra prepared statement, carrying a KeyConditionExpression or WHERE clause on partition and clustering keys",
+        "a data-model design document or single-table-design spreadsheet that enumerates access patterns with their PK/SK expressions, GSI used, and expected request rate"
+      ],
+      "x-dr-distinguish": {
+        "data-store.storedlogic": "the computation is defined and registered inside the database engine (SQL function or procedure, aggregation pipeline saved server-side, Lua script loaded via SCRIPT LOAD) rather than issued as a query from application code",
+        "data-store.view": "the query is persisted in the schema as a named derived collection (CREATE VIEW, materialized view, search alias) that other queries read from",
+        "data-store.index": "the element is the physical lookup structure (CREATE INDEX, GSI, vector index) that makes a lookup efficient, not the lookup itself",
+        "data-store.eventhandler": "the logic runs reactively in response to a data-change event (trigger, change stream, CDC consumer) rather than being requested by an application call"
+      },
       "$id": "urn:dr:spec:node:data-store.accesspattern"
     },
     "collection": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Collection",
-      "description": "A container for records, documents, or entries within a data store. Paradigm-neutral: maps to SQL table, document store collection, key-value bucket/hash, wide-column table/column family, vector collection, time-series measurement/hypertable, graph node label or edge type, and search engine index.",
+      "description": "A named, persistent container that directly stores base records, documents, key-value entries, nodes or edges inside a database or namespace, and whose contents are written to it rather than derived from other containers. It maps to a SQL base table, document collection, key-value bucket or structure, column family, vector collection, time-series measurement or hypertable, graph node label or edge type, and search-engine index. Use View instead when the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly. Use Namespace instead when the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records. Use Index instead when the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection. Use Field instead when the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -180,12 +192,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) §11.3 <table definition> (persistent base table), generalised by the paradigm extensions",
+      "x-dr-evidence": [
+        "A CREATE TABLE, CREATE COLUMNFAMILY or create_hypertable statement in a migration or DDL file, or a db.createCollection / client.indices.create call with mappings.",
+        "An ORM or ODM mapping that binds a class to a named store container, such as a JPA @Entity/@Table, SQLAlchemy __tablename__, Django Model Meta.db_table, Mongoose model('Order', schema) or Spring @Document(collection=...).",
+        "An infrastructure-as-code resource declaring a container with keys or TTL, such as a Terraform aws_dynamodb_table with hash_key/range_key, a Pinecone or Qdrant collection with a vector size, or a Neo4j label used in MERGE (:Label) setup scripts."
+      ],
+      "x-dr-distinguish": {
+        "data-store.view": "the container's contents are computed from one or more other collections by a query, alias or continuous aggregate rather than written to it directly.",
+        "data-store.namespace": "the element groups several containers (SQL schema, Cassandra keyspace, MongoDB database, Redis key prefix) and does not itself hold records.",
+        "data-store.index": "the structure exists only to speed up lookups over another container's fields (B-tree, HNSW, inverted index) and is not queried as the data's home; an Elasticsearch index holding documents remains a collection.",
+        "data-store.field": "the element is a single named attribute or property of records, such as a column, document path or graph property, rather than the container of records."
+      },
       "$id": "urn:dr:spec:node:data-store.collection"
     },
     "database": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Database",
-      "description": "A database instance representing a top-level data store deployment. Paradigm-neutral: covers relational databases, document stores, key-value stores, wide-column stores, vector databases, time-series databases, graph databases, search engines, and multi-model systems.",
+      "description": "A named, independently addressable data store deployment, typically a database or catalog on a specific engine reached through its own connection endpoint or connection string, that contains namespaces and collections. It is the outermost persistence boundary an application connects to, regardless of paradigm. Use Namespace instead when the element is a logical grouping inside a connected deployment. Examples include a PostgreSQL schema, a Cassandra keyspace, a Redis key prefix, or a MongoDB 'database' selected on an already-open client connection. Use Collection instead when the element is a single container of records, such as a table, a DynamoDB table, an Elasticsearch index, or a vector collection, rather than the deployment that hosts it. Use View instead when the element is a derived or virtual container defined by a query over existing collections, not a separately deployed store.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -224,13 +248,16 @@
               "description": "Primary data model paradigm. RELATIONAL: SQL-based tabular data (PostgreSQL, MySQL, Oracle). DOCUMENT: JSON/BSON document storage (MongoDB, CouchDB, Firestore). KEY_VALUE: simple key-to-value mapping (Redis, DynamoDB, etcd). WIDE_COLUMN: column-family storage (Cassandra, HBase, Bigtable). VECTOR: vector embedding storage and similarity search (Pinecone, Weaviate, Qdrant). TIME_SERIES: time-indexed measurements (InfluxDB, TimescaleDB). GRAPH: nodes and edges with traversal (Neo4j, Neptune). SEARCH_ENGINE: full-text search and analytics (Elasticsearch, OpenSearch). MULTI_MODEL: natively supports multiple paradigms (ArangoDB, CosmosDB, FaunaDB)."
             },
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Release version of the database engine in the vendor's own format (e.g. '15.4', '7.0', '8.0.35'); set it when it is pinned in an image tag, provider config or migration baseline."
             },
             "charset": {
-              "type": "string"
+              "type": "string",
+              "description": "Default character encoding for text stored in this database (e.g. 'UTF8', 'utf8mb4', 'LATIN1'); set it when it is declared at creation time, mainly for relational engines."
             },
             "collation": {
-              "type": "string"
+              "type": "string",
+              "description": "Default collation governing string comparison and sort order (e.g. 'en_US.UTF-8', 'utf8mb4_unicode_ci', 'C'); set it when it is explicitly configured at database creation."
             },
             "deploymentModel": {
               "type": "string",
@@ -249,12 +276,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-1 SQL-environment: catalog (a named collection of SQL-schemas managed by an SQL-server), generalised to non-relational engines",
+      "x-dr-evidence": [
+        "A connection URL or DSN in configuration or environment variables naming an engine, host and database, e.g. DATABASE_URL=postgres://db:5432/orders, MONGO_URI or spring.datasource.url.",
+        "An infrastructure declaration provisioning a store, e.g. a docker-compose service using a postgres/mongo/redis image with POSTGRES_DB, or a Terraform aws_db_instance, aws_dynamodb_table group or google_sql_database resource.",
+        "An ORM or driver datasource block registering a named connection, e.g. a Prisma 'datasource db' with a provider, Django DATABASES['default'], or SQLAlchemy create_engine()/Mongoose connect() invoked at application startup."
+      ],
+      "x-dr-distinguish": {
+        "data-store.namespace": "the element is a logical grouping inside a connected deployment. Examples include a PostgreSQL schema, a Cassandra keyspace, a Redis key prefix, or a MongoDB 'database' selected on an already-open client connection.",
+        "data-store.collection": "the element is a single container of records, such as a table, a DynamoDB table, an Elasticsearch index, or a vector collection, rather than the deployment that hosts it.",
+        "data-store.view": "the element is a derived or virtual container defined by a query over existing collections, not a separately deployed store."
+      },
       "$id": "urn:dr:spec:node:data-store.database"
     },
     "eventhandler": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EventHandler",
-      "description": "A reactive mechanism that executes in response to data change events. Paradigm-neutral: covers SQL triggers, MongoDB change streams, DynamoDB Streams, Cassandra CDC, Redis keyspace notifications, Elasticsearch watchers, Neo4j APOC triggers, and time-series alerting rules.",
+      "description": "A registered binding, declared in or against a data store, that attaches to a collection or database scope and runs an action automatically when specified data-change events or data conditions occur there (SQL trigger, change-stream or CDC subscription, keyspace notification, watcher or alert rule). It is the activation wiring (event, timing, granularity, filter), not the computation body it invokes. Use StoredLogic instead when the symbol is the function, procedure, Lua script or pipeline body that does the work (e.g. the trigger function created by CREATE FUNCTION ... RETURNS trigger), not the declaration that binds it to events. Use ValidationRule instead when integrity is enforced declaratively by the engine (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator) rather than by a BEFORE trigger that runs code to reject or rewrite rows. Use RetentionPolicy instead when the mechanism is a TTL, ILM or downsampling policy that expires or moves data by age, rather than reacting to individual insert, update, delete or expiry events with custom logic. Use View instead when derived data is kept current by a materialized view or continuous aggregate refresh policy rather than by a handler that writes to another collection on each change.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -338,19 +376,32 @@
               "description": "Optional filter condition. Only events matching this condition activate the handler. Maps to SQL WHEN clause, MongoDB pipeline $match stage, or Elasticsearch watcher condition."
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether the handler is currently active and will fire; set false when it is declared but disabled (e.g. ALTER TABLE ... DISABLE TRIGGER, a paused connector or deactivated watcher), otherwise true, which is the default."
             }
           },
           "required": ["handlerType", "events"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) <trigger definition> (CREATE TRIGGER), extended to change streams, CDC and keyspace notifications",
+      "x-dr-evidence": [
+        "A migration or DDL file containing CREATE TRIGGER ... BEFORE|AFTER INSERT OR UPDATE ON <table> FOR EACH ROW EXECUTE FUNCTION <fn>()",
+        "Code or config opening a change feed on a store, e.g. MongoDB collection.watch([{ $match: ... }]), a DynamoDB StreamSpecification with a Lambda event source mapping, or a Debezium connector config listing table.include.list",
+        "Redis setup issuing CONFIG SET notify-keyspace-events (or notify-keyspace-events in redis.conf) together with a PSUBSCRIBE on __keyspace@*__ or __keyevent@*__ channels"
+      ],
+      "x-dr-distinguish": {
+        "data-store.storedlogic": "the symbol is the function, procedure, Lua script or pipeline body that does the work (e.g. the trigger function created by CREATE FUNCTION ... RETURNS trigger), not the declaration that binds it to events.",
+        "data-store.validationrule": "integrity is enforced declaratively by the engine (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator) rather than by a BEFORE trigger that runs code to reject or rewrite rows.",
+        "data-store.retentionpolicy": "the mechanism is a TTL, ILM or downsampling policy that expires or moves data by age, rather than reacting to individual insert, update, delete or expiry events with custom logic.",
+        "data-store.view": "derived data is kept current by a materialized view or continuous aggregate refresh policy rather than by a handler that writes to another collection on each change."
+      },
       "$id": "urn:dr:spec:node:data-store.eventhandler"
     },
     "field": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Field",
-      "description": "A named data element within a collection. Paradigm-neutral: maps to SQL column, document store field/path, key-value hash field, wide-column column, vector dimension or metadata field, time-series tag or field, graph property, and search engine mapping property.",
+      "description": "A named, typed data element declared in the physical structure of a persisted collection, whose value is stored for each record. Covers a SQL column, document field or path, hash field, wide-column column, time-series tag or field, vector or metadata field, graph property, and search-engine mapping property. Use Collection instead when the symbol declares the container of records (table, collection, bucket, measurement, node label) rather than one named element inside it. Use Index instead when the symbol declares a lookup structure over one or more existing fields (CREATE INDEX, createIndex, mapping index option) rather than the stored element itself. Use ValidationRule instead when the symbol is a separately declared constraint (PRIMARY KEY, FOREIGN KEY, CHECK, UNIQUE, JSON Schema required list) that restricts field values, rather than the field declaration. Use View instead when the column appears only in a derived query or projection (SELECT list of a view, continuous aggregate) and is not stored in a base collection.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -374,10 +425,12 @@
               "description": "Data type of this field. Interpretation is paradigm-specific: SQL types (VARCHAR, INTEGER, TIMESTAMP), BSON types (String, ObjectId, Document), Elasticsearch mapping types (keyword, text, dense_vector), or any engine-native type name."
             },
             "nullable": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether the store accepts an absent or null value for this field. Set false when the declaration carries NOT NULL, required: true, or an equivalent, and true when nulls or missing paths are explicitly allowed."
             },
             "defaultValue": {
-              "type": "string"
+              "type": "string",
+              "description": "The literal or expression the store assigns when a write omits this field, recorded as written in the source (e.g. '0', 'now()', 'CURRENT_TIMESTAMP'). Set only when the default is declared in the storage schema, not when it is assigned in application code."
             },
             "generated": {
               "type": "string",
@@ -425,12 +478,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-2 §11.4 <column definition> (column descriptor)",
+      "x-dr-evidence": [
+        "a column clause inside CREATE TABLE or ALTER TABLE ... ADD COLUMN in a migration script (e.g. 'email VARCHAR(255) NOT NULL')",
+        "an ORM-mapped attribute such as a JPA @Column field, SQLAlchemy Column(...), Django models.CharField, or Prisma model field line",
+        "an entry under a document or search schema definition, such as a Mongoose schema path, a MongoDB $jsonSchema property, or an Elasticsearch mappings.properties key with a type"
+      ],
+      "x-dr-distinguish": {
+        "data-store.collection": "the symbol declares the container of records (table, collection, bucket, measurement, node label) rather than one named element inside it",
+        "data-store.index": "the symbol declares a lookup structure over one or more existing fields (CREATE INDEX, createIndex, mapping index option) rather than the stored element itself",
+        "data-store.validationrule": "the symbol is a separately declared constraint (PRIMARY KEY, FOREIGN KEY, CHECK, UNIQUE, JSON Schema required list) that restricts field values, rather than the field declaration",
+        "data-store.view": "the column appears only in a derived query or projection (SELECT list of a view, continuous aggregate) and is not stored in a base collection"
+      },
       "$id": "urn:dr:spec:node:data-store.field"
     },
     "index": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Index",
-      "description": "A database index for query optimization. Paradigm-neutral: covers B-tree and hash indexes (relational), compound and multikey indexes (document stores), vector approximate nearest neighbor indexes (HNSW, IVF), inverted indexes (search engines), geospatial indexes, and secondary indexes (wide-column stores).",
+      "description": "A lookup structure the data store engine maintains alongside a collection's or view's records, keyed on one or more of its fields with a declared access method (B-tree, hash, inverted, ANN, geospatial and similar). Queries use it to locate matching entries without scanning the whole collection. Use ValidationRule instead when the declaration is a PRIMARY KEY, UNIQUE or FOREIGN KEY constraint whose purpose is rejecting invalid data, even if the engine backs it with an implicit index; model a separate Index only when the index is declared explicitly. Use Collection instead when the thing called an 'index' is itself the container of documents or vectors, such as an Elasticsearch/OpenSearch index (collectionType SEARCH_INDEX) or a Pinecone index, rather than an auxiliary structure over another container's fields. Use AccessPattern instead when the code or documentation describes the shape of a read or write (key condition, filter, frequency) rather than a structure declared to the engine. Use View instead when the structure holds derived rows that are queried directly, such as a materialized view or continuous aggregate, rather than pointers back to the source records.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -454,7 +519,8 @@
               "description": "Field name(s) included in the index key."
             },
             "unique": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean that is true when the index rejects duplicate key values across indexed entries (CREATE UNIQUE INDEX, MongoDB {unique: true}); set it only when the index declaration itself enforces uniqueness, and otherwise leave it false or unset."
             },
             "method": {
               "type": "string",
@@ -523,12 +589,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "None in ISO/IEC 9075: indexes are implementation-defined; the de facto reference is the vendor CREATE INDEX statement (e.g. PostgreSQL CREATE INDEX).",
+      "x-dr-evidence": [
+        "A CREATE INDEX / CREATE UNIQUE INDEX statement (optionally with USING gin|hnsw|ivfflat or a WHERE predicate) in a migration script, or a migration-tool call such as op.create_index, add_index, or knex table.index().",
+        "An ORM or schema declaration of an index: Prisma @@index, Django Meta.indexes, SQLAlchemy Index(...) in __table_args__, JPA @Table(indexes=@Index(...)), or a Mongoose schema.index({...}) call.",
+        "Engine-specific index provisioning: a MongoDB createIndex({...}, {partialFilterExpression, sparse}) call, DynamoDB GlobalSecondaryIndexes/LocalSecondaryIndexes in CloudFormation or Terraform, or a Cassandra CREATE CUSTOM INDEX / SAI statement."
+      ],
+      "x-dr-distinguish": {
+        "data-store.validationrule": "the declaration is a PRIMARY KEY, UNIQUE or FOREIGN KEY constraint whose purpose is rejecting invalid data, even if the engine backs it with an implicit index; model a separate Index only when the index is declared explicitly.",
+        "data-store.collection": "the thing called an 'index' is itself the container of documents or vectors, such as an Elasticsearch/OpenSearch index (collectionType SEARCH_INDEX) or a Pinecone index, rather than an auxiliary structure over another container's fields.",
+        "data-store.accesspattern": "the code or documentation describes the shape of a read or write (key condition, filter, frequency) rather than a structure declared to the engine.",
+        "data-store.view": "the structure holds derived rows that are queried directly, such as a materialized view or continuous aggregate, rather than pointers back to the source records."
+      },
       "$id": "urn:dr:spec:node:data-store.index"
     },
     "namespace": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Namespace",
-      "description": "A logical grouping of database objects within a database instance. Paradigm-neutral: maps to SQL schema, MongoDB database, Cassandra keyspace, Redis namespace/prefix, Elasticsearch index, vector database namespace, and graph database named graph.",
+      "description": "A named logical container inside a single database instance that scopes the names of collections, views, indexes, stored logic and other database objects, but does not itself hold records. Corresponds to an SQL schema, a MongoDB database, a Cassandra keyspace, a Redis key prefix convention, a vector-store namespace, or a graph named graph. Use Database instead when the element is the deployed engine instance or server/cluster that you connect to (host, engine, version, deployment model), not a name-scoping container within it. Use Collection instead when the element directly stores records, documents, keys or vectors, such as a table, a MongoDB collection, a Cassandra table, or an Elasticsearch index that holds documents. Use View instead when the element is a derived or virtual record set defined by a query or alias over source collections rather than a container that scopes object names.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -548,18 +626,30 @@
           "type": "object",
           "properties": {
             "owner": {
-              "type": "string"
+              "type": "string",
+              "description": "The database role, user or principal that owns the namespace and holds default privileges over its objects, e.g. the AUTHORIZATION role in CREATE SCHEMA. Set it when ownership is declared in DDL or provisioning code, and leave it empty for paradigms without an ownership concept, such as Redis prefixes."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ISO/IEC 9075-2 Clause 11.1 <schema definition> (CREATE SCHEMA)",
+      "x-dr-evidence": [
+        "a migration or DDL script containing CREATE SCHEMA, CREATE KEYSPACE, or CREATE DATABASE inside a MongoDB/MySQL-style server, or a USE <name> statement",
+        "ORM or mapping configuration that qualifies tables with a schema name, e.g. @Table(schema=\"billing\"), SQLAlchemy MetaData(schema=\"billing\"), or Prisma @@schema(\"billing\")",
+        "client code selecting a scoped container by name, e.g. mongoClient.getDatabase(\"orders\"), session.execute(\"USE analytics\"), a Pinecone upsert(namespace=\"tenant-42\"), or a constant Redis key prefix such as \"cart:\" applied to every key"
+      ],
+      "x-dr-distinguish": {
+        "data-store.database": "the element is the deployed engine instance or server/cluster that you connect to (host, engine, version, deployment model), not a name-scoping container within it",
+        "data-store.collection": "the element directly stores records, documents, keys or vectors, such as a table, a MongoDB collection, a Cassandra table, or an Elasticsearch index that holds documents",
+        "data-store.view": "the element is a derived or virtual record set defined by a query or alias over source collections rather than a container that scopes object names"
       },
       "$id": "urn:dr:spec:node:data-store.namespace"
     },
     "retentionpolicy": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RetentionPolicy",
-      "description": "A data lifecycle management policy that governs how long data is retained and what action is taken when the retention period expires. Applicable across paradigms: time-series downsampling, key-value TTL, search index lifecycle, relational partition pruning, and archival strategies.",
+      "description": "A data lifecycle rule, declared in or enforced by the data store, that sets a maximum age for records in a collection or namespace and names the single action (delete, archive, downsample, move tier or compress) applied to records older than that age. Use ValidationRule instead when the rule constrains or rejects writes, such as a TTL_CONSTRAINT requiring every key to carry an expiry, rather than removing or transforming data that has aged out. Use StoredLogic instead when the symbol is the executable job, function or continuous query that performs the purge or rollup; the policy only declares age and action and triggers that logic. Use View instead when the downsampled result is a queryable derived collection such as a TimescaleDB continuous aggregate; the retention policy governs only when the source data expires. Use EventHandler instead when the code reacts to expiry or deletion events, such as a Redis keyspace EXPIRE notification listener, instead of defining when data expires.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -602,19 +692,31 @@
               "description": "For DOWNSAMPLE action, the aggregation interval (e.g., '1h', '1d'). Only applicable when action is DOWNSAMPLE."
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether the policy is currently active and enforced by the engine; set to false when the policy is defined but suspended (e.g., a disabled TimescaleDB job or paused ILM policy), otherwise true or omitted."
             }
           },
           "required": ["targetCollection", "retentionDuration", "action"],
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A migration or setup script containing InfluxDB `CREATE RETENTION POLICY ... DURATION 30d`, TimescaleDB `add_retention_policy('metrics', INTERVAL '90 days')`, or pg_partman `retention` settings on a partitioned table",
+        "An Elasticsearch ILM or OpenSearch ISM policy document with phases such as `delete.min_age`, or IaC declaring DynamoDB `TimeToLiveSpecification` or S3 lifecycle rules for a storage bucket",
+        "A MongoDB index created with `expireAfterSeconds`, or a scheduled purge job (cron or worker) issuing `DELETE ... WHERE created_at < now() - interval` or dropping old partitions"
+      ],
+      "x-dr-distinguish": {
+        "data-store.validationrule": "the rule constrains or rejects writes, such as a TTL_CONSTRAINT requiring every key to carry an expiry, rather than removing or transforming data that has aged out",
+        "data-store.storedlogic": "the symbol is the executable job, function or continuous query that performs the purge or rollup; the policy only declares age and action and triggers that logic",
+        "data-store.view": "the downsampled result is a queryable derived collection such as a TimescaleDB continuous aggregate; the retention policy governs only when the source data expires",
+        "data-store.eventhandler": "the code reacts to expiry or deletion events, such as a Redis keyspace EXPIRE notification listener, instead of defining when data expires"
+      },
       "$id": "urn:dr:spec:node:data-store.retentionpolicy"
     },
     "storedlogic": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StoredLogic",
-      "description": "Stored computation logic that executes within the data store engine. Paradigm-neutral: covers SQL functions and procedures, MongoDB aggregation pipelines, Redis Lua scripts, Cassandra UDFs, Neo4j stored procedures, Elasticsearch ingest pipelines, time-series continuous queries, and DynamoDB Lambda triggers.",
+      "description": "A named unit of executable logic that is deployed into and executed by the data store engine itself, such as an SQL function, procedure or package, a Redis Lua script or function, a Cassandra UDF/UDA, a Neo4j procedure, an Elasticsearch ingest pipeline or Painless script, or a scheduled time-series task. It is invoked by name, by an event handler, or on a schedule, rather than shipped as a query text by application code. Use EventHandler instead when the element is the binding that fires on a data-change event (CREATE TRIGGER, a change-stream subscription, a keyspace notification listener), not the routine body that the binding calls. Use View instead when the stored query is exposed as a readable derived collection (CREATE VIEW, a materialized view, a continuous aggregate, a search alias) that clients select from, rather than a routine they invoke. Use AccessPattern instead when the query or aggregation pipeline is built and sent ad hoc by repository/DAO code on each call and is never registered in the engine. Use ValidationRule instead when the integrity check is a declarative constraint (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator, strict mapping) rather than procedural code.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -706,12 +808,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-2 SQL-invoked routines (CREATE FUNCTION / CREATE PROCEDURE) and ISO/IEC 9075-4 SQL/PSM (Persistent Stored Modules)",
+      "x-dr-evidence": [
+        "A migration or schema file containing CREATE [OR REPLACE] FUNCTION, CREATE PROCEDURE or CREATE PACKAGE with a LANGUAGE clause (plpgsql, tsql, java) and a routine body, e.g. a $$-delimited block",
+        "A .lua script file loaded with SCRIPT LOAD and called via EVALSHA, or registered with redis.register_function / ioredis defineCommand",
+        "Application code calling a routine by name (JDBC CallableStatement '{call ...}', Python cursor.callproc, Spring @Procedure, Npgsql CommandType.StoredProcedure), or engine config such as PUT _ingest/pipeline/<name> or an InfluxDB task with 'option task = {every: ...}'"
+      ],
+      "x-dr-distinguish": {
+        "data-store.eventhandler": "the element is the binding that fires on a data-change event (CREATE TRIGGER, a change-stream subscription, a keyspace notification listener), not the routine body that the binding calls",
+        "data-store.view": "the stored query is exposed as a readable derived collection (CREATE VIEW, a materialized view, a continuous aggregate, a search alias) that clients select from, rather than a routine they invoke",
+        "data-store.accesspattern": "the query or aggregation pipeline is built and sent ad hoc by repository/DAO code on each call and is never registered in the engine",
+        "data-store.validationrule": "the integrity check is a declarative constraint (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator, strict mapping) rather than procedural code"
+      },
       "$id": "urn:dr:spec:node:data-store.storedlogic"
     },
     "validationrule": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ValidationRule",
-      "description": "A data integrity or validation rule enforced by the data store. Paradigm-neutral: covers SQL constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK, NOT NULL), document store schema validation and required fields, graph uniqueness and existence constraints, key-value key format rules, and search engine mapping enforcement.",
+      "description": "A declarative integrity constraint, declared in the data store's schema or collection configuration and enforced by the storage engine itself, that restricts which records, field values, keys or cross-collection references a write may produce. Application-side validation that the engine never sees, and imperative checks coded in triggers or procedures, are not instances. Use EventHandler instead when the check is imperative logic fired by a change event, such as a BEFORE INSERT trigger that raises an exception, rather than a declared constraint. Use Index instead when the declaration is an index created mainly to speed up lookups; a UNIQUE or PRIMARY KEY constraint that the engine happens to back with an index is still a validationrule. Use Field instead when the only restriction is the field's declared dataType, nullable flag, default or generation rule, with no separately named or declared constraint. Use RetentionPolicy instead when the rule governs how long data is kept and expires, deletes, archives or downsamples it, rather than rejecting or flagging invalid writes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -799,12 +913,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) §11.6 <table constraint definition>, with §11.7 unique, §11.8 referential and §11.9 check constraint definitions",
+      "x-dr-evidence": [
+        "Migration or DDL statements containing constraint clauses, such as ALTER TABLE ... ADD CONSTRAINT, PRIMARY KEY (...), FOREIGN KEY ... REFERENCES ... ON DELETE CASCADE, or CHECK (...).",
+        "Engine-level validator or constraint commands, such as MongoDB createCollection/collMod with validator: {$jsonSchema: ...} and validationAction, or Neo4j CREATE CONSTRAINT ... REQUIRE n.email IS UNIQUE / IS NOT NULL.",
+        "ORM or schema-config declarations that emit engine constraints, such as SQLAlchemy CheckConstraint/UniqueConstraint/ForeignKey, Django Meta.constraints, or an Elasticsearch mapping with \"dynamic\": \"strict\"."
+      ],
+      "x-dr-distinguish": {
+        "data-store.eventhandler": "the check is imperative logic fired by a change event, such as a BEFORE INSERT trigger that raises an exception, rather than a declared constraint.",
+        "data-store.index": "the declaration is an index created mainly to speed up lookups; a UNIQUE or PRIMARY KEY constraint that the engine happens to back with an index is still a validationrule.",
+        "data-store.field": "the only restriction is the field's declared dataType, nullable flag, default or generation rule, with no separately named or declared constraint.",
+        "data-store.retentionpolicy": "the rule governs how long data is kept and expires, deletes, archives or downsamples it, rather than rejecting or flagging invalid writes."
+      },
       "$id": "urn:dr:spec:node:data-store.validationrule"
     },
     "view": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "View",
-      "description": "A derived or virtual collection that presents data from one or more source collections. Paradigm-neutral: covers SQL views and materialized views, search engine aliases, document store views (CouchDB), time-series continuous aggregates (TimescaleDB), and named graph projections.",
+      "description": "A named collection registered in the data store engine whose contents are derived, by a stored query, pipeline or alias, from one or more source collections or views rather than written directly by applications. It is read like a collection and may be computed on each read or precomputed and refreshed. Use Collection instead when the container holds base records that applications insert directly, including a table filled by an ETL job or by a $merge/$out stage, since the engine does not maintain it from a defining query. Use StoredLogic instead when the query or pipeline is invoked procedurally (called with parameters, run as a scheduled task or script) rather than exposed as a named, queryable object, e.g. an InfluxDB continuous query writing into a measurement. Use AccessPattern instead when the query lives only in application or repository code and is not registered in the engine as a named derived object. Use RetentionPolicy instead when the element is the lifecycle rule that downsamples or expires data, not the derived aggregate that results from it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -850,6 +976,18 @@
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) <view definition> (CREATE VIEW); materialized views and non-relational aliases or aggregates are paradigm extensions",
+      "x-dr-evidence": [
+        "a CREATE VIEW, CREATE MATERIALIZED VIEW or CREATE OR REPLACE VIEW statement in a migration or schema file, often paired with a REFRESH MATERIALIZED VIEW job",
+        "a MongoDB db.createView(name, source, pipeline) call, an Elasticsearch _aliases or index-template alias definition, or a TimescaleDB CREATE MATERIALIZED VIEW ... WITH (timescaledb.continuous) statement",
+        "an ORM entity mapped to a read-only database object, such as a Django model with managed=False whose db_table names a view, a Hibernate @Immutable/@Subselect entity, or an SQLAlchemy Table reflected from a view"
+      ],
+      "x-dr-distinguish": {
+        "data-store.collection": "the container holds base records that applications insert directly, including a table filled by an ETL job or by a $merge/$out stage, since the engine does not maintain it from a defining query",
+        "data-store.storedlogic": "the query or pipeline is invoked procedurally (called with parameters, run as a scheduled task or script) rather than exposed as a named, queryable object, e.g. an InfluxDB continuous query writing into a measurement",
+        "data-store.accesspattern": "the query lives only in application or repository code and is not registered in the engine as a named derived object",
+        "data-store.retentionpolicy": "the element is the lifecycle rule that downsamples or expires data, not the derived aggregate that results from it"
       },
       "$id": "urn:dr:spec:node:data-store.view"
     }

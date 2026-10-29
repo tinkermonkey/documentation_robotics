@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View",
-  "description": "A derived or virtual collection that presents data from one or more source collections. Paradigm-neutral: covers SQL views and materialized views, search engine aliases, document store views (CouchDB), time-series continuous aggregates (TimescaleDB), and named graph projections.",
+  "description": "A named collection registered in the data store engine whose contents are derived, by a stored query, pipeline or alias, from one or more source collections or views rather than written directly by applications. It is read like a collection and may be computed on each read or precomputed and refreshed. Use Collection instead when the container holds base records that applications insert directly, including a table filled by an ETL job or by a $merge/$out stage, since the engine does not maintain it from a defining query. Use StoredLogic instead when the query or pipeline is invoked procedurally (called with parameters, run as a scheduled task or script) rather than exposed as a named, queryable object, e.g. an InfluxDB continuous query writing into a measurement. Use AccessPattern instead when the query lives only in application or repository code and is not registered in the engine as a named derived object. Use RetentionPolicy instead when the element is the lifecycle rule that downsamples or expires data, not the derived aggregate that results from it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -47,5 +47,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ISO/IEC 9075-2 (SQL/Foundation) <view definition> (CREATE VIEW); materialized views and non-relational aliases or aggregates are paradigm extensions",
+  "x-dr-evidence": [
+    "a CREATE VIEW, CREATE MATERIALIZED VIEW or CREATE OR REPLACE VIEW statement in a migration or schema file, often paired with a REFRESH MATERIALIZED VIEW job",
+    "a MongoDB db.createView(name, source, pipeline) call, an Elasticsearch _aliases or index-template alias definition, or a TimescaleDB CREATE MATERIALIZED VIEW ... WITH (timescaledb.continuous) statement",
+    "an ORM entity mapped to a read-only database object, such as a Django model with managed=False whose db_table names a view, a Hibernate @Immutable/@Subselect entity, or an SQLAlchemy Table reflected from a view"
+  ],
+  "x-dr-distinguish": {
+    "data-store.collection": "the container holds base records that applications insert directly, including a table filled by an ETL job or by a $merge/$out stage, since the engine does not maintain it from a defining query",
+    "data-store.storedlogic": "the query or pipeline is invoked procedurally (called with parameters, run as a scheduled task or script) rather than exposed as a named, queryable object, e.g. an InfluxDB continuous query writing into a measurement",
+    "data-store.accesspattern": "the query lives only in application or repository code and is not registered in the engine as a named derived object",
+    "data-store.retentionpolicy": "the element is the lifecycle rule that downsamples or expires data, not the derived aggregate that results from it"
   }
 }

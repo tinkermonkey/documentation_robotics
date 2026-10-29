@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NavigationGuard",
-  "description": "A conditional interceptor that evaluates whether a user is permitted to activate a route, applied at route resolution time before the target component renders. Guards encapsulate cross-cutting access policies — authentication state, role membership, feature-flag enablement, or custom predicates — and execute in priority order (lowest order value first) when multiple guards protect the same route. A guard may allow activation, redirect the user, or block navigation entirely based on its evaluation result.",
+  "description": "A client-side router interceptor that runs during route resolution, before the target view renders, and decides whether a navigation to one or more routes may proceed, by evaluating a GuardCondition and, on denial, triggering a GuardAction. It is the executable hook registered with the SPA router (global, per-route or per-flow), not the predicate it evaluates, the response it takes on denial, or the route metadata it reads. Use GuardCondition instead when the symbol is only the boolean predicate or expression (e.g. isAuthenticated(), hasRole('admin')) and is not itself registered with the router as an interceptor. Use GuardAction instead when the symbol is only the denial response: the redirect target, block, notification message or confirmation prompt returned or executed when access is refused. Use RouteMeta instead when the symbol is declarative per-route data (meta.requiresAuth, data.roles, canDeactivate flags) that a guard reads but which performs no evaluation itself. Use NavigationTransition instead when the symbol models the edge between two routes and its trigger, rather than the check that permits or denies traversing that edge.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,10 +26,12 @@
           "description": "Classification of the guard mechanism: auth (authentication check), role (role membership), permission (fine-grained permission), feature-flag (feature toggle), custom (arbitrary condition)."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the access policy the guard enforces and the routes or flows it protects, e.g. 'Blocks admin routes for users without the admin role'; set whenever the guard's purpose is not obvious from its type and name."
         },
         "order": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Non-negative integer execution priority among guards protecting the same route, evaluated lowest value first; derive it from registration order in the router (array position in canActivate, beforeEach registration sequence) and set it whenever more than one guard can apply."
         },
         "source": {
           "type": "object",
@@ -39,5 +41,17 @@
       "required": ["type", "order"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: Route Guard / navigation hook (e.g. Angular CanActivate/CanMatch/CanDeactivate, Vue Router beforeEach/beforeEnter, React Router loader-based redirect)",
+  "x-dr-evidence": [
+    "a function or class implementing CanActivate, CanActivateChild, CanMatch or CanDeactivate (or a CanActivateFn) listed in a route's canActivate/canMatch array",
+    "a callback registered via router.beforeEach, router.beforeResolve or a route's beforeEnter that calls next(false), next('/login') or returns a redirect location",
+    "a React Router loader or wrapper component such as <RequireAuth>/<ProtectedRoute> that checks session, role or feature flag and returns redirect('/login') or <Navigate> before rendering the child route"
+  ],
+  "x-dr-distinguish": {
+    "navigation.guardcondition": "the symbol is only the boolean predicate or expression (e.g. isAuthenticated(), hasRole('admin')) and is not itself registered with the router as an interceptor",
+    "navigation.guardaction": "the symbol is only the denial response: the redirect target, block, notification message or confirmation prompt returned or executed when access is refused",
+    "navigation.routemeta": "the symbol is declarative per-route data (meta.requiresAuth, data.roles, canDeactivate flags) that a guard reads but which performs no evaluation itself",
+    "navigation.navigationtransition": "the symbol models the edge between two routes and its trigger, rather than the check that permits or denies traversing that edge"
   }
 }

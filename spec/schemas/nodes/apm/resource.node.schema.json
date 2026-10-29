@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Resource",
-  "description": "Immutable set of attributes identifying the entity (service, host, process) that produces telemetry. Resource attributes are merged into all signals (traces, metrics, logs) emitted by a process at the SDK level, making accurate resource definition critical for cross-signal correlation.",
+  "description": "An immutable set of OpenTelemetry attributes, built once per SDK or process from code, environment variables or resource detectors, that identifies the telemetry-producing entity (service, host, process, container, cloud instance). The SDK attaches it unchanged to every span, metric and log record that the process's providers emit. Use InstrumentationScope instead when the name, version and attributes identify the library or module that created the tracer, meter or logger, rather than the service or process emitting the telemetry. Use TraceConfiguration instead when the code configures TracerProvider behaviour such as samplers, propagators or span processors, even if a Resource object is passed into the same constructor. Use MetricConfiguration instead when the code sets MeterProvider-level export intervals, cardinality limits or exemplar filtering rather than entity identity attributes. Use Span instead when the attributes vary per operation or request (e.g. http.route, db.statement) instead of being constant for the whole process.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "schemaUrl": {
-          "type": "string"
+          "type": "string",
+          "description": "URL of the OpenTelemetry semantic-conventions schema version that the resource attribute keys follow (e.g. 'https://opentelemetry.io/schemas/1.21.0'); set it when the resource or its detectors declare an explicit schema version."
         },
         "droppedAttributesCount": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Non-negative integer count of resource attributes discarded because of attribute limits or invalid values; set it to 0 when all attributes were retained."
         },
         "serviceName": {
           "type": "string",
@@ -47,5 +49,17 @@
       "required": ["droppedAttributesCount"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Specification: Resource SDK and Resource Semantic Conventions (service.*, host.*, process.*, deployment.*)",
+  "x-dr-evidence": [
+    "A Resource constructed via Resource.create / resourceFromAttributes / Resource.getDefault().merge(...) with keys such as service.name, service.version or deployment.environment, then passed to a NodeSDK, TracerProvider, MeterProvider or LoggerProvider constructor.",
+    "OTEL_SERVICE_NAME or OTEL_RESOURCE_ATTRIBUTES environment variables set in Dockerfiles, Kubernetes manifests, Helm values or .env files.",
+    "Resource detectors registered at SDK bootstrap (e.g. envDetector, processDetector, hostDetector, awsEc2Detector, gcpDetector), or an OTel Collector 'resource'/'resourcedetection' processor block in collector YAML."
+  ],
+  "x-dr-distinguish": {
+    "apm.instrumentationscope": "the name, version and attributes identify the library or module that created the tracer, meter or logger, rather than the service or process emitting the telemetry.",
+    "apm.traceconfiguration": "the code configures TracerProvider behaviour such as samplers, propagators or span processors, even if a Resource object is passed into the same constructor.",
+    "apm.metricconfiguration": "the code sets MeterProvider-level export intervals, cardinality limits or exemplar filtering rather than entity identity attributes.",
+    "apm.span": "the attributes vary per operation or request (e.g. http.route, db.statement) instead of being constant for the whole process."
   }
 }

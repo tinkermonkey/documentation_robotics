@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database",
-  "description": "A database instance representing a top-level data store deployment. Paradigm-neutral: covers relational databases, document stores, key-value stores, wide-column stores, vector databases, time-series databases, graph databases, search engines, and multi-model systems.",
+  "description": "A named, independently addressable data store deployment, typically a database or catalog on a specific engine reached through its own connection endpoint or connection string, that contains namespaces and collections. It is the outermost persistence boundary an application connects to, regardless of paradigm. Use Namespace instead when the element is a logical grouping inside a connected deployment. Examples include a PostgreSQL schema, a Cassandra keyspace, a Redis key prefix, or a MongoDB 'database' selected on an already-open client connection. Use Collection instead when the element is a single container of records, such as a table, a DynamoDB table, an Elasticsearch index, or a vector collection, rather than the deployment that hosts it. Use View instead when the element is a derived or virtual container defined by a query over existing collections, not a separately deployed store.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -40,13 +40,16 @@
           "description": "Primary data model paradigm. RELATIONAL: SQL-based tabular data (PostgreSQL, MySQL, Oracle). DOCUMENT: JSON/BSON document storage (MongoDB, CouchDB, Firestore). KEY_VALUE: simple key-to-value mapping (Redis, DynamoDB, etcd). WIDE_COLUMN: column-family storage (Cassandra, HBase, Bigtable). VECTOR: vector embedding storage and similarity search (Pinecone, Weaviate, Qdrant). TIME_SERIES: time-indexed measurements (InfluxDB, TimescaleDB). GRAPH: nodes and edges with traversal (Neo4j, Neptune). SEARCH_ENGINE: full-text search and analytics (Elasticsearch, OpenSearch). MULTI_MODEL: natively supports multiple paradigms (ArangoDB, CosmosDB, FaunaDB)."
         },
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Release version of the database engine in the vendor's own format (e.g. '15.4', '7.0', '8.0.35'); set it when it is pinned in an image tag, provider config or migration baseline."
         },
         "charset": {
-          "type": "string"
+          "type": "string",
+          "description": "Default character encoding for text stored in this database (e.g. 'UTF8', 'utf8mb4', 'LATIN1'); set it when it is declared at creation time, mainly for relational engines."
         },
         "collation": {
-          "type": "string"
+          "type": "string",
+          "description": "Default collation governing string comparison and sort order (e.g. 'en_US.UTF-8', 'utf8mb4_unicode_ci', 'C'); set it when it is explicitly configured at database creation."
         },
         "deploymentModel": {
           "type": "string",
@@ -64,5 +67,16 @@
       "required": ["engine", "paradigm"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ISO/IEC 9075-1 SQL-environment: catalog (a named collection of SQL-schemas managed by an SQL-server), generalised to non-relational engines",
+  "x-dr-evidence": [
+    "A connection URL or DSN in configuration or environment variables naming an engine, host and database, e.g. DATABASE_URL=postgres://db:5432/orders, MONGO_URI or spring.datasource.url.",
+    "An infrastructure declaration provisioning a store, e.g. a docker-compose service using a postgres/mongo/redis image with POSTGRES_DB, or a Terraform aws_db_instance, aws_dynamodb_table group or google_sql_database resource.",
+    "An ORM or driver datasource block registering a named connection, e.g. a Prisma 'datasource db' with a provider, Django DATABASES['default'], or SQLAlchemy create_engine()/Mongoose connect() invoked at application startup."
+  ],
+  "x-dr-distinguish": {
+    "data-store.namespace": "the element is a logical grouping inside a connected deployment. Examples include a PostgreSQL schema, a Cassandra keyspace, a Redis key prefix, or a MongoDB 'database' selected on an already-open client connection.",
+    "data-store.collection": "the element is a single container of records, such as a table, a DynamoDB table, an Elasticsearch index, or a vector collection, rather than the deployment that hosts it.",
+    "data-store.view": "the element is a derived or virtual container defined by a query over existing collections, not a separately deployed store."
   }
 }

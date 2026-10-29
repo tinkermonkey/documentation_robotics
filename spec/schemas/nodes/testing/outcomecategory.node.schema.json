@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OutcomeCategory",
-  "description": "An abstract category of observable outcomes (e.g., success, validation error, authorization error, timeout) associated with a TestCoverageTarget, used during test design to organize expected results before test case specification per IEEE 829-2008. Distinguished from specific assertions \u2014 OutcomeCategory defines the class of outcome, not the exact expected value.",
+  "description": "A test-design classification of the observable result a TestCoverageTarget can produce (success, validation error, authorization error, not-found, server error, exception, timeout), stated at the level of result class rather than exact expected value. Coverage requirements must exercise it, and test case sketches are grouped under it. Use PartitionValue instead when the category classifies an input value (e.g. an invalid or null-empty equivalence class) rather than the result the target returns. Use ContextVariation instead when the category describes the test type or execution condition (functional, load, security, regression) under which the target is exercised, not what it returns. Use TestCaseSketch instead when the element specifies a particular case with concrete inputs and a specific expected value or assertion, rather than a class of outcomes. Use EnvironmentFactor instead when the element is the environmental condition (e.g. network latency) that provokes an outcome such as a timeout, rather than the outcome itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what observable behaviour qualifies as this outcome for the target, e.g. 'HTTP 422 with field-level error list'. Set it whenever the outcomeType alone does not identify the signal tests should check."
         },
         "outcomeType": {
           "type": "string",
@@ -40,5 +41,17 @@
       "required": ["outcomeType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Level Test Design Specification (feature pass/fail criteria) and Level Test Case Specification (outputs specification)",
+  "x-dr-evidence": [
+    "test describe/context blocks or test names grouped by result class, e.g. 'returns 404 when resource missing', 'rejects unauthorized caller with 403', 'times out after 5s'",
+    "parameterized test tables or fixtures with an expected-outcome column (expected_status, expected_error, expectedOutcome) whose values are status classes or error types rather than exact payloads",
+    "assertions that check outcome class rather than exact value, e.g. expect(res.status).toBe(400), pytest.raises(ValidationError), assertThrows(AccessDeniedException), or OpenAPI response codes enumerated per operation in test plans"
+  ],
+  "x-dr-distinguish": {
+    "testing.partitionvalue": "the category classifies an input value (e.g. an invalid or null-empty equivalence class) rather than the result the target returns",
+    "testing.contextvariation": "the category describes the test type or execution condition (functional, load, security, regression) under which the target is exercised, not what it returns",
+    "testing.testcasesketch": "the element specifies a particular case with concrete inputs and a specific expected value or assertion, rather than a class of outcomes",
+    "testing.environmentfactor": "the element is the environmental condition (e.g. network latency) that provokes an outcome such as a timeout, rather than the outcome itself"
   }
 }
