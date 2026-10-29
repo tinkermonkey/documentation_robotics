@@ -1,6 +1,6 @@
 # Classification eval report: petclinic
 
-Generated 2026-10-28T19:12:26.133Z. Cards: 106. Gold labels: 106.
+Generated 2026-10-29T12:36:20.532Z. Cards: 106. Gold labels: 106.
 
 ## Gold label distribution
 
@@ -17,17 +17,86 @@ Significance histogram (0..4): 38 / 19 / 26 / 22 / 1. Gold labels with a type id
 
 ## Summary
 
-| backend               | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
-| --------------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
-| claude-haiku          | 106 | 59.4%     | 51.9%                 | 87.3%                | 0.25    | 99.1%        | 0.152     | 1666 ms        | $0.050     | $0.0005     |
-| clef                  | 106 | 86.8%     | 78.3%                 | 90.2%                | 0.39    | 95.3%        | 0.287     | 642 ms         | $0.099     | $0.0009     |
-| clef-flash            | 106 | 69.8%     | 50.9%                 | 73.0%                | 0.67    | 88.7%        | 0.265     | 1097 ms        | $0.037     | $0.0003     |
-| clef@enriched-v1      | 106 | 86.8%     | 77.4%                 | 89.1%                | 0.39    | 95.3%        | 0.287     | 621 ms         | $0.105     | $0.0010     |
-| claude-sonnet         | 106 | 84.0%     | 81.1%                 | 96.6%                | 0.20    | 99.1%        | 0.145     | 1560 ms        | $0.902     | $0.0085     |
-| clef@enriched-v2-kind | 106 | 86.8%     | 76.4%                 | 88.0%                | 0.39    | 95.3%        | 0.287     | 1225 ms        | $0.146     | $0.0014     |
-| clef@enriched-v2      | 106 | 86.8%     | 77.4%                 | 89.1%                | 0.39    | 95.3%        | 0.287     | 891 ms         | $0.149     | $0.0014     |
+| backend                       | n   | layer acc | type acc (end-to-end) | type acc given layer | sig MAE | sig within 1 | layer ECE | median latency | total cost | cost / card |
+| ----------------------------- | --- | --------- | --------------------- | -------------------- | ------- | ------------ | --------- | -------------- | ---------- | ----------- |
+| clef@v2-kind-tier0            | 106 | 96.2%     | 94.3%                 | 98.0%                | 0.93    | 71.7%        | 0.218     | 476 ms         | $0.089     | $0.0008     |
+| claude-haiku                  | 106 | 59.4%     | 51.9%                 | 87.3%                | 0.25    | 99.1%        | 0.152     | 1666 ms        | $0.050     | $0.0005     |
+| clef@v2-kind-core             | 106 | 86.8%     | 76.4%                 | 88.0%                | 0.39    | 95.3%        | 0.287     | 654 ms         | $0.123     | $0.0012     |
+| clef                          | 106 | 86.8%     | 78.3%                 | 90.2%                | 0.39    | 95.3%        | 0.287     | 642 ms         | $0.099     | $0.0009     |
+| clef@v2-kind-tier0-facts-core | 106 | 96.2%     | 94.3%                 | 98.0%                | 0.93    | 71.7%        | 0.212     | 398 ms         | $0.077     | $0.0007     |
+| clef-flash                    | 106 | 69.8%     | 50.9%                 | 73.0%                | 0.67    | 88.7%        | 0.265     | 1097 ms        | $0.037     | $0.0003     |
+| clef@enriched-v1              | 106 | 86.8%     | 77.4%                 | 89.1%                | 0.39    | 95.3%        | 0.287     | 621 ms         | $0.105     | $0.0010     |
+| claude-sonnet                 | 106 | 84.0%     | 81.1%                 | 96.6%                | 0.20    | 99.1%        | 0.145     | 1560 ms        | $0.902     | $0.0085     |
+| clef@enriched-v2-kind         | 106 | 86.8%     | 76.4%                 | 88.0%                | 0.39    | 95.3%        | 0.287     | 1225 ms        | $0.146     | $0.0014     |
+| clef@enriched-v2              | 106 | 86.8%     | 77.4%                 | 89.1%                | 0.39    | 95.3%        | 0.287     | 891 ms         | $0.149     | $0.0014     |
+| clef@v2-kind-tier0-facts      | 106 | 96.2%     | 94.3%                 | 98.0%                | 0.93    | 71.7%        | 0.212     | 394 ms         | $0.090     | $0.0008     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
+
+## clef@v2-kind-tier0
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 51     | 98.0%  | 52          |
+| api         | 24     | 100.0% | 24          |
+| application | 13     | 92.3%  | 13          |
+| data-model  | 9      | 100.0% | 10          |
+| data-store  | 7      | 100.0% | 7           |
+| technology  | 2      | 0.0%   | 0           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| technology → none        | 2     |
+| application → data-model | 1     |
+| none → application       | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 1   | 0.29      | 0.00     | -0.29 |
+| 0.3-0.4        | 2   | 0.33      | 1.00     | 0.67  |
+| 0.4-0.5        | 13  | 0.46      | 0.92     | 0.46  |
+| 0.5-0.6        | 18  | 0.55      | 0.94     | 0.40  |
+| 0.6-0.7        | 10  | 0.64      | 0.90     | 0.26  |
+| 0.7-0.8        | 11  | 0.75      | 1.00     | 0.25  |
+| 0.8-0.9        | 18  | 0.83      | 1.00     | 0.17  |
+| 0.9-1.0        | 33  | 1.00      | 1.00     | 0.00  |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 84.9%    | 97.8%             |
+| ≥0.60     | 67.9%    | 98.6%             |
+| ≥0.70     | 58.5%    | 100.0%            |
+| ≥0.80     | 48.1%    | 100.0%            |
+| ≥0.90     | 31.1%    | 100.0%            |
+| ≥0.95     | 31.1%    | 100.0%            |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 0              | n/a       | n/a    | n/a        |
+| authorization        | 0              | n/a       | n/a    | n/a        |
+| data_persistence     | 13             | 1.00      | 0.08   | 0.14       |
+| external_integration | 0              | n/a       | n/a    | n/a        |
+| observability        | 1              | n/a       | 0.00   | n/a        |
+| user_interface       | 25             | n/a       | 0.00   | n/a        |
+
+### Sample layer disagreements
+
+| symbol                                                                                                                     | gold                         | predicted (conf)                       | gold rationale                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class src.main.java.org.springframework.samples.petclinic.vet.Vets                                                         | application/dataobject       | data-model/- (0.29)                    | Vets is a simple JAXB-annotated wrapper around a list of Vet, used as a response payload for XML/JSON marshalling. It has no behaviour beyond a lazy accessor, s |
+| Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice | none/- (0.47)                          | Spring configuration that enables JCache caching and creates the 'vets' cache with statistics exposed over JMX. It is infrastructure/platform setup, a caching t |
+| Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice | none/- (0.67)                          | This Spring @Bean registers a JCache customizer that creates the 'vets' cache. It is infrastructure configuration for the caching platform service, not business |
+| Method src.main.java.org.springframework.samples.petclinic.owner.Owner.addVisit                                            | none/-                       | application/applicationfunction (0.51) | A small domain method on the Owner entity that validates its arguments, looks up a pet and delegates to Pet.addVisit. It does no persistence or I/O itself. This |
 
 ## claude-haiku
 
@@ -108,6 +177,80 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Class src.main.java.org.springframework.samples.petclinic.vet.Vet                                       | data-model/objectschema          | data-store/collection (0.60)           | Vet is a JPA entity and core domain object (a veterinarian with a many-to-many set of specialties). As an entity class describing domain data, it maps to a data |
 | Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.cacheConfiguration | none/-                           | application/applicationfunction (0.50) | This is a private helper that builds a JCache MutableConfiguration with statistics enabled, and its only caller is the cache customizer bean. It is an implement |
 
+## clef@v2-kind-core
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 51     | 98.0%  | 54          |
+| api         | 24     | 95.8%  | 28          |
+| application | 13     | 38.5%  | 9           |
+| data-model  | 9      | 100.0% | 10          |
+| data-store  | 7      | 71.4%  | 5           |
+| technology  | 2      | 0.0%   | 0           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| application → api        | 5     |
+| data-store → application | 2     |
+| application → none       | 2     |
+| technology → none        | 2     |
+| application → data-model | 1     |
+| api → application        | 1     |
+| none → application       | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 1   | 0.29      | 0.00     | -0.29 |
+| 0.3-0.4        | 11  | 0.36      | 0.73     | 0.37  |
+| 0.4-0.5        | 26  | 0.46      | 0.73     | 0.27  |
+| 0.5-0.6        | 25  | 0.55      | 0.96     | 0.41  |
+| 0.6-0.7        | 13  | 0.64      | 0.85     | 0.20  |
+| 0.7-0.8        | 12  | 0.75      | 1.00     | 0.25  |
+| 0.8-0.9        | 18  | 0.83      | 1.00     | 0.17  |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 64.2%    | 95.6%             |
+| ≥0.60     | 40.6%    | 95.3%             |
+| ≥0.70     | 28.3%    | 100.0%            |
+| ≥0.80     | 17.0%    | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 0              | n/a       | n/a    | n/a        |
+| authorization        | 0              | n/a       | n/a    | n/a        |
+| data_persistence     | 13             | 1.00      | 0.31   | 0.47       |
+| external_integration | 0              | n/a       | n/a    | n/a        |
+| observability        | 1              | n/a       | 0.00   | n/a        |
+| user_interface       | 25             | n/a       | 0.00   | n/a        |
+
+### Sample layer disagreements
+
+| symbol                                                                                                                     | gold                             | predicted (conf)                        | gold rationale                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface src.main.java.org.springframework.samples.petclinic.vet.VetRepository                                            | data-store/accesspattern         | application/- (0.42)                    | Spring Data repository interface defining read access to Vet records (findAll, paged findAll) with transactional and cache annotations. It is the persistence ac |
+| Class src.main.java.org.springframework.samples.petclinic.owner.PetTypeFormatter                                           | application/applicationcomponent | none/- (0.64)                           | A Spring @Component Formatter that converts between PetType and its string form for MVC binding, looking up types through an injected repository. It is a depend |
+| Interface src.main.java.org.springframework.samples.petclinic.owner.OwnerRepository                                        | data-store/accesspattern         | application/- (0.37)                    | A Spring Data JPA repository for Owner entities. It defines the persistence query layer (lookup by last-name prefix with paging, lookup by id). Repository/DAO c |
+| Class src.main.java.org.springframework.samples.petclinic.PetClinicApplication                                             | application/applicationcomponent | none/- (0.44)                           | This is the Spring Boot application entry point: the @SpringBootApplication class whose main method bootstraps the whole PetClinic deployable unit. It is best m |
+| Class src.main.java.org.springframework.samples.petclinic.vet.Vets                                                         | application/dataobject           | data-model/- (0.29)                     | Vets is a simple JAXB-annotated wrapper around a list of Vet, used as a response payload for XML/JSON marshalling. It has no behaviour beyond a lazy accessor, s |
+| Method src.main.java.org.springframework.samples.petclinic.owner.OwnerController.processFindForm                           | api/operation                    | application/applicationinterface (0.37) | A Spring MVC handler bound to GET /owners. It implements the owner search operation: it normalises the last-name query, paginates the results and either redirec |
+| Class src.main.java.org.springframework.samples.petclinic.system.CrashController                                           | application/applicationinterface | api/operation (0.36)                    | A Spring MVC controller exposing a single demo endpoint (/oups) that throws an exception to showcase error-page handling. It is a mounted controller access poin |
+| Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice     | none/- (0.47)                           | Spring configuration that enables JCache caching and creates the 'vets' cache with statistics exposed over JMX. It is infrastructure/platform setup, a caching t |
+| Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice     | none/- (0.67)                           | This Spring @Bean registers a JCache customizer that creates the 'vets' cache. It is infrastructure configuration for the caching platform service, not business |
+| Class src.main.java.org.springframework.samples.petclinic.vet.VetController                                                | application/applicationinterface | api/operation (0.43)                    | A Spring MVC @Controller that serves the vets HTML page, with pagination, and a JSON vets resource. As the access point exposing vet-listing behaviour over HTTP |
+
 ## clef
 
 ### Per-layer recall
@@ -181,6 +324,72 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice     | none/- (0.47)                           | Spring configuration that enables JCache caching and creates the 'vets' cache with statistics exposed over JMX. It is infrastructure/platform setup, a caching t |
 | Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice     | none/- (0.67)                           | This Spring @Bean registers a JCache customizer that creates the 'vets' cache. It is infrastructure configuration for the caching platform service, not business |
 | Class src.main.java.org.springframework.samples.petclinic.vet.VetController                                                | application/applicationinterface | api/paths (0.43)                        | A Spring MVC @Controller that serves the vets HTML page, with pagination, and a JSON vets resource. As the access point exposing vet-listing behaviour over HTTP |
+
+## clef@v2-kind-tier0-facts-core
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 51     | 98.0%  | 51          |
+| api         | 24     | 100.0% | 24          |
+| application | 13     | 92.3%  | 14          |
+| data-model  | 9      | 100.0% | 10          |
+| data-store  | 7      | 100.0% | 7           |
+| technology  | 2      | 0.0%   | 0           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| application → data-model | 1     |
+| technology → application | 1     |
+| technology → none        | 1     |
+| none → application       | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 1   | 0.30      | 1.00     | 0.70 |
+| 0.3-0.4        | 4   | 0.35      | 0.75     | 0.40 |
+| 0.4-0.5        | 12  | 0.45      | 0.83     | 0.38 |
+| 0.5-0.6        | 16  | 0.56      | 1.00     | 0.44 |
+| 0.6-0.7        | 12  | 0.66      | 0.92     | 0.26 |
+| 0.7-0.8        | 12  | 0.77      | 1.00     | 0.23 |
+| 0.8-0.9        | 16  | 0.83      | 1.00     | 0.17 |
+| 0.9-1.0        | 33  | 1.00      | 1.00     | 0.00 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 84.0%    | 98.9%             |
+| ≥0.60     | 68.9%    | 98.6%             |
+| ≥0.70     | 57.5%    | 100.0%            |
+| ≥0.80     | 46.2%    | 100.0%            |
+| ≥0.90     | 31.1%    | 100.0%            |
+| ≥0.95     | 31.1%    | 100.0%            |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 0              | n/a       | n/a    | n/a        |
+| authorization        | 0              | n/a       | n/a    | n/a        |
+| data_persistence     | 13             | 1.00      | 0.15   | 0.27       |
+| external_integration | 0              | n/a       | n/a    | n/a        |
+| observability        | 1              | n/a       | 0.00   | n/a        |
+| user_interface       | 25             | n/a       | 0.00   | n/a        |
+
+### Sample layer disagreements
+
+| symbol                                                                                                                     | gold                         | predicted (conf)                        | gold rationale                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class src.main.java.org.springframework.samples.petclinic.vet.Vets                                                         | application/dataobject       | data-model/- (0.34)                     | Vets is a simple JAXB-annotated wrapper around a list of Vet, used as a response payload for XML/JSON marshalling. It has no behaviour beyond a lazy accessor, s |
+| Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice | application/applicationcomponent (0.43) | Spring configuration that enables JCache caching and creates the 'vets' cache with statistics exposed over JMX. It is infrastructure/platform setup, a caching t |
+| Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice | none/- (0.66)                           | This Spring @Bean registers a JCache customizer that creates the 'vets' cache. It is infrastructure configuration for the caching platform service, not business |
+| Method src.main.java.org.springframework.samples.petclinic.owner.Owner.addVisit                                            | none/-                       | application/applicationfunction (0.48)  | A small domain method on the Owner entity that validates its arguments, looks up a pet and delegates to Pet.addVisit. It does no persistence or I/O itself. This |
 
 ## clef-flash
 
@@ -545,3 +754,69 @@ Type accuracy is exact match on the element type id. ECE = expected calibration 
 | Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice     | none/- (0.47)                           | Spring configuration that enables JCache caching and creates the 'vets' cache with statistics exposed over JMX. It is infrastructure/platform setup, a caching t |
 | Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice     | none/- (0.67)                           | This Spring @Bean registers a JCache customizer that creates the 'vets' cache. It is infrastructure configuration for the caching platform service, not business |
 | Class src.main.java.org.springframework.samples.petclinic.vet.VetController                                                | application/applicationinterface | api/operation (0.43)                    | A Spring MVC @Controller that serves the vets HTML page, with pagination, and a JSON vets resource. As the access point exposing vet-listing behaviour over HTTP |
+
+## clef@v2-kind-tier0-facts
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 51     | 98.0%  | 51          |
+| api         | 24     | 100.0% | 24          |
+| application | 13     | 92.3%  | 14          |
+| data-model  | 9      | 100.0% | 10          |
+| data-store  | 7      | 100.0% | 7           |
+| technology  | 2      | 0.0%   | 0           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| application → data-model | 1     |
+| technology → application | 1     |
+| technology → none        | 1     |
+| none → application       | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 1   | 0.30      | 1.00     | 0.70 |
+| 0.3-0.4        | 4   | 0.35      | 0.75     | 0.40 |
+| 0.4-0.5        | 12  | 0.45      | 0.83     | 0.38 |
+| 0.5-0.6        | 16  | 0.56      | 1.00     | 0.44 |
+| 0.6-0.7        | 12  | 0.66      | 0.92     | 0.26 |
+| 0.7-0.8        | 12  | 0.77      | 1.00     | 0.23 |
+| 0.8-0.9        | 16  | 0.83      | 1.00     | 0.17 |
+| 0.9-1.0        | 33  | 1.00      | 1.00     | 0.00 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 84.0%    | 98.9%             |
+| ≥0.60     | 68.9%    | 98.6%             |
+| ≥0.70     | 57.5%    | 100.0%            |
+| ≥0.80     | 46.2%    | 100.0%            |
+| ≥0.90     | 31.1%    | 100.0%            |
+| ≥0.95     | 31.1%    | 100.0%            |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 0              | n/a       | n/a    | n/a        |
+| authorization        | 0              | n/a       | n/a    | n/a        |
+| data_persistence     | 13             | 1.00      | 0.15   | 0.27       |
+| external_integration | 0              | n/a       | n/a    | n/a        |
+| observability        | 1              | n/a       | 0.00   | n/a        |
+| user_interface       | 25             | n/a       | 0.00   | n/a        |
+
+### Sample layer disagreements
+
+| symbol                                                                                                                     | gold                         | predicted (conf)                        | gold rationale                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Class src.main.java.org.springframework.samples.petclinic.vet.Vets                                                         | application/dataobject       | data-model/- (0.34)                     | Vets is a simple JAXB-annotated wrapper around a list of Vet, used as a response payload for XML/JSON marshalling. It has no behaviour beyond a lazy accessor, s |
+| Class src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration                                        | technology/technologyservice | application/applicationcomponent (0.43) | Spring configuration that enables JCache caching and creates the 'vets' cache with statistics exposed over JMX. It is infrastructure/platform setup, a caching t |
+| Method src.main.java.org.springframework.samples.petclinic.system.CacheConfiguration.petclinicCacheConfigurationCustomizer | technology/technologyservice | none/- (0.66)                           | This Spring @Bean registers a JCache customizer that creates the 'vets' cache. It is infrastructure configuration for the caching platform service, not business |
+| Method src.main.java.org.springframework.samples.petclinic.owner.Owner.addVisit                                            | none/-                       | application/applicationfunction (0.48)  | A small domain method on the Owner entity that validates its arguments, looks up a pet and delegates to Pet.addVisit. It does no persistence or I/O itself. This |

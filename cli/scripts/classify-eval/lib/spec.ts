@@ -18,6 +18,31 @@ export interface TypeInfo {
   title: string;
   description: string;
   evidence: string[]; // x-dr-evidence, when the spec has been enriched
+  distinguish: Record<string, string>; // x-dr-distinguish: sibling spec node id -> "when ..." clause
+}
+
+/**
+ * How much of an enriched definition goes into element-type criteria:
+ * "full" (default) sends the description as written, sibling sentences included;
+ * "core" removes the "Use X instead when ..." sentences (they stay in x-dr-distinguish),
+ * leaving the definition and the evidence lines.
+ */
+export type CriteriaMode = "full" | "core";
+let criteriaMode: CriteriaMode = "full";
+export function setCriteriaMode(mode: CriteriaMode): void {
+  criteriaMode = mode;
+}
+
+/** The description without its "Use X instead when <clause>" sentences. */
+export function coreDescription(t: TypeInfo): string {
+  let d = t.description;
+  for (const clause of Object.values(t.distinguish)) {
+    const i = d.indexOf(clause);
+    if (i < 0) continue;
+    const start = d.lastIndexOf(" Use ", i);
+    if (start >= 0) d = d.slice(0, start) + d.slice(i + clause.length);
+  }
+  return d.replace(/\s+/g, " ").trim();
 }
 
 const PLACEHOLDER_DESCRIPTION = /^Layer \d+: /;
@@ -56,7 +81,7 @@ export function loadLayers(): LayerInfo[] {
   for (const l of manifest.layers) {
     const file = JSON.parse(readFileSync(path.join(dist, `${l.id}.json`), "utf8")) as {
       layer: { description?: string; inspired_by?: { standard?: string } };
-      nodeSchemas: Record<string, { title?: string; description?: string; "x-dr-evidence"?: string[]; properties?: { spec_node_id?: { const?: string } } }>;
+      nodeSchemas: Record<string, { title?: string; description?: string; "x-dr-evidence"?: string[]; "x-dr-distinguish"?: Record<string, string>; properties?: { spec_node_id?: { const?: string } } }>;
     };
     const types: TypeInfo[] = Object.entries(file.nodeSchemas).map(([id, s]) => ({
       id,
@@ -64,6 +89,7 @@ export function loadLayers(): LayerInfo[] {
       title: s.title ?? id,
       description: (s.description ?? "").trim(),
       evidence: Array.isArray(s["x-dr-evidence"]) ? s["x-dr-evidence"] : [],
+      distinguish: s["x-dr-distinguish"] && typeof s["x-dr-distinguish"] === "object" ? s["x-dr-distinguish"] : {},
     }));
     types.sort((a, b) => a.id.localeCompare(b.id));
     const scope = (file.layer.description ?? "").trim();
@@ -116,7 +142,8 @@ export function typeCriteria(layerId: string): Record<string, string> {
   if (!layer) return out;
   for (const t of layer.types) {
     const evidence = t.evidence.length ? ` Evidence: ${t.evidence.join("; ")}.` : "";
-    out[t.id] = `${t.title}: ${t.description || "(no description in spec)"}${evidence}`;
+    const description = criteriaMode === "core" ? coreDescription(t) : t.description;
+    out[t.id] = `${t.title}: ${description || "(no description in spec)"}${evidence}`;
   }
   out[NONE_OPTION] = "None of the listed types fits this element well.";
   return out;

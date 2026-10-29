@@ -54,7 +54,19 @@ bun classify.ts --corpus dr-cli --backend claude-haiku --effort low
 
 # 4. Report
 bun report.ts --corpus dr-cli
+
+# Tier 0 (Phase 2): structural facts per card, the cbm analyzer's rules against gold, rules in the run
+bun facts.ts --corpus fastapi                     # decorators, importers, methods, usage -> facts.jsonl
+bun tier0-report.ts                               # free: each rule's agreement with gold -> data/tier0-report.md
+bun classify.ts --corpus fastapi --backend clef --kind-narrow --tier0 --tag v2-kind-tier0
 ```
+
+Further `classify.ts` flags: `--tier0` applies the Tier-0 rules from `spec/dist/analyzers/cbm.json`
+(engine: `cli/src/analyzers/tier0-rules.ts`), so a deciding rule answers without a model call and a
+narrowing rule restricts the layer and type choices; `--facts` adds the `facts.jsonl` facts and a
+placement line to the state; `--criteria core` drops the "Use X instead when" sentences from the
+element-type criteria (they remain in `x-dr-distinguish`). Facts live beside the cards, not in
+them, so adding facts never resamples cards and the gold labels stay valid.
 
 ## What a card contains
 

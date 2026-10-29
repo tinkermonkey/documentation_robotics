@@ -35,6 +35,16 @@ export const CardSchema = z.object({
 });
 export type Card = z.infer<typeof CardSchema>;
 
+/** Tier-0 structural facts for a card (facts.ts), kept apart from the card so gold stays valid. */
+export interface Facts {
+  card_id: string;
+  decorators: string[];
+  decorator_names: string[];
+  file_importers: number;
+  methods: number;
+  usage_files: number;
+}
+
 export const CONCERNS = [
   "authentication",
   "authorization",
@@ -91,5 +101,7 @@ export const PredictionSchema = z.object({
   usage: z.object({ input_tokens: z.number(), output_tokens: z.number() }).nullable(),
   cost_usd: z.number().nullable(),
   error: z.string().nullable(),
+  /** set when a Tier-0 rule decided the card (no model asked) or narrowed its choices */
+  tier0: z.object({ rule: z.string(), kind: z.enum(["decide", "narrow"]) }).optional(),
 });
 export type Prediction = z.infer<typeof PredictionSchema>;
