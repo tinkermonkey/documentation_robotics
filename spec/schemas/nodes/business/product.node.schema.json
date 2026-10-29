@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Product",
-  "description": "A passive structure element representing a coherent collection of BusinessServices and Contracts offered to customers or markets. The product encapsulates the value proposition delivered to end users or business partners.",
+  "description": "A composite element that bundles a named offering of one or more BusinessServices, optionally with application or technology services and business objects, together with the Contract that governs it, and that is offered as a whole to customers or markets. It is identified by what is sold or subscribed to, not by any single behavior or document within it. Use BusinessService instead when the element is a single externally visible unit of business behavior rather than a named, packaged offering combining several services with terms. Use Contract instead when the element is the agreement itself (terms, obligations, SLA, rights) rather than the offering those terms are attached to. Use BusinessObject instead when the element is information the business manipulates, such as a catalog entity or a 'Product' record or class in an e-commerce domain model describing goods for sale, rather than the offering bundle itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,22 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the offering: its name as marketed, target customers or market, included services, and governing terms. Set it whenever the element is created so reviewers can tell this bundle apart from others."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.5.1 Product",
+  "x-dr-evidence": [
+    "A plan, tier or SKU definition (e.g. a PLANS constant, Stripe product/price IDs, a billing config listing 'Basic/Pro/Enterprise') that enumerates which capabilities or services each offering includes.",
+    "An entitlements or feature-gating map keyed by subscription plan or edition, deciding which services a customer may use based on what they purchased.",
+    "Pricing-page content, product sheets or onboarding docs that present a named offering together with links to its terms of service, SLA or license agreement."
+  ],
+  "x-dr-distinguish": {
+    "business.businessservice": "the element is a single externally visible unit of business behavior rather than a named, packaged offering combining several services with terms.",
+    "business.contract": "the element is the agreement itself (terms, obligations, SLA, rights) rather than the offering those terms are attached to.",
+    "business.businessobject": "the element is information the business manipulates, such as a catalog entity or a 'Product' record or class in an e-commerce domain model describing goods for sale, rather than the offering bundle itself."
   }
 }

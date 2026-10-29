@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessInteraction",
-  "description": "A behavior element representing collective behavior performed by a BusinessCollaboration. It is the interaction counterpart to BusinessProcess (performed by a role) and BusinessFunction (performed by an actor).",
+  "description": "A behavior element describing a unit of collective business behavior that two or more business roles carry out jointly within a BusinessCollaboration, such as negotiating terms or jointly approving a deal. It cannot be completed by any single participant acting alone. Use BusinessProcess instead when a single role or actor can carry the behavior through to its result, even if other parties are consulted or notified along the way. Use BusinessCollaboration instead when the element names the grouping of participating roles (who works together) rather than the joint behavior they perform (what they do together). Use BusinessFunction instead when the behavior is a stable, competency-based grouping (e.g., 'Partner Management') rather than a specific joint activity with a result. Use BusinessService instead when the element describes externally visible value offered to a consumer, with the joint internal behavior that delivers it hidden.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,23 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text prose that names the participating roles, the joint result the interaction produces and its triggering events; set it whenever the participants or outcome are not obvious from the element name."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.3.3 Business Interaction",
+  "x-dr-evidence": [
+    "A workflow, saga or state machine for one business transaction (e.g., Negotiation, JointApproval) whose transitions are guarded by different roles, and which reaches its terminal state only after actions from each party, such as buyer accepts and seller countersigns.",
+    "A BPMN collaboration or choreography diagram, or a use-case document listing two or more primary actors, that describes one shared activity spanning both parties' lanes.",
+    "API endpoints on a shared resource (e.g., /negotiations/{id}/offer and /negotiations/{id}/counter-offer) protected by distinct role authorizations, where completion requires calls from users holding each role."
+  ],
+  "x-dr-distinguish": {
+    "business.businessprocess": "a single role or actor can carry the behavior through to its result, even if other parties are consulted or notified along the way",
+    "business.businesscollaboration": "the element names the grouping of participating roles (who works together) rather than the joint behavior they perform (what they do together)",
+    "business.businessfunction": "the behavior is a stable, competency-based grouping (e.g., 'Partner Management') rather than a specific joint activity with a result",
+    "business.businessservice": "the element describes externally visible value offered to a consumer, with the joint internal behavior that delivers it hidden"
   }
 }

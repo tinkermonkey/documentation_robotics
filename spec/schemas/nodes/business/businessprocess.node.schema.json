@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessProcess",
-  "description": "A behavior element representing a sequence or set of behaviors that achieves a specific business result for a customer or stakeholder. Driven by external triggers (BusinessEvents) or internal initiations, and performed by BusinessActors or BusinessRoles.",
+  "description": "A business behavior element, performed by a BusinessRole or BusinessActor, that consists of an ordered sequence of business activities with a defined start (a BusinessEvent or internal initiation) and a defined end state yielding a specific result, such as a delivered BusinessObject or a fulfilled request, for a customer or stakeholder. Use BusinessFunction instead when the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor. Use BusinessService instead when you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done). Use BusinessEvent instead when the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text prose describing the process's trigger, main steps, performing role, and end result, written in business terms; set whenever the name alone does not make the start and end conditions clear."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.3.1 Business Process",
+  "x-dr-evidence": [
+    "A workflow or orchestration definition (BPMN file, Camunda/Temporal/Step Functions workflow, saga class) named after a business outcome, e.g. OrderFulfillmentWorkflow, whose steps run in a declared order.",
+    "A state machine or status enum on a business entity whose transitions follow a business lifecycle (e.g. SUBMITTED → APPROVED → SHIPPED) and are driven by a single orchestrating service method.",
+    "Documentation, runbooks or user stories that describe a numbered sequence of business steps from a trigger to a completion criterion, owned by a named role (e.g. 'claims handler')."
+  ],
+  "x-dr-distinguish": {
+    "business.businessfunction": "the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result.",
+    "business.businessinteraction": "the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor.",
+    "business.businessservice": "you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done).",
+    "business.businessevent": "the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes."
   }
 }

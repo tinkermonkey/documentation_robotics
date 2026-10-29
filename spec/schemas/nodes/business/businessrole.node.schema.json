@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessRole",
-  "description": "An active structure element representing a named set of responsibilities, skills, or authorizations that can be assigned to a BusinessActor. Roles abstract away the concrete actor, enabling flexible actor-to-behavior assignment.",
+  "description": "An active structure element naming a responsibility position in the organization (e.g., Claims Adjuster, Approver, Customer) that business behavior is assigned to and that one or more BusinessActors can fill. It is defined by what is expected of whoever occupies it, not by the identity of a particular person, department or organization. Use BusinessActor instead when the element is a specific, identifiable person, department, team or external organization, such as 'Finance Department' or 'Acme Ltd', rather than a position that different actors could fill. Use BusinessCollaboration instead when the element is a temporary or permanent grouping of two or more roles acting jointly, such as 'Buyer–Seller Negotiation', rather than a single responsibility position. Use BusinessFunction instead when the name denotes a capability-based grouping of behavior, such as 'Claims Handling', rather than the position responsible for performing it, such as 'Claims Handler'. Use BusinessInterface instead when the element is a channel or access point through which a service is offered, such as a call center, portal or front desk, rather than the responsibility held by whoever staffs it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,23 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the role's responsibilities, required skills or authorizations, and typical occupying actors; set it whenever the role name alone does not make the scope of responsibility clear."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.2.2 Business Role",
+  "x-dr-evidence": [
+    "An enum, constant set or lookup table of job-like user categories (e.g., APPROVER, UNDERWRITER, CASE_WORKER, CUSTOMER) that workflow or task-assignment logic uses to route work, rather than to name individual users.",
+    "Workflow or BPMN definitions that name a responsibility as a swimlane, candidateGroup or task assignee (e.g., camunda:candidateGroups=\"claims-adjuster\"), or approval-chain configuration such as 'requires sign-off by Finance Approver'.",
+    "Requirements artifacts or user stories phrased 'As a <role>, I want…', or RACI and responsibility matrices listing positions against processes or tasks."
+  ],
+  "x-dr-distinguish": {
+    "business.businessactor": "the element is a specific, identifiable person, department, team or external organization, such as 'Finance Department' or 'Acme Ltd', rather than a position that different actors could fill.",
+    "business.businesscollaboration": "the element is a temporary or permanent grouping of two or more roles acting jointly, such as 'Buyer–Seller Negotiation', rather than a single responsibility position.",
+    "business.businessfunction": "the name denotes a capability-based grouping of behavior, such as 'Claims Handling', rather than the position responsible for performing it, such as 'Claims Handler'.",
+    "business.businessinterface": "the element is a channel or access point through which a service is offered, such as a call center, portal or front desk, rather than the responsibility held by whoever staffs it."
   }
 }

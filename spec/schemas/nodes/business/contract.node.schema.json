@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contract",
-  "description": "A passive structure element representing a formal or informal specification of an agreement between a service provider and consumer, defining obligations, rights, and terms. Often associated with a Product or BusinessService.",
+  "description": "A business object that records an agreement between two or more parties, typically a service provider and a consumer, stating the obligations, rights, and terms (e.g., SLA levels, pricing, durations, penalties) that govern how a business service or product is delivered and used. It is information acted upon, not behavior or an actor. Use BusinessObject instead when the information has business relevance but does not bind identified parties to obligations, rights, or terms (e.g., an invoice, order, or customer record). Use Representation instead when the element is the perceptible form of the agreement, such as the signed PDF, HTML terms page, or on-screen acceptance form, rather than the agreement's content. Use Product instead when the element is the offered bundle of services and contracts sold to a market, rather than the terms attached to it. Use BusinessEvent instead when the element is the state change of the agreement, such as a contract being signed, renewed, or terminated, rather than the agreement itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of the agreement: the parties, the services or product it covers, and its key obligations and terms. Set it whenever the element name alone does not identify which agreement is meant."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.4.2 Contract (specialization of Business Object)",
+  "x-dr-evidence": [
+    "A domain class or schema named Agreement, Contract, Subscription, or ServiceLevelAgreement with fields such as parties, effectiveDate, expiryDate, termsVersion, and obligations or penalties",
+    "SLA or SLO configuration files that declare uptime, response-time, or support-tier commitments bound to a named customer plan or tier",
+    "Versioned terms-of-service, license, or data-processing-agreement documents in the repository, with code that records a user's acceptance of a specific terms version"
+  ],
+  "x-dr-distinguish": {
+    "business.businessobject": "the information has business relevance but does not bind identified parties to obligations, rights, or terms (e.g., an invoice, order, or customer record)",
+    "business.representation": "the element is the perceptible form of the agreement, such as the signed PDF, HTML terms page, or on-screen acceptance form, rather than the agreement's content",
+    "business.product": "the element is the offered bundle of services and contracts sold to a market, rather than the terms attached to it",
+    "business.businessevent": "the element is the state change of the agreement, such as a contract being signed, renewed, or terminated, rather than the agreement itself"
   }
 }
