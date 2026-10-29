@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TestCoverageTarget",
-  "description": "The primary unit of test scope governance in a TestCoverageModel, identifying an artifact or functionality that requires test coverage per IEEE 829-2008 Section 5.2.3 (Features to be tested). A target may represent an API endpoint, UI component, business workflow, or integration point — each anchoring a set of CoverageRequirements and TestCaseSketches.",
+  "description": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow or scheduled job) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself. Use CoverageRequirement instead when the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested. Use TestCaseSketch instead when the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise. Use TestCoverageModel instead when the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope. Use TargetCoverageSummary instead when the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the artifact or functionality in scope and the testing concerns it raises. Set it whenever the target name and targetType alone do not make the boundary of what must be verified clear."
         },
         "targetType": {
           "type": "string",
@@ -48,5 +49,17 @@
       "required": ["targetType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 8 Master Test Plan / Clause 9 Level Test Plan: features to be tested (with test items)",
+  "x-dr-evidence": [
+    "A test suite block (describe/class/@Nested) named after a specific endpoint, component, job or workflow, e.g. describe('POST /orders'), whose tests all import or call that one production symbol",
+    "A test plan, coverage manifest or traceability file (YAML/JSON/Markdown) listing 'features to be tested' entries keyed by operationId, route, component or job name, with a priority",
+    "Coverage tool configuration that scopes include patterns or thresholds to a named module, endpoint handler or scheduled-job entry point (e.g. per-path thresholds in jest/istanbul or a JaCoCo include rule)"
+  ],
+  "x-dr-distinguish": {
+    "testing.coveragerequirement": "the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested",
+    "testing.testcasesketch": "the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise",
+    "testing.testcoveragemodel": "the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope",
+    "testing.targetcoveragesummary": "the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target"
   }
 }

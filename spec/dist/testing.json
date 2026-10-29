@@ -34,7 +34,7 @@
     "contextvariation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ContextVariation",
-      "description": "A distinct test type or environmental context under which a coverage target may be invoked, used to parameterize test design across different execution conditions (functional correctness, load behavior, security posture, regression state). Maps to environmental needs documented in IEEE 829-2008 test design specifications.",
+      "description": "A named test-design condition, classified by test type (functional, load, security, regression, smoke, exploratory), under which a TestCoverageTarget is to be exercised, optionally bound to a set of EnvironmentFactors that fix the concrete environment for that condition. It names the whole execution context. It does not name a single environmental variable or an input value. Use EnvironmentFactor instead when the element is a single concrete environmental variable and its value (e.g. 'Ubuntu 22.04', 'en-US', 'latency < 100ms'), not a named test context that groups such variables. Use CoverageRequirement instead when the element states coverage criteria (pairwise, boundary-values, MC/DC) that must be met, possibly across several contexts, rather than defining one context. Use InputSpacePartition instead when the variation is in the data fed to the target (an input field's equivalence classes), not in the type of test or the execution environment. Use OutcomeCategory instead when the element classifies the expected result (success, timeout, validation-error), not the conditions under which the test runs.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -54,7 +54,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of the execution condition this variation represents: its purpose, scope and how it differs from other contexts applied to the same target, such as 'peak-load run at 500 rps against staging'. Set it whenever the contextType alone does not identify the context uniquely."
             },
             "contextType": {
               "type": "string",
@@ -77,12 +78,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Test Design Specification – Approach refinements and Environmental needs (Clause 9 Level Test Plan: environmental needs)",
+      "x-dr-evidence": [
+        "Separate test suites or directories split by test type, such as tests/load, tests/security, tests/smoke, or pytest markers / JUnit @Tag('smoke'|'regression') used to select runs",
+        "CI pipeline jobs or matrix entries that run the same targets under named contexts, e.g. a 'load' job invoking k6/JMeter or a 'security' job invoking OWASP ZAP, each with its own environment variables",
+        "Test configuration profiles bundling environment settings per context, e.g. playwright.config projects, tox envs, or application-test-load.yml, that set OS, locale, network throttling or dependency versions"
+      ],
+      "x-dr-distinguish": {
+        "testing.environmentfactor": "the element is a single concrete environmental variable and its value (e.g. 'Ubuntu 22.04', 'en-US', 'latency < 100ms'), not a named test context that groups such variables",
+        "testing.coveragerequirement": "the element states coverage criteria (pairwise, boundary-values, MC/DC) that must be met, possibly across several contexts, rather than defining one context",
+        "testing.inputspacepartition": "the variation is in the data fed to the target (an input field's equivalence classes), not in the type of test or the execution environment",
+        "testing.outcomecategory": "the element classifies the expected result (success, timeout, validation-error), not the conditions under which the test runs"
+      },
       "$id": "urn:dr:spec:node:testing.contextvariation"
     },
     "coverageexclusion": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CoverageExclusion",
-      "description": "A formally approved exclusion of a coverage target or requirement from the test coverage model, documenting the rationale, accepted risk, and accountable approver per test plan scope documentation in IEEE 829-2008.",
+      "description": "A recorded governance decision that removes a specific coverage target or coverage requirement from the coverage that must be achieved. It names the excluded item, gives the rationale, states whether the residual risk is accepted, and identifies the accountable approver. It exists only once someone has explicitly decided and signed off on not testing the item, not merely when the item is observed to be untested. Use CoverageGap instead when the missing coverage has been detected (e.g. in a summary report) but no one has yet approved leaving it untested; a gap may later flow into an exclusion. Use InputPartitionSelection instead when specific partition values are carved out of a single requirement's selection as a test-design choice (excludeValues), without a formal waiver, approver or risk acceptance. Use CoverageRequirement instead when the element states coverage criteria that must be satisfied rather than a sanctioned decision not to satisfy them. Use TestCaseSketch instead when an individual designed test case is being retired (status deprecated) rather than an entire target or requirement being waived from coverage.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -102,16 +115,20 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of what is excluded and the scope of the exclusion; set it when the reason alone does not make the boundary of the excluded item clear."
             },
             "reason": {
-              "type": "string"
+              "type": "string",
+              "description": "Plain-language justification for excluding the item from coverage (e.g. 'third-party code', 'deprecated endpoint scheduled for removal', 'not testable in CI environment'); always required."
             },
             "riskAccepted": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "True when the approver has explicitly accepted the residual risk of the item going untested. False when the exclusion rests on the item having no meaningful risk (e.g. dead or generated code)."
             },
             "approvedBy": {
-              "type": "string"
+              "type": "string",
+              "description": "Name, role or identity reference of the person or body accountable for authorising the exclusion (e.g. 'QA Lead', 'jane.doe', 'Change Advisory Board'); always required."
             },
             "affectedTargetRef": {
               "type": "string",
@@ -127,12 +144,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 9 Level Test Plan: features not to be tested (with risk justification under risks and contingencies)",
+      "x-dr-evidence": [
+        "A coverage-tool ignore entry with a justification comment that cites an approval or ticket, such as a `# pragma: no cover` or `/* istanbul ignore next */` line, `omit` in .coveragerc, or `coveragePathIgnorePatterns` in jest.config.",
+        "A test-waiver or exclusions file (YAML, JSON or Markdown) listing excluded endpoints, workflows or requirements with fields such as reason, approver and date.",
+        "A skipped or disabled test annotation that carries a reason and a waiver reference, such as `@pytest.mark.skip(reason=\"waived per QA-123, approved by J. Doe\")` or `@Disabled(\"Excluded: risk accepted, see ADR-12\")`."
+      ],
+      "x-dr-distinguish": {
+        "testing.coveragegap": "the missing coverage has been detected (e.g. in a summary report) but no one has yet approved leaving it untested; a gap may later flow into an exclusion.",
+        "testing.inputpartitionselection": "specific partition values are carved out of a single requirement's selection as a test-design choice (excludeValues), without a formal waiver, approver or risk acceptance.",
+        "testing.coveragerequirement": "the element states coverage criteria that must be satisfied rather than a sanctioned decision not to satisfy them.",
+        "testing.testcasesketch": "an individual designed test case is being retired (status deprecated) rather than an entire target or requirement being waived from coverage."
+      },
       "$id": "urn:dr:spec:node:testing.coverageexclusion"
     },
     "coveragegap": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CoverageGap",
-      "description": "An identified deficit between required and achieved test coverage for a target or requirement, typically surfaced during test summary reporting per IEEE 829-2008. Gaps require remediation, risk acceptance (CoverageExclusion), or deferral.",
+      "description": "A recorded finding that a specific coverage requirement or coverage target lacks the implemented or executed tests it needs. It names what is uncovered, how severe the gap is, and where it stands in remediation. It records a shortfall against required coverage, not a deliberate, approved scope decision and not an aggregate metric. Use CoverageExclusion instead when the uncovered item has been formally approved as out of scope, with a rationale, accepted risk and a named approver, rather than merely found to be missing coverage. Use TargetCoverageSummary instead when you are recording counts or percentages of sketches and implemented tests for a target, rather than a specific uncovered requirement that needs action. Use CoverageSummary instead when the artifact aggregates coverage totals across the whole model instead of describing one identified deficit. Use CoverageRequirement instead when you are specifying the criteria that must be met, rather than recording that those criteria are currently unmet.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -152,7 +181,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what is not covered (for example, missing partitions, contexts or outcome categories) and how the gap was detected. Set it whenever the severity and affected requirement alone do not make the gap clear."
             },
             "severity": {
               "type": "string",
@@ -177,12 +207,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 16 Level Test Report / Clause 17 Master Test Report (the Test Summary Report in IEEE 829-1998): comprehensive assessment and variances, i.e. identification of features or combinations not sufficiently tested",
+      "x-dr-evidence": [
+        "Coverage tool output (e.g. lcov, JaCoCo, coverage.py) or a CI gate failure listing files or endpoints below a configured threshold such as `fail_under` or `coverageThreshold`.",
+        "Test files carrying skip or todo markers (`@pytest.mark.skip`, `it.todo`, `xit`, `@Disabled`) with a comment or ticket ID explaining that a requirement or partition is not yet tested.",
+        "Issue-tracker items or TEST_GAPS / test-report markdown entries labelled 'coverage gap' or 'missing tests', naming an endpoint or requirement ID and a severity."
+      ],
+      "x-dr-distinguish": {
+        "testing.coverageexclusion": "the uncovered item has been formally approved as out of scope, with a rationale, accepted risk and a named approver, rather than merely found to be missing coverage",
+        "testing.targetcoveragesummary": "you are recording counts or percentages of sketches and implemented tests for a target, rather than a specific uncovered requirement that needs action",
+        "testing.coveragesummary": "the artifact aggregates coverage totals across the whole model instead of describing one identified deficit",
+        "testing.coveragerequirement": "you are specifying the criteria that must be met, rather than recording that those criteria are currently unmet"
+      },
       "$id": "urn:dr:spec:node:testing.coveragegap"
     },
     "coveragerequirement": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CoverageRequirement",
-      "description": "A specification of coverage criteria that must be satisfied for a TestCoverageTarget, defining which input partitions, context variations, and outcome categories must be exercised per IEEE 829-2008 test design specification requirements. The specific partitions, context variations, and outcome categories are associated via relationships (to InputPartitionSelection, ContextVariation, and OutcomeCategory nodes) rather than direct attributes.",
+      "description": "A test design rule attached to one TestCoverageTarget that names a combinatorial or structural coverage criterion (e.g. boundary-values, pairwise, MC/DC) which the target's test cases must satisfy across selected input partitions, context variations and outcome categories. It states what must be exercised. It is not a test case, not the target itself, and not a measured result. Use TestCoverageTarget instead when the element identifies the endpoint, workflow, component or job that needs testing, rather than the criterion its tests must meet. Use InputPartitionSelection instead when the element lists which specific values of one InputSpacePartition are included or excluded, rather than the overall coverage strategy that uses those selections. Use TestCaseSketch instead when the element is one designed or implemented test case choosing concrete partition values, rather than the rule that a set of such cases must satisfy. Use CoverageGap instead when the element records a measured shortfall against a requirement found during reporting, rather than the requirement itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -202,7 +244,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text statement of what this requirement demands for its target, naming the partitions, contexts or outcomes in scope and any rationale. Set it whenever the coverageCriteria value alone does not make the scope evident."
             },
             "coverageCriteria": {
               "type": "string",
@@ -226,12 +269,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 10 Level Test Design (test design specification: approach refinements and feature pass/fail criteria)",
+      "x-dr-evidence": [
+        "A combinatorial test model file, such as a PICT .txt model, an allpairs config or a hypothesis/fast-check strategy, scoped to one endpoint or function, that declares parameters and an order or strategy like pairwise.",
+        "A parametrized test table (pytest.mark.parametrize, test.each, JUnit @ParameterizedTest/@CsvSource) whose rows enumerate boundary and invalid classes for one target, with a comment or docstring naming the criterion (e.g. 'boundary values for quantity').",
+        "A test plan or test design Markdown/YAML entry that states, per feature or endpoint, a required criterion and priority (e.g. 'POST /orders: all-partitions over status × role, must cover validation-error and authorization-error outcomes')."
+      ],
+      "x-dr-distinguish": {
+        "testing.testcoveragetarget": "the element identifies the endpoint, workflow, component or job that needs testing, rather than the criterion its tests must meet",
+        "testing.inputpartitionselection": "the element lists which specific values of one InputSpacePartition are included or excluded, rather than the overall coverage strategy that uses those selections",
+        "testing.testcasesketch": "the element is one designed or implemented test case choosing concrete partition values, rather than the rule that a set of such cases must satisfy",
+        "testing.coveragegap": "the element records a measured shortfall against a requirement found during reporting, rather than the requirement itself"
+      },
       "$id": "urn:dr:spec:node:testing.coveragerequirement"
     },
     "coveragesummary": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CoverageSummary",
-      "description": "Aggregated coverage status across all targets and requirements within a test coverage model, suitable for test summary reporting.",
+      "description": "A model-wide test summary report record that totals the coverage targets, coverage requirements and test case sketches of exactly one TestCoverageModel at a point in time. Per-target figures are rolled up from the model's TargetCoverageSummary records. Use TargetCoverageSummary instead when the metrics (sketch, implemented and automated counts or a percentage) describe a single TestCoverageTarget rather than the whole model. Use CoverageGap instead when the artifact records one specific shortfall between required and achieved coverage, with a severity and a remediation status, rather than aggregate totals. Use TestCoverageModel instead when the artifact is the coverage specification itself, holding the targets, partitions and requirements, rather than a generated report about it. Use CoverageExclusion instead when the artifact is an approved decision to leave a target or requirement uncovered, rather than a count of what is covered.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -255,28 +310,44 @@
               "description": "ID of the testing.testcoveragemodel this summary aggregates"
             },
             "generatedAt": {
-              "type": "string"
+              "type": "string",
+              "description": "ISO 8601 date-time at which the summary was computed; set it every time the summary is regenerated so stale reports can be detected."
             },
             "totalTargets": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative count of TestCoverageTarget nodes in the referenced model at generation time, including targets that have exclusions or gaps."
             },
             "totalRequirements": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative count of CoverageRequirement nodes across all targets in the referenced model at generation time."
             },
             "totalSketches": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative count of TestCaseSketch nodes across all targets in the model regardless of status; this equals the sum of sketchCount over the model's TargetCoverageSummary records."
             }
           },
           "required": ["totalTargets", "totalRequirements", "totalSketches"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 17 Master Test Report / Clause 16 Level Test Report (overview and summary of results; the Test Summary Report in IEEE 829-1998)",
+      "x-dr-evidence": [
+        "A script or CI job that loads the test coverage model (YAML or JSON) and emits totals of targets, requirements and test cases with a generation timestamp.",
+        "A generated report artifact (e.g. coverage-model-summary.json or a Markdown table in docs/testing) that lists overall counts per model and links to per-target summaries.",
+        "A test-reporting dashboard or README section that publishes model-level totals of covered features, requirements and designed test cases for a named application."
+      ],
+      "x-dr-distinguish": {
+        "testing.targetcoveragesummary": "the metrics (sketch, implemented and automated counts or a percentage) describe a single TestCoverageTarget rather than the whole model.",
+        "testing.coveragegap": "the artifact records one specific shortfall between required and achieved coverage, with a severity and a remediation status, rather than aggregate totals.",
+        "testing.testcoveragemodel": "the artifact is the coverage specification itself, holding the targets, partitions and requirements, rather than a generated report about it.",
+        "testing.coverageexclusion": "the artifact is an approved decision to leave a target or requirement uncovered, rather than a count of what is covered."
+      },
       "$id": "urn:dr:spec:node:testing.coveragesummary"
     },
     "environmentfactor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EnvironmentFactor",
-      "description": "A specific environmental variable (OS version, network latency, locale setting, hardware configuration, dependency version) documented as affecting test behavior. Used to parameterize ContextVariation instances with concrete environmental constraints per IEEE 829-2008 environmental needs specification.",
+      "description": "A single named environmental condition of a test run (operating system, network characteristic, locale, hardware configuration or dependency version) pinned to a concrete value or constraint and recorded because it changes how tests behave. It describes one factor of the execution environment, not the test type that bundles factors together nor any input supplied to the system under test. Use ContextVariation instead when the thing being modelled is a named test context (functional, load, security, regression, smoke, exploratory) that groups several environmental constraints, rather than one variable with one value. Use PartitionValue instead when the value is an equivalence class of an input field passed to the system under test (request parameter, form field, data property), not a property of the runtime environment. Use InputSpacePartition instead when an input dimension is being divided into equivalence classes. Do this even if that dimension is a locale or OS selector. A single fixed environmental setting is not a partition.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -319,19 +390,31 @@
               "description": "Description of how variations in this factor are expected to affect test behavior or outcomes."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what this environmental factor is and why it is pinned for testing, for example 'Server-side timezone forced to UTC to make date-boundary tests deterministic'. Set it whenever the factorType and value alone do not make the factor's purpose clear."
             }
           },
           "required": ["factorType", "value"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Test Design Specification / Test Plan §'Environmental needs' (hardware, software, communications and tool characteristics of the test environment)",
+      "x-dr-evidence": [
+        "A CI matrix entry pinning an environment axis, such as a GitHub Actions `strategy.matrix` with `os: [ubuntu-22.04, windows-2022]` or `node-version: [18.x, 20.x]`, or a tox/nox env list over Python versions.",
+        "Test setup that forces an environmental condition, such as setting `TZ`/`LANG`/`LC_ALL` environment variables, network-throttling or latency-injection config (toxiproxy, tc netem, Playwright `emulateNetworkConditions`), or a docker-compose test service pinned to a specific image tag.",
+        "Conditional test guards keyed on the environment, such as `@pytest.mark.skipif(sys.platform == 'win32')`, Jest `testEnvironment`, or an engines/`.nvmrc`/`.tool-versions` file referenced by test configuration."
+      ],
+      "x-dr-distinguish": {
+        "testing.contextvariation": "the thing being modelled is a named test context (functional, load, security, regression, smoke, exploratory) that groups several environmental constraints, rather than one variable with one value.",
+        "testing.partitionvalue": "the value is an equivalence class of an input field passed to the system under test (request parameter, form field, data property), not a property of the runtime environment.",
+        "testing.inputspacepartition": "an input dimension is being divided into equivalence classes. Do this even if that dimension is a locale or OS selector. A single fixed environmental setting is not a partition."
+      },
       "$id": "urn:dr:spec:node:testing.environmentfactor"
     },
     "inputpartitionselection": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InputPartitionSelection",
-      "description": "A specification of which values from an InputSpacePartition must be exercised within a CoverageRequirement, supporting selective coverage of equivalence classes per IEEE 829-2008 test design specification. When coverAllCategories is true, all partition values are included except those in excludeValues; otherwise, only the values listed in coverValues are included.",
+      "description": "A coverage-scope rule within a CoverageRequirement that names exactly one InputSpacePartition and declares which of its PartitionValues must be exercised. The rule takes one of two forms: an explicit include list, or all values minus an exclude list. It selects equivalence classes and never binds concrete test data. Use InputSelection instead when a single partition value is bound to a concrete test datum for one specific TestCaseSketch, rather than a set of classes being declared in scope for a requirement. Use PartitionValue instead when you are defining the equivalence class itself (its label, constraint and representative value), not choosing which classes to cover. Use PartitionDependency instead when the inclusion or exclusion of values in one field is conditional on a value chosen in another field. Use CoverageRequirement instead when you are stating the overall criterion (pairwise, boundary-values, MC/DC) and priority, rather than the per-partition value subset it draws on.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -376,12 +459,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Level Test Design Specification (Clause 10), approach refinements: selection of equivalence classes to be exercised",
+      "x-dr-evidence": [
+        "A combinatorial test model file (e.g. a PICT .txt or ACTS model) that lists one parameter with only a subset of its defined value classes.",
+        "A test-design YAML/JSON block keyed by an input field or partition name, with include/exclude lists or an 'all: true, except: [...]' form.",
+        "A parametrized test (pytest.mark.parametrize, it.each, @EnumSource(mode = EXCLUDE)) iterating over one field's enum or equivalence classes, with specific classes deliberately omitted or excluded."
+      ],
+      "x-dr-distinguish": {
+        "testing.inputselection": "a single partition value is bound to a concrete test datum for one specific TestCaseSketch, rather than a set of classes being declared in scope for a requirement.",
+        "testing.partitionvalue": "you are defining the equivalence class itself (its label, constraint and representative value), not choosing which classes to cover.",
+        "testing.partitiondependency": "the inclusion or exclusion of values in one field is conditional on a value chosen in another field.",
+        "testing.coveragerequirement": "you are stating the overall criterion (pairwise, boundary-values, MC/DC) and priority, rather than the per-partition value subset it draws on."
+      },
       "$id": "urn:dr:spec:node:testing.inputpartitionselection"
     },
     "inputselection": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InputSelection",
-      "description": "A concrete input value assignment for a TestCaseSketch, binding an abstract partition representative value (selectedValue) to a specific concrete test datum (concreteValue), per test case input specification in IEEE 829-2008.",
+      "description": "A single input binding inside one TestCaseSketch that assigns, for one partitioned input field, the chosen equivalence class (a PartitionValue) and the exact datum the test will submit for it. It is owned by exactly one test case, so it records the data that one test actually uses rather than a coverage obligation. Use InputPartitionSelection instead when the element states which partition values a CoverageRequirement obliges tests to exercise (cover/exclude lists), without fixing a concrete datum for any particular test case. Use PartitionValue instead when the element defines an equivalence class itself (label, constraint, category, representative value) independent of any test case that uses it. Use TestCaseSketch instead when the element is the whole test case design (status, implementation format, source) that groups several input bindings. Use TargetInputField instead when the element only associates an input field of the target with its InputSpacePartition, without choosing a value for a specific test.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -401,13 +496,16 @@
           "type": "object",
           "properties": {
             "partitionRef": {
-              "type": "string"
+              "type": "string",
+              "description": "ID of the testing.inputspacepartition whose input field this binding supplies a value for; set it on every selection so the concrete value can be traced to its input dimension."
             },
             "selectedValue": {
-              "type": "string"
+              "type": "string",
+              "description": "Label or ID of the testing.partitionvalue (equivalence class) chosen from that partition for this test case, e.g. 'boundary-max' or 'null-empty'."
             },
             "concreteValue": {
-              "type": "string"
+              "type": "string",
+              "description": "The exact datum the test submits for the field, serialized as a string (literal, JSON fragment, or fixture key), e.g. '255', '\"\"', or 'fixtures/user_admin.json'."
             },
             "valueSource": {
               "type": "string",
@@ -424,12 +522,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 11 Level Test Case: inputs",
+      "x-dr-evidence": [
+        "A row in a parametrized test table (e.g. pytest.mark.parametrize, JUnit @CsvSource, Jest test.each) that supplies a specific literal for one argument, often named or commented after its class, such as 'age=-1  # invalid: negative'",
+        "A test-data file (CSV/JSON/YAML) with one column per input field and one row per test case, consumed by a data-driven runner",
+        "A fixture or factory call inside a single test that builds a specific value for a request field, e.g. build_user(email='a@b') or a Faker/hypothesis strategy pinned to a boundary such as max length 255"
+      ],
+      "x-dr-distinguish": {
+        "testing.inputpartitionselection": "the element states which partition values a CoverageRequirement obliges tests to exercise (cover/exclude lists), without fixing a concrete datum for any particular test case",
+        "testing.partitionvalue": "the element defines an equivalence class itself (label, constraint, category, representative value) independent of any test case that uses it",
+        "testing.testcasesketch": "the element is the whole test case design (status, implementation format, source) that groups several input bindings",
+        "testing.targetinputfield": "the element only associates an input field of the target with its InputSpacePartition, without choosing a value for a specific test"
+      },
       "$id": "urn:dr:spec:node:testing.inputselection"
     },
     "inputspacepartition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InputSpacePartition",
-      "description": "Partitioning of an input dimension into testable equivalence classes, where each class groups values expected to behave identically under test. Enables systematic, structured coverage analysis per IEEE 829-2008 equivalence partitioning guidance by ensuring distinct behavioral categories are explicitly identified before test case selection.",
+      "description": "A test-design artifact that divides the domain of a single input field (an API parameter, schema property, or stored collection attribute) into a named set of equivalence classes (PartitionValues), each grouping values expected to produce the same behaviour under test. It also states whether that field must be present in test inputs. Use PartitionValue instead when the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field. Use InputPartitionSelection instead when the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves. Use TargetInputField instead when the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes. Use PartitionDependency instead when the element expresses a constraint linking a class in one field's partition to the allowed classes of another field.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -449,10 +559,12 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of the input dimension being partitioned and the basis on which its equivalence classes were derived (e.g. specification rule, data type limits); set whenever the partitioning rationale is not obvious from the field name."
             },
             "fieldRef": {
-              "type": "string"
+              "type": "string",
+              "description": "Cross-layer ID of the input field this partition divides, typically an api.parameter, data-model.schemaproperty, data-model.jsonschema or data-store.collection element; always set to the single field whose value domain is being partitioned."
             },
             "presenceRule": {
               "type": "string",
@@ -470,12 +582,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Level Test Design Specification (test approach refinements / features to be tested); equivalence partitioning technique as defined in ISO/IEC/IEEE 29119-4 §5.2.1",
+      "x-dr-evidence": [
+        "a parametrized test table (e.g. pytest.mark.parametrize, JUnit @ParameterizedTest with @MethodSource, Jest test.each) for one input field whose cases carry class ids such as 'valid', 'empty', 'too_long', 'negative'",
+        "a test-data module, enum or factory that enumerates named valid/invalid/boundary value groups for a single request parameter or schema property (e.g. EMAIL_CASES = {valid: [...], malformed: [...], null: [...]})",
+        "a property-based generator per field built from named sub-strategies (e.g. hypothesis st.one_of(valid_emails(), malformed_emails())), or a test-design document table listing equivalence classes per parameter"
+      ],
+      "x-dr-distinguish": {
+        "testing.partitionvalue": "the element is one individual equivalence class (label, constraint, representative value) rather than the whole set of classes for a field",
+        "testing.inputpartitionselection": "the element chooses which classes of an existing partition a CoverageRequirement must exercise, rather than defining the classes themselves",
+        "testing.targetinputfield": "the element only binds a field of a specific TestCoverageTarget to a partition and records its relevance, without enumerating classes",
+        "testing.partitiondependency": "the element expresses a constraint linking a class in one field's partition to the allowed classes of another field"
+      },
       "$id": "urn:dr:spec:node:testing.inputspacepartition"
     },
     "outcomecategory": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OutcomeCategory",
-      "description": "An abstract category of observable outcomes (e.g., success, validation error, authorization error, timeout) associated with a TestCoverageTarget, used during test design to organize expected results before test case specification per IEEE 829-2008. Distinguished from specific assertions — OutcomeCategory defines the class of outcome, not the exact expected value.",
+      "description": "A test-design classification of the observable result a TestCoverageTarget can produce (success, validation error, authorization error, not-found, server error, exception, timeout), stated at the level of result class rather than exact expected value. Coverage requirements must exercise it, and test case sketches are grouped under it. Use PartitionValue instead when the category classifies an input value (e.g. an invalid or null-empty equivalence class) rather than the result the target returns. Use ContextVariation instead when the category describes the test type or execution condition (functional, load, security, regression) under which the target is exercised, not what it returns. Use TestCaseSketch instead when the element specifies a particular case with concrete inputs and a specific expected value or assertion, rather than a class of outcomes. Use EnvironmentFactor instead when the element is the environmental condition (e.g. network latency) that provokes an outcome such as a timeout, rather than the outcome itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -495,7 +619,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what observable behaviour qualifies as this outcome for the target, e.g. 'HTTP 422 with field-level error list'. Set it whenever the outcomeType alone does not identify the signal tests should check."
             },
             "outcomeType": {
               "type": "string",
@@ -515,12 +640,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Level Test Design Specification (feature pass/fail criteria) and Level Test Case Specification (outputs specification)",
+      "x-dr-evidence": [
+        "test describe/context blocks or test names grouped by result class, e.g. 'returns 404 when resource missing', 'rejects unauthorized caller with 403', 'times out after 5s'",
+        "parameterized test tables or fixtures with an expected-outcome column (expected_status, expected_error, expectedOutcome) whose values are status classes or error types rather than exact payloads",
+        "assertions that check outcome class rather than exact value, e.g. expect(res.status).toBe(400), pytest.raises(ValidationError), assertThrows(AccessDeniedException), or OpenAPI response codes enumerated per operation in test plans"
+      ],
+      "x-dr-distinguish": {
+        "testing.partitionvalue": "the category classifies an input value (e.g. an invalid or null-empty equivalence class) rather than the result the target returns",
+        "testing.contextvariation": "the category describes the test type or execution condition (functional, load, security, regression) under which the target is exercised, not what it returns",
+        "testing.testcasesketch": "the element specifies a particular case with concrete inputs and a specific expected value or assertion, rather than a class of outcomes",
+        "testing.environmentfactor": "the element is the environmental condition (e.g. network latency) that provokes an outcome such as a timeout, rather than the outcome itself"
+      },
       "$id": "urn:dr:spec:node:testing.outcomecategory"
     },
     "partitiondependency": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PartitionDependency",
-      "description": "A constraint specifying how selection of a partition value in one field affects valid or available partition values in another field, enabling combinatorial test design to avoid invalid input combinations per IEEE 829-2008 test design specification.",
+      "description": "A cross-field constraint in combinatorial test design stating that when a specific partition value (the trigger) is selected in one InputSpacePartition, the availability of named partition values in another input field is excluded, required, restricted, or re-ranged, so that generated combinations omit invalid inputs. Use PartitionValue instead when the condition bounds a single field's own equivalence class (its constraintExpression) and does not depend on the value chosen for any other field. Use InputPartitionSelection instead when the restriction is a per-CoverageRequirement choice of which values of one partition to cover or exclude (coverValues/excludeValues), not a rule that applies whenever another field takes a given value. Use InputSpacePartition instead when you are describing the input dimension itself and its presenceRule (including a plain 'conditional' flag), rather than the specific trigger value and affected values that make it conditional. Use CoverageExclusion instead when a target or requirement is deliberately removed from coverage with an approver and accepted risk, rather than a combination being logically invalid.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -562,7 +699,8 @@
               "description": "Comma-separated labels or IDs of the partition values in the dependent field whose availability is modified by this dependency (e.g., values that are excluded, required, or restricted when the trigger value is selected)."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of the business or technical reason the trigger value constrains the affected values (e.g. 'guest accounts cannot hold admin role'); set whenever the rule is not self-evident from effect and affectedValues."
             }
           },
           "required": [
@@ -574,12 +712,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Level Test Design Specification (test design refinements: feature/input combinations to be tested); conceptually the category-partition method's selector constraints (Ostrand & Balcer)",
+      "x-dr-evidence": [
+        "A constraint line in a combinatorial test model file, e.g. a PICT/ACTS model containing 'IF [PaymentMethod] = \"invoice\" THEN [Country] IN {\"DE\",\"AT\"};'",
+        "A parametrized test generator (e.g. pytest_generate_tests, JUnit ArgumentsProvider, itertools.product filter) that drops or skips tuples when one parameter has a specific value and another has a listed value",
+        "A property-based test calling assume()/filter() that ties one generated argument's allowed values to another argument's value, e.g. 'assume(not (account_type == \"guest\" and role == \"admin\"))'"
+      ],
+      "x-dr-distinguish": {
+        "testing.partitionvalue": "the condition bounds a single field's own equivalence class (its constraintExpression) and does not depend on the value chosen for any other field.",
+        "testing.inputpartitionselection": "the restriction is a per-CoverageRequirement choice of which values of one partition to cover or exclude (coverValues/excludeValues), not a rule that applies whenever another field takes a given value.",
+        "testing.inputspacepartition": "you are describing the input dimension itself and its presenceRule (including a plain 'conditional' flag), rather than the specific trigger value and affected values that make it conditional.",
+        "testing.coverageexclusion": "a target or requirement is deliberately removed from coverage with an approver and accepted risk, rather than a combination being logically invalid."
+      },
       "$id": "urn:dr:spec:node:testing.partitiondependency"
     },
     "partitionvalue": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PartitionValue",
-      "description": "An individual equivalence class within an InputSpacePartition, characterized by a label, representative value, and optional constraint expression, used to enumerate the testable categories of an input dimension per IEEE 829-2008 test design specification.",
+      "description": "A single equivalence class or boundary class of one input dimension, owned by exactly one InputSpacePartition. It is defined by a boundary condition and by a representative value that stands for every value in the class during test design. Use InputSpacePartition instead when you are modelling the whole input field or dimension and its complete set of classes, rather than one class within it. Use InputSelection instead when you are binding a specific concrete test datum, used by a particular TestCaseSketch, to one of the partition's classes. Use InputPartitionSelection instead when you are stating which classes of a partition a CoverageRequirement must or must not exercise. Use OutcomeCategory instead when the category classifies expected results (success, validation error, timeout) rather than input values.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -599,10 +749,12 @@
           "type": "object",
           "properties": {
             "label": {
-              "type": "string"
+              "type": "string",
+              "description": "Short identifier for the class, unique within its parent partition (e.g. 'empty-string', 'above-max'); other nodes cite it in coverValues, excludeValues and affectedValues, so it is always set."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional free-text explanation of why values in this class are expected to behave alike and what behaviour they probe; set it when the label and constraint alone do not make the intent clear."
             },
             "constraint": {
               "type": "string",
@@ -625,7 +777,8 @@
               "description": "Equivalence partition category for this value"
             },
             "representativeValue": {
-              "type": "string"
+              "type": "string",
+              "description": "One abstract value, written as a string, that stands for the whole class in test design (e.g. '101' for above-max, '' for null-empty); it is distinct from the concrete datum later bound in InputSelection.concreteValue."
             }
           },
           "required": [
@@ -638,12 +791,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Level Test Design Specification, features and input specification refinement; equivalence partitioning and boundary value analysis per ISO/IEC/IEEE 29119-4 §5.2.1 and §5.2.3",
+      "x-dr-evidence": [
+        "A parametrized test table for a single argument whose case ids name input classes, e.g. @pytest.mark.parametrize ids=['valid','empty','too_long','negative'] or a JUnit @ValueSource/@CsvSource grouped by class.",
+        "Test data constants or builder functions named after a class of one field and mirroring a schema constraint, e.g. MAX_LEN_BOUNDARY = 255, invalid_email(), or a 'min - 1' value derived from a minimum declared in the OpenAPI or JSON Schema.",
+        "A property-based generator restricted to one class of an input, e.g. a Hypothesis strategy such as st.integers(min_value=0, max_value=100) or a fast-check arbitrary filtered by a regex predicate."
+      ],
+      "x-dr-distinguish": {
+        "testing.inputspacepartition": "you are modelling the whole input field or dimension and its complete set of classes, rather than one class within it.",
+        "testing.inputselection": "you are binding a specific concrete test datum, used by a particular TestCaseSketch, to one of the partition's classes.",
+        "testing.inputpartitionselection": "you are stating which classes of a partition a CoverageRequirement must or must not exercise.",
+        "testing.outcomecategory": "the category classifies expected results (success, validation error, timeout) rather than input values."
+      },
       "$id": "urn:dr:spec:node:testing.partitionvalue"
     },
     "targetcoveragesummary": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TargetCoverageSummary",
-      "description": "Coverage metrics summary for a single test coverage target",
+      "description": "A per-target coverage report record that states, for exactly one TestCoverageTarget, the counts of designed, implemented and automated test case sketches and the share of that target's coverage requirements exercised by at least one implemented test. It reports measured status, not required criteria or identified deficits. Use CoverageSummary instead when the record aggregates totals across all targets and requirements of a whole TestCoverageModel rather than metrics for one target. Use CoverageGap instead when the element records a specific uncovered requirement with severity and remediation status, rather than numeric coverage counts. Use CoverageRequirement instead when the element specifies the coverage criteria a target must satisfy, rather than reporting how far they are satisfied. Use TestCoverageTarget instead when the element identifies the endpoint, workflow or component in scope for testing, rather than its coverage metrics.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -692,12 +857,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 16 Level Test Report (summary of results and comprehensiveness assessment; the Test Summary Report in IEEE 829-1998), per-feature scope",
+      "x-dr-evidence": [
+        "A generated coverage report file (e.g. coverage-summary.json, a JUnit/Allure per-endpoint section) keyed by a single endpoint, route or feature ID with counts of planned, implemented and automated tests",
+        "A CI script or reporting job that groups test results by target (e.g. by OpenAPI operationId or tag) and computes a percentage of requirements with passing implemented tests",
+        "A traceability matrix row or markdown table in test documentation listing one feature/endpoint alongside sketch count, implemented count, automated count and coverage %"
+      ],
+      "x-dr-distinguish": {
+        "testing.coveragesummary": "the record aggregates totals across all targets and requirements of a whole TestCoverageModel rather than metrics for one target.",
+        "testing.coveragegap": "the element records a specific uncovered requirement with severity and remediation status, rather than numeric coverage counts.",
+        "testing.coveragerequirement": "the element specifies the coverage criteria a target must satisfy, rather than reporting how far they are satisfied.",
+        "testing.testcoveragetarget": "the element identifies the endpoint, workflow or component in scope for testing, rather than its coverage metrics."
+      },
       "$id": "urn:dr:spec:node:testing.targetcoveragesummary"
     },
     "targetinputfield": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TargetInputField",
-      "description": "An association between a TestCoverageTarget and a specific input field of the target artifact, defining which InputSpacePartition applies to that field and documenting its coverage relevance per IEEE 829-2008 test case specification.",
+      "description": "A test-design association that binds one input field of a TestCoverageTarget's artifact (an API parameter, data-model property or UI input) to the InputSpacePartition used to divide that field into equivalence classes. It also records whether the field must appear in test inputs for that target. Use InputSpacePartition instead when you are defining the equivalence classes of an input dimension itself, independent of which target or field uses them. Use InputPartitionSelection instead when you are stating which values of a partition a specific CoverageRequirement must exercise, rather than which partition governs a target's field. Use InputSelection instead when you are binding a concrete test datum to a partition value for an individual TestCaseSketch. Use TestCoverageTarget instead when the symbol represents the endpoint, workflow or component under test as a whole, not one of its input fields.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -725,7 +902,8 @@
               "description": "ID of the testing.inputspacepartition that defines the equivalence classes or boundary values for this input field."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text note on why this field matters for testing the target, such as validation rules or known defect history. Set it when the field's relevance or chosen partition is not self-evident from fieldRef and partitionRef."
             },
             "relevance": {
               "type": "string",
@@ -737,12 +915,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 11 Level Test Case, inputs, informed by Level Test Design equivalence-partitioning features",
+      "x-dr-evidence": [
+        "A parameterized test (pytest.mark.parametrize, JUnit @ParameterizedTest/@MethodSource) whose parameter is named after one request field of the endpoint under test, with value sets grouped as valid/invalid/boundary.",
+        "A per-endpoint test-data map or fixture keyed by request field name (e.g. {\"email\": EMAIL_CASES, \"age\": AGE_BOUNDARIES}) that pairs each field with a reusable case list.",
+        "A property-based or schema-driven generator bound to a single DTO/OpenAPI parameter (Hypothesis st.builds field override, fast-check arbitrary, Schemathesis hook for one parameter)."
+      ],
+      "x-dr-distinguish": {
+        "testing.inputspacepartition": "you are defining the equivalence classes of an input dimension itself, independent of which target or field uses them.",
+        "testing.inputpartitionselection": "you are stating which values of a partition a specific CoverageRequirement must exercise, rather than which partition governs a target's field.",
+        "testing.inputselection": "you are binding a concrete test datum to a partition value for an individual TestCaseSketch.",
+        "testing.testcoveragetarget": "the symbol represents the endpoint, workflow or component under test as a whole, not one of its input fields."
+      },
       "$id": "urn:dr:spec:node:testing.targetinputfield"
     },
     "testcasesketch": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TestCaseSketch",
-      "description": "A design-time test case specification that selects concrete input partition values for a CoverageRequirement, serving as the bridge between test design (InputPartitionSelection) and executable test case specification per IEEE 829-2008. Exists in sketch (unimplemented) or implemented status — not yet tied to a specific test runner or execution framework.",
+      "description": "A single test case design that combines specific input selections (one chosen value per relevant partition), a context variation and an expected outcome category to exercise one CoverageRequirement of a TestCoverageTarget. It may remain unimplemented or be linked through source to the individual test function, parameterized row or scenario that realizes it. Use CoverageRequirement instead when the element states which partitions, contexts or outcomes must be covered (the criterion), rather than one specific combination chosen to satisfy it. Use InputSelection instead when the element is one field's binding of a partition representative to a concrete datum inside a test case, not the whole test case. Use InputPartitionSelection instead when the element lists which partition values a coverage requirement demands across all its tests, rather than the values one test case uses. Use TestCoverageTarget instead when the element identifies the endpoint, component or workflow under test, which anchors many test cases, rather than an individual test case against it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -762,7 +952,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the scenario this sketch exercises: preconditions, the input combination chosen and the expected observable outcome. Set it whenever the name alone does not make the intent clear."
             },
             "status": {
               "type": "string",
@@ -794,12 +985,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 11 Level Test Case (test case specification: inputs, expected outcomes, environmental needs)",
+      "x-dr-evidence": [
+        "An individual test function or method (pytest test_*, Jest it()/test(), JUnit @Test) whose name, docstring or tag cites a requirement or partition, e.g. 'rejects quantity below zero'.",
+        "A single row of a parameterized test, such as a pytest.mark.parametrize id, a JUnit @CsvSource line or a Gherkin 'Scenario Outline' Examples row, binding concrete inputs to an expected result.",
+        "A test-case entry in a test plan, spreadsheet or test-management export (TestRail, Xray, Zephyr) with an ID, preconditions, input values, expected result and a status such as Draft or Approved."
+      ],
+      "x-dr-distinguish": {
+        "testing.coveragerequirement": "the element states which partitions, contexts or outcomes must be covered (the criterion), rather than one specific combination chosen to satisfy it.",
+        "testing.inputselection": "the element is one field's binding of a partition representative to a concrete datum inside a test case, not the whole test case.",
+        "testing.inputpartitionselection": "the element lists which partition values a coverage requirement demands across all its tests, rather than the values one test case uses.",
+        "testing.testcoveragetarget": "the element identifies the endpoint, component or workflow under test, which anchors many test cases, rather than an individual test case against it."
+      },
       "$id": "urn:dr:spec:node:testing.testcasesketch"
     },
     "testcoveragemodel": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TestCoverageModel",
-      "description": "The root artifact of a testing layer coverage specification, aggregating all TestCoverageTargets, InputSpacePartitions, ContextVariations, CoverageRequirements, and TestCaseSketches for an application. Corresponds to the test plan document structure in IEEE 829-2008, providing a single point of reference for coverage governance.",
+      "description": "A versioned, application-scoped coverage specification that acts as the root container for the coverage targets, input partitions, context variations, coverage requirements, exclusions and test case sketches of exactly one application or API. It corresponds to a test plan as a whole, not to any individual target, test, suite or results report. Use TestCoverageTarget instead when the element identifies one endpoint, workflow, UI component, job or integration flow that needs coverage, rather than the whole application's coverage specification. Use CoverageSummary instead when the element reports aggregated counts or status across a model's targets, requirements and sketches, rather than defining the coverage scope itself. Use CoverageRequirement instead when the element states the criteria (partitions, contexts, outcomes, coverage strategy) that a single target must satisfy, rather than containing all targets and requirements.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -819,14 +1022,16 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version identifier of this coverage model, as a semantic version or date stamp (e.g. '1.2.0' or '2024-05-01'); increment it whenever targets, requirements or exclusions are added, removed or changed."
             },
             "application": {
               "type": "string",
               "description": "Cross-layer reference ID to the application or API element (application layer or api layer) being covered by this model"
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the model's scope, the application release or test level it addresses, and any overall test approach; set it whenever the scope is not obvious from the application reference."
             },
             "source": {
               "type": "object",
@@ -837,12 +1042,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "IEEE 829-2008 Clause 8 Master Test Plan / Clause 9 Level Test Plan",
+      "x-dr-evidence": [
+        "A top-level test plan or coverage manifest file (e.g. test-plan.yaml, coverage-model.json) carrying a version and an application or service identifier, and listing the endpoints or features to be tested.",
+        "A TEST_PLAN.md or docs/testing/plan document for one service that has 'Features to be tested', 'Approach' and 'Pass/fail criteria' sections.",
+        "A test-generation configuration that imports one OpenAPI document or application spec (e.g. a schemathesis, dredd or contract-test config pointing at openapi.yaml) and produces the set of coverage targets for that application."
+      ],
+      "x-dr-distinguish": {
+        "testing.testcoveragetarget": "the element identifies one endpoint, workflow, UI component, job or integration flow that needs coverage, rather than the whole application's coverage specification.",
+        "testing.coveragesummary": "the element reports aggregated counts or status across a model's targets, requirements and sketches, rather than defining the coverage scope itself.",
+        "testing.coveragerequirement": "the element states the criteria (partitions, contexts, outcomes, coverage strategy) that a single target must satisfy, rather than containing all targets and requirements."
+      },
       "$id": "urn:dr:spec:node:testing.testcoveragemodel"
     },
     "testcoveragetarget": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TestCoverageTarget",
-      "description": "The primary unit of test scope governance in a TestCoverageModel, identifying an artifact or functionality that requires test coverage per IEEE 829-2008 Section 5.2.3 (Features to be tested). A target may represent an API endpoint, UI component, business workflow, or integration point — each anchoring a set of CoverageRequirements and TestCaseSketches.",
+      "description": "A test-scope entry in a TestCoverageModel that names one production artifact or capability (an API operation, UI view, business workflow, data migration, integration flow or scheduled job) whose behaviour must be verified. It is the anchor to which input fields, outcome categories, coverage requirements and test case sketches for that artifact attach. It records what is in scope, not the production code itself. Use CoverageRequirement instead when the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested. Use TestCaseSketch instead when the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise. Use TestCoverageModel instead when the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope. Use TargetCoverageSummary instead when the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -862,7 +1078,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the artifact or functionality in scope and the testing concerns it raises. Set it whenever the target name and targetType alone do not make the boundary of what must be verified clear."
             },
             "targetType": {
               "type": "string",
@@ -889,6 +1106,18 @@
           "required": ["targetType"],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "IEEE 829-2008 Clause 8 Master Test Plan / Clause 9 Level Test Plan: features to be tested (with test items)",
+      "x-dr-evidence": [
+        "A test suite block (describe/class/@Nested) named after a specific endpoint, component, job or workflow, e.g. describe('POST /orders'), whose tests all import or call that one production symbol",
+        "A test plan, coverage manifest or traceability file (YAML/JSON/Markdown) listing 'features to be tested' entries keyed by operationId, route, component or job name, with a priority",
+        "Coverage tool configuration that scopes include patterns or thresholds to a named module, endpoint handler or scheduled-job entry point (e.g. per-path thresholds in jest/istanbul or a JaCoCo include rule)"
+      ],
+      "x-dr-distinguish": {
+        "testing.coveragerequirement": "the element states the criteria (e.g. boundary-values, pairwise) that must be exercised for a target, rather than naming the thing to be tested",
+        "testing.testcasesketch": "the element is an individual designed or implemented test case selecting specific partition values, rather than the artifact those cases exercise",
+        "testing.testcoveragemodel": "the element is the application-wide root aggregating many targets, partitions and requirements, rather than a single artifact in scope",
+        "testing.targetcoveragesummary": "the element reports sketch, implemented or automated counts and a percentage for a target, rather than defining the target"
       },
       "$id": "urn:dr:spec:node:testing.testcoveragetarget"
     }

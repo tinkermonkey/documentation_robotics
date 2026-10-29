@@ -90,6 +90,17 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   attributes that had no description are now described (existing attribute descriptions were not
   overwritten). Relationship schemas whose source is an api or ux type are unchanged; they are being
   reworked separately.
+- **Remaining ten layers' definitions enriched** (third output of the Phase 1 enrichment pipeline,
+  `cli/scripts/spec-enrich`, node schemas only). All 134 node types in motivation (10), business (13),
+  product (6), security (29), technology (13), data-model (9), data-store (11), navigation (11), apm
+  (15) and testing (17) now carry an operational genus-and-differentia definition followed by
+  "Use <sibling> instead when ..." distinctions, plus `x-dr-evidence` (three observable code signals),
+  `x-dr-distinguish` and, for 131 of them, `x-dr-standard` (ArchiMate 3.2, NIST SP 800-53 Rev. 5,
+  XACML 3.0, JSON Schema draft-07, ISO/IEC 9075, OpenTelemetry, IEEE 829-2008 or the SPA navigation
+  pattern; `data-store.retentionpolicy`, `apm.alert` and `apm.dashboard` have none). 229 attributes
+  that had no description are now described (existing attribute descriptions were not overwritten).
+  Section citations were checked against the standards' tables of contents before applying.
+  Relationship schemas are unchanged; they are being reworked separately.
 - **Product skill "Incoming References"** — the section listed Application, UX, Testing and API links to
   Feature that did not exist in the catalog; it now matches the relationship schemas added above.
 
