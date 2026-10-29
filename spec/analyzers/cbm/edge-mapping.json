@@ -7,33 +7,11 @@
     "usage": "edge classification: 'verification_and_mapping' for cross-layer edges that create DR predicates, 'traversal_only' for intra-layer edges used for semantic analysis but not mapped to DR predicates",
     "dr_scope": "scope of the relationship (intra-layer, cross-layer, both)",
     "direction": "relationship direction (forward, backward, bidirectional, or caller_to_callee)",
-    "confidence_from_property": "code property that determines confidence level (e.g., visibility, export status)"
+    "confidence_from_property": "code property that determines confidence level (e.g., visibility, export status)",
+    "dr_pattern": "'<source layer.type> → <destination layer.type>' of the DR relationship, after directionality_transform; for verification_and_mapping edges it must name a triple in the relationship catalog",
+    "order": "the first mapping is the call-graph default edge type, so CALLS comes first"
   },
   "mappings": [
-    {
-      "cbm_edge": "HTTP_CALLS",
-      "dr_relationship": "consumes",
-      "confidence": "high",
-      "description": "HTTP API call between services maps to consumes relationship",
-      "usage": "verification_and_mapping",
-      "dr_scope": "cross-layer",
-      "direction": "caller_to_callee",
-      "confidence_from_property": "confidence",
-      "dr_pattern": "application.applicationservice → api.operation",
-      "implementation_note": "Requires HTTP verb and endpoint analysis to create cross-layer reference"
-    },
-    {
-      "cbm_edge": "HANDLES",
-      "dr_relationship": "provides",
-      "confidence": "high",
-      "description": "HTTP request handler maps to provides relationship",
-      "usage": "verification_and_mapping",
-      "dr_scope": "cross-layer",
-      "direction": "forward",
-      "confidence_from_property": "handler_decorator",
-      "dr_pattern": "application.applicationfunction → api.operation",
-      "implementation_note": "HTTP handler decoration indicates implementation relationship"
-    },
     {
       "cbm_edge": "CALLS",
       "dr_relationship": null,
@@ -47,15 +25,70 @@
       }
     },
     {
-      "cbm_edge": "IMPORTS",
+      "cbm_edge": "HANDLES",
+      "dr_relationship": "realizes",
+      "confidence": "high",
+      "description": "A function or method handles an HTTP route: the API operation for that route realizes the application function",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "forward",
+      "confidence_from_property": "handler_decorator",
+      "dr_pattern": "api.operation → application.applicationfunction",
+      "implementation_note": "CBM writes the edge handler → Route; the DR relationship runs from the operation to the function it realizes (api.operation.realizes.application.applicationfunction), so the direction is inverted. HANDLES names routes by path while Route nodes are named __route__METHOD__/path."
+    },
+    {
+      "cbm_edge": "HTTP_CALLS",
       "dr_relationship": null,
       "confidence": "high",
-      "description": "Module/file import dependency",
+      "description": "Outbound HTTP call from code to an API route",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "confidence_from_property": "confidence",
+      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation (the catalog has api.operation references application.applicationservice and api.operation references api.operation only). Traversal only until the catalog gains one; see addition 7 in docs/analyzers/CBM_MAPPING_INVENTORY.md."
+    },
+    {
+      "cbm_edge": "DEFINES_METHOD",
+      "dr_relationship": "assigned-to",
+      "confidence": "high",
+      "description": "A class defines a method: the application component is assigned the application function",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationcomponent → application.applicationfunction",
+      "implementation_note": "Map only when both ends survive Tier-1 classification as these types; most methods are not elements on their own.",
+      "conditions": {
+        "source_type": "application.applicationcomponent",
+        "destination_type": "application.applicationfunction"
+      }
+    },
+    {
+      "cbm_edge": "IMPORTS",
+      "dr_relationship": "uses",
+      "confidence": "high",
+      "description": "Module or file import dependency: one application component uses another",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationcomponent → application.applicationcomponent",
+      "implementation_note": "Map only between modules both classified as application components; imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
+      "conditions": {
+        "source_type": "application.applicationcomponent",
+        "destination_type": "application.applicationcomponent"
+      }
+    },
+    {
+      "cbm_edge": "DEFINES",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "A file defines a symbol",
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "implementation_note": "Provenance: supplies source_reference.file for every element mapped from a symbol. Not a relationship between elements.",
       "conditions": {
-        "usage_detail": "intra-layer structural"
+        "usage_detail": "provenance"
       }
     },
     {
@@ -95,30 +128,6 @@
       }
     },
     {
-      "cbm_edge": "CREATES",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "Object instantiation or component creation",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer behavioral"
-      }
-    },
-    {
-      "cbm_edge": "USES",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "General usage relationship",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer dependency"
-      }
-    },
-    {
       "cbm_edge": "EXTENDS",
       "dr_relationship": null,
       "confidence": "high",
@@ -128,43 +137,8 @@
       "direction": "forward",
       "conditions": {
         "usage_detail": "intra-layer structural"
-      }
-    },
-    {
-      "cbm_edge": "REFERENCES",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "Reference to variable, field, or constant",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer dependency"
-      }
-    },
-    {
-      "cbm_edge": "RETURNS",
-      "dr_relationship": null,
-      "confidence": "low",
-      "description": "Return type relationship (type information only)",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "type-level metadata"
-      }
-    },
-    {
-      "cbm_edge": "MODIFIES",
-      "dr_relationship": null,
-      "confidence": "medium",
-      "description": "State modification relationship",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer behavioral"
-      }
+      },
+      "implementation_note": "Present in the CBM 0.10.2 binary only, not in its documented vocabulary or any observed graph; kept for forward compatibility. INHERITS is the edge CBM emits for class extension."
     }
   ]
 }

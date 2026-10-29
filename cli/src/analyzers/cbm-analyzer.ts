@@ -97,6 +97,9 @@ function inferHttpPathFromFunctionName(name: string): string {
   return segment ? `/${segment}` : "/";
 }
 
+/** Element types whose CBM labels can yield service candidates in services(). */
+const SERVICE_SOURCE_TYPES = new Set(["applicationfunction", "applicationcomponent", "applicationservice"]);
+
 /**
  * CBM Analyzer implementation
  */
@@ -1256,7 +1259,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Filter to only application-layer labels by checking their mapping
       for (const label of nodeLabels) {
         const mapping = this.mapper.getNodeMapping(label);
-        if (mapping && mapping.dr_layer === "application") {
+        // Only behavioural and structural types are service sources; data-object labels
+        // (Interface, Type, Enum, ...) never become service candidates.
+        if (mapping && mapping.dr_layer === "application" && SERVICE_SOURCE_TYPES.has(mapping.dr_element_type)) {
           applicationLabels.push(label);
         }
       }
