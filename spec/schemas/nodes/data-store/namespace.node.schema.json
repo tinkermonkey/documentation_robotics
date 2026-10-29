@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Namespace",
-  "description": "A logical grouping of database objects within a database instance. Paradigm-neutral: maps to SQL schema, MongoDB database, Cassandra keyspace, Redis namespace/prefix, Elasticsearch index, vector database namespace, and graph database named graph.",
+  "description": "A named logical container inside a single database instance that scopes the names of collections, views, indexes, stored logic and other database objects, but does not itself hold records. Corresponds to an SQL schema, a MongoDB database, a Cassandra keyspace, a Redis key prefix convention, a vector-store namespace, or a graph named graph. Use Database instead when the element is the deployed engine instance or server/cluster that you connect to (host, engine, version, deployment model), not a name-scoping container within it. Use Collection instead when the element directly stores records, documents, keys or vectors, such as a table, a MongoDB collection, a Cassandra table, or an Elasticsearch index that holds documents. Use View instead when the element is a derived or virtual record set defined by a query or alias over source collections rather than a container that scopes object names.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,22 @@
       "type": "object",
       "properties": {
         "owner": {
-          "type": "string"
+          "type": "string",
+          "description": "The database role, user or principal that owns the namespace and holds default privileges over its objects, e.g. the AUTHORIZATION role in CREATE SCHEMA. Set it when ownership is declared in DDL or provisioning code, and leave it empty for paradigms without an ownership concept, such as Redis prefixes."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ISO/IEC 9075-2 Clause 11.1 <schema definition> (CREATE SCHEMA)",
+  "x-dr-evidence": [
+    "a migration or DDL script containing CREATE SCHEMA, CREATE KEYSPACE, or CREATE DATABASE inside a MongoDB/MySQL-style server, or a USE <name> statement",
+    "ORM or mapping configuration that qualifies tables with a schema name, e.g. @Table(schema=\"billing\"), SQLAlchemy MetaData(schema=\"billing\"), or Prisma @@schema(\"billing\")",
+    "client code selecting a scoped container by name, e.g. mongoClient.getDatabase(\"orders\"), session.execute(\"USE analytics\"), a Pinecone upsert(namespace=\"tenant-42\"), or a constant Redis key prefix such as \"cart:\" applied to every key"
+  ],
+  "x-dr-distinguish": {
+    "data-store.database": "the element is the deployed engine instance or server/cluster that you connect to (host, engine, version, deployment model), not a name-scoping container within it",
+    "data-store.collection": "the element directly stores records, documents, keys or vectors, such as a table, a MongoDB collection, a Cassandra table, or an Elasticsearch index that holds documents",
+    "data-store.view": "the element is a derived or virtual record set defined by a query or alias over source collections rather than a container that scopes object names"
   }
 }
