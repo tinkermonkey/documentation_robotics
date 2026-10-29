@@ -13,6 +13,15 @@ in the Phase 2 results of [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md).
 `cli/tests/unit/analyzers/cbm-mapping-catalog.test.ts` keeps the mapping consistent with the
 catalog from now on.
 
+Later the same day steps 5 to 7 landed too, and every one of the 48 edge types is now in
+`edge-mapping.json`: 17 create relationships through a per-pair catalog lookup over an ordered list
+of predicates (`cli/src/analyzers/edge-relationships.ts`), and the other 31 say why they do not.
+Of the ten catalog additions below, eight (eleven triples) are proposed to Context Studio as create
+operations (`cli/scripts/spec-enrich/data/catalog-additions-cbm.json`); addition 6 duplicates
+`application.applicationservice serves application.applicationcomponent`, and additions 8 and 10
+duplicate the reversed triples `SPAWNS` and `DEPLOYS` now use. The compose `depends_on` half of
+addition 9 is proposed as `technology.node depends-on technology.node`, not `composes`.
+
 ## Sources
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |

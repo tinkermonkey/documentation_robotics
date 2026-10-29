@@ -459,6 +459,20 @@ Reading the numbers:
   for the Tier-0 runs (no score, counted as a miss). The production cascade asks significance only
   where it is needed for the band, or not at all for a rule-decided card.
 
+**Edges (2026-10-29).** All 48 CBM edge types are now in the mapping, 17 of them creating
+relationships, and a relationship is the first preferred predicate with a catalog triple between the
+two classified types (`cli/src/analyzers/edge-relationships.ts`). `edges-report.ts` measures it
+against gold node labels, since there is no edge gold: of the 191 CBM edges that join two gold
+elements across the three corpora, 77 become a relationship when the ends carry their gold types
+(the first version, one fixed triple per edge, fitted 18). With the predicted types of the best
+configuration (`clef@v2-kind-tier0`), 72 relationships are produced and 28 are identical to the
+gold-typed one; leaving out dr-cli's `IMPORTS`, where predicted module types differ from gold's
+five-way split, it is 28 of 48. Edge precision is therefore bounded by node-type accuracy, and the
+`Module` question below is the edge question too. The remaining unfitted pairs are mostly linked
+through an intermediate element by design (view to library component through a component instance,
+operation to object schema through a request body or response), plus the eleven catalog additions
+now proposed to Context Studio.
+
 Next measurements: the held-out corpus above; `Module` handling (gold splits modules across five
 types); a manifest-based card path for `technology` (Dockerfiles, compose, package manifests), where
 symbol classification still recalls nothing.

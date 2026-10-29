@@ -25,7 +25,7 @@ the model.
 | Piece                            | Where                                                                   | State                                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Node, edge and heuristic mapping | `spec/analyzers/cbm/*.json`, compiled to `spec/dist/analyzers/cbm.json` | Made truthful (inventory step 1); `Interface` family mapped (step 2); `DEFINES_METHOD`, `IMPORTS` mapped (step 3)                              |
-| Tier-0 rule engine               | `cli/src/analyzers/tier0-rules.ts`                                      | Built, unit-tested; 16 rules as data in `extraction-heuristics.json` (inventory steps 2 and 4); measured in the strategy doc's Phase 2 results |
+| Tier-0 rule engine               | `cli/src/analyzers/tier0-rules.ts`                                      | Built, unit-tested; 17 rules as data in `extraction-heuristics.json` (inventory steps 2 and 4); measured in the strategy doc's Phase 2 results |
 | Catalog guard                    | `cli/tests/unit/analyzers/cbm-mapping-catalog.test.ts`                  | Every mapped type and every relationship-creating edge must exist in the catalog; every CBM label is mapped or listed                          |
 | Card builder                     | `cli/scripts/classify-eval/cards.ts`, `facts.ts`                        | Harness only (bun script, sampled cards)                                                                                                       |
 | Tier-1 questions and Clef client | `cli/scripts/classify-eval/backends/clef.ts`, `lib/spec.ts`             | Harness only                                                                                                                                   |
@@ -104,13 +104,30 @@ Messages API with the Batch API for bulk runs and prompt caching for the spec re
 
 ### 5. Edges
 
-After nodes are accepted, `verification_and_mapping` edges in `edge-mapping.json` become
-relationships when both ends were accepted as the types the mapping names (`conditions` in the
-mapping). Today that is `HANDLES` (operation realizes function), `DEFINES_METHOD` (component
-assigned-to function) and `IMPORTS` (component uses component). The data-access and behavioural
-edges (`USAGE`, `WRITES`, `CALLS`) and the per-predicate yes/no questions wait for the relationship
-catalog to settle in Context Studio's review queue, since their predicate vocabulary is what is
-being revised.
+After nodes are accepted, each CBM edge between two accepted elements is looked up, not
+hard-coded: its mapping lists the predicates that can express it in order of preference
+(`conditions.predicates`, each optionally inverted), and the relationship is the first catalog
+triple that exists between the two element types (`cli/src/analyzers/edge-relationships.ts`). A
+call from an application process to a function becomes `depends-on`; a call from a service to a
+data object becomes `accesses`; a function using an entity class becomes `data-model.objectschema
+serves` the function, the catalog's provider-to-consumer reading. One predicate per edge type did
+not work: with gold types on both ends, only 18 of the edges between labelled cards fitted the
+single mapped triple, against 77 of 191 with the lookup (strategy doc, Phase 2 results).
+
+All 48 CBM edge types are accounted for: 17 create relationships (`CALLS`, `HANDLES`,
+`DEFINES_METHOD`, `IMPORTS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`,
+`TESTS`, `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`),
+and every traversal-only edge says why, including the catalog addition it waits on. Eleven
+additions (`specializes` for `INHERITS` and `OVERRIDE`, `triggers` for `EMITS` and `ASYNC_CALLS`,
+`consumes` for `HTTP_CALLS` and its siblings, and the interface, composition and infrastructure
+gaps) are create proposals for Context Studio's review queue
+(`cli/scripts/spec-enrich/catalog-additions.ts`); the lookup picks them up as soon as they are in the
+catalog, with no mapping change.
+
+Some pairs are linked through an intermediate element by design, and a CBM edge between them implies
+that element: a view importing a library component means a `ux.componentinstance` the view renders
+and that realizes the component; an operation using an object schema goes through its request body
+or response. These _two-hop_ cases are a card-builder rule still to write, not catalog gaps.
 
 ### 6. Output and changesets
 
@@ -158,23 +175,38 @@ and Context Studio's review-queue decisions on the spec itself, are the training
 A 3,000-symbol repository with a quarter of its cards decided by rules and a tenth escalated
 costs on the order of $3 in Clef plus $2-3 in Claude, before naming and upper-layer inference.
 
-## Decisions needed
+## Decisions (maintainer, 2026-10-29)
 
-1. **Sending code to a third-party model.** Tier 1 sends each card, including up to 40 lines of
-   source, to Cloudflare Workers AI. For a user's private repository that is a data-egress choice
-   they must make, so the proposal is opt-in: `dr analyzer classify` runs Tier 0 only unless a
-   decision-model backend is configured, and states which provider receives the code.
-2. **Where the question bank lives.** In code with a version id (proposed), or as data next to the
-   mapping in `spec/analyzers/cbm/` so it versions with the spec.
-3. **Command surface.** One `dr analyzer classify` with `--tier0-only`, `--changeset` and `--json`
-   (proposed), or classification folded into the existing `services`/`endpoints` commands.
+1. **Sending code to a third-party model is opt-in per project.** Without a configured
+   decision-model backend, `dr analyzer classify` runs Tier 0 only and escalates everything else.
+   Enabling a backend is an explicit project setting that names the provider which will receive
+   card text, and the command says so when it runs. Cloudflare credentials in the environment are
+   not enough on their own.
+2. **The question set lives in code** (`cli/src/analyzers/classifier/`) with a version id recorded
+   in every decision. The questions are generic to DR rather than to CBM, they are coupled to the
+   backend's request shape, and thresholds are fitted per version; the spec stays model-agnostic.
+3. **One new command, `dr analyzer classify`**, with `--tier0-only`, `--changeset <name>` and
+   `--json`. `/dr-map` Step 3 calls it instead of collecting `endpoints`, `services` and
+   `datastores` pre-briefs; those commands stay as they are.
+4. **Phase 2 maps every CBM edge the catalog can hold.** The edges whose triples exist are mapped
+   on this branch (inventory steps 5 to 7). The ten catalog additions the remaining edges need go
+   to Context Studio's review queue as create proposals, and their edges are mapped once accepted.
+
+## Later: CBM capabilities beyond the mapping
+
+Not in this work set, recorded so they are not lost: `get_architecture` clusters (component
+boundaries and `Module` handling), `detect_changes` (incremental `/dr-sync`), the cross-repository
+edges (`CROSS_HTTP_CALLS` and siblings, which correspond to DR's `@model/...` references),
+similarity edges (duplicate detection), documentation `Section` and `MENTIONS` edges (evidence for
+Tier 2's upper layers), and the infrastructure pass (`Resource`, `Image`, `Chart`; needs a corpus
+with manifests and a re-index).
 
 ## Build order
 
 1. Port the card builder and facts into `cli/src/analyzers/cards/`, with the harness switched to
    import it, so harness numbers keep measuring production code.
 2. `dr analyzer classify --tier0-only --json`: cards plus rule decisions, no network.
-3. Clef backend and Tier-1 bands behind configuration (decision 1).
+3. Clef backend and Tier-1 bands behind the per-project opt-in (decision 1).
 4. Changeset staging and the three mapped edges.
 5. Tier 2 (escalation, naming, upper layers) and the `/dr-map` switch.
 6. Cache and drift comparison for `dr farm sync` and `dr verify`.
