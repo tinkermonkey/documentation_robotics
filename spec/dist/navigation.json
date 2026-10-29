@@ -28,7 +28,7 @@
     "breadcrumbconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BreadcrumbConfig",
-      "description": "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Applied globally to define breadcrumb rendering for a navigation scope rather than attached per individual Route. Provides users with location context and navigation history.",
+      "description": "A navigation-scope configuration object that governs how the breadcrumb location trail is derived from the active route hierarchy and rendered. It covers label resolution, the home link, separators and truncation, and applies to every route in a NavigationGraph or NavigationFlow rather than to one route. Use RouteMeta instead when the evidence is a breadcrumb label or flag set on a single route's meta/data object rather than a shared rule for building the whole trail. Use NavigationFlow instead when the trail being shown is a progress indicator through ordered wizard or checkout steps rather than the user's position in the route hierarchy. Use NavigationGraph instead when the object is the overall route table or router instance and breadcrumb settings are only one incidental option inside it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -48,32 +48,47 @@
           "type": "object",
           "properties": {
             "label": {
-              "type": "string"
+              "type": "string",
+              "description": "Default static text for breadcrumb items in this scope. It is used when neither labelTemplate nor a route's own breadcrumb meta yields a label, or it names the scope's root segment."
             },
             "labelTemplate": {
               "type": "string",
               "description": "Template string for dynamic label generation using {title} placeholder syntax to interpolate route metadata. Used when breadcrumb labels need to vary by route context rather than a static label."
             },
             "showHome": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean that, when true, prepends a home link as the first breadcrumb item. Set it to false when the trail should start at the current section."
             },
             "homeLabel": {
-              "type": "string"
+              "type": "string",
+              "description": "Display text for the home breadcrumb item, such as 'Home' or an i18n key. It is meaningful only when showHome is true."
             },
             "homeRoute": {
-              "type": "string"
+              "type": "string",
+              "description": "Route ID or URL path, such as 'home' or '/', that the home breadcrumb item links to. It is meaningful only when showHome is true and should resolve to a declared Route."
             }
           },
           "required": ["label"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: Breadcrumb (hierarchical location trail) pattern; cf. WAI-ARIA Authoring Practices Breadcrumb Pattern",
+      "x-dr-evidence": [
+        "An options object or provider passed to a breadcrumb library or component (e.g. xng-breadcrumb BreadcrumbService config, use-react-router-breadcrumbs options, MUI <Breadcrumbs separator maxItems itemsBeforeCollapse>) defined once and reused across pages",
+        "A breadcrumb service or composable that walks the router's matched route chain (route.matched, ActivatedRoute.parent, useMatches) and builds items from meta.breadcrumb or a title template",
+        "Shared constants or settings such as BREADCRUMB_SEPARATOR, HOME_BREADCRUMB = { label: 'Home', to: '/' } or a showHome flag imported by a layout-level breadcrumb component"
+      ],
+      "x-dr-distinguish": {
+        "navigation.routemeta": "the evidence is a breadcrumb label or flag set on a single route's meta/data object rather than a shared rule for building the whole trail",
+        "navigation.navigationflow": "the trail being shown is a progress indicator through ordered wizard or checkout steps rather than the user's position in the route hierarchy",
+        "navigation.navigationgraph": "the object is the overall route table or router instance and breadcrumb settings are only one incidental option inside it"
+      },
       "$id": "urn:dr:spec:node:navigation.breadcrumbconfig"
     },
     "contextvariable": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ContextVariable",
-      "description": "A typed variable shared across steps of a NavigationFlow, enabling state to persist and transfer between route transitions.",
+      "description": "A named, typed item of client-side state that a NavigationFlow carries between its FlowSteps across route transitions, declared with a schema, a lifetime scope and a storage mechanism such as session storage, local storage, memory or URL query string. It is runtime data written by one step and read by later steps or guards, not static per-route configuration or a path parameter of a single route. Use RouteMeta instead when the value is static configuration declared on one route (layout, roles, keepAlive, breadcrumb) rather than data produced and consumed at runtime as the user moves through a flow. Use Route instead when the value is a path segment parameter (e.g. ':orderId') that is part of a single route's URL pattern and identifies the resource that route addresses, rather than state carried across several steps. Use FlowStep instead when the thing being modelled is a position in the flow bound to a route, not the data passed between such positions. Use GuardCondition instead when the symbol is the boolean predicate that reads session or flow state to permit or deny access, rather than the state item itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -93,7 +108,8 @@
           "type": "object",
           "properties": {
             "schemaRef": {
-              "type": "string"
+              "type": "string",
+              "description": "Reference (ID or URI) to the data-model JSON Schema or application DataObject that defines the variable's type and shape, e.g. 'data-model.jsonschema.shipping-address'. Always set, so steps and guards can validate the value."
             },
             "scope": {
               "type": "string",
@@ -106,7 +122,8 @@
               "description": "Storage mechanism used to persist the variable across route transitions: sessionStorage (browser session), localStorage (cross-session), memory (in-process only), url-param (serialized into the URL query string)."
             },
             "defaultValue": {
-              "type": "string"
+              "type": "string",
+              "description": "Serialized initial value (literal or JSON string conforming to schemaRef) assigned when the flow or scope starts before any step writes the variable. Omit when the variable must be explicitly collected, typically when required is true."
             },
             "required": {
               "type": "boolean",
@@ -117,12 +134,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: wizard/flow state passing (router navigation state, query-string state and session-persisted state)",
+      "x-dr-evidence": [
+        "A wizard or checkout store (Redux slice, Pinia/Vuex module, NgRx feature, or XState machine context) whose fields are written in one route's component and read in subsequent routes of the same flow",
+        "Calls such as sessionStorage.setItem('checkout.shippingAddress', ...), localStorage writes, or a useSessionStorage hook keyed by flow name, with the value read back on a later step page",
+        "Navigation calls that pass values forward, such as router.push({ query: { planId } }), navigate('/step-2', { state: { orderId } }), or Angular NavigationExtras.state, read on arrival via useLocation().state or getCurrentNavigation()"
+      ],
+      "x-dr-distinguish": {
+        "navigation.routemeta": "the value is static configuration declared on one route (layout, roles, keepAlive, breadcrumb) rather than data produced and consumed at runtime as the user moves through a flow",
+        "navigation.route": "the value is a path segment parameter (e.g. ':orderId') that is part of a single route's URL pattern and identifies the resource that route addresses, rather than state carried across several steps",
+        "navigation.flowstep": "the thing being modelled is a position in the flow bound to a route, not the data passed between such positions",
+        "navigation.guardcondition": "the symbol is the boolean predicate that reads session or flow state to permit or deny access, rather than the state item itself"
+      },
       "$id": "urn:dr:spec:node:navigation.contextvariable"
     },
     "flowstep": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FlowStep",
-      "description": "A single ordered node in a NavigationFlow, binding a sequence position to a specific route that the user must visit as part of a multi-step process. Each step carries a sequence index (determines order), a route reference, an optional required flag (whether the step may be skipped), and a waitBehavior governing whether the flow advances immediately or blocks until the step completes. FlowSteps compose into NavigationFlows that realize multi-page business processes such as checkout, onboarding, or wizards.",
+      "description": "An ordered position within a NavigationFlow that binds a sequence index to one route the user visits as part of a multi-step process, together with whether the step may be skipped and how the flow waits on it before advancing. It exists only as a member of a flow; the same route outside any ordered process is not a step. Use Route instead when the symbol declares a URL path pattern and the component it resolves to, independent of any position in an ordered multi-step process. Use NavigationFlow instead when the symbol is the whole ordered wizard, checkout or onboarding sequence that contains the steps, not a single position within it. Use NavigationTransition instead when the symbol describes the edge between two routes and what triggers it (click, redirect, back) rather than a numbered stop in a flow. Use ContextVariable instead when the symbol is state carried between steps (e.g. a cart or form draft held in sessionStorage) rather than the step itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -142,16 +171,20 @@
           "type": "object",
           "properties": {
             "sequence": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Integer position of the step within its NavigationFlow, starting at 1 and unique within the flow, that sets traversal order; always set it, taking the value from the array index or explicit step number in code."
             },
             "route": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier or path of the navigation.route the user visits at this step (e.g. 'checkout-payment' or '/checkout/payment'); set it to the route ID where one exists, otherwise to the literal path."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of what the user accomplishes at this step (e.g. 'enter shipping address'); set it when the route name alone does not convey the step's purpose."
             },
             "required": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean flag; true means the flow cannot advance past this step without completing it, and false means the step may be skipped. Set it to false for steps marked optional or skippable in code."
             },
             "waitBehavior": {
               "type": "string",
@@ -163,12 +196,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns – multi-step wizard / stepper step",
+      "x-dr-evidence": [
+        "An entry in a steps array of a wizard or stepper configuration (e.g. `steps: [{ path: '/checkout/shipping', ... }, { path: '/checkout/payment', ... }]`) whose position or explicit index defines order",
+        "A stepper component child (e.g. `<Step>`, `<mat-step>`, `<el-step>`) bound to a route path, carrying an `optional` or `required` flag or a completion or validation gate",
+        "Next/previous step logic, such as `goToStep(n)`, `currentStep + 1` or a state-machine state in an onboarding or checkout flow, that resolves a step index to a router push of a specific path"
+      ],
+      "x-dr-distinguish": {
+        "navigation.route": "the symbol declares a URL path pattern and the component it resolves to, independent of any position in an ordered multi-step process",
+        "navigation.navigationflow": "the symbol is the whole ordered wizard, checkout or onboarding sequence that contains the steps, not a single position within it",
+        "navigation.navigationtransition": "the symbol describes the edge between two routes and what triggers it (click, redirect, back) rather than a numbered stop in a flow",
+        "navigation.contextvariable": "the symbol is state carried between steps (e.g. a cart or form draft held in sessionStorage) rather than the step itself"
+      },
       "$id": "urn:dr:spec:node:navigation.flowstep"
     },
     "guardaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GuardAction",
-      "description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation — along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
+      "description": "A denial-handling outcome attached to a NavigationGuard that specifies what the router does when the guard's condition fails. It either redirects to a route or URL, cancels navigation in place, shows a message, or asks for confirmation, and it records whether the attempted route is kept so the user can return to it later. Use NavigationGuard instead when you are modelling the interceptor itself: its mechanism type (auth, role, feature-flag), its execution order, and the routes it protects, rather than what happens on denial. Use GuardCondition instead when you are modelling the boolean predicate the guard evaluates (e.g. 'user.isAuthenticated'), not the response executed when that predicate is false. Use NavigationTransition instead when you are modelling a standing edge between two routes in the navigation graph (including one with trigger 'redirect') rather than a guard's conditional denial response. Use Route instead when the redirect is unconditional, such as a route of type 'redirect' whose router entry always forwards (e.g. { path: '/', redirectTo: '/home' }) regardless of any access check.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -209,12 +254,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: navigation guard outcome (redirect or cancel), e.g. Angular CanActivate/CanDeactivate returning a UrlTree or false, and Vue Router beforeEach returning a route location or false",
+      "x-dr-evidence": [
+        "The denied branch of a beforeEach/canActivate guard that returns a redirect location carrying the attempted path, e.g. return { name: 'login', query: { redirect: to.fullPath } } or router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } }).",
+        "A guard branch that aborts navigation with next(false), return false, or event.preventDefault(), optionally preceded by a toast or notification call explaining the denial.",
+        "A window.confirm(...) or modal-dialog prompt inside a canDeactivate or beforeRouteLeave hook, or a React protected-route wrapper rendering <Navigate to=\"/login\" state={{ from: location }} replace />."
+      ],
+      "x-dr-distinguish": {
+        "navigation.navigationguard": "you are modelling the interceptor itself: its mechanism type (auth, role, feature-flag), its execution order, and the routes it protects, rather than what happens on denial.",
+        "navigation.guardcondition": "you are modelling the boolean predicate the guard evaluates (e.g. 'user.isAuthenticated'), not the response executed when that predicate is false.",
+        "navigation.navigationtransition": "you are modelling a standing edge between two routes in the navigation graph (including one with trigger 'redirect') rather than a guard's conditional denial response.",
+        "navigation.route": "the redirect is unconditional, such as a route of type 'redirect' whose router entry always forwards (e.g. { path: '/', redirectTo: '/home' }) regardless of any access check."
+      },
       "$id": "urn:dr:spec:node:navigation.guardaction"
     },
     "guardcondition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GuardCondition",
-      "description": "Boolean predicate evaluated by a NavigationGuard to determine whether route access should be permitted. Expressions may reference user session state, roles, or feature flags. Async conditions (e.g., token validation API calls) are supported with a configurable timeout; on timeout, the condition fails closed (access denied) to preserve security.",
+      "description": "A boolean predicate, possibly asynchronous with a millisecond timeout, that a NavigationGuard evaluates against session state, roles, permissions, feature flags, route metadata or flow context to decide whether activation of a target route is allowed. It is the test only: it neither registers interception on routes nor specifies what happens on denial. Use NavigationGuard instead when the symbol is the interceptor registered with the router (beforeEach hook, canActivate class, route-level beforeEnter) that carries a guard type and execution order, rather than the predicate expression it calls. Use GuardAction instead when the code describes the denial response, such as a redirect to '/login', returning false to block, showing a toast, or prompting for confirmation, rather than the true/false test that precedes it. Use RouteMeta instead when the symbol is declarative per-route data like requiresAuth, roles or permissions that a predicate reads, rather than the logic that evaluates that data. Use ContextVariable instead when the symbol is the flow-scoped state value itself (e.g. a stored cartId or wizard progress) that a condition may inspect, rather than a predicate over it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -250,12 +307,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: route guard predicate (e.g. the boolean/Promise<boolean> result of Angular CanActivate or the condition inside a Vue Router beforeEach guard)",
+      "x-dr-evidence": [
+        "A named function or method returning boolean, Promise<boolean> or Observable<boolean> (e.g. isAuthenticated(), hasRole(route.meta.roles), isFeatureEnabled('beta')) that is invoked from inside a router guard hook.",
+        "An inline conditional expression in a beforeEach/canActivate/loader body, such as `if (!store.user || !to.meta.roles.includes(store.user.role))`, whose result selects between next()/true and a redirect or block.",
+        "An awaited token or permission check (e.g. `await authService.validateToken()`), often wrapped in Promise.race or a timeout option, that returns false or throws on expiry before a route is allowed to activate."
+      ],
+      "x-dr-distinguish": {
+        "navigation.navigationguard": "the symbol is the interceptor registered with the router (beforeEach hook, canActivate class, route-level beforeEnter) that carries a guard type and execution order, rather than the predicate expression it calls.",
+        "navigation.guardaction": "the code describes the denial response, such as a redirect to '/login', returning false to block, showing a toast, or prompting for confirmation, rather than the true/false test that precedes it.",
+        "navigation.routemeta": "the symbol is declarative per-route data like requiresAuth, roles or permissions that a predicate reads, rather than the logic that evaluates that data.",
+        "navigation.contextvariable": "the symbol is the flow-scoped state value itself (e.g. a stored cartId or wizard progress) that a condition may inspect, rather than a predicate over it."
+      },
       "$id": "urn:dr:spec:node:navigation.guardcondition"
     },
     "navigationflow": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationFlow",
-      "description": "An ordered sequence of FlowSteps that together realize a multi-step user process — such as a checkout wizard, onboarding tour, or multi-page form — by linking discrete routes into a directed path with defined entry and exit points. A NavigationFlow is the top-level container for a user journey: it groups FlowSteps, imposes traversal order, and provides the orchestration context that connects navigation structure to a business process outcome.",
+      "description": "A named, ordered grouping of FlowSteps that links two or more routes into a single multi-step user process, such as a checkout, onboarding sequence or wizard, with a defined first step, a defined final step and an imposed traversal order. It is the container for the journey as a whole, not for any individual step, route or edge. Use FlowStep instead when the symbol is one position in the sequence, binding a single index to a single route, rather than the whole ordered journey. Use NavigationGraph instead when the symbol is the application's complete route table or router instance, covering all routes, rather than one bounded multi-step process. Use NavigationTransition instead when the symbol is a single from-to route change with a trigger, such as a next button handler or a redirect, rather than an ordered set of steps. Use Route instead when the symbol is one URL path pattern resolving to a view, even if that view internally renders a stepper without changing route.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -275,7 +344,8 @@
           "type": "object",
           "properties": {
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the user process the flow realizes, naming its purpose, its entry and exit steps and its completion outcome (e.g. 'Guest checkout from cart review to order confirmation'); set it whenever the flow's name alone does not convey its scope."
             },
             "source": {
               "type": "object",
@@ -285,12 +355,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: multi-step flow / wizard pattern",
+      "x-dr-evidence": [
+        "A configuration array or object listing ordered step entries, each naming a route path (e.g. steps: [{path: '/checkout/cart'}, {path: '/checkout/shipping'}, ...]), consumed by a stepper or wizard component or hook.",
+        "A parent route with ordered child routes that share a flow layout showing a progress indicator, plus next/back handlers that compute the following child path from the current index.",
+        "A state machine or flow store (e.g. XState machine, Redux slice, useWizard hook) whose states map to routes and that exposes start, next, previous and complete transitions, often carrying shared flow state between steps."
+      ],
+      "x-dr-distinguish": {
+        "navigation.flowstep": "the symbol is one position in the sequence, binding a single index to a single route, rather than the whole ordered journey.",
+        "navigation.navigationgraph": "the symbol is the application's complete route table or router instance, covering all routes, rather than one bounded multi-step process.",
+        "navigation.navigationtransition": "the symbol is a single from-to route change with a trigger, such as a next button handler or a redirect, rather than an ordered set of steps.",
+        "navigation.route": "the symbol is one URL path pattern resolving to a view, even if that view internally renders a stepper without changing route."
+      },
       "$id": "urn:dr:spec:node:navigation.navigationflow"
     },
     "navigationgraph": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationGraph",
-      "description": "Root container for an application's complete routing structure, composing all Route, NavigationTransition, and NavigationGuard nodes into a unified navigation model.",
+      "description": "A root container representing one application's complete router configuration, the single top-level route table or router instance whose scope covers every Route, NavigationTransition, NavigationGuard, NavigationFlow and BreadcrumbConfig reachable in that application. Exactly one exists per independently bootstrapped router, as opposed to a subset, journey or single entry. Use NavigationFlow instead when the symbol describes an ordered, goal-directed subset of routes, such as a wizard or checkout, rather than the whole route table of the application. Use Route instead when the symbol is a single path entry, including a parent route with nested children or a lazily loaded child route module, rather than the root router configuration. Use BreadcrumbConfig instead when the symbol only configures breadcrumb trail rendering for a navigation scope rather than defining the routes themselves.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -310,26 +392,39 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version identifier of this navigation model, such as a semver string matching the application release or route-table revision it reflects. Set it whenever the graph is extracted or published, so that changes to the routing structure can be tracked over time."
             },
             "application": {
               "type": "string",
               "description": "Reference to the Layer 4 ApplicationComponent that this navigation graph belongs to, enabling cross-layer traceability from routing to application architecture."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the graph's scope: which application or router instance it covers and any notable boundaries, such as excluded micro-frontends or admin sub-apps. Set it when the scope is not obvious from the application reference."
             }
           },
           "required": ["version", "application"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: root router configuration / route table (e.g., Vue Router createRouter instance, Angular RouterModule.forRoot, React Router createBrowserRouter)",
+      "x-dr-evidence": [
+        "A root router bootstrap call that receives the full routes array, such as createRouter({ history, routes }), RouterModule.forRoot(routes), createBrowserRouter([...]) or provideRouter(routes), which is mounted once on the app instance.",
+        "A top-level routing file, such as router/index.ts, app-routing.module.ts or routes.tsx, that imports and assembles all feature route modules and registers global guards like router.beforeEach.",
+        "The root directory of a file-system routing convention, such as Next.js app/ or pages/, Nuxt pages/ or SvelteKit src/routes, treated as one application's complete route tree."
+      ],
+      "x-dr-distinguish": {
+        "navigation.navigationflow": "the symbol describes an ordered, goal-directed subset of routes, such as a wizard or checkout, rather than the whole route table of the application.",
+        "navigation.route": "the symbol is a single path entry, including a parent route with nested children or a lazily loaded child route module, rather than the root router configuration.",
+        "navigation.breadcrumbconfig": "the symbol only configures breadcrumb trail rendering for a navigation scope rather than defining the routes themselves."
+      },
       "$id": "urn:dr:spec:node:navigation.navigationgraph"
     },
     "navigationguard": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationGuard",
-      "description": "A conditional interceptor that evaluates whether a user is permitted to activate a route, applied at route resolution time before the target component renders. Guards encapsulate cross-cutting access policies — authentication state, role membership, feature-flag enablement, or custom predicates — and execute in priority order (lowest order value first) when multiple guards protect the same route. A guard may allow activation, redirect the user, or block navigation entirely based on its evaluation result.",
+      "description": "A client-side router interceptor that runs during route resolution, before the target view renders, and decides whether a navigation to one or more routes may proceed, by evaluating a GuardCondition and, on denial, triggering a GuardAction. It is the executable hook registered with the SPA router (global, per-route or per-flow), not the predicate it evaluates, the response it takes on denial, or the route metadata it reads. Use GuardCondition instead when the symbol is only the boolean predicate or expression (e.g. isAuthenticated(), hasRole('admin')) and is not itself registered with the router as an interceptor. Use GuardAction instead when the symbol is only the denial response: the redirect target, block, notification message or confirmation prompt returned or executed when access is refused. Use RouteMeta instead when the symbol is declarative per-route data (meta.requiresAuth, data.roles, canDeactivate flags) that a guard reads but which performs no evaluation itself. Use NavigationTransition instead when the symbol models the edge between two routes and its trigger, rather than the check that permits or denies traversing that edge.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -354,10 +449,12 @@
               "description": "Classification of the guard mechanism: auth (authentication check), role (role membership), permission (fine-grained permission), feature-flag (feature toggle), custom (arbitrary condition)."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text summary of the access policy the guard enforces and the routes or flows it protects, e.g. 'Blocks admin routes for users without the admin role'; set whenever the guard's purpose is not obvious from its type and name."
             },
             "order": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative integer execution priority among guards protecting the same route, evaluated lowest value first; derive it from registration order in the router (array position in canActivate, beforeEach registration sequence) and set it whenever more than one guard can apply."
             },
             "source": {
               "type": "object",
@@ -368,12 +465,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: Route Guard / navigation hook (e.g. Angular CanActivate/CanMatch/CanDeactivate, Vue Router beforeEach/beforeEnter, React Router loader-based redirect)",
+      "x-dr-evidence": [
+        "a function or class implementing CanActivate, CanActivateChild, CanMatch or CanDeactivate (or a CanActivateFn) listed in a route's canActivate/canMatch array",
+        "a callback registered via router.beforeEach, router.beforeResolve or a route's beforeEnter that calls next(false), next('/login') or returns a redirect location",
+        "a React Router loader or wrapper component such as <RequireAuth>/<ProtectedRoute> that checks session, role or feature flag and returns redirect('/login') or <Navigate> before rendering the child route"
+      ],
+      "x-dr-distinguish": {
+        "navigation.guardcondition": "the symbol is only the boolean predicate or expression (e.g. isAuthenticated(), hasRole('admin')) and is not itself registered with the router as an interceptor",
+        "navigation.guardaction": "the symbol is only the denial response: the redirect target, block, notification message or confirmation prompt returned or executed when access is refused",
+        "navigation.routemeta": "the symbol is declarative per-route data (meta.requiresAuth, data.roles, canDeactivate flags) that a guard reads but which performs no evaluation itself",
+        "navigation.navigationtransition": "the symbol models the edge between two routes and its trigger, rather than the check that permits or denies traversing that edge"
+      },
       "$id": "urn:dr:spec:node:navigation.navigationguard"
     },
     "navigationtransition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationTransition",
-      "description": "A directed edge in the navigation graph representing an authorized route change from a source route to a destination route, triggered by a specific mechanism (user click, programmatic dispatch, timeout, browser-back, or redirect). Models the actual paths users traverse between states in the application — distinct from the routes themselves — enabling analysis of navigation flows, dead-end detection, and trigger-based transition policies.",
+      "description": "A directed edge between exactly one source Route and one destination Route that records a single permitted route change in the client-side router, together with the mechanism that initiates it (user click, programmatic call, timeout, browser history, or redirect). It represents the move between routes, not either route, and carries no sequence position in a multi-step process. Use Route instead when the element is the addressable URL pattern or route-table entry itself, including a route declared with type 'redirect' or 'alias', rather than the move from one route to another. Use FlowStep instead when the element is an ordered position in a multi-step process (it has a sequence index and a required/wait behavior) rather than an edge between two routes. Use GuardAction instead when the redirect or block is the response a NavigationGuard executes on denial, with a message and preserveRoute setting, rather than a modeled edge between two routes. Use RouteMeta instead when 'transition' refers to the CSS or animation effect applied on entering or leaving a route (e.g. 'fade'), not to a route-to-route edge.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -393,10 +502,12 @@
           "type": "object",
           "properties": {
             "from": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier (Route ID or path pattern) of the source Route from which the transition starts; set to the route whose view or config contains the link, call, or redirect, or to '*' only when the transition can be fired from any route."
             },
             "to": {
-              "type": "string"
+              "type": "string",
+              "description": "Identifier (Route ID or path pattern, with parameter placeholders such as '/orders/:id') of the destination Route that becomes active once the transition completes; always set to a Route defined in the same NavigationGraph."
             },
             "trigger": {
               "type": "string",
@@ -410,19 +521,32 @@
               "description": "Mechanism that initiates the route transition: user-click (explicit user interaction), programmatic (code-driven), timeout (time-based), browser-back (browser history navigation), redirect (automatic server/guard redirect)."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of when and why the transition occurs, such as the UI control or business event that fires it; set when the trigger alone does not make the user intent clear."
             }
           },
           "required": ["from", "to", "trigger"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: declarative and programmatic navigation (route change via History API pushState/replaceState/popstate)",
+      "x-dr-evidence": [
+        "A router link component (<Link to=\"/orders\">, <router-link :to=\"{name:'checkout'}\">, [routerLink]) rendered in the view of one route and targeting another route",
+        "An imperative navigation call such as router.push(), navigate('/x'), history.replace(), Navigator.pushNamed() or this.router.navigateByUrl() inside an event handler, effect, form-submit callback, or setTimeout",
+        "A route-table entry or loader/guard return that forwards one path to another, e.g. { path: '/old', redirect: '/new' }, <Navigate to=\"/login\" replace/>, or return redirect('/dashboard')"
+      ],
+      "x-dr-distinguish": {
+        "navigation.route": "the element is the addressable URL pattern or route-table entry itself, including a route declared with type 'redirect' or 'alias', rather than the move from one route to another",
+        "navigation.flowstep": "the element is an ordered position in a multi-step process (it has a sequence index and a required/wait behavior) rather than an edge between two routes",
+        "navigation.guardaction": "the redirect or block is the response a NavigationGuard executes on denial, with a message and preserveRoute setting, rather than a modeled edge between two routes",
+        "navigation.routemeta": "'transition' refers to the CSS or animation effect applied on entering or leaving a route (e.g. 'fade'), not to a route-to-route edge"
+      },
       "$id": "urn:dr:spec:node:navigation.navigationtransition"
     },
     "route": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Route",
-      "description": "A named, addressable destination in the application's navigation graph, representing a URL path pattern and the view or component it resolves to. Routes are the atomic unit of the navigation layer — each route maps a URL pattern to a specific UX artifact and carries an access classification (public, protected, redirect, alias, or lazy-loaded) that governs how the router handles incoming requests. Routes may be composed into NavigationFlows to model multi-step user journeys.",
+      "description": "A client-side router entry that binds a URL path pattern, with any route parameters, to the view or component the single-page-application router renders, lazily loads, or forwards to when the browser location matches it. It is one entry in a front-end route table, not a server-side HTTP endpoint. Use NavigationTransition instead when the element is a movement from one route to another, such as a Link, router.push call or redirect between two paths, rather than the destination path itself. Use FlowStep instead when the element is an ordered position in a multi-step wizard or checkout that refers to a route, rather than the route definition itself. Use RouteMeta instead when the element is the meta or data object attached to a route entry, holding layout, keepAlive, transition, breadcrumb or role hints, rather than the path-to-component mapping. Use NavigationGuard instead when the element is a beforeEnter, canActivate or loader function that decides whether a route may be activated, rather than the route entry it protects.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -442,10 +566,12 @@
           "type": "object",
           "properties": {
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable page title for the route, usually taken from route meta or document.title, used for headings, tab titles and default breadcrumb text. Set it when the route renders a user-visible page."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text prose explaining what the route displays and why a user reaches it. Set it when the path and title alone do not convey the route's purpose."
             },
             "type": {
               "type": "string",
@@ -461,12 +587,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "SPA Navigation Patterns: Route definition (route-table entry mapping a path pattern to a view component)",
+      "x-dr-evidence": [
+        "An object in a client-side router's routes array, such as Vue Router createRouter({routes}), Angular Routes or React Router createBrowserRouter, that has a path property together with component/element, loadComponent/lazy, redirect/redirectTo, or alias.",
+        "A file in a file-system routing convention whose location defines a URL path, such as Next.js app/**/page.tsx, SvelteKit +page.svelte, Nuxt pages/*.vue or Remix routes/*.tsx, including dynamic segments like [id] or $id.",
+        "A named path constant or route-name enum, such as ROUTES.USER_DETAIL = '/users/:id', that is passed to router.push, navigate(), <Link to> or <router-link :to> elsewhere in the front-end code."
+      ],
+      "x-dr-distinguish": {
+        "navigation.navigationtransition": "the element is a movement from one route to another, such as a Link, router.push call or redirect between two paths, rather than the destination path itself.",
+        "navigation.flowstep": "the element is an ordered position in a multi-step wizard or checkout that refers to a route, rather than the route definition itself.",
+        "navigation.routemeta": "the element is the meta or data object attached to a route entry, holding layout, keepAlive, transition, breadcrumb or role hints, rather than the path-to-component mapping.",
+        "navigation.navigationguard": "the element is a beforeEnter, canActivate or loader function that decides whether a route may be activated, rather than the route entry it protects."
+      },
       "$id": "urn:dr:spec:node:navigation.route"
     },
     "routemeta": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RouteMeta",
-      "description": "Per-route rendering and access configuration attached to a Route node and consumed by the SPA router at runtime. Covers layout selection, component instance caching, animation transitions, breadcrumb labeling, and access control hints. Security attributes (requiresAuth, roles, permissions) are navigation hints that should be enforced through NavigationGuard nodes in the security layer.",
+      "description": "A declarative metadata record attached to a single Route that the SPA router reads at runtime. It sets how that route's view is rendered (layout wrapper, keep-alive caching, enter/leave animation, breadcrumb label) and exposes access hints (requiresAuth, roles, permissions) for guards to read; it carries no URL path and no executable logic of its own. Use Route instead when the symbol defines the addressable path pattern and the component it resolves to, rather than the auxiliary meta/data object hanging off that route record. Use NavigationGuard instead when the symbol is executable interception logic (beforeEach, canActivate, a loader redirect) that evaluates and enforces access, rather than the static hints such logic reads. Use BreadcrumbConfig instead when the configuration sets breadcrumb generation rules, separators or home-link behaviour for a whole navigation scope rather than one route's breadcrumb label. Use NavigationTransition instead when modelling a directed change from one route to another with a trigger, not the CSS/animation name stored in a route's meta 'transition' field.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -523,6 +661,18 @@
           ],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "SPA Navigation Patterns: Route Meta Fields (e.g., Vue Router RouteMeta, Angular Route.data, React Router route handle)",
+      "x-dr-evidence": [
+        "a `meta: { requiresAuth: true, layout: 'AuthLayout', keepAlive: true }` object inside a Vue Router route record, or a `declare module 'vue-router' { interface RouteMeta { ... } }` type augmentation",
+        "an Angular route definition with `data: { roles: ['admin'], breadcrumb: 'Reports' }` that is read through ActivatedRoute.snapshot.data or in a guard",
+        "a root shell that wraps `<router-view>` in `<keep-alive>` or `<transition :name=\"route.meta.transition\">`, or that picks a layout component from `route.meta.layout` / `useMatches()[i].handle`"
+      ],
+      "x-dr-distinguish": {
+        "navigation.route": "the symbol defines the addressable path pattern and the component it resolves to, rather than the auxiliary meta/data object hanging off that route record",
+        "navigation.navigationguard": "the symbol is executable interception logic (beforeEach, canActivate, a loader redirect) that evaluates and enforces access, rather than the static hints such logic reads",
+        "navigation.breadcrumbconfig": "the configuration sets breadcrumb generation rules, separators or home-link behaviour for a whole navigation scope rather than one route's breadcrumb label",
+        "navigation.navigationtransition": "modelling a directed change from one route to another with a trigger, not the CSS/animation name stored in a route's meta 'transition' field"
       },
       "$id": "urn:dr:spec:node:navigation.routemeta"
     }

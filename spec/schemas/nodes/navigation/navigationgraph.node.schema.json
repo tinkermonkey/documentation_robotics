@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NavigationGraph",
-  "description": "Root container for an application's complete routing structure, composing all Route, NavigationTransition, and NavigationGuard nodes into a unified navigation model.",
+  "description": "A root container representing one application's complete router configuration, the single top-level route table or router instance whose scope covers every Route, NavigationTransition, NavigationGuard, NavigationFlow and BreadcrumbConfig reachable in that application. Exactly one exists per independently bootstrapped router, as opposed to a subset, journey or single entry. Use NavigationFlow instead when the symbol describes an ordered, goal-directed subset of routes, such as a wizard or checkout, rather than the whole route table of the application. Use Route instead when the symbol is a single path entry, including a parent route with nested children or a lazily loaded child route module, rather than the root router configuration. Use BreadcrumbConfig instead when the symbol only configures breadcrumb trail rendering for a navigation scope rather than defining the routes themselves.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,18 +21,31 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version identifier of this navigation model, such as a semver string matching the application release or route-table revision it reflects. Set it whenever the graph is extracted or published, so that changes to the routing structure can be tracked over time."
         },
         "application": {
           "type": "string",
           "description": "Reference to the Layer 4 ApplicationComponent that this navigation graph belongs to, enabling cross-layer traceability from routing to application architecture."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the graph's scope: which application or router instance it covers and any notable boundaries, such as excluded micro-frontends or admin sub-apps. Set it when the scope is not obvious from the application reference."
         }
       },
       "required": ["version", "application"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: root router configuration / route table (e.g., Vue Router createRouter instance, Angular RouterModule.forRoot, React Router createBrowserRouter)",
+  "x-dr-evidence": [
+    "A root router bootstrap call that receives the full routes array, such as createRouter({ history, routes }), RouterModule.forRoot(routes), createBrowserRouter([...]) or provideRouter(routes), which is mounted once on the app instance.",
+    "A top-level routing file, such as router/index.ts, app-routing.module.ts or routes.tsx, that imports and assembles all feature route modules and registers global guards like router.beforeEach.",
+    "The root directory of a file-system routing convention, such as Next.js app/ or pages/, Nuxt pages/ or SvelteKit src/routes, treated as one application's complete route tree."
+  ],
+  "x-dr-distinguish": {
+    "navigation.navigationflow": "the symbol describes an ordered, goal-directed subset of routes, such as a wizard or checkout, rather than the whole route table of the application.",
+    "navigation.route": "the symbol is a single path entry, including a parent route with nested children or a lazily loaded child route module, rather than the root router configuration.",
+    "navigation.breadcrumbconfig": "the symbol only configures breadcrumb trail rendering for a navigation scope rather than defining the routes themselves."
   }
 }
