@@ -1,0 +1,87 @@
+{
+  "format": "dr-reflection-plan/1",
+  "taxonomy_id": "dr_spec",
+  "title": "DR catalog additions for codebase-memory-mcp edges: technology layer (2 new relationship types)",
+  "rationale": "Phase 2 maps every codebase-memory-mcp (CBM) edge the relationship catalog can hold (spec/analyzers/cbm/edge-mapping.json). These CBM edges have no catalog triple to land on: INHERITS, OVERRIDE, EMITS, ASYNC_CALLS, RAISES, LISTENS_ON (interface level), CONTAINS_FOLDER, HTTP_CALLS (and the gRPC, GraphQL and tRPC variants) and CONNECTS_TO. Each addition below is a new meaning between its pair, checked against the catalog so that none restates an existing relationship in the other direction (design charter: one meaning, one predicate). The inventory's addition 6 (component uses application service) was dropped for that reason: application.applicationservice serves application.applicationcomponent already says it. Additions 8 and 10 were dropped because the existing reversed triples (technology.systemsoftware serves application.applicationcomponent; technology.node composes technology.artifact) express SPAWNS and DEPLOYS. Source: docs/analyzers/CBM_MAPPING_INVENTORY.md, 'Catalog additions the edge mapping would need'.",
+  "source": "pipeline",
+  "source_detail": "documentation_robotics cli/scripts/spec-enrich/catalog-additions.ts, data/catalog-additions-cbm.json",
+  "created_at": "2026-10-29T13:36:11.901Z",
+  "layer": "technology",
+  "operations": [
+    {
+      "seq": 1,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c1",
+      "fields": {
+        "relationship_id": "technology.node.depends-on.technology.technologyservice",
+        "predicate": "depends-on",
+        "source_spec_node_id": "technology.node",
+        "destination_spec_node_id": "technology.technologyservice",
+        "title": "technology.node depends-on technology.technologyservice",
+        "description": "A node (a workload or compose service) depends on a technology service it connects to; it cannot run correctly when that service is unavailable. This is the consumer side, distinct from technology.technologyservice depends-on technology.node, where the service depends on the node that hosts it."
+      },
+      "base": {},
+      "rationale": "A node (a workload or compose service) depends on a technology service it connects to; it cannot run correctly when that service is unavailable. This is the consumer side, distinct from technology.technologyservice depends-on technology.node, where the service depends on the node that hosts it. Needed to map the CBM edge CONNECTS_TO (inventory addition 9).",
+      "evidence": [
+        {
+          "quote": "A Kubernetes Deployment or docker-compose service whose environment, config or code addresses another Service by name (DATABASE_URL=postgres://db:5432, http://payments-svc); CBM CONNECTS_TO."
+        },
+        {
+          "quote": "Observed in the eval corpora: CONNECTS_TO documented by CBM, not observed (needs the infrastructure pass)."
+        },
+        {
+          "quote": "The reverse triple exists with a different meaning: technology.technologyservice depends-on technology.node is the hosting dependency (a service needs the node it runs on); this is the consumer dependency (a workload needs a service it calls). depends-on is directional, so the two are different meanings."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 1,
+        "plan_kind": "catalog-addition",
+        "triple": "technology.node.depends-on.technology.technologyservice",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    },
+    {
+      "seq": 2,
+      "op": "create",
+      "kind": "property",
+      "target_id": null,
+      "ref": "c2",
+      "fields": {
+        "relationship_id": "technology.node.depends-on.technology.node",
+        "predicate": "depends-on",
+        "source_spec_node_id": "technology.node",
+        "destination_spec_node_id": "technology.node",
+        "title": "technology.node depends-on technology.node",
+        "description": "A node depends on another node to run: it is started after it and fails without it, as a compose service declares depends_on another service."
+      },
+      "base": {},
+      "rationale": "A node depends on another node to run: it is started after it and fails without it, as a compose service declares depends_on another service. Needed to map the CBM edge DEPENDS_ON (inventory addition 9).",
+      "evidence": [
+        {
+          "quote": "A docker-compose service with depends_on: [db], or an init container or startup probe that waits for another workload, each side modelled as a technology node; CBM DEPENDS_ON between infrastructure nodes."
+        },
+        {
+          "quote": "Observed in the eval corpora: infrastructure DEPENDS_ON (docker-compose depends_on between services); needs the infrastructure pass."
+        }
+      ],
+      "probability": null,
+      "scope": null,
+      "status": "pending",
+      "dr": {
+        "plan_row": 2,
+        "plan_kind": "catalog-addition",
+        "triple": "technology.node.depends-on.technology.node",
+        "replacement": [],
+        "claims": [],
+        "extra": "add"
+      }
+    }
+  ]
+}
