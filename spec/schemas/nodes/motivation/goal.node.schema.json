@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal",
-  "description": "High-level statement of intent, direction, or desired end state",
+  "description": "A motivation statement of an end state or direction that stakeholders intend to reach, expressed qualitatively and at a level general enough that it does not prescribe a specific system property or measurable result, and is refined by requirements and outcomes. Use Outcome instead when the statement names a concrete, measurable or time-bound result, or tracks one that is planned, in progress or achieved, such as 'checkout p95 latency under 300 ms by Q3'. Use Requirement instead when the statement specifies a need that a particular system, component or solution must satisfy and that can be verified against it, such as 'the API shall support OAuth2 client credentials'. Use Principle instead when the statement is a standing rule that governs how all designs in a context are made, such as 'prefer managed services', rather than an end state to reach. Use Driver instead when the statement describes the condition or force prompting change, such as a new regulation or market pressure, rather than the intended end state that responds to it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text prose that states the intended end state, its scope and owning stakeholders, and links to the source document. Set it whenever the goal's name alone does not make the intent unambiguous."
         },
         "priority": {
           "type": "string",
@@ -36,5 +37,17 @@
       "required": ["priority"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.3.1 Goal",
+  "x-dr-evidence": [
+    "A 'Goals', 'Objectives' or 'Vision' section in a README, design document or product brief that lists intended end states without acceptance criteria.",
+    "An 'Objective' entry in an OKR or roadmap file (e.g. okrs.yaml, ROADMAP.md) that sits above its measurable key results.",
+    "An ADR or RFC 'Context' or 'Motivation' section stating what the change is meant to achieve, such as 'enable self-service onboarding for partners', and referenced by the requirements or decisions that follow."
+  ],
+  "x-dr-distinguish": {
+    "motivation.outcome": "the statement names a concrete, measurable or time-bound result, or tracks one that is planned, in progress or achieved, such as 'checkout p95 latency under 300 ms by Q3'.",
+    "motivation.requirement": "the statement specifies a need that a particular system, component or solution must satisfy and that can be verified against it, such as 'the API shall support OAuth2 client credentials'.",
+    "motivation.principle": "the statement is a standing rule that governs how all designs in a context are made, such as 'prefer managed services', rather than an end state to reach.",
+    "motivation.driver": "the statement describes the condition or force prompting change, such as a new regulation or market pressure, rather than the intended end state that responds to it."
   }
 }

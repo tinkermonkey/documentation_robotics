@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Outcome",
-  "description": "End result intended or already achieved by the organization or a system, distinct from a Goal which expresses the desired direction.",
+  "description": "A motivation element stating a concrete, preferably measurable end result that the organization or a system has achieved or intends to achieve, usually with a target value, threshold or time frame. It describes a state that can be checked as reached or not reached, not a direction of intent or a capability the system must provide. Use Goal instead when the statement expresses a desired direction or end state without a measurable target or verifiable completion point (e.g. 'improve customer satisfaction'). Use Requirement instead when the statement specifies what a system or solution must do or exhibit (a need to be realized by design), rather than the business or system result that follows from it. Use Value instead when the element expresses the worth or utility to a stakeholder (e.g. 'lower operating cost'), not the concrete result that produces that worth. Use Assessment instead when the statement records a finding about the current state of affairs (a SWOT item, risk or gap) rather than an intended or achieved result.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text statement of the result, including the measure, target value or threshold, and target date where known; set it for every outcome so its achievement can be verified."
         },
         "status": {
           "type": "string",
@@ -42,5 +43,17 @@
       "required": ["status"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.3.2 Outcome",
+  "x-dr-evidence": [
+    "A key result or success criterion in an OKR, roadmap or epic document stating a measurable target with a date, e.g. 'checkout abandonment below 20% by Q4'",
+    "A 'Success metrics' or 'Expected outcome' section in a PRD, RFC or ADR describing the verifiable result after delivery, often tagged with a tracking status such as done, on-track or at-risk",
+    "An SLO or KPI objective in monitoring or dashboard configuration (e.g. a Datadog/Prometheus SLO target) whose name and description reference a business result and link to a stated goal"
+  ],
+  "x-dr-distinguish": {
+    "motivation.goal": "the statement expresses a desired direction or end state without a measurable target or verifiable completion point (e.g. 'improve customer satisfaction')",
+    "motivation.requirement": "the statement specifies what a system or solution must do or exhibit (a need to be realized by design), rather than the business or system result that follows from it",
+    "motivation.value": "the element expresses the worth or utility to a stakeholder (e.g. 'lower operating cost'), not the concrete result that produces that worth",
+    "motivation.assessment": "the statement records a finding about the current state of affairs (a SWOT item, risk or gap) rather than an intended or achieved result"
   }
 }
