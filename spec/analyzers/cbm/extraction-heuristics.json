@@ -370,6 +370,22 @@
       }
     },
     {
+      "name": "tier0_test_file",
+      "description": "Symbols in test files belong to the testing layer",
+      "applies_to": ["testing.testcasesketch", "testing.testcoveragetarget"],
+      "rule": "A function, method or class in a test file (test_*.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java, tests/ directories) is a test case sketch or coverage target; the separate test pass classifies it (inventory step 7)",
+      "parameters": {
+        "tier0": {
+          "labels": ["Function", "Method", "Class"],
+          "when": {
+            "file": "((^|/)(tests?|__tests__)/|(^|/)test_[^/]*\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
+          },
+          "narrow": ["testing.testcasesketch", "testing.testcoveragetarget"],
+          "confidence": "medium"
+        }
+      }
+    },
+    {
       "name": "tier0_ui_library",
       "description": "Shared UI library directories hold library components",
       "applies_to": ["ux.librarycomponent", "ux.actioncomponent"],

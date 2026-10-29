@@ -9,7 +9,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Added
 
-- **Tier-0 rules in the cbm analyzer** (`spec/analyzers/cbm/extraction-heuristics.json`): 16
+- **Tier-0 rules in the cbm analyzer** (`spec/analyzers/cbm/extraction-heuristics.json`): 17
   heuristics with a `parameters.tier0` block that decide or narrow a symbol's element type before
   any model is asked. No schema change; the format is documented in
   `cli/src/analyzers/tier0-rules.ts` and `docs/analyzers/CASCADE_DESIGN.md`.
@@ -17,7 +17,10 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   (inverted), `HTTP_CALLS` traversal-only, five phantom edges removed, `DEFINES_METHOD`,
   `IMPORTS` and `DEFINES` mapped, the `Interface` family mapped to `application.dataobject`,
   decorator and route fields added as evidence, `datastore_detection` names existing types, and
-  every CBM label is mapped or listed. See the CLI changelog for the detail.
+  every CBM label is mapped or listed. Every CBM edge type is listed too: 17 create relationships
+  through an ordered list of predicates resolved against the catalog per type pair, and 31 are
+  traversal-only with the reason (or the catalog addition they wait on). A Tier-0 rule for test
+  files narrows them to the testing layer. See the CLI changelog for the detail.
 
 - **UX library components reach the application layer** (closes #960). The catalog had eight
   relationships from UX views, subviews, action components and component instances to application

@@ -45,6 +45,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   provenance. `Interface`, `Type`, `Enum`, `Struct` and `Trait` map to `application.dataobject`.
   `datastore_detection` names the spec's real types. Every CBM 0.10.2 label is either mapped or
   listed as unmapped, and a unit test fails if a mapping names a type or triple the catalog lacks.
+- **Every CBM edge type is in the cbm edge mapping, and edges become relationships by catalog
+  lookup** (`src/analyzers/edge-relationships.ts`). Each relationship-creating edge lists the
+  predicates that can express it in order of preference; the relationship is the first catalog
+  triple between the two classified element types. 17 of CBM's 48 edge types create relationships
+  (adding `CALLS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`, `TESTS`,
+  `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`); the
+  other 31 are traversal-only with the reason, and the unit tests fail if an edge type is missing,
+  names a nonexistent predicate, or lacks a reason.
 - **`dr analyzer services` takes candidates only from behavioural and structural labels.** With
   the new `Interface` family mappings, data-object labels would otherwise have become service
   candidates.
@@ -74,7 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
   analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
   regular-expression conditions on decorators, declaration line, file path and name, and a
-  `decide` or `narrow` outcome). The cbm analyzer ships 16: route-mapping decorators to
+  `decide` or `narrow` outcome). The cbm analyzer ships 17: route-mapping decorators to
   `api.operation`, controllers to `application.applicationinterface`, JPA and SQLModel classes to
   object schemas or collections, Spring Data repositories to `data-store.accesspattern`, generated
   client code and component props to `none`, and narrowing rules for UI library directories,

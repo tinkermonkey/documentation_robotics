@@ -4,24 +4,53 @@
     "cbm_edge": "UPPERCASE_SNAKE_CASE identifier from CBM analyzer output (e.g., 'HTTP_CALLS', 'HANDLES')",
     "dr_relationship": "predicate name from predicates.json or null if unmappable",
     "confidence": "mapping confidence level (high, medium, low)",
-    "usage": "edge classification: 'verification_and_mapping' for cross-layer edges that create DR predicates, 'traversal_only' for intra-layer edges used for semantic analysis but not mapped to DR predicates",
+    "usage": "edge classification: 'verification_and_mapping' for edges that create DR relationships, 'traversal_only' for edges used as evidence, provenance or traversal input; implementation_note says why an edge is traversal-only, and names the catalog addition it waits on when that is the reason",
     "dr_scope": "scope of the relationship (intra-layer, cross-layer, both)",
     "direction": "relationship direction (forward, backward, bidirectional, or caller_to_callee)",
     "confidence_from_property": "code property that determines confidence level (e.g., visibility, export status)",
     "dr_pattern": "'<source layer.type> → <destination layer.type>' of the DR relationship, after directionality_transform; for verification_and_mapping edges it must name a triple in the relationship catalog",
-    "order": "the first mapping is the call-graph default edge type, so CALLS comes first"
+    "order": "the first mapping is the call-graph default edge type, so CALLS comes first",
+    "conditions": "for verification_and_mapping edges: predicates lists, in order of preference, the predicates that can express the edge ({predicate, invert}; invert when the DR relationship runs from the CBM edge's target to its source). The relationship is the first catalog triple that exists between the two classified element types (cli/src/analyzers/edge-relationships.ts); dr_relationship, directionality_transform and dr_pattern describe one listed preference and a typical case. 'gate' says what else must hold"
   },
   "mappings": [
     {
       "cbm_edge": "CALLS",
-      "dr_relationship": null,
+      "dr_relationship": "depends-on",
       "confidence": "medium",
-      "description": "Function/method call within codebase",
-      "usage": "traversal_only",
+      "description": "A function calls another function: the caller depends on the callee",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationfunction",
+      "implementation_note": "Listed first: it is the call-graph default edge type for dr analyzer callers and callees. Creates a relationship only between functions that both survive classification.",
       "conditions": {
-        "usage_detail": "intra-layer behavioral"
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "triggers",
+            "invert": false
+          },
+          {
+            "predicate": "flows-to",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
       }
     },
     {
@@ -33,20 +62,16 @@
       "usage": "verification_and_mapping",
       "dr_scope": "cross-layer",
       "direction": "forward",
-      "confidence_from_property": "handler_decorator",
       "dr_pattern": "api.operation → application.applicationfunction",
-      "implementation_note": "CBM writes the edge handler → Route; the DR relationship runs from the operation to the function it realizes (api.operation.realizes.application.applicationfunction), so the direction is inverted. HANDLES names routes by path while Route nodes are named __route__METHOD__/path."
-    },
-    {
-      "cbm_edge": "HTTP_CALLS",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "Outbound HTTP call from code to an API route",
-      "usage": "traversal_only",
-      "dr_scope": "cross-layer",
-      "direction": "caller_to_callee",
-      "confidence_from_property": "confidence",
-      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation (the catalog has api.operation references application.applicationservice and api.operation references api.operation only). Traversal only until the catalog gains one; see addition 7 in docs/analyzers/CBM_MAPPING_INVENTORY.md."
+      "implementation_note": "CBM writes the edge handler → Route; the DR relationship runs from the operation to the function it realizes (api.operation.realizes.application.applicationfunction), so the direction is inverted. HANDLES names routes by path while Route nodes are named __route__METHOD__/path.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "realizes",
+            "invert": true
+          }
+        ]
+      }
     },
     {
       "cbm_edge": "DEFINES_METHOD",
@@ -57,10 +82,27 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationcomponent → application.applicationfunction",
-      "implementation_note": "Map only when both ends survive Tier-1 classification as these types; most methods are not elements on their own.",
+      "implementation_note": "Deterministic. Map only when both ends survive Tier-1 classification as these types. A controller class (application interface) defining handler methods (API operations) becomes api.operation uses application.applicationinterface, the catalog's triple for that pair.",
       "conditions": {
-        "source_type": "application.applicationcomponent",
-        "destination_type": "application.applicationfunction"
+        "predicates": [
+          {
+            "predicate": "assigned-to",
+            "invert": false
+          },
+          {
+            "predicate": "composes",
+            "invert": false
+          },
+          {
+            "predicate": "aggregates",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": true
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
       }
     },
     {
@@ -74,55 +116,401 @@
       "dr_pattern": "application.applicationcomponent → application.applicationcomponent",
       "implementation_note": "Map only between modules both classified as application components; imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
       "conditions": {
-        "source_type": "application.applicationcomponent",
-        "destination_type": "application.applicationcomponent"
+        "predicates": [
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "references",
+            "invert": false
+          },
+          {
+            "predicate": "composes",
+            "invert": false
+          },
+          {
+            "predicate": "aggregates",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ]
       }
     },
     {
-      "cbm_edge": "DEFINES",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "A file defines a symbol",
-      "usage": "traversal_only",
+      "cbm_edge": "CALL_REFERENCE",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A callable is used as a value (handler or callback registration): the registering function depends on it",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "implementation_note": "Provenance: supplies source_reference.file for every element mapped from a symbol. Not a relationship between elements.",
+      "dr_pattern": "application.applicationfunction → application.applicationfunction",
+      "implementation_note": "Same treatment as CALLS.",
       "conditions": {
-        "usage_detail": "provenance"
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "triggers",
+            "invert": false
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
+      }
+    },
+    {
+      "cbm_edge": "DATA_FLOWS",
+      "dr_relationship": "flows-to",
+      "confidence": "medium",
+      "description": "An argument flows into a parameter: data flows from the calling function to the called one",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationfunction",
+      "implementation_note": "Documented by CBM, not observed in the eval corpora.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "flows-to",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ],
+        "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
+      }
+    },
+    {
+      "cbm_edge": "USAGE",
+      "dr_relationship": "accesses",
+      "confidence": "low",
+      "description": "A function or component uses a data structure without calling it: it accesses the data object",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.dataobject",
+      "implementation_note": "The largest-reach edge (387 gold cards). Map only when the target was accepted as a data object (an Interface, Type, Enum or data class); usage of variables and anything else is traversal only. CBM rates USAGE as identifier use without a proven target, so confidence is low. A data-model object schema used by a function or component is the provider: data-model.objectschema serves the user (inverted).",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "references",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ],
+        "gate": "target accepted as a data structure (application.dataobject, data-model or api schema); usage of plain variables is traversal only"
+      }
+    },
+    {
+      "cbm_edge": "WRITES",
+      "dr_relationship": "accesses",
+      "confidence": "medium",
+      "description": "A function or component mutates a data structure's state: it accesses the data object",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.dataobject",
+      "implementation_note": "Same triples as USAGE; only when the written variable or field belongs to an accepted data object.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "accesses",
+            "invert": false
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "serves",
+            "invert": true
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "IMPLEMENTS",
+      "dr_relationship": "provides",
+      "confidence": "high",
+      "description": "A class implements an interface that was classified as an application interface: the component provides that interface",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationcomponent → application.applicationinterface",
+      "implementation_note": "Only when the implemented interface was accepted as application.applicationinterface. Implementing a data-object interface creates no relationship (the catalog has no component-to-dataobject structural triple, by design).",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "provides",
+            "invert": false
+          },
+          {
+            "predicate": "realizes",
+            "invert": false
+          },
+          {
+            "predicate": "specializes",
+            "invert": false
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "TESTS",
+      "dr_relationship": "tests",
+      "confidence": "high",
+      "description": "A test function exercises a symbol: the test case sketch tests that function, interface, service or operation",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "forward",
+      "dr_pattern": "testing.testcasesketch → application.applicationfunction",
+      "implementation_note": "Requires the separate test pass (inventory step 7): test code is excluded from the main candidates by filtering_rules, so test functions are classified on their own as testing.testcasesketch.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "tests",
+            "invert": false
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "TESTS_FILE",
+      "dr_relationship": "tests",
+      "confidence": "high",
+      "description": "A test file covers a source file: the coverage target tests the component",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "forward",
+      "dr_pattern": "testing.testcoveragetarget → application.applicationcomponent",
+      "implementation_note": "File-level counterpart of TESTS; same test pass.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "tests",
+            "invert": false
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "ASYNC_CALLS",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A function publishes to a queue or topic: it depends on the application event the queue carries",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationevent",
+      "implementation_note": "The queue or topic Route (__route__sqs__..., __route__kafka__...) is modelled as an application event. The 'triggers' reading from a function or component waits on catalog addition 3.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "triggers",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "LISTENS_ON",
+      "dr_relationship": "depends-on",
+      "confidence": "medium",
+      "description": "A function listens on a channel: it depends on the application event",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "application.applicationfunction → application.applicationevent",
+      "implementation_note": "Function-level listeners. The interface-level reading waits on catalog addition 4.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "SPAWNS",
+      "dr_relationship": "serves",
+      "confidence": "medium",
+      "description": "Code starts an external program: the system software serves the calling component",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "dr_pattern": "technology.systemsoftware → application.applicationcomponent",
+      "implementation_note": "Inverted: CBM writes caller → Process, the catalog has technology.systemsoftware.serves.application.applicationcomponent. Documented by CBM, not observed in the eval corpora.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "serves",
+            "invert": true
+          },
+          {
+            "predicate": "uses",
+            "invert": false
+          },
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
       }
     },
     {
       "cbm_edge": "DEPENDS_ON",
-      "dr_relationship": null,
+      "dr_relationship": "depends-on",
       "confidence": "medium",
-      "description": "Runtime dependency relationship",
-      "usage": "traversal_only",
+      "description": "Infrastructure dependency between artifacts (charts, packages, base images) or system software",
+      "usage": "verification_and_mapping",
       "dr_scope": "intra-layer",
       "direction": "forward",
+      "dr_pattern": "technology.artifact → technology.artifact",
+      "implementation_note": "Infrastructure only in CBM 0.10.2 (charts, package files, base images, compose depends_on).",
       "conditions": {
-        "usage_detail": "intra-layer dependency"
+        "predicates": [
+          {
+            "predicate": "depends-on",
+            "invert": false
+          }
+        ]
       }
+    },
+    {
+      "cbm_edge": "INFRA_MAPS",
+      "dr_relationship": "realizes",
+      "confidence": "high",
+      "description": "A Kubernetes Service selects workloads: each workload node realizes the technology service",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "technology.node → technology.technologyservice",
+      "implementation_note": "Inverted: CBM writes Service → workload. Needs the infrastructure pass (Resource nodes).",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "realizes",
+            "invert": true
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "DEPLOYS",
+      "dr_relationship": "composes",
+      "confidence": "medium",
+      "description": "Manifests, charts or Terraform are deployed onto a cluster: the node composes the artifact",
+      "directionality_transform": "invert",
+      "usage": "verification_and_mapping",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "dr_pattern": "technology.node → technology.artifact",
+      "implementation_note": "Inverted: CBM writes artifact → cluster. Needs the infrastructure pass.",
+      "conditions": {
+        "predicates": [
+          {
+            "predicate": "composes",
+            "invert": true
+          },
+          {
+            "predicate": "assigned-to",
+            "invert": false
+          }
+        ]
+      }
+    },
+    {
+      "cbm_edge": "HTTP_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound HTTP call from code to an API route",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "confidence_from_property": "confidence",
+      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+    },
+    {
+      "cbm_edge": "GRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound gRPC call",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "Same as HTTP_CALLS; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+    },
+    {
+      "cbm_edge": "GRAPHQL_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound GraphQL call",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "Same as HTTP_CALLS; in the binary and UI only. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
+    },
+    {
+      "cbm_edge": "TRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Outbound tRPC call",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "Same as HTTP_CALLS; in the binary and UI only. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted."
     },
     {
       "cbm_edge": "INHERITS",
       "dr_relationship": null,
       "confidence": "high",
-      "description": "Class inheritance relationship",
+      "description": "Class or interface inheritance",
       "usage": "traversal_only",
       "dr_scope": "intra-layer",
       "direction": "forward",
-      "conditions": {
-        "usage_detail": "intra-layer structural"
-      }
-    },
-    {
-      "cbm_edge": "IMPLEMENTS",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "Interface implementation relationship",
-      "usage": "traversal_only",
-      "dr_scope": "intra-layer",
-      "direction": "forward",
+      "implementation_note": "specializes between components and between data objects; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 1); map once accepted.",
       "conditions": {
         "usage_detail": "intra-layer structural"
       }
@@ -139,6 +527,316 @@
         "usage_detail": "intra-layer structural"
       },
       "implementation_note": "Present in the CBM 0.10.2 binary only, not in its documented vocabulary or any observed graph; kept for forward compatibility. INHERITS is the edge CBM emits for class extension."
+    },
+    {
+      "cbm_edge": "OVERRIDE",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Method override",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "specializes between functions; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 2); map once accepted. Also Kustomize patches in infrastructure.",
+      "conditions": {
+        "usage_detail": "intra-layer structural"
+      }
+    },
+    {
+      "cbm_edge": "EMITS",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "A function emits on a channel",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "triggers an application event from a function or component; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 3); map once accepted."
+    },
+    {
+      "cbm_edge": "RAISES",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "A function raises an exception class",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for error-handling concerns; triggers an application event when the exception is a domain event, proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 3); map once accepted."
+    },
+    {
+      "cbm_edge": "THROWS",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "A method throws an exception class",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Same as RAISES: evidence for error-handling concerns; the triggers reading waits on catalog addition 3."
+    },
+    {
+      "cbm_edge": "CONTAINS_FOLDER",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Folder contains folder",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "composes between directory-level components; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 5); map once accepted."
+    },
+    {
+      "cbm_edge": "CONNECTS_TO",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "A workload addresses a Service",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "depends-on from a node to a technology service; proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 9); map once accepted."
+    },
+    {
+      "cbm_edge": "DEFINES",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "A file defines a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Provenance: supplies source_reference.file for every element mapped from a symbol. Not a relationship between elements.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    {
+      "cbm_edge": "DECORATES",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "A decorator applies to a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence: decorator names feed the Tier-0 rules (extraction-heuristics.json) and the card. Decorator is not an element.",
+      "conditions": {
+        "usage_detail": "evidence"
+      }
+    },
+    {
+      "cbm_edge": "CONFIGURES",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "A symbol reads a config key, or a config key names a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for security and APM concerns (EnvVar is not an element).",
+      "conditions": {
+        "usage_detail": "evidence"
+      }
+    },
+    {
+      "cbm_edge": "CONTAINS_FILE",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Folder contains file",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Traversal only: the directory structure behind placement facts.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    {
+      "cbm_edge": "CONTAINS_PACKAGE",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Package containment",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Binary and graph UI only; treat as CONTAINS_FOLDER if emitted.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    {
+      "cbm_edge": "MEMBER_OF",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Membership",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Binary and graph UI only; treat as DEFINES if emitted.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    {
+      "cbm_edge": "RESOLVED_CALLS",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Resolved call",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Binary and graph UI only; treat as CALLS if emitted.",
+      "conditions": {
+        "usage_detail": "intra-layer behavioral"
+      }
+    },
+    {
+      "cbm_edge": "SEMANTICALLY_RELATED",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Vocabulary-mismatch similarity (score >= 0.80)",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "No DR counterpart; for Tier-0 clustering and duplicate detection.",
+      "conditions": {
+        "usage_detail": "similarity"
+      }
+    },
+    {
+      "cbm_edge": "SIMILAR_TO",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "MinHash near-clone",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "No DR counterpart; for duplicate detection.",
+      "conditions": {
+        "usage_detail": "similarity"
+      }
+    },
+    {
+      "cbm_edge": "FILE_CHANGES_WITH",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Files that change together in history",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "No DR counterpart; evidence for component boundaries.",
+      "conditions": {
+        "usage_detail": "history"
+      }
+    },
+    {
+      "cbm_edge": "HAS_BRANCH",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Git branch metadata",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Provenance for source_reference; not a relationship.",
+      "conditions": {
+        "usage_detail": "provenance"
+      }
+    },
+    {
+      "cbm_edge": "REFERENCES_FILE",
+      "dr_relationship": null,
+      "confidence": "medium",
+      "description": "Documentation references a file",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for descriptions and for Tier 2's upper-layer inference.",
+      "conditions": {
+        "usage_detail": "documentation"
+      }
+    },
+    {
+      "cbm_edge": "MENTIONS",
+      "dr_relationship": null,
+      "confidence": "low",
+      "description": "Documentation mentions a symbol",
+      "usage": "traversal_only",
+      "dr_scope": "intra-layer",
+      "direction": "forward",
+      "implementation_note": "Evidence for descriptions and for Tier 2's upper-layer inference.",
+      "conditions": {
+        "usage_detail": "documentation"
+      }
+    },
+    {
+      "cbm_edge": "CROSS_HTTP_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    {
+      "cbm_edge": "CROSS_GRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    {
+      "cbm_edge": "CROSS_GRAPHQL_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    {
+      "cbm_edge": "CROSS_TRPC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    {
+      "cbm_edge": "CROSS_ASYNC_CALLS",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
+    },
+    {
+      "cbm_edge": "CROSS_CHANNEL",
+      "dr_relationship": null,
+      "confidence": "high",
+      "description": "Cross-repository call or channel",
+      "usage": "traversal_only",
+      "dr_scope": "cross-layer",
+      "direction": "caller_to_callee",
+      "implementation_note": "These are DR's qualified cross-model references (@model/layer.type.name in a references field), not relationships inside one model; mapped when federated extraction is built.",
+      "conditions": {
+        "usage_detail": "cross-model reference"
+      }
     }
   ]
 }

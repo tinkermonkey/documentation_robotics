@@ -7,6 +7,8 @@ import { describe, it, expect } from "bun:test";
 import { readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { tier0RulesFrom } from "@/analyzers/tier0-rules";
+import { edgePreferences } from "@/analyzers/edge-relationships";
+import type { AnalyzerEdgeMapping } from "@/analyzers/types";
 
 const DIST = resolve(import.meta.dir, "../../../../spec/dist");
 const cbm = JSON.parse(readFileSync(join(DIST, "analyzers", "cbm.json"), "utf-8"));
@@ -34,6 +36,17 @@ const CBM_LABELS = [
   "EnvVar", "Table", "Process", "Resource", "Chart", "Image", "Branch",
 ];
 
+/** Edge types documented by codebase-memory-mcp 0.10.2, plus those seen only in its binary or graph UI. */
+const CBM_EDGES = [
+  "CALLS", "HANDLES", "HTTP_CALLS", "DEFINES_METHOD", "IMPORTS", "CALL_REFERENCE", "DATA_FLOWS", "USAGE", "WRITES",
+  "IMPLEMENTS", "TESTS", "TESTS_FILE", "ASYNC_CALLS", "LISTENS_ON", "SPAWNS", "DEPENDS_ON", "INFRA_MAPS", "DEPLOYS",
+  "GRPC_CALLS", "GRAPHQL_CALLS", "TRPC_CALLS", "INHERITS", "EXTENDS", "OVERRIDE", "EMITS", "RAISES", "THROWS",
+  "CONTAINS_FOLDER", "CONNECTS_TO", "DEFINES", "DECORATES", "CONFIGURES", "CONTAINS_FILE", "CONTAINS_PACKAGE",
+  "MEMBER_OF", "RESOLVED_CALLS", "SEMANTICALLY_RELATED", "SIMILAR_TO", "FILE_CHANGES_WITH", "HAS_BRANCH",
+  "REFERENCES_FILE", "MENTIONS", "CROSS_HTTP_CALLS", "CROSS_GRPC_CALLS", "CROSS_GRAPHQL_CALLS", "CROSS_TRPC_CALLS",
+  "CROSS_ASYNC_CALLS", "CROSS_CHANNEL",
+];
+
 describe("cbm mapping names only what the spec has", () => {
   it("found the catalog", () => {
     expect(types.size).toBeGreaterThan(100);
@@ -54,12 +67,27 @@ describe("cbm mapping names only what the spec has", () => {
     expect([...mapped, ...unmapped].sort()).toEqual([...CBM_LABELS].sort());
   });
 
-  it("names a catalog triple for every edge that creates relationships", () => {
-    for (const [edge, m] of Object.entries(cbm.edges_by_type) as Array<[string, { usage?: string; dr_relationship: string | null; dr_pattern?: string }]>) {
+  it("gives every relationship-creating edge real predicates and a catalog example", () => {
+    const predicates = new Set(Object.keys(JSON.parse(readFileSync(join(DIST, "base.json"), "utf-8")).predicates));
+    for (const [edge, m] of Object.entries(cbm.edges_by_type) as Array<[string, AnalyzerEdgeMapping]>) {
       if (m.usage !== "verification_and_mapping") continue;
+      const prefs = edgePreferences(m);
+      expect({ edge, preferences: prefs.length > 0 }).toMatchObject({ preferences: true });
+      for (const p of prefs) expect({ edge, predicate: p.predicate, ok: predicates.has(p.predicate) }).toMatchObject({ ok: true });
+      expect(prefs.map((p) => p.predicate)).toContain(m.dr_relationship);
       const [src, dst] = (m.dr_pattern ?? "").split(/\s*→\s*/);
       const triple = `${src}.${m.dr_relationship}.${dst}`;
       expect({ edge, triple, ok: triples.has(triple) }).toMatchObject({ ok: true });
+    }
+  });
+
+  it("accounts for every CBM edge type exactly once", () => {
+    expect(Object.keys(cbm.edges_by_type).sort()).toEqual([...CBM_EDGES].sort());
+  });
+
+  it("says why every traversal-only edge creates no relationship", () => {
+    for (const [edge, m] of Object.entries(cbm.edges_by_type) as Array<[string, { usage?: string; implementation_note?: string }]>) {
+      if (m.usage === "traversal_only") expect({ edge, note: (m.implementation_note ?? "").length > 20 }).toMatchObject({ note: true });
     }
   });
 

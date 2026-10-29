@@ -152,11 +152,11 @@ describe("MappingLoader", () => {
       expect(mapping?.confidence).toBe("high");
     });
 
-    it("should return CALLS mapping (traversal only)", () => {
+    it("should return CALLS mapping (depends-on between functions)", () => {
       const mapping = loader.getEdgeMapping("CALLS");
       expect(mapping).toBeDefined();
-      expect(mapping?.dr_relationship).toBeNull();
-      expect(mapping?.usage).toBe("traversal_only");
+      expect(mapping?.dr_relationship).toBe("depends-on");
+      expect(mapping?.usage).toBe("verification_and_mapping");
     });
 
     it("should return IMPORTS mapping", () => {
