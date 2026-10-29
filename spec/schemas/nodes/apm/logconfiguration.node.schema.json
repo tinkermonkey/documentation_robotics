@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogConfiguration",
-  "description": "OTel LoggerProvider configuration, covering the LogRecordProcessor pipeline, LogRecordExporter wiring, and minimum severity filtering for log emission.",
+  "description": "A provider-level logging SDK configuration that bootstraps the log pipeline for one service: the OTel LoggerProvider, or an equivalent logging-framework root configuration, that registers log record processors and exporters and sets the minimum severity for emitted log records. It covers the pipeline as a whole, not any single processor, exporter or log record. Use LogProcessor instead when the symbol is one processing stage (simple, batch or custom filter/enricher) that is attached to the log pipeline, rather than the provider setup that assembles the pipeline. Use ExporterConfig instead when the symbol only specifies an export destination (endpoint, protocol, auth, compression) that a log, trace or metric pipeline sends data to. Use Resource instead when the symbol defines service identity attributes (service.name, service.version, deployment.environment) that are merged into all signals rather than log-pipeline settings. Use LogRecord instead when the symbol is an individual emitted log event or the structure of one, rather than the configuration governing emission.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "serviceName": {
-          "type": "string"
+          "type": "string",
+          "description": "Logical name of the service whose log pipeline this configuration sets up, given as a plain string matching the Resource's service.name (e.g. 'checkout-api'); set it to tie the configuration to its emitting service."
         },
         "minimumSeverity": {
           "type": "string",
@@ -32,5 +33,17 @@
       "required": ["serviceName"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Logs SDK specification – LoggerProvider (with LogRecordProcessor and LogRecordExporter configuration)",
+  "x-dr-evidence": [
+    "Construction of an OTel LoggerProvider or SdkLoggerProvider builder that chains addLogRecordProcessor(...) calls and is then registered globally, e.g. via set_logger_provider or OpenTelemetrySdk.builder().setLoggerProvider",
+    "Environment or SDK config keys such as OTEL_LOGS_EXPORTER, OTEL_BLRP_SCHEDULE_DELAY or a 'logger_provider:' block in an OTel declarative config file",
+    "A logging framework root configuration, such as logback.xml, log4j2.xml or Python logging.config dictConfig, that sets the root level and attaches an OpenTelemetry appender or handler"
+  ],
+  "x-dr-distinguish": {
+    "apm.logprocessor": "the symbol is one processing stage (simple, batch or custom filter/enricher) that is attached to the log pipeline, rather than the provider setup that assembles the pipeline",
+    "apm.exporterconfig": "the symbol only specifies an export destination (endpoint, protocol, auth, compression) that a log, trace or metric pipeline sends data to",
+    "apm.resource": "the symbol defines service identity attributes (service.name, service.version, deployment.environment) that are merged into all signals rather than log-pipeline settings",
+    "apm.logrecord": "the symbol is an individual emitted log event or the structure of one, rather than the configuration governing emission"
   }
 }
