@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Permission",
-  "description": "An atomic grant authorizing a specific action (e.g., read, write, execute) on a resource within a defined scope. Permissions are assigned to Roles and enforced by SecureResource access control lists. Implements NIST SP 800-53 AC-3 access enforcement and AC-6 least privilege.",
+  "description": "An atomic authorization grant that pairs one action with one named resource at a stated access scope, independent of any particular principal, and is assigned to Roles and checked at enforcement points such as routes, API operations and UI components. It names what may be done. Who holds it, and under what runtime conditions, is captured elsewhere. Use ResourceOperation instead when the symbol declares which operations a SecureResource supports, along with that operation's conditions, rate limits and audit bindings, rather than a grantable entitlement that is assigned to roles. Use Role instead when the symbol is a named bundle of permissions with a privilege level or inheritance, such as 'admin' or 'editor', rather than a single action-on-resource grant. Use InformationRight instead when the grant is bound to a specific actor on an InformationEntity and is qualified by a constraint expression (ABAC), rather than being an actor-independent entitlement handed out via roles. Use PolicyRule instead when the symbol evaluates a condition and yields a permit or deny effect at decision time, rather than naming a static entitlement that the check looks up.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable sentence explaining what the grant allows and why it exists; set it whenever the permission identifier alone is not self-explanatory to auditors."
         },
         "scope": {
           "type": "string",
@@ -29,7 +30,8 @@
           "description": "Access level granted by this permission, ranging from read-only to full administrative control."
         },
         "resource": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the protected resource the action applies to, ideally the 'resource' name of a security.secureresource (e.g. 'orders' or 'billing-api'), or a wildcard pattern such as 'orders/*' when the grant spans a resource family."
         },
         "action": {
           "type": "string",
@@ -40,5 +42,17 @@
       "required": ["scope", "resource", "action"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-3 (Access Enforcement); AC-6 (Least Privilege)",
+  "x-dr-evidence": [
+    "Permission identifier constants or enum members such as 'orders:read' or 'INVOICE_DELETE', defined in a central permissions file or seeded into a permissions table by migrations or fixtures.",
+    "Enforcement annotations or guards that take a permission name, such as @PreAuthorize(\"hasAuthority('report.export')\"), @RequiresPermission, a requirePermission('user.update') middleware, or a CASL can('update','Article') rule.",
+    "OAuth scope or role-to-permission mapping entries, for example OpenAPI securitySchemes scopes or a YAML/JSON policy file listing the permissions granted to each role."
+  ],
+  "x-dr-distinguish": {
+    "security.resourceoperation": "the symbol declares which operations a SecureResource supports, along with that operation's conditions, rate limits and audit bindings, rather than a grantable entitlement that is assigned to roles.",
+    "security.role": "the symbol is a named bundle of permissions with a privilege level or inheritance, such as 'admin' or 'editor', rather than a single action-on-resource grant.",
+    "security.informationright": "the grant is bound to a specific actor on an InformationEntity and is qualified by a constraint expression (ABAC), rather than being an actor-independent entitlement handed out via roles.",
+    "security.policyrule": "the symbol evaluates a condition and yields a permit or deny effect at decision time, rather than naming a static entitlement that the check looks up."
   }
 }

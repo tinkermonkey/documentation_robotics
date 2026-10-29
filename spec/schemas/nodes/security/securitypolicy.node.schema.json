@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityPolicy",
-  "description": "A named, prioritized security policy containing ordered evaluation rules that determine access control decisions for targeted resources or operations. Policies are evaluated in priority order with the highest-priority matching policy determining the outcome. Implements NIST SP 800-53 AC-1 policy requirements.",
+  "description": "A named, prioritized container of ordered PolicyRules that together produce an access-control decision for one category of target (endpoint, service, data, user, role or resource). When several policies match, they are evaluated by priority. It corresponds to an XACML Policy, not to a single rule, condition or enforcement action. Use PolicyRule instead when the element is a single condition-plus-effect (permit/deny) evaluation unit rather than a named, prioritized grouping of such units. Use PolicyAction instead when the element is the enforcement response (deny, log, rate-limit, mask, etc.) executed when a rule matches, not the policy that contains the rules. Use SecurityConstraints instead when the element groups procedural SeparationOfDuty, BindingOfDuty or NeedToKnow constraints rather than ordered access-decision rules. Use SecurityModel instead when the element is the application-wide root aggregating authentication, roles, threats and all policies, rather than one targeted policy.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,13 +21,16 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the policy's intent and the access decisions it governs; set it whenever the policy name alone does not convey its purpose."
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean indicating whether the policy is currently active in evaluation; set it to false for policies that are defined but switched off, and omit it or set it to true otherwise."
         },
         "priority": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Integer evaluation rank used to order policies against the same target, with higher values evaluated first and taking precedence when multiple policies match; always set it, using distinct values where order matters."
         },
         "target": {
           "type": "string",
@@ -47,5 +50,17 @@
       "required": ["priority", "target"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-1 (Policy and Procedures); XACML 3.0 Policy element",
+  "x-dr-evidence": [
+    "A named policy file or block (OPA/Rego package, Cedar policy set, XACML <Policy>, Casbin policy, AWS IAM policy document) containing multiple allow/deny rules",
+    "A policy registry or middleware that loads named policies with an explicit priority, order or weight and evaluates them in sequence against a request",
+    "A configuration entry that pairs a list of rules with a target selector (route pattern, service name, data type) and carries an enabled or disabled flag"
+  ],
+  "x-dr-distinguish": {
+    "security.policyrule": "the element is a single condition-plus-effect (permit/deny) evaluation unit rather than a named, prioritized grouping of such units",
+    "security.policyaction": "the element is the enforcement response (deny, log, rate-limit, mask, etc.) executed when a rule matches, not the policy that contains the rules",
+    "security.securityconstraints": "the element groups procedural SeparationOfDuty, BindingOfDuty or NeedToKnow constraints rather than ordered access-decision rules",
+    "security.securitymodel": "the element is the application-wide root aggregating authentication, roles, threats and all policies, rather than one targeted policy"
   }
 }

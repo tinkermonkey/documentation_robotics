@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AuthenticationConfig",
-  "description": "Specifies how principals are verified before accessing protected resources, including the identity provider, multi-factor requirements, session lifetime, and credential policy references. Scoped per application or service. Maps to NIST SP 800-53 IA-2, IA-5, and IA-11.",
+  "description": "A configuration element that fixes, for one application or service, the mechanism by which principals prove their identity: the authentication protocol or identity provider, whether a second factor is required, how long an authenticated session remains valid, and which credential policy applies. It describes identity verification only, not what an authenticated principal may do afterwards. Use PasswordPolicy instead when the element only specifies credential complexity, rotation, reuse or lockout rules rather than the provider, MFA and session settings of the login mechanism. Use Actor instead when the element is the principal being authenticated (user, service account, external system) rather than the mechanism that verifies it. Use SecurityPolicy instead when the element is a prioritized set of rules deciding access to targeted resources after identity is established, rather than how identity is established. Use Permission instead when the code checks whether an already-identified principal may perform an action on a resource (authorization) rather than verifying who the principal is.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -38,13 +38,16 @@
           "description": "Identity Assurance Level, per NIST SP 800-63A: IAL1 (self-asserted), IAL2 (remote identity proofing), IAL3 (in-person proofing)."
         },
         "sessionTimeout": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Maximum lifetime of an authenticated session in seconds before the principal must re-authenticate (IA-11). Set it from the configured session max-age or access-token expiry."
         },
         "mfaRequired": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "True when principals must present a second authentication factor (TOTP, WebAuthn, SMS, push) in addition to the primary credential (IA-2(1)/(2)). Set it false or omit it when MFA is optional or absent."
         },
         "passwordPolicy": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the security.passwordpolicy node governing credentials for this configuration. Set it only when the provider uses locally managed passwords, typically provider 'local' or 'ldap'."
         },
         "source": {
           "type": "object",
@@ -54,5 +57,17 @@
       "required": ["provider", "sessionTimeout"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 IA-2 (Identification and Authentication), IA-5 (Authenticator Management), IA-11 (Re-authentication)",
+  "x-dr-evidence": [
+    "Authentication middleware or framework setup, e.g. passport.use(new OIDCStrategy(...)), Spring Security oauth2Login()/saml2Login(), or NextAuth providers array, with issuer, client ID and callback URLs.",
+    "Configuration files or environment variables declaring identity-provider settings such as OIDC_ISSUER_URL, SAML metadata URL, LDAP bind DN, or JWT issuer/audience and signing keys.",
+    "Session or token lifetime settings alongside MFA enforcement, e.g. SESSION_MAX_AGE, JWT expiresIn, refresh-token TTL, or an 'mfa: required' / TOTP or WebAuthn enrollment flag in auth config."
+  ],
+  "x-dr-distinguish": {
+    "security.passwordpolicy": "the element only specifies credential complexity, rotation, reuse or lockout rules rather than the provider, MFA and session settings of the login mechanism.",
+    "security.actor": "the element is the principal being authenticated (user, service account, external system) rather than the mechanism that verifies it.",
+    "security.securitypolicy": "the element is a prioritized set of rules deciding access to targeted resources after identity is established, rather than how identity is established.",
+    "security.permission": "the code checks whether an already-identified principal may perform an action on a resource (authorization) rather than verifying who the principal is."
   }
 }

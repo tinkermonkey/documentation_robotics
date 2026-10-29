@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Condition",
-  "description": "A reusable logical expression evaluated against request context (time, location, user attributes, resource state) to determine when a SecurityPolicy rule applies. Distinct from AccessCondition, which is a concrete field+operator+value predicate composed inside a PolicyRule condition chain.",
+  "description": "A named, reusable boolean expression over request context (time, location, subject attributes, environment or resource state) that is defined once and referenced by one or more PolicyRules or SecurityPolicies to decide whether they apply. It may be a free-form expression or a composition of AccessCondition predicates. Use AccessCondition instead when the predicate is a single concrete field + operator + value comparison written inline in one rule's condition chain rather than a named expression reused across rules. Use PolicyRule instead when the element carries an effect (permit/deny) and enforcement outcome, not just the applicability test. Use InformationRight instead when the constraint expression is bound to a specific actor and the operations they may perform on an InformationEntity. Use PolicyAction instead when the element describes what happens after a match (deny, alert, mask, redirect) rather than the test that produces the match.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "expression": {
-          "type": "string"
+          "type": "string",
+          "description": "The boolean expression text in its source language (e.g. SpEL, CEL, Rego, IAM condition JSON, or pseudocode such as 'request.time between 08:00 and 18:00'). Always set this; copy it verbatim from code where possible."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A plain-language sentence stating what the condition tests and why policies reference it. Set it when the expression is not self-explanatory to a reviewer."
         },
         "operator": {
           "type": "string",
@@ -44,5 +46,17 @@
       "required": ["expression"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "XACML 3.0 §5.26 Condition element; NIST SP 800-162 ABAC environment conditions (supports NIST SP 800-53 AC-3)",
+  "x-dr-evidence": [
+    "A named predicate function or helper rule (e.g. isBusinessHours(ctx), fromTrustedNetwork(req), rego `allow_if_mfa` helper) referenced by several authorization rules",
+    "A Condition block in a policy document (AWS IAM `Condition`, Azure ABAC condition, Cedar `when` clause) defined once and reused by multiple statements",
+    "A Spring Security SpEL expression or CEL/OPA expression string stored in config and referenced by name from @PreAuthorize annotations or policy rule entries"
+  ],
+  "x-dr-distinguish": {
+    "security.accesscondition": "the predicate is a single concrete field + operator + value comparison written inline in one rule's condition chain rather than a named expression reused across rules.",
+    "security.policyrule": "the element carries an effect (permit/deny) and enforcement outcome, not just the applicability test.",
+    "security.informationright": "the constraint expression is bound to a specific actor and the operations they may perform on an InformationEntity.",
+    "security.policyaction": "the element describes what happens after a match (deny, alert, mask, redirect) rather than the test that produces the match."
   }
 }

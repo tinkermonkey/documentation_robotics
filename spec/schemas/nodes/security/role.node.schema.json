@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Role",
-  "description": "A named collection of Permissions implementing RBAC per NIST SP 800-53 AC-2 and AC-6. Roles can inherit from parent roles (role hierarchy), accumulating permissions transitively. The level attribute defines the role privilege tier for least-privilege enforcement.",
+  "description": "A named, assignable grouping of Permissions that actors receive by being assigned to it, rather than by individual grants. It optionally inherits all permissions of a single parent role and carries a privilege tier. Use Actor instead when the element is the principal itself (a user, service account or external system) that holds roles, not the grouping it is assigned to. Use Permission instead when the element is a single action-on-resource grant (e.g. 'orders:delete') rather than a named bundle of such grants. Use Delegation instead when authority is transferred from one specific actor to another, usually time-bounded or revocable, rather than held through standing role membership. Use InformationRight instead when access is granted directly to a named actor on an InformationEntity under a constraint expression, with no intermediate role.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,13 +21,16 @@
       "type": "object",
       "properties": {
         "displayName": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable label for the role as shown in admin UIs or documentation (e.g. 'Billing Administrator'). Set it whenever the machine name differs from what users see."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text statement of the role's intended responsibilities and the kind of actor expected to hold it. Set it when the purpose is not obvious from the name."
         },
         "level": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Integer privilege tier used for least-privilege comparison, where higher values denote broader privilege by convention. Set it consistently across all roles in the same SecurityModel."
         },
         "inheritsFrom": {
           "type": "string",
@@ -37,5 +40,17 @@
       "required": ["displayName", "level", "inheritsFrom"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-3(7) Role-Based Access Control (with AC-2 and AC-6)",
+  "x-dr-evidence": [
+    "An enum, constant set or database 'roles' table of role names (e.g. ADMIN, EDITOR, VIEWER) referenced by user-to-role assignment code.",
+    "Authorization guards keyed on a role name, such as @RolesAllowed(\"admin\"), @PreAuthorize(\"hasRole('ADMIN')\"), requireRole('editor') middleware, or a route/navigation guard checking user.roles.",
+    "A configuration or manifest mapping a role name to a permission list and optional parent, e.g. roles.yaml with 'permissions:' and 'inherits:' keys, Keycloak realm/composite roles, or Kubernetes Role/ClusterRole objects."
+  ],
+  "x-dr-distinguish": {
+    "security.actor": "the element is the principal itself (a user, service account or external system) that holds roles, not the grouping it is assigned to.",
+    "security.permission": "the element is a single action-on-resource grant (e.g. 'orders:delete') rather than a named bundle of such grants.",
+    "security.delegation": "authority is transferred from one specific actor to another, usually time-bounded or revocable, rather than held through standing role membership.",
+    "security.informationright": "access is granted directly to a named actor on an InformationEntity under a constraint expression, with no intermediate role."
   }
 }

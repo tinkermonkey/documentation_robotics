@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PolicyRule",
-  "description": "An atomic policy evaluation unit consisting of a condition predicate and an enforcement effect (PERMIT or DENY), with optional obligation actions executed upon match. Multiple PolicyRules compose a SecurityPolicy evaluated in priority order.",
+  "description": "A single evaluation unit inside a security policy that pairs one condition predicate over the request context with a decision effect (permit or deny, or indeterminate / not-applicable where the source engine records those outcomes). It may also trigger obligation actions when the condition matches. It is the smallest construct that both tests a condition and yields an access decision. Use SecurityPolicy instead when the element is the named, prioritized container with a target that groups and orders several rules, rather than one condition-plus-effect pair. Use AccessCondition instead when the element is only a field/operator/value predicate that yields true or false and carries no permit/deny effect of its own. Use PolicyAction instead when the element is the response executed after a rule matches (log, alert, redirect, rate-limit, mask), not the decision itself. Use Permission instead when the element is a static grant of an action on a resource assigned to a role, with no runtime condition evaluated to produce a decision.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "condition": {
-          "type": "string"
+          "type": "string",
+          "description": "The predicate expression that must evaluate true for the rule to fire, recorded verbatim in the source policy language or as a normalized boolean expression (e.g. \"user.department == resource.owner && time < 18:00\"). Always set it; when the rule is composed from AccessCondition nodes, summarize their conjunction here."
         },
         "effect": {
           "type": "string",
@@ -29,7 +30,8 @@
           "description": "Policy decision outcome, per XACML 3.0 Rule element effect values."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "A human-readable explanation returned to the caller or written to logs when the rule fires, typically the denial reason (e.g. \"Only owners may delete reports\"). Set it when the code or policy emits a specific message for this rule."
         },
         "source": {
           "type": "object",
@@ -39,5 +41,17 @@
       "required": ["condition", "effect"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OASIS XACML 3.0 Rule element (Target/Condition/Effect/Obligations); NIST SP 800-53 AC-3 Access Enforcement",
+  "x-dr-evidence": [
+    "A statement in a policy language file with an explicit effect and condition, such as an AWS IAM Statement with \"Effect\": \"Deny\" and a Condition block, a Cedar `permit(...) when { ... };` clause, or an OPA Rego `deny[msg] { ... }` rule.",
+    "An entry in a rules array of a policy config or Casbin policy file whose fields include a match expression and an effect value (e.g. `p, alice, /reports, GET, allow`, or `{condition: ..., effect: 'deny'}`).",
+    "A branch in a policy-evaluator or authorization middleware that tests a predicate on user, resource or request attributes and returns an ALLOW or DENY decision, often with a denial reason string."
+  ],
+  "x-dr-distinguish": {
+    "security.securitypolicy": "the element is the named, prioritized container with a target that groups and orders several rules, rather than one condition-plus-effect pair",
+    "security.accesscondition": "the element is only a field/operator/value predicate that yields true or false and carries no permit/deny effect of its own",
+    "security.policyaction": "the element is the response executed after a rule matches (log, alert, redirect, rate-limit, mask), not the decision itself",
+    "security.permission": "the element is a static grant of an action on a resource assigned to a role, with no runtime condition evaluated to produce a decision"
   }
 }

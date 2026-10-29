@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InformationRight",
-  "description": "A granular access grant specifying which operations a named actor may perform on an InformationEntity, subject to a qualifying constraint expression. Implements attribute-based access control (ABAC) at the information asset level, per NIST SP 800-162 (ABAC Guide) and NIST SP 800-53 AC-3(14).",
+  "description": "An access grant that authorizes one specific actor to perform a listed set of operations on a single InformationEntity. The grant applies only while an attribute-based constraint expression evaluates to true at decision time. It differs from a role-assigned Permission because it names the grantee directly and carries its own qualifying condition. Use Permission instead when the grant is a reusable resource+action entitlement assigned to Roles rather than to a named actor, and has no per-grant constraint expression. Use Delegation instead when authority is transferred from one actor (delegator) to another (delegatee), possibly time-bounded, rather than granted directly on an information asset. Use NeedToKnow instead when access is gated by the actor declaring a purpose or justification rather than by an attribute-based boolean constraint. Use AccessCondition instead when the element is only the field/operator/value predicate itself, not the grant binding an actor and operations to an information asset.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -40,5 +40,17 @@
       "required": ["actor", "constraint"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 Rev.5 AC-3(13) Attribute-Based Access Control; NIST SP 800-162 ABAC policy; STS-ml authorisation",
+  "x-dr-evidence": [
+    "An ABAC policy line naming a concrete subject, data asset, actions and condition, e.g. Casbin `p, billing-svc, customer_pii, read, r.sub.region == r.obj.region`",
+    "A cloud IAM or KMS policy statement whose Principal is a specific user or service, whose Resource is a named data store or dataset, and which has an Action list and a Condition block",
+    "An OPA/Rego or Cedar `permit` rule keyed on a specific principal id and data category, with a `when`/`if` clause comparing subject attributes to resource attributes"
+  ],
+  "x-dr-distinguish": {
+    "security.permission": "the grant is a reusable resource+action entitlement assigned to Roles rather than to a named actor, and has no per-grant constraint expression",
+    "security.delegation": "authority is transferred from one actor (delegator) to another (delegatee), possibly time-bounded, rather than granted directly on an information asset",
+    "security.needtoknow": "access is gated by the actor declaring a purpose or justification rather than by an attribute-based boolean constraint",
+    "security.accesscondition": "the element is only the field/operator/value predicate itself, not the grant binding an actor and operations to an information asset"
   }
 }

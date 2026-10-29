@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Threat",
-  "description": "Represents an identified security threat with assessed likelihood and impact, targeting specific resources or controls. Linked to Countermeasures that reduce exposure. Supports NIST SP 800-53 RA-3 risk assessment and enables residual risk tracking.",
+  "description": "A threat-model entry naming a potential adverse event or attack technique (e.g., credential stuffing, SQL injection, privilege escalation) against an identified asset, rated by likelihood and impact. It records what could go wrong and how badly. It does not record the control that prevents it or the principal who carries it out. Use Countermeasure instead when the item is the control, check or mitigation technique that reduces a threat's likelihood or impact, such as input sanitisation, CSRF tokens or a WAF rule, rather than the attack itself. Use Actor instead when the item is the principal or adversary (human, service, external entity) whose identity and trust level are modelled, rather than the adverse event that principal might cause. Use PolicyRule instead when the item is an evaluable condition-plus-effect rule that permits or denies requests, even if it was written in response to a threat. Use ValidationRule instead when the item is a concrete pattern, range or length constraint on a field that blocks malicious input, rather than the injection or tampering risk it guards against.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text narrative of the threat scenario: attack vector, preconditions and the adverse outcome, optionally citing CWE/CAPEC/STRIDE identifiers; set whenever the name alone does not make the attack clear."
         },
         "threatens": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier or name of the primary asset the threat endangers, such as a SecureResource, InformationEntity, business service or process; set to the most critical target when several apply."
         },
         "likelihood": {
           "type": "string",
@@ -49,5 +51,17 @@
       "required": ["threatens", "likelihood", "impact"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 RA-3 Risk Assessment (threat events per NIST SP 800-30 Rev.1 Appendix E)",
+  "x-dr-evidence": [
+    "A threat-model artefact checked into the repository that lists threat entries with likelihood/impact or risk ratings, such as an OWASP Threat Dragon JSON file, a Microsoft Threat Modeling Tool .tm7 file, or a threat-model.md with a STRIDE table.",
+    "Code comments, ADRs or security docs that cite CWE, CAPEC or OWASP Top 10 identifiers (e.g., '// guards against CWE-89 SQL injection') adjacent to the code they protect.",
+    "Security test cases or abuse-case specs named after attack scenarios (e.g., test_rejects_sql_injection, it('blocks replayed JWT')) that assert a specific attack fails."
+  ],
+  "x-dr-distinguish": {
+    "security.countermeasure": "the item is the control, check or mitigation technique that reduces a threat's likelihood or impact, such as input sanitisation, CSRF tokens or a WAF rule, rather than the attack itself.",
+    "security.actor": "the item is the principal or adversary (human, service, external entity) whose identity and trust level are modelled, rather than the adverse event that principal might cause.",
+    "security.policyrule": "the item is an evaluable condition-plus-effect rule that permits or denies requests, even if it was written in response to a threat.",
+    "security.validationrule": "the item is a concrete pattern, range or length constraint on a field that blocks malicious input, rather than the injection or tampering risk it guards against."
   }
 }
