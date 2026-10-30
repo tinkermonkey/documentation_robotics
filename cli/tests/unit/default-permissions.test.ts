@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import {
   DEFAULT_READ_SAFE_PERMISSIONS,
+  bashCommands,
   formatForClaudeCode,
   formatForCopilot,
   applyCopilotPermissions,
@@ -128,7 +129,7 @@ describe("Default Read-Safe Permissions", () => {
 
     it("should include Bash tool with read-safe dr scope", () => {
       const result = formatForClaudeCode();
-      expect(result).toContain("Bash(dr query|dr show|dr list");
+      expect(result).toContain("Bash(dr show:*)");
       // Ensure wildcard scope is not used
       expect(result).not.toContain("Bash(dr *)");
       expect(result).not.toContain("Bash(*)");
@@ -154,10 +155,38 @@ describe("Default Read-Safe Permissions", () => {
       expect(result).not.toMatch(/^,|,$/);
     });
 
-    it("should have one entry per permission (no deduplication)", () => {
+    it("should have one Bash rule per read-safe dr command and one entry per other permission", () => {
       const result = formatForClaudeCode();
       const specs = result.split(",");
-      expect(specs.length).toBe(DEFAULT_READ_SAFE_PERMISSIONS.length);
+      const expected = DEFAULT_READ_SAFE_PERMISSIONS.reduce(
+        (n, p) => n + (p.name === "Bash" && p.scope ? bashCommands(p.scope).length : 1),
+        0
+      );
+      expect(specs.length).toBe(expected);
+    });
+
+    // Claude Code's permission rules have no "or": a single `Bash(dr query|dr show|...)` rule
+    // matches no command, which left DrBot unable to run any dr command.
+    it("should emit each read-safe dr command as its own Bash(dr <cmd>:*) rule", () => {
+      const bashRules = formatForClaudeCode()
+        .split(",")
+        .filter((spec) => spec.startsWith("Bash("));
+      const bashScope = DEFAULT_READ_SAFE_PERMISSIONS.find((p) => p.name === "Bash")!.scope!;
+
+      expect(bashRules).toEqual(bashCommands(bashScope).map((cmd) => `Bash(${cmd}:*)`));
+      expect(bashRules).toContain("Bash(dr show:*)");
+      expect(bashRules).toContain("Bash(dr list:*)");
+      bashRules.forEach((rule) => {
+        expect(rule).toMatch(/^Bash\(dr [a-z-]+:\*\)$/);
+        expect(rule).not.toContain("|");
+      });
+    });
+
+    it("should not allow dr commands that write to the model", () => {
+      const result = formatForClaudeCode();
+      ["add", "update", "delete", "remove", "apply", "init"].forEach((cmd) => {
+        expect(result).not.toContain(`Bash(dr ${cmd}:*)`);
+      });
     });
   });
 
