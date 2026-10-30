@@ -83,19 +83,33 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: readonly ToolPermission[] = Object.f
  *
  * Claude Code uses the --allowedTools flag with scoped tool permissions.
  * This function formats the permission list as expected by Claude Code's --allowedTools parameter,
- * including scope constraints for each tool (e.g., "Bash(dr query|dr show|dr list|...),Read(.),Read(documentation-robotics)").
+ * including scope constraints for each tool (e.g., "Bash(dr query:*),Bash(dr show:*),...,Read(.),Read(documentation-robotics)").
+ *
+ * A Bash scope lists several commands separated by "|". Claude Code's rule syntax has no "or":
+ * `Bash(dr query|dr show)` matches no command at all, so each command becomes its own prefix
+ * rule, `Bash(dr show:*)`. Other tools keep their scope as-is, e.g. `Read(.dr)`.
  *
  * @returns String formatted for Claude Code --allowedTools flag
  */
 export function formatForClaudeCode(): string {
-  // Format each permission as "ToolName" or "ToolName(scope)" with scope constraints
-  const formatted = DEFAULT_READ_SAFE_PERMISSIONS.map((p) => {
-    if (p.scope) {
-      return `${p.name}(${p.scope})`;
+  const formatted = DEFAULT_READ_SAFE_PERMISSIONS.flatMap((p) => {
+    if (!p.scope) {
+      return [p.name];
     }
-    return p.name;
+    if (p.name === "Bash") {
+      return bashCommands(p.scope).map((command) => `Bash(${command}:*)`);
+    }
+    return [`${p.name}(${p.scope})`];
   });
   return formatted.join(",");
+}
+
+/** The individual commands in a "|"-separated Bash scope, e.g. "dr query|dr show". */
+export function bashCommands(scope: string): string[] {
+  return scope
+    .split("|")
+    .map((command) => command.trim())
+    .filter((command) => command.length > 0);
 }
 
 /**
