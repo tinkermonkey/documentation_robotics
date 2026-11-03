@@ -106,21 +106,25 @@ async function main() {
   let errors = 0;
   await mapConcurrent(pool, concurrency, async (card, i) => {
     const t = tier0Of.get(card.id);
-    if (t?.kind === "decide") {
+    if (t && t.kind !== "narrow") {
+      // a rule answered: no model call. Significance and concerns are not asked, so they are
+      // recorded as missing (null), and report.ts scores those metrics on model-asked cards only.
+      const layer = t.kind === "decide" ? t.layer : NONE_OPTION;
+      const type = t.kind === "decide" ? t.type : null;
       appendJsonl(predFile, {
         card_id: card.id,
         backend,
-        layer: { choice: t.layer, probabilities: { [t.layer]: 1 }, confidence: null },
-        element_type: { choice: t.type, probabilities: t.type ? { [t.type]: 1 } : {}, confidence: null },
+        layer: { choice: layer, probabilities: { [layer]: 1 }, confidence: null },
+        element_type: { choice: type, probabilities: type ? { [type]: 1 } : {}, confidence: null },
         significance: { score: NaN, probabilities: null },
         concerns: {},
         latency_ms: 0,
         usage: null,
         cost_usd: 0,
         error: null,
-        tier0: { rule: t.rule, kind: "decide" },
+        tier0: { rule: t.rule, kind: t.kind },
       } satisfies Prediction);
-      console.error(`[${i + 1}/${pool.length}] ${card.label} ${card.name} -> ${t.layer}/${t.type ?? "-"} (tier0 ${t.rule})`);
+      console.error(`[${i + 1}/${pool.length}] ${card.label} ${card.name} -> ${layer}/${type ?? "-"} (tier0 ${t.rule})`);
       return;
     }
     const state = withCharter(renderState(card, sourceLines, useFacts ? facts.get(card.id) : undefined));

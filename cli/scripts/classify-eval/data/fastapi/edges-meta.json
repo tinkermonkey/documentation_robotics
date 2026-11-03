@@ -1,0 +1,25 @@
+{
+  "corpus": "fastapi",
+  "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template",
+  "source": "codebase-memory-mcp index database, read-only",
+  "extracted_at": "2026-11-03T13:55:27.770Z",
+  "graph_edges_by_type": {
+    "CALLS": 699,
+    "CONFIGURES": 5,
+    "CONTAINS_FILE": 190,
+    "CONTAINS_FOLDER": 38,
+    "DECORATES": 34,
+    "DEFINES": 1701,
+    "DEFINES_METHOD": 28,
+    "HANDLES": 23,
+    "HAS_BRANCH": 1,
+    "IMPLEMENTS": 4,
+    "IMPORTS": 543,
+    "INHERITS": 6,
+    "SEMANTICALLY_RELATED": 409,
+    "SIMILAR_TO": 57,
+    "TESTS": 87,
+    "USAGE": 869,
+    "WRITES": 48
+  }
+}

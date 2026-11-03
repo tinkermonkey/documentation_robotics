@@ -17,6 +17,10 @@
  * gets a boilerplate description, since the proposed text described the original one). Rejected
  * and undecided operations write nothing. Additions are additive, so no model migration follows;
  * rebuild the spec afterwards (npm run build:spec, then cd cli && npm run build).
+ *
+ * Decisions are joined to operations by seq, so the export refuses to overwrite a proposal file
+ * whose operations would change (pass --force once Context Studio has nothing pending on it).
+ * The apply checks every target file and id before writing any, so it never stops half-way.
  */
 import path from "node:path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -87,7 +91,7 @@ export function schemaFile(id: string): string {
   return path.join(specDir(), "schemas", "relationships", t.source.split(".")[0], `${local(t.source)}.${t.predicate}.${local(t.destination)}.relationship.schema.json`);
 }
 
-function exportProposals(file: AdditionsFile): void {
+function exportProposals(file: AdditionsFile, force: boolean): void {
   const catalog = new Set(loadRelationshipSchemas().map((r) => r.id));
   const nodeIds = new Set(loadNodeSchemas().map((n) => n.specNodeId));
   const predicates = new Set(Object.keys(loadPredicates()));
@@ -96,6 +100,12 @@ function exportProposals(file: AdditionsFile): void {
     console.error("not written; these additions cannot go into the catalog:");
     for (const [id, p] of problems) console.error(`  ${id}: ${p}`);
     process.exit(1);
+  }
+  const all = loadRelationshipSchemas();
+  for (const a of file.additions) {
+    const t = triple(a.id);
+    const near = all.filter((r) => (r.source === t.source && r.destination === t.destination) || (r.source === t.destination && r.destination === t.source)).map((r) => r.id);
+    if (near.length) console.log(`note: ${a.id}: the catalog already relates this pair as ${near.join(", ")}`);
   }
   const byLayer = new Map<string, Addition[]>();
   for (const a of file.additions) {
@@ -145,6 +155,14 @@ function exportProposals(file: AdditionsFile): void {
       operations,
     };
     const out = path.join(PROPOSALS(), `cbm-additions-${layer}.json`);
+    if (existsSync(out) && !force) {
+      const prev = JSON.parse(readFileSync(out, "utf8")) as Proposal;
+      const sig = (ops: Operation[]) => JSON.stringify(ops.map((o) => [o.seq, o.fields.relationship_id]));
+      if (sig(prev.operations) !== sig(operations)) {
+        console.error(`not written: ${path.relative(process.cwd(), out)} exists with different operations, and decisions are joined by seq. Pass --force once nothing is pending on it in Context Studio.`);
+        process.exit(1);
+      }
+    }
     writeFileSync(out, JSON.stringify(proposal, null, 2) + "\n");
     console.log(`wrote ${path.relative(process.cwd(), out)}: ${operations.length} create operations`);
   }
@@ -189,8 +207,22 @@ function apply(file: AdditionsFile, layer: string, decisionsFile: string, dry: b
     for (const e of errors) console.error("  " + e);
     process.exit(1);
   }
+  // check everything before writing anything
+  const seenIds = new Set<string>();
+  const seenFiles = new Set<string>();
   for (const w of writes) {
-    if (existsSync(w.file)) throw new Error(`${w.file} exists`);
+    if (seenIds.has(w.id)) errors.push(`${w.id}: accepted twice`);
+    if (seenFiles.has(w.file)) errors.push(`${w.id}: another accepted addition writes the same file ${path.relative(process.cwd(), w.file)}`);
+    if (existsSync(w.file)) errors.push(`${w.id}: ${path.relative(process.cwd(), w.file)} already exists`);
+    seenIds.add(w.id);
+    seenFiles.add(w.file);
+  }
+  if (errors.length) {
+    console.error("nothing written:");
+    for (const e of errors) console.error("  " + e);
+    process.exit(1);
+  }
+  for (const w of writes) {
     if (!dry) writeFileSync(w.file, JSON.stringify(w.schema, null, 2) + "\n");
     console.log(`${dry ? "[dry run] would write" : "wrote"} ${path.relative(process.cwd(), w.file)}`);
   }
@@ -208,7 +240,7 @@ function main() {
       process.exit(2);
     }
     apply(file, layer, decisions, !!flags["dry-run"]);
-  } else exportProposals(file);
+  } else exportProposals(file, !!flags.force);
 }
 
 if (import.meta.main) main();

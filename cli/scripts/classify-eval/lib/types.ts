@@ -102,6 +102,6 @@ export const PredictionSchema = z.object({
   cost_usd: z.number().nullable(),
   error: z.string().nullable(),
   /** set when a Tier-0 rule decided the card (no model asked) or narrowed its choices */
-  tier0: z.object({ rule: z.string(), kind: z.enum(["decide", "narrow"]) }).optional(),
+  tier0: z.object({ rule: z.string(), kind: z.enum(["decide", "reject", "narrow"]) }).optional(),
 });
 export type Prediction = z.infer<typeof PredictionSchema>;
