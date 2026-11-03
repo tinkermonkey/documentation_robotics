@@ -19,6 +19,7 @@ const authToken =
     ? process.env.DR_AUTH_TOKEN
     : undefined;
 const withDanger = process.env.DR_WITH_DANGER === "true";
+const withChangesets = process.env.DR_WITH_CHANGESETS === "true";
 const viewerPath = process.env.DR_VIEWER_PATH;
 
 // Conditional telemetry import based on compile-time flag
@@ -72,6 +73,7 @@ async function main() {
       authEnabled,
       authToken,
       withDanger,
+      withChangesets,
       viewerPath,
     });
     serverInstance = server; // Store for signal handlers

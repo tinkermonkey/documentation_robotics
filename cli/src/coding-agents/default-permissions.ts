@@ -104,6 +104,50 @@ export function formatForClaudeCode(): string {
   return formatted.join(",");
 }
 
+/**
+ * Extra dr commands for the changeset-only write mode (`dr visualize --with-changesets`).
+ *
+ * On top of the read-safe list, the agent can open and work in a changeset and stage new
+ * elements, element updates and new relationships, and unstage one element it staged by
+ * mistake. Committing, applying, reverting, discarding (which throws away every staged change,
+ * the user's included) or deleting a changeset, and deleting elements or relationships, stay
+ * with the user.
+ *
+ * `dr add`, `dr update` and `dr relationship add` write straight to the model when no
+ * changeset is active, so the permissions alone don't keep writes in a changeset: the
+ * agent also runs with `CHANGESET_ONLY_ENV` set, which makes the model refuse to save
+ * (see core/changeset-only-guard.ts).
+ */
+export const CHANGESET_WRITE_COMMANDS: readonly string[] = Object.freeze([
+  "dr changeset create",
+  "dr changeset activate",
+  "dr changeset deactivate",
+  "dr changeset status",
+  "dr changeset list",
+  "dr changeset show",
+  "dr changeset staged",
+  "dr changeset stage",
+  "dr changeset unstage",
+  "dr changeset preview",
+  "dr changeset diff",
+  "dr add",
+  "dr update",
+  "dr relationship add",
+  "dr relationship list",
+  "dr relationship show",
+  "dr schema",
+]);
+
+export { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
+
+/**
+ * Claude Code --allowedTools value for changeset-only mode: the read-safe list plus one
+ * `Bash(<cmd>:*)` rule per `CHANGESET_WRITE_COMMANDS` entry.
+ */
+export function formatForClaudeCodeWithChangesets(): string {
+  return [formatForClaudeCode(), ...CHANGESET_WRITE_COMMANDS.map((command) => `Bash(${command}:*)`)].join(",");
+}
+
 /** The individual commands in a "|"-separated Bash scope, e.g. "dr query|dr show". */
 export function bashCommands(scope: string): string[] {
   return scope
