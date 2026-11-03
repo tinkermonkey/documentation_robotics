@@ -2,7 +2,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ClaudeCodeClient } from "../../src/coding-agents/claude-code-client.js";
 import { ChatOptions } from "../../src/coding-agents/base-chat-client.js";
-import { formatForClaudeCode } from "../../src/coding-agents/default-permissions.js";
+import {
+  CHANGESET_ONLY_ENV,
+  formatForClaudeCode,
+  formatForClaudeCodeWithChangesets,
+} from "../../src/coding-agents/default-permissions.js";
 import { VisualizationServer } from "../../src/server/server.js";
 import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
@@ -185,6 +189,32 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");
+      });
+    });
+
+    describe("Changeset mode handling (--with-changesets)", () => {
+      it("should pass the changeset allowlist and set DR_CHANGESET_ONLY for the agent", () => {
+        const changesetServer = new VisualizationServer(testModel, { withChangesets: true });
+
+        const args = (changesetServer as any).buildClaudeChatArgs();
+        const allowlist = args[args.indexOf("--allowedTools") + 1];
+        expect(allowlist).toBe(formatForClaudeCodeWithChangesets());
+        expect(args).not.toContain("--dangerously-skip-permissions");
+
+        const env = (changesetServer as any).buildChatEnv();
+        expect(env[CHANGESET_ONLY_ENV]).toBe("true");
+      });
+
+      it("should not set DR_CHANGESET_ONLY in default mode", () => {
+        const env = (server as any).buildChatEnv();
+        expect(env[CHANGESET_ONLY_ENV]).toBeUndefined();
+      });
+
+      it("should let danger mode win over changeset mode", () => {
+        const both = new VisualizationServer(testModel, { withDanger: true, withChangesets: true });
+
+        expect((both as any).buildClaudeChatArgs()).toContain("--dangerously-skip-permissions");
+        expect((both as any).buildChatEnv()[CHANGESET_ONLY_ENV]).toBeUndefined();
       });
     });
   });

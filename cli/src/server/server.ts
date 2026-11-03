@@ -20,13 +20,19 @@ import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { StagingAreaManager } from "../core/staging-area.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
-import { formatForClaudeCode, applyCopilotPermissions } from "../coding-agents/default-permissions.js";
+import {
+  formatForClaudeCode,
+  formatForClaudeCodeWithChangesets,
+  applyCopilotPermissions,
+  CHANGESET_ONLY_ENV,
+} from "../coding-agents/default-permissions.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   AnnotationCreateSchema,
@@ -42,6 +48,7 @@ import {
   AnnotationsListSchema,
   ChangesetsListSchema,
   ChangesetDetailSchema,
+  ChangesetActionResultSchema,
   ModelResponseSchema,
   LayerResponseSchema,
   SpecResponseSchema,
@@ -113,6 +120,11 @@ export interface VisualizationServerOptions {
   authEnabled?: boolean;
   authToken?: string;
   withDanger?: boolean;
+  /**
+   * Changeset-only write mode for chat: the agent may stage adds, updates and new
+   * relationships in a changeset, but not commit, apply or delete. Ignored with withDanger.
+   */
+  withChangesets?: boolean;
   viewerPath?: string;
 }
 
@@ -135,6 +147,7 @@ export class VisualizationServer {
   private authToken: string;
   private authEnabled: boolean = true;
   private withDanger: boolean = false; // Danger mode disabled by default
+  private withChangesets: boolean = false; // Changeset-only write mode disabled by default
   private viewerPath?: string; // Optional custom viewer path
   private activeChatProcesses: Map<string, ChildProcess> = new Map(); // conversationId -> spawned chat process
   private chatConversationCounter: number = 0;
@@ -240,6 +253,7 @@ export class VisualizationServer {
     this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
+    this.withChangesets = options?.withChangesets || false;
     // Use explicit viewerPath if provided, otherwise fall back to the bundled viewer
     this.viewerPath = options?.viewerPath ||
       new URL("../viewer", import.meta.url).pathname;
@@ -1163,7 +1177,11 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getChangesetsRoute, (c) => {
+    // Changesets are re-read from disk on every request: the CLI (or a chat agent in
+    // changeset mode) creates and stages them under documentation-robotics/changesets,
+    // which the file watcher doesn't cover, so the in-memory map goes stale.
+    this.app.openapi(getChangesetsRoute, async (c) => {
+      await this.loadChangesetsFromDisk();
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
@@ -1213,8 +1231,9 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getChangesetRoute, ((c: any) => {
+    this.app.openapi(getChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
+      await this.loadChangesetsFromDisk();
       const changeset = this.changesets.get(changesetId);
 
       if (!changeset) {
@@ -1232,6 +1251,67 @@ export class VisualizationServer {
         stats: changeset.stats,
         changes: changeset.changes,
       });
+    }) as any);
+
+    // Commit a staged changeset to the model, and discard one. These are the user's
+    // review step for changes a chat agent staged in changeset mode
+    // (`dr visualize --with-changesets`), which never lets the agent commit itself.
+    const changesetActionResponses = {
+      200: {
+        description: 'Action completed',
+        content: { 'application/json': { schema: ChangesetActionResultSchema } },
+      },
+      404: {
+        description: 'Changeset not found',
+        content: { 'application/json': { schema: ErrorResponseSchema } },
+      },
+      409: {
+        description: 'Changeset is not staged, or the model drifted since it was created',
+        content: { 'application/json': { schema: ErrorResponseSchema } },
+      },
+      422: {
+        description: 'The changeset failed validation; nothing was applied',
+        content: { 'application/json': { schema: ErrorResponseSchema } },
+      },
+    };
+
+    const commitChangesetRoute = createRoute({
+      method: 'post',
+      path: '/api/changesets/:changesetId/commit',
+      tags: ['Changesets'],
+      summary: 'Commit changeset',
+      description:
+        'Apply a staged changeset to the model (same as `dr changeset commit`): validates it, ' +
+        'applies every change atomically, marks it committed, and deactivates it if it was active. ' +
+        'Refused when the model changed since the changeset was created (use the CLI with --force).',
+      security: [{ bearerAuth: [] }],
+      request: { params: z.object({ changesetId: IdSchema }) },
+      responses: changesetActionResponses,
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(commitChangesetRoute, (async (c: any) => {
+      const { changesetId } = c.req.valid("param");
+      return this.runChangesetAction(c, changesetId, "commit");
+    }) as any);
+
+    const discardChangesetRoute = createRoute({
+      method: 'post',
+      path: '/api/changesets/:changesetId/discard',
+      tags: ['Changesets'],
+      summary: 'Discard changeset',
+      description:
+        'Throw away a staged changeset\'s changes (same as `dr changeset discard`): clears them, ' +
+        'marks it discarded, and deactivates it if it was active. The model is not touched.',
+      security: [{ bearerAuth: [] }],
+      request: { params: z.object({ changesetId: IdSchema }) },
+      responses: changesetActionResponses,
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(discardChangesetRoute, (async (c: any) => {
+      const { changesetId } = c.req.valid("param");
+      return this.runChangesetAction(c, changesetId, "discard");
     }) as any);
 
     // OpenAPI documentation endpoint
@@ -2041,15 +2121,29 @@ export class VisualizationServer {
   private buildClaudeChatArgs(): string[] {
     const cmd = ["claude", "--agent", "dr-architect", "--print"];
 
-    // Apply permissions: either full access or read-safe allowlist
+    // Apply permissions: full access, changeset-only writes, or the read-safe allowlist
     if (this.withDanger) {
       cmd.push("--dangerously-skip-permissions");
+    } else if (this.withChangesets) {
+      cmd.push("--allowedTools", formatForClaudeCodeWithChangesets());
     } else {
       cmd.push("--allowedTools", formatForClaudeCode());
     }
 
     cmd.push("--verbose", "--output-format", "stream-json");
     return cmd;
+  }
+
+  /**
+   * Environment for chat agent processes. In changeset-only mode it sets
+   * CHANGESET_ONLY_ENV, so any `dr` command the agent runs refuses to save the base
+   * model and can only stage changes in an active changeset (core/changeset-only-guard.ts).
+   */
+  private buildChatEnv(): NodeJS.ProcessEnv {
+    if (this.withChangesets && !this.withDanger) {
+      return { ...process.env, [CHANGESET_ONLY_ENV]: "true" };
+    }
+    return process.env;
   }
 
   /**
@@ -2084,6 +2178,7 @@ export class VisualizationServer {
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
+        env: this.buildChatEnv(),
         stdio: ["pipe", "pipe", "pipe"],
       });
 
@@ -2548,26 +2643,7 @@ export class VisualizationServer {
         }
 
         try {
-          // Reload model and changesets
-          this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
-          await this.loadChangesetsFromDisk();
-
-          // Broadcast update to all clients
-          const modelData = await this.serializeModel();
-          const message = JSON.stringify({
-            type: "model.updated",
-            data: modelData,
-            timestamp: new Date().toISOString(),
-          });
-
-          for (const client of this.clients) {
-            try {
-              client.send(message);
-            } catch (error) {
-              const msg = getErrorMessage(error);
-              console.warn(`[Watcher] Failed to send update: ${msg}`);
-            }
-          }
+          await this.reloadAndBroadcast();
         } catch (error) {
           const message = getErrorMessage(error);
           console.error(`[Watcher] Failed to reload model: ${message}`);
@@ -3308,10 +3384,91 @@ export class VisualizationServer {
   }
 
   /**
+   * Reload the model and changesets from disk and send the new model to every client.
+   */
+  private async reloadAndBroadcast(): Promise<void> {
+    this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    await this.loadChangesetsFromDisk();
+
+    const modelData = await this.serializeModel();
+    const message = JSON.stringify({
+      type: "model.updated",
+      data: modelData,
+      timestamp: new Date().toISOString(),
+    });
+
+    for (const client of this.clients) {
+      try {
+        client.send(message);
+      } catch (error) {
+        const msg = getErrorMessage(error);
+        console.warn(`[Watcher] Failed to send update: ${msg}`);
+      }
+    }
+  }
+
+  /**
+   * Commit or discard a staged changeset for POST /api/changesets/:id/{commit,discard}.
+   *
+   * Works on a freshly loaded model rather than the server's in-memory copy, so a CLI
+   * change since the last reload can't be overwritten. Afterwards the server reloads
+   * (the watcher only sees model files, and a discard touches none) and broadcasts.
+   */
+  private async runChangesetAction(c: any, changesetId: string, action: "commit" | "discard") {
+    const model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    const manager = new StagingAreaManager(model.rootPath, model);
+
+    const changeset = await manager.load(changesetId);
+    if (!changeset) {
+      return c.json({ error: "Changeset not found" }, 404);
+    }
+    if (changeset.status !== "staged") {
+      return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
+    }
+
+    let result: { committed?: number; skipped?: number; failed?: number } = {};
+    try {
+      if (action === "commit") {
+        const commit = await manager.commit(model, changesetId, { validate: true });
+        result = { committed: commit.committed, skipped: commit.skipped ?? 0, failed: commit.failed };
+      } else {
+        await manager.discard(changesetId);
+      }
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (message.startsWith("Validation failed")) {
+        return c.json({ error: message }, 422);
+      }
+      if (message.includes("drifted")) {
+        return c.json({ error: message }, 409);
+      }
+      throw error;
+    }
+
+    if ((await manager.getActiveId()) === changesetId) {
+      await manager.clearActive();
+    }
+
+    try {
+      await this.reloadAndBroadcast();
+    } catch (error) {
+      console.error(`[Changesets] Reload after ${action} failed: ${getErrorMessage(error)}`);
+    }
+
+    const updated = this.changesets.get(changesetId) ?? (await manager.load(changesetId));
+    return c.json({
+      id: changesetId,
+      name: changeset.name,
+      status: updated?.status ?? (action === "commit" ? "committed" : "discarded"),
+      ...result,
+    });
+  }
+
+  /**
    * Load all changesets from disk into the in-memory map
    */
   private async loadChangesetsFromDisk(): Promise<void> {
-    if (!this.changesetStorage) return;
+    this.changesetStorage ??= new StagedChangesetStorage(this.model.rootPath);
     try {
       const changesets = await this.changesetStorage.list();
       this.changesets.clear();

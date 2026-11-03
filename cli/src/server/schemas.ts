@@ -316,6 +316,15 @@ export const ChangesetsListSchema = z.object({
   changesets: z.record(z.string(), ChangesetMetadataSchema),
 });
 
+export const ChangesetActionResultSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.enum(['staged', 'committed', 'discarded'] as const),
+  committed: z.number().optional().describe('Changes applied to the model (commit only)'),
+  skipped: z.number().optional().describe('Changes skipped as already present (commit only)'),
+  failed: z.number().optional().describe('Changes that failed to apply (commit only)'),
+});
+
 export const ChangesetDetailSchema = z.object({
   id: z.string(),
   name: z.string(),

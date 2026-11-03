@@ -24,6 +24,7 @@ export interface VisualizeOptions {
   verbose?: boolean
   debug?: boolean
   withDanger?: boolean
+  withChangesets?: boolean
   viewerPath?: string
 }
 
@@ -72,6 +73,8 @@ export async function visualizeCommand(
     const authEnabled = !options.noAuth // Auth enabled by default unless --no-auth flag
     const authToken = options.token // Optional token for testing
     const withDanger = options.withDanger || false // Danger mode disabled by default
+    // Changeset-only writes; danger mode already allows everything, so it wins
+    const withChangesets = (options.withChangesets || false) && !withDanger
 
     logDebug(`Starting visualization server on port ${port}`)
     logDebug(`Authentication: ${authEnabled ? "enabled" : "disabled"}`)
@@ -113,6 +116,7 @@ export async function visualizeCommand(
       DR_PROJECT_PATH: process.cwd(),
       DR_AUTH_ENABLED: String(authEnabled),
       DR_WITH_DANGER: String(withDanger),
+      DR_WITH_CHANGESETS: String(withChangesets),
     }
 
     // Pass debug/verbose flags to subprocess
@@ -237,6 +241,13 @@ export async function visualizeCommand(
             if (withDanger) {
               console.log(
                 ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`)
+              )
+              if (options.withChangesets) {
+                console.log(ansis.dim(`   (--with-changesets ignored: danger mode already allows all writes)`))
+              }
+            } else if (withChangesets) {
+              console.log(
+                ansis.yellow(`   ⚠ Changeset mode enabled - chat can stage model changes in a changeset (no commit/apply/delete)`)
               )
             }
 

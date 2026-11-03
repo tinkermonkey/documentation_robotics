@@ -1238,4 +1238,176 @@ paths:
                     description: Error message
                 required:
                   - error
+  /api/changesets/:changesetId/commit:
+    post:
+      tags:
+        - Changesets
+      summary: Commit changeset
+      description: "Apply a staged changeset to the model (same as `dr changeset
+        commit`): validates it, applies every change atomically, marks it
+        committed, and deactivates it if it was active. Refused when the model
+        changed since the changeset was created (use the CLI with --force)."
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      responses:
+        "200":
+          description: Action completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - staged
+                      - committed
+                      - discarded
+                  committed:
+                    type: number
+                    description: Changes applied to the model (commit only)
+                  skipped:
+                    type: number
+                    description: Changes skipped as already present (commit only)
+                  failed:
+                    type: number
+                    description: Changes that failed to apply (commit only)
+                required:
+                  - id
+                  - name
+                  - status
+        "404":
+          description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "409":
+          description: Changeset is not staged, or the model drifted since it was created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "422":
+          description: The changeset failed validation; nothing was applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/changesets/:changesetId/discard:
+    post:
+      tags:
+        - Changesets
+      summary: Discard changeset
+      description:
+        "Throw away a staged changeset's changes (same as `dr changeset
+        discard`): clears them, marks it discarded, and deactivates it if it was
+        active. The model is not touched."
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      responses:
+        "200":
+          description: Action completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - staged
+                      - committed
+                      - discarded
+                  committed:
+                    type: number
+                    description: Changes applied to the model (commit only)
+                  skipped:
+                    type: number
+                    description: Changes skipped as already present (commit only)
+                  failed:
+                    type: number
+                    description: Changes that failed to apply (commit only)
+                required:
+                  - id
+                  - name
+                  - status
+        "404":
+          description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "409":
+          description: Changeset is not staged, or the model drifted since it was created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "422":
+          description: The changeset failed validation; nothing was applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
 webhooks: {}
