@@ -30,7 +30,7 @@
     "artifact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Artifact",
-      "description": "A piece of data that is used or produced in a software development process, or by the deployment and operation of an IT system, such as a source file, executable, script, or configuration file.",
+      "description": "A passive, physical unit of data, such as a file, container image, package, archive, script or configuration document, that is produced by a build or authoring process and is stored, deployed onto, or read by nodes and system software. It is identified by a name or path, can usually be versioned or hashed, and performs no behavior itself. Use Node instead when the thing is the running execution environment, such as a container instance, VM or cluster, rather than the image, package or file that is deployed onto it. Use SystemSoftware instead when the thing is the installed platform software providing an execution or storage environment, such as a PostgreSQL engine, Docker daemon or Kafka broker, rather than a distributable binary, image or config file of it. Use TechnologyProcess instead when the subject is the sequence of steps executed, such as a build, deploy or backup job, rather than the pipeline definition file or the outputs it produces. Use TechnologyService instead when the subject is the externally exposed infrastructure capability, such as object storage or a message queue, rather than the deployable unit that realizes it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -50,7 +50,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of what the artifact contains, how it is produced (build step or source), and where it is stored or deployed. Set it whenever the name and artifactType alone do not identify the artifact's purpose."
             },
             "artifactType": {
               "type": "string",
@@ -77,12 +78,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.4.1 Artifact",
+      "x-dr-evidence": [
+        "a Dockerfile, or an image reference with registry/name:tag in a docker-compose, Kubernetes or Helm manifest, that is built and pushed or pulled for deployment",
+        "a build output declared in a manifest or build script, such as a package.json 'main'/'bin', Maven <packaging>jar</packaging>, a setup.py wheel, or a Gradle task producing a .war/.zip",
+        "a configuration or deployment file copied into an image or mounted at runtime, such as application.yaml, nginx.conf, a Kubernetes ConfigMap, a .env template, or a Terraform module consumed by a deployment"
+      ],
+      "x-dr-distinguish": {
+        "technology.node": "the thing is the running execution environment, such as a container instance, VM or cluster, rather than the image, package or file that is deployed onto it",
+        "technology.systemsoftware": "the thing is the installed platform software providing an execution or storage environment, such as a PostgreSQL engine, Docker daemon or Kafka broker, rather than a distributable binary, image or config file of it",
+        "technology.technologyprocess": "the subject is the sequence of steps executed, such as a build, deploy or backup job, rather than the pipeline definition file or the outputs it produces",
+        "technology.technologyservice": "the subject is the externally exposed infrastructure capability, such as object storage or a message queue, rather than the deployable unit that realizes it"
+      },
       "$id": "urn:dr:spec:node:technology.artifact"
     },
     "communicationnetwork": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CommunicationNetwork",
-      "description": "A set of structures that connects nodes for the purpose of transmission, routing, and reception of data, such as a LAN, WAN, or VPN.",
+      "description": "A technology active structure element representing a physical or virtual network infrastructure, such as a LAN, VPC, subnet, overlay, VPN or the public internet, that carries, routes and delivers data among any number of attached nodes and devices. It is identified by an address space or network membership rather than by a specific pair of endpoints. Use Path instead when the element is a logical communication channel between specific named nodes (e.g. service A calls database B over TCP) rather than the shared network infrastructure the traffic travels over. Use Device instead when the element is a physical network appliance such as a router, switch or firewall box (deviceType network-device) rather than the network it forms or joins. Use Node instead when the element is a computational resource that hosts software, such as a VM, container or cluster attached to the network, rather than the network itself. Use TechnologyService instead when the element is a consumable networking capability offered through an interface, such as managed DNS, a load-balancing service or a CDN, rather than the connectivity fabric.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -102,7 +115,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the network's purpose, scope and address range (e.g. 'private VPC 10.0.0.0/16 for production workloads'); set it whenever the name alone does not convey which hosts attach to the network or what traffic it carries."
             },
             "networkType": {
               "type": "string",
@@ -122,12 +136,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.7 Communication Network",
+      "x-dr-evidence": [
+        "An infrastructure-as-code resource that declares a network or address space, such as Terraform aws_vpc, aws_subnet, google_compute_network or azurerm_virtual_network, with a cidr_block or address_prefixes value.",
+        "A top-level `networks:` entry in a docker-compose file, or a `docker network create` command, that services attach to by name.",
+        "A VPN or overlay configuration such as a WireGuard [Interface]/[Peer] file, an OpenVPN .conf, or a CNI plugin config (Calico, Flannel) that defines a network range shared by multiple hosts."
+      ],
+      "x-dr-distinguish": {
+        "technology.path": "the element is a logical communication channel between specific named nodes (e.g. service A calls database B over TCP) rather than the shared network infrastructure the traffic travels over.",
+        "technology.device": "the element is a physical network appliance such as a router, switch or firewall box (deviceType network-device) rather than the network it forms or joins.",
+        "technology.node": "the element is a computational resource that hosts software, such as a VM, container or cluster attached to the network, rather than the network itself.",
+        "technology.technologyservice": "the element is a consumable networking capability offered through an interface, such as managed DNS, a load-balancing service or a CDN, rather than the connectivity fabric."
+      },
       "$id": "urn:dr:spec:node:technology.communicationnetwork"
     },
     "device": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Device",
-      "description": "A physical IT resource upon which system software and artifacts may be stored or deployed for execution, such as a server, workstation, mobile device, or IoT sensor.",
+      "description": "A physical, tangible piece of hardware with its own processing or storage capability (such as a server chassis, workstation, router, storage array, phone, or embedded board) onto which system software and artifacts are installed or deployed. Virtual or logical compute resources and the software running on the hardware are excluded. Use Node instead when the resource is virtual or logical (a VM, container, Kubernetes cluster, or cloud instance whose hardware is not identified), or when hardware and its system software are modelled together as one hosting unit. Use SystemSoftware instead when the element is the operating system, firmware runtime, DBMS, or other platform software installed on the hardware rather than the hardware itself. Use CommunicationNetwork instead when the element is the LAN, WAN, VPN, or wireless segment that connects devices, rather than an individual router, switch, or access point. Use TechnologyCollaboration instead when the element is an aggregate of several devices or nodes acting together, such as a rack of servers forming a cluster.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -147,7 +173,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the physical device: its make and model, location or role, and any hardware constraints relevant to deployment. Set it whenever the identifier alone does not make clear which hardware is meant."
             },
             "deviceType": {
               "type": "string",
@@ -174,12 +201,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.2 Device",
+      "x-dr-evidence": [
+        "Hardware inventory or provisioning records (Ansible inventory host_vars, MAAS/Tinkerbell/Ironic hardware entries, CMDB exports) listing a serial number, MAC address, rack location, or hardware model for a named machine.",
+        "IoT device registry declarations such as Terraform aws_iot_thing or azurerm_iothub device resources, Azure IoT device twins, or device provisioning certificates bound to a physical unit.",
+        "Firmware or OS build configuration that targets a specific physical board or handset, e.g. platformio.ini 'board = esp32dev', a Yocto MACHINE setting, a device tree file, or an MDM enrollment profile for mobile devices."
+      ],
+      "x-dr-distinguish": {
+        "technology.node": "the resource is virtual or logical (a VM, container, Kubernetes cluster, or cloud instance whose hardware is not identified), or when hardware and its system software are modelled together as one hosting unit.",
+        "technology.systemsoftware": "the element is the operating system, firmware runtime, DBMS, or other platform software installed on the hardware rather than the hardware itself.",
+        "technology.communicationnetwork": "the element is the LAN, WAN, VPN, or wireless segment that connects devices, rather than an individual router, switch, or access point.",
+        "technology.technologycollaboration": "the element is an aggregate of several devices or nodes acting together, such as a rack of servers forming a cluster."
+      },
       "$id": "urn:dr:spec:node:technology.device"
     },
     "node": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Node",
-      "description": "A computational or physical resource that hosts, manipulates, or interacts with other computational or physical resources, such as a server cluster, virtual machine host, or container runtime.",
+      "description": "A computational resource, physical or virtualized, that acts as a deployment target on which system software runs and artifacts are deployed for execution, such as a virtual machine, a running container instance, a Kubernetes cluster, or a provisioned server host. It is identified by being the place where something is hosted, not by its hardware form or by the platform software installed on it. Use Device instead when the element is a specific piece of physical hardware (server chassis, workstation, phone, IoT sensor, storage appliance) described by its hardware form rather than by its role as a hosting environment. Use SystemSoftware instead when the element is the platform software itself (operating system, container runtime such as containerd or Docker Engine, DBMS, message broker) rather than the machine or instance it runs on. Use TechnologyCollaboration instead when the element is an aggregate of separately modelled nodes or devices that jointly perform behaviour (a replica set, a cache cluster, a service mesh) and each member is modelled in its own right. Use Artifact instead when the element is the deployable package or image (container image, JAR, Helm chart, VM image) rather than the running instance or host that executes it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -199,7 +238,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the node: what it hosts, its environment (e.g. production, staging), and notable sizing or provisioning details. Set it whenever the name and nodeType alone do not identify the host's purpose."
             },
             "nodeType": {
               "type": "string",
@@ -225,12 +265,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.1 Node",
+      "x-dr-evidence": [
+        "Infrastructure-as-code resources that provision compute, such as Terraform aws_instance, google_compute_instance, azurerm_linux_virtual_machine, or aws_eks_cluster blocks",
+        "A services entry in docker-compose.yml, or a Kubernetes Pod/Deployment/StatefulSet spec, that names the container instance on which an image is run",
+        "A deployment target listed in an Ansible inventory, Helm/kubectl context, or CI deploy step (hostnames, cluster names, environment hosts) to which build outputs are shipped"
+      ],
+      "x-dr-distinguish": {
+        "technology.device": "the element is a specific piece of physical hardware (server chassis, workstation, phone, IoT sensor, storage appliance) described by its hardware form rather than by its role as a hosting environment",
+        "technology.systemsoftware": "the element is the platform software itself (operating system, container runtime such as containerd or Docker Engine, DBMS, message broker) rather than the machine or instance it runs on",
+        "technology.technologycollaboration": "the element is an aggregate of separately modelled nodes or devices that jointly perform behaviour (a replica set, a cache cluster, a service mesh) and each member is modelled in its own right",
+        "technology.artifact": "the element is the deployable package or image (container image, JAR, Helm chart, VM image) rather than the running instance or host that executes it"
+      },
       "$id": "urn:dr:spec:node:technology.node"
     },
     "path": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Path",
-      "description": "A link between two or more nodes through which those nodes can exchange data, representing a logical communication channel such as a network route, API connection, or message channel.",
+      "description": "A logical communication link between two or more specific nodes or devices over which they exchange data, independent of the physical medium that carries it, such as a service-to-database connection, a VPN tunnel between two sites, or a queue channel between a producer host and a consumer host. Use CommunicationNetwork instead when the element is the shared transmission medium or address space (LAN, VPC, subnet, VPN as a whole) connecting many nodes, rather than a particular link between identified endpoints. Use TechnologyInterface instead when the element is the access point on one node (a listening port, endpoint or protocol binding) through which a service is offered, not the link between two nodes. Use TechnologyInteraction instead when the element is the collective behavior exchanged over the link (handshake, replication protocol, failover exchange), not the channel itself. Use TechnologyService instead when the element is an infrastructure capability offered to consumers, such as a managed messaging or load-balancing service, rather than a point-to-point data channel.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -250,7 +302,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the path naming its endpoints, the direction and purpose of the data flow, and any notable constraints such as ports, encryption or latency; set whenever the endpoints or purpose are not obvious from the name."
             },
             "pathType": {
               "type": "string",
@@ -285,12 +338,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.6 Path",
+      "x-dr-evidence": [
+        "a connection string or endpoint URL in configuration that names another deployed host and port, e.g. DATABASE_URL=postgres://orders-db:5432 or a gRPC target address in an environment file",
+        "an infrastructure-as-code resource that links two specific endpoints, e.g. a Terraform aws_vpc_peering_connection, an IPsec VPN tunnel, or a security-group/NetworkPolicy rule allowing traffic from workload A to workload B on a given port",
+        "a docker-compose depends_on/links entry or a service-mesh route (Istio VirtualService, DestinationRule) that directs traffic from one named service to another"
+      ],
+      "x-dr-distinguish": {
+        "technology.communicationnetwork": "the element is the shared transmission medium or address space (LAN, VPC, subnet, VPN as a whole) connecting many nodes, rather than a particular link between identified endpoints",
+        "technology.technologyinterface": "the element is the access point on one node (a listening port, endpoint or protocol binding) through which a service is offered, not the link between two nodes",
+        "technology.technologyinteraction": "the element is the collective behavior exchanged over the link (handshake, replication protocol, failover exchange), not the channel itself",
+        "technology.technologyservice": "the element is an infrastructure capability offered to consumers, such as a managed messaging or load-balancing service, rather than a point-to-point data channel"
+      },
       "$id": "urn:dr:spec:node:technology.path"
     },
     "systemsoftware": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SystemSoftware",
-      "description": "Software that provides or contributes to an environment for storing, executing, and using other software or data deployed within it, such as an operating system, container runtime, database engine, or middleware platform.",
+      "description": "A third-party or platform software product, such as an operating system, language runtime, database engine, message broker, cache server or container runtime, that is installed or run on a node or device to host, execute or store other software and data. It is configured and versioned by the team, but its code is not written by them. Use Node instead when the element is the computational host itself (VM, container instance, Kubernetes cluster) that runs software, rather than the software product running on it. Use Artifact instead when the element is the deployable file or package (a container image tag, installer, binary, config file) rather than the running platform software it delivers. Use TechnologyService instead when the element is the capability consumed through an interface (e.g. a managed database or queueing offered by a cloud provider) rather than the specific software product that provides it. Use Device instead when the element is physical hardware rather than software installed on it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -310,7 +375,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the software product: its name, version or edition, and its role in the deployment. Set it whenever the product, version or notable configuration choices (e.g. clustering mode, persistence settings) are not evident from the element name."
             },
             "softwareType": {
               "type": "string",
@@ -337,12 +403,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.3 System Software",
+      "x-dr-evidence": [
+        "A docker-compose service or Kubernetes container spec whose image is a vendor platform product, e.g. image: postgres:15, redis:7-alpine, rabbitmq:3-management, nginx:1.25",
+        "A runtime or OS pin such as a Dockerfile 'FROM node:20-alpine' or 'FROM ubuntu:22.04', an .nvmrc/.python-version file, or an 'engines' field in package.json",
+        "A connection URL, driver dependency or Helm chart dependency naming an engine, e.g. DATABASE_URL=postgres://..., spring.kafka.bootstrap-servers, or a bitnami/kafka chart in Chart.yaml"
+      ],
+      "x-dr-distinguish": {
+        "technology.node": "the element is the computational host itself (VM, container instance, Kubernetes cluster) that runs software, rather than the software product running on it",
+        "technology.artifact": "the element is the deployable file or package (a container image tag, installer, binary, config file) rather than the running platform software it delivers",
+        "technology.technologyservice": "the element is the capability consumed through an interface (e.g. a managed database or queueing offered by a cloud provider) rather than the specific software product that provides it",
+        "technology.device": "the element is physical hardware rather than software installed on it"
+      },
       "$id": "urn:dr:spec:node:technology.systemsoftware"
     },
     "technologycollaboration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyCollaboration",
-      "description": "An aggregate of two or more technology active structure elements that work together to perform collective technology behavior, such as a cluster of servers, a distributed cache, or a microservice mesh.",
+      "description": "An aggregate of two or more technology active structure elements (nodes, devices or system software instances) that are configured to cooperate as peers and jointly perform behavior none performs alone. Examples are a replicated database ensemble, a consensus cluster, a sharded cache cluster or a service mesh. It is identified by explicit peer membership or coordination configuration, not merely by co-location or shared hosting. Use Node instead when the thing is a single hosting resource, or a cluster managed and addressed as one computational unit (e.g. a Kubernetes cluster as a deployment target), rather than a grouping of individually modelled cooperating members. Use TechnologyInteraction instead when the element is the joint behavior itself (a failover protocol, leader election, distributed commit) rather than the group of elements that performs it. Use SystemSoftware instead when a single installed software product or instance is meant (e.g. one Redis or PostgreSQL server) with no modelled peer membership. Use CommunicationNetwork instead when the element only transports data between members and performs no collective processing itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -362,7 +440,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description naming the collaborating members, how they coordinate (replication, consensus, sharding, sidecar proxying) and the collective behavior they provide. Set it whenever membership or coordination is not evident from the element name."
             },
             "properties": {
               "type": "object",
@@ -376,12 +455,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.4 Technology Collaboration",
+      "x-dr-evidence": [
+        "A StatefulSet, Helm chart or docker-compose file declaring multiple replicas of the same server with peer discovery settings, such as Kafka/ZooKeeper ensembles, etcd initial-cluster, Redis cluster-enabled yes or Elasticsearch discovery.seed_hosts.",
+        "Infrastructure-as-code resources that define a multi-member cooperative group, such as aws_elasticache_replication_group, aws_rds_cluster, aws_msk_cluster or a Patroni/Galera cluster configuration listing member addresses.",
+        "Service mesh configuration grouping workloads into one mesh, such as Istio IstioOperator/MeshConfig, Linkerd injection annotations across namespaces, or Consul Connect service definitions."
+      ],
+      "x-dr-distinguish": {
+        "technology.node": "the thing is a single hosting resource, or a cluster managed and addressed as one computational unit (e.g. a Kubernetes cluster as a deployment target), rather than a grouping of individually modelled cooperating members.",
+        "technology.technologyinteraction": "the element is the joint behavior itself (a failover protocol, leader election, distributed commit) rather than the group of elements that performs it.",
+        "technology.systemsoftware": "a single installed software product or instance is meant (e.g. one Redis or PostgreSQL server) with no modelled peer membership.",
+        "technology.communicationnetwork": "the element only transports data between members and performs no collective processing itself."
+      },
       "$id": "urn:dr:spec:node:technology.technologycollaboration"
     },
     "technologyevent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyEvent",
-      "description": "A technology behavior element that denotes a state change in the technology layer that triggers or results from technology behavior, such as a system alert, infrastructure notification, scheduled job trigger, or deployment completion signal.",
+      "description": "A technology behavior element that denotes a discrete, instantaneous state change in infrastructure or platform software, such as an alert firing, a node or container failing, a scheduled trigger elapsing, or a deployment completing, that starts or results from technology functions, processes or interactions. It has no duration and performs no work itself. Use TechnologyProcess instead when the element is the multi-step job or pipeline that runs (backup job, deployment pipeline) rather than the trigger that starts it or the completion signal it emits. Use TechnologyFunction instead when the element is a continuous automated capability of a node (health checking, log rotation, load balancing) rather than a single occurrence detected or produced by it. Use TechnologyService instead when the element is the exposed monitoring, alerting or scheduling capability (Alertmanager, EventBridge, a cron service) that emits or delivers events, not the event itself. Use Artifact instead when the element is the file that declares the event condition, such as an alert-rule YAML, crontab or CloudWatch alarm template, rather than the state change it describes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -401,7 +492,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the state change: the condition that raises the event, its emitting source, and what it triggers. Set it whenever the event name alone does not make the trigger condition clear."
             },
             "eventType": {
               "type": "string",
@@ -427,12 +519,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.3.4 Technology Event",
+      "x-dr-evidence": [
+        "A named alerting rule or alarm definition, such as a Prometheus rule with alert:, expr: and for: fields, a CloudWatch/Azure Monitor alarm, or a Datadog monitor, that fires on a metric threshold or failure condition.",
+        "A schedule trigger that starts infrastructure work, such as a Kubernetes CronJob schedule: field, a crontab line, a CI on: schedule block, or an EventBridge/Cloud Scheduler rule.",
+        "A handler subscribed to infrastructure lifecycle notifications, such as a Kubernetes watch on Pod/Node events, the Docker events API, a CI on: deployment_status trigger, a SIGTERM/preStop hook, or a webhook receiving deployment-completed payloads."
+      ],
+      "x-dr-distinguish": {
+        "technology.technologyprocess": "the element is the multi-step job or pipeline that runs (backup job, deployment pipeline) rather than the trigger that starts it or the completion signal it emits",
+        "technology.technologyfunction": "the element is a continuous automated capability of a node (health checking, log rotation, load balancing) rather than a single occurrence detected or produced by it",
+        "technology.technologyservice": "the element is the exposed monitoring, alerting or scheduling capability (Alertmanager, EventBridge, a cron service) that emits or delivers events, not the event itself",
+        "technology.artifact": "the element is the file that declares the event condition, such as an alert-rule YAML, crontab or CloudWatch alarm template, rather than the state change it describes"
+      },
       "$id": "urn:dr:spec:node:technology.technologyevent"
     },
     "technologyfunction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyFunction",
-      "description": "A collection of technology behavior that can be performed by a node, representing an internal automated capability such as data replication, load balancing, or log rotation.",
+      "description": "An internal technology behavior element grouping automated infrastructure behavior that a single node or system software performs on an ongoing basis, defined by the capability it provides rather than by a sequence of steps or an externally exposed contract, such as data replication, load balancing, health checking, or log rotation. Use TechnologyProcess instead when the behavior is an ordered sequence of steps with a defined start and end result, such as a CI/CD pipeline, backup job run, or certificate renewal workflow. Use TechnologyService instead when the behavior is the externally visible capability offered to consumers through an interface (e.g. 'managed object storage'), rather than the internal mechanism that delivers it. Use TechnologyInteraction instead when the behavior can only be performed jointly by two or more collaborating nodes, such as a consensus round, distributed transaction, or cluster failover handshake. Use SystemSoftware instead when the element is the software product or runtime that performs the behavior (e.g. nginx, PostgreSQL), not the behavior itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -452,7 +556,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of what the function does, which node or system software performs it, and its triggering or operating conditions; set whenever the name alone does not make the capability's scope clear."
             },
             "properties": {
               "type": "object",
@@ -466,12 +571,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.3.1 Technology Function",
+      "x-dr-evidence": [
+        "Infrastructure configuration that enables a named built-in capability of a platform component, such as a PostgreSQL streaming-replication block, an nginx upstream load-balancing block, or a Redis persistence/eviction policy.",
+        "A sidecar, daemon, or DaemonSet that runs continuously to perform a housekeeping capability, such as a logrotate config, a Fluent Bit log-shipping agent, or a node-exporter metrics collector.",
+        "Kubernetes or cloud resource settings declaring automated platform behavior, such as liveness/readiness probes, a HorizontalPodAutoscaler, or an S3 bucket replication or lifecycle rule."
+      ],
+      "x-dr-distinguish": {
+        "technology.technologyprocess": "the behavior is an ordered sequence of steps with a defined start and end result, such as a CI/CD pipeline, backup job run, or certificate renewal workflow.",
+        "technology.technologyservice": "the behavior is the externally visible capability offered to consumers through an interface (e.g. 'managed object storage'), rather than the internal mechanism that delivers it.",
+        "technology.technologyinteraction": "the behavior can only be performed jointly by two or more collaborating nodes, such as a consensus round, distributed transaction, or cluster failover handshake.",
+        "technology.systemsoftware": "the element is the software product or runtime that performs the behavior (e.g. nginx, PostgreSQL), not the behavior itself."
+      },
       "$id": "urn:dr:spec:node:technology.technologyfunction"
     },
     "technologyinteraction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyInteraction",
-      "description": "A unit of collective technology behavior performed by two or more collaborating nodes, such as a distributed transaction, inter-service handshake, or cluster failover protocol.",
+      "description": "A technology behavior element that is performed jointly by two or more technology active structure elements (nodes, devices, or system software) acting as a collaboration, and that none of the participants can complete alone. Examples include a distributed commit, consensus-based leader election, a cluster failover handover, or a replication sync between peers. Use TechnologyFunction instead when the behavior is carried out by a single node or system software on its own, such as local log rotation or one load balancer distributing requests, with no coordination protocol between peers. Use TechnologyProcess instead when the element is an ordered sequence of steps toward a defined result, such as a deployment pipeline or backup job, whose steps need not be jointly performed by multiple collaborating participants. Use TechnologyCollaboration instead when you are modelling the group of cooperating nodes or software itself (the cluster, mesh, or replica set) rather than the joint behavior that group performs. Use TechnologyService instead when the element is the externally visible capability offered to consumers, such as a highly available database service, rather than the internal multi-party coordination that realizes it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -491,7 +608,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the joint behavior: the participating elements, the coordination protocol or algorithm used (e.g. Raft, 2PC, gossip), and the outcome. Set it whenever the participants or protocol cannot be inferred from the element name."
             },
             "properties": {
               "type": "object",
@@ -505,12 +623,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.3.3 Technology Interaction",
+      "x-dr-evidence": [
+        "Configuration or code for a consensus or coordination protocol among peers, such as Raft or etcd peer settings, ZooKeeper quorum configuration, Redis Sentinel monitor/failover settings, or Patroni leader-election config.",
+        "A two-phase or XA distributed transaction setup that coordinates prepare/commit across multiple resource managers, for example a JTA/Atomikos transaction manager enlisting both a database and a message broker.",
+        "Replication or cluster-membership protocol settings that require multiple instances to exchange state, such as PostgreSQL streaming replication primary_conninfo, Kafka consumer-group rebalance handlers, or Hazelcast/Akka cluster join and gossip configuration."
+      ],
+      "x-dr-distinguish": {
+        "technology.technologyfunction": "the behavior is carried out by a single node or system software on its own, such as local log rotation or one load balancer distributing requests, with no coordination protocol between peers.",
+        "technology.technologyprocess": "the element is an ordered sequence of steps toward a defined result, such as a deployment pipeline or backup job, whose steps need not be jointly performed by multiple collaborating participants.",
+        "technology.technologycollaboration": "you are modelling the group of cooperating nodes or software itself (the cluster, mesh, or replica set) rather than the joint behavior that group performs.",
+        "technology.technologyservice": "the element is the externally visible capability offered to consumers, such as a highly available database service, rather than the internal multi-party coordination that realizes it."
+      },
       "$id": "urn:dr:spec:node:technology.technologyinteraction"
     },
     "technologyinterface": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyInterface",
-      "description": "Point of access where technology services are made available to consuming components, per ArchiMate 3.2 TechnologyInterface. Represents the contractual boundary of a technology service — specifying the communication protocol and interaction semantics through which infrastructure capabilities are consumed. A TechnologyInterface anchors the technical coupling point between service provider and consumer within the technology layer.",
+      "description": "An access point on a node, device or system software through which a technology service can be consumed. It is identified by a concrete protocol endpoint, such as a listening port, socket, broker listener or endpoint URL, that other technology or application components connect to. Use TechnologyService instead when the element is the infrastructure capability itself (e.g. managed message queuing, object storage) rather than the specific protocol endpoint through which it is reached. Use Path instead when the element is the communication link or route between two or more nodes (e.g. a service-mesh route, a VPN tunnel between sites), not the endpoint at one end of it. Use SystemSoftware instead when the element is the running platform software (e.g. the PostgreSQL engine, the RabbitMQ broker) that exposes the endpoint, rather than the endpoint itself. Use CommunicationNetwork instead when the element is the network segment (LAN, VPC subnet, VPN) that carries traffic, rather than an addressable listener on a node attached to it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -530,7 +660,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the endpoint, including its address or port, authentication or TLS requirements, and which service it exposes. Set it whenever these facts are not captured by other attributes."
             },
             "protocol": {
               "type": "string",
@@ -559,12 +690,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.2.5 Technology Interface",
+      "x-dr-evidence": [
+        "A port or listener declaration exposing a protocol endpoint, such as Dockerfile EXPOSE, a containerPort or Kubernetes Service port entry, or an aws_lb_listener resource in Terraform",
+        "Platform listener configuration in a broker, database or server config file, e.g. RabbitMQ listeners.tcp, postgresql.conf port/listen_addresses, or an nginx 'listen 443 ssl' directive",
+        "An endpoint URL or connection string in environment or application config that consumers use to reach infrastructure, e.g. AMQP_URL=amqp://broker:5672 or REDIS_URL=redis://cache:6379"
+      ],
+      "x-dr-distinguish": {
+        "technology.technologyservice": "the element is the infrastructure capability itself (e.g. managed message queuing, object storage) rather than the specific protocol endpoint through which it is reached",
+        "technology.path": "the element is the communication link or route between two or more nodes (e.g. a service-mesh route, a VPN tunnel between sites), not the endpoint at one end of it",
+        "technology.systemsoftware": "the element is the running platform software (e.g. the PostgreSQL engine, the RabbitMQ broker) that exposes the endpoint, rather than the endpoint itself",
+        "technology.communicationnetwork": "the element is the network segment (LAN, VPC subnet, VPN) that carries traffic, rather than an addressable listener on a node attached to it"
+      },
       "$id": "urn:dr:spec:node:technology.technologyinterface"
     },
     "technologyprocess": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyProcess",
-      "description": "A sequence of technology behaviors that achieves a specific technology result, such as a deployment pipeline, backup job, certificate renewal workflow, or container orchestration sequence.",
+      "description": "A technology behavior element that is an ordered sequence of automated infrastructure steps with a defined start (trigger) and a defined end result, performed by a node or system software, such as a CI/CD deployment pipeline, scheduled backup job, certificate renewal workflow, or container rollout sequence. Use TechnologyFunction instead when the behavior is a continuously available capability grouped by what the node can do (e.g. load balancing, replication, log rotation) rather than a sequence of steps with a start, an order and a completion. Use TechnologyInteraction instead when the behavior can only be performed jointly by two or more collaborating nodes (e.g. a distributed commit or failover handshake) rather than run as a sequence by a single performer. Use TechnologyEvent instead when the thing modelled is the instantaneous trigger or outcome, such as a cron schedule firing or a deployment-completed signal, rather than the steps executed in response. Use TechnologyService instead when the thing modelled is the externally visible infrastructure capability offered to consumers rather than the internal sequence of steps that realizes it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -584,7 +727,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the process's purpose, its trigger, its main ordered steps and its end result; set it whenever the pipeline or job name alone does not convey what it achieves."
             },
             "properties": {
               "type": "object",
@@ -598,12 +742,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §10.3.2 Technology Process",
+      "x-dr-evidence": [
+        "A CI/CD pipeline definition such as .github/workflows/*.yml, .gitlab-ci.yml, Jenkinsfile or azure-pipelines.yml with ordered jobs/stages (build, test, deploy).",
+        "A scheduled infrastructure job such as a Kubernetes CronJob manifest, crontab entry or systemd timer that runs a backup, cleanup or certificate-renewal script.",
+        "An orchestration workflow such as an Ansible playbook, Argo Workflow/Argo Rollouts spec, Terraform apply runbook or Helm hook sequence that executes named infrastructure steps in order."
+      ],
+      "x-dr-distinguish": {
+        "technology.technologyfunction": "the behavior is a continuously available capability grouped by what the node can do (e.g. load balancing, replication, log rotation) rather than a sequence of steps with a start, an order and a completion.",
+        "technology.technologyinteraction": "the behavior can only be performed jointly by two or more collaborating nodes (e.g. a distributed commit or failover handshake) rather than run as a sequence by a single performer.",
+        "technology.technologyevent": "the thing modelled is the instantaneous trigger or outcome, such as a cron schedule firing or a deployment-completed signal, rather than the steps executed in response.",
+        "technology.technologyservice": "the thing modelled is the externally visible infrastructure capability offered to consumers rather than the internal sequence of steps that realizes it."
+      },
       "$id": "urn:dr:spec:node:technology.technologyprocess"
     },
     "technologyservice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyService",
-      "description": "An externally visible unit of technology functionality exposed to other technology elements, per ArchiMate 3.2 TechnologyService. Encapsulates a discrete infrastructure capability — such as compute, storage, messaging, caching, identity, or monitoring — that is made available through a defined interface. Unlike application services, a TechnologyService operates at the infrastructure tier: it is consumed by application components or other technology services, not directly by end users or business processes.",
+      "description": "An externally visible infrastructure capability, such as compute, storage, messaging, database, cache, identity or monitoring, that a node, system software or managed platform offers to application components or other technology elements through a technology interface. It is identified by the capability consumers rely on, not by the product, host or endpoint that delivers it. Use SystemSoftware instead when the element is the specific installed engine or product (e.g. a PostgreSQL 15 server, a Redis binary, a RabbitMQ broker) rather than the capability that consumers use. Use TechnologyInterface instead when the element is the access point itself, such as an endpoint URL, port or protocol binding through which the service is reached. Use TechnologyFunction instead when the behavior is internal to a node and not offered to consumers, such as replication, log rotation or internal load balancing. Use Node instead when the element is the host, VM, container or cluster that provides the computational resource, not the capability exposed from it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -623,7 +779,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the capability the service offers, its provider (self-hosted or managed vendor), and its consumers; set it whenever the name alone does not make the capability and provider clear."
             },
             "serviceType": {
               "type": "string",
@@ -650,6 +807,18 @@
           "required": ["serviceType"],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §10.3.5 Technology Service",
+      "x-dr-evidence": [
+        "an infrastructure-as-code resource for a managed backing service (e.g. aws_sqs_queue, aws_db_instance, google_pubsub_topic, azurerm_redis_cache) whose outputs are wired into application configuration",
+        "a docker-compose or Helm service entry for a backing service (postgres, redis, kafka, keycloak) whose connection string is injected into application containers via environment variables such as DATABASE_URL or REDIS_URL",
+        "a client SDK constructed against an infrastructure endpoint (S3 client, KMS client, OIDC issuer URL, OTLP exporter endpoint) and used by application code to store, publish, authenticate or emit telemetry"
+      ],
+      "x-dr-distinguish": {
+        "technology.systemsoftware": "the element is the specific installed engine or product (e.g. a PostgreSQL 15 server, a Redis binary, a RabbitMQ broker) rather than the capability that consumers use.",
+        "technology.technologyinterface": "the element is the access point itself, such as an endpoint URL, port or protocol binding through which the service is reached.",
+        "technology.technologyfunction": "the behavior is internal to a node and not offered to consumers, such as replication, log rotation or internal load balancing.",
+        "technology.node": "the element is the host, VM, container or cluster that provides the computational resource, not the capability exposed from it."
       },
       "$id": "urn:dr:spec:node:technology.technologyservice"
     }

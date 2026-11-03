@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Representation",
-  "description": "A passive structure element representing the perceptible form in which a BusinessObject is manifested (e.g., a printed report, a digital document, or an on-screen form). Multiple representations can carry the same BusinessObject.",
+  "description": "A passive structure element that is a concrete, perceptible form (document layout, file format, printed or on-screen rendering) in which the information of a BusinessObject or Contract is conveyed to people. It captures how the information looks or is encoded, not what the information means. Use BusinessObject instead when the element is the business information concept itself (e.g., Invoice, Order) independent of any rendering or file format. Use Contract instead when the element is the agreement with its obligations and terms, rather than the signed PDF or printed form carrying it. Use BusinessInterface instead when the element is an access point (portal, counter, call centre) through which a service is offered, rather than the form of information delivered through it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the representation, such as its audience, layout, channel (printed, emailed, on-screen), and which business object it carries. Set it whenever the name alone does not identify the rendering."
         },
         "format": {
           "type": "string",
@@ -32,5 +33,16 @@
       "required": ["format"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.4.3 Representation",
+  "x-dr-evidence": [
+    "a document or report template (e.g., Jasper/Thymeleaf/Handlebars/LaTeX template, .docx template) that renders a business entity such as an invoice or statement",
+    "a PDF/CSV/XML export generator, such as a class named InvoicePdfRenderer or StatementExporter, that produces a file with a fixed layout for end users",
+    "a printable or on-screen form definition (HTML form template, print stylesheet, email template) that presents a business document to customers or staff"
+  ],
+  "x-dr-distinguish": {
+    "business.businessobject": "the element is the business information concept itself (e.g., Invoice, Order) independent of any rendering or file format.",
+    "business.contract": "the element is the agreement with its obligations and terms, rather than the signed PDF or printed form carrying it.",
+    "business.businessinterface": "the element is an access point (portal, counter, call centre) through which a service is offered, rather than the form of information delivered through it."
   }
 }

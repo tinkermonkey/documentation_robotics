@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessInterface",
-  "description": "An active structure element representing a point of access at which a BusinessService is made available to the environment, used by BusinessActors or external parties.",
+  "description": "An active structure element representing a channel or point of access, such as a branch counter, call centre, customer portal or mailroom, through which a BusinessService is offered to and used by actors in the environment. It identifies where and how the service is reached, not the service itself or the person or role who staffs it. Use BusinessService instead when the element describes what value or behavior is offered to the consumer, independent of the channel through which it is reached. Use BusinessRole instead when the element is a set of responsibilities performed behind the access point, such as a call-centre agent, rather than the access point itself. Use Representation instead when the element is the perceptible form of information exchanged, such as an on-screen form or a printed letter, rather than the channel through which the service is accessed. Use BusinessActor instead when the element is the concrete organizational unit or person, such as a customer-service department, rather than the channel it operates.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the access channel, stating which BusinessServices it exposes, who uses it, and its medium (e.g. phone, web, in person); set it for every instance so the channel's scope is unambiguous."
         },
         "properties": {
           "type": "object",
@@ -30,5 +31,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.2.4 Business Interface",
+  "x-dr-evidence": [
+    "an enum or lookup table of customer contact channels (e.g. Channel { WEB, PHONE, BRANCH, EMAIL, PARTNER_PORTAL }) used to tag incoming requests or orders",
+    "channel-specific intake configuration, such as IVR or call-routing menus, a contact-centre queue definition, or a branch/portal entry module that routes customers to a named service",
+    "product or support documentation stating how customers reach a service (e.g. 'claims can be filed via the self-service portal, by phone, or at a branch')"
+  ],
+  "x-dr-distinguish": {
+    "business.businessservice": "the element describes what value or behavior is offered to the consumer, independent of the channel through which it is reached",
+    "business.businessrole": "the element is a set of responsibilities performed behind the access point, such as a call-centre agent, rather than the access point itself",
+    "business.representation": "the element is the perceptible form of information exchanged, such as an on-screen form or a printed letter, rather than the channel through which the service is accessed",
+    "business.businessactor": "the element is the concrete organizational unit or person, such as a customer-service department, rather than the channel it operates"
   }
 }

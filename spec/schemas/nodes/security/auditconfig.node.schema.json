@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AuditConfig",
-  "description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
+  "description": "A logging configuration that determines which security-relevant events on protected resources or operations are written to an audit trail, at what verbosity, and which request elements (payload, headers) are captured or sanitized before recording. It covers audit record generation and content only. How long records are kept and how they are disposed of belong to RetentionPolicy. Use RetentionPolicy instead when the code or config specifies how long audit or access records are kept, where they are archived, or how they are securely deleted, rather than what is captured. Use AccountabilityRequirement instead when the artifact states an obligation that a party must be able to prove an action occurred (non-repudiation, challengeability), independent of the logging mechanism. Use Evidence instead when the symbol is a produced artifact, such as a log entry, signature, hash or timestamp, rather than the configuration that causes such artifacts to be generated. Use PolicyAction instead when logging is a one-off enforcement response (type 'log' or 'alert') fired by a specific policy rule match, rather than a standing capture configuration for a resource or operation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether audit capture is active for the governed resources or operations; set false to model a defined but switched-off audit configuration (defaults to true when omitted)."
         },
         "level": {
           "type": "string",
@@ -29,13 +30,16 @@
           "description": "Verbosity of audit event capture, from no logging to full payload-level tracing, per NIST SP 800-53 AU-2 Event Logging."
         },
         "includePayload": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether request and response bodies are recorded in audit entries; set true only when forensic needs justify capturing body content, after applying sanitizeFields."
         },
         "includeHeaders": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether HTTP or message headers are recorded in audit entries; set true when headers such as client IP, user agent or correlation IDs are needed, with credentials redacted via sanitizeFields."
         },
         "sanitizeFields": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated list of field names or JSON paths (e.g. 'password,authorization,card.number') whose values are redacted or masked before an audit entry is written; use an empty string when nothing is sanitized."
         },
         "source": {
           "type": "object",
@@ -45,5 +49,17 @@
       "required": ["level", "sanitizeFields"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AU-2 Event Logging, AU-3 Content of Audit Records, AU-12 Audit Record Generation",
+  "x-dr-evidence": [
+    "Audit middleware, interceptor or filter registered on a router or service, configured with options such as level, includeBody/includeHeaders and a redact or mask field list.",
+    "Decorators or annotations such as @Audited, @Auditable or auditlog.register(Model) attached to handlers or entities, optionally with parameters controlling captured detail.",
+    "A configuration block named audit/auditLog (YAML, JSON, env vars) with keys like enabled, level, logRequestBody and sensitiveFields, distinct from general application logging settings."
+  ],
+  "x-dr-distinguish": {
+    "security.retentionpolicy": "the code or config specifies how long audit or access records are kept, where they are archived, or how they are securely deleted, rather than what is captured.",
+    "security.accountabilityrequirement": "the artifact states an obligation that a party must be able to prove an action occurred (non-repudiation, challengeability), independent of the logging mechanism.",
+    "security.evidence": "the symbol is a produced artifact, such as a log entry, signature, hash or timestamp, rather than the configuration that causes such artifacts to be generated.",
+    "security.policyaction": "logging is a one-off enforcement response (type 'log' or 'alert') fired by a specific policy rule match, rather than a standing capture configuration for a resource or operation."
   }
 }

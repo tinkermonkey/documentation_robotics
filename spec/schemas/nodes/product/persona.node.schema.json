@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Persona",
-  "description": "A user archetype representing a class of users with shared goals, behaviors, and pain points",
+  "description": "A named, fictional archetype of a class of the product's actual or intended users, characterised by shared goals, behaviours, proficiency and pain points, against which features and workflows are designed. It describes who the user is, not what they do in the product or what access they are granted. Use UserWorkflow instead when the artefact describes a goal-directed journey the user takes through the product rather than the characteristics of the user taking it. Use WorkflowStep instead when the artefact is a single action or experience a user has at one point in a journey, even if phrased as 'the admin does X'.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -38,5 +38,15 @@
       "required": ["category", "proficiency"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "Product Management Practice: Persona (Cooper, goal-directed design); no direct ArchiMate 3.2 equivalent, nearest are Stakeholder (§6.2.1) and Business Role (§8.2.2)",
+  "x-dr-evidence": [
+    "persona documents in the repository (e.g. docs/personas/*.md or a product brief) naming an archetype with goals, frustrations and skill level",
+    "user stories or acceptance criteria in issues or BDD feature files phrased 'As a <named user type>, I want ...' that recur across many stories",
+    "a user-segment or user-type discriminator (e.g. onboarding question 'I am a developer / designer', analytics segment definitions, feature-flag targeting rules) that tailors UI or content per user class rather than granting permissions"
+  ],
+  "x-dr-distinguish": {
+    "product.userworkflow": "the artefact describes a goal-directed journey the user takes through the product rather than the characteristics of the user taking it",
+    "product.workflowstep": "the artefact is a single action or experience a user has at one point in a journey, even if phrased as 'the admin does X'"
   }
 }

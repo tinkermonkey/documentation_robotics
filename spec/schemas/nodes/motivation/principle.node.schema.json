@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Principle",
-  "description": "Normative property of all systems in a given context, or a statement governing how an organization intends to fulfill its mission and guide decision-making.",
+  "description": "A normative statement, applying across all systems or decisions within a stated scope (enterprise, domain, or programme), that prescribes how design and implementation choices should generally be made, without targeting one specific system or being directly verifiable as met by it. Use Requirement instead when the statement names a specific system, component or solution and can be verified as satisfied or not for that system (e.g. 'the Orders API must use OAuth 2.0'). Use Constraint instead when the statement is an externally imposed or fixed restriction on the solution space for a particular realization (e.g. a mandated vendor, deadline or budget) rather than a self-adopted guideline. Use Goal instead when the statement expresses a desired end state or direction to reach (e.g. 'reduce time-to-market') rather than a rule for how decisions are made. Use Value instead when the element captures the worth or importance of something to stakeholders rather than a prescription governing choices.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text statement of the principle, ideally with its rationale and implications, written as a single prescriptive sentence followed by explanatory prose; set it for every principle."
         },
         "category": {
           "type": "string",
@@ -44,5 +45,17 @@
       "required": ["category"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.3.3 Principle",
+  "x-dr-evidence": [
+    "An architecture-principles document or ADR section listing broad prescriptive statements (e.g. 'API-first', 'Data is owned by a single service') each with rationale and implications.",
+    "An engineering handbook or CONTRIBUTING.md passage stating repository-wide conventions phrased as 'we always/never …' that are cited as justification in multiple ADRs or code reviews.",
+    "An architecture fitness test or lint rule set (e.g. ArchUnit, dependency-cruiser, eslint config) whose comments or names cite a named principle enforced across all modules rather than one feature."
+  ],
+  "x-dr-distinguish": {
+    "motivation.requirement": "the statement names a specific system, component or solution and can be verified as satisfied or not for that system (e.g. 'the Orders API must use OAuth 2.0').",
+    "motivation.constraint": "the statement is an externally imposed or fixed restriction on the solution space for a particular realization (e.g. a mandated vendor, deadline or budget) rather than a self-adopted guideline.",
+    "motivation.goal": "the statement expresses a desired end state or direction to reach (e.g. 'reduce time-to-market') rather than a rule for how decisions are made.",
+    "motivation.value": "the element captures the worth or importance of something to stakeholders rather than a prescription governing choices."
   }
 }

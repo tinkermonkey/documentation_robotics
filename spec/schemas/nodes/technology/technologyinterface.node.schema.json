@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyInterface",
-  "description": "Point of access where technology services are made available to consuming components, per ArchiMate 3.2 TechnologyInterface. Represents the contractual boundary of a technology service — specifying the communication protocol and interaction semantics through which infrastructure capabilities are consumed. A TechnologyInterface anchors the technical coupling point between service provider and consumer within the technology layer.",
+  "description": "An access point on a node, device or system software through which a technology service can be consumed. It is identified by a concrete protocol endpoint, such as a listening port, socket, broker listener or endpoint URL, that other technology or application components connect to. Use TechnologyService instead when the element is the infrastructure capability itself (e.g. managed message queuing, object storage) rather than the specific protocol endpoint through which it is reached. Use Path instead when the element is the communication link or route between two or more nodes (e.g. a service-mesh route, a VPN tunnel between sites), not the endpoint at one end of it. Use SystemSoftware instead when the element is the running platform software (e.g. the PostgreSQL engine, the RabbitMQ broker) that exposes the endpoint, rather than the endpoint itself. Use CommunicationNetwork instead when the element is the network segment (LAN, VPC subnet, VPN) that carries traffic, rather than an addressable listener on a node attached to it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the endpoint, including its address or port, authentication or TLS requirements, and which service it exposes. Set it whenever these facts are not captured by other attributes."
         },
         "protocol": {
           "type": "string",
@@ -49,5 +50,17 @@
       "required": ["protocol"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.2.5 Technology Interface",
+  "x-dr-evidence": [
+    "A port or listener declaration exposing a protocol endpoint, such as Dockerfile EXPOSE, a containerPort or Kubernetes Service port entry, or an aws_lb_listener resource in Terraform",
+    "Platform listener configuration in a broker, database or server config file, e.g. RabbitMQ listeners.tcp, postgresql.conf port/listen_addresses, or an nginx 'listen 443 ssl' directive",
+    "An endpoint URL or connection string in environment or application config that consumers use to reach infrastructure, e.g. AMQP_URL=amqp://broker:5672 or REDIS_URL=redis://cache:6379"
+  ],
+  "x-dr-distinguish": {
+    "technology.technologyservice": "the element is the infrastructure capability itself (e.g. managed message queuing, object storage) rather than the specific protocol endpoint through which it is reached",
+    "technology.path": "the element is the communication link or route between two or more nodes (e.g. a service-mesh route, a VPN tunnel between sites), not the endpoint at one end of it",
+    "technology.systemsoftware": "the element is the running platform software (e.g. the PostgreSQL engine, the RabbitMQ broker) that exposes the endpoint, rather than the endpoint itself",
+    "technology.communicationnetwork": "the element is the network segment (LAN, VPC subnet, VPN) that carries traffic, rather than an addressable listener on a node attached to it"
   }
 }

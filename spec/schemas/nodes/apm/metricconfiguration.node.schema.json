@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MetricConfiguration",
-  "description": "OTel MeterProvider-level (global) metrics SDK configuration, covering export intervals, cardinality limits, and exemplar filtering. Distinct from per-meter configuration in MeterConfig.",
+  "description": "A process-wide OpenTelemetry metrics SDK configuration, applied once at MeterProvider construction, that sets how all metric instruments are collected and exported: the periodic reader's export interval and timeout, per-instrument cardinality limits, and exemplar filtering and reservoir sizing. It configures the metrics pipeline itself, not any individual instrument or export destination. Use MetricInstrument instead when the symbol defines one named measurement (a Counter, Histogram, Gauge, etc. created via meter.createX) with its own unit and description rather than global collection behaviour. Use ExporterConfig instead when the code specifies where metrics are sent (OTLP or Prometheus endpoint, protocol, authentication, compression) rather than how often and how much is collected. Use TraceConfiguration instead when the setup configures a TracerProvider (sampler, propagators, span processors) rather than a MeterProvider and its metric readers. Use InstrumentationConfig instead when the code enables or disables auto/manual instrumentation libraries that emit metrics, rather than configuring the SDK pipeline that collects them.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "serviceName": {
-          "type": "string"
+          "type": "string",
+          "description": "Logical service name (matching the Resource service.name) identifying which service's MeterProvider this configuration belongs to; set it so the configuration can be correlated with the service's Resource."
         },
         "exportIntervalMillis": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Interval in milliseconds between successive collections and exports by the periodic metric reader (OTel default 60000); set it when the code or OTEL_METRIC_EXPORT_INTERVAL overrides the default."
         },
         "exportTimeoutMillis": {
           "type": "integer",
@@ -47,5 +49,17 @@
       "required": ["serviceName"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Metrics SDK Specification: MeterProvider configuration, PeriodicExportingMetricReader, Exemplar Filter and Cardinality Limits",
+  "x-dr-evidence": [
+    "Construction of an SDK MeterProvider (e.g. new MeterProvider({ readers: [...], views: [...] }), SdkMeterProvider.builder(), metrics.set_meter_provider(...)) in service bootstrap code",
+    "A PeriodicExportingMetricReader or equivalent instantiated with exportIntervalMillis/exportTimeoutMillis options, or env vars OTEL_METRIC_EXPORT_INTERVAL, OTEL_METRIC_EXPORT_TIMEOUT, OTEL_METRICS_EXEMPLAR_FILTER in deployment manifests",
+    "A meter_provider section in an OTel declarative configuration YAML file setting readers, cardinality_limits, or exemplar_filter"
+  ],
+  "x-dr-distinguish": {
+    "apm.metricinstrument": "the symbol defines one named measurement (a Counter, Histogram, Gauge, etc. created via meter.createX) with its own unit and description rather than global collection behaviour.",
+    "apm.exporterconfig": "the code specifies where metrics are sent (OTLP or Prometheus endpoint, protocol, authentication, compression) rather than how often and how much is collected.",
+    "apm.traceconfiguration": "the setup configures a TracerProvider (sampler, propagators, span processors) rather than a MeterProvider and its metric readers.",
+    "apm.instrumentationconfig": "the code enables or disables auto/manual instrumentation libraries that emit metrics, rather than configuring the SDK pipeline that collects them."
   }
 }

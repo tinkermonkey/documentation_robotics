@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityConstraints",
-  "description": "An aggregate container defining the procedural access control constraints for an application, grouping SeparationOfDuty, BindingOfDuty, and NeedToKnow rules. Applied within SecurityModel to enforce AC-5 and workflow integrity controls.",
+  "description": "An application-scoped container that groups the procedural, workflow-level access constraints (SeparationOfDuty, BindingOfDuty and NeedToKnow rules) applied within a SecurityModel. It holds no predicate or decision logic of its own; its content is the set of duty and purpose constraints it aggregates. Use SeparationOfDuty instead when modelling one specific rule that two tasks or roles must be held by different actors, rather than the collection of all such rules for the application. Use SecurityPolicy instead when the artifact is a prioritized set of evaluable rules with permit/deny effects targeting endpoints, data or roles, rather than a grouping of duty and need-to-know constraints. Use SecurityModel instead when the element is the root security specification for the application, composing authentication, roles, threats, classification and policies, not only the procedural constraints. Use NeedToKnow instead when modelling a single purpose-justification requirement for one resource rather than the grouping container.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,23 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version identifier of this constraint set (e.g. semantic version '1.2.0' or a dated revision), set when the grouped duty and need-to-know rules are versioned independently of the enclosing SecurityModel."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-5 (Separation of Duties), with AC-6 need-to-know restrictions",
+  "x-dr-evidence": [
+    "a dedicated configuration block or file (e.g. 'constraints:' or 'duty-rules.yaml') listing separation-of-duty pairs, binding-of-duty tasks and need-to-know resources together",
+    "a registry or module (e.g. WorkflowConstraintRegistry, DutyConstraintService) that loads and applies several SoD/BoD/purpose checks to workflow transitions such as request/approve",
+    "a documentation section titled e.g. 'Procedural Access Constraints' or 'Segregation of Duties Matrix' enumerating mutually exclusive roles and task-continuity rules for one application"
+  ],
+  "x-dr-distinguish": {
+    "security.separationofduty": "modelling one specific rule that two tasks or roles must be held by different actors, rather than the collection of all such rules for the application",
+    "security.securitypolicy": "the artifact is a prioritized set of evaluable rules with permit/deny effects targeting endpoints, data or roles, rather than a grouping of duty and need-to-know constraints",
+    "security.securitymodel": "the element is the root security specification for the application, composing authentication, roles, threats, classification and policies, not only the procedural constraints",
+    "security.needtoknow": "modelling a single purpose-justification requirement for one resource rather than the grouping container"
   }
 }

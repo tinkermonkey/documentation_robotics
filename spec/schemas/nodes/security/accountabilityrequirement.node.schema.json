@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AccountabilityRequirement",
-  "description": "Expresses who is obligated to provide evidence that a specific action occurred and under what conditions that evidence can be challenged. Distinct from AuditConfig, which defines what events are captured \u2014 this node defines the obligation to prove an action took place. Implements NIST SP 800-53 AU-10 non-repudiation.",
+  "description": "A security obligation stating that the performance of one named action on one named resource must be provably attributable to the actor who performed it. It records whether non-repudiation is mandatory, the purpose that justifies the obligation, and whether the resulting proof may be disputed. Use AuditConfig instead when the element specifies which events are logged, at what verbosity, and with which fields sanitized, rather than the obligation to prove that a particular action happened. Use Evidence instead when the element is the concrete proof artifact itself (a signature, hash, timestamp or audit-trail entry), not the requirement that such proof exist. Use NeedToKnow instead when the declared purpose is a precondition an actor must state before being granted access, rather than a justification attached to proving an action after it occurs. Use RetentionPolicy instead when the concern is how long the proof or logs are kept and how they are disposed of.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,19 +21,24 @@
       "type": "object",
       "properties": {
         "action": {
-          "type": "string"
+          "type": "string",
+          "description": "The operation whose occurrence must be provable, named as a verb or operation identifier (e.g. 'approve-payment', 'delete'), ideally matching a ResourceOperation's operation value."
         },
         "resource": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the secured resource or information entity on which the action is performed, matching a SecureResource resource name or InformationEntity name."
         },
         "nonRepudiation": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "True when the actor must be unable to deny having performed the action, requiring strong or cryptographic evidence such as a digital signature. False when attributable logging alone suffices."
         },
         "purposeDeclaration": {
-          "type": "string"
+          "type": "string",
+          "description": "A free-text statement of the business, legal or regulatory reason the action must be provable (e.g. 'SOX approval trail', 'GDPR consent record'). Set it from the governing requirement."
         },
         "challengeable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "True when the acting party or a third party may formally dispute the recorded proof through a defined process. False when the evidence is treated as final once recorded."
         }
       },
       "required": [
@@ -45,5 +50,17 @@
       ],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AU-10 Non-repudiation",
+  "x-dr-evidence": [
+    "A sensitive operation, such as payment approval, contract acceptance or record deletion, that signs a payload with the acting user's key or a server HSM and persists the signer ID, signature and timestamp alongside the record.",
+    "An append-only or write-once audit table, ledger, or hash-chained log that the code requires for a specific action-resource pair, often with a mandatory 'reason' or 'justification' field captured from the user.",
+    "Compliance or control-mapping documentation (SSP, control matrix, ADR) that cites AU-10 or 'non-repudiation' for a named action, or a dispute/chargeback workflow that retrieves the stored proof of that action."
+  ],
+  "x-dr-distinguish": {
+    "security.auditconfig": "the element specifies which events are logged, at what verbosity, and with which fields sanitized, rather than the obligation to prove that a particular action happened.",
+    "security.evidence": "the element is the concrete proof artifact itself (a signature, hash, timestamp or audit-trail entry), not the requirement that such proof exist.",
+    "security.needtoknow": "the declared purpose is a precondition an actor must state before being granted access, rather than a justification attached to proving an action after it occurs.",
+    "security.retentionpolicy": "the concern is how long the proof or logs are kept and how they are disposed of."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ValidationRule",
-  "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
+  "description": "A single input-validation constraint (regex pattern, numeric range, length limit, allowed-value list or custom check) that the value of a protected field or request attribute must satisfy, with a violation message and severity. It accepts or rejects the value itself and does not decide who may access it. Use AccessCondition instead when the predicate tests a request-context attribute (user, role, time, IP) to decide whether the request is authorized, rather than checking that a supplied value is well-formed. Use FieldAccessControl instead when the concern is how a field's value is masked, redacted or hidden from unauthorized principals, rather than which values are acceptable. Use PolicyRule instead when the unit produces a permit/deny decision with optional obligations, rather than a pass/fail check with a violation message. Use PasswordPolicy instead when the constraints are the complete credential complexity, rotation and lockout regime, rather than one individual check that such a policy might use.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -46,5 +46,17 @@
       "required": ["type", "value", "message"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 SI-10 Information Input Validation",
+  "x-dr-evidence": [
+    "Bean Validation, Pydantic, Joi or Zod constraints such as @Pattern, @Size, constr(regex=...) or .max() declared on security-sensitive DTO fields like email, account number, token or redirect URL.",
+    "Input-sanitization middleware or allowlist regexes that reject a request with HTTP 400/422 and a specific error message when a parameter fails the check.",
+    "A validator function or schema entry named for the check (e.g. validateIban, SAFE_FILENAME_RE) referenced from an access-control or field-protection layer, with configurable severity or logging on failure."
+  ],
+  "x-dr-distinguish": {
+    "security.accesscondition": "the predicate tests a request-context attribute (user, role, time, IP) to decide whether the request is authorized, rather than checking that a supplied value is well-formed.",
+    "security.fieldaccesscontrol": "the concern is how a field's value is masked, redacted or hidden from unauthorized principals, rather than which values are acceptable.",
+    "security.policyrule": "the unit produces a permit/deny decision with optional obligations, rather than a pass/fail check with a violation message.",
+    "security.passwordpolicy": "the constraints are the complete credential complexity, rotation and lockout regime, rather than one individual check that such a policy might use."
   }
 }

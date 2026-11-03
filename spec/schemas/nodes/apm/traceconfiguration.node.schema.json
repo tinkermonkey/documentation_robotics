@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TraceConfiguration",
-  "description": "OTel TracerProvider configuration covering sampler selection, context propagation formats, and span processor pipeline. Service identity attributes (serviceName, serviceVersion, deploymentEnvironment) are OTel Resource semantic conventions and belong on the Resource node.",
+  "description": "A tracing-SDK configuration, one per TracerProvider (usually one per service process), that fixes the sampler and its ratio, the context propagation formats injected into and extracted from carriers, and the span processors and exporters the provider forwards finished spans to. Use Resource instead when the symbol only sets service identity attributes such as service.name, service.version or deployment.environment that are merged into all signals. Use ExporterConfig instead when the symbol defines a single export destination (endpoint, protocol, auth, compression) rather than the provider-level sampling and propagation setup that uses it. Use InstrumentationConfig instead when the symbol selects or enables instrumentation libraries or manual tracer calls rather than configuring the provider those instrumentations emit into. Use MetricConfiguration instead when the symbol configures a MeterProvider (export interval, cardinality, exemplars) rather than a TracerProvider.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -53,13 +53,25 @@
         },
         "samplerParam": {
           "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "minimum": 0,
+          "maximum": 1,
           "description": "Sampling rate for ratio-based samplers (trace_id_ratio, parent_based_trace_id_ratio). Value between 0.0 (sample none) and 1.0 (sample all). Ignored for non-ratio sampler types."
         }
       },
       "required": [],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Specification – Tracing SDK: TracerProvider configuration (Sampler, SpanProcessor, SpanExporter) and Context/Propagators API (TextMapPropagator)",
+  "x-dr-evidence": [
+    "Construction of a NodeTracerProvider, SdkTracerProvider or TracerProvider with a sampler argument such as ParentBased(TraceIdRatioBased(0.1)) or ALWAYS_ON",
+    "Calls such as addSpanProcessor(new BatchSpanProcessor(exporter)) or setGlobalTextMapPropagator(new CompositePropagator([W3CTraceContextPropagator, W3CBaggagePropagator]))",
+    "Environment variables OTEL_TRACES_SAMPLER, OTEL_TRACES_SAMPLER_ARG or OTEL_PROPAGATORS in deployment manifests, or a tracer_provider section in an OTel Collector/SDK declarative config YAML"
+  ],
+  "x-dr-distinguish": {
+    "apm.resource": "the symbol only sets service identity attributes such as service.name, service.version or deployment.environment that are merged into all signals.",
+    "apm.exporterconfig": "the symbol defines a single export destination (endpoint, protocol, auth, compression) rather than the provider-level sampling and propagation setup that uses it.",
+    "apm.instrumentationconfig": "the symbol selects or enables instrumentation libraries or manual tracer calls rather than configuring the provider those instrumentations emit into.",
+    "apm.metricconfiguration": "the symbol configures a MeterProvider (export interval, cardinality, exemplars) rather than a TracerProvider."
   }
 }

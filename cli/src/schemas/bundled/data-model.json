@@ -26,7 +26,7 @@
     "arrayschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ArraySchema",
-      "description": "Defines validation rules for JSON array instances, constraining item schemas, cardinality bounds (minItems/maxItems), uniqueness requirements, and contains-subschema matching.",
+      "description": "A JSON Schema subschema with type 'array' that constrains an ordered list of values: the schema each element must satisfy, how many elements are allowed, whether they must be distinct, and whether at least one element must match a given subschema. Use SchemaProperty instead when you are modelling the named field that holds the list (its name, title, description, readOnly) rather than the constraints on the list value itself. Use ObjectSchema instead when the collection is keyed by name rather than ordered by position, such as a Map<String, T>, dict or record type, which becomes an object with additionalProperties or patternProperties. Use SchemaDefinition instead when the list type is declared once under 'definitions' with a title and reused through $ref. Model the array constraints inside it as an arrayschema. Use SchemaComposition instead when the constraint is a boolean combination (allOf/anyOf/oneOf/not) of subschemas, for example a union of element types, rather than array keywords directly.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -46,34 +46,52 @@
           "type": "object",
           "properties": {
             "type": {
-              "const": "array"
+              "const": "array",
+              "description": "The JSON Schema type keyword, which for this element must be the literal string 'array'. Always set it so the schema validates only array instances."
             },
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "The subschema, inline or as a $ref to a definition, that every array element must validate against. Set it whenever the element type is known, for example the T in List<T>. This schema stores the subschema or $ref as a single string."
             },
             "minItems": {
-              "type": "integer"
+              "type": "integer",
+              "description": "A non-negative integer giving the inclusive minimum number of elements. Set it when the list must not be empty (1) or needs a floor, for example from @Size(min) or @NotEmpty."
             },
             "maxItems": {
-              "type": "integer"
+              "type": "integer",
+              "description": "A non-negative integer giving the inclusive maximum number of elements. Set it when code or configuration enforces an upper bound on list length, for example @Size(max) or a page-size limit."
             },
             "uniqueItems": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "When true, all elements must be pairwise distinct by JSON equality. Set it when the source type has set semantics or the code rejects duplicates."
             },
             "contains": {
-              "type": "string"
+              "type": "string",
+              "description": "A subschema (inline or $ref) that at least one element must validate against. Set it only when the code requires the list to include a matching element, such as at least one primary address. This schema stores the subschema or $ref as a single string."
             }
           },
           "required": [],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 Validation (draft-handrews-json-schema-validation-01) §6.4 Validation Keywords for Arrays (items, additionalItems, maxItems, minItems, uniqueItems, contains)",
+      "x-dr-evidence": [
+        "A DTO, entity or record field typed as a collection, such as List<T>, T[], Array<T>, Set<T>, Sequence[T] or repeated in protobuf, where Set or frozenset types imply uniqueItems.",
+        "Cardinality validators on a collection field, such as Bean Validation @Size(min, max) or @NotEmpty on a List, Pydantic conlist or Field(min_length=..., max_length=...), or Zod z.array(...).min().max().nonempty().",
+        "A JSON Schema or OpenAPI fragment containing \"type\": \"array\" together with an \"items\" keyword, often with minItems, maxItems or uniqueItems."
+      ],
+      "x-dr-distinguish": {
+        "data-model.schemaproperty": "you are modelling the named field that holds the list (its name, title, description, readOnly) rather than the constraints on the list value itself.",
+        "data-model.objectschema": "the collection is keyed by name rather than ordered by position, such as a Map<String, T>, dict or record type, which becomes an object with additionalProperties or patternProperties.",
+        "data-model.schemadefinition": "the list type is declared once under 'definitions' with a title and reused through $ref. Model the array constraints inside it as an arrayschema.",
+        "data-model.schemacomposition": "the constraint is a boolean combination (allOf/anyOf/oneOf/not) of subschemas, for example a union of element types, rather than array keywords directly."
+      },
       "$id": "urn:dr:spec:node:data-model.arrayschema"
     },
     "jsonschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "JSONSchema",
-      "description": "The root JSON Schema document, identified by $schema (dialect URI) and $id (base URI for $ref resolution), containing type constraints, annotations, and reusable definitions.",
+      "description": "A top-level schema document that is the unit of identity and $ref resolution in the data model: it declares a dialect via $schema and a base URI via $id, and contains the root type constraint plus any named subschemas under definitions. Only the outermost schema of a file or registered document qualifies; nested subschemas do not. Use SchemaDefinition instead when the schema is a named, reusable subschema nested under a document's definitions keyword rather than the document itself. Use ObjectSchema instead when you are modelling the object-level constraints (properties, required, additionalProperties) of a schema rather than the document that carries $schema/$id. Use Reference instead when the element is only a $ref pointer to another schema, not a self-contained document with its own $id. Use SchemaComposition instead when the element combines subschemas with allOf/anyOf/oneOf/not rather than being an identified root document.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -93,13 +111,16 @@
           "type": "object",
           "properties": {
             "$schema": {
-              "type": "string"
+              "type": "string",
+              "description": "URI of the JSON Schema dialect/meta-schema the document conforms to (e.g. 'http://json-schema.org/draft-07/schema#'); set on every root document so validators apply Draft 7 semantics."
             },
             "$id": {
-              "type": "string"
+              "type": "string",
+              "description": "Absolute URI that identifies the document and serves as the base URI for resolving relative $ref values (e.g. 'https://example.com/schemas/order.json'); set to a stable, unique URI per document."
             },
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Short human-readable name for the schema document, typically the domain entity it describes (e.g. 'Order'); set when the document needs a display label in tooling or generated docs."
             },
             "type": {
               "type": "string",
@@ -123,12 +144,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 (draft-handrews-json-schema-01) §4.3.3 Root Schema and Subschemas, §7 The $schema Keyword, §8.2 The $id Keyword",
+      "x-dr-evidence": [
+        "a *.schema.json or *.json file whose top-level object contains \"$schema\": \"http://json-schema.org/draft-07/schema#\" and an \"$id\" URI",
+        "a schema registered with a validator by URI, e.g. ajv.addSchema(schema, 'https://example.com/order.json') or compile() called on a loaded file",
+        "a build step or decorator that emits a whole schema document per model, e.g. pydantic Model.model_json_schema() or zod-to-json-schema output written to a schemas/ directory"
+      ],
+      "x-dr-distinguish": {
+        "data-model.schemadefinition": "the schema is a named, reusable subschema nested under a document's definitions keyword rather than the document itself",
+        "data-model.objectschema": "you are modelling the object-level constraints (properties, required, additionalProperties) of a schema rather than the document that carries $schema/$id",
+        "data-model.reference": "the element is only a $ref pointer to another schema, not a self-contained document with its own $id",
+        "data-model.schemacomposition": "the element combines subschemas with allOf/anyOf/oneOf/not rather than being an identified root document"
+      },
       "$id": "urn:dr:spec:node:data-model.jsonschema"
     },
     "numericschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NumericSchema",
-      "description": "Defines validation rules for JSON numeric instances (number or integer types), including inclusive/exclusive bounds and divisibility constraints. Note: in JSON Schema Draft 7, exclusiveMinimum and exclusiveMaximum are numeric boundary values (e.g., exclusiveMinimum: 0), not the boolean flags used in Draft 4.",
+      "description": "A schema constraining JSON number or integer values through validation keywords: inclusive or exclusive lower and upper bounds, or a divisibility step (multipleOf). It describes the value space of a numeric datum, independent of the field that carries it or how the value is stored. Use SchemaProperty instead when the element is a named field of an object (e.g. Order.quantity) carrying its own title, default, readOnly or description; the numeric constraints it applies may be modelled as a NumericSchema that the property references. Use SchemaDefinition instead when the numeric type is a named, reusable definition under 'definitions' (e.g. a 'Percentage' type referenced via $ref), especially one restricted to an enum of fixed values rather than a range. Use StringSchema instead when the value is serialized as a string even though it looks numeric, e.g. a decimal-as-string money amount, a zero-padded code or a phone number constrained by pattern or length. Use SchemaComposition instead when the numeric constraint is formed by combining subschemas with allOf/anyOf/oneOf/not, e.g. 'positive OR null', rather than by a single set of bounds.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -153,31 +186,48 @@
               "description": "JSON Schema Draft 7 numeric type: 'number' for any numeric value, 'integer' for whole numbers only"
             },
             "minimum": {
-              "type": "number"
+              "type": "number",
+              "description": "Inclusive lower bound: valid instances must be greater than or equal to this number, in the same units as the value. Set it when the domain forbids smaller values, e.g. 0 for quantities."
             },
             "maximum": {
-              "type": "number"
+              "type": "number",
+              "description": "Inclusive upper bound: valid instances must be less than or equal to this number, in the same units as the value. Set it when the domain caps the value, e.g. 100 for a percentage."
             },
             "exclusiveMinimum": {
-              "type": "number"
+              "type": "number",
+              "description": "Exclusive lower bound given as a number (Draft 7 semantics): valid instances must be strictly greater than this value. Set it instead of minimum when the boundary itself is invalid, e.g. 0 for a strictly positive price."
             },
             "exclusiveMaximum": {
-              "type": "number"
+              "type": "number",
+              "description": "Exclusive upper bound given as a number (Draft 7 semantics): valid instances must be strictly less than this value. Set it instead of maximum when the boundary itself is invalid, e.g. 1 for a probability strictly below one."
             },
             "multipleOf": {
-              "type": "number"
+              "type": "number",
+              "description": "Strictly positive number that every valid instance must divide into evenly, expressing a step or precision such as 0.01 for cents or 5 for five-minute intervals. Set it only when the domain imposes such a granularity."
             }
           },
           "required": ["type"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 Validation §6.2 Validation Keywords for Numeric Instances (multipleOf, maximum, exclusiveMaximum, minimum, exclusiveMinimum), with type 'number'/'integer' (§6.1.1)",
+      "x-dr-evidence": [
+        "a JSON Schema or OpenAPI fragment with \"type\": \"integer\" or \"number\" plus minimum, maximum, exclusiveMinimum or multipleOf keywords",
+        "a numeric field annotated with range validators, e.g. Java @Min/@Max/@DecimalMin/@Positive, Pydantic Field(ge=0, le=100) or conint(gt=0), or Zod z.number().int().min(1)",
+        "a declared numeric value type or constrained alias with range checks in its constructor or validator, e.g. a Percentage or Quantity class that rejects values outside 0..100 or non-integers"
+      ],
+      "x-dr-distinguish": {
+        "data-model.schemaproperty": "the element is a named field of an object (e.g. Order.quantity) carrying its own title, default, readOnly or description; the numeric constraints it applies may be modelled as a NumericSchema that the property references.",
+        "data-model.schemadefinition": "the numeric type is a named, reusable definition under 'definitions' (e.g. a 'Percentage' type referenced via $ref), especially one restricted to an enum of fixed values rather than a range.",
+        "data-model.stringschema": "the value is serialized as a string even though it looks numeric, e.g. a decimal-as-string money amount, a zero-padded code or a phone number constrained by pattern or length.",
+        "data-model.schemacomposition": "the numeric constraint is formed by combining subschemas with allOf/anyOf/oneOf/not, e.g. 'positive OR null', rather than by a single set of bounds."
+      },
       "$id": "urn:dr:spec:node:data-model.numericschema"
     },
     "objectschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ObjectSchema",
-      "description": "Defines validation rules for JSON object instances, specifying named properties, required fields, and constraints on additional or dynamically named properties.",
+      "description": "A schema node of type 'object' that constrains JSON object instances by declaring a set of named, typed properties, which of those properties must be present, and rules for undeclared or dynamically named keys. In code it corresponds to a structured domain record (entity class, ORM model, DTO, record or interface with fields), not to an individual field or to a primitive type alias. Use SchemaProperty instead when the symbol is a single field, column or attribute inside a structure rather than the structure that owns the fields. Use JSONSchema instead when the element is the root schema document or file, identified by $schema and $id and holding definitions, rather than one object shape described within it. Use SchemaDefinition instead when the named reusable type is a primitive alias or enumeration (e.g. a TypeScript enum, a branded string type, a Python Enum) with no named fields of its own. Use SchemaComposition instead when the type is defined only by combining other schemas (union, intersection, discriminated oneOf, negation) rather than by declaring its own properties; plain class inheritance stays an objectschema with an extends relationship.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -197,7 +247,8 @@
           "type": "object",
           "properties": {
             "type": {
-              "type": "string"
+              "type": "string",
+              "description": "The JSON Schema type keyword, which is always the string 'object' for this element; set it on every instance."
             },
             "properties": {
               "type": "object",
@@ -215,28 +266,44 @@
               "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "description": "Array of property names (strings) that must be present in a valid instance; populate it from fields that are non-optional in code, such as TypeScript fields without '?', Pydantic fields without defaults, or NOT NULL columns."
             },
             "additionalProperties": {
-              "type": "string"
+              "type": "string",
+              "description": "Either a boolean or a subschema (inline or $ref) governing keys not listed in properties or patternProperties; set false for closed models (e.g. Pydantic extra='forbid', TypeScript exact types) and a value schema for map-like types such as Record<string, T>. This schema stores the value as a single string."
             },
             "minProperties": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative integer giving the minimum number of keys a valid instance must contain; set it only when code or a validator explicitly enforces a lower bound on key count."
             },
             "maxProperties": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative integer giving the maximum number of keys a valid instance may contain; set it only when code or a validator explicitly enforces an upper bound on key count."
             }
           },
           "required": ["type"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 Validation (draft-handrews-json-schema-validation-01) §6.5 Validation Keywords for Objects",
+      "x-dr-evidence": [
+        "A class annotated @Entity/@Table, a Django models.Model subclass, or a SQLAlchemy declarative class whose attributes declare domain fields",
+        "A TypeScript interface or type literal, Pydantic BaseModel, Python @dataclass, Java record, or Go struct with named typed fields used as a DTO or request/response payload",
+        "A JSON Schema or OpenAPI components.schemas entry with \"type\": \"object\" and a \"properties\" map, or a z.object()/Joi.object()/yup.object() validator declaration"
+      ],
+      "x-dr-distinguish": {
+        "data-model.schemaproperty": "the symbol is a single field, column or attribute inside a structure rather than the structure that owns the fields",
+        "data-model.jsonschema": "the element is the root schema document or file, identified by $schema and $id and holding definitions, rather than one object shape described within it",
+        "data-model.schemadefinition": "the named reusable type is a primitive alias or enumeration (e.g. a TypeScript enum, a branded string type, a Python Enum) with no named fields of its own",
+        "data-model.schemacomposition": "the type is defined only by combining other schemas (union, intersection, discriminated oneOf, negation) rather than by declaring its own properties; plain class inheritance stays an objectschema with an extends relationship"
+      },
       "$id": "urn:dr:spec:node:data-model.objectschema"
     },
     "reference": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Reference",
-      "description": "A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment, enabling schema reuse without duplication. In JSON Schema Draft 7, all sibling keywords alongside $ref are ignored — use allOf to combine a $ref with additional constraints.",
+      "description": "A schema node whose only effective content is a $ref keyword holding a URI or JSON Pointer fragment (e.g. '#/definitions/Address') that delegates validation of an instance to another schema, adding no constraints of its own. A usage site that points at a type declared elsewhere, not the declaration of that type. Use SchemaDefinition instead when the element is the named, reusable type being pointed at (the target under 'definitions'), rather than the pointer to it. Use SchemaProperty instead when the element is a named property of an object schema that also carries its own type, description, default or other constraints, even if it uses $ref to obtain its type. Use SchemaComposition instead when the $ref must be combined with further constraints or alternatives, which in Draft 7 requires wrapping it in allOf/anyOf/oneOf. Use JSONSchema instead when the element is the whole root schema document with $schema and $id, not a pointer into or toward one.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -263,12 +330,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 (draft-handrews-json-schema-01) §8.3 Schema References With \"$ref\"",
+      "x-dr-evidence": [
+        "A literal \"$ref\": \"#/definitions/...\" or \"$ref\": \"other.schema.json#/...\" entry in a JSON/YAML schema or an OpenAPI components file",
+        "A field in a DTO, Pydantic model or TypeScript interface typed by another separately declared model class (e.g. 'billing: Address'), which schema generators emit as a $ref",
+        "Schema-generator configuration or decorators that hoist nested types into shared definitions, such as Pydantic's ref_template, zod-to-json-schema $refStrategy, or @ApiProperty({ type: () => Address })"
+      ],
+      "x-dr-distinguish": {
+        "data-model.schemadefinition": "the element is the named, reusable type being pointed at (the target under 'definitions'), rather than the pointer to it",
+        "data-model.schemaproperty": "the element is a named property of an object schema that also carries its own type, description, default or other constraints, even if it uses $ref to obtain its type",
+        "data-model.schemacomposition": "the $ref must be combined with further constraints or alternatives, which in Draft 7 requires wrapping it in allOf/anyOf/oneOf",
+        "data-model.jsonschema": "the element is the whole root schema document with $schema and $id, not a pointer into or toward one"
+      },
       "$id": "urn:dr:spec:node:data-model.reference"
     },
     "schemacomposition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SchemaComposition",
-      "description": "Combines multiple schemas using boolean logic. allOf requires all subschemas to validate; anyOf requires at least one; oneOf requires exactly one; not inverts the result of the subschema.",
+      "description": "A schema node whose validation outcome is computed by applying boolean logic (allOf, anyOf, oneOf, not) to the outcomes of one or more subschemas, rather than by constraining the instance's type, properties, items, length or bounds directly. In code it corresponds to union, intersection, discriminated-variant or negation types built from other data types. Use Reference instead when the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition. Use ObjectSchema instead when the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf). Use SchemaDefinition instead when the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition that aggregates a composition. Use StringSchema instead when a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -316,12 +395,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 (draft-handrews-json-schema-validation-01) §6.7 Keywords for Applying Subschemas With Boolean Logic (allOf, anyOf, oneOf, not)",
+      "x-dr-evidence": [
+        "A TypeScript union or intersection type alias (type Payment = Card | BankTransfer; type Admin = User & Permissions), or a Python Union[...]/Annotated discriminated union field in a Pydantic model",
+        "Serialization polymorphism annotations such as Jackson @JsonTypeInfo/@JsonSubTypes, a Pydantic Field(discriminator=...), or OpenAPI/JSON Schema files containing allOf, anyOf, oneOf or not keys",
+        "Validator-library combinators that join other schemas: zod z.union/z.discriminatedUnion/z.intersection/.and(), Joi alternatives().try(), or io-ts t.union/t.intersection"
+      ],
+      "x-dr-distinguish": {
+        "data-model.reference": "the node is a single $ref pointer to another schema with no boolean combination; a lone $ref wrapped in a one-element allOf only to attach sibling constraints is still a composition.",
+        "data-model.objectschema": "the structure comes from declared properties, required and additionalProperties on one object, not from merging or choosing among separate subschemas (e.g. a class extending a base is modelled as one object unless the base is a distinct schema combined via allOf).",
+        "data-model.schemadefinition": "the subject is the named, reusable entry under definitions itself; a definition whose body is an anyOf/oneOf is a schemadefinition that aggregates a composition.",
+        "data-model.stringschema": "a set of allowed string literals is expressed with enum or const on one string schema rather than as oneOf over separate subschemas."
+      },
       "$id": "urn:dr:spec:node:data-model.schemacomposition"
     },
     "schemadefinition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SchemaDefinition",
-      "description": "A reusable JSON Schema definition declared under the 'definitions' keyword and referenced via '$ref: #/definitions/{name}'. Enables DRY schema design and consistent type definitions across entities.",
+      "description": "A named, reusable subschema declared under a JSON Schema document's 'definitions' keyword and addressable as '$ref: #/definitions/{name}'. It describes one domain data type, such as an entity, value object, DTO or enumeration, that other schemas or properties reuse by name rather than declaring inline. Use ObjectSchema instead when you are modelling the structural constraints of an object (its properties, required list, additionalProperties) rather than the named, reusable type entry that carries them. Use SchemaProperty instead when the schema is a single field declared inline within a parent schema's properties and is not reused by name elsewhere. Use JSONSchema instead when the element is the root schema document with its own $schema and $id, not an entry within its definitions. Use Reference instead when the element is only the $ref pointer that points at a definition, not the definition itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -341,7 +432,8 @@
           "type": "object",
           "properties": {
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable name of the definition, normally matching its key under 'definitions' or the source class or type name (e.g. 'CustomerAddress'). Always set it, because it is the label other elements use to identify the reusable type."
             },
             "type": {
               "type": "string",
@@ -383,12 +475,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 (draft-handrews-json-schema-validation-01) §9 Schema Re-Use With \"definitions\"",
+      "x-dr-evidence": [
+        "an entry under \"definitions\" (or \"$defs\", or OpenAPI \"components.schemas\") in a .schema.json or spec file that is targeted by one or more \"$ref\": \"#/definitions/...\" pointers",
+        "an exported entity, DTO or record class, a TypeScript interface or type alias, or a Pydantic/zod model that other types import and use as a field type",
+        "an exported enum type (e.g. a Java enum, TypeScript enum or Python Enum subclass) whose values represent a fixed domain vocabulary used by several models"
+      ],
+      "x-dr-distinguish": {
+        "data-model.objectschema": "you are modelling the structural constraints of an object (its properties, required list, additionalProperties) rather than the named, reusable type entry that carries them",
+        "data-model.schemaproperty": "the schema is a single field declared inline within a parent schema's properties and is not reused by name elsewhere",
+        "data-model.jsonschema": "the element is the root schema document with its own $schema and $id, not an entry within its definitions",
+        "data-model.reference": "the element is only the $ref pointer that points at a definition, not the definition itself"
+      },
       "$id": "urn:dr:spec:node:data-model.schemadefinition"
     },
     "schemaproperty": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SchemaProperty",
-      "description": "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.",
+      "description": "A single named field of an object schema, such as one attribute of a domain entity, DTO or record type, together with the subschema that governs its value: type, value restrictions (enum, const, format, default) and annotations (title, description, readOnly, writeOnly, examples). It corresponds to one entry under an ObjectSchema's 'properties' keyword and has no meaning apart from its owning object. Use ObjectSchema instead when the element is the whole entity, class or record that owns several fields, rather than one field of it. Use SchemaDefinition instead when the schema is a named, reusable type declared under 'definitions' (for example a shared enum or value type referenced by several fields) rather than a field belonging to one owning object. Use StringSchema instead when you are modelling a reusable bundle of string constraints (minLength, maxLength, pattern) that a property points to, rather than the field itself. Use NumericSchema instead when you are modelling a reusable bundle of numeric bounds or a multipleOf rule that a property points to, rather than the field itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -421,28 +525,36 @@
               "description": "JSON Schema Draft 7 primitive type"
             },
             "title": {
-              "type": "string"
+              "type": "string",
+              "description": "A short human-readable label for the property, used for example as a form label or table header; set it when the field's code name is not suitable for display."
             },
             "format": {
-              "type": "string"
+              "type": "string",
+              "description": "A JSON Schema Draft 7 semantic format hint for string values, such as date-time, email or uuid; set it when the field's value follows a recognised format, for example a UUID-typed id or a timestamp column."
             },
             "default": {
-              "type": "string"
+              "type": "string",
+              "description": "The value assumed when an instance omits the property, written as a JSON literal; set it when the code, ORM column or DTO declares a default."
             },
             "enum": {
-              "type": "string"
+              "type": "string",
+              "description": "The fixed set of allowed values, written as a JSON array serialized into this single string; set it when the field is restricted to an enumeration, such as a language enum type, a union of literals or a CHECK-constrained column."
             },
             "const": {
-              "type": "string"
+              "type": "string",
+              "description": "The single value the property must always hold, written as a JSON literal; set it for discriminator or type-tag fields that have a fixed value within this object."
             },
             "readOnly": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Set to true when the value is assigned by the owning system and must not be supplied by clients, such as generated ids, audit timestamps or computed fields."
             },
             "writeOnly": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Set to true when the value may be submitted but is never returned in representations, such as passwords, secrets or one-time tokens."
             },
             "examples": {
-              "type": "string"
+              "type": "string",
+              "description": "Sample valid values for the property, written as a JSON array serialized into this single string; set it to document typical content for consumers and test generation."
             },
             "description": {
               "type": "string",
@@ -457,12 +569,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "JSON Schema Draft 7 Validation, §6.5.4 'properties' (a member subschema), with §6.1.2 enum, §6.1.3 const, §7 format and §10 annotation keywords",
+      "x-dr-evidence": [
+        "An attribute declared on an ORM entity class, such as a JPA @Column field, a SQLAlchemy Column(...) or a Django models.CharField.",
+        "A typed member of a DTO, Pydantic/dataclass model, TypeScript interface or protobuf message, often carrying a validator, default value or Field(...) metadata.",
+        "A key nested under 'properties' in a JSON Schema file or an OpenAPI components/schemas entry, with its own 'type', 'format' or 'enum'."
+      ],
+      "x-dr-distinguish": {
+        "data-model.objectschema": "the element is the whole entity, class or record that owns several fields, rather than one field of it.",
+        "data-model.schemadefinition": "the schema is a named, reusable type declared under 'definitions' (for example a shared enum or value type referenced by several fields) rather than a field belonging to one owning object.",
+        "data-model.stringschema": "you are modelling a reusable bundle of string constraints (minLength, maxLength, pattern) that a property points to, rather than the field itself.",
+        "data-model.numericschema": "you are modelling a reusable bundle of numeric bounds or a multipleOf rule that a property points to, rather than the field itself."
+      },
       "$id": "urn:dr:spec:node:data-model.schemaproperty"
     },
     "stringschema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StringSchema",
-      "description": "Defines validation rules for JSON string instances, including length bounds (minLength/maxLength), regular expression patterns, and semantic format hints (e.g., date-time, email, uri). The canonical node type for string type constraints in the data model.",
+      "description": "A JSON Schema subschema whose type is 'string' and which constrains string instances through at least one string-specific keyword: minLength, maxLength, pattern or format. A bare type: 'string' with no such keyword is not enough. Use SchemaProperty instead when the element is the named member of an object (its name, documentation, default, readOnly/writeOnly), rather than the string constraint set that the property references or embeds. Use SchemaDefinition instead when the string type is declared as a named, reusable entry under 'definitions' and referenced via $ref, especially an enumerated string type defined mainly by its enum values. Use Reference instead when the code only points to another schema via $ref and declares no length, pattern or format constraints of its own. Use SchemaComposition instead when string constraints are combined with other subschemas through allOf/anyOf/oneOf/not, and the combination itself is the element being modelled.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -482,16 +606,20 @@
           "type": "object",
           "properties": {
             "type": {
-              "const": "string"
+              "const": "string",
+              "description": "The JSON Schema type keyword. Always set it to the literal 'string', the value that identifies this element as a string schema."
             },
             "minLength": {
-              "type": "integer"
+              "type": "integer",
+              "description": "The minimum permitted number of characters (Unicode code points) in the string, as a non-negative integer; set it when empty or too-short values must be rejected."
             },
             "maxLength": {
-              "type": "integer"
+              "type": "integer",
+              "description": "The maximum permitted number of characters (Unicode code points) in the string, as a non-negative integer no smaller than minLength; set it when the domain or a downstream field imposes a length limit."
             },
             "pattern": {
-              "type": "string"
+              "type": "string",
+              "description": "An ECMA-262 regular expression that the string must match, unanchored unless ^ and $ are used; set it when values follow a fixed syntax such as codes or identifiers."
             },
             "format": {
               "type": "string",
@@ -521,6 +649,18 @@
           "required": [],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "JSON Schema Validation Draft 7 §6.3 Validation Keywords for Strings (maxLength, minLength, pattern) and §7 Semantic Validation with 'format'",
+      "x-dr-evidence": [
+        "A JSON/YAML schema fragment of the form {\"type\": \"string\", \"maxLength\": 255, \"pattern\": \"^[A-Z]{3}$\"} or one carrying a \"format\" keyword, embedded in a schema file or OpenAPI components",
+        "A string field declared with validation constraints, such as Pydantic constr(min_length=…, regex=…) or Field(max_length=…), Zod z.string().min().max().email(), or Joi.string().pattern()",
+        "A Java/Kotlin String field annotated with Bean Validation constraints such as @Size(min=…, max=…), @Pattern(regexp=…), or @Email in an entity or DTO class"
+      ],
+      "x-dr-distinguish": {
+        "data-model.schemaproperty": "the element is the named member of an object (its name, documentation, default, readOnly/writeOnly), rather than the string constraint set that the property references or embeds",
+        "data-model.schemadefinition": "the string type is declared as a named, reusable entry under 'definitions' and referenced via $ref, especially an enumerated string type defined mainly by its enum values",
+        "data-model.reference": "the code only points to another schema via $ref and declares no length, pattern or format constraints of its own",
+        "data-model.schemacomposition": "string constraints are combined with other subschemas through allOf/anyOf/oneOf/not, and the combination itself is the element being modelled"
       },
       "$id": "urn:dr:spec:node:data-model.stringschema"
     }

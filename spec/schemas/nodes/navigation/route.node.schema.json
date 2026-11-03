@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Route",
-  "description": "A named, addressable destination in the application's navigation graph, representing a URL path pattern and the view or component it resolves to. Routes are the atomic unit of the navigation layer — each route maps a URL pattern to a specific UX artifact and carries an access classification (public, protected, redirect, alias, or lazy-loaded) that governs how the router handles incoming requests. Routes may be composed into NavigationFlows to model multi-step user journeys.",
+  "description": "A client-side router entry that binds a URL path pattern, with any route parameters, to the view or component the single-page-application router renders, lazily loads, or forwards to when the browser location matches it. It is one entry in a front-end route table, not a server-side HTTP endpoint. Use NavigationTransition instead when the element is a movement from one route to another, such as a Link, router.push call or redirect between two paths, rather than the destination path itself. Use FlowStep instead when the element is an ordered position in a multi-step wizard or checkout that refers to a route, rather than the route definition itself. Use RouteMeta instead when the element is the meta or data object attached to a route entry, holding layout, keepAlive, transition, breadcrumb or role hints, rather than the path-to-component mapping. Use NavigationGuard instead when the element is a beforeEnter, canActivate or loader function that decides whether a route may be activated, rather than the route entry it protects.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable page title for the route, usually taken from route meta or document.title, used for headings, tab titles and default breadcrumb text. Set it when the route renders a user-visible page."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text prose explaining what the route displays and why a user reaches it. Set it when the path and title alone do not convey the route's purpose."
         },
         "type": {
           "type": "string",
@@ -39,5 +41,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: Route definition (route-table entry mapping a path pattern to a view component)",
+  "x-dr-evidence": [
+    "An object in a client-side router's routes array, such as Vue Router createRouter({routes}), Angular Routes or React Router createBrowserRouter, that has a path property together with component/element, loadComponent/lazy, redirect/redirectTo, or alias.",
+    "A file in a file-system routing convention whose location defines a URL path, such as Next.js app/**/page.tsx, SvelteKit +page.svelte, Nuxt pages/*.vue or Remix routes/*.tsx, including dynamic segments like [id] or $id.",
+    "A named path constant or route-name enum, such as ROUTES.USER_DETAIL = '/users/:id', that is passed to router.push, navigate(), <Link to> or <router-link :to> elsewhere in the front-end code."
+  ],
+  "x-dr-distinguish": {
+    "navigation.navigationtransition": "the element is a movement from one route to another, such as a Link, router.push call or redirect between two paths, rather than the destination path itself.",
+    "navigation.flowstep": "the element is an ordered position in a multi-step wizard or checkout that refers to a route, rather than the route definition itself.",
+    "navigation.routemeta": "the element is the meta or data object attached to a route entry, holding layout, keepAlive, transition, breadcrumb or role hints, rather than the path-to-component mapping.",
+    "navigation.navigationguard": "the element is a beforeEnter, canActivate or loader function that decides whether a route may be activated, rather than the route entry it protects."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Device",
-  "description": "A physical IT resource upon which system software and artifacts may be stored or deployed for execution, such as a server, workstation, mobile device, or IoT sensor.",
+  "description": "A physical, tangible piece of hardware with its own processing or storage capability (such as a server chassis, workstation, router, storage array, phone, or embedded board) onto which system software and artifacts are installed or deployed. Virtual or logical compute resources and the software running on the hardware are excluded. Use Node instead when the resource is virtual or logical (a VM, container, Kubernetes cluster, or cloud instance whose hardware is not identified), or when hardware and its system software are modelled together as one hosting unit. Use SystemSoftware instead when the element is the operating system, firmware runtime, DBMS, or other platform software installed on the hardware rather than the hardware itself. Use CommunicationNetwork instead when the element is the LAN, WAN, VPN, or wireless segment that connects devices, rather than an individual router, switch, or access point. Use TechnologyCollaboration instead when the element is an aggregate of several devices or nodes acting together, such as a rack of servers forming a cluster.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the physical device: its make and model, location or role, and any hardware constraints relevant to deployment. Set it whenever the identifier alone does not make clear which hardware is meant."
         },
         "deviceType": {
           "type": "string",
@@ -47,5 +48,17 @@
       "required": ["deviceType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.2.2 Device",
+  "x-dr-evidence": [
+    "Hardware inventory or provisioning records (Ansible inventory host_vars, MAAS/Tinkerbell/Ironic hardware entries, CMDB exports) listing a serial number, MAC address, rack location, or hardware model for a named machine.",
+    "IoT device registry declarations such as Terraform aws_iot_thing or azurerm_iothub device resources, Azure IoT device twins, or device provisioning certificates bound to a physical unit.",
+    "Firmware or OS build configuration that targets a specific physical board or handset, e.g. platformio.ini 'board = esp32dev', a Yocto MACHINE setting, a device tree file, or an MDM enrollment profile for mobile devices."
+  ],
+  "x-dr-distinguish": {
+    "technology.node": "the resource is virtual or logical (a VM, container, Kubernetes cluster, or cloud instance whose hardware is not identified), or when hardware and its system software are modelled together as one hosting unit.",
+    "technology.systemsoftware": "the element is the operating system, firmware runtime, DBMS, or other platform software installed on the hardware rather than the hardware itself.",
+    "technology.communicationnetwork": "the element is the LAN, WAN, VPN, or wireless segment that connects devices, rather than an individual router, switch, or access point.",
+    "technology.technologycollaboration": "the element is an aggregate of several devices or nodes acting together, such as a rack of servers forming a cluster."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityModel",
-  "description": "The root aggregate for an application's security posture, composing authentication, authorization (roles, permissions, resources), threat model, data classification, accountability requirements, and policies into a unified security specification. Scoped to a single application or bounded context.",
+  "description": "A root container element that groups every security element (actors, authentication configuration, roles, permissions, secure resources, policies, constraints, threats, data classification and accountability requirements) defined for exactly one application or bounded context. There is one instance per application; it names that application and its access control paradigm. Use SecurityConstraints instead when the container groups only procedural constraints (SeparationOfDuty, BindingOfDuty, NeedToKnow) and not the whole security posture of the application. Use SecurityPolicy instead when the element is a single prioritized set of evaluation rules targeting particular resources or operations, not the umbrella specification for the application. Use AuthenticationConfig instead when the code or config only sets up identity verification (provider, MFA, session timeout) and does not also cover authorization, threats or policies.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version identifier of this security specification, as a semantic version or date string such as '2.1.0' or '2024-06'. Increment it when the composed roles, policies, constraints or threat model change, so that audits can reference a specific posture."
         },
         "application": {
           "type": "string",
@@ -36,5 +37,16 @@
       "required": ["version", "application"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 PL-2 (System Security and Privacy Plans)",
+  "x-dr-evidence": [
+    "A top-level security configuration entry point for one application (e.g. a Spring class annotated @EnableWebSecurity, a NestJS SecurityModule, or a root security.yaml/policy bundle) that wires together the authentication provider, role/permission definitions and access policies.",
+    "A central registry module that exports the application's role, permission and resource-action maps together with the authorization strategy in use (e.g. a Casbin model file declaring RBAC/ABAC, or an OPA bundle manifest scoped to one service).",
+    "A per-application security architecture or threat-model document (system security plan, STRIDE worksheet, security.md) that lists actors, protected resources, threats, data classifications and controls under a single version number."
+  ],
+  "x-dr-distinguish": {
+    "security.securityconstraints": "the container groups only procedural constraints (SeparationOfDuty, BindingOfDuty, NeedToKnow) and not the whole security posture of the application.",
+    "security.securitypolicy": "the element is a single prioritized set of evaluation rules targeting particular resources or operations, not the umbrella specification for the application.",
+    "security.authenticationconfig": "the code or config only sets up identity verification (provider, MFA, session timeout) and does not also cover authorization, threats or policies."
   }
 }

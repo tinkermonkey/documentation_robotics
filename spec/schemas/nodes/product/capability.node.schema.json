@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Capability",
-  "description": "An ability the product possesses, independent of how it's implemented",
+  "description": "An implementation-independent ability the product has or is intended to have, stated as what the product can do (e.g. 'Payment processing', 'Full-text search') rather than as a deliverable unit or a user journey, and realized by one or more features, application components or technology services. Use Feature instead when the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing'). Use UserWorkflow instead when the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order. Use WorkflowStep instead when the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on. Use Milestone instead when the element is a dated delivery target that groups capabilities or features rather than an ability itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -43,5 +43,17 @@
       "required": ["status"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §7.3.1 Capability (Strategy Layer)",
+  "x-dr-evidence": [
+    "a product capability map, roadmap or README section headed 'Capabilities' listing abilities such as 'Search', 'Billing', 'Notifications' that are realized by several features",
+    "a top-level domain module, bounded context or service named for a business ability (e.g. billing/, search/, identity/) whose submodules implement several distinct user-facing features",
+    "a declared capability set in a manifest or handshake (e.g. a 'capabilities' object in a plugin manifest or protocol initialization response) enumerating abilities the system offers independent of specific UI entry points"
+  ],
+  "x-dr-distinguish": {
+    "product.feature": "the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing')",
+    "product.userworkflow": "the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order",
+    "product.workflowstep": "the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on",
+    "product.milestone": "the element is a dated delivery target that groups capabilities or features rather than an ability itself"
   }
 }

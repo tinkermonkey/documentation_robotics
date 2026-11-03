@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogProcessor",
-  "description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
+  "description": "A log-record pipeline stage registered on an OTel LoggerProvider (or in a Collector logs pipeline) that receives each emitted LogRecord and either forwards it to an exporter, synchronously or in buffered batches, or filters, transforms, enriches or redacts it before passing it on. It models one processor in the chain, not the provider-level logging configuration. Use LogConfiguration instead when the element is the LoggerProvider-level setup (service name, minimum severity, the overall processor/exporter wiring) rather than one stage in the processor chain. Use ExporterConfig instead when the element specifies where and how logs are sent (endpoint, protocol, authentication, compression) rather than how records are handled before export. Use LogRecord instead when the element is an individual log event or the structure of emitted log data rather than the component that handles those records. Use TraceConfiguration instead when the pipeline component processes spans (a SpanProcessor) rather than log records.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,14 +26,28 @@
           "description": "OTel log record processor type (simple: synchronous, batch: asynchronous buffered)"
         },
         "order": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Ascending integer position of this processor in its LoggerProvider or pipeline chain, where lower values run first; set it when more than one processor is registered so that invocation order is explicit."
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean indicating whether the processor is active in the pipeline (default true); set it to false when the processor is defined in configuration but deliberately not registered or is disabled by a feature flag."
         }
       },
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Logs SDK Specification: LogRecordProcessor (SimpleLogRecordProcessor, BatchLogRecordProcessor)",
+  "x-dr-evidence": [
+    "a class implementing the OTel LogRecordProcessor interface (onEmit/emit, forceFlush, shutdown), for example a redaction or enrichment processor",
+    "instantiation of BatchLogRecordProcessor or SimpleLogRecordProcessor passed to LoggerProvider.addLogRecordProcessor / SdkLoggerProvider.builder().addLogRecordProcessor, or OTEL_BLRP_* environment variables",
+    "an entry under processors: (e.g. batch, attributes, filter, transform, redaction) referenced in an OpenTelemetry Collector service.pipelines.logs.processors list"
+  ],
+  "x-dr-distinguish": {
+    "apm.logconfiguration": "the element is the LoggerProvider-level setup (service name, minimum severity, the overall processor/exporter wiring) rather than one stage in the processor chain",
+    "apm.exporterconfig": "the element specifies where and how logs are sent (endpoint, protocol, authentication, compression) rather than how records are handled before export",
+    "apm.logrecord": "the element is an individual log event or the structure of emitted log data rather than the component that handles those records",
+    "apm.traceconfiguration": "the pipeline component processes spans (a SpanProcessor) rather than log records"
   }
 }

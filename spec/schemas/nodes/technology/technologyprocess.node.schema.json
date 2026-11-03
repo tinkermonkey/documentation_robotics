@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyProcess",
-  "description": "A sequence of technology behaviors that achieves a specific technology result, such as a deployment pipeline, backup job, certificate renewal workflow, or container orchestration sequence.",
+  "description": "A technology behavior element that is an ordered sequence of automated infrastructure steps with a defined start (trigger) and a defined end result, performed by a node or system software, such as a CI/CD deployment pipeline, scheduled backup job, certificate renewal workflow, or container rollout sequence. Use TechnologyFunction instead when the behavior is a continuously available capability grouped by what the node can do (e.g. load balancing, replication, log rotation) rather than a sequence of steps with a start, an order and a completion. Use TechnologyInteraction instead when the behavior can only be performed jointly by two or more collaborating nodes (e.g. a distributed commit or failover handshake) rather than run as a sequence by a single performer. Use TechnologyEvent instead when the thing modelled is the instantaneous trigger or outcome, such as a cron schedule firing or a deployment-completed signal, rather than the steps executed in response. Use TechnologyService instead when the thing modelled is the externally visible infrastructure capability offered to consumers rather than the internal sequence of steps that realizes it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the process's purpose, its trigger, its main ordered steps and its end result; set it whenever the pipeline or job name alone does not convey what it achieves."
         },
         "properties": {
           "type": "object",
@@ -34,5 +35,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.3.2 Technology Process",
+  "x-dr-evidence": [
+    "A CI/CD pipeline definition such as .github/workflows/*.yml, .gitlab-ci.yml, Jenkinsfile or azure-pipelines.yml with ordered jobs/stages (build, test, deploy).",
+    "A scheduled infrastructure job such as a Kubernetes CronJob manifest, crontab entry or systemd timer that runs a backup, cleanup or certificate-renewal script.",
+    "An orchestration workflow such as an Ansible playbook, Argo Workflow/Argo Rollouts spec, Terraform apply runbook or Helm hook sequence that executes named infrastructure steps in order."
+  ],
+  "x-dr-distinguish": {
+    "technology.technologyfunction": "the behavior is a continuously available capability grouped by what the node can do (e.g. load balancing, replication, log rotation) rather than a sequence of steps with a start, an order and a completion.",
+    "technology.technologyinteraction": "the behavior can only be performed jointly by two or more collaborating nodes (e.g. a distributed commit or failover handshake) rather than run as a sequence by a single performer.",
+    "technology.technologyevent": "the thing modelled is the instantaneous trigger or outcome, such as a cron schedule firing or a deployment-completed signal, rather than the steps executed in response.",
+    "technology.technologyservice": "the thing modelled is the externally visible infrastructure capability offered to consumers rather than the internal sequence of steps that realizes it."
   }
 }

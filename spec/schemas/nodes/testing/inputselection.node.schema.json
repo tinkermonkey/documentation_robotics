@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InputSelection",
-  "description": "A concrete input value assignment for a TestCaseSketch, binding an abstract partition representative value (selectedValue) to a specific concrete test datum (concreteValue), per test case input specification in IEEE 829-2008.",
+  "description": "A single input binding inside one TestCaseSketch that assigns, for one partitioned input field, the chosen equivalence class (a PartitionValue) and the exact datum the test will submit for it. It is owned by exactly one test case, so it records the data that one test actually uses rather than a coverage obligation. Use InputPartitionSelection instead when the element states which partition values a CoverageRequirement obliges tests to exercise (cover/exclude lists), without fixing a concrete datum for any particular test case. Use PartitionValue instead when the element defines an equivalence class itself (label, constraint, category, representative value) independent of any test case that uses it. Use TestCaseSketch instead when the element is the whole test case design (status, implementation format, source) that groups several input bindings. Use TargetInputField instead when the element only associates an input field of the target with its InputSpacePartition, without choosing a value for a specific test.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,13 +21,16 @@
       "type": "object",
       "properties": {
         "partitionRef": {
-          "type": "string"
+          "type": "string",
+          "description": "ID of the testing.inputspacepartition whose input field this binding supplies a value for; set it on every selection so the concrete value can be traced to its input dimension."
         },
         "selectedValue": {
-          "type": "string"
+          "type": "string",
+          "description": "Label or ID of the testing.partitionvalue (equivalence class) chosen from that partition for this test case, e.g. 'boundary-max' or 'null-empty'."
         },
         "concreteValue": {
-          "type": "string"
+          "type": "string",
+          "description": "The exact datum the test submits for the field, serialized as a string (literal, JSON fragment, or fixture key), e.g. '255', '\"\"', or 'fixtures/user_admin.json'."
         },
         "valueSource": {
           "type": "string",
@@ -43,5 +46,17 @@
       ],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 11 Level Test Case: inputs",
+  "x-dr-evidence": [
+    "A row in a parametrized test table (e.g. pytest.mark.parametrize, JUnit @CsvSource, Jest test.each) that supplies a specific literal for one argument, often named or commented after its class, such as 'age=-1  # invalid: negative'",
+    "A test-data file (CSV/JSON/YAML) with one column per input field and one row per test case, consumed by a data-driven runner",
+    "A fixture or factory call inside a single test that builds a specific value for a request field, e.g. build_user(email='a@b') or a Faker/hypothesis strategy pinned to a boundary such as max length 255"
+  ],
+  "x-dr-distinguish": {
+    "testing.inputpartitionselection": "the element states which partition values a CoverageRequirement obliges tests to exercise (cover/exclude lists), without fixing a concrete datum for any particular test case",
+    "testing.partitionvalue": "the element defines an equivalence class itself (label, constraint, category, representative value) independent of any test case that uses it",
+    "testing.testcasesketch": "the element is the whole test case design (status, implementation format, source) that groups several input bindings",
+    "testing.targetinputfield": "the element only associates an input field of the target with its InputSpacePartition, without choosing a value for a specific test"
   }
 }

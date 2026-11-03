@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Driver",
-  "description": "External or internal condition that motivates an organization to change its goals, strategy, or architecture.",
+  "description": "A motivation element naming an external or internal condition or force (e.g. a regulation coming into effect, market pressure, rising operating cost, technical debt) that prompts the organization to set or change goals, requirements or architecture. It names the condition itself, not an evaluation of it and not the response to it. Use Assessment instead when the element records the result of analysing a condition (a SWOT finding, risk rating, gap or feasibility conclusion) rather than naming the condition itself. Use Goal instead when the statement expresses a desired end state or direction the organization intends to pursue in response to the condition. Use Constraint instead when the element is a fixed restriction on design or implementation choices (e.g. 'must run on-prem') rather than a force that motivates change. Use Stakeholder instead when the element is the person, team or organization holding the concern, not the concern or condition itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the motivating condition: what it is, where it originates (internal or external), and any source evidence such as a regulation citation, incident or metric. Set it whenever the name alone does not make the condition unambiguous."
         },
         "category": {
           "type": "string",
@@ -41,5 +42,17 @@
       "required": ["category"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.2.2 Driver",
+  "x-dr-evidence": [
+    "An ADR or design doc 'Context' / 'Motivation' / 'Background' section naming an external or internal condition, such as 'GDPR enforcement deadline' or 'p95 latency complaints from customers', as the reason for the change.",
+    "Issue tracker epics or labels (e.g. 'compliance', 'tech-debt', 'cost-reduction') whose description cites a regulation, market event or operational problem that triggers a body of work.",
+    "Code comments or README notes that justify a module's existence by citing a condition, e.g. '// Required due to PCI-DSS 4.0 rollout' or 'Introduced because vendor X API is deprecated in 2025'."
+  ],
+  "x-dr-distinguish": {
+    "motivation.assessment": "the element records the result of analysing a condition (a SWOT finding, risk rating, gap or feasibility conclusion) rather than naming the condition itself.",
+    "motivation.goal": "the statement expresses a desired end state or direction the organization intends to pursue in response to the condition.",
+    "motivation.constraint": "the element is a fixed restriction on design or implementation choices (e.g. 'must run on-prem') rather than a force that motivates change.",
+    "motivation.stakeholder": "the element is the person, team or organization holding the concern, not the concern or condition itself."
   }
 }

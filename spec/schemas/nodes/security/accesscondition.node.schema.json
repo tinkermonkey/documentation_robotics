@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AccessCondition",
-  "description": "Defines a single boolean predicate evaluated against a request context attribute (field), comparing the runtime value using a specified operator. Composed inside a PolicyRule condition chain to form compound access control expressions.",
+  "description": "A single comparison predicate that tests one named request-context attribute (subject claim, resource property, environment value) against a literal or referenced value using one operator, and yields a denial message when false. It carries no effect of its own; it is evaluated as one term within a PolicyRule, ResourceOperation or InformationRight authorization check. Use Condition instead when the logic is a reusable, free-form or compound expression (time windows, combined attribute logic) rather than one field-operator-value test. Use PolicyRule instead when the unit carries a permit/deny effect or obligations, not just a boolean test. Use ValidationRule instead when the check enforces format, range or integrity of field data rather than deciding whether a principal may access something. Use InformationRight instead when the element grants named operations on an information entity to a specific actor, even if it embeds a constraint.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "field": {
-          "type": "string"
+          "type": "string",
+          "description": "Dot-path name of the request-context attribute being tested (e.g. 'subject.role', 'resource.ownerId', 'env.ipAddress'), as it is resolved at evaluation time."
         },
         "operator": {
           "type": "string",
@@ -38,17 +39,32 @@
           "description": "Comparison operator applied to the field value, per XACML 3.0 match function semantics."
         },
         "value": {
-          "type": "string"
+          "type": "string",
+          "description": "Comparison operand as a string: a literal, a comma-separated list for 'in', a regex for 'matches', or a context reference such as '${subject.id}'. Leave empty only for operator 'exists'."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable denial reason returned or logged when the predicate evaluates to false, e.g. 'Caller must belong to the resource tenant'."
         },
         "source": {
-          "type": "string"
+          "type": "string",
+          "description": "Where the field value is read from in the request context, such as 'token', 'header', 'path', 'query', 'body', 'session' or 'environment'. Set it so evaluators know which input to resolve."
         }
       },
       "required": ["field", "operator", "value", "message", "source"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-3 (Access Enforcement); XACML 3.0 Match element / NIST SP 800-162 ABAC attribute predicate",
+  "x-dr-evidence": [
+    "A guard clause in a handler or middleware that compares one request attribute to a value and throws or returns 403 with a message, e.g. if (req.user.tenantId !== resource.tenantId) throw new ForbiddenError('Tenant mismatch')",
+    "A declarative policy or config entry holding a field/operator/value triple, e.g. { attribute: 'token.scope', op: 'contains', value: 'orders:write' } in a Casbin, OPA input or custom rules file",
+    "A route or method annotation that asserts a single claim or attribute, e.g. @PreAuthorize(\"hasAuthority('SCOPE_read')\") or requireClaim('email_verified', true)"
+  ],
+  "x-dr-distinguish": {
+    "security.condition": "the logic is a reusable, free-form or compound expression (time windows, combined attribute logic) rather than one field-operator-value test",
+    "security.policyrule": "the unit carries a permit/deny effect or obligations, not just a boolean test",
+    "security.validationrule": "the check enforces format, range or integrity of field data rather than deciding whether a principal may access something",
+    "security.informationright": "the element grants named operations on an information entity to a specific actor, even if it embeds a constraint"
   }
 }

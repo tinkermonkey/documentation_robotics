@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "GuardAction",
-  "description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation \u2014 along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
+  "description": "A denial-handling outcome attached to a NavigationGuard that specifies what the router does when the guard's condition fails. It either redirects to a route or URL, cancels navigation in place, shows a message, or asks for confirmation, and it records whether the attempted route is kept so the user can return to it later. Use NavigationGuard instead when you are modelling the interceptor itself: its mechanism type (auth, role, feature-flag), its execution order, and the routes it protects, rather than what happens on denial. Use GuardCondition instead when you are modelling the boolean predicate the guard evaluates (e.g. 'user.isAuthenticated'), not the response executed when that predicate is false. Use NavigationTransition instead when you are modelling a standing edge between two routes in the navigation graph (including one with trigger 'redirect') rather than a guard's conditional denial response. Use Route instead when the redirect is unconditional, such as a route of type 'redirect' whose router entry always forwards (e.g. { path: '/', redirectTo: '/home' }) regardless of any access check.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -27,7 +27,7 @@
         },
         "target": {
           "type": "string",
-          "description": "Destination for redirect or replace actions \u2014 a Route ID (e.g., 'login') or an absolute URL. Ignored for block and notify actions."
+          "description": "Destination for redirect or replace actions — a Route ID (e.g., 'login') or an absolute URL. Ignored for block and notify actions."
         },
         "message": {
           "type": "string",
@@ -41,5 +41,17 @@
       "required": ["action", "target", "message", "preserveRoute"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: navigation guard outcome (redirect or cancel), e.g. Angular CanActivate/CanDeactivate returning a UrlTree or false, and Vue Router beforeEach returning a route location or false",
+  "x-dr-evidence": [
+    "The denied branch of a beforeEach/canActivate guard that returns a redirect location carrying the attempted path, e.g. return { name: 'login', query: { redirect: to.fullPath } } or router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } }).",
+    "A guard branch that aborts navigation with next(false), return false, or event.preventDefault(), optionally preceded by a toast or notification call explaining the denial.",
+    "A window.confirm(...) or modal-dialog prompt inside a canDeactivate or beforeRouteLeave hook, or a React protected-route wrapper rendering <Navigate to=\"/login\" state={{ from: location }} replace />."
+  ],
+  "x-dr-distinguish": {
+    "navigation.navigationguard": "you are modelling the interceptor itself: its mechanism type (auth, role, feature-flag), its execution order, and the routes it protects, rather than what happens on denial.",
+    "navigation.guardcondition": "you are modelling the boolean predicate the guard evaluates (e.g. 'user.isAuthenticated'), not the response executed when that predicate is false.",
+    "navigation.navigationtransition": "you are modelling a standing edge between two routes in the navigation graph (including one with trigger 'redirect') rather than a guard's conditional denial response.",
+    "navigation.route": "the redirect is unconditional, such as a route of type 'redirect' whose router entry always forwards (e.g. { path: '/', redirectTo: '/home' }) regardless of any access check."
   }
 }

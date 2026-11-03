@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ContextVariable",
-  "description": "A typed variable shared across steps of a NavigationFlow, enabling state to persist and transfer between route transitions.",
+  "description": "A named, typed item of client-side state that a NavigationFlow carries between its FlowSteps across route transitions, declared with a schema, a lifetime scope and a storage mechanism such as session storage, local storage, memory or URL query string. It is runtime data written by one step and read by later steps or guards, not static per-route configuration or a path parameter of a single route. Use RouteMeta instead when the value is static configuration declared on one route (layout, roles, keepAlive, breadcrumb) rather than data produced and consumed at runtime as the user moves through a flow. Use Route instead when the value is a path segment parameter (e.g. ':orderId') that is part of a single route's URL pattern and identifies the resource that route addresses, rather than state carried across several steps. Use FlowStep instead when the thing being modelled is a position in the flow bound to a route, not the data passed between such positions. Use GuardCondition instead when the symbol is the boolean predicate that reads session or flow state to permit or deny access, rather than the state item itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "schemaRef": {
-          "type": "string"
+          "type": "string",
+          "description": "Reference (ID or URI) to the data-model JSON Schema or application DataObject that defines the variable's type and shape, e.g. 'data-model.jsonschema.shipping-address'. Always set, so steps and guards can validate the value."
         },
         "scope": {
           "type": "string",
@@ -34,7 +35,8 @@
           "description": "Storage mechanism used to persist the variable across route transitions: sessionStorage (browser session), localStorage (cross-session), memory (in-process only), url-param (serialized into the URL query string)."
         },
         "defaultValue": {
-          "type": "string"
+          "type": "string",
+          "description": "Serialized initial value (literal or JSON string conforming to schemaRef) assigned when the flow or scope starts before any step writes the variable. Omit when the variable must be explicitly collected, typically when required is true."
         },
         "required": {
           "type": "boolean",
@@ -44,5 +46,17 @@
       "required": ["schemaRef", "scope", "persistedIn"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: wizard/flow state passing (router navigation state, query-string state and session-persisted state)",
+  "x-dr-evidence": [
+    "A wizard or checkout store (Redux slice, Pinia/Vuex module, NgRx feature, or XState machine context) whose fields are written in one route's component and read in subsequent routes of the same flow",
+    "Calls such as sessionStorage.setItem('checkout.shippingAddress', ...), localStorage writes, or a useSessionStorage hook keyed by flow name, with the value read back on a later step page",
+    "Navigation calls that pass values forward, such as router.push({ query: { planId } }), navigate('/step-2', { state: { orderId } }), or Angular NavigationExtras.state, read on arrival via useLocation().state or getCurrentNavigation()"
+  ],
+  "x-dr-distinguish": {
+    "navigation.routemeta": "the value is static configuration declared on one route (layout, roles, keepAlive, breadcrumb) rather than data produced and consumed at runtime as the user moves through a flow",
+    "navigation.route": "the value is a path segment parameter (e.g. ':orderId') that is part of a single route's URL pattern and identifies the resource that route addresses, rather than state carried across several steps",
+    "navigation.flowstep": "the thing being modelled is a position in the flow bound to a route, not the data passed between such positions",
+    "navigation.guardcondition": "the symbol is the boolean predicate that reads session or flow state to permit or deny access, rather than the state item itself"
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TargetCoverageSummary",
-  "description": "Coverage metrics summary for a single test coverage target",
+  "description": "A per-target coverage report record that states, for exactly one TestCoverageTarget, the counts of designed, implemented and automated test case sketches and the share of that target's coverage requirements exercised by at least one implemented test. It reports measured status, not required criteria or identified deficits. Use CoverageSummary instead when the record aggregates totals across all targets and requirements of a whole TestCoverageModel rather than metrics for one target. Use CoverageGap instead when the element records a specific uncovered requirement with severity and remediation status, rather than numeric coverage counts. Use CoverageRequirement instead when the element specifies the coverage criteria a target must satisfy, rather than reporting how far they are satisfied. Use TestCoverageTarget instead when the element identifies the endpoint, workflow or component in scope for testing, rather than its coverage metrics.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -30,15 +30,15 @@
         },
         "implementedCount": {
           "type": "integer",
-          "description": "Number of sketches with a concrete test case implementation (must be \u2264 sketchCount; superset of automatedCount)"
+          "description": "Number of sketches with a concrete test case implementation (must be ≤ sketchCount; superset of automatedCount)"
         },
         "automatedCount": {
           "type": "integer",
-          "description": "Number of implemented test cases that are automated (must be \u2264 implementedCount)"
+          "description": "Number of implemented test cases that are automated (must be ≤ implementedCount)"
         },
         "coveragePercentage": {
           "type": "number",
-          "description": "Percentage of coverage requirements with at least one implemented test case sketch (0\u2013100)"
+          "description": "Percentage of coverage requirements with at least one implemented test case sketch (0–100)"
         }
       },
       "required": [
@@ -49,5 +49,17 @@
       ],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 16 Level Test Report (summary of results and comprehensiveness assessment; the Test Summary Report in IEEE 829-1998), per-feature scope",
+  "x-dr-evidence": [
+    "A generated coverage report file (e.g. coverage-summary.json, a JUnit/Allure per-endpoint section) keyed by a single endpoint, route or feature ID with counts of planned, implemented and automated tests",
+    "A CI script or reporting job that groups test results by target (e.g. by OpenAPI operationId or tag) and computes a percentage of requirements with passing implemented tests",
+    "A traceability matrix row or markdown table in test documentation listing one feature/endpoint alongside sketch count, implemented count, automated count and coverage %"
+  ],
+  "x-dr-distinguish": {
+    "testing.coveragesummary": "the record aggregates totals across all targets and requirements of a whole TestCoverageModel rather than metrics for one target.",
+    "testing.coveragegap": "the element records a specific uncovered requirement with severity and remediation status, rather than numeric coverage counts.",
+    "testing.coveragerequirement": "the element specifies the coverage criteria a target must satisfy, rather than reporting how far they are satisfied.",
+    "testing.testcoveragetarget": "the element identifies the endpoint, workflow or component in scope for testing, rather than its coverage metrics."
   }
 }

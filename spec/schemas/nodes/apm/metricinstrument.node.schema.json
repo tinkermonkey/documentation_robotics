@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MetricInstrument",
-  "description": "Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.",
+  "description": "A named OpenTelemetry metric instrument, obtained from a Meter (e.g. createCounter, histogramBuilder) or declared through an equivalent metrics client, that records measurements of one quantity under a fixed instrument kind and unit. It represents the instrument definition, not individual data points, time series, or the views and exports applied to them. Use MetricConfiguration instead when the code sets MeterProvider-wide behaviour such as export interval, cardinality limits, exemplar filtering, or metric readers, rather than declaring a single named instrument. Use InstrumentationConfig instead when the code enables or configures an instrumentation library that emits metrics automatically, and no instrument is declared directly in application code. Use Alert instead when the artifact is a rule or threshold expression evaluated against a metric's values, such as a Prometheus alerting rule over a histogram, rather than the code that records the metric. Use Span instead when the operation is recorded as a timed unit of work in a trace via Tracer.startSpan, rather than aggregated into a counter, gauge, or histogram.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -34,13 +34,16 @@
           "description": "OTel instrument type: synchronous (Counter, UpDownCounter, Histogram, Gauge) or asynchronous/observable (ObservableCounter, ObservableUpDownCounter, ObservableGauge)"
         },
         "unit": {
-          "type": "string"
+          "type": "string",
+          "description": "The instrument's unit of measure, as a UCUM case-sensitive string per OTel semantic conventions (e.g. 'ms', 's', 'By', '1', '{request}'). Copy it from the unit argument at instrument creation, using a curly-brace annotation for counts of things."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable text explaining what the instrument measures, taken from the description argument or the Prometheus help string at creation. Set it whenever the code provides one."
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether measurements from this instrument are currently recorded and exported. Set it to false when the instrument is disabled by a feature flag, configuration, or an OTel View with Drop aggregation."
         },
         "source": {
           "type": "object",
@@ -50,5 +53,17 @@
       "required": ["type", "unit"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Metrics API Specification: Instrument (Meter create-instrument operations: Counter, UpDownCounter, Histogram, Gauge, and Asynchronous Counter/UpDownCounter/Gauge)",
+  "x-dr-evidence": [
+    "A Meter factory call such as meter.createCounter('http.server.request.count', { unit: '{request}', description: ... }) or meter.histogramBuilder(\"db.client.duration\").setUnit(\"ms\").build(), assigned to a field or module-level constant.",
+    "A metrics-client declaration such as new prometheus.Histogram({ name, help, buckets }), Counter.builder(\"orders.placed\").register(registry) in Micrometer, or a @Timed/@Counted annotation that creates a named instrument.",
+    "Registration of an asynchronous callback, for example meter.createObservableGauge('queue.depth').addCallback(result => result.observe(queue.size())) or a registerCallback reading a pool size."
+  ],
+  "x-dr-distinguish": {
+    "apm.metricconfiguration": "the code sets MeterProvider-wide behaviour such as export interval, cardinality limits, exemplar filtering, or metric readers, rather than declaring a single named instrument.",
+    "apm.instrumentationconfig": "the code enables or configures an instrumentation library that emits metrics automatically, and no instrument is declared directly in application code.",
+    "apm.alert": "the artifact is a rule or threshold expression evaluated against a metric's values, such as a Prometheus alerting rule over a histogram, rather than the code that records the metric.",
+    "apm.span": "the operation is recorded as a timed unit of work in a trace via Tracer.startSpan, rather than aggregated into a counter, gauge, or histogram."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BreadcrumbConfig",
-  "description": "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Applied globally to define breadcrumb rendering for a navigation scope rather than attached per individual Route. Provides users with location context and navigation history.",
+  "description": "A navigation-scope configuration object that governs how the breadcrumb location trail is derived from the active route hierarchy and rendered. It covers label resolution, the home link, separators and truncation, and applies to every route in a NavigationGraph or NavigationFlow rather than to one route. Use RouteMeta instead when the evidence is a breadcrumb label or flag set on a single route's meta/data object rather than a shared rule for building the whole trail. Use NavigationFlow instead when the trail being shown is a progress indicator through ordered wizard or checkout steps rather than the user's position in the route hierarchy. Use NavigationGraph instead when the object is the overall route table or router instance and breadcrumb settings are only one incidental option inside it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,24 +21,39 @@
       "type": "object",
       "properties": {
         "label": {
-          "type": "string"
+          "type": "string",
+          "description": "Default static text for breadcrumb items in this scope. It is used when neither labelTemplate nor a route's own breadcrumb meta yields a label, or it names the scope's root segment."
         },
         "labelTemplate": {
           "type": "string",
           "description": "Template string for dynamic label generation using {title} placeholder syntax to interpolate route metadata. Used when breadcrumb labels need to vary by route context rather than a static label."
         },
         "showHome": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Boolean that, when true, prepends a home link as the first breadcrumb item. Set it to false when the trail should start at the current section."
         },
         "homeLabel": {
-          "type": "string"
+          "type": "string",
+          "description": "Display text for the home breadcrumb item, such as 'Home' or an i18n key. It is meaningful only when showHome is true."
         },
         "homeRoute": {
-          "type": "string"
+          "type": "string",
+          "description": "Route ID or URL path, such as 'home' or '/', that the home breadcrumb item links to. It is meaningful only when showHome is true and should resolve to a declared Route."
         }
       },
       "required": ["label"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "SPA Navigation Patterns: Breadcrumb (hierarchical location trail) pattern; cf. WAI-ARIA Authoring Practices Breadcrumb Pattern",
+  "x-dr-evidence": [
+    "An options object or provider passed to a breadcrumb library or component (e.g. xng-breadcrumb BreadcrumbService config, use-react-router-breadcrumbs options, MUI <Breadcrumbs separator maxItems itemsBeforeCollapse>) defined once and reused across pages",
+    "A breadcrumb service or composable that walks the router's matched route chain (route.matched, ActivatedRoute.parent, useMatches) and builds items from meta.breadcrumb or a title template",
+    "Shared constants or settings such as BREADCRUMB_SEPARATOR, HOME_BREADCRUMB = { label: 'Home', to: '/' } or a showHome flag imported by a layout-level breadcrumb component"
+  ],
+  "x-dr-distinguish": {
+    "navigation.routemeta": "the evidence is a breadcrumb label or flag set on a single route's meta/data object rather than a shared rule for building the whole trail",
+    "navigation.navigationflow": "the trail being shown is a progress indicator through ordered wizard or checkout steps rather than the user's position in the route hierarchy",
+    "navigation.navigationgraph": "the object is the overall route table or router instance and breadcrumb settings are only one incidental option inside it"
   }
 }

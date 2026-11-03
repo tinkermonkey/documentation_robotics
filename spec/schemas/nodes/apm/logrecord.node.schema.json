@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogRecord",
-  "description": "Structured log record in the OTel data model, capturing an event with dual timestamps (timeUnixNano for event occurrence, observedTimeUnixNano for ingestion), a 1\u201324 severity scale, and an unstructured body. Supports trace context correlation to link logs to distributed traces.",
+  "description": "A structured log event emitted by application or library code through a logging API or the OTel Logs Bridge API. It is identified by a stable message template or event name together with its severity, body and attributes. It models the kind of record a log call site produces, not a transient annotation on a span. Use SpanEvent instead when the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record. Use LogConfiguration instead when the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event. Use LogProcessor instead when the code filters, enriches, batches or routes log records in the pipeline instead of producing them. Use MetricInstrument instead when the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,25 +21,32 @@
       "type": "object",
       "properties": {
         "timeUnixNano": {
-          "type": "string"
+          "type": "string",
+          "description": "Time the described event occurred, given as nanoseconds since the Unix epoch encoded as a decimal string; set it when the emitting source supplies an event time, otherwise use '0' (unknown)."
         },
         "observedTimeUnixNano": {
-          "type": "string"
+          "type": "string",
+          "description": "Time the record was observed by the collection pipeline (SDK or collector), given as nanoseconds since the Unix epoch encoded as a decimal string; it is normally set by the pipeline and falls back to timeUnixNano when no separate observation time exists."
         },
         "severityNumber": {
-          "type": "string"
+          "type": "string",
+          "description": "OTel numeric severity from 1 to 24 (1–4 TRACE, 5–8 DEBUG, 9–12 INFO, 13–16 WARN, 17–20 ERROR, 21–24 FATAL), with 0 meaning unspecified, written here as a decimal string; set it to the level used by the emitting call."
         },
         "severityText": {
-          "type": "string"
+          "type": "string",
+          "description": "Original severity label as produced by the source logging framework (e.g., 'WARNING', 'err'); set it to preserve the native level name alongside severityNumber."
         },
         "body": {
-          "type": "string"
+          "type": "string",
+          "description": "The log message or event payload, typically the message template (e.g., 'Order {orderId} created') or a serialized structured body; set it to the stable content that identifies this record."
         },
         "flags": {
-          "type": "string"
+          "type": "string",
+          "description": "W3C trace flags byte from the span context active at emission, as a hex string (e.g., '01' = sampled); set it when the record is correlated with a trace, otherwise use '00'."
         },
         "droppedAttributesCount": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of attributes discarded because of attribute count or length limits, as a non-negative integer; use 0 for modelled records unless limits are known to truncate them."
         },
         "attributes": {
           "type": "object",
@@ -57,5 +64,17 @@
       ],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Logs Data Model – LogRecord (Log and Event Record Definition)",
+  "x-dr-evidence": [
+    "A structured logger call with a stable message template or event name plus key-value fields, e.g. logger.warn('payment.declined', {orderId, reason}) or log.info().addKeyValue(...)",
+    "A direct OTel Logs Bridge API emission such as logger.emit({severityNumber, severityText, body, attributes}) or LogRecordBuilder.setBody(...).emit()",
+    "Documented log or audit event catalogs, or constants enumerating log event names and their fields, e.g. AUDIT_USER_LOGIN = 'user.login' referenced from logging calls"
+  ],
+  "x-dr-distinguish": {
+    "apm.spanevent": "the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record",
+    "apm.logconfiguration": "the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event",
+    "apm.logprocessor": "the code filters, enriches, batches or routes log records in the pipeline instead of producing them",
+    "apm.metricinstrument": "the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body"
   }
 }

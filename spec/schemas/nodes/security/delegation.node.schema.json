@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Delegation",
-  "description": "Explicit transfer of permissions or authority from a delegator to a delegatee, subject to scope constraints and optional time bounds. Supports least-privilege enforcement (NIST AC-6) by enabling time-limited privilege elevation rather than permanent role assignment.",
+  "description": "An authority grant record in which one named actor (the delegator) transfers some or all of its own permissions or role to another actor (the delegatee), qualified by a delegation type and optionally an expiry. It differs from a role assignment or a standing permission in that the authority is derived from, and revocable by, the delegating actor rather than granted directly by administration. Use Role instead when the authority is a standing, administratively assigned collection of permissions rather than one actor passing its own authority to another. Use Permission instead when you are modelling the atomic action-on-resource grant itself, not the act of handing it from one actor to another. Use InformationRight instead when the grant is an ABAC rule giving an actor operations on an InformationEntity under a constraint expression, with no delegating party. Use Actor instead when the symbol represents the principal (user, service account) itself rather than the transfer of authority between principals.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "delegator": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the security.actor granting its authority; set to the actor whose permissions or role are being transferred, and that actor must hold that authority itself."
         },
         "delegatee": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the security.actor receiving the delegated authority; set to the principal who will act on the delegator's behalf."
         },
         "delegationType": {
           "type": "string",
@@ -36,11 +38,24 @@
           "description": "ISO 8601 datetime after which this delegation automatically expires. Required for delegationType 'temporary' and recommended for 'conditional' to enforce time-bounded privilege grants per AC-6."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what authority is delegated, for what purpose, and any scope limits not captured by delegationType or validUntil."
         }
       },
       "required": ["delegator", "delegatee", "delegationType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-6 (Least Privilege); NIST SP 800-162 delegation of attributes; OAuth 2.0 Token Exchange (RFC 8693) act/may_act delegation",
+  "x-dr-evidence": [
+    "A persisted entity or table such as Delegation, ProxyAssignment or ActingAs with columns like delegator_id, delegatee_id, scope and expires_at",
+    "An OAuth 2.0 token-exchange or impersonation flow (e.g. RFC 8693 'act' claim, 'on_behalf_of' or 'impersonate' endpoint) that issues a token for one principal acting for another",
+    "Authorization middleware that, when checking permissions, merges in roles from active, unexpired delegation records granted to the current user and logs the delegation in the audit trail"
+  ],
+  "x-dr-distinguish": {
+    "security.role": "the authority is a standing, administratively assigned collection of permissions rather than one actor passing its own authority to another.",
+    "security.permission": "you are modelling the atomic action-on-resource grant itself, not the act of handing it from one actor to another.",
+    "security.informationright": "the grant is an ABAC rule giving an actor operations on an InformationEntity under a constraint expression, with no delegating party.",
+    "security.actor": "the symbol represents the principal (user, service account) itself rather than the transfer of authority between principals."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RetentionPolicy",
-  "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
+  "description": "A data-lifecycle rule for one category of security-relevant data (audit logs, access records, evidence, cryptographic keys) that sets the minimum time the data must be kept, where it is kept, and how it is disposed of once that period ends. Use AuditConfig instead when the element decides which security events are captured, at what verbosity, and which fields are sanitized, rather than how long captured records are kept or how they are destroyed. Use Evidence instead when the element is the retained artifact itself (a log stream, signature, hash or audit trail), not the rule that governs how long it is kept. Use DataClassification instead when the element assigns a sensitivity tier or encryption obligation to data, rather than a retention duration and disposal method. Use AccountabilityRequirement instead when the element states who must prove that an action occurred and whether that proof can be challenged, independent of how long the proof is stored.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "period": {
-          "type": "string"
+          "type": "string",
+          "description": "Minimum duration for which the governed data must be retained before disposal, expressed as an ISO 8601 duration (e.g. 'P90D', 'P7Y'); always set it, using the longest applicable regulatory or contractual requirement."
         },
         "destination": {
           "type": "string",
@@ -40,11 +41,24 @@
           "description": "Secure disposal technique applied when data reaches end of retention period, per NIST SP 800-88 Guidelines for Media Sanitization."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of which security data this policy covers and the regulation or internal mandate that justifies the period (e.g. 'SOX audit trail, 7 years'); set it whenever the period or scope is not self-evident."
         }
       },
       "required": ["period"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AU-11 Audit Record Retention (with SI-12 Information Management and Retention)",
+  "x-dr-evidence": [
+    "Log-store retention settings scoped to audit or security streams, such as CloudWatch retentionInDays on an audit log group, an Elasticsearch/OpenSearch ILM policy with a delete phase, or Loki retention_period.",
+    "An S3, GCS or Azure Blob lifecycle rule on an audit or evidence bucket with expiration or transition-to-archive days, or an object-lock/WORM retention configuration.",
+    "A scheduled job or cron task that purges, crypto-shreds or archives audit, access-log or key records older than a configured age, often citing a compliance period such as '7 years' or 'P90D'."
+  ],
+  "x-dr-distinguish": {
+    "security.auditconfig": "the element decides which security events are captured, at what verbosity, and which fields are sanitized, rather than how long captured records are kept or how they are destroyed.",
+    "security.evidence": "the element is the retained artifact itself (a log stream, signature, hash or audit trail), not the rule that governs how long it is kept.",
+    "security.dataclassification": "the element assigns a sensitivity tier or encryption obligation to data, rather than a retention duration and disposal method.",
+    "security.accountabilityrequirement": "the element states who must prove that an action occurred and whether that proof can be challenged, independent of how long the proof is stored."
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessActor",
-  "description": "An active structure element representing an organizational entity (person, department, or external organization) capable of performing behavior. BusinessActors are assigned to BusinessRoles and may be associated with BusinessServices they use or provide.",
+  "description": "An active structure element denoting a specific, nameable organizational entity (an individual person, a team or department, or an external organization such as a customer or supplier) that exists independently of any responsibility it holds and can be assigned to BusinessRoles to perform behavior. It denotes who the entity is, not what responsibility it carries. Use BusinessRole instead when the element names a set of responsibilities or authorizations, such as 'Approver' or 'Account Holder', that different people or organizations could fill, rather than a concrete entity. Use BusinessCollaboration instead when the element is a temporary or contextual grouping of roles that act jointly, such as a review board formed per case, rather than a standing organizational entity with its own identity. Use BusinessInterface instead when the element is a channel or access point, such as a call center, web portal or front desk, through which services are offered, rather than the entity offering or using them. Use BusinessObject instead when the code symbol is a data record about a party, such as a Customer table row, and the model needs the information itself rather than the organizational entity acting on it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,23 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the organizational entity: who it is, whether it is internal or external, and its scope (person, unit or organization). Set it whenever the name alone does not make the entity's identity and boundary clear."
         }
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.2.1 Business Actor",
+  "x-dr-evidence": [
+    "A domain or party-model class or enum value naming an organizational entity, such as Customer, Supplier, Partner, Department or Organization, that holds identity fields (legal name, org ID, tax number) and is referenced as the initiator or owner of business transactions.",
+    "Requirements, use-case or BPMN documentation that lists named participants or pools (e.g., 'Actors: Customer, Finance Department, Payment Provider'), or a swimlane labeled with a department or external company.",
+    "Integration or tenant configuration that identifies concrete external organizations or internal units, such as partner IDs, tenant or organization records, or supplier onboarding entries, on whose behalf the system acts."
+  ],
+  "x-dr-distinguish": {
+    "business.businessrole": "the element names a set of responsibilities or authorizations, such as 'Approver' or 'Account Holder', that different people or organizations could fill, rather than a concrete entity.",
+    "business.businesscollaboration": "the element is a temporary or contextual grouping of roles that act jointly, such as a review board formed per case, rather than a standing organizational entity with its own identity.",
+    "business.businessinterface": "the element is a channel or access point, such as a call center, web portal or front desk, through which services are offered, rather than the entity offering or using them.",
+    "business.businessobject": "the code symbol is a data record about a party, such as a Customer table row, and the model needs the information itself rather than the organizational entity acting on it."
   }
 }

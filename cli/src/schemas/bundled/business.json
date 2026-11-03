@@ -30,7 +30,7 @@
     "businessactor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessActor",
-      "description": "An active structure element representing an organizational entity (person, department, or external organization) capable of performing behavior. BusinessActors are assigned to BusinessRoles and may be associated with BusinessServices they use or provide.",
+      "description": "An active structure element denoting a specific, nameable organizational entity (an individual person, a team or department, or an external organization such as a customer or supplier) that exists independently of any responsibility it holds and can be assigned to BusinessRoles to perform behavior. It denotes who the entity is, not what responsibility it carries. Use BusinessRole instead when the element names a set of responsibilities or authorizations, such as 'Approver' or 'Account Holder', that different people or organizations could fill, rather than a concrete entity. Use BusinessCollaboration instead when the element is a temporary or contextual grouping of roles that act jointly, such as a review board formed per case, rather than a standing organizational entity with its own identity. Use BusinessInterface instead when the element is a channel or access point, such as a call center, web portal or front desk, through which services are offered, rather than the entity offering or using them. Use BusinessObject instead when the code symbol is a data record about a party, such as a Customer table row, and the model needs the information itself rather than the organizational entity acting on it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -50,18 +50,31 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the organizational entity: who it is, whether it is internal or external, and its scope (person, unit or organization). Set it whenever the name alone does not make the entity's identity and boundary clear."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §8.2.1 Business Actor",
+      "x-dr-evidence": [
+        "A domain or party-model class or enum value naming an organizational entity, such as Customer, Supplier, Partner, Department or Organization, that holds identity fields (legal name, org ID, tax number) and is referenced as the initiator or owner of business transactions.",
+        "Requirements, use-case or BPMN documentation that lists named participants or pools (e.g., 'Actors: Customer, Finance Department, Payment Provider'), or a swimlane labeled with a department or external company.",
+        "Integration or tenant configuration that identifies concrete external organizations or internal units, such as partner IDs, tenant or organization records, or supplier onboarding entries, on whose behalf the system acts."
+      ],
+      "x-dr-distinguish": {
+        "business.businessrole": "the element names a set of responsibilities or authorizations, such as 'Approver' or 'Account Holder', that different people or organizations could fill, rather than a concrete entity.",
+        "business.businesscollaboration": "the element is a temporary or contextual grouping of roles that act jointly, such as a review board formed per case, rather than a standing organizational entity with its own identity.",
+        "business.businessinterface": "the element is a channel or access point, such as a call center, web portal or front desk, through which services are offered, rather than the entity offering or using them.",
+        "business.businessobject": "the code symbol is a data record about a party, such as a Customer table row, and the model needs the information itself rather than the organizational entity acting on it."
       },
       "$id": "urn:dr:spec:node:business.businessactor"
     },
     "businesscollaboration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessCollaboration",
-      "description": "An active structure element representing an aggregate of two or more BusinessRoles that work together to perform collective behavior (BusinessInteraction). The collaboration is meaningful only in the context of its participating roles.",
+      "description": "An active structure element that is a temporary or permanent grouping of two or more BusinessRoles (or BusinessActors) jointly assigned to collective behavior that none of them performs alone. It has no identity apart from its participants: removing participants below two dissolves it. Use BusinessRole instead when the element is a single set of responsibilities assignable to one actor, even if many actors may fill it. Use BusinessActor instead when the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines. Use BusinessInteraction instead when you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it. Use Contract instead when you are modelling the recorded agreement binding the parties rather than the parties acting together.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -81,7 +94,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text prose describing the collaboration's purpose, its participating roles and the collective behavior it exists to perform; set whenever the element name alone does not make the participants and scope clear."
             },
             "properties": {
               "type": "object",
@@ -91,12 +105,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.2.3 Business Collaboration",
+      "x-dr-evidence": [
+        "a BPMN collaboration diagram or workflow definition declaring two or more participant pools/lanes (e.g. Buyer and Seller) that exchange messages within one flow",
+        "a domain class or config entity such as ReviewBoard, Partnership or JointVenture whose fields reference multiple distinct participant role types and which is used to gate a multi-party step (e.g. requires approvals from each role)",
+        "approval or sign-off rules (e.g. a four-eyes or dual-control policy) listing several named roles that must act together before a business step completes"
+      ],
+      "x-dr-distinguish": {
+        "business.businessrole": "the element is a single set of responsibilities assignable to one actor, even if many actors may fill it",
+        "business.businessactor": "the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines",
+        "business.businessinteraction": "you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it",
+        "business.contract": "you are modelling the recorded agreement binding the parties rather than the parties acting together"
+      },
       "$id": "urn:dr:spec:node:business.businesscollaboration"
     },
     "businessevent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessEvent",
-      "description": "A behavior element that represents an organizational state change, such as a customer order placed or a contract signed, that can trigger or result from a BusinessProcess or BusinessFunction.",
+      "description": "A behavior element that denotes an instantaneous, named occurrence of a business state change (e.g., order placed, contract signed, month-end reached) with no duration and no performer of its own. It exists only to trigger, or to be the outcome of, a BusinessProcess, BusinessFunction or BusinessInteraction. Use BusinessProcess instead when the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time. Use BusinessObject instead when the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced). Use BusinessInteraction instead when the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -116,7 +142,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of the business occurrence, giving the state change it marks, its source, and the condition under which it is raised; set it whenever the event name alone does not make the trigger condition unambiguous."
             },
             "type": {
               "type": "string",
@@ -132,12 +159,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.3.4 Business Event",
+      "x-dr-evidence": [
+        "Past-tense domain-event classes or records such as OrderPlaced or ContractSigned that are published to an event bus, outbox or message broker topic named after a business occurrence.",
+        "Cron or scheduler entries (e.g., a month-end or renewal-due job) whose firing starts a business workflow, indicating a timer-type event.",
+        "Start, intermediate or end events in BPMN or workflow-engine definitions, or business-named channels in an AsyncAPI or event-catalog document."
+      ],
+      "x-dr-distinguish": {
+        "business.businessprocess": "the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time.",
+        "business.businessobject": "the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced).",
+        "business.businessinteraction": "the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior."
+      },
       "$id": "urn:dr:spec:node:business.businessevent"
     },
     "businessfunction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessFunction",
-      "description": "A behavior element that groups behavior based on required capabilities, skills, or resources (e.g., HR management, financial reporting). Unlike BusinessProcess, it is not goal-oriented but competency-oriented.",
+      "description": "A business behavior element that groups ongoing internal behavior by the competency, skill, knowledge or resource it requires (e.g. Accounting, Claims Handling, Procurement), performed by a BusinessRole or BusinessActor, with no defined start, end or ordered sequence of steps. Use BusinessProcess instead when the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence. Use BusinessService instead when the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor. Use BusinessRole instead when the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting').",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -157,18 +195,31 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the competency area this function covers, its scope boundaries and the roles that perform it; set whenever the name alone does not make the grouped behavior unambiguous."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §8.3.2 Business Function",
+      "x-dr-evidence": [
+        "top-level packages, modules or bounded contexts named after organizational competency areas (e.g. billing/, hr/, accounting/, procurement/) that own many related workflows rather than a single one",
+        "CODEOWNERS, team-ownership or service-catalog entries mapping a department or functional team to a group of modules, or permission scopes/menu sections grouped by functional area (e.g. 'finance:*', a 'Human Resources' navigation section)",
+        "architecture docs, capability or function maps, or ADRs listing functional areas of the business (e.g. a 'Business Functions' table or level-1 functional decomposition) referenced by code comments or module READMEs"
+      ],
+      "x-dr-distinguish": {
+        "business.businessprocess": "the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence.",
+        "business.businessservice": "the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it.",
+        "business.businessinteraction": "the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor.",
+        "business.businessrole": "the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting')."
       },
       "$id": "urn:dr:spec:node:business.businessfunction"
     },
     "businessinteraction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessInteraction",
-      "description": "A behavior element representing collective behavior performed by a BusinessCollaboration. It is the interaction counterpart to BusinessProcess (performed by a role) and BusinessFunction (performed by an actor).",
+      "description": "A behavior element describing a unit of collective business behavior that two or more business roles carry out jointly within a BusinessCollaboration, such as negotiating terms or jointly approving a deal. It cannot be completed by any single participant acting alone. Use BusinessProcess instead when a single role or actor can carry the behavior through to its result, even if other parties are consulted or notified along the way. Use BusinessCollaboration instead when the element names the grouping of participating roles (who works together) rather than the joint behavior they perform (what they do together). Use BusinessFunction instead when the behavior is a stable, competency-based grouping (e.g., 'Partner Management') rather than a specific joint activity with a result. Use BusinessService instead when the element describes externally visible value offered to a consumer, with the joint internal behavior that delivers it hidden.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -188,18 +239,31 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text prose that names the participating roles, the joint result the interaction produces and its triggering events; set it whenever the participants or outcome are not obvious from the element name."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §8.3.3 Business Interaction",
+      "x-dr-evidence": [
+        "A workflow, saga or state machine for one business transaction (e.g., Negotiation, JointApproval) whose transitions are guarded by different roles, and which reaches its terminal state only after actions from each party, such as buyer accepts and seller countersigns.",
+        "A BPMN collaboration or choreography diagram, or a use-case document listing two or more primary actors, that describes one shared activity spanning both parties' lanes.",
+        "API endpoints on a shared resource (e.g., /negotiations/{id}/offer and /negotiations/{id}/counter-offer) protected by distinct role authorizations, where completion requires calls from users holding each role."
+      ],
+      "x-dr-distinguish": {
+        "business.businessprocess": "a single role or actor can carry the behavior through to its result, even if other parties are consulted or notified along the way",
+        "business.businesscollaboration": "the element names the grouping of participating roles (who works together) rather than the joint behavior they perform (what they do together)",
+        "business.businessfunction": "the behavior is a stable, competency-based grouping (e.g., 'Partner Management') rather than a specific joint activity with a result",
+        "business.businessservice": "the element describes externally visible value offered to a consumer, with the joint internal behavior that delivers it hidden"
       },
       "$id": "urn:dr:spec:node:business.businessinteraction"
     },
     "businessinterface": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessInterface",
-      "description": "An active structure element representing a point of access at which a BusinessService is made available to the environment, used by BusinessActors or external parties.",
+      "description": "An active structure element representing a channel or point of access, such as a branch counter, call centre, customer portal or mailroom, through which a BusinessService is offered to and used by actors in the environment. It identifies where and how the service is reached, not the service itself or the person or role who staffs it. Use BusinessService instead when the element describes what value or behavior is offered to the consumer, independent of the channel through which it is reached. Use BusinessRole instead when the element is a set of responsibilities performed behind the access point, such as a call-centre agent, rather than the access point itself. Use Representation instead when the element is the perceptible form of information exchanged, such as an on-screen form or a printed letter, rather than the channel through which the service is accessed. Use BusinessActor instead when the element is the concrete organizational unit or person, such as a customer-service department, rather than the channel it operates.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -219,7 +283,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the access channel, stating which BusinessServices it exposes, who uses it, and its medium (e.g. phone, web, in person); set it for every instance so the channel's scope is unambiguous."
             },
             "properties": {
               "type": "object",
@@ -229,12 +294,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.2.4 Business Interface",
+      "x-dr-evidence": [
+        "an enum or lookup table of customer contact channels (e.g. Channel { WEB, PHONE, BRANCH, EMAIL, PARTNER_PORTAL }) used to tag incoming requests or orders",
+        "channel-specific intake configuration, such as IVR or call-routing menus, a contact-centre queue definition, or a branch/portal entry module that routes customers to a named service",
+        "product or support documentation stating how customers reach a service (e.g. 'claims can be filed via the self-service portal, by phone, or at a branch')"
+      ],
+      "x-dr-distinguish": {
+        "business.businessservice": "the element describes what value or behavior is offered to the consumer, independent of the channel through which it is reached",
+        "business.businessrole": "the element is a set of responsibilities performed behind the access point, such as a call-centre agent, rather than the access point itself",
+        "business.representation": "the element is the perceptible form of information exchanged, such as an on-screen form or a printed letter, rather than the channel through which the service is accessed",
+        "business.businessactor": "the element is the concrete organizational unit or person, such as a customer-service department, rather than the channel it operates"
+      },
       "$id": "urn:dr:spec:node:business.businessinterface"
     },
     "businessobject": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessObject",
-      "description": "A passive structure element that has relevance from a business perspective, representing information or data that active elements (actors, roles) act upon. Examples include documents, messages, contracts, and reports.",
+      "description": "A passive structure element representing a business concept or unit of information (e.g., Order, Invoice, Claim, Customer record) that business behavior creates, reads, updates or deletes. It is identified by its business meaning and lifecycle, independent of storage format, schema or presentation. Use Contract instead when the information is specifically an agreement that sets out obligations, rights or terms between a provider and a consumer (e.g., SLA, policy terms, subscription agreement). Use Representation instead when the element is the perceptible form or media format in which the information is shown or exchanged (a PDF invoice, an HTML order form), not the information concept itself. Use BusinessEvent instead when the thing being modelled is a state change or occurrence (an order was placed) rather than the information entity that the occurrence concerns (the order). Use Product instead when the element is a bundle of services and contracts offered to customers as a value proposition, rather than a piece of information acted upon.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -254,7 +331,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text business definition of the object: what it means to the organization, its key information content and its lifecycle. Write it in domain vocabulary without storage or schema detail, and set it whenever the name alone is ambiguous."
             },
             "properties": {
               "type": "object",
@@ -264,12 +342,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.4.1 Business Object",
+      "x-dr-evidence": [
+        "a domain-model class or aggregate root named with a business noun (Order, Invoice, Claim) in a domain/model package, referenced by several workflow or use-case handlers",
+        "a lifecycle status enum or state machine on that entity (e.g., DRAFT, SUBMITTED, APPROVED, CANCELLED) whose transitions are driven by business process steps",
+        "an entry in a business glossary, ubiquitous-language document or requirements spec that defines the term, with matching names in database tables, API schemas or JSON Schema titles"
+      ],
+      "x-dr-distinguish": {
+        "business.contract": "the information is specifically an agreement that sets out obligations, rights or terms between a provider and a consumer (e.g., SLA, policy terms, subscription agreement)",
+        "business.representation": "the element is the perceptible form or media format in which the information is shown or exchanged (a PDF invoice, an HTML order form), not the information concept itself",
+        "business.businessevent": "the thing being modelled is a state change or occurrence (an order was placed) rather than the information entity that the occurrence concerns (the order)",
+        "business.product": "the element is a bundle of services and contracts offered to customers as a value proposition, rather than a piece of information acted upon"
+      },
       "$id": "urn:dr:spec:node:business.businessobject"
     },
     "businessprocess": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessProcess",
-      "description": "A behavior element representing a sequence or set of behaviors that achieves a specific business result for a customer or stakeholder. Driven by external triggers (BusinessEvents) or internal initiations, and performed by BusinessActors or BusinessRoles.",
+      "description": "A business behavior element, performed by a BusinessRole or BusinessActor, that consists of an ordered sequence of business activities with a defined start (a BusinessEvent or internal initiation) and a defined end state yielding a specific result, such as a delivered BusinessObject or a fulfilled request, for a customer or stakeholder. Use BusinessFunction instead when the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor. Use BusinessService instead when you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done). Use BusinessEvent instead when the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -289,7 +379,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text prose describing the process's trigger, main steps, performing role, and end result, written in business terms; set whenever the name alone does not make the start and end conditions clear."
             },
             "properties": {
               "type": "object",
@@ -299,12 +390,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.3.1 Business Process",
+      "x-dr-evidence": [
+        "A workflow or orchestration definition (BPMN file, Camunda/Temporal/Step Functions workflow, saga class) named after a business outcome, e.g. OrderFulfillmentWorkflow, whose steps run in a declared order.",
+        "A state machine or status enum on a business entity whose transitions follow a business lifecycle (e.g. SUBMITTED → APPROVED → SHIPPED) and are driven by a single orchestrating service method.",
+        "Documentation, runbooks or user stories that describe a numbered sequence of business steps from a trigger to a completion criterion, owned by a named role (e.g. 'claims handler')."
+      ],
+      "x-dr-distinguish": {
+        "business.businessfunction": "the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result.",
+        "business.businessinteraction": "the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor.",
+        "business.businessservice": "you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done).",
+        "business.businessevent": "the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes."
+      },
       "$id": "urn:dr:spec:node:business.businessprocess"
     },
     "businessrole": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessRole",
-      "description": "An active structure element representing a named set of responsibilities, skills, or authorizations that can be assigned to a BusinessActor. Roles abstract away the concrete actor, enabling flexible actor-to-behavior assignment.",
+      "description": "An active structure element naming a responsibility position in the organization (e.g., Claims Adjuster, Approver, Customer) that business behavior is assigned to and that one or more BusinessActors can fill. It is defined by what is expected of whoever occupies it, not by the identity of a particular person, department or organization. Use BusinessActor instead when the element is a specific, identifiable person, department, team or external organization, such as 'Finance Department' or 'Acme Ltd', rather than a position that different actors could fill. Use BusinessCollaboration instead when the element is a temporary or permanent grouping of two or more roles acting jointly, such as 'Buyer–Seller Negotiation', rather than a single responsibility position. Use BusinessFunction instead when the name denotes a capability-based grouping of behavior, such as 'Claims Handling', rather than the position responsible for performing it, such as 'Claims Handler'. Use BusinessInterface instead when the element is a channel or access point through which a service is offered, such as a call center, portal or front desk, rather than the responsibility held by whoever staffs it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -324,18 +427,31 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the role's responsibilities, required skills or authorizations, and typical occupying actors; set it whenever the role name alone does not make the scope of responsibility clear."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §8.2.2 Business Role",
+      "x-dr-evidence": [
+        "An enum, constant set or lookup table of job-like user categories (e.g., APPROVER, UNDERWRITER, CASE_WORKER, CUSTOMER) that workflow or task-assignment logic uses to route work, rather than to name individual users.",
+        "Workflow or BPMN definitions that name a responsibility as a swimlane, candidateGroup or task assignee (e.g., camunda:candidateGroups=\"claims-adjuster\"), or approval-chain configuration such as 'requires sign-off by Finance Approver'.",
+        "Requirements artifacts or user stories phrased 'As a <role>, I want…', or RACI and responsibility matrices listing positions against processes or tasks."
+      ],
+      "x-dr-distinguish": {
+        "business.businessactor": "the element is a specific, identifiable person, department, team or external organization, such as 'Finance Department' or 'Acme Ltd', rather than a position that different actors could fill.",
+        "business.businesscollaboration": "the element is a temporary or permanent grouping of two or more roles acting jointly, such as 'Buyer–Seller Negotiation', rather than a single responsibility position.",
+        "business.businessfunction": "the name denotes a capability-based grouping of behavior, such as 'Claims Handling', rather than the position responsible for performing it, such as 'Claims Handler'.",
+        "business.businessinterface": "the element is a channel or access point through which a service is offered, such as a call center, portal or front desk, rather than the responsibility held by whoever staffs it."
       },
       "$id": "urn:dr:spec:node:business.businessrole"
     },
     "businessservice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessService",
-      "description": "An externally visible behavior element that fulfills a business need for a customer or stakeholder. Defined from the consumer perspective; the internal realization (via BusinessProcess or BusinessFunction) is encapsulated and not exposed.",
+      "description": "A behavior element that names an explicitly defined, externally visible unit of business behavior offered to customers or other stakeholders, such as 'Claims Handling' or 'Order Delivery'. It is described by the value and outcome the consumer receives, independent of the processes, functions, or software that realize it. Use BusinessProcess instead when the element describes the internal ordered steps, triggers, and hand-offs that produce a result, rather than the offering as the consumer sees it. Use BusinessFunction instead when the element is an internal grouping of behavior by competency or organizational capability, such as Finance or HR, that is not offered to a consumer as a named service. Use BusinessInterface instead when the element is the access point or channel through which the service is obtained, such as a call center, web portal, or branch counter, rather than the behavior itself. Use Product instead when the element is a marketed bundle of one or more services together with contracts or terms, sold or offered as a single package.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -355,7 +471,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the service from the consumer's perspective: the need it fulfills, its intended consumers, and any service levels. Set it whenever the name alone does not make the offered outcome clear."
             },
             "properties": {
               "type": "object",
@@ -365,12 +482,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.3.5 Business Service",
+      "x-dr-evidence": [
+        "A service catalog, SLA, or operating-level document entry that names a customer-facing offering (e.g. 'Claims Handling') with its consumers, availability hours, and service levels.",
+        "An OpenAPI tag, bounded-context module, or top-level domain package whose description states a business outcome for external consumers and groups several operations that support it.",
+        "A pricing page, terms-of-service text, or plan/entitlement configuration listing named services a customer is entitled to receive (e.g. 'Premium Support', 'Same-day Shipping')."
+      ],
+      "x-dr-distinguish": {
+        "business.businessprocess": "the element describes the internal ordered steps, triggers, and hand-offs that produce a result, rather than the offering as the consumer sees it.",
+        "business.businessfunction": "the element is an internal grouping of behavior by competency or organizational capability, such as Finance or HR, that is not offered to a consumer as a named service.",
+        "business.businessinterface": "the element is the access point or channel through which the service is obtained, such as a call center, web portal, or branch counter, rather than the behavior itself.",
+        "business.product": "the element is a marketed bundle of one or more services together with contracts or terms, sold or offered as a single package."
+      },
       "$id": "urn:dr:spec:node:business.businessservice"
     },
     "contract": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contract",
-      "description": "A passive structure element representing a formal or informal specification of an agreement between a service provider and consumer, defining obligations, rights, and terms. Often associated with a Product or BusinessService.",
+      "description": "A business object that records an agreement between two or more parties, typically a service provider and a consumer, stating the obligations, rights, and terms (e.g., SLA levels, pricing, durations, penalties) that govern how a business service or product is delivered and used. It is information acted upon, not behavior or an actor. Use BusinessObject instead when the information has business relevance but does not bind identified parties to obligations, rights, or terms (e.g., an invoice, order, or customer record). Use Representation instead when the element is the perceptible form of the agreement, such as the signed PDF, HTML terms page, or on-screen acceptance form, rather than the agreement's content. Use Product instead when the element is the offered bundle of services and contracts sold to a market, rather than the terms attached to it. Use BusinessEvent instead when the element is the state change of the agreement, such as a contract being signed, renewed, or terminated, rather than the agreement itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -390,7 +519,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of the agreement: the parties, the services or product it covers, and its key obligations and terms. Set it whenever the element name alone does not identify which agreement is meant."
             },
             "properties": {
               "type": "object",
@@ -400,12 +530,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §8.4.2 Contract (specialization of Business Object)",
+      "x-dr-evidence": [
+        "A domain class or schema named Agreement, Contract, Subscription, or ServiceLevelAgreement with fields such as parties, effectiveDate, expiryDate, termsVersion, and obligations or penalties",
+        "SLA or SLO configuration files that declare uptime, response-time, or support-tier commitments bound to a named customer plan or tier",
+        "Versioned terms-of-service, license, or data-processing-agreement documents in the repository, with code that records a user's acceptance of a specific terms version"
+      ],
+      "x-dr-distinguish": {
+        "business.businessobject": "the information has business relevance but does not bind identified parties to obligations, rights, or terms (e.g., an invoice, order, or customer record)",
+        "business.representation": "the element is the perceptible form of the agreement, such as the signed PDF, HTML terms page, or on-screen acceptance form, rather than the agreement's content",
+        "business.product": "the element is the offered bundle of services and contracts sold to a market, rather than the terms attached to it",
+        "business.businessevent": "the element is the state change of the agreement, such as a contract being signed, renewed, or terminated, rather than the agreement itself"
+      },
       "$id": "urn:dr:spec:node:business.contract"
     },
     "product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
-      "description": "A passive structure element representing a coherent collection of BusinessServices and Contracts offered to customers or markets. The product encapsulates the value proposition delivered to end users or business partners.",
+      "description": "A composite element that bundles a named offering of one or more BusinessServices, optionally with application or technology services and business objects, together with the Contract that governs it, and that is offered as a whole to customers or markets. It is identified by what is sold or subscribed to, not by any single behavior or document within it. Use BusinessService instead when the element is a single externally visible unit of business behavior rather than a named, packaged offering combining several services with terms. Use Contract instead when the element is the agreement itself (terms, obligations, SLA, rights) rather than the offering those terms are attached to. Use BusinessObject instead when the element is information the business manipulates, such as a catalog entity or a 'Product' record or class in an e-commerce domain model describing goods for sale, rather than the offering bundle itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -425,18 +567,30 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the offering: its name as marketed, target customers or market, included services, and governing terms. Set it whenever the element is created so reviewers can tell this bundle apart from others."
             }
           },
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §8.5.1 Product",
+      "x-dr-evidence": [
+        "A plan, tier or SKU definition (e.g. a PLANS constant, Stripe product/price IDs, a billing config listing 'Basic/Pro/Enterprise') that enumerates which capabilities or services each offering includes.",
+        "An entitlements or feature-gating map keyed by subscription plan or edition, deciding which services a customer may use based on what they purchased.",
+        "Pricing-page content, product sheets or onboarding docs that present a named offering together with links to its terms of service, SLA or license agreement."
+      ],
+      "x-dr-distinguish": {
+        "business.businessservice": "the element is a single externally visible unit of business behavior rather than a named, packaged offering combining several services with terms.",
+        "business.contract": "the element is the agreement itself (terms, obligations, SLA, rights) rather than the offering those terms are attached to.",
+        "business.businessobject": "the element is information the business manipulates, such as a catalog entity or a 'Product' record or class in an e-commerce domain model describing goods for sale, rather than the offering bundle itself."
       },
       "$id": "urn:dr:spec:node:business.product"
     },
     "representation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Representation",
-      "description": "A passive structure element representing the perceptible form in which a BusinessObject is manifested (e.g., a printed report, a digital document, or an on-screen form). Multiple representations can carry the same BusinessObject.",
+      "description": "A passive structure element that is a concrete, perceptible form (document layout, file format, printed or on-screen rendering) in which the information of a BusinessObject or Contract is conveyed to people. It captures how the information looks or is encoded, not what the information means. Use BusinessObject instead when the element is the business information concept itself (e.g., Invoice, Order) independent of any rendering or file format. Use Contract instead when the element is the agreement with its obligations and terms, rather than the signed PDF or printed form carrying it. Use BusinessInterface instead when the element is an access point (portal, counter, call centre) through which a service is offered, rather than the form of information delivered through it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -456,7 +610,8 @@
           "type": "object",
           "properties": {
             "documentation": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text description of the representation, such as its audience, layout, channel (printed, emailed, on-screen), and which business object it carries. Set it whenever the name alone does not identify the rendering."
             },
             "format": {
               "type": "string",
@@ -467,6 +622,17 @@
           "required": ["format"],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "ArchiMate 3.2 §8.4.3 Representation",
+      "x-dr-evidence": [
+        "a document or report template (e.g., Jasper/Thymeleaf/Handlebars/LaTeX template, .docx template) that renders a business entity such as an invoice or statement",
+        "a PDF/CSV/XML export generator, such as a class named InvoicePdfRenderer or StatementExporter, that produces a file with a fixed layout for end users",
+        "a printable or on-screen form definition (HTML form template, print stylesheet, email template) that presents a business document to customers or staff"
+      ],
+      "x-dr-distinguish": {
+        "business.businessobject": "the element is the business information concept itself (e.g., Invoice, Order) independent of any rendering or file format.",
+        "business.contract": "the element is the agreement with its obligations and terms, rather than the signed PDF or printed form carrying it.",
+        "business.businessinterface": "the element is an access point (portal, counter, call centre) through which a service is offered, rather than the form of information delivered through it."
       },
       "$id": "urn:dr:spec:node:business.representation"
     }

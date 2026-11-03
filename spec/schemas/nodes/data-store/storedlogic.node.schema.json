@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StoredLogic",
-  "description": "Stored computation logic that executes within the data store engine. Paradigm-neutral: covers SQL functions and procedures, MongoDB aggregation pipelines, Redis Lua scripts, Cassandra UDFs, Neo4j stored procedures, Elasticsearch ingest pipelines, time-series continuous queries, and DynamoDB Lambda triggers.",
+  "description": "A named unit of executable logic that is deployed into and executed by the data store engine itself, such as an SQL function, procedure or package, a Redis Lua script or function, a Cassandra UDF/UDA, a Neo4j procedure, an Elasticsearch ingest pipeline or Painless script, or a scheduled time-series task. It is invoked by name, by an event handler, or on a schedule, rather than shipped as a query text by application code. Use EventHandler instead when the element is the binding that fires on a data-change event (CREATE TRIGGER, a change-stream subscription, a keyspace notification listener), not the routine body that the binding calls. Use View instead when the stored query is exposed as a readable derived collection (CREATE VIEW, a materialized view, a continuous aggregate, a search alias) that clients select from, rather than a routine they invoke. Use AccessPattern instead when the query or aggregation pipeline is built and sent ad hoc by repository/DAO code on each call and is never registered in the engine. Use ValidationRule instead when the integrity check is a declarative constraint (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator, strict mapping) rather than procedural code.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -92,5 +92,17 @@
       "required": ["logicType", "language"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ISO/IEC 9075-2 SQL-invoked routines (CREATE FUNCTION / CREATE PROCEDURE) and ISO/IEC 9075-4 SQL/PSM (Persistent Stored Modules)",
+  "x-dr-evidence": [
+    "A migration or schema file containing CREATE [OR REPLACE] FUNCTION, CREATE PROCEDURE or CREATE PACKAGE with a LANGUAGE clause (plpgsql, tsql, java) and a routine body, e.g. a $$-delimited block",
+    "A .lua script file loaded with SCRIPT LOAD and called via EVALSHA, or registered with redis.register_function / ioredis defineCommand",
+    "Application code calling a routine by name (JDBC CallableStatement '{call ...}', Python cursor.callproc, Spring @Procedure, Npgsql CommandType.StoredProcedure), or engine config such as PUT _ingest/pipeline/<name> or an InfluxDB task with 'option task = {every: ...}'"
+  ],
+  "x-dr-distinguish": {
+    "data-store.eventhandler": "the element is the binding that fires on a data-change event (CREATE TRIGGER, a change-stream subscription, a keyspace notification listener), not the routine body that the binding calls",
+    "data-store.view": "the stored query is exposed as a readable derived collection (CREATE VIEW, a materialized view, a continuous aggregate, a search alias) that clients select from, rather than a routine they invoke",
+    "data-store.accesspattern": "the query or aggregation pipeline is built and sent ad hoc by repository/DAO code on each call and is never registered in the engine",
+    "data-store.validationrule": "the integrity check is a declarative constraint (CHECK, NOT NULL, FOREIGN KEY, JSON Schema validator, strict mapping) rather than procedural code"
   }
 }

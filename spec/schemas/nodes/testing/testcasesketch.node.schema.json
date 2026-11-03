@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TestCaseSketch",
-  "description": "A design-time test case specification that selects concrete input partition values for a CoverageRequirement, serving as the bridge between test design (InputPartitionSelection) and executable test case specification per IEEE 829-2008. Exists in sketch (unimplemented) or implemented status \u2014 not yet tied to a specific test runner or execution framework.",
+  "description": "A single test case design that combines specific input selections (one chosen value per relevant partition), a context variation and an expected outcome category to exercise one CoverageRequirement of a TestCoverageTarget. It may remain unimplemented or be linked through source to the individual test function, parameterized row or scenario that realizes it. Use CoverageRequirement instead when the element states which partitions, contexts or outcomes must be covered (the criterion), rather than one specific combination chosen to satisfy it. Use InputSelection instead when the element is one field's binding of a partition representative to a concrete datum inside a test case, not the whole test case. Use InputPartitionSelection instead when the element lists which partition values a coverage requirement demands across all its tests, rather than the values one test case uses. Use TestCoverageTarget instead when the element identifies the endpoint, component or workflow under test, which anchors many test cases, rather than an individual test case against it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text summary of the scenario this sketch exercises: preconditions, the input combination chosen and the expected observable outcome. Set it whenever the name alone does not make the intent clear."
         },
         "status": {
           "type": "string",
@@ -52,5 +53,17 @@
       "required": ["status"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 11 Level Test Case (test case specification: inputs, expected outcomes, environmental needs)",
+  "x-dr-evidence": [
+    "An individual test function or method (pytest test_*, Jest it()/test(), JUnit @Test) whose name, docstring or tag cites a requirement or partition, e.g. 'rejects quantity below zero'.",
+    "A single row of a parameterized test, such as a pytest.mark.parametrize id, a JUnit @CsvSource line or a Gherkin 'Scenario Outline' Examples row, binding concrete inputs to an expected result.",
+    "A test-case entry in a test plan, spreadsheet or test-management export (TestRail, Xray, Zephyr) with an ID, preconditions, input values, expected result and a status such as Draft or Approved."
+  ],
+  "x-dr-distinguish": {
+    "testing.coveragerequirement": "the element states which partitions, contexts or outcomes must be covered (the criterion), rather than one specific combination chosen to satisfy it.",
+    "testing.inputselection": "the element is one field's binding of a partition representative to a concrete datum inside a test case, not the whole test case.",
+    "testing.inputpartitionselection": "the element lists which partition values a coverage requirement demands across all its tests, rather than the values one test case uses.",
+    "testing.testcoveragetarget": "the element identifies the endpoint, component or workflow under test, which anchors many test cases, rather than an individual test case against it."
   }
 }

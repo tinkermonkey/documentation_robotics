@@ -32,7 +32,7 @@
     "alert": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Alert",
-      "description": "A named alerting rule that evaluates a condition against observed signals (metrics, traces, logs) on a schedule and fires a notification when the condition is met. Represents the alert definition in the monitoring backend (e.g., Prometheus alertmanager, Grafana alerting, Datadog monitors), not an individual alert event.",
+      "description": "A declarative rule configured in a monitoring backend that evaluates a threshold or query expression over telemetry (metrics, spans, logs) at a recurring interval and sends a notification to one or more destinations when the expression holds. It is the persisted rule definition, not a single firing or incident instance. Use Dashboard instead when the artifact only visualizes signals in panels and has no triggering condition or notification routing of its own. Use MetricInstrument instead when the symbol defines the measured quantity itself (a Counter, Histogram or Gauge created via a Meter) rather than a rule that evaluates that quantity. Use LogRecord instead when the thing is a single emitted event or log entry, including a record of an alert having fired, rather than the standing rule that decides when to fire. Use LogConfiguration instead when the severity threshold only filters which log records the SDK emits, rather than triggering a notification when a condition over signals is met.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -80,12 +80,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "A Prometheus rules YAML file with a groups[].rules[] entry that has an 'alert:' name, an 'expr:' PromQL condition, an optional 'for:' duration and a 'labels.severity' value",
+        "An infrastructure-as-code resource such as Terraform 'datadog_monitor', 'grafana_rule_group', 'newrelic_alert_condition' or 'aws_cloudwatch_metric_alarm' (or CloudFormation AWS::CloudWatch::Alarm) that declares a query or threshold and notification targets",
+        "An Alertmanager or Grafana contact-point/route configuration, or a monitor JSON export, that binds a named rule to Slack, PagerDuty or email receivers"
+      ],
+      "x-dr-distinguish": {
+        "apm.dashboard": "the artifact only visualizes signals in panels and has no triggering condition or notification routing of its own",
+        "apm.metricinstrument": "the symbol defines the measured quantity itself (a Counter, Histogram or Gauge created via a Meter) rather than a rule that evaluates that quantity",
+        "apm.logrecord": "the thing is a single emitted event or log entry, including a record of an alert having fired, rather than the standing rule that decides when to fire",
+        "apm.logconfiguration": "the severity threshold only filters which log records the SDK emits, rather than triggering a notification when a condition over signals is met"
+      },
       "$id": "urn:dr:spec:node:apm.alert"
     },
     "dashboard": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Dashboard",
-      "description": "A named monitoring dashboard that groups visualizations of APM signals (metrics, traces, logs) to provide operational visibility into system behavior. Represents the dashboard definition in the monitoring platform (e.g., Grafana, Datadog, CloudWatch), serving as the primary observability artifact teams consult during incidents and reviews.",
+      "description": "A persisted monitoring-platform view definition that arranges one or more visualization panels, each querying metrics, traces, logs or alert state, into a single named page for human inspection. It is the definition of the view (e.g., Grafana dashboard JSON, Datadog dashboard resource), not the underlying signals or the queries' alerting logic. Use Alert instead when the artifact evaluates a condition on a schedule and sends notifications, even if it is defined in the same platform or shown on a dashboard panel. Use MetricInstrument instead when the code creates or records a measurement (Counter, Histogram, Gauge) rather than displaying or querying one. Use ExporterConfig instead when the configuration sends telemetry to a backend (endpoint, protocol, auth) rather than defining how that backend visualizes it.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -159,12 +170,22 @@
           "additionalProperties": false
         }
       },
+      "x-dr-evidence": [
+        "a Grafana dashboard JSON file (with 'panels', 'targets' and 'templating' keys) under a dashboards/ or provisioning/ directory, or a grafana-dashboard ConfigMap in Kubernetes manifests",
+        "an infrastructure-as-code resource such as Terraform 'datadog_dashboard', 'grafana_dashboard', 'aws_cloudwatch_dashboard' or 'newrelic_one_dashboard' containing widget definitions",
+        "a dashboard-as-code module (e.g., grafonnet/Jsonnet, grafanalib Python, CDK Dashboard construct) that builds panels with PromQL, LogQL or trace queries"
+      ],
+      "x-dr-distinguish": {
+        "apm.alert": "the artifact evaluates a condition on a schedule and sends notifications, even if it is defined in the same platform or shown on a dashboard panel.",
+        "apm.metricinstrument": "the code creates or records a measurement (Counter, Histogram, Gauge) rather than displaying or querying one.",
+        "apm.exporterconfig": "the configuration sends telemetry to a backend (endpoint, protocol, auth) rather than defining how that backend visualizes it."
+      },
       "$id": "urn:dr:spec:node:apm.dashboard"
     },
     "exporterconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExporterConfig",
-      "description": "Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.",
+      "description": "A telemetry export configuration that binds one OpenTelemetry exporter (SpanExporter, MetricExporter/pull reader, or LogRecordExporter, or an OTel Collector exporter) to a concrete destination, specifying the exporter kind, endpoint, wire protocol, authentication and compression used to send or expose observability data outside the process. Use LogProcessor instead when the element filters, enriches, batches or routes log records before they reach an exporter, rather than defining the destination and transport itself. Use TraceConfiguration instead when the element is the TracerProvider setup (sampler, propagators, span processor pipeline) that merely registers an exporter, not the exporter's endpoint and transport settings. Use MetricConfiguration instead when the element sets MeterProvider-wide behaviour such as export interval, timeout, cardinality limits or exemplar filtering, rather than where and how metrics are delivered. Use LogConfiguration instead when the element configures the LoggerProvider pipeline and minimum severity, with the exporter only wired in as a component.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -196,13 +217,16 @@
               "description": "The type of exporter"
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether this exporter is active and receives telemetry; set to false to keep the configuration defined but disabled (e.g. per environment), defaulting to true when omitted."
             },
             "endpoint": {
-              "type": "string"
+              "type": "string",
+              "description": "URL or host:port of the export destination (e.g. 'http://otel-collector:4318/v1/traces' or 'collector:4317'); for pull-based exporters such as Prometheus it is the local listen address scraped by the backend, and for stdout/logging it may be 'stdout'."
             },
             "protocol": {
-              "type": "string"
+              "type": "string",
+              "description": "Wire transport and encoding used to deliver data, using OTel values 'grpc', 'http/protobuf' or 'http/json' for OTLP, or the exporter-native transport (e.g. 'thrift' for Jaeger); set whenever the exporter supports more than one protocol."
             },
             "authType": {
               "type": "string",
@@ -219,12 +243,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry SDK Specification: SpanExporter, MetricExporter and LogRecordExporter interfaces; OpenTelemetry Protocol Exporter configuration (OTEL_EXPORTER_OTLP_*)",
+      "x-dr-evidence": [
+        "Instantiation of an exporter class with destination options, e.g. new OTLPTraceExporter({ url, headers }), OTLPMetricExporter, JaegerExporter, ZipkinExporter, PrometheusExporter({ port }), or ConsoleSpanExporter.",
+        "Environment or deployment variables such as OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_PROTOCOL, OTEL_EXPORTER_OTLP_HEADERS, OTEL_EXPORTER_OTLP_COMPRESSION or OTEL_TRACES_EXPORTER in .env files, Helm values or Kubernetes manifests.",
+        "An 'exporters:' block in an OpenTelemetry Collector YAML config (e.g. otlp, otlphttp, prometheus, debug) with endpoint, tls and headers keys, referenced from a service pipeline."
+      ],
+      "x-dr-distinguish": {
+        "apm.logprocessor": "the element filters, enriches, batches or routes log records before they reach an exporter, rather than defining the destination and transport itself.",
+        "apm.traceconfiguration": "the element is the TracerProvider setup (sampler, propagators, span processor pipeline) that merely registers an exporter, not the exporter's endpoint and transport settings.",
+        "apm.metricconfiguration": "the element sets MeterProvider-wide behaviour such as export interval, timeout, cardinality limits or exemplar filtering, rather than where and how metrics are delivered.",
+        "apm.logconfiguration": "the element configures the LoggerProvider pipeline and minimum severity, with the exporter only wired in as a component."
+      },
       "$id": "urn:dr:spec:node:apm.exporterconfig"
     },
     "instrumentationconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InstrumentationConfig",
-      "description": "Configuration for OTel instrumentation of application code. Auto-instrumentation uses SDK contrib plugin libraries (e.g., opentelemetry-instrumentation-express) that hook into frameworks transparently at SDK bootstrap time. Manual instrumentation uses direct OTel API calls (Tracer.startSpan, Meter.createCounter) embedded in application code. This node controls which libraries or code paths are instrumented and whether instrumentation is enabled.",
+      "description": "A telemetry configuration entry that selects one instrumented library, framework or application code path and sets whether and how it is instrumented. This covers an auto-instrumentation plugin registered at SDK bootstrap, or a manual instrumentation site using the OTel Tracer/Meter/Logger API. It does not cover where telemetry is sent, how it is sampled, or which individual instruments are defined. Use InstrumentationScope instead when the element is the name/version/schemaUrl identity stamped on emitted telemetry (the tracer or meter name), not the setting that turns instrumentation of a library on or off. Use TraceConfiguration instead when the configuration governs TracerProvider-wide behaviour such as sampler, propagators or span processor pipeline rather than which library or code path is instrumented. Use ExporterConfig instead when the configuration specifies the destination, protocol, endpoint, authentication or compression for exported telemetry. Use MetricInstrument instead when the code creates a specific Counter, Histogram or Gauge with its own name and unit; that is an instrument produced by instrumentation, not the instrumentation setting itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -244,17 +280,20 @@
           "type": "object",
           "properties": {
             "type": {
-              "type": "string"
+              "type": "string",
+              "description": "Category of the instrumented target, as a short lowercase label such as 'http', 'database', 'messaging', 'rpc', 'framework' or 'runtime'; set it on every instance to group instrumentation by technology."
             },
             "libraryName": {
               "type": "string",
               "description": "OTel InstrumentationScope-compatible library name identifying the instrumented library or framework (e.g., 'io.opentelemetry.spring-webmvc-6.0'). Used to correlate this config with telemetry emitted under the matching InstrumentationScope."
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether this instrumentation is active at runtime. Treat it as true when absent, and set it to false when the library is explicitly disabled (e.g., OTEL_INSTRUMENTATION_FS_ENABLED=false)."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Free-text explanation of what this instrumentation captures and any notable options applied, such as ignored routes or captured headers. Set it when the libraryName alone does not convey intent."
             },
             "instrumentationType": {
               "type": "string",
@@ -266,12 +305,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Instrumentation Libraries and zero-code (automatic) instrumentation; OpenTelemetry declarative configuration 'instrumentation' section",
+      "x-dr-evidence": [
+        "A registerInstrumentations([...]) or getNodeAutoInstrumentations({...}) call listing plugins such as '@opentelemetry/instrumentation-http' with per-plugin enabled flags or options",
+        "Environment variables or agent flags such as OTEL_INSTRUMENTATION_<NAME>_ENABLED, OTEL_NODE_ENABLED_INSTRUMENTATIONS, OTEL_PYTHON_DISABLED_INSTRUMENTATIONS or -javaagent:opentelemetry-javaagent.jar in a Dockerfile, Helm values or startup script",
+        "An opentelemetry-instrumentation-* dependency invoked in code (e.g., FlaskInstrumentor().instrument_app(app)), or a wrapper module that calls trace.getTracer('<lib>') to manually instrument a specific code path"
+      ],
+      "x-dr-distinguish": {
+        "apm.instrumentationscope": "the element is the name/version/schemaUrl identity stamped on emitted telemetry (the tracer or meter name), not the setting that turns instrumentation of a library on or off",
+        "apm.traceconfiguration": "the configuration governs TracerProvider-wide behaviour such as sampler, propagators or span processor pipeline rather than which library or code path is instrumented",
+        "apm.exporterconfig": "the configuration specifies the destination, protocol, endpoint, authentication or compression for exported telemetry",
+        "apm.metricinstrument": "the code creates a specific Counter, Histogram or Gauge with its own name and unit; that is an instrument produced by instrumentation, not the instrumentation setting itself"
+      },
       "$id": "urn:dr:spec:node:apm.instrumentationconfig"
     },
     "instrumentationscope": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InstrumentationScope",
-      "description": "Named instrumented library or component that identifies the source of telemetry across all three OTel signal types (traces, metrics, logs), enabling attribution and filtering of signals by their origin.",
+      "description": "A named telemetry-producer identity, consisting of a name plus optional version, schema URL and attributes, under which code obtains a Tracer, Meter or Logger so that every span, metric and log record it emits is tagged with that origin. It identifies the instrumenting library or module, not the service or process that runs it. Use Resource instead when the identity describes the service, host, process or deployment that produces telemetry (service.name, host.name) rather than the library or module within it that emits the signals. Use InstrumentationConfig instead when the element is the setting that selects, enables or disables instrumentation of a library or code path, rather than the name/version identity stamped on the emitted telemetry. Use MetricInstrument instead when the element is an individual Counter, Histogram or Gauge created from a Meter, rather than the named Meter scope that owns the instruments. Use TraceConfiguration instead when the element is TracerProvider-wide sampler, propagator or processor configuration rather than a per-library tracer identity.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -291,13 +342,16 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": "string",
+              "description": "Version string of the instrumenting library or module (typically semver, e.g. '1.4.0'), as passed to getTracer/getMeter/getLogger; set whenever the code supplies a version."
             },
             "schemaUrl": {
-              "type": "string"
+              "type": "string",
+              "description": "URL of the OpenTelemetry semantic-conventions schema that this scope's telemetry conforms to (e.g. 'https://opentelemetry.io/schemas/1.24.0'); set when the code passes a schemaUrl on acquisition."
             },
             "droppedAttributesCount": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative integer count of scope attributes discarded because of attribute limits; set to 0 when modelling a scope definition rather than observed runtime data."
             },
             "attributes": {
               "type": "object",
@@ -309,12 +363,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Specification: InstrumentationScope (Glossary and Tracer/Meter/Logger 'Get a ...' operations); OTLP InstrumentationScope message in ScopeSpans/ScopeMetrics/ScopeLogs",
+      "x-dr-evidence": [
+        "Calls such as trace.getTracer('com.example.payments', '1.2.0'), meterProvider.getMeter(name, version, {schemaUrl}) or loggerProvider.getLogger(name) with a literal or constant library/module name",
+        "An instrumentation package whose class passes a name and version constant to its base constructor, e.g. super('@opentelemetry/instrumentation-express', VERSION) or InstrumentationScopeInfo.builder(name).setVersion(...)",
+        "Exported telemetry or collector config referencing scope identity: OTLP scopeSpans/scopeMetrics/scopeLogs entries with scope.name, or otel.scope.name / otel.library.name labels used in queries and filters"
+      ],
+      "x-dr-distinguish": {
+        "apm.resource": "the identity describes the service, host, process or deployment that produces telemetry (service.name, host.name) rather than the library or module within it that emits the signals",
+        "apm.instrumentationconfig": "the element is the setting that selects, enables or disables instrumentation of a library or code path, rather than the name/version identity stamped on the emitted telemetry",
+        "apm.metricinstrument": "the element is an individual Counter, Histogram or Gauge created from a Meter, rather than the named Meter scope that owns the instruments",
+        "apm.traceconfiguration": "the element is TracerProvider-wide sampler, propagator or processor configuration rather than a per-library tracer identity"
+      },
       "$id": "urn:dr:spec:node:apm.instrumentationscope"
     },
     "logconfiguration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LogConfiguration",
-      "description": "OTel LoggerProvider configuration, covering the LogRecordProcessor pipeline, LogRecordExporter wiring, and minimum severity filtering for log emission.",
+      "description": "A provider-level logging SDK configuration that bootstraps the log pipeline for one service: the OTel LoggerProvider, or an equivalent logging-framework root configuration, that registers log record processors and exporters and sets the minimum severity for emitted log records. It covers the pipeline as a whole, not any single processor, exporter or log record. Use LogProcessor instead when the symbol is one processing stage (simple, batch or custom filter/enricher) that is attached to the log pipeline, rather than the provider setup that assembles the pipeline. Use ExporterConfig instead when the symbol only specifies an export destination (endpoint, protocol, auth, compression) that a log, trace or metric pipeline sends data to. Use Resource instead when the symbol defines service identity attributes (service.name, service.version, deployment.environment) that are merged into all signals rather than log-pipeline settings. Use LogRecord instead when the symbol is an individual emitted log event or the structure of one, rather than the configuration governing emission.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -334,7 +400,8 @@
           "type": "object",
           "properties": {
             "serviceName": {
-              "type": "string"
+              "type": "string",
+              "description": "Logical name of the service whose log pipeline this configuration sets up, given as a plain string matching the Resource's service.name (e.g. 'checkout-api'); set it to tie the configuration to its emitting service."
             },
             "minimumSeverity": {
               "type": "string",
@@ -346,12 +413,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Logs SDK specification – LoggerProvider (with LogRecordProcessor and LogRecordExporter configuration)",
+      "x-dr-evidence": [
+        "Construction of an OTel LoggerProvider or SdkLoggerProvider builder that chains addLogRecordProcessor(...) calls and is then registered globally, e.g. via set_logger_provider or OpenTelemetrySdk.builder().setLoggerProvider",
+        "Environment or SDK config keys such as OTEL_LOGS_EXPORTER, OTEL_BLRP_SCHEDULE_DELAY or a 'logger_provider:' block in an OTel declarative config file",
+        "A logging framework root configuration, such as logback.xml, log4j2.xml or Python logging.config dictConfig, that sets the root level and attaches an OpenTelemetry appender or handler"
+      ],
+      "x-dr-distinguish": {
+        "apm.logprocessor": "the symbol is one processing stage (simple, batch or custom filter/enricher) that is attached to the log pipeline, rather than the provider setup that assembles the pipeline",
+        "apm.exporterconfig": "the symbol only specifies an export destination (endpoint, protocol, auth, compression) that a log, trace or metric pipeline sends data to",
+        "apm.resource": "the symbol defines service identity attributes (service.name, service.version, deployment.environment) that are merged into all signals rather than log-pipeline settings",
+        "apm.logrecord": "the symbol is an individual emitted log event or the structure of one, rather than the configuration governing emission"
+      },
       "$id": "urn:dr:spec:node:apm.logconfiguration"
     },
     "logprocessor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LogProcessor",
-      "description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
+      "description": "A log-record pipeline stage registered on an OTel LoggerProvider (or in a Collector logs pipeline) that receives each emitted LogRecord and either forwards it to an exporter, synchronously or in buffered batches, or filters, transforms, enriches or redacts it before passing it on. It models one processor in the chain, not the provider-level logging configuration. Use LogConfiguration instead when the element is the LoggerProvider-level setup (service name, minimum severity, the overall processor/exporter wiring) rather than one stage in the processor chain. Use ExporterConfig instead when the element specifies where and how logs are sent (endpoint, protocol, authentication, compression) rather than how records are handled before export. Use LogRecord instead when the element is an individual log event or the structure of emitted log data rather than the component that handles those records. Use TraceConfiguration instead when the pipeline component processes spans (a SpanProcessor) rather than log records.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -376,22 +455,36 @@
               "description": "OTel log record processor type (simple: synchronous, batch: asynchronous buffered)"
             },
             "order": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Ascending integer position of this processor in its LoggerProvider or pipeline chain, where lower values run first; set it when more than one processor is registered so that invocation order is explicit."
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Boolean indicating whether the processor is active in the pipeline (default true); set it to false when the processor is defined in configuration but deliberately not registered or is disabled by a feature flag."
             }
           },
           "required": ["type"],
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Logs SDK Specification: LogRecordProcessor (SimpleLogRecordProcessor, BatchLogRecordProcessor)",
+      "x-dr-evidence": [
+        "a class implementing the OTel LogRecordProcessor interface (onEmit/emit, forceFlush, shutdown), for example a redaction or enrichment processor",
+        "instantiation of BatchLogRecordProcessor or SimpleLogRecordProcessor passed to LoggerProvider.addLogRecordProcessor / SdkLoggerProvider.builder().addLogRecordProcessor, or OTEL_BLRP_* environment variables",
+        "an entry under processors: (e.g. batch, attributes, filter, transform, redaction) referenced in an OpenTelemetry Collector service.pipelines.logs.processors list"
+      ],
+      "x-dr-distinguish": {
+        "apm.logconfiguration": "the element is the LoggerProvider-level setup (service name, minimum severity, the overall processor/exporter wiring) rather than one stage in the processor chain",
+        "apm.exporterconfig": "the element specifies where and how logs are sent (endpoint, protocol, authentication, compression) rather than how records are handled before export",
+        "apm.logrecord": "the element is an individual log event or the structure of emitted log data rather than the component that handles those records",
+        "apm.traceconfiguration": "the pipeline component processes spans (a SpanProcessor) rather than log records"
+      },
       "$id": "urn:dr:spec:node:apm.logprocessor"
     },
     "logrecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LogRecord",
-      "description": "Structured log record in the OTel data model, capturing an event with dual timestamps (timeUnixNano for event occurrence, observedTimeUnixNano for ingestion), a 1–24 severity scale, and an unstructured body. Supports trace context correlation to link logs to distributed traces.",
+      "description": "A structured log event emitted by application or library code through a logging API or the OTel Logs Bridge API. It is identified by a stable message template or event name together with its severity, body and attributes. It models the kind of record a log call site produces, not a transient annotation on a span. Use SpanEvent instead when the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record. Use LogConfiguration instead when the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event. Use LogProcessor instead when the code filters, enriches, batches or routes log records in the pipeline instead of producing them. Use MetricInstrument instead when the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -411,25 +504,32 @@
           "type": "object",
           "properties": {
             "timeUnixNano": {
-              "type": "string"
+              "type": "string",
+              "description": "Time the described event occurred, given as nanoseconds since the Unix epoch encoded as a decimal string; set it when the emitting source supplies an event time, otherwise use '0' (unknown)."
             },
             "observedTimeUnixNano": {
-              "type": "string"
+              "type": "string",
+              "description": "Time the record was observed by the collection pipeline (SDK or collector), given as nanoseconds since the Unix epoch encoded as a decimal string; it is normally set by the pipeline and falls back to timeUnixNano when no separate observation time exists."
             },
             "severityNumber": {
-              "type": "string"
+              "type": "string",
+              "description": "OTel numeric severity from 1 to 24 (1–4 TRACE, 5–8 DEBUG, 9–12 INFO, 13–16 WARN, 17–20 ERROR, 21–24 FATAL), with 0 meaning unspecified, written here as a decimal string; set it to the level used by the emitting call."
             },
             "severityText": {
-              "type": "string"
+              "type": "string",
+              "description": "Original severity label as produced by the source logging framework (e.g., 'WARNING', 'err'); set it to preserve the native level name alongside severityNumber."
             },
             "body": {
-              "type": "string"
+              "type": "string",
+              "description": "The log message or event payload, typically the message template (e.g., 'Order {orderId} created') or a serialized structured body; set it to the stable content that identifies this record."
             },
             "flags": {
-              "type": "string"
+              "type": "string",
+              "description": "W3C trace flags byte from the span context active at emission, as a hex string (e.g., '01' = sampled); set it when the record is correlated with a trace, otherwise use '00'."
             },
             "droppedAttributesCount": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of attributes discarded because of attribute count or length limits, as a non-negative integer; use 0 for modelled records unless limits are known to truncate them."
             },
             "attributes": {
               "type": "object",
@@ -448,12 +548,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Logs Data Model – LogRecord (Log and Event Record Definition)",
+      "x-dr-evidence": [
+        "A structured logger call with a stable message template or event name plus key-value fields, e.g. logger.warn('payment.declined', {orderId, reason}) or log.info().addKeyValue(...)",
+        "A direct OTel Logs Bridge API emission such as logger.emit({severityNumber, severityText, body, attributes}) or LogRecordBuilder.setBody(...).emit()",
+        "Documented log or audit event catalogs, or constants enumerating log event names and their fields, e.g. AUDIT_USER_LOGIN = 'user.login' referenced from logging calls"
+      ],
+      "x-dr-distinguish": {
+        "apm.spanevent": "the occurrence is recorded on an active span via span.addEvent or span.recordException, rather than emitted through a logger as an independent record",
+        "apm.logconfiguration": "the code sets up the LoggerProvider, its exporters or its minimum-severity filtering, rather than emitting a particular log event",
+        "apm.logprocessor": "the code filters, enriches, batches or routes log records in the pipeline instead of producing them",
+        "apm.metricinstrument": "the occurrence is counted or measured as an aggregated numeric time series instead of being recorded as an individual event with a body"
+      },
       "$id": "urn:dr:spec:node:apm.logrecord"
     },
     "metricconfiguration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MetricConfiguration",
-      "description": "OTel MeterProvider-level (global) metrics SDK configuration, covering export intervals, cardinality limits, and exemplar filtering. Distinct from per-meter configuration in MeterConfig.",
+      "description": "A process-wide OpenTelemetry metrics SDK configuration, applied once at MeterProvider construction, that sets how all metric instruments are collected and exported: the periodic reader's export interval and timeout, per-instrument cardinality limits, and exemplar filtering and reservoir sizing. It configures the metrics pipeline itself, not any individual instrument or export destination. Use MetricInstrument instead when the symbol defines one named measurement (a Counter, Histogram, Gauge, etc. created via meter.createX) with its own unit and description rather than global collection behaviour. Use ExporterConfig instead when the code specifies where metrics are sent (OTLP or Prometheus endpoint, protocol, authentication, compression) rather than how often and how much is collected. Use TraceConfiguration instead when the setup configures a TracerProvider (sampler, propagators, span processors) rather than a MeterProvider and its metric readers. Use InstrumentationConfig instead when the code enables or disables auto/manual instrumentation libraries that emit metrics, rather than configuring the SDK pipeline that collects them.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -473,10 +585,12 @@
           "type": "object",
           "properties": {
             "serviceName": {
-              "type": "string"
+              "type": "string",
+              "description": "Logical service name (matching the Resource service.name) identifying which service's MeterProvider this configuration belongs to; set it so the configuration can be correlated with the service's Resource."
             },
             "exportIntervalMillis": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Interval in milliseconds between successive collections and exports by the periodic metric reader (OTel default 60000); set it when the code or OTEL_METRIC_EXPORT_INTERVAL overrides the default."
             },
             "exportTimeoutMillis": {
               "type": "integer",
@@ -500,12 +614,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Metrics SDK Specification: MeterProvider configuration, PeriodicExportingMetricReader, Exemplar Filter and Cardinality Limits",
+      "x-dr-evidence": [
+        "Construction of an SDK MeterProvider (e.g. new MeterProvider({ readers: [...], views: [...] }), SdkMeterProvider.builder(), metrics.set_meter_provider(...)) in service bootstrap code",
+        "A PeriodicExportingMetricReader or equivalent instantiated with exportIntervalMillis/exportTimeoutMillis options, or env vars OTEL_METRIC_EXPORT_INTERVAL, OTEL_METRIC_EXPORT_TIMEOUT, OTEL_METRICS_EXEMPLAR_FILTER in deployment manifests",
+        "A meter_provider section in an OTel declarative configuration YAML file setting readers, cardinality_limits, or exemplar_filter"
+      ],
+      "x-dr-distinguish": {
+        "apm.metricinstrument": "the symbol defines one named measurement (a Counter, Histogram, Gauge, etc. created via meter.createX) with its own unit and description rather than global collection behaviour.",
+        "apm.exporterconfig": "the code specifies where metrics are sent (OTLP or Prometheus endpoint, protocol, authentication, compression) rather than how often and how much is collected.",
+        "apm.traceconfiguration": "the setup configures a TracerProvider (sampler, propagators, span processors) rather than a MeterProvider and its metric readers.",
+        "apm.instrumentationconfig": "the code enables or disables auto/manual instrumentation libraries that emit metrics, rather than configuring the SDK pipeline that collects them."
+      },
       "$id": "urn:dr:spec:node:apm.metricconfiguration"
     },
     "metricinstrument": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MetricInstrument",
-      "description": "Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.",
+      "description": "A named OpenTelemetry metric instrument, obtained from a Meter (e.g. createCounter, histogramBuilder) or declared through an equivalent metrics client, that records measurements of one quantity under a fixed instrument kind and unit. It represents the instrument definition, not individual data points, time series, or the views and exports applied to them. Use MetricConfiguration instead when the code sets MeterProvider-wide behaviour such as export interval, cardinality limits, exemplar filtering, or metric readers, rather than declaring a single named instrument. Use InstrumentationConfig instead when the code enables or configures an instrumentation library that emits metrics automatically, and no instrument is declared directly in application code. Use Alert instead when the artifact is a rule or threshold expression evaluated against a metric's values, such as a Prometheus alerting rule over a histogram, rather than the code that records the metric. Use Span instead when the operation is recorded as a timed unit of work in a trace via Tracer.startSpan, rather than aggregated into a counter, gauge, or histogram.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -538,13 +664,16 @@
               "description": "OTel instrument type: synchronous (Counter, UpDownCounter, Histogram, Gauge) or asynchronous/observable (ObservableCounter, ObservableUpDownCounter, ObservableGauge)"
             },
             "unit": {
-              "type": "string"
+              "type": "string",
+              "description": "The instrument's unit of measure, as a UCUM case-sensitive string per OTel semantic conventions (e.g. 'ms', 's', 'By', '1', '{request}'). Copy it from the unit argument at instrument creation, using a curly-brace annotation for counts of things."
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable text explaining what the instrument measures, taken from the description argument or the Prometheus help string at creation. Set it whenever the code provides one."
             },
             "enabled": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "Whether measurements from this instrument are currently recorded and exported. Set it to false when the instrument is disabled by a feature flag, configuration, or an OTel View with Drop aggregation."
             },
             "source": {
               "type": "object",
@@ -555,12 +684,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Metrics API Specification: Instrument (Meter create-instrument operations: Counter, UpDownCounter, Histogram, Gauge, and Asynchronous Counter/UpDownCounter/Gauge)",
+      "x-dr-evidence": [
+        "A Meter factory call such as meter.createCounter('http.server.request.count', { unit: '{request}', description: ... }) or meter.histogramBuilder(\"db.client.duration\").setUnit(\"ms\").build(), assigned to a field or module-level constant.",
+        "A metrics-client declaration such as new prometheus.Histogram({ name, help, buckets }), Counter.builder(\"orders.placed\").register(registry) in Micrometer, or a @Timed/@Counted annotation that creates a named instrument.",
+        "Registration of an asynchronous callback, for example meter.createObservableGauge('queue.depth').addCallback(result => result.observe(queue.size())) or a registerCallback reading a pool size."
+      ],
+      "x-dr-distinguish": {
+        "apm.metricconfiguration": "the code sets MeterProvider-wide behaviour such as export interval, cardinality limits, exemplar filtering, or metric readers, rather than declaring a single named instrument.",
+        "apm.instrumentationconfig": "the code enables or configures an instrumentation library that emits metrics automatically, and no instrument is declared directly in application code.",
+        "apm.alert": "the artifact is a rule or threshold expression evaluated against a metric's values, such as a Prometheus alerting rule over a histogram, rather than the code that records the metric.",
+        "apm.span": "the operation is recorded as a timed unit of work in a trace via Tracer.startSpan, rather than aggregated into a counter, gauge, or histogram."
+      },
       "$id": "urn:dr:spec:node:apm.metricinstrument"
     },
     "resource": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Resource",
-      "description": "Immutable set of attributes identifying the entity (service, host, process) that produces telemetry. Resource attributes are merged into all signals (traces, metrics, logs) emitted by a process at the SDK level, making accurate resource definition critical for cross-signal correlation.",
+      "description": "An immutable set of OpenTelemetry attributes, built once per SDK or process from code, environment variables or resource detectors, that identifies the telemetry-producing entity (service, host, process, container, cloud instance). The SDK attaches it unchanged to every span, metric and log record that the process's providers emit. Use InstrumentationScope instead when the name, version and attributes identify the library or module that created the tracer, meter or logger, rather than the service or process emitting the telemetry. Use TraceConfiguration instead when the code configures TracerProvider behaviour such as samplers, propagators or span processors, even if a Resource object is passed into the same constructor. Use MetricConfiguration instead when the code sets MeterProvider-level export intervals, cardinality limits or exemplar filtering rather than entity identity attributes. Use Span instead when the attributes vary per operation or request (e.g. http.route, db.statement) instead of being constant for the whole process.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -580,10 +721,12 @@
           "type": "object",
           "properties": {
             "schemaUrl": {
-              "type": "string"
+              "type": "string",
+              "description": "URL of the OpenTelemetry semantic-conventions schema version that the resource attribute keys follow (e.g. 'https://opentelemetry.io/schemas/1.21.0'); set it when the resource or its detectors declare an explicit schema version."
             },
             "droppedAttributesCount": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Non-negative integer count of resource attributes discarded because of attribute limits or invalid values; set it to 0 when all attributes were retained."
             },
             "serviceName": {
               "type": "string",
@@ -607,12 +750,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Specification: Resource SDK and Resource Semantic Conventions (service.*, host.*, process.*, deployment.*)",
+      "x-dr-evidence": [
+        "A Resource constructed via Resource.create / resourceFromAttributes / Resource.getDefault().merge(...) with keys such as service.name, service.version or deployment.environment, then passed to a NodeSDK, TracerProvider, MeterProvider or LoggerProvider constructor.",
+        "OTEL_SERVICE_NAME or OTEL_RESOURCE_ATTRIBUTES environment variables set in Dockerfiles, Kubernetes manifests, Helm values or .env files.",
+        "Resource detectors registered at SDK bootstrap (e.g. envDetector, processDetector, hostDetector, awsEc2Detector, gcpDetector), or an OTel Collector 'resource'/'resourcedetection' processor block in collector YAML."
+      ],
+      "x-dr-distinguish": {
+        "apm.instrumentationscope": "the name, version and attributes identify the library or module that created the tracer, meter or logger, rather than the service or process emitting the telemetry.",
+        "apm.traceconfiguration": "the code configures TracerProvider behaviour such as samplers, propagators or span processors, even if a Resource object is passed into the same constructor.",
+        "apm.metricconfiguration": "the code sets MeterProvider-level export intervals, cardinality limits or exemplar filtering rather than entity identity attributes.",
+        "apm.span": "the attributes vary per operation or request (e.g. http.route, db.statement) instead of being constant for the whole process."
+      },
       "$id": "urn:dr:spec:node:apm.resource"
     },
     "span": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Span",
-      "description": "A named, timed unit of work in a distributed trace, as defined by the OpenTelemetry Trace Data Model. Each span is identified by a traceId+spanId pair, carries optional parent linkage (parentSpanId) for hierarchical trace composition, and is classified by SpanKind (SERVER, CLIENT, INTERNAL, PRODUCER, CONSUMER) indicating its role in the calling topology. The startTimeUnixNano and endTimeUnixNano bound the operation's timing window; statusCode (UNSET, OK, ERROR) is the canonical success/failure signal per OTel semantic conventions. Spans are produced via the OTel Tracer API, processed by SpanProcessors, and exported via SpanExporters.",
+      "description": "A named, timed operation instrumented through the OpenTelemetry Tracer API, or emitted by an instrumentation library, that records one unit of work in a distributed trace with a SpanKind, start and end bounds, a status and attributes. The model element is the span as defined at a code location (name, kind, attributes), not one runtime occurrence. Use SpanEvent instead when the code records a point-in-time annotation inside an already-open span (span.addEvent, span.recordException) rather than opening and ending a new timed operation. Use SpanLink instead when the code attaches a non-parent causal reference to a span in another trace or batch (links passed at span start, Link objects) rather than defining the operation itself. Use TraceConfiguration instead when the symbol builds or configures the TracerProvider (sampler, propagators, span processors) rather than starting spans for a specific operation. Use InstrumentationConfig instead when the symbol only enables or registers an instrumentation library or plugin that produces spans, without itself naming a particular span.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -632,16 +787,20 @@
           "type": "object",
           "properties": {
             "traceId": {
-              "type": "string"
+              "type": "string",
+              "description": "The 16-byte trace identifier shared by all spans in a trace, written as 32 lowercase hex characters; set it only when modelling a captured span instance, otherwise leave it empty."
             },
             "spanId": {
-              "type": "string"
+              "type": "string",
+              "description": "The 8-byte identifier unique to this span within its trace, written as 16 lowercase hex characters; populate it from captured telemetry, not for design-time definitions."
             },
             "traceState": {
-              "type": "string"
+              "type": "string",
+              "description": "The W3C tracestate header value carrying vendor-specific key=value pairs propagated with the span context; use an empty string when no vendor state is propagated."
             },
             "parentSpanId": {
-              "type": "string"
+              "type": "string",
+              "description": "The spanId (16 hex characters) of the parent span in the same trace; use an empty string for a root span."
             },
             "spanKind": {
               "type": "string",
@@ -649,19 +808,24 @@
               "description": "OTel SpanKind indicating the span's relationship to the calling and receiving system"
             },
             "startTimeUnixNano": {
-              "type": "string"
+              "type": "string",
+              "description": "The time the operation started, in nanoseconds since the Unix epoch, encoded as a decimal string of a uint64."
             },
             "endTimeUnixNano": {
-              "type": "string"
+              "type": "string",
+              "description": "The time the operation ended, in nanoseconds since the Unix epoch, encoded as a decimal string of a uint64; it must be greater than or equal to startTimeUnixNano."
             },
             "droppedAttributesCount": {
-              "type": "integer"
+              "type": "integer",
+              "description": "The number of attributes the SDK discarded because of attribute count or length limits; set it to 0 when none were dropped."
             },
             "droppedEventsCount": {
-              "type": "string"
+              "type": "string",
+              "description": "The number of span events the SDK discarded because of the per-span event limit, as a non-negative integer written as a decimal string; set it to 0 when none were dropped."
             },
             "droppedLinksCount": {
-              "type": "string"
+              "type": "string",
+              "description": "The number of span links the SDK discarded because of the per-span link limit, as a non-negative integer written as a decimal string; set it to 0 when none were dropped."
             },
             "statusCode": {
               "type": "string",
@@ -693,12 +857,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Specification 1.x, Tracing API §Span and Trace Data Model (OTLP trace.proto Span message)",
+      "x-dr-evidence": [
+        "a call such as tracer.startSpan('name'), tracer.startActiveSpan(...) or `with tracer.start_as_current_span(\"name\")` wrapping a block of application logic, followed by span.end()",
+        "a method annotated or decorated for tracing (e.g., @WithSpan, @Traced, @tracer.wrap) whose span name and SpanKind are set in the annotation or decorator",
+        "calls on a span handle such as span.setAttribute('http.route', ...), span.setStatus({code: ERROR}) or span.updateName(...) that set the span's attributes and status"
+      ],
+      "x-dr-distinguish": {
+        "apm.spanevent": "the code records a point-in-time annotation inside an already-open span (span.addEvent, span.recordException) rather than opening and ending a new timed operation",
+        "apm.spanlink": "the code attaches a non-parent causal reference to a span in another trace or batch (links passed at span start, Link objects) rather than defining the operation itself",
+        "apm.traceconfiguration": "the symbol builds or configures the TracerProvider (sampler, propagators, span processors) rather than starting spans for a specific operation",
+        "apm.instrumentationconfig": "the symbol only enables or registers an instrumentation library or plugin that produces spans, without itself naming a particular span"
+      },
       "$id": "urn:dr:spec:node:apm.span"
     },
     "spanevent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SpanEvent",
-      "description": "Timestamped annotation within a span's lifetime, used to record significant moments such as exceptions (OTel semantic convention: name='exception' with exception.type, exception.message, and exception.stacktrace attributes) or state transitions.",
+      "description": "A named, timestamped annotation attached to exactly one span and recorded at a single instant within that span's start–end window. It has no duration and no identity of its own, and it describes a notable occurrence such as a caught exception, retry or state transition inside the operation the span covers. Use LogRecord instead when the event is emitted through a Logger or the OTel Events/Logs API as an independent record (even if it carries traceId/spanId for correlation), rather than being added to a span via addEvent/recordException. Use Span instead when the thing being recorded has its own start and end time, its own spanId, or child operations, i.e. it is a unit of work with duration rather than a point-in-time marker inside one. Use SpanLink instead when the annotation points to another span (traceId+spanId) to express causality across traces or batches rather than recording something that happened at a moment within this span.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -718,10 +894,12 @@
           "type": "object",
           "properties": {
             "timeUnixNano": {
-              "type": "string"
+              "type": "string",
+              "description": "Instant at which the event occurred, as nanoseconds since the Unix epoch encoded as a decimal string (OTLP fixed64). It must fall within the parent span's start and end times; set it explicitly only when the event time differs from the moment addEvent was called."
             },
             "droppedAttributesCount": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of attributes discarded from this event because SDK attribute count or length limits were exceeded; use 0 when no attributes were dropped."
             },
             "attributes": {
               "type": "object",
@@ -733,12 +911,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Trace API, Span Events ('Add Events' / 'Record Exception'); OTLP trace.proto Span.Event message",
+      "x-dr-evidence": [
+        "calls to span.addEvent(name, attributes) / span.add_event(...) / Span.current().addEvent(...) on an active span",
+        "calls to span.recordException(err) / span.record_exception(e), or events named 'exception' carrying exception.type, exception.message and exception.stacktrace attributes",
+        "in .NET, Activity.AddEvent(new ActivityEvent(\"name\", tags: ...)), or exported OTLP/Jaeger payloads showing an 'events' (or 'logs') array nested inside a span"
+      ],
+      "x-dr-distinguish": {
+        "apm.logrecord": "the event is emitted through a Logger or the OTel Events/Logs API as an independent record (even if it carries traceId/spanId for correlation), rather than being added to a span via addEvent/recordException.",
+        "apm.span": "the thing being recorded has its own start and end time, its own spanId, or child operations, i.e. it is a unit of work with duration rather than a point-in-time marker inside one.",
+        "apm.spanlink": "the annotation points to another span (traceId+spanId) to express causality across traces or batches rather than recording something that happened at a moment within this span."
+      },
       "$id": "urn:dr:spec:node:apm.spanevent"
     },
     "spanlink": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SpanLink",
-      "description": "Non-hierarchical causality link to a span in a different trace or batch context (e.g., async message consumer linking to producer spans). Distinct from parent-child relationships, which are expressed via the parentSpanId attribute on the Span.",
+      "description": "A reference attached to a span that identifies another span by its SpanContext (traceId, spanId, traceState) to record a causal relationship that is not parent-child, such as a batch consumer span pointing to each producer span whose message it processes. It is added when the span is created and belongs to the span that carries it. Use Span instead when the element is the timed unit of work itself, or the referenced span is the direct parent, which is expressed through the span's parentSpanId rather than a link. Use SpanEvent instead when the element is a timestamped annotation of something that happened inside the same span (e.g., an exception) and points to no other span.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -758,16 +947,20 @@
           "type": "object",
           "properties": {
             "traceId": {
-              "type": "string"
+              "type": "string",
+              "description": "W3C trace ID of the linked span, a 32-character lowercase hex string (16 bytes); always set, and it may differ from the owning span's trace."
             },
             "spanId": {
-              "type": "string"
+              "type": "string",
+              "description": "Span ID of the linked span, a 16-character lowercase hex string (8 bytes); always set to identify the exact target span."
             },
             "traceState": {
-              "type": "string"
+              "type": "string",
+              "description": "W3C tracestate value (comma-separated vendor key=value list) carried by the linked span context; set only when the linked context propagated a non-empty tracestate."
             },
             "droppedAttributesCount": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Number of attributes on this link that the SDK discarded because of attribute limits (e.g., the per-link attribute count limit); set to 0 when none were dropped."
             },
             "attributes": {
               "type": "object",
@@ -779,12 +972,22 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "OpenTelemetry Trace API/SDK Specification – Link (Span.Links); OTLP trace.proto Span.Link message",
+      "x-dr-evidence": [
+        "a span started with a links option, e.g. tracer.startSpan(name, { links: [{ context: spanCtx, attributes }] }) in JS or start_as_current_span(name, links=[trace.Link(ctx)]) in Python",
+        "Java SpanBuilder.addLink(spanContext[, attributes]) calls made before startSpan()",
+        "a messaging consumer that extracts propagated trace context from each message header in a batch and passes the extracted contexts as links instead of setting a parent"
+      ],
+      "x-dr-distinguish": {
+        "apm.span": "the element is the timed unit of work itself, or the referenced span is the direct parent, which is expressed through the span's parentSpanId rather than a link",
+        "apm.spanevent": "the element is a timestamped annotation of something that happened inside the same span (e.g., an exception) and points to no other span"
+      },
       "$id": "urn:dr:spec:node:apm.spanlink"
     },
     "traceconfiguration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TraceConfiguration",
-      "description": "OTel TracerProvider configuration covering sampler selection, context propagation formats, and span processor pipeline. Service identity attributes (serviceName, serviceVersion, deploymentEnvironment) are OTel Resource semantic conventions and belong on the Resource node.",
+      "description": "A tracing-SDK configuration, one per TracerProvider (usually one per service process), that fixes the sampler and its ratio, the context propagation formats injected into and extracted from carriers, and the span processors and exporters the provider forwards finished spans to. Use Resource instead when the symbol only sets service identity attributes such as service.name, service.version or deployment.environment that are merged into all signals. Use ExporterConfig instead when the symbol defines a single export destination (endpoint, protocol, auth, compression) rather than the provider-level sampling and propagation setup that uses it. Use InstrumentationConfig instead when the symbol selects or enables instrumentation libraries or manual tracer calls rather than configuring the provider those instrumentations emit into. Use MetricConfiguration instead when the symbol configures a MeterProvider (export interval, cardinality, exemplars) rather than a TracerProvider.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -844,6 +1047,18 @@
           "required": [],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "OpenTelemetry Specification – Tracing SDK: TracerProvider configuration (Sampler, SpanProcessor, SpanExporter) and Context/Propagators API (TextMapPropagator)",
+      "x-dr-evidence": [
+        "Construction of a NodeTracerProvider, SdkTracerProvider or TracerProvider with a sampler argument such as ParentBased(TraceIdRatioBased(0.1)) or ALWAYS_ON",
+        "Calls such as addSpanProcessor(new BatchSpanProcessor(exporter)) or setGlobalTextMapPropagator(new CompositePropagator([W3CTraceContextPropagator, W3CBaggagePropagator]))",
+        "Environment variables OTEL_TRACES_SAMPLER, OTEL_TRACES_SAMPLER_ARG or OTEL_PROPAGATORS in deployment manifests, or a tracer_provider section in an OTel Collector/SDK declarative config YAML"
+      ],
+      "x-dr-distinguish": {
+        "apm.resource": "the symbol only sets service identity attributes such as service.name, service.version or deployment.environment that are merged into all signals.",
+        "apm.exporterconfig": "the symbol defines a single export destination (endpoint, protocol, auth, compression) rather than the provider-level sampling and propagation setup that uses it.",
+        "apm.instrumentationconfig": "the symbol selects or enables instrumentation libraries or manual tracer calls rather than configuring the provider those instrumentations emit into.",
+        "apm.metricconfiguration": "the symbol configures a MeterProvider (export interval, cardinality, exemplars) rather than a TracerProvider."
       },
       "$id": "urn:dr:spec:node:apm.traceconfiguration"
     }

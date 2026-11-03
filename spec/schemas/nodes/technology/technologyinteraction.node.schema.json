@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyInteraction",
-  "description": "A unit of collective technology behavior performed by two or more collaborating nodes, such as a distributed transaction, inter-service handshake, or cluster failover protocol.",
+  "description": "A technology behavior element that is performed jointly by two or more technology active structure elements (nodes, devices, or system software) acting as a collaboration, and that none of the participants can complete alone. Examples include a distributed commit, consensus-based leader election, a cluster failover handover, or a replication sync between peers. Use TechnologyFunction instead when the behavior is carried out by a single node or system software on its own, such as local log rotation or one load balancer distributing requests, with no coordination protocol between peers. Use TechnologyProcess instead when the element is an ordered sequence of steps toward a defined result, such as a deployment pipeline or backup job, whose steps need not be jointly performed by multiple collaborating participants. Use TechnologyCollaboration instead when you are modelling the group of cooperating nodes or software itself (the cluster, mesh, or replica set) rather than the joint behavior that group performs. Use TechnologyService instead when the element is the externally visible capability offered to consumers, such as a highly available database service, rather than the internal multi-party coordination that realizes it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the joint behavior: the participating elements, the coordination protocol or algorithm used (e.g. Raft, 2PC, gossip), and the outcome. Set it whenever the participants or protocol cannot be inferred from the element name."
         },
         "properties": {
           "type": "object",
@@ -34,5 +35,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.3.3 Technology Interaction",
+  "x-dr-evidence": [
+    "Configuration or code for a consensus or coordination protocol among peers, such as Raft or etcd peer settings, ZooKeeper quorum configuration, Redis Sentinel monitor/failover settings, or Patroni leader-election config.",
+    "A two-phase or XA distributed transaction setup that coordinates prepare/commit across multiple resource managers, for example a JTA/Atomikos transaction manager enlisting both a database and a message broker.",
+    "Replication or cluster-membership protocol settings that require multiple instances to exchange state, such as PostgreSQL streaming replication primary_conninfo, Kafka consumer-group rebalance handlers, or Hazelcast/Akka cluster join and gossip configuration."
+  ],
+  "x-dr-distinguish": {
+    "technology.technologyfunction": "the behavior is carried out by a single node or system software on its own, such as local log rotation or one load balancer distributing requests, with no coordination protocol between peers.",
+    "technology.technologyprocess": "the element is an ordered sequence of steps toward a defined result, such as a deployment pipeline or backup job, whose steps need not be jointly performed by multiple collaborating participants.",
+    "technology.technologycollaboration": "you are modelling the group of cooperating nodes or software itself (the cluster, mesh, or replica set) rather than the joint behavior that group performs.",
+    "technology.technologyservice": "the element is the externally visible capability offered to consumers, such as a highly available database service, rather than the internal multi-party coordination that realizes it."
   }
 }

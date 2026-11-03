@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessEvent",
-  "description": "A behavior element that represents an organizational state change, such as a customer order placed or a contract signed, that can trigger or result from a BusinessProcess or BusinessFunction.",
+  "description": "A behavior element that denotes an instantaneous, named occurrence of a business state change (e.g., order placed, contract signed, month-end reached) with no duration and no performer of its own. It exists only to trigger, or to be the outcome of, a BusinessProcess, BusinessFunction or BusinessInteraction. Use BusinessProcess instead when the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time. Use BusinessObject instead when the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced). Use BusinessInteraction instead when the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of the business occurrence, giving the state change it marks, its source, and the condition under which it is raised; set it whenever the event name alone does not make the trigger condition unambiguous."
         },
         "type": {
           "type": "string",
@@ -36,5 +37,16 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §8.3.4 Business Event",
+  "x-dr-evidence": [
+    "Past-tense domain-event classes or records such as OrderPlaced or ContractSigned that are published to an event bus, outbox or message broker topic named after a business occurrence.",
+    "Cron or scheduler entries (e.g., a month-end or renewal-due job) whose firing starts a business workflow, indicating a timer-type event.",
+    "Start, intermediate or end events in BPMN or workflow-engine definitions, or business-named channels in an AsyncAPI or event-catalog document."
+  ],
+  "x-dr-distinguish": {
+    "business.businessprocess": "the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time.",
+    "business.businessobject": "the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced).",
+    "business.businessinteraction": "the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior."
   }
 }

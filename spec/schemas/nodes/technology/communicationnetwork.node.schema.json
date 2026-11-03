@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CommunicationNetwork",
-  "description": "A set of structures that connects nodes for the purpose of transmission, routing, and reception of data, such as a LAN, WAN, or VPN.",
+  "description": "A technology active structure element representing a physical or virtual network infrastructure, such as a LAN, VPC, subnet, overlay, VPN or the public internet, that carries, routes and delivers data among any number of attached nodes and devices. It is identified by an address space or network membership rather than by a specific pair of endpoints. Use Path instead when the element is a logical communication channel between specific named nodes (e.g. service A calls database B over TCP) rather than the shared network infrastructure the traffic travels over. Use Device instead when the element is a physical network appliance such as a router, switch or firewall box (deviceType network-device) rather than the network it forms or joins. Use Node instead when the element is a computational resource that hosts software, such as a VM, container or cluster attached to the network, rather than the network itself. Use TechnologyService instead when the element is a consumable networking capability offered through an interface, such as managed DNS, a load-balancing service or a CDN, rather than the connectivity fabric.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the network's purpose, scope and address range (e.g. 'private VPC 10.0.0.0/16 for production workloads'); set it whenever the name alone does not convey which hosts attach to the network or what traffic it carries."
         },
         "networkType": {
           "type": "string",
@@ -40,5 +41,17 @@
       "required": ["networkType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.2.7 Communication Network",
+  "x-dr-evidence": [
+    "An infrastructure-as-code resource that declares a network or address space, such as Terraform aws_vpc, aws_subnet, google_compute_network or azurerm_virtual_network, with a cidr_block or address_prefixes value.",
+    "A top-level `networks:` entry in a docker-compose file, or a `docker network create` command, that services attach to by name.",
+    "A VPN or overlay configuration such as a WireGuard [Interface]/[Peer] file, an OpenVPN .conf, or a CNI plugin config (Calico, Flannel) that defines a network range shared by multiple hosts."
+  ],
+  "x-dr-distinguish": {
+    "technology.path": "the element is a logical communication channel between specific named nodes (e.g. service A calls database B over TCP) rather than the shared network infrastructure the traffic travels over.",
+    "technology.device": "the element is a physical network appliance such as a router, switch or firewall box (deviceType network-device) rather than the network it forms or joins.",
+    "technology.node": "the element is a computational resource that hosts software, such as a VM, container or cluster attached to the network, rather than the network itself.",
+    "technology.technologyservice": "the element is a consumable networking capability offered through an interface, such as managed DNS, a load-balancing service or a CDN, rather than the connectivity fabric."
   }
 }

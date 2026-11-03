@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyFunction",
-  "description": "A collection of technology behavior that can be performed by a node, representing an internal automated capability such as data replication, load balancing, or log rotation.",
+  "description": "An internal technology behavior element grouping automated infrastructure behavior that a single node or system software performs on an ongoing basis, defined by the capability it provides rather than by a sequence of steps or an externally exposed contract, such as data replication, load balancing, health checking, or log rotation. Use TechnologyProcess instead when the behavior is an ordered sequence of steps with a defined start and end result, such as a CI/CD pipeline, backup job run, or certificate renewal workflow. Use TechnologyService instead when the behavior is the externally visible capability offered to consumers through an interface (e.g. 'managed object storage'), rather than the internal mechanism that delivers it. Use TechnologyInteraction instead when the behavior can only be performed jointly by two or more collaborating nodes, such as a consensus round, distributed transaction, or cluster failover handshake. Use SystemSoftware instead when the element is the software product or runtime that performs the behavior (e.g. nginx, PostgreSQL), not the behavior itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of what the function does, which node or system software performs it, and its triggering or operating conditions; set whenever the name alone does not make the capability's scope clear."
         },
         "properties": {
           "type": "object",
@@ -34,5 +35,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.3.1 Technology Function",
+  "x-dr-evidence": [
+    "Infrastructure configuration that enables a named built-in capability of a platform component, such as a PostgreSQL streaming-replication block, an nginx upstream load-balancing block, or a Redis persistence/eviction policy.",
+    "A sidecar, daemon, or DaemonSet that runs continuously to perform a housekeeping capability, such as a logrotate config, a Fluent Bit log-shipping agent, or a node-exporter metrics collector.",
+    "Kubernetes or cloud resource settings declaring automated platform behavior, such as liveness/readiness probes, a HorizontalPodAutoscaler, or an S3 bucket replication or lifecycle rule."
+  ],
+  "x-dr-distinguish": {
+    "technology.technologyprocess": "the behavior is an ordered sequence of steps with a defined start and end result, such as a CI/CD pipeline, backup job run, or certificate renewal workflow.",
+    "technology.technologyservice": "the behavior is the externally visible capability offered to consumers through an interface (e.g. 'managed object storage'), rather than the internal mechanism that delivers it.",
+    "technology.technologyinteraction": "the behavior can only be performed jointly by two or more collaborating nodes, such as a consensus round, distributed transaction, or cluster failover handshake.",
+    "technology.systemsoftware": "the element is the software product or runtime that performs the behavior (e.g. nginx, PostgreSQL), not the behavior itself."
   }
 }

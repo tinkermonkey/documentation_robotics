@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RetentionPolicy",
-  "description": "A data lifecycle management policy that governs how long data is retained and what action is taken when the retention period expires. Applicable across paradigms: time-series downsampling, key-value TTL, search index lifecycle, relational partition pruning, and archival strategies.",
+  "description": "A data lifecycle rule, declared in or enforced by the data store, that sets a maximum age for records in a collection or namespace and names the single action (delete, archive, downsample, move tier or compress) applied to records older than that age. Use ValidationRule instead when the rule constrains or rejects writes, such as a TTL_CONSTRAINT requiring every key to carry an expiry, rather than removing or transforming data that has aged out. Use StoredLogic instead when the symbol is the executable job, function or continuous query that performs the purge or rollup; the policy only declares age and action and triggers that logic. Use View instead when the downsampled result is a queryable derived collection such as a TimescaleDB continuous aggregate; the retention policy governs only when the source data expires. Use EventHandler instead when the code reacts to expiry or deletion events, such as a Redis keyspace EXPIRE notification listener, instead of defining when data expires.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -38,11 +38,23 @@
           "description": "For DOWNSAMPLE action, the aggregation interval (e.g., '1h', '1d'). Only applicable when action is DOWNSAMPLE."
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the policy is currently active and enforced by the engine; set to false when the policy is defined but suspended (e.g., a disabled TimescaleDB job or paused ILM policy), otherwise true or omitted."
         }
       },
       "required": ["targetCollection", "retentionDuration", "action"],
       "additionalProperties": false
     }
+  },
+  "x-dr-evidence": [
+    "A migration or setup script containing InfluxDB `CREATE RETENTION POLICY ... DURATION 30d`, TimescaleDB `add_retention_policy('metrics', INTERVAL '90 days')`, or pg_partman `retention` settings on a partitioned table",
+    "An Elasticsearch ILM or OpenSearch ISM policy document with phases such as `delete.min_age`, or IaC declaring DynamoDB `TimeToLiveSpecification` or S3 lifecycle rules for a storage bucket",
+    "A MongoDB index created with `expireAfterSeconds`, or a scheduled purge job (cron or worker) issuing `DELETE ... WHERE created_at < now() - interval` or dropping old partitions"
+  ],
+  "x-dr-distinguish": {
+    "data-store.validationrule": "the rule constrains or rejects writes, such as a TTL_CONSTRAINT requiring every key to carry an expiry, rather than removing or transforming data that has aged out",
+    "data-store.storedlogic": "the symbol is the executable job, function or continuous query that performs the purge or rollup; the policy only declares age and action and triggers that logic",
+    "data-store.view": "the downsampled result is a queryable derived collection such as a TimescaleDB continuous aggregate; the retention policy governs only when the source data expires",
+    "data-store.eventhandler": "the code reacts to expiry or deletion events, such as a Redis keyspace EXPIRE notification listener, instead of defining when data expires"
   }
 }

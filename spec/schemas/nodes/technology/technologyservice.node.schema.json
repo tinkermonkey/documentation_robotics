@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyService",
-  "description": "An externally visible unit of technology functionality exposed to other technology elements, per ArchiMate 3.2 TechnologyService. Encapsulates a discrete infrastructure capability — such as compute, storage, messaging, caching, identity, or monitoring — that is made available through a defined interface. Unlike application services, a TechnologyService operates at the infrastructure tier: it is consumed by application components or other technology services, not directly by end users or business processes.",
+  "description": "An externally visible infrastructure capability, such as compute, storage, messaging, database, cache, identity or monitoring, that a node, system software or managed platform offers to application components or other technology elements through a technology interface. It is identified by the capability consumers rely on, not by the product, host or endpoint that delivers it. Use SystemSoftware instead when the element is the specific installed engine or product (e.g. a PostgreSQL 15 server, a Redis binary, a RabbitMQ broker) rather than the capability that consumers use. Use TechnologyInterface instead when the element is the access point itself, such as an endpoint URL, port or protocol binding through which the service is reached. Use TechnologyFunction instead when the behavior is internal to a node and not offered to consumers, such as replication, log rotation or internal load balancing. Use Node instead when the element is the host, VM, container or cluster that provides the computational resource, not the capability exposed from it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description of the capability the service offers, its provider (self-hosted or managed vendor), and its consumers; set it whenever the name alone does not make the capability and provider clear."
         },
         "serviceType": {
           "type": "string",
@@ -48,5 +49,17 @@
       "required": ["serviceType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.3.5 Technology Service",
+  "x-dr-evidence": [
+    "an infrastructure-as-code resource for a managed backing service (e.g. aws_sqs_queue, aws_db_instance, google_pubsub_topic, azurerm_redis_cache) whose outputs are wired into application configuration",
+    "a docker-compose or Helm service entry for a backing service (postgres, redis, kafka, keycloak) whose connection string is injected into application containers via environment variables such as DATABASE_URL or REDIS_URL",
+    "a client SDK constructed against an infrastructure endpoint (S3 client, KMS client, OIDC issuer URL, OTLP exporter endpoint) and used by application code to store, publish, authenticate or emit telemetry"
+  ],
+  "x-dr-distinguish": {
+    "technology.systemsoftware": "the element is the specific installed engine or product (e.g. a PostgreSQL 15 server, a Redis binary, a RabbitMQ broker) rather than the capability that consumers use.",
+    "technology.technologyinterface": "the element is the access point itself, such as an endpoint URL, port or protocol binding through which the service is reached.",
+    "technology.technologyfunction": "the behavior is internal to a node and not offered to consumers, such as replication, log rotation or internal load balancing.",
+    "technology.node": "the element is the host, VM, container or cluster that provides the computational resource, not the capability exposed from it."
   }
 }

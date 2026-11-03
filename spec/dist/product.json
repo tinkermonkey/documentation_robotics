@@ -23,7 +23,7 @@
     "capability": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Capability",
-      "description": "An ability the product possesses, independent of how it's implemented",
+      "description": "An implementation-independent ability the product has or is intended to have, stated as what the product can do (e.g. 'Payment processing', 'Full-text search') rather than as a deliverable unit or a user journey, and realized by one or more features, application components or technology services. Use Feature instead when the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing'). Use UserWorkflow instead when the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order. Use WorkflowStep instead when the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on. Use Milestone instead when the element is a dated delivery target that groups capabilities or features rather than an ability itself.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -66,12 +66,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §7.3.1 Capability (Strategy Layer)",
+      "x-dr-evidence": [
+        "a product capability map, roadmap or README section headed 'Capabilities' listing abilities such as 'Search', 'Billing', 'Notifications' that are realized by several features",
+        "a top-level domain module, bounded context or service named for a business ability (e.g. billing/, search/, identity/) whose submodules implement several distinct user-facing features",
+        "a declared capability set in a manifest or handshake (e.g. a 'capabilities' object in a plugin manifest or protocol initialization response) enumerating abilities the system offers independent of specific UI entry points"
+      ],
+      "x-dr-distinguish": {
+        "product.feature": "the element is a discrete, user-visible, prioritizable and sizable unit of functionality that ships (e.g. 'Apple Pay checkout button') rather than the enduring ability it contributes to (e.g. 'Payment processing')",
+        "product.userworkflow": "the element describes an ordered sequence of user actions toward a goal rather than an ability the product possesses regardless of who uses it or in what order",
+        "product.workflowstep": "the element is a single user action or experience at a position within a workflow rather than an ability that many steps may rely on",
+        "product.milestone": "the element is a dated delivery target that groups capabilities or features rather than an ability itself"
+      },
       "$id": "urn:dr:spec:node:product.capability"
     },
     "feature": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Feature",
-      "description": "A user-visible unit of product functionality that delivers one or more capabilities",
+      "description": "A unit of product functionality that a persona can directly perceive and invoke, such as a screen, command, setting or behaviour. It is described in user terms and can be prioritised, sized and scheduled on its own, and it realises one or more product capabilities. Use Capability instead when the element names an ability the product must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable. Use UserWorkflow instead when the element is a goal-directed sequence of user actions that passes through one or more features rather than a single piece of functionality. Use WorkflowStep instead when the element is one ordered action or experience within a specific user journey that exercises a feature, rather than the functionality itself. Use Milestone instead when the element is a dated delivery target that groups features, rather than functionality the user interacts with.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -124,12 +136,24 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "Product Management Practice: Feature (backlog/roadmap item). There is no direct ArchiMate 3.2 element; it is modelled as realising a Strategy Capability (§7.3.1).",
+      "x-dr-evidence": [
+        "a feature-flag definition (e.g. LaunchDarkly, Unleash or a features.yml key) that gates a user-visible behaviour such as 'bulk-export' or 'dark-mode'",
+        "a Gherkin .feature file whose 'Feature:' block describes user-facing functionality with acceptance scenarios",
+        "a release-notes, changelog or user-guide entry announcing user-visible functionality (e.g. 'New: export reports to CSV') that is traceable to a set of routes, views or endpoints"
+      ],
+      "x-dr-distinguish": {
+        "product.capability": "the element names an ability the product must have regardless of which user-visible functionality provides it, and is not itself prioritised or sized as a deliverable",
+        "product.userworkflow": "the element is a goal-directed sequence of user actions that passes through one or more features rather than a single piece of functionality",
+        "product.workflowstep": "the element is one ordered action or experience within a specific user journey that exercises a feature, rather than the functionality itself",
+        "product.milestone": "the element is a dated delivery target that groups features, rather than functionality the user interacts with"
+      },
       "$id": "urn:dr:spec:node:product.feature"
     },
     "milestone": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Milestone",
-      "description": "A time-bound delivery target grouping features or capabilities",
+      "description": "A named, time-bound delivery target, such as a release, version or roadmap phase, against which features and capabilities are scheduled. It is defined by its target date or period and the scope assigned to it, not by any functionality of its own. Use Feature instead when the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in. Use Capability instead when the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -168,12 +192,22 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §12.2.4 Plateau (closest analogue; partly §12.2.3 Implementation Event). The Strategy Layer has no direct equivalent.",
+      "x-dr-evidence": [
+        "An issue-tracker milestone or fixVersion (e.g. a GitHub milestone, Jira release) with a due date and a set of linked feature issues.",
+        "A ROADMAP.md or planning document section headed by a version or quarter (e.g. 'v2.0 — Q3 2025') that lists the features targeted for it.",
+        "Feature-flag or configuration entries annotated with a target release (e.g. 'enabled_in: 3.1', 'since: v2.0'), or an 'Unreleased' or upcoming-version section in CHANGELOG.md."
+      ],
+      "x-dr-distinguish": {
+        "product.feature": "the element is a user-visible unit of functionality being delivered, rather than the dated target or release it is delivered in.",
+        "product.capability": "the element names an ability the product has or should have, independent of when it is delivered, rather than a scheduled delivery point."
+      },
       "$id": "urn:dr:spec:node:product.milestone"
     },
     "persona": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Persona",
-      "description": "A user archetype representing a class of users with shared goals, behaviors, and pain points",
+      "description": "A named, fictional archetype of a class of the product's actual or intended users, characterised by shared goals, behaviours, proficiency and pain points, against which features and workflows are designed. It describes who the user is, not what they do in the product or what access they are granted. Use UserWorkflow instead when the artefact describes a goal-directed journey the user takes through the product rather than the characteristics of the user taking it. Use WorkflowStep instead when the artefact is a single action or experience a user has at one point in a journey, even if phrased as 'the admin does X'.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -211,12 +245,22 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "Product Management Practice: Persona (Cooper, goal-directed design); no direct ArchiMate 3.2 equivalent, nearest are Stakeholder (§6.2.1) and Business Role (§8.2.2)",
+      "x-dr-evidence": [
+        "persona documents in the repository (e.g. docs/personas/*.md or a product brief) naming an archetype with goals, frustrations and skill level",
+        "user stories or acceptance criteria in issues or BDD feature files phrased 'As a <named user type>, I want ...' that recur across many stories",
+        "a user-segment or user-type discriminator (e.g. onboarding question 'I am a developer / designer', analytics segment definitions, feature-flag targeting rules) that tailors UI or content per user class rather than granting permissions"
+      ],
+      "x-dr-distinguish": {
+        "product.userworkflow": "the artefact describes a goal-directed journey the user takes through the product rather than the characteristics of the user taking it",
+        "product.workflowstep": "the artefact is a single action or experience a user has at one point in a journey, even if phrased as 'the admin does X'"
+      },
       "$id": "urn:dr:spec:node:product.persona"
     },
     "userworkflow": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserWorkflow",
-      "description": "A sequence of user-facing steps through the product to accomplish a goal",
+      "description": "An ordered, end-to-end journey of user-facing steps that a persona performs through the product to reach one goal, described from the user's point of view and independent of screens, routes or code. It is composed of WorkflowSteps and spans the features those steps exercise. Use WorkflowStep instead when the element is a single action or experience at one position in a journey, not the whole sequence from trigger to goal. Use Feature instead when the element is a unit of functionality the user can switch on, buy or ship, rather than the ordered path a user takes to reach a goal. Use Capability instead when the element names an ability the product has (e.g. 'password recovery') with no ordering of user actions.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -253,12 +297,23 @@
           "additionalProperties": false
         }
       },
+      "x-dr-standard": "ArchiMate 3.2 §7.3.2 Value Stream (closest analogue), plus the product-management user journey / user story map",
+      "x-dr-evidence": [
+        "an end-to-end test spec (Playwright, Cypress, Selenium) named after a user goal, such as 'checkout.e2e.ts', that drives a user across several pages in order",
+        "an analytics funnel definition (Amplitude, Mixpanel, GA4 config) listing ordered events from a start event to a goal event",
+        "a Gherkin .feature file or docs/user-journeys page describing numbered Given/When/Then steps a named user type takes to accomplish a goal"
+      ],
+      "x-dr-distinguish": {
+        "product.workflowstep": "the element is a single action or experience at one position in a journey, not the whole sequence from trigger to goal",
+        "product.feature": "the element is a unit of functionality the user can switch on, buy or ship, rather than the ordered path a user takes to reach a goal",
+        "product.capability": "the element names an ability the product has (e.g. 'password recovery') with no ordering of user actions"
+      },
       "$id": "urn:dr:spec:node:product.userworkflow"
     },
     "workflowstep": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WorkflowStep",
-      "description": "A single ordered, user-facing step within a UserWorkflow: what the user does or experiences at that point in the journey, which Feature the step exercises and which Capability it relies on. Steps are product-level and implementation-independent; their technical realization is a navigation FlowStep bound to a route.",
+      "description": "An ordered, user-facing action within exactly one UserWorkflow, stating what the user does or experiences at that point in the journey and its observable result, described without reference to screens, routes, components or code. Each step names one position in one workflow; the same action in a different workflow is a different step. Use UserWorkflow instead when the element is the whole goal-directed journey made up of several steps, rather than one position within it. Use Feature instead when the element is a reusable unit of user-visible functionality that may be exercised by steps in many workflows, rather than a point in a particular journey. Use Capability instead when the element describes an ability the product has regardless of any user sequence, with no ordering or user action attached.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -307,6 +362,17 @@
           "required": ["sequence", "action"],
           "additionalProperties": false
         }
+      },
+      "x-dr-standard": "No direct ArchiMate 3.2 Strategy element; closest is a sub-process in ArchiMate 3.2 §8.3.1 Business Process decomposition, combined with the user-journey or story-map step of product-management practice",
+      "x-dr-evidence": [
+        "Numbered 'When'/'Then' lines inside a Gherkin Scenario or acceptance-criteria list that describe a user action and its visible result",
+        "test.step('...') or cy.step-style blocks inside an end-to-end test (Playwright, Cypress) named after a user action within a journey test",
+        "A user-journey, onboarding or story-map document (or wizard step config array) listing ordered steps with titles like 'Enter email' and 'Confirm code'"
+      ],
+      "x-dr-distinguish": {
+        "product.userworkflow": "the element is the whole goal-directed journey made up of several steps, rather than one position within it",
+        "product.feature": "the element is a reusable unit of user-visible functionality that may be exercised by steps in many workflows, rather than a point in a particular journey",
+        "product.capability": "the element describes an ability the product has regardless of any user sequence, with no ordering or user action attached"
       },
       "$id": "urn:dr:spec:node:product.workflowstep"
     }

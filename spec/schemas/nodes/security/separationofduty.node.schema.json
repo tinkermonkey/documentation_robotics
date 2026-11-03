@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SeparationOfDuty",
-  "description": "Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + approval, initiate + authorize) are performed by different actors or roles, preventing fraud, collusion, and undetected errors. MutuallyExclusive indicates roles that cannot be assigned to the same individual.",
+  "description": "A procedural access-control constraint requiring that two or more conflicting tasks or roles in a workflow (e.g., request and approve, initiate and authorize) are held or performed by different actors. It may be static, where the roles are mutually exclusive in assignment, or dynamic, where the same subject is barred from executing a later step on an item it acted on earlier. Use BindingOfDuty instead when the rule requires the same actor who started a task to also complete it, rather than forbidding the same actor from performing both steps. Use PolicyRule instead when the logic is a generic condition-plus-effect evaluation (permit/deny) not specifically about preventing one subject from holding or exercising conflicting duties. Use Role instead when the thing being modelled is the named permission bundle itself rather than the exclusion constraint between bundles. Use NeedToKnow instead when access is restricted by the actor's declared purpose rather than by conflict with another task or role the actor holds.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of which tasks or roles are separated and the risk being controlled (e.g., 'Invoice creators may not approve invoices they created'); set whenever the rule's intent is not obvious from its name."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable violation text returned to the user or written to logs when the constraint blocks an assignment or action (e.g., 'You cannot approve a request you submitted')."
         },
         "mutuallyExclusive": {
           "type": "boolean",
@@ -34,5 +36,17 @@
       "required": ["message"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-5 Separation of Duties",
+  "x-dr-evidence": [
+    "An approval handler that rejects the request when approver.id equals the request's createdBy/submittedBy field, often with an error like 'cannot approve your own request'.",
+    "A role-assignment validator or config list of mutually exclusive role pairs (e.g., 'conflictingRoles: [payment_creator, payment_approver]') checked when granting roles.",
+    "A maker-checker or four-eyes workflow configuration requiring a distinct second user to authorize a step, such as a minimum-distinct-approvers setting or a branch-protection rule that disallows self-approval."
+  ],
+  "x-dr-distinguish": {
+    "security.bindingofduty": "the rule requires the same actor who started a task to also complete it, rather than forbidding the same actor from performing both steps.",
+    "security.policyrule": "the logic is a generic condition-plus-effect evaluation (permit/deny) not specifically about preventing one subject from holding or exercising conflicting duties.",
+    "security.role": "the thing being modelled is the named permission bundle itself rather than the exclusion constraint between bundles.",
+    "security.needtoknow": "access is restricted by the actor's declared purpose rather than by conflict with another task or role the actor holds."
   }
 }

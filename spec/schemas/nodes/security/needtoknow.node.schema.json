@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NeedToKnow",
-  "description": "Restricts access to a resource to only those actors whose stated purpose requires it, implementing the NIST SP 800-53 AC-3(3) mandatory access control principle. JustificationRequired enforces that actors must declare their purpose before access is granted.",
+  "description": "A procedural access constraint that limits access to a named resource to actors whose declared business or operational purpose matches a stated objective, optionally requiring the actor to submit an explicit justification before access is granted. It gates access by purpose, not by identity, role or attribute match alone. Use InformationRight instead when the rule grants specific operations on an information entity to a named actor under a constraint expression, with no purpose declaration involved. Use AccountabilityRequirement instead when the purpose declaration is recorded as evidence that an action occurred, and is not checked as a gate before access. Use AccessCondition instead when the check is a generic field/operator/value predicate on request context inside a PolicyRule chain, rather than a purpose-of-use restriction. Use Permission instead when the element is an atomic action grant on a resource assigned to roles, with no justification or purpose requirement.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,21 +21,36 @@
       "type": "object",
       "properties": {
         "resource": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the protected resource or information entity (e.g. 'customer.pii' or '/api/patients/{id}') to which the need-to-know restriction applies; always set it to the same name used by the corresponding SecureResource or InformationEntity."
         },
         "objective": {
           "type": "string",
-          "description": "A free-text statement of the business or operational purpose that justifies access. This is a purpose declaration string, not a reference to an ActorObjective node."
+          "description": "A free-text statement of the business or operational purpose that justifies access. This is a purpose declaration string, not a reference to another node."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable denial text returned or logged when an actor's stated purpose does not satisfy the objective or when a required justification is missing."
         },
         "justificationRequired": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "When true, the actor must supply an explicit purpose or justification before each access is evaluated; set it to false when the purpose is inferred from context such as role or assignment."
         }
       },
       "required": ["resource", "objective", "message", "justificationRequired"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 AC-6 (Least Privilege, need-to-know) with AC-3 Access Enforcement; purpose specification per PT-3",
+  "x-dr-evidence": [
+    "Middleware or an interceptor that rejects requests to a sensitive endpoint when a purpose or reason field (e.g. X-Access-Reason, purposeOfUse) is missing or not in an allowed set.",
+    "A UI dialog or 'break-glass' prompt that forces the user to enter or select a reason before showing a protected record such as a patient chart or customer PII.",
+    "A configuration map from resources to permitted purpose codes (e.g. HIPAA TREAT/PAYMENT/OPS), together with a denial message shown when the stated purpose does not match."
+  ],
+  "x-dr-distinguish": {
+    "security.informationright": "the rule grants specific operations on an information entity to a named actor under a constraint expression, with no purpose declaration involved.",
+    "security.accountabilityrequirement": "the purpose declaration is recorded as evidence that an action occurred, and is not checked as a gate before access.",
+    "security.accesscondition": "the check is a generic field/operator/value predicate on request context inside a PolicyRule chain, rather than a purpose-of-use restriction.",
+    "security.permission": "the element is an atomic action grant on a resource assigned to roles, with no justification or purpose requirement."
   }
 }

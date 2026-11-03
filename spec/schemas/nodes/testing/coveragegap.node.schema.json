@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageGap",
-  "description": "An identified deficit between required and achieved test coverage for a target or requirement, typically surfaced during test summary reporting per IEEE 829-2008. Gaps require remediation, risk acceptance (CoverageExclusion), or deferral.",
+  "description": "A recorded finding that a specific coverage requirement or coverage target lacks the implemented or executed tests it needs. It names what is uncovered, how severe the gap is, and where it stands in remediation. It records a shortfall against required coverage, not a deliberate, approved scope decision and not an aggregate metric. Use CoverageExclusion instead when the uncovered item has been formally approved as out of scope, with a rationale, accepted risk and a named approver, rather than merely found to be missing coverage. Use TargetCoverageSummary instead when you are recording counts or percentages of sketches and implemented tests for a target, rather than a specific uncovered requirement that needs action. Use CoverageSummary instead when the artifact aggregates coverage totals across the whole model instead of describing one identified deficit. Use CoverageRequirement instead when you are specifying the criteria that must be met, rather than recording that those criteria are currently unmet.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what is not covered (for example, missing partitions, contexts or outcome categories) and how the gap was detected. Set it whenever the severity and affected requirement alone do not make the gap clear."
         },
         "severity": {
           "type": "string",
@@ -45,5 +46,17 @@
       "required": ["severity", "affectedRequirements"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 16 Level Test Report / Clause 17 Master Test Report (the Test Summary Report in IEEE 829-1998): comprehensive assessment and variances, i.e. identification of features or combinations not sufficiently tested",
+  "x-dr-evidence": [
+    "Coverage tool output (e.g. lcov, JaCoCo, coverage.py) or a CI gate failure listing files or endpoints below a configured threshold such as `fail_under` or `coverageThreshold`.",
+    "Test files carrying skip or todo markers (`@pytest.mark.skip`, `it.todo`, `xit`, `@Disabled`) with a comment or ticket ID explaining that a requirement or partition is not yet tested.",
+    "Issue-tracker items or TEST_GAPS / test-report markdown entries labelled 'coverage gap' or 'missing tests', naming an endpoint or requirement ID and a severity."
+  ],
+  "x-dr-distinguish": {
+    "testing.coverageexclusion": "the uncovered item has been formally approved as out of scope, with a rationale, accepted risk and a named approver, rather than merely found to be missing coverage",
+    "testing.targetcoveragesummary": "you are recording counts or percentages of sketches and implemented tests for a target, rather than a specific uncovered requirement that needs action",
+    "testing.coveragesummary": "the artifact aggregates coverage totals across the whole model instead of describing one identified deficit",
+    "testing.coveragerequirement": "you are specifying the criteria that must be met, rather than recording that those criteria are currently unmet"
   }
 }

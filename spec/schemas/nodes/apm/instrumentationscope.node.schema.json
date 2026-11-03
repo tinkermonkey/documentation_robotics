@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InstrumentationScope",
-  "description": "Named instrumented library or component that identifies the source of telemetry across all three OTel signal types (traces, metrics, logs), enabling attribution and filtering of signals by their origin.",
+  "description": "A named telemetry-producer identity, consisting of a name plus optional version, schema URL and attributes, under which code obtains a Tracer, Meter or Logger so that every span, metric and log record it emits is tagged with that origin. It identifies the instrumenting library or module, not the service or process that runs it. Use Resource instead when the identity describes the service, host, process or deployment that produces telemetry (service.name, host.name) rather than the library or module within it that emits the signals. Use InstrumentationConfig instead when the element is the setting that selects, enables or disables instrumentation of a library or code path, rather than the name/version identity stamped on the emitted telemetry. Use MetricInstrument instead when the element is an individual Counter, Histogram or Gauge created from a Meter, rather than the named Meter scope that owns the instruments. Use TraceConfiguration instead when the element is TracerProvider-wide sampler, propagator or processor configuration rather than a per-library tracer identity.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,13 +21,16 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "Version string of the instrumenting library or module (typically semver, e.g. '1.4.0'), as passed to getTracer/getMeter/getLogger; set whenever the code supplies a version."
         },
         "schemaUrl": {
-          "type": "string"
+          "type": "string",
+          "description": "URL of the OpenTelemetry semantic-conventions schema that this scope's telemetry conforms to (e.g. 'https://opentelemetry.io/schemas/1.24.0'); set when the code passes a schemaUrl on acquisition."
         },
         "droppedAttributesCount": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Non-negative integer count of scope attributes discarded because of attribute limits; set to 0 when modelling a scope definition rather than observed runtime data."
         },
         "attributes": {
           "type": "object",
@@ -38,5 +41,17 @@
       "required": ["droppedAttributesCount"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "OpenTelemetry Specification: InstrumentationScope (Glossary and Tracer/Meter/Logger 'Get a ...' operations); OTLP InstrumentationScope message in ScopeSpans/ScopeMetrics/ScopeLogs",
+  "x-dr-evidence": [
+    "Calls such as trace.getTracer('com.example.payments', '1.2.0'), meterProvider.getMeter(name, version, {schemaUrl}) or loggerProvider.getLogger(name) with a literal or constant library/module name",
+    "An instrumentation package whose class passes a name and version constant to its base constructor, e.g. super('@opentelemetry/instrumentation-express', VERSION) or InstrumentationScopeInfo.builder(name).setVersion(...)",
+    "Exported telemetry or collector config referencing scope identity: OTLP scopeSpans/scopeMetrics/scopeLogs entries with scope.name, or otel.scope.name / otel.library.name labels used in queries and filters"
+  ],
+  "x-dr-distinguish": {
+    "apm.resource": "the identity describes the service, host, process or deployment that produces telemetry (service.name, host.name) rather than the library or module within it that emits the signals",
+    "apm.instrumentationconfig": "the element is the setting that selects, enables or disables instrumentation of a library or code path, rather than the name/version identity stamped on the emitted telemetry",
+    "apm.metricinstrument": "the element is an individual Counter, Histogram or Gauge created from a Meter, rather than the named Meter scope that owns the instruments",
+    "apm.traceconfiguration": "the element is TracerProvider-wide sampler, propagator or processor configuration rather than a per-library tracer identity"
   }
 }

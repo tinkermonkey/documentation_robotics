@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BindingOfDuty",
-  "description": "Obligation control requiring that a single actor who initiates a task must also complete it, preventing task hijacking or inconsistent workflow state that could be exploited by a different actor. Complements SeparationOfDuty by enforcing task continuity rather than task segregation. Anchored to NIST SP 800-53 CM-5 (Access Restrictions for Change) and workflow integrity controls.",
+  "description": "A procedural access constraint requiring that the actor who performs one step of a multi-step task or workflow also performs its designated follow-on steps, so that any attempt by a different actor to continue or complete that task instance is rejected. Use SeparationOfDuty instead when the rule requires that two steps be performed by different actors or roles, rather than by the same actor. Use AccessCondition instead when the check is a standalone predicate on a single request (e.g. resource.ownerId eq currentUser) with no link to a task instance the actor started. Use NeedToKnow instead when access is restricted according to the actor's declared purpose rather than its participation in an earlier workflow step. Use PolicyRule instead when the logic is a general condition-plus-effect rule in a policy rather than a task-continuity obligation tied to workflow steps.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,10 +21,12 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of which task steps are bound together and why the same actor must perform them; set it whenever the bound steps are not obvious from the element name."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "The human-readable error or log message emitted when a different actor attempts to continue or complete the bound task, taken verbatim from the code where one exists."
         },
         "scope": {
           "type": "string",
@@ -34,5 +36,17 @@
       "required": ["message"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "STS-ml Binding of Duties (BoD) organizational constraint; complements NIST SP 800-53 AC-5 Separation of Duties",
+  "x-dr-evidence": [
+    "a workflow or state-machine transition guard that compares the stored initiator, claimant or assignee of a task instance (e.g. startedBy, claimedBy) with the current user id and throws or returns 403 when they differ",
+    "BPMN/Camunda or similar workflow configuration that assigns a later user task to the process initiator (e.g. assignee=\"${initiator}\") or locks a claimed task to a single user until completion",
+    "a dedicated exception or error message such as 'Only the user who started this request may submit it' or a class named like TaskOwnershipViolation or SameUserRequired raised in multi-step flows"
+  ],
+  "x-dr-distinguish": {
+    "security.separationofduty": "the rule requires that two steps be performed by different actors or roles, rather than by the same actor.",
+    "security.accesscondition": "the check is a standalone predicate on a single request (e.g. resource.ownerId eq currentUser) with no link to a task instance the actor started.",
+    "security.needtoknow": "access is restricted according to the actor's declared purpose rather than its participation in an earlier workflow step.",
+    "security.policyrule": "the logic is a general condition-plus-effect rule in a policy rather than a task-continuity obligation tied to workflow steps."
   }
 }

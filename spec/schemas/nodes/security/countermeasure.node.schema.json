@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Countermeasure",
-  "description": "A security control or mitigation technique that reduces the likelihood or impact of a specific threat. Maps to NIST SP 800-53 controls by type (technical, operational, management) and tracks implementation status and residual risk.",
+  "description": "A security control or mitigation mechanism, recorded against one or more identified Threats, that reduces their likelihood or impact and is characterised by control class, implementation status and assessed effectiveness. It is the threat-mitigation view of a control; the concrete configuration that realises it (password rules, auth settings, rate limits) is modelled by other types that realize or mandate it. Use SecurityPolicy instead when the element is a named, prioritised set of evaluation rules that produces access-control decisions for a target, rather than a mitigation linked to a threat. Use PolicyAction instead when the element is the runtime response (deny, alert, mask, quarantine) executed when a specific policy rule fires, not the standing control that the response helps realise. Use PasswordPolicy instead when the element is the concrete credential complexity, rotation and lockout parameters; model the anti-brute-force mitigation those parameters deliver as a Countermeasure. Use Threat instead when the element describes what could go wrong (attacker, vulnerability, likelihood, impact) rather than the measure taken against it.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -26,7 +26,8 @@
           "description": "NIST SP 800-53 control family classification: technical (hardware/software mechanisms), operational (people and procedures), management (governance), or physical (facility/environmental)."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of what the control does, which mechanism or procedure realises it, and which threat behaviour it counters; set whenever the name alone does not identify the mechanism."
         },
         "effectiveness": {
           "type": "string",
@@ -34,7 +35,8 @@
           "description": "Assessed effectiveness of the countermeasure in reducing threat risk, per NIST SP 800-30 risk treatment evaluation."
         },
         "implemented": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "True when the control is deployed and active in the system under model, false when it is planned, proposed or only documented; set from evidence such as deployed config or code, not from intent."
         },
         "source": {
           "type": "object",
@@ -44,5 +46,17 @@
       "required": ["type"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "NIST SP 800-53 Rev. 5 security and privacy controls (as risk responses per NIST SP 800-30 Rev. 1 / SP 800-39)",
+  "x-dr-evidence": [
+    "a threat-model artifact (STRIDE/LINDDUN table, OWASP Threat Dragon or MS TMT file) whose 'mitigation' or 'countermeasure' entries name a control against a listed threat",
+    "security middleware or filters registered globally (e.g. helmet, CSRF token filter, input sanitiser, WAF rule set) with comments or config referencing a CWE, OWASP Top 10 item or NIST control ID",
+    "a control-implementation record such as an OSCAL component-definition, system security plan or compliance matrix mapping control IDs (e.g. SC-8, SI-10) to an implementation status"
+  ],
+  "x-dr-distinguish": {
+    "security.securitypolicy": "the element is a named, prioritised set of evaluation rules that produces access-control decisions for a target, rather than a mitigation linked to a threat",
+    "security.policyaction": "the element is the runtime response (deny, alert, mask, quarantine) executed when a specific policy rule fires, not the standing control that the response helps realise",
+    "security.passwordpolicy": "the element is the concrete credential complexity, rotation and lockout parameters; model the anti-brute-force mitigation those parameters deliver as a Countermeasure",
+    "security.threat": "the element describes what could go wrong (attacker, vulnerability, likelihood, impact) rather than the measure taken against it"
   }
 }

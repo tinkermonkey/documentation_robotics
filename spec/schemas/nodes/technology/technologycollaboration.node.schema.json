@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyCollaboration",
-  "description": "An aggregate of two or more technology active structure elements that work together to perform collective technology behavior, such as a cluster of servers, a distributed cache, or a microservice mesh.",
+  "description": "An aggregate of two or more technology active structure elements (nodes, devices or system software instances) that are configured to cooperate as peers and jointly perform behavior none performs alone. Examples are a replicated database ensemble, a consensus cluster, a sharded cache cluster or a service mesh. It is identified by explicit peer membership or coordination configuration, not merely by co-location or shared hosting. Use Node instead when the thing is a single hosting resource, or a cluster managed and addressed as one computational unit (e.g. a Kubernetes cluster as a deployment target), rather than a grouping of individually modelled cooperating members. Use TechnologyInteraction instead when the element is the joint behavior itself (a failover protocol, leader election, distributed commit) rather than the group of elements that performs it. Use SystemSoftware instead when a single installed software product or instance is meant (e.g. one Redis or PostgreSQL server) with no modelled peer membership. Use CommunicationNetwork instead when the element only transports data between members and performs no collective processing itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text description naming the collaborating members, how they coordinate (replication, consensus, sharding, sidecar proxying) and the collective behavior they provide. Set it whenever membership or coordination is not evident from the element name."
         },
         "properties": {
           "type": "object",
@@ -34,5 +35,17 @@
       },
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §10.2.4 Technology Collaboration",
+  "x-dr-evidence": [
+    "A StatefulSet, Helm chart or docker-compose file declaring multiple replicas of the same server with peer discovery settings, such as Kafka/ZooKeeper ensembles, etcd initial-cluster, Redis cluster-enabled yes or Elasticsearch discovery.seed_hosts.",
+    "Infrastructure-as-code resources that define a multi-member cooperative group, such as aws_elasticache_replication_group, aws_rds_cluster, aws_msk_cluster or a Patroni/Galera cluster configuration listing member addresses.",
+    "Service mesh configuration grouping workloads into one mesh, such as Istio IstioOperator/MeshConfig, Linkerd injection annotations across namespaces, or Consul Connect service definitions."
+  ],
+  "x-dr-distinguish": {
+    "technology.node": "the thing is a single hosting resource, or a cluster managed and addressed as one computational unit (e.g. a Kubernetes cluster as a deployment target), rather than a grouping of individually modelled cooperating members.",
+    "technology.technologyinteraction": "the element is the joint behavior itself (a failover protocol, leader election, distributed commit) rather than the group of elements that performs it.",
+    "technology.systemsoftware": "a single installed software product or instance is meant (e.g. one Redis or PostgreSQL server) with no modelled peer membership.",
+    "technology.communicationnetwork": "the element only transports data between members and performs no collective processing itself."
   }
 }

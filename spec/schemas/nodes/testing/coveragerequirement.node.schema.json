@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageRequirement",
-  "description": "A specification of coverage criteria that must be satisfied for a TestCoverageTarget, defining which input partitions, context variations, and outcome categories must be exercised per IEEE 829-2008 test design specification requirements. The specific partitions, context variations, and outcome categories are associated via relationships (to InputPartitionSelection, ContextVariation, and OutcomeCategory nodes) rather than direct attributes.",
+  "description": "A test design rule attached to one TestCoverageTarget that names a combinatorial or structural coverage criterion (e.g. boundary-values, pairwise, MC/DC) which the target's test cases must satisfy across selected input partitions, context variations and outcome categories. It states what must be exercised. It is not a test case, not the target itself, and not a measured result. Use TestCoverageTarget instead when the element identifies the endpoint, workflow, component or job that needs testing, rather than the criterion its tests must meet. Use InputPartitionSelection instead when the element lists which specific values of one InputSpacePartition are included or excluded, rather than the overall coverage strategy that uses those selections. Use TestCaseSketch instead when the element is one designed or implemented test case choosing concrete partition values, rather than the rule that a set of such cases must satisfy. Use CoverageGap instead when the element records a measured shortfall against a requirement found during reporting, rather than the requirement itself.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text statement of what this requirement demands for its target, naming the partitions, contexts or outcomes in scope and any rationale. Set it whenever the coverageCriteria value alone does not make the scope evident."
         },
         "coverageCriteria": {
           "type": "string",
@@ -44,5 +45,17 @@
       "required": ["coverageCriteria"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "IEEE 829-2008 Clause 10 Level Test Design (test design specification: approach refinements and feature pass/fail criteria)",
+  "x-dr-evidence": [
+    "A combinatorial test model file, such as a PICT .txt model, an allpairs config or a hypothesis/fast-check strategy, scoped to one endpoint or function, that declares parameters and an order or strategy like pairwise.",
+    "A parametrized test table (pytest.mark.parametrize, test.each, JUnit @ParameterizedTest/@CsvSource) whose rows enumerate boundary and invalid classes for one target, with a comment or docstring naming the criterion (e.g. 'boundary values for quantity').",
+    "A test plan or test design Markdown/YAML entry that states, per feature or endpoint, a required criterion and priority (e.g. 'POST /orders: all-partitions over status × role, must cover validation-error and authorization-error outcomes')."
+  ],
+  "x-dr-distinguish": {
+    "testing.testcoveragetarget": "the element identifies the endpoint, workflow, component or job that needs testing, rather than the criterion its tests must meet",
+    "testing.inputpartitionselection": "the element lists which specific values of one InputSpacePartition are included or excluded, rather than the overall coverage strategy that uses those selections",
+    "testing.testcasesketch": "the element is one designed or implemented test case choosing concrete partition values, rather than the rule that a set of such cases must satisfy",
+    "testing.coveragegap": "the element records a measured shortfall against a requirement found during reporting, rather than the requirement itself"
   }
 }

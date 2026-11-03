@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Value",
-  "description": "Relative worth, utility, or importance of a concept, phenomenon, or outcome to one or more stakeholders.",
+  "description": "A motivation element stating the worth, benefit, or utility that a specific concept, service, feature, or outcome has for one or more named stakeholders, expressed from the stakeholder's perspective (for example 'saves customers ten minutes per order') rather than as a target, a result, or a need. Use Outcome instead when the statement describes an end result the organization intends or has achieved, such as a measurable state change, rather than why that result is worth something to a stakeholder. Use Goal instead when the statement expresses a desired direction or end state the organization strives toward, not the benefit a stakeholder derives. Use Meaning instead when the statement gives the interpretation or definition of a concept in a context, not its worth or importance. Use Driver instead when the statement describes a condition or force that motivates change, such as market pressure or regulation, rather than a benefit delivered.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -21,7 +21,8 @@
       "type": "object",
       "properties": {
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "description": "Free-text explanation of the value: which stakeholders it applies to, what benefit they gain, and any quantification or evidence. Set it whenever the element name alone does not state who benefits and how."
         },
         "valueType": {
           "type": "string",
@@ -42,5 +43,17 @@
       "required": ["valueType"],
       "additionalProperties": false
     }
+  },
+  "x-dr-standard": "ArchiMate 3.2 §6.4.2 Value",
+  "x-dr-evidence": [
+    "A 'Value proposition', 'Benefits' or 'Why this matters' section in a product spec, PRD or README that names a stakeholder and the benefit they receive",
+    "A business case, OKR or ADR 'Consequences/Benefits' entry quantifying worth to a stakeholder, such as cost saved, revenue enabled or time reduced",
+    "A feature, epic or service catalogue entry with a 'value', 'benefit' or 'business value' field describing what a user or customer gains"
+  ],
+  "x-dr-distinguish": {
+    "motivation.outcome": "the statement describes an end result the organization intends or has achieved, such as a measurable state change, rather than why that result is worth something to a stakeholder",
+    "motivation.goal": "the statement expresses a desired direction or end state the organization strives toward, not the benefit a stakeholder derives",
+    "motivation.meaning": "the statement gives the interpretation or definition of a concept in a context, not its worth or importance",
+    "motivation.driver": "the statement describes a condition or force that motivates change, such as market pressure or regulation, rather than a benefit delivered"
   }
 }
