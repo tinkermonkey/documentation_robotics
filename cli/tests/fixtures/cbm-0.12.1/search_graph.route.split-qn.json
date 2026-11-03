@@ -1,0 +1,50 @@
+{
+  "tool": "search_graph",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+    "label": "Route",
+    "format": "json",
+    "limit": 4,
+    "offset": 16
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"qn_rule\":\"qn = qn_prefix == \\\"\\\" ? name : qn_prefix + \\\".\\\" + name\",\"cols\":[\"name\",\"label\",\"lines\",\"in\",\"out\"],\"groups\":[{\"qn_prefix\":\"\",\"file\":\"\",\"rows\":[[\"__route__GET__/owners?lastName=\",\"Route\",\"\",1,0]]},{\"qn_prefix\":\"\",\"file\":\"src/main/java/org/springframework/samples/petclinic/vet/VetController.java\",\"rows\":[[\"__route__GET__/vets\",\"Route\",\"\",0,0]]},{\"qn_prefix\":\"__route__GET__/vets\",\"file\":\"src/main/java/org/springframework/samples/petclinic/vet/VetController.java\",\"rows\":[[\"html\",\"Route\",\"\",0,0]]},{\"qn_prefix\":\"__route__GET__/vets\",\"file\":\"\",\"rows\":[[\"html?page=1\",\"Route\",\"\",1,0]]}],\"total\":20,\"returned\":4,\"count\":4,\"has_more\":false,\"truncated\":false}"
+      }
+    ],
+    "structuredContent": {
+      "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+      "cols": ["name", "label", "lines", "in", "out"],
+      "groups": [
+        {
+          "qn_prefix": "",
+          "file": "",
+          "rows": [["__route__GET__/owners?lastName=", "Route", "", 1, 0]]
+        },
+        {
+          "qn_prefix": "",
+          "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+          "rows": [["__route__GET__/vets", "Route", "", 0, 0]]
+        },
+        {
+          "qn_prefix": "__route__GET__/vets",
+          "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+          "rows": [["html", "Route", "", 0, 0]]
+        },
+        {
+          "qn_prefix": "__route__GET__/vets",
+          "file": "",
+          "rows": [["html?page=1", "Route", "", 1, 0]]
+        }
+      ],
+      "total": 20,
+      "returned": 4,
+      "count": 4,
+      "has_more": false,
+      "truncated": false
+    },
+    "isError": false
+  }
+}

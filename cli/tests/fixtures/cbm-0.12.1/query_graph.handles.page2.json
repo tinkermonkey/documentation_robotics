@@ -1,0 +1,56 @@
+{
+  "tool": "query_graph",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+    "format": "json",
+    "max_rows": 2,
+    "query": "MATCH (f)-[:HANDLES]->(r:Route) RETURN r.qualified_name AS route_qualified_name, f.qualified_name AS qualified_name, f.name AS name, f.file_path AS file_path, f.start_line AS start_line, f.end_line AS end_line",
+    "cursor": "q1.u561ce42e4e2e234eg2.93a0961613fcee7d.bbb4b2784688e3789c920008fc5a68c3.2.303ffa866316d3aa"
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"columns\":[\"route_qualified_name\",\"qualified_name\",\"name\",\"file_path\",\"start_line\",\"end_line\"],\"rows\":[[\"__route__GET__/oups\",\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.system.CrashController.triggerException\",\"triggerException\",\"src/main/java/org/springframework/samples/petclinic/system/CrashController.java\",\"31\",\"35\"],[\"__route__GET__/\",\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.system.WelcomeController.welcome\",\"welcome\",\"src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java\",\"25\",\"28\"]],\"returned\":2,\"total\":17,\"total_relation\":\"eq\",\"offset\":2,\"has_more\":true,\"truncated\":true,\"truncation_reason\":\"page_limit\",\"next_cursor\":\"q1.u561ce42e4e2e234eg2.93a0961613fcee7d.bbb4b2784688e3789c920008fc5a68c3.4.552422b74fd27d48\",\"next_offset\":4}"
+      }
+    ],
+    "structuredContent": {
+      "columns": [
+        "route_qualified_name",
+        "qualified_name",
+        "name",
+        "file_path",
+        "start_line",
+        "end_line"
+      ],
+      "rows": [
+        [
+          "__route__GET__/oups",
+          "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.system.CrashController.triggerException",
+          "triggerException",
+          "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+          "31",
+          "35"
+        ],
+        [
+          "__route__GET__/",
+          "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.system.WelcomeController.welcome",
+          "welcome",
+          "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+          "25",
+          "28"
+        ]
+      ],
+      "returned": 2,
+      "total": 17,
+      "total_relation": "eq",
+      "offset": 2,
+      "has_more": true,
+      "truncated": true,
+      "truncation_reason": "page_limit",
+      "next_cursor": "q1.u561ce42e4e2e234eg2.93a0961613fcee7d.bbb4b2784688e3789c920008fc5a68c3.4.552422b74fd27d48",
+      "next_offset": 4
+    },
+    "isError": false
+  }
+}

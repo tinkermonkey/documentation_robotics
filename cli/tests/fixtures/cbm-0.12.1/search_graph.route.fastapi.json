@@ -1,0 +1,40 @@
+{
+  "tool": "search_graph",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template",
+    "label": "Route",
+    "format": "json",
+    "limit": 3
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"qn_rule\":\"qn = qn_prefix == \\\"\\\" ? name : qn_prefix + \\\".\\\" + name\",\"cols\":[\"name\",\"label\",\"lines\",\"in\",\"out\"],\"groups\":[{\"qn_prefix\":\"\",\"file\":\"\",\"rows\":[[\"__route__GET__/\",\"Route\",\"\",2,0],[\"__route__POST__/\",\"Route\",\"\",2,0],[\"__route__GET__/health-check/\",\"Route\",\"\",1,0]]}],\"total\":19,\"returned\":3,\"count\":3,\"has_more\":true,\"next_offset\":3,\"truncated\":true,\"truncation_reason\":\"page_limit\"}"
+      }
+    ],
+    "structuredContent": {
+      "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+      "cols": ["name", "label", "lines", "in", "out"],
+      "groups": [
+        {
+          "qn_prefix": "",
+          "file": "",
+          "rows": [
+            ["__route__GET__/", "Route", "", 2, 0],
+            ["__route__POST__/", "Route", "", 2, 0],
+            ["__route__GET__/health-check/", "Route", "", 1, 0]
+          ]
+        }
+      ],
+      "total": 19,
+      "returned": 3,
+      "count": 3,
+      "has_more": true,
+      "next_offset": 3,
+      "truncated": true,
+      "truncation_reason": "page_limit"
+    },
+    "isError": false
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "corpus": "dr-cli",
+  "project": "Users-austinsand-workspace-documentation_robotics-cli",
+  "source": "codebase-memory-mcp index database, read-only",
+  "extracted_at": "2026-11-03T13:55:27.753Z",
+  "graph_edges_by_type": {
+    "CALLS": 3949,
+    "CALL_REFERENCE": 11,
+    "CONFIGURES": 684,
+    "CONTAINS_FILE": 631,
+    "CONTAINS_FOLDER": 75,
+    "DEFINES": 11471,
+    "DEFINES_METHOD": 963,
+    "HANDLES": 1,
+    "HAS_BRANCH": 1,
+    "HTTP_CALLS": 54,
+    "IMPLEMENTS": 15,
+    "IMPORTS": 3319,
+    "INHERITS": 12,
+    "LISTENS_ON": 3,
+    "OVERRIDE": 7,
+    "RAISES": 75,
+    "SEMANTICALLY_RELATED": 139,
+    "SIMILAR_TO": 60,
+    "TESTS": 13,
+    "USAGE": 9780,
+    "WRITES": 358
+  }
+}

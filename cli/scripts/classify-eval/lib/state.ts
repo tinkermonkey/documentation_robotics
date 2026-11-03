@@ -1,11 +1,11 @@
-import type { Card } from "./types.js";
+import type { Card, Facts } from "./types.js";
 
 /**
  * Render a card as the "state" text a classifier sees. Shared by every
  * backend so the comparison is fair. `sourceLines` caps the code excerpt;
  * the gold labeler uses the full card source instead.
  */
-export function renderState(card: Card, sourceLines: number): string {
+export function renderState(card: Card, sourceLines: number, facts?: Facts): string {
   const lines: string[] = [];
   lines.push(`Symbol kind: ${card.label}`);
   lines.push(`Name: ${card.name}`);
@@ -29,6 +29,15 @@ export function renderState(card: Card, sourceLines: number): string {
   if (card.env_vars.length) lines.push(`Environment variables read: ${card.env_vars.join(", ")}`);
   if (card.routes_handled.length) lines.push(`Handles routes: ${card.routes_handled.join(", ")}`);
   if (card.http_calls.length) lines.push(`Makes HTTP calls to: ${card.http_calls.join(", ")}`);
+  if (facts) {
+    // Tier-0 structural facts (facts.ts): stated outright so the classifier need not infer them
+    if (facts.decorators.length) lines.push(`Decorators: ${facts.decorators.map((d) => compact(d, 80)).join(", ")}`);
+    lines.push(`Imported by: ${facts.file_importers} other file${facts.file_importers === 1 ? "" : "s"}`);
+    if (facts.usage_files) lines.push(`Used from: ${facts.usage_files} other file${facts.usage_files === 1 ? "" : "s"}`);
+    if (facts.methods) lines.push(`Defines ${facts.methods} method${facts.methods === 1 ? "" : "s"}`);
+    const placement = placementOf(card.file_path);
+    if (placement) lines.push(`Placement: ${placement}`);
+  }
   if (card.source) {
     const src = card.source.split("\n");
     const shown = src.slice(0, sourceLines);
@@ -45,4 +54,14 @@ export function renderState(card: Card, sourceLines: number): string {
 function compact(s: string, max = 300): string {
   const one = s.replace(/\s+/g, " ").trim();
   return one.length > max ? one.slice(0, max) + "…" : one;
+}
+
+/** Where a file sits by framework convention, when that says something about its role. */
+export function placementOf(file: string | null): string | null {
+  if (!file) return null;
+  if (/(^|\/)(components\/ui|packages\/[^/]+\/ui|design-system|ui-kit)\//.test(file)) return "shared UI library directory (reusable components)";
+  if (/(^|\/)(src\/)?(routes|pages|app)\/.+\.(tsx|jsx|vue|svelte)$/.test(file)) return "file-based routing directory (reached by navigation)";
+  if (/\.gen\.[cm]?[jt]sx?$/.test(file)) return "generated code";
+  if (/(^|\/)(tests?|__tests__|spec)\//.test(file)) return "test code";
+  return null;
 }

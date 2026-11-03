@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr analyzer` works with codebase-memory-mcp 0.12.** Since CBM 0.11 every tool answers in
+  text unless asked for JSON, and search_graph, query_graph and trace_path return grouped, paged
+  results, so `dr analyzer index` failed with "Invalid response from list_projects" and the
+  query subcommands could not read their results. Every CBM call now goes through
+  `cli/src/analyzers/cbm-responses.ts`, which passes `format: "json"`, follows every result page,
+  raises CBM error payloads as errors, and normalises both the 0.12 shapes and the flat 0.10
+  shapes into what the analyzer reads. Behaviour that changes with it:
+  - `endpoints` and `verify` take each route's handler, symbol, lines and (where the Route node
+    has none, as on every fastapi route) file from its HANDLES edge; a route CBM shares between
+    several handlers becomes one endpoint per handler. Endpoints with a handler keep `high`
+    confidence.
+  - `callers`/`callees` look up each node's file (0.12 trace rows carry none); an unknown symbol
+    is a "Symbol not found" error instead of an empty list.
+  - `query` returns `{ columns, rows, total }` across all pages, and a Cypher error is reported as
+    `Query failed: <CBM's message>`.
+  - `datastores` and the client-side endpoint fallback request node columns explicitly, so their
+    query_graph paths return data (they read a `records` field, and CBM answers with
+    `columns`/`rows`). On petclinic `datastores` still finds nothing; on fastapi it now reports
+    a `local-storage` candidate.
+  - CBM file paths are repository-relative; they are no longer resolved against the current
+    directory, so a detached model (`--codebase-path`) reports the right files.
+
+- **DrBot can run read-safe `dr` commands in default mode.** `dr chat` and `dr visualize` passed
+  Claude Code a single Bash permission rule joining every read-safe command
+  (`Bash(dr query|dr show|...)`); Claude Code's rules have no "or", so it matched nothing and the
+  bot could run no `dr` command unless launched with `--with-danger`. Each read-safe command is now
+  its own prefix rule (`Bash(dr show:*)`); the command list is unchanged, and Copilot, which reuses
+  the formatter, changes the same way.
+
 - **`dr farm status` no longer reports a deleted codebase as "Not synced yet".** The status
   command used to treat any error whose message contained "not found" as a missing sync state,
   so a project whose codebase folder had been removed showed `has_pending_changes: false`. The
@@ -35,6 +64,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The cbm analyzer mapping names only what the spec has** (Phase 2, inventory steps 1 to 3;
+  `docs/analyzers/CBM_MAPPING_INVENTORY.md`). `HANDLES` maps to `api.operation realizes
+  application.applicationfunction`, inverted from CBM's handler-to-route edge, instead of a
+  `provides` triple the catalog lacks. `HTTP_CALLS` is traversal-only until the catalog has a
+  consumer-calls-operation triple. The five edges CBM never emits (`CREATES`, `USES`,
+  `REFERENCES`, `RETURNS`, `MODIFIES`) are gone. `DEFINES_METHOD` (component assigned-to function)
+  and `IMPORTS` (component uses component) now create relationships, and `DEFINES` is recorded as
+  provenance. `Interface`, `Type`, `Enum`, `Struct` and `Trait` map to `application.dataobject`.
+  `datastore_detection` names the spec's real types. Every CBM 0.10.2 label is either mapped or
+  listed as unmapped, and a unit test fails if a mapping names a type or triple the catalog lacks.
+- **Every CBM edge type is in the cbm edge mapping, and edges become relationships by catalog
+  lookup** (`src/analyzers/edge-relationships.ts`). Each relationship-creating edge lists the
+  predicates that can express it in order of preference; the relationship is the first catalog
+  triple between the two classified element types, among the end types the mapping allows
+  (`conditions.from_types` / `to_types`, enforced). `dedupeRelationships` collapses the same
+  relationship reached through several edge types. 17 of CBM's 48 edge types create relationships
+  (adding `CALLS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`, `TESTS`,
+  `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`); the
+  other 31 are traversal-only with the reason, and the unit tests fail if an edge type is missing,
+  names a nonexistent predicate, or lacks a reason.
+- **`dr analyzer services` takes candidates only from behavioural and structural labels.** With
+  the new `Interface` family mappings, data-object labels would otherwise have become service
+  candidates.
+- **Call-graph root nodes default to `CALLS`.** `dr analyzer callers` and `callees` used the first
+  edge mapping as the default edge type, which was `HTTP_CALLS`, so root nodes and nodes without a
+  typed incoming edge were labelled `HTTP_CALLS`. The default is now `CALLS` explicitly, whatever
+  the mapping's order.
 - **A corrupt active changeset now fails `Model.load`.** When
   `documentation-robotics/changesets/.active` names a changeset whose files cannot be read or
   parsed, `Model.load` used to fall back silently to the base model, so every command ran as if
@@ -56,6 +112,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
+  analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
+  regular-expression conditions on decorators, declaration, file path and name, and a `decide` or
+  `narrow` outcome; unknown keys are rejected). The engine returns a decide, reject (not an
+  element) or narrow action, and `declarationOf` reads the declaration past comments, docstrings
+  and decorators, across lines while brackets are open. The cbm analyzer ships 17 rules: route
+  handlers (`@GetMapping`, `router.get`, `items_router.post`, NestJS `@Get`, JAX-RS `@GET`) to
+  `application.applicationfunction` (the Route is the operation), controllers to
+  `application.applicationinterface`, JPA entities and SQLModel table classes alike to
+  `data-model.objectschema`, Spring Data repositories to `data-store.accesspattern`, generated
+  client code and component props to `none`, test files and annotations to the testing layer
+  ahead of every framework rule, and narrowing rules for UI library directories, file-based routes
+  (Next.js `app/` page, layout and route files only), Spring services and other interfaces.
+  `MappingLoader.getHeuristics()` returns them in order. Not yet called by a command; the design
+  is `docs/analyzers/CASCADE_DESIGN.md`.
 - **`dr visualize --with-changesets`: DrBot can stage model changes for you to review.** Between
   the read-only default and `--with-danger`, the chat agent (Claude Code) may now create, activate
   and inspect changesets, stage new elements, element updates and new relationships (`dr add`,

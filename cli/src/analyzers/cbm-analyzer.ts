@@ -41,19 +41,17 @@ import { VerifyEngine } from "./verify-engine.js";
 import { clampDepth, shapeCallGraphNode, determineEdgeType } from "./call-graph-utils.js";
 import { evaluateHeuristic, capConfidence, matchPattern, getKnownHeuristicNames } from "./heuristic-utils.js";
 import { toKebabCase } from "../utils/id-generator.js";
-
-/**
- * Graph node from CBM search results
- */
-interface CbmGraphNode {
-  id?: string;
-  name?: string;
-  qualified_name?: string;
-  label: string;
-  properties?: Record<string, unknown>;
-  file_path?: string;
-  [key: string]: unknown;
-}
+import {
+  CbmTools,
+  CbmToolError,
+  ROUTE_HANDLERS_QUERY,
+  attachRouteHandlers,
+  nodeColumns,
+  nodesFromQuery,
+  relativeToRoot,
+  routeHandlersFromQuery,
+} from "./cbm-responses.js";
+import type { CbmGraphNode } from "./cbm-responses.js";
 
 // Source-code file extensions that CBM sometimes mislabels as Route nodes when it
 // encounters string literals that look like paths (e.g. "/src/app.ts").
@@ -96,6 +94,9 @@ function inferHttpPathFromFunctionName(name: string): string {
   const segment = toKebabCase(stripped || name);
   return segment ? `/${segment}` : "/";
 }
+
+/** Element types whose CBM labels can yield service candidates in services(). */
+const SERVICE_SOURCE_TYPES = new Set(["applicationfunction", "applicationcomponent", "applicationservice"]);
 
 /**
  * CBM Analyzer implementation
@@ -465,28 +466,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      const tools = new CbmTools(client);
+
       // Check if project is already indexed using list_projects
       // This validates the acceptance criterion and prevents duplicate project creation
-      const listProjectsResponse = (await client.invokeTool("list_projects")) as {
-        projects?: Array<{ name: string; root_path: string; nodes?: number; edges?: number }>;
-        [key: string]: unknown;
-      };
-
-      // Validate response structure
-      if (!listProjectsResponse || typeof listProjectsResponse !== "object") {
-        throw new CLIError(
-          "Invalid response from list_projects",
-          ErrorCategory.SYSTEM,
-          ["Ensure codebase-memory-mcp is properly installed and functional"]
-        );
-      }
-
-      const projects = Array.isArray(listProjectsResponse.projects)
-        ? (listProjectsResponse.projects as Array<{
-            name: string;
-            root_path: string;
-          }>)
-        : [];
+      const projects = await tools.listProjects();
       const projectExists = projects.some((p) => p.root_path === effectiveCodebaseRoot);
 
       // Prevent duplicate CBM entries if project exists and index is fresh.
@@ -560,23 +544,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       // Index the repository using the effective codebase root
-      const indexResponse = (await client.invokeTool("index_repository", {
-        repo_path: effectiveCodebaseRoot,
-      })) as {
-        nodes?: number;
-        edges?: number;
-        status?: string;
-        [key: string]: unknown;
-      };
-
-      // Validate response structure
-      if (!indexResponse || typeof indexResponse !== "object") {
-        throw new CLIError(
-          "Invalid response from index_repository",
-          ErrorCategory.SYSTEM,
-          ["Ensure codebase-memory-mcp is properly installed and functional"]
-        );
-      }
+      const indexResponse = await tools.indexRepository(effectiveCodebaseRoot);
 
       const timestamp = new Date().toISOString();
       const nodeCount = typeof indexResponse.nodes === "number" ? indexResponse.nodes : 0;
@@ -626,43 +594,26 @@ export class CbmAnalyzer implements AnalyzerBackend {
   }
 
   /**
-   * Validate search_graph response structure
+   * Fetch Route nodes with their HANDLES-edge handlers attached.
    *
-   * Ensures response is an object and nodes is an array.
-   * Throws CLIError if validation fails.
+   * CBM Route nodes carry only `{ method, source }` and often no file (every fastapi route,
+   * for example); the handler function, its symbol, lines and file come from HANDLES edges.
+   * If the handler query fails the routes are returned as they are.
    *
    * @private
-   * @param response Raw response from search_graph MCP tool
-   * @returns Typed nodes array (may be empty if no results found)
-   * @throws CLIError if response structure is invalid
    */
-  private validateSearchResponse(
-    response: unknown
-  ): CbmGraphNode[] {
-    // Validate response structure
-    if (!response || typeof response !== "object") {
-      throw new CLIError(
-        "Invalid response from search_graph",
-        ErrorCategory.SYSTEM,
-        ["Ensure codebase-memory-mcp is properly installed and functional"]
-      );
+  private async fetchRoutes(tools: CbmTools, projectName: string, label: string): Promise<CbmGraphNode[]> {
+    const routes = await tools.searchGraph({ label, project: projectName });
+    try {
+      const handlers = routeHandlersFromQuery(await tools.queryGraph(ROUTE_HANDLERS_QUERY, projectName));
+      return attachRouteHandlers(routes, handlers);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      handleWarning("Could not read route handlers (HANDLES edges); routes lack handler details", [
+        `Error: ${errorMsg}`,
+      ]);
+      return routes;
     }
-
-    // Support 'results' (codebase-memory-mcp v0.6+) and legacy 'nodes'
-    const responseObj = response as { results?: unknown; nodes?: unknown; [key: string]: unknown };
-    const nodeArray = responseObj.results ?? responseObj.nodes;
-    if (!Array.isArray(nodeArray)) {
-      throw new CLIError(
-        "Invalid response from search_graph: results must be an array",
-        ErrorCategory.SYSTEM,
-        [
-          `Expected array in 'results' or 'nodes', got ${typeof nodeArray}`,
-          "Ensure codebase-memory-mcp is properly installed and returning valid results"
-        ]
-      );
-    }
-
-    return nodeArray as CbmGraphNode[];
   }
 
   /**
@@ -673,13 +624,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
    * Falls back to the absolute path with a warning if the project is not found.
    */
   private async resolveProjectName(
-    client: StdioClient,
+    client: StdioClient | CbmTools,
     codebaseRoot: string
   ): Promise<string> {
-    const listResponse = (await client.invokeTool("list_projects")) as {
-      projects?: Array<{ name: string; root_path: string }>;
-    };
-    const projects = Array.isArray(listResponse?.projects) ? listResponse.projects : [];
+    const tools = client instanceof CbmTools ? client : new CbmTools(client);
+    const projects = await tools.listProjects();
     const match = projects.find((p) => p.root_path === codebaseRoot);
     if (!match) {
       handleWarning(
@@ -753,16 +702,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      const tools = new CbmTools(client);
+
       // Resolve internal project name for search_graph (requires name, not absolute path)
-      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
 
       // Search for Route nodes using the CBM label from the mapping
-      const searchResponse = await client.invokeTool("search_graph", {
-        label: routeMapping.cbm_label,
-        project: projectName,
-      });
-
-      const allNodes = this.validateSearchResponse(searchResponse);
+      const allNodes = await this.fetchRoutes(tools, projectName, routeMapping.cbm_label);
       // Keep only nodes whose qualified_name follows the __route__METHOD__/path
       // convention. Nodes that don't match are graph artifacts (documentation
       // strings, base URLs, etc.) that were incidentally labelled Route by the
@@ -809,27 +755,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
                    OR n.name STARTS WITH 'delete' OR n.name STARTS WITH 'patch'
                    OR n.name STARTS WITH 'create' OR n.name STARTS WITH 'update'
                    OR n.name STARTS WITH 'list')
-            RETURN n
+            RETURN ${nodeColumns("n")}
           `;
 
-          const qResp = await client.invokeTool("query_graph", {
-            query: clientQuery,
-            project: projectName,
-          });
-
-          if (qResp && typeof qResp === "object") {
-            const records = (qResp as { records?: Array<{ n?: CbmGraphNode }> }).records ?? [];
-            for (const record of records) {
-              const node = record.n;
-              if (!node || !node.file_path) continue;
-              const candidate = this.shapeClientSideEndpoint(node, effectiveCodebaseRoot);
-              if (candidate && !this.isTestCode(candidate)) {
-                candidates.push(candidate);
-              }
+          const clientNodes = nodesFromQuery(await tools.queryGraph(clientQuery, projectName));
+          for (const node of clientNodes) {
+            if (!node.file_path) continue;
+            const candidate = this.shapeClientSideEndpoint(node, effectiveCodebaseRoot);
+            if (candidate && !this.isTestCode(candidate)) {
+              candidates.push(candidate);
             }
           }
-        } catch {
-          // query_graph not available — skip client-side fallback silently
+        } catch (error) {
+          // query_graph not available — skip the client-side fallback
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          handleWarning("Client-side endpoint fallback skipped: query_graph failed", [`Error: ${errorMsg}`]);
         }
       }
 
@@ -895,18 +835,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      const tools = new CbmTools(client);
+
       // Resolve internal project name — query_graph requires the CBM name, not the absolute path
-      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
 
-      // Call query_graph tool
+      // Call query_graph tool; all result pages are merged into one { columns, rows }
       try {
-        const queryResponse = await client.invokeTool("query_graph", {
-          query: rawQuery,
-          project: projectName,
-        });
-
-        return queryResponse;
+        const result = await tools.queryGraph(rawQuery, projectName);
+        return { ...result, total: result.rows.length };
       } catch (error) {
+        // CBM rejected the query (syntax error, unsupported clause): surface its message
+        if (error instanceof CbmToolError) {
+          throw new CLIError(`Query failed: ${error.detail}`, ErrorCategory.USER, error.suggestions);
+        }
+
         // Check if the error is due to the tool not being available
         const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -1058,7 +1001,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     let sourceFile = String(node.file_path ?? properties.file_path ?? properties.source_file ?? "");
     if (sourceFile && codebaseRoot) {
       try {
-        sourceFile = path.relative(codebaseRoot, sourceFile);
+        sourceFile = relativeToRoot(codebaseRoot, sourceFile);
       } catch (error) {
         // Log warning if relative path fails but continue with absolute path
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1125,7 +1068,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     let sourceFile = String(node.file_path ?? "");
     if (sourceFile && codebaseRoot) {
       try {
-        sourceFile = path.relative(codebaseRoot, sourceFile);
+        sourceFile = relativeToRoot(codebaseRoot, sourceFile);
       } catch {
         // keep absolute path on failure
       }
@@ -1256,7 +1199,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // Filter to only application-layer labels by checking their mapping
       for (const label of nodeLabels) {
         const mapping = this.mapper.getNodeMapping(label);
-        if (mapping && mapping.dr_layer === "application") {
+        // Only behavioural and structural types are service sources; data-object labels
+        // (Interface, Type, Enum, ...) never become service candidates.
+        if (mapping && mapping.dr_layer === "application" && SERVICE_SOURCE_TYPES.has(mapping.dr_element_type)) {
           applicationLabels.push(label);
         }
       }
@@ -1276,8 +1221,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       const candidates: ServiceCandidate[] = [];
 
+      const tools = new CbmTools(client);
+
       // Resolve internal project name once before the label search loop
-      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
 
       // Process high-fidelity node types first so the source_file dedup (below) retains
       // class/module level entries over method-level entries from the same file.
@@ -1286,12 +1233,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       // Search for each application-layer label
       for (const label of applicationLabels) {
-        const searchResponse = await client.invokeTool("search_graph", {
-          label,
-          project: projectName,
-        });
-
-        const nodes = this.validateSearchResponse(searchResponse);
+        const nodes = await tools.searchGraph({ label, project: projectName });
 
         // Get the node mapping for this label
         const nodeMapping = this.mapper.getNodeMapping(label);
@@ -1367,7 +1309,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
     let sourceFile = node.file_path ?? "";
     if (sourceFile && codebaseRoot) {
       try {
-        sourceFile = path.relative(codebaseRoot, sourceFile);
+        sourceFile = relativeToRoot(codebaseRoot, sourceFile);
       } catch (error) {
         // Log warning if relative path fails but continue with absolute path
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1604,8 +1546,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // so we can warn when distinct imports collapse to the same element ID.
       const datastoreFirstSource = new Map<string, string>();
 
+      const tools = new CbmTools(client);
+
       // Resolve internal project name once (search_graph and query_graph require name, not path)
-      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
 
       // Try to use query_graph to traverse IMPORTS edges (1 call instead of many)
       // This implements the spec algorithm requirement for IMPORTS edge traversal
@@ -1614,24 +1558,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // Query for all IMPORTS edges and their connected nodes
         const importsQuery = `
           MATCH (n1)-[r:IMPORTS]->(n2)
-          RETURN DISTINCT n1 as node
+          RETURN DISTINCT ${nodeColumns("n1")}
           UNION
           MATCH (n1)-[r:IMPORTS]->(n2)
-          RETURN DISTINCT n2 as node
+          RETURN DISTINCT ${nodeColumns("n2")}
         `;
 
-        const queryResponse = await client.invokeTool("query_graph", {
-          query: importsQuery,
-          project: projectName,
-        });
-
-        // Extract nodes from query response
-        if (queryResponse && typeof queryResponse === "object" && Array.isArray((queryResponse as { records?: unknown[] }).records)) {
-          const records = (queryResponse as { records?: Array<{ node?: CbmGraphNode }> }).records || [];
-          allNodes = records
-            .map((r) => r.node)
-            .filter((n) => n && typeof n === "object") as CbmGraphNode[];
-        }
+        allNodes = nodesFromQuery(await tools.queryGraph(importsQuery, projectName));
       } catch (error) {
         // Fallback to search_graph if query_graph is unavailable
         // Warn the user that we're using degraded search semantics
@@ -1649,13 +1582,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         // This provides backward compatibility while still attempting IMPORTS traversal
         const nodeLabels = this.mapper.getNodeLabels();
         for (const label of nodeLabels) {
-          const searchResponse = await client.invokeTool("search_graph", {
-            label,
-            project: projectName,
-          });
-
-          const nodes = this.validateSearchResponse(searchResponse);
-          allNodes.push(...nodes);
+          allNodes.push(...(await tools.searchGraph({ label, project: projectName })));
         }
       }
 
@@ -1723,7 +1650,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         let relativeFile = filePath;
         if (filePath && effectiveCodebaseRoot) {
           try {
-            relativeFile = path.relative(effectiveCodebaseRoot, filePath);
+            relativeFile = relativeToRoot(effectiveCodebaseRoot, filePath);
           } catch (error) {
             // Log warning if relative path fails but continue with absolute path
             const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1827,31 +1754,22 @@ export class CbmAnalyzer implements AnalyzerBackend {
              OR n.file_path CONTAINS 'preference' OR n.file_path CONTAINS 'Preference'
              OR n.file_path CONTAINS 'layout' OR n.file_path CONTAINS 'Layout'
              OR n.file_path CONTAINS 'settings' OR n.file_path CONTAINS 'Settings'
-          RETURN n
+          RETURN ${nodeColumns("n")}
         `;
 
-        const storageResp = await client.invokeTool("query_graph", {
-          query: storageQuery,
-          project: projectName,
-        });
+        const storageNodes = nodesFromQuery(await tools.queryGraph(storageQuery, projectName));
+        for (const node of storageNodes) {
+          if (!node.file_path) continue;
 
-        if (storageResp && typeof storageResp === "object") {
-          const records = (storageResp as { records?: Array<{ n?: CbmGraphNode }> }).records ?? [];
-          for (const record of records) {
-            const node = record.n;
-            if (!node?.file_path) continue;
+          const relFile = relativeToRoot(effectiveCodebaseRoot, node.file_path);
 
-            let relFile = node.file_path;
-            try { relFile = path.relative(effectiveCodebaseRoot, node.file_path); } catch { /* keep absolute */ }
-
-            // Heuristic: files with 'session' in name likely use sessionStorage;
-            // otherwise assume localStorage (more common pattern).
-            const storageKey = /session/i.test(relFile) ? "session-storage" : "local-storage";
-            if (!browserStorageSignals.has(storageKey)) {
-              browserStorageSignals.set(storageKey, new Set());
-            }
-            browserStorageSignals.get(storageKey)!.add(relFile);
+          // Heuristic: files with 'session' in name likely use sessionStorage;
+          // otherwise assume localStorage (more common pattern).
+          const storageKey = /session/i.test(relFile) ? "session-storage" : "local-storage";
+          if (!browserStorageSignals.has(storageKey)) {
+            browserStorageSignals.set(storageKey, new Set());
           }
+          browserStorageSignals.get(storageKey)!.add(relFile);
         }
       } catch {
         // query_graph not available — skip browser storage detection silently
@@ -2035,13 +1953,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const version = await getCliVersion();
       await client.initialize({ name: "dr-cli", version });
 
-      const queryResponse = await client.invokeTool("query_graph", {
-        query: cypher,
-        project: projectName,
-      }) as { columns?: string[]; rows?: unknown[][]; total?: number } | null | undefined;
+      const queryResponse = await new CbmTools(client).queryGraph(cypher, projectName);
 
-      const cols: string[] = queryResponse?.columns ?? [];
-      const tuples: unknown[][] = (queryResponse?.rows as unknown[][] | undefined) ?? [];
+      const cols: string[] = queryResponse.columns;
+      const tuples: unknown[][] = queryResponse.rows;
       return tuples.map((row) => {
         const obj: Record<string, unknown> = {};
         cols.forEach((col, i) => {
@@ -2121,87 +2036,69 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      const tools = new CbmTools(client);
+
       // Resolve internal project name — trace_path requires the CBM name, not the absolute path
-      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
 
       // Call trace_path with the clamped depth
-      const traceResponse = (await client.invokeTool("trace_path", {
-        function_name: qualifiedName,
-        direction,
-        depth: clampedDepth,
-        project: projectName,
-      })) as {
-        nodes?: Array<{
-          id: string;
-          qualified_name?: string;
-          source_file?: string;
-          source_symbol?: string;
-          file_path?: string;
-          depth?: number;
-          [key: string]: unknown;
-        }>;
-        edges?: Array<{
-          from_node: string;
-          to_node: string;
-          type?: string;
-          [key: string]: unknown;
-        }>;
-        [key: string]: unknown;
-      };
-
-      // Validate response structure
-      if (!traceResponse || typeof traceResponse !== "object") {
-        throw new CLIError(
-          "Invalid response from trace_path",
-          ErrorCategory.SYSTEM,
-          ["Ensure codebase-memory-mcp is properly installed and functional"]
-        );
+      let trace;
+      try {
+        trace = await tools.tracePath({
+          function_name: qualifiedName,
+          direction,
+          depth: clampedDepth,
+          project: projectName,
+        });
+      } catch (error) {
+        if (error instanceof CbmToolError && /not found/i.test(error.detail)) {
+          throw new CLIError(
+            `Symbol not found in the code graph: ${qualifiedName}`,
+            ErrorCategory.NOT_FOUND,
+            [
+              ...(error.suggestions ?? []),
+              "Pass the fully qualified name as CBM records it (see `dr analyzer services --json`)",
+            ]
+          );
+        }
+        throw error;
       }
 
-      // Gracefully handle missing nodes/edges — return empty rather than crashing.
-      // The CBM backend may not implement trace_path or may return an error shape.
-      if (!Array.isArray(traceResponse.nodes)) {
+      if (!trace) {
         // trace_path not implemented — fall back to Cypher CALLS query.
         // Pass binary_path (not client): the binary closes the pipe after an unimplemented call.
         return this.callGraphViaCypher(detection.binary_path, projectName, qualifiedName, direction, clampedDepth, effectiveCodebaseRoot);
       }
 
-      if (!Array.isArray(traceResponse.edges)) {
-        handleWarning(
-          "trace_path returned no edges array — returning empty call graph",
-          [
-            `Expected array, got ${typeof traceResponse.edges}`,
-            "Ensure codebase-memory-mcp supports trace_path and the project is indexed",
-          ]
-        );
-        return [];
+      const nodes = trace.nodes;
+      const edges = trace.edges;
+
+      // CBM 0.11+ trace rows carry qualified names and hops only; look up their files.
+      if (trace.shape === "grouped" && nodes.length > 0) {
+        try {
+          const files = await tools.filePathsOf(
+            nodes.map((n) => String(n.qualified_name ?? "")),
+            projectName
+          );
+          for (const node of nodes) {
+            node.file_path ??= files.get(String(node.qualified_name ?? ""));
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          handleWarning("Could not look up source files for the call graph", [`Error: ${errorMsg}`]);
+        }
       }
 
-      const nodes = traceResponse.nodes as Array<{
-        id: string;
-        qualified_name?: string;
-        source_file?: string;
-        source_symbol?: string;
-        file_path?: string;
-        depth?: number;
-        [key: string]: unknown;
-      }>;
-
-      const edges = traceResponse.edges as Array<{
-        from_node: string;
-        to_node: string;
-        type?: string;
-        [key: string]: unknown;
-      }>;
-
-      // Get valid edge types from the mapping loader (don't hardcode)
-      const validEdgeTypes = this.mapper.getEdgeTypes();
+      // Valid edge types come from the mapping; the first is the default for root nodes and
+      // nodes without a typed incoming edge, which is CALLS regardless of the mapping's key order.
+      const mappedEdgeTypes = this.mapper.getEdgeTypes();
+      const validEdgeTypes = ["CALLS", ...mappedEdgeTypes.filter((t) => t !== "CALLS")];
 
       // Transform nodes to CallGraphNode objects
       const callGraphNodes: CallGraphNode[] = [];
 
       for (const node of nodes) {
-        const nodeQualifiedName = node.qualified_name || node.id;
+        const nodeQualifiedName = String(node.qualified_name || node.id || "");
 
         // Shape the node using utility function
         let callGraphNode = shapeCallGraphNode(node, effectiveCodebaseRoot);
@@ -2349,16 +2246,13 @@ export class CbmAnalyzer implements AnalyzerBackend {
         version,
       });
 
+      const tools = new CbmTools(client);
+
       // Resolve internal project name for search_graph (requires name, not absolute path)
-      const projectName = await this.resolveProjectName(client, effectiveCodebaseRoot);
+      const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
 
       // Search for Route nodes using the CBM label from the mapping
-      const searchResponse = await client.invokeTool("search_graph", {
-        label: routeMapping.cbm_label,
-        project: projectName,
-      });
-
-      const allNodes = this.validateSearchResponse(searchResponse);
+      const allNodes = await this.fetchRoutes(tools, projectName, routeMapping.cbm_label);
       // Keep only nodes whose qualified_name follows the __route__METHOD__/path
       // convention. Nodes that don't match are graph artifacts (documentation
       // strings, base URLs, etc.) that were incidentally labelled Route by the

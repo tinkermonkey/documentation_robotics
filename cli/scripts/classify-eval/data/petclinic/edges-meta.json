@@ -1,0 +1,24 @@
+{
+  "corpus": "petclinic",
+  "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+  "source": "codebase-memory-mcp index database, read-only",
+  "extracted_at": "2026-11-03T13:55:27.778Z",
+  "graph_edges_by_type": {
+    "CALLS": 382,
+    "CONFIGURES": 40,
+    "CONTAINS_FILE": 106,
+    "CONTAINS_FOLDER": 30,
+    "DECORATES": 211,
+    "DEFINES": 1229,
+    "DEFINES_METHOD": 192,
+    "HANDLES": 17,
+    "HAS_BRANCH": 1,
+    "IMPORTS": 28,
+    "INHERITS": 8,
+    "SEMANTICALLY_RELATED": 199,
+    "SIMILAR_TO": 8,
+    "TESTS": 8,
+    "USAGE": 762,
+    "WRITES": 34
+  }
+}

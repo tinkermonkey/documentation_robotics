@@ -2,7 +2,7 @@
  * Utilities for call graph analysis
  */
 
-import { relative } from "node:path";
+import { isAbsolute, relative } from "node:path";
 import type { CallGraphNode } from "./types.js";
 
 /**
@@ -41,7 +41,8 @@ export function shapeCallGraphNode(
           `Invalid path types: sourceFile=${typeof sourceFile}, projectRoot=${typeof projectRoot}`
         );
       }
-      sourceFile = relative(projectRoot, sourceFile);
+      // CBM paths are repository-relative; only absolute ones need relativising
+      sourceFile = isAbsolute(sourceFile) ? relative(projectRoot, sourceFile) : sourceFile;
     } catch (error) {
       // Log the error but keep the original path
       const errorMessage = error instanceof Error ? error.message : String(error);

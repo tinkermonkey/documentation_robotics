@@ -1,0 +1,36 @@
+{
+  "tool": "list_projects",
+  "arguments": {
+    "format": "json",
+    "limit": 2
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"projects\":[{\"name\":\"Users-austinsand-workspace-documentation_robotics-cli\",\"root_path\":\"/Users/austinsand/workspace/documentation_robotics/cli\",\"branch\":\"feature/phase2-cascade\"},{\"name\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template\",\"root_path\":\"/Users/austinsand/workspace/documentation_robotics/eval-corpus/full-stack-fastapi-template\",\"branch\":\"master\"}],\"total\":3,\"offset\":0,\"limit\":2,\"returned\":2,\"has_more\":true,\"next_offset\":2}"
+      }
+    ],
+    "structuredContent": {
+      "projects": [
+        {
+          "name": "Users-austinsand-workspace-documentation_robotics-cli",
+          "root_path": "/Users/austinsand/workspace/documentation_robotics/cli",
+          "branch": "feature/phase2-cascade"
+        },
+        {
+          "name": "Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template",
+          "root_path": "/Users/austinsand/workspace/documentation_robotics/eval-corpus/full-stack-fastapi-template",
+          "branch": "master"
+        }
+      ],
+      "total": 3,
+      "offset": 0,
+      "limit": 2,
+      "returned": 2,
+      "has_more": true,
+      "next_offset": 2
+    },
+    "isError": false
+  }
+}

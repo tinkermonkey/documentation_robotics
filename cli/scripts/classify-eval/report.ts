@@ -163,17 +163,22 @@ function main() {
     const typeAcc = scored.filter((s) => s.typeOk).length;
     const withLayer = scored.filter((s) => s.layerOk);
     const typeGiven = withLayer.filter((s) => s.typeOk).length;
-    const sigPairs = scored.filter((s) => !Number.isNaN(s.pred.significance.score));
+    // rule-decided cards (tier0 decide/reject) were not asked significance, concerns or confidence:
+    // score those on the model-asked cards only, and report how many a rule decided
+    const asked = scored.filter((s) => !s.pred.tier0 || s.pred.tier0.kind === "narrow");
+    const ruled = n - asked.length;
+    const sigPairs = asked.filter((s) => typeof s.pred.significance.score === "number" && !Number.isNaN(s.pred.significance.score));
     const mae = sigPairs.reduce((a, s) => a + Math.abs(s.pred.significance.score - s.gold.significance), 0) / Math.max(1, sigPairs.length);
     const within1 = sigPairs.filter((s) => Math.abs(s.pred.significance.score - s.gold.significance) <= 1).length;
-    const calib = ece(scored.map((s) => ({ p: s.layerProb, ok: s.layerOk })));
-    const lat = scored.map((s) => s.pred.latency_ms).sort((a, b) => a - b);
+    const calib = ece(asked.map((s) => ({ p: s.layerProb, ok: s.layerOk })));
+    const lat = asked.map((s) => s.pred.latency_ms).sort((a, b) => a - b);
     const median = lat[Math.floor(lat.length / 2)] ?? 0;
     const cost = scored.reduce((a, s) => a + (s.pred.cost_usd ?? 0), 0);
     const errors = preds.filter((p) => p.error).length;
-    summaries.push(`| ${b} | ${n}${errors ? ` (+${errors} errors)` : ""} | ${pct(layerAcc, n)} | ${pct(typeAcc, n)} | ${pct(typeGiven, withLayer.length)} | ${mae.toFixed(2)} | ${pct(within1, sigPairs.length)} | ${calib.ece.toFixed(3)} | ${median} ms | $${cost.toFixed(3)} | $${(cost / n).toFixed(4)} |`);
+    summaries.push(`| ${b} | ${n}${errors ? ` (+${errors} errors)` : ""}${ruled ? ` (${ruled} by rule)` : ""} | ${pct(layerAcc, n)} | ${pct(typeAcc, n)} | ${pct(typeGiven, withLayer.length)} | ${mae.toFixed(2)} | ${pct(within1, sigPairs.length)} | ${calib.ece.toFixed(3)} | ${median} ms | $${cost.toFixed(3)} | $${(cost / n).toFixed(4)} |`);
 
-    sections.push(`## ${b}`, "", "### Per-layer recall", "", ...perLayer(scored), "", "### Top confusions (layer)", "", ...confusion(scored), "", "### Calibration of layer confidence", "", ...calib.table, "", "### Threshold sweep (auto-accept layer when confidence ≥ t)", "", ...thresholdSweep(scored.map((s) => ({ p: s.layerProb, ok: s.layerOk }))), "", "### Cross-cutting concerns", "", ...concernMetrics(scored), "");
+    sections.push(`## ${b}`, "", "### Per-layer recall", "", ...perLayer(scored), "", "### Top confusions (layer)", "", ...confusion(scored), "", "### Calibration of layer confidence", "", ...calib.table, "", "### Threshold sweep (auto-accept layer when confidence ≥ t)", "", ...thresholdSweep(asked.map((s) => ({ p: s.layerProb, ok: s.layerOk }))), "", "### Cross-cutting concerns", "", ...concernMetrics(asked), "");
+    if (ruled) sections.splice(sections.length - 1, 0, `Calibration, threshold sweep, concerns, significance and latency are over the ${asked.length} model-asked cards; ${ruled} cards were decided by a Tier-0 rule.`, "");
 
     // A few disagreements for eyeballing
     const wrong = scored.filter((s) => !s.layerOk).slice(0, 10);

@@ -2,12 +2,13 @@
   "version": "1",
   "field_conventions": {
     "cbm_label": "PascalCase identifier from CBM analyzer output (e.g., 'Route', 'Function')",
-    "dr_layer": "canonical DR layer name (one of 12 layers)",
+    "dr_layer": "canonical DR layer name (one of the 13 layers)",
     "dr_element_type": "element type within the DR layer",
     "confidence": "mapping confidence level (high, medium, low)",
     "verify_role": "optional role designation for verification scope (primary, secondary, auxiliary) — top-level field for Route element verification",
     "promotion_heuristics": "named heuristics for promoting nodes to higher-level element types (array of heuristic names, e.g., 'is_entry_point', 'handles_route')",
-    "evidence_fields": "named-field object with fields from analyzer output used as evidence (keyed by field name with 'from' mapping)"
+    "evidence_fields": "named-field object with fields from analyzer output used as evidence (keyed by field name with 'from' mapping)",
+    "tier0": "Tier-0 classification rules for a label live in extraction-heuristics.json as heuristics whose parameters carry a 'tier0' block; they decide or narrow the element type before any model is asked"
   },
   "mappings": [
     {
@@ -82,6 +83,18 @@
         },
         "return_type": {
           "from": "return_type"
+        },
+        "decorators": {
+          "from": "decorators"
+        },
+        "decorator_tags": {
+          "from": "decorator_tags"
+        },
+        "route_method": {
+          "from": "route_method"
+        },
+        "route_path": {
+          "from": "route_path"
         }
       },
       "conditions": {
@@ -132,6 +145,18 @@
         },
         "overrides": {
           "from": "overrides"
+        },
+        "decorators": {
+          "from": "decorators"
+        },
+        "decorator_tags": {
+          "from": "decorator_tags"
+        },
+        "route_method": {
+          "from": "route_method"
+        },
+        "route_path": {
+          "from": "route_path"
         }
       },
       "conditions": {
@@ -170,6 +195,12 @@
         },
         "properties_count": {
           "from": "properties_count"
+        },
+        "decorators": {
+          "from": "decorators"
+        },
+        "decorator_tags": {
+          "from": "decorator_tags"
         }
       }
     },
@@ -188,18 +219,149 @@
           "from": "name"
         }
       }
+    },
+    {
+      "cbm_label": "Interface",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "medium",
+      "description": "In-code interface maps to an application data object. Tier-0 rules in extraction-heuristics.json take precedence: a Spring Data repository interface is data-store.accesspattern, an interface in generated client code or a component's props interface is not an element, and any other interface is narrowed to data object, application interface, application event or data-model object schema for the classifier to decide.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    {
+      "cbm_label": "Type",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Type alias or object type follows the Interface rules: an application data object unless generated or a component's props type.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    {
+      "cbm_label": "Enum",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Enumeration of values held in code follows the Interface rules: an application data object.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    {
+      "cbm_label": "Struct",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Plain struct maps to an application data object; one with receiver methods or an impl block behaves like a class (application component), which the classifier decides.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
+    },
+    {
+      "cbm_label": "Trait",
+      "dr_layer": "application",
+      "dr_element_type": "dataobject",
+      "confidence": "low",
+      "description": "Behavioural contract implemented by types follows the Interface rules.",
+      "source_reference": {
+        "provenance": "extracted",
+        "file": {
+          "from": "file_path"
+        },
+        "symbol": {
+          "from": "name"
+        }
+      },
+      "evidence_fields": {
+        "base_classes": {
+          "from": "base_classes"
+        },
+        "decorators": {
+          "from": "decorators"
+        }
+      }
     }
   ],
   "unmapped_labels": {
-    "description": "CBM node type labels that are not mapped to DR architecture model elements. These labels represent implementation-level or metadata constructs that do not have direct architectural significance in the 12-layer model.",
+    "description": "CBM 0.10.2 node labels with no node mapping. Deliberately unmapped (no DR counterpart, below element granularity, or provenance only): Project, Package, Folder, File, Variable, Constant, Macro, Decorator (evidence on Class, Function and Method instead), Section, EnvVar (evidence for security and APM concerns), Branch. Deferred (a candidate DR type exists; see the widening order in docs/analyzers/CBM_MAPPING_INVENTORY.md): Field, Channel, Table, Process, Resource, Chart, Image. Every CBM label is either mapped above or listed here.",
     "labels": [
       "Project",
       "Package",
       "Folder",
       "File",
-      "Interface",
-      "Enum",
-      "Type"
+      "Variable",
+      "Constant",
+      "Macro",
+      "Decorator",
+      "Section",
+      "EnvVar",
+      "Branch",
+      "Field",
+      "Channel",
+      "Table",
+      "Process",
+      "Resource",
+      "Chart",
+      "Image"
     ]
   }
 }

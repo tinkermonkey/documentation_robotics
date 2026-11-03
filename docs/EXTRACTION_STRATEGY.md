@@ -384,8 +384,11 @@ Reading the numbers:
 
 - **The application result reproduces.** The application criteria did not change between
   enriched-v1 and enriched-v2, so the dr-cli movement (78.9% to 78.0% plain, 82.3% to 83.2%
-  with kind narrowing; two cards of 135 each way) is Clef's run-to-run variance. Treat about
-  one point as the noise floor for every table in this section.
+  with kind narrowing; two cards of 135 each way) is within sampling error. (Corrected
+  2026-11-03: this was first described as run-to-run variance with a one-point noise floor. Clef
+  returns identical probabilities for identical input, so differences of a few cards come from the
+  input or from sampling; at 300 cards and about 80% accuracy the binomial standard error is about
+  2.3 points. Comparisons from Phase 2 on are paired tests, `classify-eval/compare.ts`.)
 - **api was close to saturated already.** PetClinic's 23 api cards were all right before and
   after. On fastapi the four misses were all route modules filed as `paths` instead of
   `pathitem`; with the new definitions they become three misses spread over `operation` and
@@ -413,15 +416,110 @@ Reading the numbers:
   is a harness experiment, not a spec change, and it is the next thing to measure. Cost per
   card rose with the text: $0.0010 to $0.0017 on fastapi, $0.0009 to $0.0014 on PetClinic.
 
+## Phase 2 results (2026-10-29, corrected 2026-11-03)
+
+Design: [analyzers/CASCADE_DESIGN.md](analyzers/CASCADE_DESIGN.md). The catalog-independent slice
+landed first: the cbm mapping made truthful and widened (inventory steps 1 to 7), and the
+framework conventions written as Tier-0 rules, data in
+`spec/analyzers/cbm/extraction-heuristics.json` run by `cli/src/analyzers/tier0-rules.ts`. The
+harness gained `facts.ts` (decorators, importers, methods, usage per card, kept beside the cards so
+the gold stays valid), `tier0-report.ts`, `compare.ts` (paired tests), `edges-cache.ts` and
+`edges-report.ts`, and three `classify.ts` flags (`--tier0`, `--facts`, `--criteria core`).
+
+**Corrections on 2026-11-03.** An independent review of the first write-up found two rule bugs
+(declarations read wrongly when decorators or base classes span lines; route handlers filed as a
+second `api.operation`), wrong-meaning edge fallbacks, a scoring bug (rule-decided cards, which
+are not asked significance or concerns, were scored as significance 0 and all concerns negative,
+and flattered calibration), a baseline run on an older spec, and three overstated claims. All are
+fixed and every run below was redone. Two labelling decisions came with the fixes (maintainer,
+2026-11-03): a route handler is the application function its route's operation realizes, and an
+ORM table class is a data-model object schema whatever the framework. `gold-revise.ts` applied them
+to the gold (17 labels: 15 decorated handlers on fastapi and petclinic, 2 SQLModel table classes);
+the previous labels are `gold@pre-handlers.jsonl`.
+
+All runs use Clef with the kind rule, against the revised gold. Layer accuracy / end-to-end type
+accuracy / type given layer / cost per card; "base" is the baseline rerun on the current spec:
+
+| corpus    | base                            | + core criteria                 | + Tier 0                        | + Tier 0 + facts                |
+| --------- | ------------------------------- | ------------------------------- | ------------------------------- | ------------------------------- |
+| dr-cli    | 77.3% / 64.3% / 83.2% / $0.0011 | 77.3% / 61.7% / 79.7% / $0.0010 | 88.0% / 75.0% / 85.2% / $0.0010 | 86.3% / 73.7% / 85.3% / $0.0010 |
+| fastapi   | 74.5% / 67.0% / 89.9% / $0.0017 | 74.5% / 66.0% / 88.6% / $0.0014 | 85.0% / 78.5% / 92.4% / $0.0009 | 86.0% / 79.0% / 91.9% / $0.0009 |
+| petclinic | 80.2% / 68.9% / 85.9% / $0.0014 | 80.2% / 68.9% / 85.9% / $0.0012 | 96.2% / 94.3% / 98.0% / $0.0008 | 96.2% / 94.3% / 98.0% / $0.0008 |
+
+Paired tests (exact McNemar on the cards one configuration gets right and the other wrong;
+`compare.ts`), Tier 0 against base. The revised cards are left out of the second column, because
+the rules that decide them agree with the revised gold by construction:
+
+| corpus    | layer, all cards (lost / gained, p) | layer, revised cards left out      |
+| --------- | ----------------------------------- | ---------------------------------- |
+| dr-cli    | 77.3% to 88.0% (4 / 36, p < 0.001)  | same (no revised cards)            |
+| fastapi   | 74.5% to 85.0% (2 / 23, p < 0.001)  | 76.6% to 84.4% (2 / 17, p = 0.001) |
+| petclinic | 80.2% to 96.2% (0 / 17, p < 0.001)  | 86.6% to 95.9% (0 / 9, p = 0.004)  |
+
+Reading the numbers:
+
+- **Tier 0 is a real, significant gain on every corpus**: 7.8 to 10.7 points of layer accuracy on
+  the cards the gold revision did not touch, and more end to end. Rules decide 26% of fastapi's
+  cards and 31% of petclinic's without a model call, which halves the cost per card there; dr-cli
+  (TypeScript, no decorators) is helped only by narrowing its 60 interfaces, from 18 to 50 with the
+  right layer.
+- **The rules are measured in-sample.** They encode framework conventions (`@GetMapping`,
+  `@Entity`, `table=True`, Spring Data repositories, generated client code, component props), but
+  they were written after reading these gold labels, and where a rule decides it agrees with gold
+  every time (85 of 85). That says the rules are consistent with the labels, not that they
+  generalise; a held-out corpus in a framework the rules name (Django, NestJS) is the test before
+  any threshold is set on them. Of the 52 fastapi cards the rules decide, 33 were already right in
+  the baseline, so the marginal gain there is about 19. The interface narrowing gives up three
+  dr-cli interfaces that gold files as `data-model.objectschema` (57 of 60 golds stay reachable, 14
+  of them because gold says `none`).
+- **Core criteria restore confidence, not accuracy.** Dropping the sibling sentences raises the
+  mean element-type probability on layer-correct cards from 0.42 to 0.50 (dr-cli), 0.38 to 0.50
+  (fastapi) and 0.53 to 0.66 (petclinic), and cuts cost per card 10 to 20%. Type accuracy is flat on
+  petclinic and fastapi (3 lost / 1 gained, p = 0.63) and worse on dr-cli (9 lost / 1 gained,
+  p = 0.021), where the sibling sentences separate the application types. Full criteria stay the
+  default.
+- **Facts rendered into the state have no measurable effect**: dr-cli 14 lost / 9 gained on layer
+  (p = 0.41), fastapi 3 / 5 (p = 0.73), petclinic none. Structural facts belong in Tier 0 as
+  constraints on the question, as the kind rule and the Tier-0 results show, not in the state as
+  text. (The first write-up said facts as text pulled fastapi's ux cards back from 79% to 74%; that
+  was noise, and the ux movement it described came from the spec change the old baseline predated.
+  On the rerun baseline Tier 0 leaves ux unchanged.)
+- **Significance, concerns, calibration and latency are scored on model-asked cards only.**
+  `report.ts` now counts rule-decided cards separately ("(52 by rule)") and leaves them out of
+  those columns. The cascade's band rule ("drop below 0.5 unless a concern flag fires") needs a
+  concern answer for rule-decided cards too, so production either asks the concern questions on
+  them or the rules carry concerns.
+
+**Edges.** All 48 CBM edge types are in the mapping, 17 of them creating relationships, and a
+relationship is the first preferred predicate with a catalog triple between the two classified
+types, among the end types the mapping allows (`cli/src/analyzers/edge-relationships.ts`).
+`edges-report.ts` measures it against gold node labels, since there is no edge gold, on the CBM
+edges between cards (`edges-cache.ts` extracts them from the index into committed
+`data/<corpus>/edges.jsonl`, so the report reruns from the repository). With duplicates across edge
+types removed: 72 relationships on gold types; with the predicted types of `clef@v2-kind-tier0`,
+66 produced, of which 29 are identical to the gold-typed one (precision 44%, recall 40%), and 3
+have an end gold says is not an element. Two caveats: the predicate preference lists were tuned
+after seeing these pairs, so the yield is in-sample like the rules; and `HANDLES` is unmeasured,
+because CBM's HANDLES edges name routes by path and do not reach the Route cards. Edge precision is
+bounded by node-type accuracy, most visibly on dr-cli's `IMPORTS` between modules, so the `Module`
+question below is the edge question too. The remaining unfitted pairs are mostly linked through an
+intermediate element by design (view to library component through a component instance, operation
+to object schema through a request body or response), plus the eleven catalog additions proposed
+to Context Studio.
+
+Next measurements: the held-out corpus; `Module` handling (gold splits modules across five types);
+a manifest-based card path for `technology` (Dockerfiles, compose, package manifests), where symbol
+classification still recalls nothing.
+
 ## Sequencing
 
-| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status                       |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                                                                                                                                                                                                                                                                                                                                                                         | done 2026-10-25              |
-| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node enrichment applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged, reflected and planned; relationship catalog cleaned (`implements`, `supports-goals`, `fulfills-requirements` retired; tier 1 and the application walk applied; 1,611 to 1,526 schemas) with the `dr upgrade` model migration; the other eleven layers' walks pending (spreadsheet now, Context Studio's review queue next, Gate B on api). See "Phase 1 status". | in progress (2026-10-28)     |
-| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`. Mapping inventory (CBM labels and edges against the current mappings, candidates checked against the catalog, widening order): [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md) (2026-10-28).                                                                                                                                                                                                                                                                                                                                                                                           | preconditions met 2026-10-28 |
-| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | planned                      |
-| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | after phase 1                |
+| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                                                                                                                                                                                                                                                                                                                                                                         | done 2026-10-25          |
+| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node enrichment applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged, reflected and planned; relationship catalog cleaned (`implements`, `supports-goals`, `fulfills-requirements` retired; tier 1 and the application walk applied; 1,611 to 1,526 schemas) with the `dr upgrade` model migration; the other eleven layers' walks pending (spreadsheet now, Context Studio's review queue next, Gate B on api). See "Phase 1 status". | in progress (2026-10-28) |
+| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`. Mapping inventory (CBM labels and edges against the current mappings, candidates checked against the catalog, widening order): [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md) (2026-10-28). Production design: [analyzers/CASCADE_DESIGN.md](analyzers/CASCADE_DESIGN.md). Inventory steps 1 to 7 applied, Tier 0 and the edge lookup measured, eleven catalog additions in Context Studio's queue; no CLI command yet (see "Phase 2 results").                                                                                                                                       | in progress (2026-10-29) |
+| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | planned                  |
+| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | after phase 1            |
 
 Preconditions, both met on 2026-10-28: PR #961 (the analyzer honours the configured codebase
 root; farm-mode use of the pipeline) is merged, and #963 (`dr delete` leaves dangling

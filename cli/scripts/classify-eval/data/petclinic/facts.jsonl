@@ -1,0 +1,106 @@
+{"card_id":"3be46b27476d","decorators":["@Entity","@Table(name = \"owners\")"],"decorator_names":["Entity","Table"],"file_importers":0,"methods":11,"usage_files":10}
+{"card_id":"bc13208534a3","decorators":[],"decorator_names":[],"file_importers":0,"methods":1,"usage_files":6}
+{"card_id":"c4279d3c5447","decorators":["@InitBinder"],"decorator_names":["InitBinder"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"0303d673afec","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"159213f78ddc","decorators":["@Configuration","@SuppressWarnings(\"unused\")"],"decorator_names":["Configuration","SuppressWarnings"],"file_importers":0,"methods":3,"usage_files":0}
+{"card_id":"9a13b8daaea7","decorators":[],"decorator_names":[],"file_importers":0,"methods":1,"usage_files":5}
+{"card_id":"ea97c2b6d659","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
+{"card_id":"bf199355d1dd","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"b4f63c43192a","decorators":["@Component"],"decorator_names":["Component"],"file_importers":0,"methods":3,"usage_files":2}
+{"card_id":"4a60157bf6a3","decorators":[],"decorator_names":[],"file_importers":0,"methods":2,"usage_files":8}
+{"card_id":"77be94c92a13","decorators":["@GetMapping(\"/owners/find\")"],"decorator_names":["GetMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"9799d2b96267","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"87687970f808","decorators":["@SpringBootApplication","@ImportRuntimeHints(PetClinicRuntimeHints.class)"],"decorator_names":["SpringBootApplication","ImportRuntimeHints"],"file_importers":0,"methods":1,"usage_files":3}
+{"card_id":"6e08764aeaee","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"00006c42357c","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"e74e41f58f03","decorators":["@XmlRootElement"],"decorator_names":["XmlRootElement"],"file_importers":0,"methods":1,"usage_files":1}
+{"card_id":"f89eb163c359","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"905fd64388fe","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"7c6f385a0763","decorators":["@Controller"],"decorator_names":["Controller"],"file_importers":0,"methods":1,"usage_files":1}
+{"card_id":"a80d526416d4","decorators":["@GetMapping(\"/owners\")"],"decorator_names":["GetMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"7995885e9f91","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"fdbb6baf5572","decorators":["@Entity","@Table(name = \"vets\")"],"decorator_names":["Entity","Table"],"file_importers":5,"methods":4,"usage_files":7}
+{"card_id":"d0b0719b2791","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"e5d900e1bbe0","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"4a2076bf9998","decorators":[],"decorator_names":[],"file_importers":0,"methods":1,"usage_files":1}
+{"card_id":"2c6dd33d00c8","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"af39f2f88ea2","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"12e1dc87178c","decorators":[],"decorator_names":[],"file_importers":0,"methods":2,"usage_files":1}
+{"card_id":"759d82b5b365","decorators":["@GetMapping({ \"/vets\" })","@ResponseBody"],"decorator_names":["GetMapping","ResponseBody"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"bc7732bc4bba","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"d4020116b457","decorators":["@Entity","@Table(name = \"pets\")"],"decorator_names":["Entity","Table"],"file_importers":2,"methods":6,"usage_files":10}
+{"card_id":"1abcd44b5c5f","decorators":["@Transactional(readOnly = true)","@Cacheable(\"vets\")"],"decorator_names":["Transactional","Cacheable"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"58307be638ba","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"3c5f385c6dc0","decorators":["@Configuration(proxyBeanMethods = false)","@EnableCaching"],"decorator_names":["Configuration","EnableCaching"],"file_importers":0,"methods":2,"usage_files":0}
+{"card_id":"dd115083bf0c","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"363fed7a0e4e","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"688bf81f895b","decorators":["@MappedSuperclass"],"decorator_names":["MappedSuperclass"],"file_importers":8,"methods":3,"usage_files":5}
+{"card_id":"d72a14bab979","decorators":["@Bean"],"decorator_names":["Bean"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"ce4fff49aa61","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"21bc07bfca2e","decorators":["@Entity","@Table(name = \"specialties\")"],"decorator_names":["Entity","Table"],"file_importers":0,"methods":0,"usage_files":2}
+{"card_id":"0b488a3227f1","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"33f788d9cc8b","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"a40b259547ff","decorators":["@Controller"],"decorator_names":["Controller"],"file_importers":0,"methods":5,"usage_files":1}
+{"card_id":"1f71054439f1","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"cf23a2d94798","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"d7570f8b44d5","decorators":["@MappedSuperclass"],"decorator_names":["MappedSuperclass"],"file_importers":0,"methods":4,"usage_files":4}
+{"card_id":"49977df36b29","decorators":["@PostMapping(\"/owners/{ownerId}/pets/{petId}/visits/new\")"],"decorator_names":["PostMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"35d36d263216","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"f33e10bcb48a","decorators":["@Controller","@RequestMapping(\"/owners/{ownerId}\")"],"decorator_names":["Controller","RequestMapping"],"file_importers":0,"methods":12,"usage_files":1}
+{"card_id":"62957d056668","decorators":["@GetMapping(\"/\")"],"decorator_names":["GetMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"88d261f0c196","decorators":["@MappedSuperclass"],"decorator_names":["MappedSuperclass"],"file_importers":0,"methods":3,"usage_files":4}
+{"card_id":"9bf7a6eb6e95","decorators":["@PostMapping(\"/pets/new\")"],"decorator_names":["PostMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"46ab3bde5dad","decorators":["@Entity","@Table(name = \"visits\")"],"decorator_names":["Entity","Table"],"file_importers":0,"methods":5,"usage_files":5}
+{"card_id":"73a7dcf268db","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"90350500d9ae","decorators":["@Controller"],"decorator_names":["Controller"],"file_importers":0,"methods":1,"usage_files":1}
+{"card_id":"3a08f6403992","decorators":["@Bean"],"decorator_names":["Bean"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"b642b30033cc","decorators":["@Entity","@Table(name = \"types\")"],"decorator_names":["Entity","Table"],"file_importers":0,"methods":0,"usage_files":9}
+{"card_id":"bfae9c8ec566","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"2d55e6a2e8bd","decorators":["@Controller"],"decorator_names":["Controller"],"file_importers":0,"methods":6,"usage_files":1}
+{"card_id":"181f6b2862b3","decorators":["@Bean"],"decorator_names":["Bean"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"234f5f714ab3","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"699b385e8696","decorators":["@InitBinder(\"pet\")"],"decorator_names":["InitBinder"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"5adac95edd65","decorators":["@GetMapping(\"/pets/{petId}/edit\")"],"decorator_names":["GetMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"efd0948e4fef","decorators":["@ModelAttribute(\"visit\")"],"decorator_names":["ModelAttribute"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"87e7f4a6e8c4","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"87d2bcdb4d2b","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"ac01194118e2","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"158516fece4b","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"74217b635625","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"dc0b24140424","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"9a3708309172","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"d2e6273aa9be","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"becf937e5a17","decorators":[],"decorator_names":[],"file_importers":5,"methods":0,"usage_files":0}
+{"card_id":"3986685013eb","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"4efa2fcd5e44","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
+{"card_id":"2be715234abe","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"bf9d5c902005","decorators":["@XmlElement"],"decorator_names":["XmlElement"],"file_importers":5,"methods":0,"usage_files":0}
+{"card_id":"34652aadefd0","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"e2df0a26c092","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"1c1877dbbdfb","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
+{"card_id":"774fca82d32c","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"d3cea1def9bc","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"82c00e38722d","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"cf03b2e01e64","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"9ee2b1ec982c","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"50ab791582d8","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"ef3d2005e8a0","decorators":["@GetMapping(\"/vets.html\")"],"decorator_names":["GetMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"5d5428d3768e","decorators":["@Override"],"decorator_names":["Override"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"23bfe55edde0","decorators":["@GetMapping(\"/oups\")"],"decorator_names":["GetMapping"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"faff4711f60a","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
+{"card_id":"6390ef6c45b0","decorators":[],"decorator_names":[],"file_importers":8,"methods":0,"usage_files":0}
+{"card_id":"4271f72c3914","decorators":[],"decorator_names":[],"file_importers":5,"methods":0,"usage_files":0}
+{"card_id":"74dd1d377b76","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"c6cd27286d9b","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"928605bc9305","decorators":["@Query(\"SELECT ptype FROM PetType ptype ORDER BY ptype.name\")"],"decorator_names":["Query"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"4890a69e4a2e","decorators":[],"decorator_names":[],"file_importers":5,"methods":0,"usage_files":0}
+{"card_id":"e7d1de6c3df5","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
+{"card_id":"780833709f95","decorators":[],"decorator_names":[],"file_importers":8,"methods":0,"usage_files":0}
+{"card_id":"4bef8aef0c75","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"d717207368b1","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"4a0d7397814b","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"51192e7e2d4e","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
+{"card_id":"edee1da575ca","decorators":["@ModelAttribute(\"minVisitDate\")"],"decorator_names":["ModelAttribute"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"d4da3f72e717","decorators":["@XmlElement"],"decorator_names":["XmlElement"],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"137322d23965","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"56885455a727","decorators":[],"decorator_names":[],"file_importers":8,"methods":0,"usage_files":0}
