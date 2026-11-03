@@ -2199,8 +2199,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
         [key: string]: unknown;
       }>;
 
-      // Get valid edge types from the mapping loader (don't hardcode)
-      const validEdgeTypes = this.mapper.getEdgeTypes();
+      // Valid edge types come from the mapping; the first is the default for root nodes and
+      // nodes without a typed incoming edge, which is CALLS regardless of the mapping's key order.
+      const mappedEdgeTypes = this.mapper.getEdgeTypes();
+      const validEdgeTypes = ["CALLS", ...mappedEdgeTypes.filter((t) => t !== "CALLS")];
 
       // Transform nodes to CallGraphNode objects
       const callGraphNodes: CallGraphNode[] = [];

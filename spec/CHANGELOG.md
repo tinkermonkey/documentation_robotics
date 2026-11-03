@@ -11,8 +11,9 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 - **Tier-0 rules in the cbm analyzer** (`spec/analyzers/cbm/extraction-heuristics.json`): 17
   heuristics with a `parameters.tier0` block that decide or narrow a symbol's element type before
-  any model is asked. No schema change; the format is documented in
-  `cli/src/analyzers/tier0-rules.ts` and `docs/analyzers/CASCADE_DESIGN.md`.
+  any model is asked. Route handlers are application functions (the CBM Route is the operation), and
+  ORM table classes are object schemas whatever the framework. No schema change; the format is
+  documented in `cli/src/analyzers/tier0-rules.ts` and `docs/analyzers/CASCADE_DESIGN.md`.
 - **cbm analyzer mapping corrected and widened** (`spec/analyzers/cbm/`): `HANDLES` realizes
   (inverted), `HTTP_CALLS` traversal-only, five phantom edges removed, `DEFINES_METHOD`,
   `IMPORTS` and `DEFINES` mapped, the `Interface` family mapped to `application.dataobject`,

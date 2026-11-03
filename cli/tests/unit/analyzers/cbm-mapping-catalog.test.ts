@@ -81,6 +81,16 @@ describe("cbm mapping names only what the spec has", () => {
     }
   });
 
+  it("restricts edge ends only to types and layers that exist", () => {
+    for (const [edge, m] of Object.entries(cbm.edges_by_type) as Array<[string, AnalyzerEdgeMapping]>) {
+      const c = (m.conditions ?? {}) as { from_types?: string[]; to_types?: string[] };
+      for (const t of [...(c.from_types ?? []), ...(c.to_types ?? [])]) {
+        const ok = t.endsWith(".*") ? layers.has(t.slice(0, -2)) : types.has(t);
+        expect({ edge, t, ok }).toMatchObject({ ok: true });
+      }
+    }
+  });
+
   it("accounts for every CBM edge type exactly once", () => {
     expect(Object.keys(cbm.edges_by_type).sort()).toEqual([...CBM_EDGES].sort());
   });
@@ -91,16 +101,13 @@ describe("cbm mapping names only what the spec has", () => {
     }
   });
 
-  it("lists the call-graph default edge first", () => {
-    expect(Object.keys(cbm.edges_by_type)[0]).toBe("CALLS");
-  });
-
   it("names existing types in heuristics and Tier-0 rules", () => {
     for (const h of cbm.heuristics.heuristics as Array<{ name: string; applies_to?: string[] }>) {
       for (const t of h.applies_to ?? []) expect({ heuristic: h.name, t, ok: types.has(t) }).toMatchObject({ ok: true });
     }
     for (const r of tier0RulesFrom(cbm.heuristics.heuristics)) {
-      for (const c of [...(r.decide && r.decide !== "none" ? [r.decide] : []), ...(r.narrow ?? [])]) {
+      const targets = r.action.kind === "decide" ? [{ layer: r.action.layer, type: r.action.type as string | null }] : r.action.kind === "narrow" ? r.action.candidates : [];
+      for (const c of targets) {
         const ok = c.type === null ? layers.has(c.layer) : types.has(`${c.layer}.${c.type}`);
         expect({ rule: r.name, c, ok }).toMatchObject({ ok: true });
       }

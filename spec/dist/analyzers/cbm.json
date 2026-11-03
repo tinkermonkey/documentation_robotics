@@ -446,7 +446,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationcomponent → application.applicationfunction",
-      "implementation_note": "Deterministic. Map only when both ends survive Tier-1 classification as these types. A controller class (application interface) defining handler methods (API operations) becomes api.operation uses application.applicationinterface, the catalog's triple for that pair.",
+      "implementation_note": "Deterministic. A controller class (application interface) defining its route handlers (application functions) creates no relationship here: the catalog has no interface-to-function structural triple, and the operation side comes from HANDLES.",
       "conditions": {
         "predicates": [
           {
@@ -460,12 +460,10 @@
           {
             "predicate": "aggregates",
             "invert": false
-          },
-          {
-            "predicate": "uses",
-            "invert": true
           }
         ],
+        "from_types": ["application.*"],
+        "to_types": ["application.*"],
         "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
       }
     },
@@ -478,7 +476,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationcomponent → application.applicationcomponent",
-      "implementation_note": "Map only between modules both classified as application components; imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
+      "implementation_note": "Only between application-layer elements (component to component, or a component or function to the data object a module defines); imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
       "conditions": {
         "predicates": [
           {
@@ -509,7 +507,9 @@
             "predicate": "serves",
             "invert": true
           }
-        ]
+        ],
+        "from_types": ["application.*"],
+        "to_types": ["application.*"]
       }
     },
     "CALL_REFERENCE": {
@@ -597,7 +597,11 @@
             "invert": true
           }
         ],
-        "gate": "target accepted as a data structure (application.dataobject, data-model or api schema); usage of plain variables is traversal only"
+        "to_types": [
+          "application.dataobject",
+          "data-model.objectschema",
+          "api.schema"
+        ]
       }
     },
     "WRITES": {
@@ -609,7 +613,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationfunction → application.dataobject",
-      "implementation_note": "Same triples as USAGE; only when the written variable or field belongs to an accepted data object.",
+      "implementation_note": "Same targets as USAGE; writing is access, so the provider reading (serves) does not apply.",
       "conditions": {
         "predicates": [
           {
@@ -619,11 +623,12 @@
           {
             "predicate": "uses",
             "invert": false
-          },
-          {
-            "predicate": "serves",
-            "invert": true
           }
+        ],
+        "to_types": [
+          "application.dataobject",
+          "data-model.objectschema",
+          "api.schema"
         ]
       }
     },
@@ -651,7 +656,8 @@
             "predicate": "specializes",
             "invert": false
           }
-        ]
+        ],
+        "to_types": ["application.applicationinterface"]
       }
     },
     "TESTS": {
@@ -1379,6 +1385,37 @@
         }
       },
       {
+        "name": "tier0_test_annotation",
+        "description": "Test annotations narrow to the testing layer",
+        "rule": "A test, test fixture or test configuration belongs to the testing layer",
+        "parameters": {
+          "tier0": {
+            "labels": ["Class", "Method", "Function"],
+            "when": {
+              "decorator": "^(Test|ParameterizedTest|DataJpaTest|WebMvcTest|SpringBootTest|pytest\\.fixture|pytest\\.mark\\..+)$"
+            },
+            "narrow": ["testing.*"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_test_file",
+        "description": "Symbols in test files belong to the testing layer",
+        "applies_to": ["testing.testcasesketch", "testing.testcoveragetarget"],
+        "rule": "A function, method or class in a test file (test_*.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java, tests/ directories) is a test case sketch or coverage target; the separate test pass classifies it (inventory step 7)",
+        "parameters": {
+          "tier0": {
+            "labels": ["Function", "Method", "Class"],
+            "when": {
+              "file": "((^|/)(tests?|__tests__)/|(^|/)test_[^/]*\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
+            },
+            "narrow": ["testing.testcasesketch", "testing.testcoveragetarget"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
         "name": "tier0_component_props",
         "description": "A component's props type belongs to the component",
         "rule": "An interface or type named ...Props in a .tsx or .jsx file declares a UI component's inputs and is part of that component, not an element of its own",
@@ -1428,16 +1465,16 @@
       },
       {
         "name": "tier0_route_handler",
-        "description": "Route-mapping decorators mark API operations",
-        "applies_to": ["api.operation"],
-        "rule": "A method or function decorated with a route mapping (@GetMapping, @PostMapping, @RequestMapping, router.get, app.post, ...) is the implementation of an API operation",
+        "description": "Route-mapping decorators mark the application function that implements an API operation",
+        "applies_to": ["application.applicationfunction"],
+        "rule": "A method or function decorated with a route mapping (@GetMapping, @RequestMapping, router.get, items_router.post, app.get, NestJS @Get, JAX-RS @GET, ...) is the application function that implements the route's API operation. The operation itself is the CBM Route node, and HANDLES links them as api.operation realizes application.applicationfunction.",
         "parameters": {
           "tier0": {
             "labels": ["Method", "Function"],
             "when": {
-              "decorator": "^((Get|Post|Put|Patch|Delete|Request)Mapping|(router|app|api|bp|blueprint)\\.(get|post|put|patch|delete|head|options|route|api_route))$"
+              "decorator": "^((Get|Post|Put|Patch|Delete|Request)Mapping|\\w*(router|app|api|bp|blueprint)\\.(get|post|put|patch|delete|head|options|route|api_route)|(Get|Post|Put|Patch|Delete|All|Head|Options)|(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS))$"
             },
-            "decide": "api.operation",
+            "decide": "application.applicationfunction",
             "confidence": "high"
           }
         }
@@ -1462,7 +1499,7 @@
         "name": "tier0_persistent_entity",
         "description": "Persistence annotations mark data-model object schemas",
         "applies_to": ["data-model.objectschema"],
-        "rule": "A class annotated @Entity, @Table, @MappedSuperclass, @Embeddable or @Document defines the shape of persisted data",
+        "rule": "A class annotated @Entity, @Table, @MappedSuperclass, @Embeddable or @Document defines the shape of persisted data. Its table is a data-store collection the card builder derives (data-model.objectschema maps-to data-store.collection).",
         "parameters": {
           "tier0": {
             "labels": ["Class"],
@@ -1476,16 +1513,16 @@
       },
       {
         "name": "tier0_sqlmodel_table",
-        "description": "SQLModel table classes are data-store collections",
-        "applies_to": ["data-store.collection"],
-        "rule": "A SQLModel class declared with table=True is a database table",
+        "description": "SQLModel table classes are object schemas mapped to a table",
+        "applies_to": ["data-model.objectschema"],
+        "rule": "A SQLModel class declared with table=True defines the shape of persisted data, like a JPA @Entity: it is a data-model object schema. Its table is a data-store collection that the card builder derives (data-model.objectschema maps-to data-store.collection), not the class itself.",
         "parameters": {
           "tier0": {
             "labels": ["Class"],
             "when": {
               "declaration": "\\btable\\s*=\\s*True\\b"
             },
-            "decide": "data-store.collection",
+            "decide": "data-model.objectschema",
             "confidence": "high"
           }
         }
@@ -1560,37 +1597,6 @@
         }
       },
       {
-        "name": "tier0_test_annotation",
-        "description": "Test annotations narrow to the testing layer",
-        "rule": "A test, test fixture or test configuration belongs to the testing layer",
-        "parameters": {
-          "tier0": {
-            "labels": ["Class", "Method", "Function"],
-            "when": {
-              "decorator": "^(Test|ParameterizedTest|DataJpaTest|WebMvcTest|SpringBootTest|pytest\\.fixture|pytest\\.mark\\..+)$"
-            },
-            "narrow": ["testing.*"],
-            "confidence": "medium"
-          }
-        }
-      },
-      {
-        "name": "tier0_test_file",
-        "description": "Symbols in test files belong to the testing layer",
-        "applies_to": ["testing.testcasesketch", "testing.testcoveragetarget"],
-        "rule": "A function, method or class in a test file (test_*.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java, tests/ directories) is a test case sketch or coverage target; the separate test pass classifies it (inventory step 7)",
-        "parameters": {
-          "tier0": {
-            "labels": ["Function", "Method", "Class"],
-            "when": {
-              "file": "((^|/)(tests?|__tests__)/|(^|/)test_[^/]*\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
-            },
-            "narrow": ["testing.testcasesketch", "testing.testcoveragetarget"],
-            "confidence": "medium"
-          }
-        }
-      },
-      {
         "name": "tier0_ui_library",
         "description": "Shared UI library directories hold library components",
         "applies_to": ["ux.librarycomponent", "ux.actioncomponent"],
@@ -1615,12 +1621,12 @@
           "navigation.route",
           "navigation.navigationgraph"
         ],
-        "rule": "A module in a file-based routing directory (routes/, pages/, app/) is reached by navigation: a view, a subview placed in a layout, or the route itself",
+        "rule": "A module in a file-based routing directory (routes/ or pages/, or a Next.js app/ page, layout or route file) is reached by navigation: a view, a subview placed in a layout, or the route itself",
         "parameters": {
           "tier0": {
             "labels": ["Function", "Module", "Class"],
             "when": {
-              "file": "(^|/)(src/)?(routes|pages|app)/.+\\.(tsx|jsx|vue|svelte)$"
+              "file": "((^|/)(src/)?(routes|pages)/.+|(^|/)app/(.+/)?(page|layout|route|template|loading|error|not-found|default))\\.(tsx|jsx|vue|svelte)$"
             },
             "narrow": [
               "ux.view",
@@ -1640,10 +1646,10 @@
           "application.applicationinterface",
           "application.applicationevent"
         ],
-        "rule": "Any interface-like symbol no earlier rule decided is an in-code data structure or contract: an application data object, application interface or application event (published schemas are data-model, but an in-code interface is not a published schema; design charter, 2026-10-25 relabelling); the classifier chooses, or says none",
+        "rule": "Any interface, type alias, enum or trait no earlier rule decided is an in-code data structure or contract: an application data object, application interface or application event (published schemas are data-model, but an in-code interface is not a published schema; design charter, 2026-10-25 relabelling); the classifier chooses, or says none",
         "parameters": {
           "tier0": {
-            "labels": ["Interface", "Type", "Enum", "Struct", "Trait"],
+            "labels": ["Interface", "Type", "Enum", "Trait"],
             "when": {},
             "narrow": [
               "application.dataobject",

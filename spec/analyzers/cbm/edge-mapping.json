@@ -10,7 +10,7 @@
     "confidence_from_property": "code property that determines confidence level (e.g., visibility, export status)",
     "dr_pattern": "'<source layer.type> → <destination layer.type>' of the DR relationship, after directionality_transform; for verification_and_mapping edges it must name a triple in the relationship catalog",
     "order": "the first mapping is the call-graph default edge type, so CALLS comes first",
-    "conditions": "for verification_and_mapping edges: predicates lists, in order of preference, the predicates that can express the edge ({predicate, invert}; invert when the DR relationship runs from the CBM edge's target to its source). The relationship is the first catalog triple that exists between the two classified element types (cli/src/analyzers/edge-relationships.ts); dr_relationship, directionality_transform and dr_pattern describe one listed preference and a typical case. 'gate' says what else must hold"
+    "conditions": "for verification_and_mapping edges: predicates lists, in order of preference, the predicates that can express the edge ({predicate, invert}; invert when the DR relationship runs from the CBM edge's target to its source). from_types and to_types, when present, restrict the element types the CBM edge's source and target may have ('layer.type' or 'layer.*'); an edge between other types creates no relationship. The relationship is the first catalog triple that exists between the two classified element types (cli/src/analyzers/edge-relationships.ts); dr_relationship, directionality_transform and dr_pattern describe one listed preference and a typical case. 'gate' is a note on what the caller must ensure"
   },
   "mappings": [
     {
@@ -82,7 +82,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationcomponent → application.applicationfunction",
-      "implementation_note": "Deterministic. Map only when both ends survive Tier-1 classification as these types. A controller class (application interface) defining handler methods (API operations) becomes api.operation uses application.applicationinterface, the catalog's triple for that pair.",
+      "implementation_note": "Deterministic. A controller class (application interface) defining its route handlers (application functions) creates no relationship here: the catalog has no interface-to-function structural triple, and the operation side comes from HANDLES.",
       "conditions": {
         "predicates": [
           {
@@ -96,12 +96,10 @@
           {
             "predicate": "aggregates",
             "invert": false
-          },
-          {
-            "predicate": "uses",
-            "invert": true
           }
         ],
+        "from_types": ["application.*"],
+        "to_types": ["application.*"],
         "gate": "both ends kept by Tier-1 significance gating; most functions are not elements on their own"
       }
     },
@@ -114,7 +112,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationcomponent → application.applicationcomponent",
-      "implementation_note": "Map only between modules both classified as application components; imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
+      "implementation_note": "Only between application-layer elements (component to component, or a component or function to the data object a module defines); imports of external packages, and of anything else, stay traversal input (datastore detection reads them).",
       "conditions": {
         "predicates": [
           {
@@ -145,7 +143,9 @@
             "predicate": "serves",
             "invert": true
           }
-        ]
+        ],
+        "from_types": ["application.*"],
+        "to_types": ["application.*"]
       }
     },
     {
@@ -233,7 +233,11 @@
             "invert": true
           }
         ],
-        "gate": "target accepted as a data structure (application.dataobject, data-model or api schema); usage of plain variables is traversal only"
+        "to_types": [
+          "application.dataobject",
+          "data-model.objectschema",
+          "api.schema"
+        ]
       }
     },
     {
@@ -245,7 +249,7 @@
       "dr_scope": "intra-layer",
       "direction": "forward",
       "dr_pattern": "application.applicationfunction → application.dataobject",
-      "implementation_note": "Same triples as USAGE; only when the written variable or field belongs to an accepted data object.",
+      "implementation_note": "Same targets as USAGE; writing is access, so the provider reading (serves) does not apply.",
       "conditions": {
         "predicates": [
           {
@@ -255,11 +259,12 @@
           {
             "predicate": "uses",
             "invert": false
-          },
-          {
-            "predicate": "serves",
-            "invert": true
           }
+        ],
+        "to_types": [
+          "application.dataobject",
+          "data-model.objectschema",
+          "api.schema"
         ]
       }
     },
@@ -287,7 +292,8 @@
             "predicate": "specializes",
             "invert": false
           }
-        ]
+        ],
+        "to_types": ["application.applicationinterface"]
       }
     },
     {

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **DrBot can run read-safe `dr` commands in default mode.** `dr chat` and `dr visualize` passed
+  Claude Code a single Bash permission rule joining every read-safe command
+  (`Bash(dr query|dr show|...)`); Claude Code's rules have no "or", so it matched nothing and the
+  bot could run no `dr` command unless launched with `--with-danger`. Each read-safe command is now
+  its own prefix rule (`Bash(dr show:*)`); the command list is unchanged, and Copilot, which reuses
+  the formatter, changes the same way.
+
 - **`dr farm status` no longer reports a deleted codebase as "Not synced yet".** The status
   command used to treat any error whose message contained "not found" as a missing sync state,
   so a project whose codebase folder had been removed showed `has_pending_changes: false`. The
@@ -48,7 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every CBM edge type is in the cbm edge mapping, and edges become relationships by catalog
   lookup** (`src/analyzers/edge-relationships.ts`). Each relationship-creating edge lists the
   predicates that can express it in order of preference; the relationship is the first catalog
-  triple between the two classified element types. 17 of CBM's 48 edge types create relationships
+  triple between the two classified element types, among the end types the mapping allows
+  (`conditions.from_types` / `to_types`, enforced). `dedupeRelationships` collapses the same
+  relationship reached through several edge types. 17 of CBM's 48 edge types create relationships
   (adding `CALLS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`, `TESTS`,
   `TESTS_FILE`, `ASYNC_CALLS`, `LISTENS_ON`, `SPAWNS`, `DEPENDS_ON`, `INFRA_MAPS`, `DEPLOYS`); the
   other 31 are traversal-only with the reason, and the unit tests fail if an edge type is missing,
@@ -57,7 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the new `Interface` family mappings, data-object labels would otherwise have become service
   candidates.
 - **Call-graph root nodes default to `CALLS`.** `dr analyzer callers` and `callees` used the first
-  edge mapping as the default edge type, which was `HTTP_CALLS`; `CALLS` is now listed first.
+  edge mapping as the default edge type, which was `HTTP_CALLS`, so root nodes and nodes without a
+  typed incoming edge were labelled `HTTP_CALLS`. The default is now `CALLS` explicitly, whatever
+  the mapping's order.
 - **A corrupt active changeset now fails `Model.load`.** When
   `documentation-robotics/changesets/.active` names a changeset whose files cannot be read or
   parsed, `Model.load` used to fall back silently to the base model, so every command ran as if
@@ -81,14 +92,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
   analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
-  regular-expression conditions on decorators, declaration line, file path and name, and a
-  `decide` or `narrow` outcome). The cbm analyzer ships 17: route-mapping decorators to
-  `api.operation`, controllers to `application.applicationinterface`, JPA and SQLModel classes to
-  object schemas or collections, Spring Data repositories to `data-store.accesspattern`, generated
-  client code and component props to `none`, and narrowing rules for UI library directories,
-  file-based routes, Spring services, tests and other interfaces. `MappingLoader.getHeuristics()`
-  returns them in order. Not yet called by a command; the design is
-  `docs/analyzers/CASCADE_DESIGN.md`.
+  regular-expression conditions on decorators, declaration, file path and name, and a `decide` or
+  `narrow` outcome; unknown keys are rejected). The engine returns a decide, reject (not an
+  element) or narrow action, and `declarationOf` reads the declaration past comments, docstrings
+  and decorators, across lines while brackets are open. The cbm analyzer ships 17 rules: route
+  handlers (`@GetMapping`, `router.get`, `items_router.post`, NestJS `@Get`, JAX-RS `@GET`) to
+  `application.applicationfunction` (the Route is the operation), controllers to
+  `application.applicationinterface`, JPA entities and SQLModel table classes alike to
+  `data-model.objectschema`, Spring Data repositories to `data-store.accesspattern`, generated
+  client code and component props to `none`, test files and annotations to the testing layer
+  ahead of every framework rule, and narrowing rules for UI library directories, file-based routes
+  (Next.js `app/` page, layout and route files only), Spring services and other interfaces.
+  `MappingLoader.getHeuristics()` returns them in order. Not yet called by a command; the design
+  is `docs/analyzers/CASCADE_DESIGN.md`.
 - **`dr farm add` adopts a codebase's own model instead of scaffolding a duplicate.** Before
   creating `<name>-model`, the command looks for a model at the codebase path using the same
   lookup order as composed validation (`documentation-robotics/model`, `model`, then the path
