@@ -56,6 +56,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr visualize --with-changesets`: DrBot can stage model changes for you to review.** Between
+  the read-only default and `--with-danger`, the chat agent (Claude Code) may now create, activate
+  and inspect changesets, stage new elements, element updates and new relationships (`dr add`,
+  `dr update`, `dr relationship add`), and unstage one element it staged by mistake. It cannot
+  commit, apply, revert, discard or delete a changeset, or delete elements or relationships: those
+  stay with you. Because `dr add` and its siblings write straight to the model when no changeset
+  is active, the agent process also runs with `DR_CHANGESET_ONLY=true`, and every base-model save
+  refuses under it (`core/changeset-only-guard.ts`), so nothing the agent does lands outside a
+  changeset. The visualization server gains `POST /api/changesets/{id}/commit` and
+  `POST /api/changesets/{id}/discard` (bearer auth) so the viewer can commit or throw away what
+  the agent staged; `docs/api-spec.yaml` is regenerated.
 - **`dr farm add` adopts a codebase's own model instead of scaffolding a duplicate.** Before
   creating `<name>-model`, the command looks for a model at the codebase path using the same
   lookup order as composed validation (`documentation-robotics/model`, `model`, then the path

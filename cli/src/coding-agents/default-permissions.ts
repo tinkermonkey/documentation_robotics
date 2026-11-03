@@ -83,19 +83,77 @@ export const DEFAULT_READ_SAFE_PERMISSIONS: readonly ToolPermission[] = Object.f
  *
  * Claude Code uses the --allowedTools flag with scoped tool permissions.
  * This function formats the permission list as expected by Claude Code's --allowedTools parameter,
- * including scope constraints for each tool (e.g., "Bash(dr query|dr show|dr list|...),Read(.),Read(documentation-robotics)").
+ * including scope constraints for each tool (e.g., "Bash(dr query:*),Bash(dr show:*),...,Read(.),Read(documentation-robotics)").
+ *
+ * A Bash scope lists several commands separated by "|". Claude Code's rule syntax has no "or":
+ * `Bash(dr query|dr show)` matches no command at all, so each command becomes its own prefix
+ * rule, `Bash(dr show:*)`. Other tools keep their scope as-is, e.g. `Read(.dr)`.
  *
  * @returns String formatted for Claude Code --allowedTools flag
  */
 export function formatForClaudeCode(): string {
-  // Format each permission as "ToolName" or "ToolName(scope)" with scope constraints
-  const formatted = DEFAULT_READ_SAFE_PERMISSIONS.map((p) => {
-    if (p.scope) {
-      return `${p.name}(${p.scope})`;
+  const formatted = DEFAULT_READ_SAFE_PERMISSIONS.flatMap((p) => {
+    if (!p.scope) {
+      return [p.name];
     }
-    return p.name;
+    if (p.name === "Bash") {
+      return bashCommands(p.scope).map((command) => `Bash(${command}:*)`);
+    }
+    return [`${p.name}(${p.scope})`];
   });
   return formatted.join(",");
+}
+
+/**
+ * Extra dr commands for the changeset-only write mode (`dr visualize --with-changesets`).
+ *
+ * On top of the read-safe list, the agent can open and work in a changeset and stage new
+ * elements, element updates and new relationships, and unstage one element it staged by
+ * mistake. Committing, applying, reverting, discarding (which throws away every staged change,
+ * the user's included) or deleting a changeset, and deleting elements or relationships, stay
+ * with the user.
+ *
+ * `dr add`, `dr update` and `dr relationship add` write straight to the model when no
+ * changeset is active, so the permissions alone don't keep writes in a changeset: the
+ * agent also runs with `CHANGESET_ONLY_ENV` set, which makes the model refuse to save
+ * (see core/changeset-only-guard.ts).
+ */
+export const CHANGESET_WRITE_COMMANDS: readonly string[] = Object.freeze([
+  "dr changeset create",
+  "dr changeset activate",
+  "dr changeset deactivate",
+  "dr changeset status",
+  "dr changeset list",
+  "dr changeset show",
+  "dr changeset staged",
+  "dr changeset stage",
+  "dr changeset unstage",
+  "dr changeset preview",
+  "dr changeset diff",
+  "dr add",
+  "dr update",
+  "dr relationship add",
+  "dr relationship list",
+  "dr relationship show",
+  "dr schema",
+]);
+
+export { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
+
+/**
+ * Claude Code --allowedTools value for changeset-only mode: the read-safe list plus one
+ * `Bash(<cmd>:*)` rule per `CHANGESET_WRITE_COMMANDS` entry.
+ */
+export function formatForClaudeCodeWithChangesets(): string {
+  return [formatForClaudeCode(), ...CHANGESET_WRITE_COMMANDS.map((command) => `Bash(${command}:*)`)].join(",");
+}
+
+/** The individual commands in a "|"-separated Bash scope, e.g. "dr query|dr show". */
+export function bashCommands(scope: string): string[] {
+  return scope
+    .split("|")
+    .map((command) => command.trim())
+    .filter((command) => command.length > 0);
 }
 
 /**

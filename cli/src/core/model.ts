@@ -13,6 +13,7 @@ import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { assertBaseModelWritable } from "./changeset-only-guard.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -441,6 +442,7 @@ export class Model {
    * Save a layer to disk (model/XX_layername/*.yaml)
    */
   async saveLayer(name: string): Promise<void> {
+    assertBaseModelWritable();
     const layer = this.layers.get(name);
     if (!layer) {
       throw new Error(`Layer ${name} not found`);
@@ -625,6 +627,7 @@ export class Model {
    * Save the manifest to disk (documentation-robotics/model/manifest.yaml)
    */
   async saveManifest(): Promise<void> {
+    assertBaseModelWritable();
     this.manifest.updateModified();
     const yaml = await import("yaml");
     const manifestPath = `${this.rootPath}/documentation-robotics/model/manifest.yaml`;
@@ -756,6 +759,7 @@ export class Model {
    *   (refreshing its `# Last updated:` line) instead of writing the standard header.
    */
   async saveRelationships(options: { preserveHeader?: boolean } = {}): Promise<void> {
+    assertBaseModelWritable();
     const fs = await import("fs/promises");
     const yaml = await import("yaml");
     const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`;
@@ -1466,6 +1470,7 @@ export class Model {
    * @throws Error if atomic write fails
    */
   async saveDirtyLayersAtomic(): Promise<void> {
+    assertBaseModelWritable();
     // First, save all layers to temporary files
     const tempLayerWrites: Array<{ layer: Layer; tempPath: string }> = [];
 

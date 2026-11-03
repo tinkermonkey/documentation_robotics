@@ -8,11 +8,16 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import {
   DEFAULT_READ_SAFE_PERMISSIONS,
+  CHANGESET_ONLY_ENV,
+  CHANGESET_WRITE_COMMANDS,
+  bashCommands,
   formatForClaudeCode,
+  formatForClaudeCodeWithChangesets,
   formatForCopilot,
   applyCopilotPermissions,
   validatePermissions,
 } from "../../src/coding-agents/default-permissions.js";
+import { assertBaseModelWritable } from "../../src/core/changeset-only-guard.js";
 
 // Store original functions for restoration
 let originalConsoleWarn: typeof console.warn;
@@ -128,7 +133,7 @@ describe("Default Read-Safe Permissions", () => {
 
     it("should include Bash tool with read-safe dr scope", () => {
       const result = formatForClaudeCode();
-      expect(result).toContain("Bash(dr query|dr show|dr list");
+      expect(result).toContain("Bash(dr show:*)");
       // Ensure wildcard scope is not used
       expect(result).not.toContain("Bash(dr *)");
       expect(result).not.toContain("Bash(*)");
@@ -154,10 +159,106 @@ describe("Default Read-Safe Permissions", () => {
       expect(result).not.toMatch(/^,|,$/);
     });
 
-    it("should have one entry per permission (no deduplication)", () => {
+    it("should have one Bash rule per read-safe dr command and one entry per other permission", () => {
       const result = formatForClaudeCode();
       const specs = result.split(",");
-      expect(specs.length).toBe(DEFAULT_READ_SAFE_PERMISSIONS.length);
+      const expected = DEFAULT_READ_SAFE_PERMISSIONS.reduce(
+        (n, p) => n + (p.name === "Bash" && p.scope ? bashCommands(p.scope).length : 1),
+        0
+      );
+      expect(specs.length).toBe(expected);
+    });
+
+    // Claude Code's permission rules have no "or": a single `Bash(dr query|dr show|...)` rule
+    // matches no command, which left DrBot unable to run any dr command.
+    it("should emit each read-safe dr command as its own Bash(dr <cmd>:*) rule", () => {
+      const bashRules = formatForClaudeCode()
+        .split(",")
+        .filter((spec) => spec.startsWith("Bash("));
+      const bashScope = DEFAULT_READ_SAFE_PERMISSIONS.find((p) => p.name === "Bash")!.scope!;
+
+      expect(bashRules).toEqual(bashCommands(bashScope).map((cmd) => `Bash(${cmd}:*)`));
+      expect(bashRules).toContain("Bash(dr show:*)");
+      expect(bashRules).toContain("Bash(dr list:*)");
+      bashRules.forEach((rule) => {
+        expect(rule).toMatch(/^Bash\(dr [a-z-]+:\*\)$/);
+        expect(rule).not.toContain("|");
+      });
+    });
+
+    it("should not allow dr commands that write to the model", () => {
+      const result = formatForClaudeCode();
+      ["add", "update", "delete", "remove", "apply", "init"].forEach((cmd) => {
+        expect(result).not.toContain(`Bash(dr ${cmd}:*)`);
+      });
+    });
+  });
+
+  describe("formatForClaudeCodeWithChangesets()", () => {
+    const rules = () => formatForClaudeCodeWithChangesets().split(",");
+
+    it("should keep every read-safe rule", () => {
+      const result = rules();
+      formatForClaudeCode()
+        .split(",")
+        .forEach((rule) => expect(result).toContain(rule));
+    });
+
+    it("should allow opening a changeset and staging adds, updates and new relationships", () => {
+      const result = rules();
+      [
+        "Bash(dr changeset create:*)",
+        "Bash(dr changeset activate:*)",
+        "Bash(dr changeset staged:*)",
+        "Bash(dr changeset diff:*)",
+        "Bash(dr add:*)",
+        "Bash(dr update:*)",
+        "Bash(dr relationship add:*)",
+      ].forEach((rule) => expect(result).toContain(rule));
+    });
+
+    it("should leave commit, apply, revert, discard and every delete to the user", () => {
+      const result = rules();
+      [
+        "dr changeset commit",
+        "dr changeset apply",
+        "dr changeset revert",
+        "dr changeset discard",
+        "dr changeset delete",
+        "dr delete",
+        "dr relationship delete",
+        "dr relationship prune",
+        "dr init",
+        "dr upgrade",
+      ].forEach((cmd) => {
+        expect(result).not.toContain(`Bash(${cmd}:*)`);
+        // No broader rule may cover it either, e.g. Bash(dr changeset:*)
+        result
+          .filter((rule) => rule.startsWith("Bash("))
+          .forEach((rule) => {
+            const prefix = rule.slice("Bash(".length, -":*)".length);
+            expect(cmd.startsWith(prefix + " ") || cmd === prefix).toBe(false);
+          });
+      });
+    });
+
+    it("should emit one Bash(<cmd>:*) rule per changeset command", () => {
+      const extra = rules().slice(formatForClaudeCode().split(",").length);
+      expect(extra).toEqual(CHANGESET_WRITE_COMMANDS.map((cmd) => `Bash(${cmd}:*)`));
+      extra.forEach((rule) => expect(rule).toMatch(/^Bash\(dr [a-z ]+:\*\)$/));
+    });
+  });
+
+  describe("changeset-only guard", () => {
+    it("should refuse base model writes when DR_CHANGESET_ONLY is true", () => {
+      expect(() => assertBaseModelWritable({ [CHANGESET_ONLY_ENV]: "true" })).toThrow(
+        "only change the model through a changeset"
+      );
+    });
+
+    it("should allow base model writes otherwise", () => {
+      expect(() => assertBaseModelWritable({})).not.toThrow();
+      expect(() => assertBaseModelWritable({ [CHANGESET_ONLY_ENV]: "false" })).not.toThrow();
     });
   });
 
