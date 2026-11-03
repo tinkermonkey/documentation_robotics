@@ -1,0 +1,35 @@
+{
+  "tool": "trace_path",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+    "format": "json",
+    "function_name": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController.findPaginatedForOwnersLastName",
+    "direction": "inbound",
+    "depth": 3
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"function\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController.findPaginatedForOwnersLastName\",\"direction\":\"inbound\",\"callers_total\":1,\"callers_total_relation\":\"eq\",\"callers\":{\"qn_rule\":\"qn = qn_prefix == \\\"\\\" ? name : qn_prefix + \\\".\\\" + name\",\"cols\":[\"name\",\"hop\"],\"groups\":[{\"qn_prefix\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController\",\"rows\":[[\"processFindForm\",1]]}]}}"
+      }
+    ],
+    "structuredContent": {
+      "function": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController.findPaginatedForOwnersLastName",
+      "direction": "inbound",
+      "callers_total": 1,
+      "callers_total_relation": "eq",
+      "callers": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": ["name", "hop"],
+        "groups": [
+          {
+            "qn_prefix": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController",
+            "rows": [["processFindForm", 1]]
+          }
+        ]
+      }
+    },
+    "isError": false
+  }
+}

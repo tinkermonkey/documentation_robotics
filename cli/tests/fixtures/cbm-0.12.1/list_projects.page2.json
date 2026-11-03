@@ -1,0 +1,31 @@
+{
+  "tool": "list_projects",
+  "arguments": {
+    "format": "json",
+    "limit": 2,
+    "offset": 2
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"projects\":[{\"name\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic\",\"root_path\":\"/Users/austinsand/workspace/documentation_robotics/eval-corpus/spring-petclinic\",\"branch\":\"main\"}],\"total\":3,\"offset\":2,\"limit\":2,\"returned\":1,\"has_more\":false}"
+      }
+    ],
+    "structuredContent": {
+      "projects": [
+        {
+          "name": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+          "root_path": "/Users/austinsand/workspace/documentation_robotics/eval-corpus/spring-petclinic",
+          "branch": "main"
+        }
+      ],
+      "total": 3,
+      "offset": 2,
+      "limit": 2,
+      "returned": 1,
+      "has_more": false
+    },
+    "isError": false
+  }
+}

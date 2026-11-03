@@ -1,0 +1,20 @@
+{
+  "tool": "query_graph",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+    "format": "json",
+    "query": "MATCH (n:Function) RETURN n.name LIMIT x"
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "expected token type 87, got 85 at pos 39"
+      }
+    ],
+    "structuredContent": {
+      "error": "expected token type 87, got 85 at pos 39"
+    },
+    "isError": true
+  }
+}

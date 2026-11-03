@@ -1,0 +1,50 @@
+{
+  "tool": "trace_path",
+  "arguments": {
+    "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+    "format": "json",
+    "function_name": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController.processFindForm",
+    "direction": "outbound",
+    "depth": 2
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"function\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController.processFindForm\",\"direction\":\"outbound\",\"callees_total\":5,\"callees_total_relation\":\"eq\",\"callees\":{\"qn_rule\":\"qn = qn_prefix == \\\"\\\" ? name : qn_prefix + \\\".\\\" + name\",\"cols\":[\"name\",\"hop\"],\"groups\":[{\"qn_prefix\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.model.BaseEntity\",\"rows\":[[\"getId\",1]]},{\"qn_prefix\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.model.Person\",\"rows\":[[\"getLastName\",1]]},{\"qn_prefix\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController\",\"rows\":[[\"addPaginationModel\",1],[\"findPaginatedForOwnersLastName\",1]]},{\"qn_prefix\":\"Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerRepository\",\"rows\":[[\"findByLastNameStartingWith\",2]]}]}}"
+      }
+    ],
+    "structuredContent": {
+      "function": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController.processFindForm",
+      "direction": "outbound",
+      "callees_total": 5,
+      "callees_total_relation": "eq",
+      "callees": {
+        "qn_rule": "qn = qn_prefix == \"\" ? name : qn_prefix + \".\" + name",
+        "cols": ["name", "hop"],
+        "groups": [
+          {
+            "qn_prefix": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.model.BaseEntity",
+            "rows": [["getId", 1]]
+          },
+          {
+            "qn_prefix": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.model.Person",
+            "rows": [["getLastName", 1]]
+          },
+          {
+            "qn_prefix": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerController",
+            "rows": [
+              ["addPaginationModel", 1],
+              ["findPaginatedForOwnersLastName", 1]
+            ]
+          },
+          {
+            "qn_prefix": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic.src.main.java.org.springframework.samples.petclinic.owner.OwnerRepository",
+            "rows": [["findByLastNameStartingWith", 2]]
+          }
+        ]
+      }
+    },
+    "isError": false
+  }
+}
