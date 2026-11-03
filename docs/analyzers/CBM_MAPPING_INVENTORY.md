@@ -22,6 +22,12 @@ operations (`cli/scripts/spec-enrich/data/catalog-additions-cbm.json`); addition
 duplicate the reversed triples `SPAWNS` and `DEPLOYS` now use. The compose `depends_on` half of
 addition 9 is proposed as `technology.node depends-on technology.node`, not `composes`.
 
+On 2026-11-03, after an independent review, the maintainer settled two modelling points this
+inventory had left implicit: a route handler is the application function its Route's operation
+realizes (as the `HANDLES` row says), not a second operation, and an ORM table class is a data-model
+object schema whatever the framework, with its table a derived data-store collection. Edge
+mappings now also carry enforced end-type restrictions (`conditions.from_types` / `to_types`).
+
 ## Sources
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |

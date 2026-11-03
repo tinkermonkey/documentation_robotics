@@ -58,18 +58,34 @@ rendered into the state, so the card carries them mainly for the rules, for Tier
 ### 2. Tier 0: rules (`cli/src/analyzers/tier0-rules.ts`)
 
 Built. A rule is a heuristic whose `parameters.tier0` names CBM labels, `when` conditions (regular
-expressions over decorator names, the declaration line, the file path and the symbol name) and
-either `decide` (`none` or `layer.type`) or `narrow` (a list of `layer.type` or `layer.*`). First
-match wins. A decided card costs nothing and skips Tier 1; a narrowed card goes to Tier 1 with only
-those layers and types offered (plus `none`).
+expressions over decorator names, the declaration, the file path and the symbol name) and either
+`decide` (`layer.type`, or `none` for "not an element") or `narrow` (a list of `layer.type` or
+`layer.*`); unknown keys are rejected. First match wins. The engine returns one of three actions:
+_decide_ (an element type, no model asked), _reject_ (not an element, no model asked) or _narrow_
+(Tier 1 asked with only those layers and types offered, plus `none`). The declaration is the first
+statement after comments, docstrings and decorators, joined across lines while brackets are open,
+so multi-line decorator arguments, multi-line base-class lists and annotations on the declaration
+line are handled.
 
 The existing kind rule (`KIND_CANDIDATES` in the harness's Clef backend: classes to structural
 types, methods to behavioural types within the application layer) is the same idea expressed in
 code; it moves into the rule file as per-label narrowing when the card builder is ported.
 
-Rules encode framework conventions (a `@GetMapping` method is an operation; a `table=True`
-SQLModel class is a table), not patterns read off one corpus. The catalog guard test fails the
-build if a rule names a type the spec does not have.
+Rules encode framework conventions, not patterns read off one corpus, and two modelling decisions
+(maintainer, 2026-11-03) sit behind them:
+
+- **A route handler is an application function, not an operation.** The CBM Route node is the
+  `api.operation`; the function or method that handles it (`@GetMapping`, `router.get`, NestJS
+  `@Get`, JAX-RS `@GET`) is the `application.applicationfunction` the operation realizes, linked by
+  `HANDLES`. Filing both as operations would put two operations in the model per endpoint.
+- **An ORM class mapped to a table is a data-model object schema**, whatever the framework (JPA
+  `@Entity`, SQLModel `table=True`); its table is a `data-store.collection` the card builder
+  derives from it (`objectschema maps-to collection`).
+
+The eval gold was revised to match (`classify-eval/gold-revise.ts`, 17 labels; the earlier set is
+kept as `gold@pre-handlers.jsonl`). Test-file rules come before the framework rules, so a fixture
+that happens to be a table class stays in the testing layer. The catalog guard test fails the build
+if a rule names a type the spec does not have.
 
 ### 3. Tier 1: decision model (`cli/src/analyzers/classifier/`)
 
@@ -108,11 +124,15 @@ After nodes are accepted, each CBM edge between two accepted elements is looked 
 hard-coded: its mapping lists the predicates that can express it in order of preference
 (`conditions.predicates`, each optionally inverted), and the relationship is the first catalog
 triple that exists between the two element types (`cli/src/analyzers/edge-relationships.ts`). A
-call from an application process to a function becomes `depends-on`; a call from a service to a
-data object becomes `accesses`; a function using an entity class becomes `data-model.objectschema
-serves` the function, the catalog's provider-to-consumer reading. One predicate per edge type did
-not work: with gold types on both ends, only 18 of the edges between labelled cards fitted the
-single mapped triple, against 77 of 191 with the lookup (strategy doc, Phase 2 results).
+call from one function to another becomes `depends-on`; a call from a service to a data object
+becomes `accesses`; a function reading an entity class becomes `data-model.objectschema serves` the
+function, the catalog's provider-to-consumer reading (writing it does not: `WRITES` only accesses).
+Each mapping can restrict the element types of the edge's ends (`conditions.from_types` and
+`to_types`, with `layer.*` wildcards), and the lookup enforces them, so `IMPORTS` stays between
+application elements and `IMPLEMENTS` only creates a relationship when the implemented interface is
+an application interface. Callers pass edges between two different accepted elements and collapse
+duplicates with `dedupeRelationships`, since `CALLS`, `CALL_REFERENCE` and `USAGE` can link the
+same pair. Measured results are in the strategy doc's Phase 2 results.
 
 All 48 CBM edge types are accounted for: 17 create relationships (`CALLS`, `HANDLES`,
 `DEFINES_METHOD`, `IMPORTS`, `CALL_REFERENCE`, `DATA_FLOWS`, `USAGE`, `WRITES`, `IMPLEMENTS`,
