@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr analyzer` works with codebase-memory-mcp 0.12.** Since CBM 0.11 every tool answers in
+  text unless asked for JSON, and search_graph, query_graph and trace_path return grouped, paged
+  results, so `dr analyzer index` failed with "Invalid response from list_projects" and the
+  query subcommands could not read their results. Every CBM call now goes through
+  `cli/src/analyzers/cbm-responses.ts`, which passes `format: "json"`, follows every result page,
+  raises CBM error payloads as errors, and normalises both the 0.12 shapes and the flat 0.10
+  shapes into what the analyzer reads. Behaviour that changes with it:
+  - `endpoints` and `verify` take each route's handler, symbol, lines and (where the Route node
+    has none, as on every fastapi route) file from its HANDLES edge; a route CBM shares between
+    several handlers becomes one endpoint per handler. Endpoints with a handler keep `high`
+    confidence.
+  - `callers`/`callees` look up each node's file (0.12 trace rows carry none); an unknown symbol
+    is a "Symbol not found" error instead of an empty list.
+  - `query` returns `{ columns, rows, total }` across all pages, and a Cypher error is reported as
+    `Query failed: <CBM's message>`.
+  - `datastores` and the client-side endpoint fallback request node columns explicitly, so their
+    query_graph paths return data (they read a `records` field, and CBM answers with
+    `columns`/`rows`). On petclinic `datastores` still finds nothing; on fastapi it now reports
+    a `local-storage` candidate.
+  - CBM file paths are repository-relative; they are no longer resolved against the current
+    directory, so a detached model (`--codebase-path`) reports the right files.
+
 - **DrBot can run read-safe `dr` commands in default mode.** `dr chat` and `dr visualize` passed
   Claude Code a single Bash permission rule joining every read-safe command
   (`Bash(dr query|dr show|...)`); Claude Code's rules have no "or", so it matched nothing and the
