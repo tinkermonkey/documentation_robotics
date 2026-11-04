@@ -7,7 +7,10 @@ and how well calibrated are its probabilities?
 
 It is a self-contained package (own `package.json`, run with `bun`) so it can track the
 current Anthropic SDK without touching the CLI's dependencies. It imports the CLI's
-`StdioClient` to talk to codebase-memory-mcp (CBM).
+`StdioClient` to talk to codebase-memory-mcp (CBM), and builds cards and facts with the CLI's
+card module (`cli/src/analyzers/cards/`), the code `dr analyzer classify` runs: `cards.ts` only
+chooses which symbols get a card. The committed card sets were built under CBM 0.10; before the
+card module, the harness could not read CBM 0.12's responses.
 
 ## Pipeline
 

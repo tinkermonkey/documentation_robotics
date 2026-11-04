@@ -27,7 +27,8 @@ the model.
 | Node, edge and heuristic mapping | `spec/analyzers/cbm/*.json`, compiled to `spec/dist/analyzers/cbm.json` | Made truthful (inventory step 1); `Interface` family mapped (step 2); `DEFINES_METHOD`, `IMPORTS` mapped (step 3)                              |
 | Tier-0 rule engine               | `cli/src/analyzers/tier0-rules.ts`                                      | Built, unit-tested; 17 rules as data in `extraction-heuristics.json` (inventory steps 2 and 4); measured in the strategy doc's Phase 2 results |
 | Catalog guard                    | `cli/tests/unit/analyzers/cbm-mapping-catalog.test.ts`                  | Every mapped type and every relationship-creating edge must exist in the catalog; every CBM label is mapped or listed                          |
-| Card builder                     | `cli/scripts/classify-eval/cards.ts`, `facts.ts`                        | Harness only (bun script, sampled cards)                                                                                                       |
+| Card builder                     | `cli/src/analyzers/cards/`                                              | Built (2026-11-04); the harness's `cards.ts` and `facts.ts` import it and keep only the sampling                                               |
+| Tier-0 classification command    | `dr analyzer classify --tier0-only`                                     | Built (2026-11-04): every candidate symbol, rule outcomes and facts, no network                                                                |
 | Tier-1 questions and Clef client | `cli/scripts/classify-eval/backends/clef.ts`, `lib/spec.ts`             | Harness only                                                                                                                                   |
 | Tier 2, edge mapping, changeset  | none                                                                    | Not built                                                                                                                                      |
 
@@ -35,7 +36,23 @@ the model.
 
 ### 1. Card builder (`cli/src/analyzers/cards/`)
 
-Ports `cards.ts` and `facts.ts` from the harness, with three changes.
+Built on 2026-11-04 as planned below, with these differences:
+
+- Candidates are the card labels (Class, Interface, Function, Method, Module, Route) outside build
+  and vendored paths (`VENDOR_EXCLUDE`), not the mapping's `filtering_rules`. Test code is kept, so
+  the Tier-0 test rules can file it in the testing layer; the harness still samples with its
+  narrower exclusion (`SAMPLE_EXCLUDE`).
+- `card_version` is on the classification report rather than on each card, so the committed
+  labelled card sets keep their shape.
+- Rendering a card into Tier-1 state text stays in the harness (`lib/state.ts`) until Tier 1 moves
+  into the CLI, and the kind rule moves with it.
+
+On the same CBM 0.12 index, the ported builder gives the harness's cards and facts field for field,
+except where the old harness read nothing: it parsed neither 0.12's project list nor its snippets,
+and read only the first page of each graph query. On the cards both builds share, the Tier-0
+outcome is the same for every card (92 petclinic, 107 fastapi, 64 dr-cli).
+
+The plan, ported from `cards.ts` and `facts.ts`, had three changes.
 
 - **Every candidate, not a sample.** Candidates are the symbols whose CBM label has a node mapping,
   minus the analyzer's `filtering_rules` (test code is a separate pass, inventory step 7).
@@ -223,9 +240,10 @@ with manifests and a re-index).
 
 ## Build order
 
-1. Port the card builder and facts into `cli/src/analyzers/cards/`, with the harness switched to
-   import it, so harness numbers keep measuring production code.
-2. `dr analyzer classify --tier0-only --json`: cards plus rule decisions, no network.
+1. Done (2026-11-04). Port the card builder and facts into `cli/src/analyzers/cards/`, with the
+   harness switched to import it, so harness numbers keep measuring production code.
+2. Done (2026-11-04). `dr analyzer classify --tier0-only --json`: cards plus rule decisions, no
+   network.
 3. Clef backend and Tier-1 bands behind the per-project opt-in (decision 1).
 4. Changeset staging and the three mapped edges.
 5. Tier 2 (escalation, naming, upper layers) and the `/dr-map` switch.

@@ -1,7 +1,7 @@
 /**
  * Analyzer Commands - CLI surface for analyzer discovery, status, indexing, and querying
  *
- * Implements ten subcommands:
+ * Implements eleven subcommands:
  * - discover: Scan for installed analyzers and select active analyzer
  * - status: Report analyzer detection and project index state
  * - index: Index the current project with the active analyzer
@@ -12,6 +12,7 @@
  * - callees: Query for callees of a specific function or symbol
  * - query: Execute a raw query against the analyzer's graph
  * - verify: Verify that graph-discovered routes align with model endpoints
+ * - classify: Tier-0 classification of the indexed project's symbols (no model calls)
  */
 
 import { Command } from "commander";
@@ -1288,6 +1289,157 @@ Examples:
 
         // Print to stdout
         console.log(formatted);
+      } catch (error) {
+        if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
+        const cliError = new CLIError(
+          error instanceof Error ? error.message : String(error),
+          categorizeError(error)
+        );
+        if (error instanceof Error) {
+          cliError.cause = error;
+        }
+        throw cliError;
+      }
+    });
+
+  /**
+   * Classify subcommand - Tier-0 classification of the indexed project's symbols
+   */
+  analyzer
+    .command("classify")
+    .description("Classify the indexed project's symbols into model layers and types (Tier 0: rules only)")
+    .option("--name <n>", "Analyzer name (defaults to active from session.json)")
+    .option("--tier0-only", "Apply only the analyzer's Tier-0 rules: no model calls, no network (required for now)")
+    .option("--label <labels>", "Comma-separated analyzer labels to classify (default: Class,Interface,Function,Method,Module,Route)")
+    .option("--file <glob>", "Only symbols in files matching this glob")
+    .option("--exclude <regex>", "Leave out files matching this regular expression (default: build and vendored paths)")
+    .option("--limit <n>", "Stop after this many symbols")
+    .option("--cards", "Include each symbol's full card (source and graph neighbourhood) in JSON output")
+    .option("--output <file>", "Write the JSON report to a file")
+    .option("--json", "Output as JSON")
+    .addHelpText(
+      "after",
+      `
+Tier 0 is the first step of the classification cascade (docs/analyzers/CASCADE_DESIGN.md):
+the analyzer's rules decide a symbol's layer and type, reject it as not a model element,
+or narrow its choices for a later tier. Symbols no rule covers are reported as undecided.
+Nothing is written to the model.
+
+Examples:
+  $ dr analyzer classify --tier0-only
+  $ dr analyzer classify --tier0-only --json > tier0.json
+  $ dr analyzer classify --tier0-only --label Class,Method --file "src/main/**"
+  $ dr analyzer classify --tier0-only --cards --output tier0-cards.json`
+    )
+    .action(async (options) => {
+      const jsonMode = options.json ?? program.opts().json;
+      try {
+        if (!options.tier0Only) {
+          throw new CLIError(
+            "Only Tier-0 classification is available so far: pass --tier0-only",
+            ErrorCategory.USER,
+            ["Model-backed classification (Tier 1) needs the per-project opt-in and is not built yet"]
+          );
+        }
+        let exclude: RegExp | undefined;
+        if (options.exclude !== undefined) {
+          try {
+            exclude = new RegExp(String(options.exclude));
+          } catch (e) {
+            throw new CLIError(`Invalid --exclude regular expression: ${e instanceof Error ? e.message : String(e)}`, ErrorCategory.USER);
+          }
+        }
+        let limit: number | undefined;
+        if (options.limit !== undefined) {
+          limit = Number(options.limit);
+          if (!Number.isInteger(limit) || limit < 1) {
+            throw new CLIError(`--limit must be a positive integer, got '${options.limit}'`, ErrorCategory.USER);
+          }
+        }
+        const labels = options.label
+          ? String(options.label).split(",").map((l: string) => l.trim()).filter(Boolean)
+          : undefined;
+
+        const projectRoot = await findProjectRoot();
+        if (!projectRoot) {
+          throw new ModelNotFoundError();
+        }
+
+        let analyzerName = options.name;
+        if (!analyzerName) {
+          const session = await readSession(projectRoot);
+          if (!session) {
+            throw new CLIError("No analyzer selected. Run `dr analyzer discover` first.", ErrorCategory.USER);
+          }
+          analyzerName = session.active_analyzer;
+        }
+
+        const registry = AnalyzerRegistry.getInstance();
+        await registry.initialize();
+        const backend = await registry.getAnalyzer(analyzerName);
+        if (!backend) {
+          throw new CLIError(`Analyzer not found: ${analyzerName}`, ErrorCategory.NOT_FOUND);
+        }
+        if (!backend.classify) {
+          throw new CLIError(`The ${analyzerName} analyzer does not support classification`, ErrorCategory.USER);
+        }
+
+        const indexMeta = await readIndexMeta(projectRoot, analyzerName);
+        if (!indexMeta) {
+          throw new CLIError("Project not indexed", ErrorCategory.USER, ["Run `dr analyzer index` first"]);
+        }
+
+        const model = await Model.load(projectRoot);
+        const showProgress = !jsonMode && !options.output && process.stderr.isTTY;
+        const report = await backend.classify(projectRoot, {
+          codebaseRoot: model.codebaseRoot,
+          labels,
+          filePattern: options.file,
+          exclude,
+          limit,
+          includeCards: !!options.cards,
+          onProgress: showProgress
+            ? (done, total) => {
+                if (done % 50 === 0 || done === total) process.stderr.write(`\r  ${done}/${total} symbols`);
+                if (done === total) process.stderr.write("\n");
+              }
+            : undefined,
+        });
+
+        if (options.output) {
+          const outputPath = path.resolve(options.output);
+          await fs.writeFile(outputPath, JSON.stringify(report, null, 2) + "\n", "utf-8");
+          if (!jsonMode) console.log(ansis.green(`✓ Report written to ${outputPath}`));
+        }
+        if (jsonMode) {
+          console.log(JSON.stringify(report, null, 2));
+          return;
+        }
+
+        const { summary } = report;
+        const pct = (n: number) => (summary.cards ? `${((100 * n) / summary.cards).toFixed(0)}%` : "0%");
+        console.log("");
+        console.log(ansis.bold(`Tier-0 classification: ${summary.cards} symbols, ${report.rules} rules`));
+        console.log(ansis.dim("─".repeat(60)));
+        console.log(`  ${ansis.green("decided")}    ${String(summary.decided).padStart(6)}  ${pct(summary.decided)}`);
+        console.log(`  ${ansis.yellow("rejected")}   ${String(summary.rejected).padStart(6)}  ${pct(summary.rejected)}  (not model elements)`);
+        console.log(`  ${ansis.cyan("narrowed")}   ${String(summary.narrowed).padStart(6)}  ${pct(summary.narrowed)}  (choices restricted for Tier 1)`);
+        console.log(`  ${ansis.dim("undecided")}  ${String(summary.undecided).padStart(6)}  ${pct(summary.undecided)}`);
+        const targets = Object.entries(summary.by_target).sort((a, b) => b[1] - a[1]);
+        if (targets.length) {
+          console.log("");
+          console.log(ansis.bold("Decided, by type:"));
+          for (const [target, n] of targets) console.log(`  ${target.padEnd(40)} ${String(n).padStart(6)}`);
+        }
+        const rules = Object.entries(summary.by_rule).sort((a, b) => b[1] - a[1]);
+        if (rules.length) {
+          console.log("");
+          console.log(ansis.bold("Matches, by rule:"));
+          for (const [rule, n] of rules) console.log(`  ${rule.padEnd(40)} ${String(n).padStart(6)}`);
+        }
+        console.log(ansis.dim("─".repeat(60)));
+        console.log(ansis.dim("Per-symbol outcomes: --json or --output <file>"));
+        console.log("");
       } catch (error) {
         if (error instanceof CLIError || error instanceof ModelNotFoundError) throw error;
         const cliError = new CLIError(

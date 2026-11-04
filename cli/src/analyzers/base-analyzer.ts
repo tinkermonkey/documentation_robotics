@@ -21,6 +21,7 @@ import type {
   VerifyOptions,
   VerifyReport,
 } from "./types.js";
+import type { ClassifyOptions, ClassifyReport } from "./cards/classify.js";
 
 /**
  * Optional codebase root configuration for analyzer operations
@@ -161,4 +162,15 @@ export interface AnalyzerBackend {
    * @returns Detailed verification report with buckets and summary statistics
    */
   verify(projectRoot: string, options: VerifyOptions & AnalyzerCodebaseOptions): Promise<VerifyReport>;
+
+  /**
+   * Tier-0 classification: build a card for each candidate symbol and apply the analyzer's
+   * Tier-0 rules (no model calls). Optional; analyzers without rules don't implement it.
+   *
+   * @param projectRoot Absolute path to the project root
+   * @param options Label, file and limit filters, and the codebase root
+   * @returns Per-symbol outcomes and a summary
+   * @throws CLIError if the project is not indexed
+   */
+  classify?(projectRoot: string, options?: ClassifyOptions & AnalyzerCodebaseOptions): Promise<ClassifyReport>;
 }

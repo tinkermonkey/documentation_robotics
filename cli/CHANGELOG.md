@@ -112,6 +112,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr analyzer classify --tier0-only`: Tier-0 classification of the indexed project.** Every
+  candidate symbol (classes, interfaces, functions, methods, modules and routes outside build and
+  vendored paths) gets a card from the codebase-memory-mcp graph and the first matching Tier-0
+  rule from the analyzer's mapping: a layer and type, "not a model element", or a narrowed set of
+  choices for a later tier. No model calls, no network, no writes. The default output is a
+  summary by outcome, type and rule; `--json` or `--output <file>` gives each symbol's outcome
+  and facts, and `--cards` adds the full card. `--label`, `--file`, `--exclude` and `--limit`
+  narrow the run. Without `--tier0-only` the command explains that model-backed classification
+  is not built yet. The card builder is `src/analyzers/cards/`, which the classify-eval harness
+  now imports, so its measurements are of this code.
+
 - **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
   analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,
   regular-expression conditions on decorators, declaration, file path and name, and a `decide` or
@@ -125,8 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   client code and component props to `none`, test files and annotations to the testing layer
   ahead of every framework rule, and narrowing rules for UI library directories, file-based routes
   (Next.js `app/` page, layout and route files only), Spring services and other interfaces.
-  `MappingLoader.getHeuristics()` returns them in order. Not yet called by a command; the design
-  is `docs/analyzers/CASCADE_DESIGN.md`.
+  `MappingLoader.getHeuristics()` returns them in order. `dr analyzer classify --tier0-only`
+  applies them; the design is `docs/analyzers/CASCADE_DESIGN.md`.
 - **`dr visualize --with-changesets`: DrBot can stage model changes for you to review.** Between
   the read-only default and `--with-danger`, the chat agent (Claude Code) may now create, activate
   and inspect changesets, stage new elements, element updates and new relationships (`dr add`,
