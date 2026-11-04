@@ -45,11 +45,12 @@ Built on 2026-11-04 as planned below, with these differences:
 - `card_version` is on the classification report rather than on each card, so the committed
   labelled card sets keep their shape.
 - Source comes from the codebase, by the node's line range, one read per file; CBM's
-  `get_code_snippet` is the fallback. Where CBM returns source, the two are identical, but CBM
-  0.12 returns an outline (members, no source) for large classes and modules (62 of 128 dr-cli
-  classes, 59 of 150 modules), cuts source at about 9 KB, and costs about 15 ms a call: 47 s of
-  dr-cli's 47 s run, against about 2 s with file reads. Tier-0 outcomes on the three corpora did
-  not change with the extra source.
+  `get_code_snippet` is the fallback. Where CBM returns source, the two are identical. But CBM
+  0.12's default `source_mode` ("auto") answers containers of 200 lines or more with an outline
+  (members, no source: 62 of 128 dr-cli classes, 59 of 150 modules) and caps output at about 2,500
+  tokens, so the fallback asks for `source_mode: "full"` (source up to 500 lines). Each call costs
+  about 15 ms: 45.5 s of dr-cli's 47 s run, against about 2 s with file reads. Tier-0 outcomes on
+  the three corpora did not change with the extra source.
 - Classification covers every label a Tier-0 rule names (Type, Enum, Trait), not only the
   harness's six.
 - Rendering a card into Tier-1 state text stays in the harness (`lib/state.ts`) until Tier 1 moves

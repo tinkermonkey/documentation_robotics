@@ -38,7 +38,9 @@ export function cbmCardGraph(tools: CbmTools, project: string): CardGraph {
     },
     async snippet(qualifiedName) {
       try {
-        const raw = (await tools.call("get_code_snippet", { project, qualified_name: qualifiedName })) as { source?: unknown };
+        // CBM 0.12's default ("auto") outlines containers of 200+ lines and caps output at about
+        // 2,500 tokens; "full" returns the source (up to 500 lines, uncapped).
+        const raw = (await tools.call("get_code_snippet", { project, qualified_name: qualifiedName, source_mode: "full" })) as { source?: unknown };
         return raw && typeof raw.source === "string" ? { source: raw.source } : null;
       } catch (error) {
         // An unknown or source-less symbol comes back as an error payload: no source.

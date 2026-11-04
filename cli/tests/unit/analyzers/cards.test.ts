@@ -114,11 +114,11 @@ describe("cbmCardGraph", () => {
     await expect(broken.snippet("x")).rejects.toThrow("pipe closed");
   });
 
-  it("passes the project and qualified name to get_code_snippet", async () => {
+  it("asks get_code_snippet for the full source of the project's symbol", async () => {
     let seen: Record<string, unknown> = {};
     const g = cbmCardGraph(tools((_t, a) => { seen = a; return { source: "class A {}" }; }), P);
     expect(await g.snippet("proj.A")).toEqual({ source: "class A {}" });
-    expect(seen).toEqual({ project: P, qualified_name: "proj.A" });
+    expect(seen).toEqual({ project: P, qualified_name: "proj.A", source_mode: "full" });
   });
 });
 

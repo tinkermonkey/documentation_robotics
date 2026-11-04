@@ -99,9 +99,8 @@ export interface CardBuilderOptions {
   sourceLines?: number;
   /**
    * Absolute path of the indexed codebase. When set, a symbol's source is read from its file by
-   * the node's line range, one read per file; CBM's `get_code_snippet` is the fallback. Without
-   * it every card costs a snippet call (about 15 ms each), and CBM 0.12 answers large classes and
-   * modules with an outline, not their source.
+   * the node's line range, one read per file; CBM's `get_code_snippet` (full source, at most 500
+   * lines) is the fallback. Without it every card costs a snippet call, about 15 ms each.
    */
   sourceRoot?: string;
 }

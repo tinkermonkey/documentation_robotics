@@ -123,8 +123,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--limit` narrow the run. Without `--tier0-only` the command explains that model-backed
   classification is not built yet. Source is read from the codebase by each symbol's line range,
   one read per file, so a 3,000-symbol project classifies in about 2 seconds; CBM's
-  `get_code_snippet` is only a fallback (one call per symbol was 47 seconds on the same project,
-  and CBM 0.12 answers large classes and modules with an outline, not their source). The card
+  `get_code_snippet` is only a fallback (one call per symbol was 47 seconds on the same project),
+  and asks for `source_mode: "full"`, since CBM 0.12's default answers classes and modules of
+  200 lines or more with an outline and caps other source at about 2,500 tokens. The card
   builder is `src/analyzers/cards/`, which the classify-eval harness now imports, so its
   measurements are of this code.
 
