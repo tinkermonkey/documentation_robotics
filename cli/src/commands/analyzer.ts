@@ -1310,9 +1310,9 @@ Examples:
     .description("Classify the indexed project's symbols into model layers and types (Tier 0: rules only)")
     .option("--name <n>", "Analyzer name (defaults to active from session.json)")
     .option("--tier0-only", "Apply only the analyzer's Tier-0 rules: no model calls, no network (required for now)")
-    .option("--label <labels>", "Comma-separated analyzer labels to classify (default: Class,Interface,Function,Method,Module,Route)")
+    .option("--label <labels>", "Comma-separated analyzer labels to classify (default: Class, Interface, Function, Method, Module, Route and every label a rule names)")
     .option("--file <glob>", "Only symbols in files matching this glob")
-    .option("--exclude <regex>", "Leave out files matching this regular expression (default: build and vendored paths)")
+    .option("--exclude <regex>", "Also leave out files matching this regular expression (build and vendored paths always are)")
     .option("--limit <n>", "Stop after this many symbols")
     .option("--cards", "Include each symbol's full card (source and graph neighbourhood) in JSON output")
     .option("--output <file>", "Write the JSON report to a file")
@@ -1359,6 +1359,9 @@ Examples:
         const labels = options.label
           ? String(options.label).split(",").map((l: string) => l.trim()).filter(Boolean)
           : undefined;
+        if (options.cards && !jsonMode && !options.output) {
+          console.error(ansis.yellow("--cards only affects JSON output: add --json or --output <file>"));
+        }
 
         const projectRoot = await findProjectRoot();
         if (!projectRoot) {
@@ -1425,6 +1428,9 @@ Examples:
         console.log(`  ${ansis.yellow("rejected")}   ${String(summary.rejected).padStart(6)}  ${pct(summary.rejected)}  (not model elements)`);
         console.log(`  ${ansis.cyan("narrowed")}   ${String(summary.narrowed).padStart(6)}  ${pct(summary.narrowed)}  (choices restricted for Tier 1)`);
         console.log(`  ${ansis.dim("undecided")}  ${String(summary.undecided).padStart(6)}  ${pct(summary.undecided)}`);
+        if (summary.no_source) {
+          console.log(ansis.yellow(`  ${summary.no_source} symbol(s) had no source, so rules that read the declaration could not apply`));
+        }
         const targets = Object.entries(summary.by_target).sort((a, b) => b[1] - a[1]);
         if (targets.length) {
           console.log("");

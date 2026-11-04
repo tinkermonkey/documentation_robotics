@@ -5,6 +5,8 @@
  * module, so its accuracy numbers measure the code `dr analyzer classify` runs.
  */
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import type { EdgeIndex } from "./edge-index.js";
 import type { CardGraph, GraphNode, SymbolCard } from "./types.js";
 
@@ -15,7 +17,7 @@ import type { CardGraph, GraphNode, SymbolCard } from "./types.js";
  */
 export const CARD_VERSION = 1;
 
-/** CBM labels that become cards. */
+/** CBM labels that become cards in the harness's card sets (classify adds the rules' labels). */
 export const CARD_LABELS: readonly string[] = Object.freeze(["Class", "Interface", "Function", "Method", "Module", "Route"]);
 
 /** Extra search_graph fields each label's card reads. */
@@ -26,6 +28,10 @@ export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
   Method: ["signature", "docstring", "parent_class", "is_exported", "is_entry_point", "complexity", "return_type", "start_line", "end_line"],
   Module: ["is_entry_point", "is_exported", "lines", "start_line", "end_line"],
   Route: ["method", "source"],
+  Type: ["docstring", "is_exported", "start_line", "end_line"],
+  Enum: ["docstring", "is_exported", "start_line", "end_line"],
+  Trait: ["docstring", "is_exported", "start_line", "end_line"],
+  Struct: ["docstring", "is_exported", "start_line", "end_line"],
 });
 
 export const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rs|cs|php|rb|swift|scala|vue|svelte)$/i;
@@ -51,7 +57,10 @@ export function cardId(scope: string, qualifiedName: string): string {
  * outside `exclude`, leaving out constructors, dunder methods and anonymous functions.
  */
 export function isCandidate(node: GraphNode, label: string, exclude: RegExp = VENDOR_EXCLUDE): boolean {
-  if (label === "Route") return /^__route__[A-Z]+__\//.test(node.name) && !/\.(ts|js|py|json)$/.test(node.name);
+  if (label === "Route") {
+    if (!/^__route__[A-Z]+__\//.test(node.name) || /\.(ts|js|py|json)$/.test(node.name)) return false;
+    return !(node.file_path && exclude.test(node.file_path));
+  }
   if (!node.file_path) return false;
   if (!SOURCE_EXT.test(node.file_path) || node.file_path.startsWith("<")) return false;
   if (exclude.test(node.file_path)) return false;
@@ -88,6 +97,13 @@ export interface CardBuilderOptions {
   scope: string;
   /** Source lines kept per card (default 120). */
   sourceLines?: number;
+  /**
+   * Absolute path of the indexed codebase. When set, a symbol's source is read from its file by
+   * the node's line range, one read per file; CBM's `get_code_snippet` is the fallback. Without
+   * it every card costs a snippet call (about 15 ms each), and CBM 0.12 answers large classes and
+   * modules with an outline, not their source.
+   */
+  sourceRoot?: string;
 }
 
 /**
@@ -97,6 +113,8 @@ export interface CardBuilderOptions {
 export class CardBuilder {
   private readonly sourceLines: number;
   private readonly handlerCache = new Map<string, Array<{ qn: string; source: string }>>();
+  private readonly fileLines = new Map<string, Promise<string[] | null>>();
+  private readonly root: string | null;
 
   constructor(
     private readonly graph: CardGraph,
@@ -104,6 +122,36 @@ export class CardBuilder {
     private readonly options: CardBuilderOptions
   ) {
     this.sourceLines = options.sourceLines ?? 120;
+    this.root = options.sourceRoot ? path.resolve(options.sourceRoot) : null;
+  }
+
+  /** A file's lines, read once; null when it is outside the root or unreadable. */
+  private lines(file: string): Promise<string[] | null> {
+    let cached = this.fileLines.get(file);
+    if (!cached) {
+      const abs = path.resolve(this.root!, file);
+      cached =
+        abs === this.root || !abs.startsWith(this.root! + path.sep)
+          ? Promise.resolve(null)
+          : readFile(abs, "utf-8").then((text) => text.split("\n"), () => null);
+      this.fileLines.set(file, cached);
+    }
+    return cached;
+  }
+
+  /**
+   * A symbol's source: its line range read from disk when the builder has a root and the node
+   * has lines in a readable file, else CBM's snippet.
+   */
+  private async sourceOf(qn: string, node: { file_path?: unknown; start_line?: unknown; end_line?: unknown; lines?: unknown } | null): Promise<string | null> {
+    if (this.root && node && typeof node.file_path === "string" && node.file_path) {
+      const { start, end } = lineRange(node as GraphNode);
+      if (start !== null && end !== null && start >= 1 && end >= start) {
+        const lines = await this.lines(node.file_path);
+        if (lines && end <= lines.length) return lines.slice(start - 1, end).join("\n");
+      }
+    }
+    return (await this.graph.snippet(qn))?.source ?? null;
   }
 
   /** Strip the project prefix from a qualified name. */
@@ -129,8 +177,8 @@ export class CardBuilder {
       if (!fns) {
         fns = [];
         for (const n of await this.graph.search("Function", file, ["start_line"])) {
-          const snip = await this.graph.snippet(n.qualified_name);
-          if (snip?.source) fns.push({ qn: n.qualified_name, source: snip.source });
+          const source = await this.sourceOf(n.qualified_name, n);
+          if (source) fns.push({ qn: n.qualified_name, source });
         }
         this.handlerCache.set(file, fns);
       }
@@ -159,15 +207,15 @@ export class CardBuilder {
     let truncated = false;
     let routeHandlerQn: string | null = null;
     if (node.label !== "Route") {
-      const snip = await this.graph.snippet(qn);
-      if (snip?.source) ({ source, total: totalLines, truncated } = this.cut(snip.source));
+      const text = await this.sourceOf(qn, node);
+      if (text) ({ source, total: totalLines, truncated } = this.cut(text));
     } else {
       // A Route borrows its handler's source: by HANDLES edge, else by resolveRouteHandler.
       const direct = (edges.routeHandlers.get(qn) ?? []).filter((h) => edges.qnFile.has(h));
       routeHandlerQn = direct[0] ?? (await this.resolveRouteHandler(qn));
       if (routeHandlerQn) {
-        const snip = await this.graph.snippet(routeHandlerQn);
-        if (snip?.source) ({ source, total: totalLines, truncated } = this.cut(snip.source));
+        const text = await this.sourceOf(routeHandlerQn, null);
+        if (text) ({ source, total: totalLines, truncated } = this.cut(text));
       }
     }
     const callers = (edges.callers.get(qn) ?? []).map(short);

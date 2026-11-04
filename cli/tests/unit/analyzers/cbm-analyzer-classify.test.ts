@@ -98,6 +98,11 @@ describe("CbmAnalyzer.classify", () => {
     expect(closed).toBe(1);
   });
 
+  it("rejects unknown labels before contacting CBM", async () => {
+    await expect(analyzer.classify(ROOT, { labels: ["class"] })).rejects.toThrow(/Unknown label: class/);
+    expect(calls).toEqual([]);
+  });
+
   it("refuses an unindexed project", async () => {
     (analyzer as any).status = async () => ({ indexed: false, fresh: false, detected: { installed: true, binary_path: "/bin/mock" } });
     await expect(analyzer.classify(ROOT)).rejects.toThrow(/not indexed/);

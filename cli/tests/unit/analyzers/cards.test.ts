@@ -3,8 +3,9 @@
  * card building and project-wide Tier-0 classification, over an in-memory graph.
  */
 import { describe, it, expect } from "bun:test";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join, resolve } from "path";
 import {
   CardBuilder,
   SAMPLE_EXCLUDE,
@@ -15,6 +16,7 @@ import {
   cbmCardGraph,
   classifyTier0,
   decoratorName,
+  defaultLabels,
   factsFor,
   graphNodeOf,
   isCandidate,
@@ -132,6 +134,10 @@ describe("isCandidate", () => {
     expect(isCandidate(n("Method", "constructor", "src/a.ts"), "Method")).toBe(false);
     expect(isCandidate(n("Function", "<anonymous>", "src/a.ts"), "Function")).toBe(false);
   });
+  it("applies the exclusion to routes that have a file", () => {
+    expect(isCandidate(n("Route", "__route__GET__/x", "node_modules/pkg/server.js"), "Route")).toBe(false);
+    expect(isCandidate(n("Route", "__route__GET__/x", "src/server.js"), "Route")).toBe(true);
+  });
   it("keeps tests by default; the harness's sampling exclusion drops them", () => {
     const t = n("Class", "OwnerTests", "src/test/java/OwnerTests.java");
     expect(isCandidate(t, "Class", VENDOR_EXCLUDE)).toBe(true);
@@ -199,6 +205,29 @@ describe("CardBuilder", () => {
     expect(card).toMatchObject({ source_lines_total: 4, source_truncated: true });
   });
 
+  it("reads source from disk by line range when given a root, falling back to CBM's snippet", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cards-src-"));
+    mkdirSync(join(root, "src/main/java/owner"), { recursive: true });
+    writeFileSync(join(root, FILE), Array.from({ length: 60 }, (_, i) => `line ${i + 1}`).join("\n"));
+    const g = fakeGraph();
+    const builder = new CardBuilder(g, await buildEdgeIndex(g), { scope: "c", sourceRoot: root });
+    const method = await builder.build((await g.search("Method", undefined, []))[0]);
+    expect(method.source).toBe(Array.from({ length: 13 }, (_, i) => `line ${i + 40}`).join("\n"));
+    expect(g.snippets).not.toContain(`${OWNER}.showOwner`);
+    // No file on disk for Owner.java: CBM's snippet is used.
+    const owner = await builder.build((await g.search("Class", undefined, []))[1]);
+    expect(owner.source).toContain("@Entity");
+    expect(g.snippets).toContain(`${P}.src.main.java.owner.Owner`);
+  });
+
+  it("never reads outside the root", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cards-root-"));
+    const g = fakeGraph();
+    const builder = new CardBuilder(g, await buildEdgeIndex(g), { scope: "c", sourceRoot: root });
+    const escaped: GraphNode = { label: "Class", name: "Owner", qualified_name: `${P}.src.main.java.owner.Owner`, file_path: "../../../../etc/hosts", start_line: 1, end_line: 2 };
+    expect((await builder.build(escaped)).source).toContain("@Entity");
+  });
+
   it("splits comma-separated base classes", async () => {
     const g = fakeGraph();
     const card = await new CardBuilder(g, await buildEdgeIndex(g), { scope: "c" }).build((await g.search("Class", undefined, []))[1]);
@@ -217,7 +246,7 @@ describe("classifyTier0", () => {
       "src.main.java.owner.OwnerController.showOwner": "application.applicationfunction",
       "__route__GET__/owners/{}": null,
     });
-    expect(report.summary).toMatchObject({ cards: 5, decided: 3, rejected: 0, narrowed: 1, undecided: 1 });
+    expect(report.summary).toMatchObject({ cards: 5, decided: 3, rejected: 0, narrowed: 1, undecided: 1, no_source: 0 });
     expect(report.summary.by_target["application.applicationfunction"]).toBe(1);
     expect(report.summary.by_rule.tier0_route_handler).toBe(1);
     expect(report).toMatchObject({ analyzer: "cbm", project: P, mode: "tier0", rules: RULES.length });
@@ -228,6 +257,37 @@ describe("classifyTier0", () => {
     const report = await classifyTier0(fakeGraph(), RULES, "cbm", { labels: ["Class", "Method"], filePattern: FILE, limit: 1, includeCards: true });
     expect(report.results.map((r) => r.qualified_name)).toEqual(["src.main.java.owner.OwnerController"]);
     expect(report.results[0].card?.source).toContain("@Controller");
+  });
+
+  it("classifies every label a rule names by default", () => {
+    expect(defaultLabels(RULES)).toEqual(expect.arrayContaining(["Class", "Route", "Type", "Enum", "Trait"]));
+  });
+
+  it("deduplicates qualified names before the limit, so progress reaches the total", async () => {
+    const g = fakeGraph();
+    const search = g.search;
+    // Java overloads: the same method qualified name twice
+    g.search = async (label, f, fl) => (label === "Method" ? [...(await search(label, f, fl)), ...(await search(label, f, fl))] : search(label, f, fl));
+    const progress: Array<[number, number]> = [];
+    const report = await classifyTier0(g, RULES, "cbm", { labels: ["Method", "Class"], limit: 3, onProgress: (d, t) => progress.push([d, t]) });
+    expect(report.results.map((r) => r.qualified_name)).toEqual([
+      "src.main.java.owner.OwnerController.showOwner", "src.main.java.owner.OwnerController", "src.main.java.owner.Owner",
+    ]);
+    expect(progress.at(-1)).toEqual([3, 3]);
+  });
+
+  it("counts cards built without source", async () => {
+    const report = await classifyTier0(fakeGraph(), RULES, "cbm", { labels: ["Class"] });
+    // OwnerTests has a snippet; the vendored class is excluded; every kept class has source.
+    expect(report.summary.no_source).toBe(0);
+    const g = fakeGraph();
+    g.snippet = async () => null;
+    expect((await classifyTier0(g, RULES, "cbm", { labels: ["Class"] })).summary.no_source).toBe(3);
+  });
+
+  it("adds a custom exclusion to the vendor one", async () => {
+    const report = await classifyTier0(fakeGraph(), RULES, "cbm", { labels: ["Class"], exclude: /Owner\.java$/ });
+    expect(report.results.map((r) => r.name)).toEqual(["OwnerController", "OwnerTests"]);
   });
 
   it("uses a custom exclusion and reports progress", async () => {

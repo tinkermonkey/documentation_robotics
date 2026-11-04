@@ -83,7 +83,7 @@ async function main() {
 
     // Cards are built by the CLI's card builder (src/analyzers/cards), the code
     // `dr analyzer classify` runs; the harness only samples which symbols get one.
-    const builder = new CardBuilder(graph, edges, { scope: corpus, sourceLines });
+    const builder = new CardBuilder(graph, edges, { scope: corpus, sourceLines, sourceRoot: absRoot });
     const cards: Card[] = [];
     let i = 0;
     for (const node of selected) {

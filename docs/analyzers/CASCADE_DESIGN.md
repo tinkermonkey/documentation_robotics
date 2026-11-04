@@ -44,12 +44,20 @@ Built on 2026-11-04 as planned below, with these differences:
   narrower exclusion (`SAMPLE_EXCLUDE`).
 - `card_version` is on the classification report rather than on each card, so the committed
   labelled card sets keep their shape.
+- Source comes from the codebase, by the node's line range, one read per file; CBM's
+  `get_code_snippet` is the fallback. Where CBM returns source, the two are identical, but CBM
+  0.12 returns an outline (members, no source) for large classes and modules (62 of 128 dr-cli
+  classes, 59 of 150 modules), cuts source at about 9 KB, and costs about 15 ms a call: 47 s of
+  dr-cli's 47 s run, against about 2 s with file reads. Tier-0 outcomes on the three corpora did
+  not change with the extra source.
+- Classification covers every label a Tier-0 rule names (Type, Enum, Trait), not only the
+  harness's six.
 - Rendering a card into Tier-1 state text stays in the harness (`lib/state.ts`) until Tier 1 moves
   into the CLI, and the kind rule moves with it.
 
-On the same CBM 0.12 index, the ported builder gives the harness's cards and facts field for field,
-except where the old harness read nothing: it parsed neither 0.12's project list nor its snippets,
-and read only the first page of each graph query. On the cards both builds share, the Tier-0
+On the same CBM 0.12 index, and before source moved to file reads, the ported builder gave the
+harness's cards and facts field for field, except where the old harness read nothing: it parsed
+neither 0.12's project list nor its snippets, and read only the first page of each graph query. On the cards both builds share, the Tier-0
 outcome is the same for every card (92 petclinic, 107 fastapi, 64 dr-cli).
 
 The plan, ported from `cards.ts` and `facts.ts`, had three changes.

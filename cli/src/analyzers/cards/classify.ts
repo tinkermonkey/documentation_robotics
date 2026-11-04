@@ -11,14 +11,16 @@ import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, SymbolCard } from "./types.js";
 
 export interface ClassifyOptions {
-  /** CBM labels to classify (default {@link CARD_LABELS}). */
+  /** CBM labels to classify (default {@link CARD_LABELS} plus every label a rule names). */
   labels?: string[];
   /** Only files matching this glob (search_graph file_pattern). */
   filePattern?: string;
-  /** Files to leave out (default {@link VENDOR_EXCLUDE}). */
+  /** Files to leave out, in addition to {@link VENDOR_EXCLUDE}. */
   exclude?: RegExp;
   /** Stop after this many cards, in label order. */
   limit?: number;
+  /** Absolute path of the indexed codebase, so source is read from disk (see CardBuilderOptions). */
+  sourceRoot?: string;
   /** Include each full card (source and neighbourhood) in the results. */
   includeCards?: boolean;
   /** Called after each card, for progress output. */
@@ -52,6 +54,11 @@ export interface ClassifyReport {
     rejected: number;
     narrowed: number;
     undecided: number;
+    /**
+     * Non-route cards built without source (no line range or readable file, and no CBM
+     * snippet), on which rules that read the declaration cannot fire.
+     */
+    no_source: number;
     /** Cards per rule that matched. */
     by_rule: Record<string, number>;
     /** Decided cards per `layer.type`. */
@@ -60,38 +67,47 @@ export interface ClassifyReport {
   results: ClassifyResult[];
 }
 
+/** {@link CARD_LABELS} plus every label a Tier-0 rule names (Type, Enum, Trait, ...). */
+export function defaultLabels(rules: Tier0Rule[]): string[] {
+  return [...new Set([...CARD_LABELS, ...rules.flatMap((r) => r.labels)])];
+}
+
 export async function classifyTier0(
   graph: CardGraph,
   rules: Tier0Rule[],
   analyzer: string,
   options: ClassifyOptions = {}
 ): Promise<ClassifyReport> {
-  const labels = options.labels?.length ? options.labels : [...CARD_LABELS];
-  const exclude = options.exclude ?? VENDOR_EXCLUDE;
+  const labels = options.labels?.length ? options.labels : defaultLabels(rules);
+  const exclude = options.exclude
+    ? new RegExp(`(?:${VENDOR_EXCLUDE.source})|(?:${options.exclude.source})`, options.exclude.flags.replace("g", ""))
+    : VENDOR_EXCLUDE;
 
+  // One card per qualified name (Java overloads share one), deduplicated before the limit.
   const nodes = [];
+  const seen = new Set<string>();
   for (const label of labels) {
     for (const node of await graph.search(label, options.filePattern, CARD_FIELDS[label] ?? [])) {
-      if (isCandidate(node, label, exclude)) nodes.push(node);
+      if (!isCandidate(node, label, exclude) || seen.has(node.qualified_name)) continue;
+      seen.add(node.qualified_name);
+      nodes.push(node);
     }
   }
   const selected = options.limit !== undefined ? nodes.slice(0, options.limit) : nodes;
 
   const edges = await buildEdgeIndex(graph);
   const factsIndex = await buildFactsIndex(graph);
-  const builder = new CardBuilder(graph, edges, { scope: graph.project });
+  const builder = new CardBuilder(graph, edges, { scope: graph.project, sourceRoot: options.sourceRoot });
 
   const results: ClassifyResult[] = [];
-  const summary: ClassifyReport["summary"] = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, by_rule: {}, by_target: {} };
-  const seen = new Set<string>();
+  const summary: ClassifyReport["summary"] = { cards: 0, decided: 0, rejected: 0, narrowed: 0, undecided: 0, no_source: 0, by_rule: {}, by_target: {} };
   for (const node of selected) {
-    if (seen.has(node.qualified_name)) continue;
-    seen.add(node.qualified_name);
     const card = await builder.build(node);
     const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
     const tier0 = tier0ForCard(card, facts, rules);
 
     summary.cards++;
+    if (card.source === null && card.label !== "Route") summary.no_source++;
     if (!tier0) summary.undecided++;
     else {
       summary.by_rule[tier0.rule] = (summary.by_rule[tier0.rule] ?? 0) + 1;

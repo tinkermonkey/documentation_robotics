@@ -41,8 +41,10 @@ async function main() {
   try {
     const project = await cbm.ensureIndexed(meta.root);
     const idx = await buildFactsIndex(cbm.graph());
-    // Harness cards keep the project prefix stripped; facts are keyed by the full name.
-    const rows: Facts[] = cards.map((c) => ({ card_id: c.id, ...factsFor(idx, `${project}.${c.qualified_name}`, c.file_path) }));
+    // Harness cards keep the project prefix stripped; facts are keyed by the full name, which for a
+    // route has no prefix.
+    const full = (qn: string) => (qn.startsWith("__route__") ? qn : `${project}.${qn}`);
+    const rows: Facts[] = cards.map((c) => ({ card_id: c.id, ...factsFor(idx, full(c.qualified_name), c.file_path) }));
     writeJsonl(path.join(dir, "facts.jsonl"), rows);
     const decorated = rows.filter((r) => r.decorators.length).length;
     console.log(`${corpus}: facts for ${rows.length} cards (${decorated} decorated, ${rows.filter((r) => r.file_importers > 0).length} in imported files) -> ${path.relative(process.cwd(), path.join(dir, "facts.jsonl"))}`);

@@ -113,15 +113,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`dr analyzer classify --tier0-only`: Tier-0 classification of the indexed project.** Every
-  candidate symbol (classes, interfaces, functions, methods, modules and routes outside build and
-  vendored paths) gets a card from the codebase-memory-mcp graph and the first matching Tier-0
+  candidate symbol gets a card from the codebase-memory-mcp graph and the first matching Tier-0
   rule from the analyzer's mapping: a layer and type, "not a model element", or a narrowed set of
-  choices for a later tier. No model calls, no network, no writes. The default output is a
-  summary by outcome, type and rule; `--json` or `--output <file>` gives each symbol's outcome
-  and facts, and `--cards` adds the full card. `--label`, `--file`, `--exclude` and `--limit`
-  narrow the run. Without `--tier0-only` the command explains that model-backed classification
-  is not built yet. The card builder is `src/analyzers/cards/`, which the classify-eval harness
-  now imports, so its measurements are of this code.
+  choices for a later tier. Candidates are classes, interfaces, functions, methods, modules,
+  routes and every other label a rule names (types, enums, traits), outside build and vendored
+  paths. No model calls, no network, no writes. The default output is a summary by outcome, type
+  and rule; `--json` or `--output <file>` gives each symbol's outcome and facts, and `--cards`
+  adds the full card. `--label`, `--file`, `--exclude` (added to the vendor exclusion) and
+  `--limit` narrow the run. Without `--tier0-only` the command explains that model-backed
+  classification is not built yet. Source is read from the codebase by each symbol's line range,
+  one read per file, so a 3,000-symbol project classifies in about 2 seconds; CBM's
+  `get_code_snippet` is only a fallback (one call per symbol was 47 seconds on the same project,
+  and CBM 0.12 answers large classes and modules with an outline, not their source). The card
+  builder is `src/analyzers/cards/`, which the classify-eval harness now imports, so its
+  measurements are of this code.
 
 - **Tier-0 classification rules** (`src/analyzers/tier0-rules.ts`). Rules are data in an
   analyzer's `extraction-heuristics.json` (heuristics with a `parameters.tier0` block: CBM labels,

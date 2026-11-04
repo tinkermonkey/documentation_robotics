@@ -53,7 +53,8 @@ import {
 } from "./cbm-responses.js";
 import type { CbmGraphNode } from "./cbm-responses.js";
 import { cbmCardGraph } from "./cards/graph.js";
-import { classifyTier0, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
+import { classifyTier0, defaultLabels, type ClassifyOptions, type ClassifyReport } from "./cards/classify.js";
+import { CARD_FIELDS } from "./cards/build.js";
 import { tier0RulesFrom } from "./tier0-rules.js";
 
 // Source-code file extensions that CBM sometimes mislabels as Route nodes when it
@@ -2204,6 +2205,16 @@ export class CbmAnalyzer implements AnalyzerBackend {
       ]);
     }
 
+    if (options.labels?.length) {
+      const known = new Set([...this.mapper.getNodeLabels(), ...defaultLabels(rules), ...Object.keys(CARD_FIELDS)]);
+      const unknown = options.labels.filter((l) => !known.has(l));
+      if (unknown.length) {
+        throw new CLIError(`Unknown label${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`, ErrorCategory.USER, [
+          `Labels are case-sensitive; known labels: ${[...known].sort().join(", ")}`,
+        ]);
+      }
+    }
+
     const status = await this.status(projectRoot, { codebaseRoot: effectiveCodebaseRoot });
     if (!status.indexed) {
       throw new CLIError(`Project not indexed: ${projectRoot}`, ErrorCategory.NOT_FOUND, [
@@ -2224,7 +2235,10 @@ export class CbmAnalyzer implements AnalyzerBackend {
       await client.initialize({ name: "dr-cli", version: await getCliVersion() });
       const tools = new CbmTools(client);
       const projectName = await this.resolveProjectName(tools, effectiveCodebaseRoot);
-      return await classifyTier0(cbmCardGraph(tools, projectName), rules, this.name, options);
+      return await classifyTier0(cbmCardGraph(tools, projectName), rules, this.name, {
+        sourceRoot: effectiveCodebaseRoot,
+        ...options,
+      });
     } finally {
       client.close();
     }
