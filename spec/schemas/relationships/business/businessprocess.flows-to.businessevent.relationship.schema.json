@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessrole assigned-to Businessprocess",
-  "description": "Defines relationship: business.businessrole assigned-to business.businessprocess",
+  "title": "Businessprocess flows-to Businessevent",
+  "description": "Defines relationship: business.businessprocess flows-to business.businessevent",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessrole.assigned-to.business.businessprocess"
+      "const": "business.businessprocess.flows-to.business.businessevent"
     },
     "source_spec_node_id": {
-      "const": "business.businessrole"
+      "const": "business.businessprocess"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessprocess"
+      "const": "business.businessevent"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "assigned-to"
+      "const": "flows-to"
     },
     "cardinality": {
       "const": "many-to-many"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessrole performs Businessfunction",
-  "description": "Defines relationship: business.businessrole performs business.businessfunction",
+  "title": "Businessservice realizes Outcome",
+  "description": "Defines relationship: business.businessservice realizes motivation.outcome",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessrole.performs.business.businessfunction"
+      "const": "business.businessservice.realizes.motivation.outcome"
     },
     "source_spec_node_id": {
-      "const": "business.businessrole"
+      "const": "business.businessservice"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessfunction"
+      "const": "motivation.outcome"
     },
     "destination_layer": {
-      "const": "business"
+      "const": "motivation"
     },
     "predicate": {
-      "const": "performs"
+      "const": "realizes"
     },
     "cardinality": {
       "const": "many-to-many"

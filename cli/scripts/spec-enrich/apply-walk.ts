@@ -45,6 +45,13 @@ interface Action {
   note?: string;
 }
 
+/** Whether two triples link the same pair of element types, in either direction. */
+function samePairOf(x: string, y: string): boolean {
+  const a = parts(x),
+    b = parts(y);
+  return (a.source === b.source && a.destination === b.destination) || (a.source === b.destination && a.destination === b.source);
+}
+
 function main() {
   const flags = parseFlags(process.argv.slice(2));
   const layer = flagStr(flags, "layer");
@@ -78,7 +85,21 @@ function main() {
       continue;
     }
     if (r.decision === "delete") {
-      actions.push({ action: "delete", kind: `walk:${r.kind}`, from: r.triple, to: r.replacement, p: 1, claims: [], file_removed: fromFile, note: note(r) });
+      // A replacement that links a different pair of element types cannot take over the old
+      // triple's model relationships (as with a retarget below), so they are dropped.
+      const coveredElsewhere = r.replacement !== null && !samePairOf(r.triple, r.replacement);
+      actions.push({
+        action: "delete",
+        kind: `walk:${r.kind}`,
+        from: r.triple,
+        to: coveredElsewhere ? null : r.replacement,
+        p: 1,
+        claims: [],
+        file_removed: fromFile,
+        note: coveredElsewhere
+          ? `${note(r)}; covered by ${r.replacement}, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped`
+          : note(r),
+      });
       if (!dry) unlinkSync(fromFile);
       continue;
     }
@@ -91,10 +112,7 @@ function main() {
     } else {
       const written = dry ? toFile : writeDerived(fromFile, to, swapped);
       if (!dry) unlinkSync(fromFile);
-      const a = parts(r.triple),
-        b = parts(to);
-      const samePair = (a.source === b.source && a.destination === b.destination) || (a.source === b.destination && a.destination === b.source);
-      if (samePair) {
+      if (samePairOf(r.triple, to)) {
         actions.push({ action: swapped ? "create" : "rename", kind: `walk:${r.kind}`, from: r.triple, to, p: 1, claims: [], file_removed: fromFile, file_written: written, note: note(r) });
       } else {
         // A retarget changes a type on one side; a model migration cannot move an existing

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessinterface triggers Businessfunction",
-  "description": "Defines relationship: business.businessinterface triggers business.businessfunction",
+  "title": "Businessrole performs Businessprocess",
+  "description": "Defines relationship: business.businessrole performs business.businessprocess",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessinterface.triggers.business.businessfunction"
+      "const": "business.businessrole.performs.business.businessprocess"
     },
     "source_spec_node_id": {
-      "const": "business.businessinterface"
+      "const": "business.businessrole"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessfunction"
+      "const": "business.businessprocess"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "triggers"
+      "const": "performs"
     },
     "cardinality": {
       "const": "many-to-many"

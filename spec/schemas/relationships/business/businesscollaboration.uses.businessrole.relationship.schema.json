@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businesscollaboration Composes Businessrole",
-  "description": "Defines relationship: business.businesscollaboration composes business.businessrole",
+  "title": "Businesscollaboration uses Businessrole",
+  "description": "Defines relationship: business.businesscollaboration uses business.businessrole",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businesscollaboration.composes.business.businessrole"
+      "const": "business.businesscollaboration.uses.business.businessrole"
     },
     "source_spec_node_id": {
       "const": "business.businesscollaboration"
@@ -24,7 +24,7 @@
       "const": "business"
     },
     "predicate": {
-      "const": "composes"
+      "const": "uses"
     },
     "cardinality": {
       "const": "many-to-many"

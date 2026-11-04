@@ -1,0 +1,278 @@
+{
+  "backend": "clef",
+  "record": "walk-business",
+  "select": {
+    "walk": "business"
+  },
+  "applied_at": "2026-11-04T23:03:51.856Z",
+  "counts": {
+    "rename": 3,
+    "create": 4,
+    "delete": 19
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "walk:rename-predicate",
+      "from": "business.businessrole.assigned-to.business.businessprocess",
+      "to": "business.businessrole.performs.business.businessprocess",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessrole.assigned-to.businessprocess.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessrole.performs.businessprocess.relationship.schema.json",
+      "note": "walk row 1 (rename): Rename the predicate of business.businessrole.assigned-to.business.businessprocess to business.businessrole.performs.business.businessprocess. Plan kind rename-"
+    },
+    {
+      "action": "rename",
+      "kind": "walk:rename-predicate",
+      "from": "business.businessinteraction.serves.business.businessservice",
+      "to": "business.businessinteraction.realizes.business.businessservice",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessinteraction.serves.businessservice.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessinteraction.realizes.businessservice.relationship.schema.json",
+      "note": "walk row 2 (rename): Rename the predicate of business.businessinteraction.serves.business.businessservice to business.businessinteraction.realizes.business.businessservice. Plan kin"
+    },
+    {
+      "action": "rename",
+      "kind": "walk:rename-predicate",
+      "from": "business.businesscollaboration.composes.business.businessrole",
+      "to": "business.businesscollaboration.uses.business.businessrole",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businesscollaboration.composes.businessrole.relationship.schema.json",
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businesscollaboration.uses.businessrole.relationship.schema.json",
+      "note": "walk row 3 (rename): Rename the predicate of business.businesscollaboration.composes.business.businessrole to business.businesscollaboration.uses.business.businessrole. Plan kind re"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:reverse",
+      "from": "business.businessrole.assigned-to.business.businessinterface",
+      "to": "business.businessinterface.serves.business.businessrole",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessrole.assigned-to.businessinterface.relationship.schema.json",
+      "note": "walk row 4 (delete): Remove business.businessrole.assigned-to.business.businessinterface: business.businessinterface.serves.business.businessrole already exists and expresses it. Pl"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:reverse",
+      "from": "business.contract.serves.business.businessrole",
+      "to": "business.businessrole.accesses.business.contract",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/contract.serves.businessrole.relationship.schema.json",
+      "note": "walk row 5 (delete): Remove business.contract.serves.business.businessrole: business.businessrole.accesses.business.contract already exists and expresses it. Plan kind reverse, p 0."
+    },
+    {
+      "action": "delete",
+      "kind": "walk:reverse",
+      "from": "business.businessfunction.serves.business.businessrole",
+      "to": "business.businessrole.performs.business.businessfunction",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessfunction.serves.businessrole.relationship.schema.json",
+      "note": "walk row 6 (delete): Remove business.businessfunction.serves.business.businessrole: business.businessrole.performs.business.businessfunction already exists and expresses it. Plan ki"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businesscollaboration.accesses.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businesscollaboration.accesses.businessobject.relationship.schema.json",
+      "note": "walk row 7 (delete): Remove business.businesscollaboration.accesses.business.businessobject: business.businessinteraction.accesses.business.businessobject already exists and express; covered by business.businessinteraction.accesses.business.businessobject, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessevent.triggers.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessevent.triggers.businessfunction.relationship.schema.json",
+      "note": "walk row 8 (delete): Remove business.businessevent.triggers.business.businessfunction: business.businessevent.triggers.business.businessprocess already exists and expresses it. Plan; covered by business.businessevent.triggers.business.businessprocess, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessfunction.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessfunction.realizes.goal.relationship.schema.json",
+      "note": "walk row 9 (delete): Remove business.businessfunction.realizes.motivation.goal: business.businessprocess.realizes.motivation.goal already exists and expresses it. Plan kind retarget; covered by business.businessprocess.realizes.motivation.goal, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessinterface.triggers.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessinterface.triggers.businessprocess.relationship.schema.json",
+      "note": "walk row 10 (delete): Remove business.businessinterface.triggers.business.businessprocess: business.businessevent.triggers.business.businessprocess already exists and expresses it. P; covered by business.businessevent.triggers.business.businessprocess, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessprocess.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessprocess.realizes.goal.relationship.schema.json",
+      "note": "walk row 11 (retarget): Retarget of business.businessprocess.realizes.motivation.goal to business.businessservice.realizes.motivation.outcome. Plan kind retarget, p 0.36; claims rel:bu; retargeted to business.businessservice.realizes.motivation.outcome, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "business.businessservice.realizes.motivation.outcome",
+      "to": "business.businessservice.realizes.motivation.outcome",
+      "p": 1,
+      "claims": [],
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessservice.realizes.outcome.relationship.schema.json",
+      "note": "retarget of business.businessprocess.realizes.motivation.goal (walk row 11)"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessinterface.accesses.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessinterface.accesses.businessobject.relationship.schema.json",
+      "note": "walk row 12 (delete): Remove business.businessinterface.accesses.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. P; covered by business.businessprocess.accesses.business.businessobject, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessrole.triggers.business.businessevent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessrole.triggers.businessevent.relationship.schema.json",
+      "note": "walk row 13 (delete): Remove business.businessrole.triggers.business.businessevent: business.businessprocess.triggers.business.businessevent already exists and expresses it. Plan kin; covered by business.businessprocess.triggers.business.businessevent, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessactor.accesses.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessactor.accesses.businessobject.relationship.schema.json",
+      "note": "walk row 14 (delete): Remove business.businessactor.accesses.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. Plan ; covered by business.businessprocess.accesses.business.businessobject, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:retarget",
+      "from": "business.businessactor.accesses.business.contract",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessactor.accesses.contract.relationship.schema.json",
+      "note": "walk row 15 (retarget): Retarget of business.businessactor.accesses.business.contract to business.businessfunction.accesses.business.contract. Plan kind retarget, p 0.24; claims rel:bu; retargeted to business.businessfunction.accesses.business.contract, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "business.businessfunction.accesses.business.contract",
+      "to": "business.businessfunction.accesses.business.contract",
+      "p": 1,
+      "claims": [],
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessfunction.accesses.contract.relationship.schema.json",
+      "note": "retarget of business.businessactor.accesses.business.contract (walk row 15)"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "business.contract.triggers.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/contract.triggers.businessprocess.relationship.schema.json",
+      "note": "walk row 16 (retarget): Change of business.contract.triggers.business.businessprocess to business.businessprocess.accesses.business.businessevent. Plan kind compound, p 0.73; claims re; retargeted to business.businessprocess.accesses.business.businessevent, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "business.businessprocess.accesses.business.businessevent",
+      "to": "business.businessprocess.accesses.business.businessevent",
+      "p": 1,
+      "claims": [],
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessprocess.accesses.businessevent.relationship.schema.json",
+      "note": "retarget of business.contract.triggers.business.businessprocess (walk row 16)"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "business.businessrole.performs.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessrole.performs.businessfunction.relationship.schema.json",
+      "note": "walk row 17 (delete): Remove business.businessrole.performs.business.businessfunction: business.businessrole.assigned-to.business.businessprocess already exists and expresses it. Pla; covered by business.businessrole.assigned-to.business.businessprocess, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "business.businessprocess.triggers.business.businessprocess",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessprocess.triggers.businessprocess.relationship.schema.json",
+      "note": "walk row 18 (retarget): Change of business.businessprocess.triggers.business.businessprocess to business.businessprocess.flows-to.business.businessevent. Plan kind compound, p 0.40; cl; retargeted to business.businessprocess.flows-to.business.businessevent, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "create",
+      "kind": "walk:add",
+      "from": "business.businessprocess.flows-to.business.businessevent",
+      "to": "business.businessprocess.flows-to.business.businessevent",
+      "p": 1,
+      "claims": [],
+      "file_written": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessprocess.flows-to.businessevent.relationship.schema.json",
+      "note": "retarget of business.businessprocess.triggers.business.businessprocess (walk row 18)"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:compound",
+      "from": "business.businessinterface.flows-to.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessinterface.flows-to.businessobject.relationship.schema.json",
+      "note": "walk row 19 (delete): Remove business.businessinterface.flows-to.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. P; covered by business.businessprocess.accesses.business.businessobject, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:conflict",
+      "from": "business.businessservice.realizes.business.businessprocess",
+      "to": "business.businessprocess.realizes.business.businessservice",
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessservice.realizes.businessprocess.relationship.schema.json",
+      "note": "walk row 20 (delete): Remove business.businessservice.realizes.business.businessprocess: business.businessprocess.realizes.business.businessservice already exists and expresses it. P"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:conflict",
+      "from": "business.businessinterface.triggers.business.businessfunction",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessinterface.triggers.businessfunction.relationship.schema.json",
+      "note": "walk row 21 (delete): Remove business.businessinterface.triggers.business.businessfunction: business.businessevent.triggers.business.businessfunction already exists and expresses it.; covered by business.businessevent.triggers.business.businessfunction, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    },
+    {
+      "action": "delete",
+      "kind": "walk:conflict",
+      "from": "business.contract.accesses.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/contract.accesses.businessobject.relationship.schema.json",
+      "note": "walk row 22 (delete): Remove business.contract.accesses.business.businessobject: business.businessprocess.accesses.business.businessobject already exists and expresses it. Plan kind ; covered by business.businessprocess.accesses.business.businessobject, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+    }
+  ]
+}

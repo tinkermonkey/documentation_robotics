@@ -131,6 +131,30 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: business-layer reflection plan (22 changes decided in Context Studio,
+  `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-business.jsonl`).** The plan was exported
+  to Context Studio's review queue (proposal 0b6d60f8, from `plan-clef.json`) and every operation
+  was decided there; the decisions were imported with `proposal-import.ts` and applied with
+  `apply-walk.ts`. Three renamed to the ArchiMate 3.2 relationship: `businesscollaboration uses
+  businessrole` (was composes), `businessinteraction realizes businessservice` (was serves),
+  `businessrole performs businessprocess` (was assigned-to). Four retargeted: `businessfunction
+  accesses contract` (was businessactor), `businessservice realizes motivation.outcome` (was
+  businessprocess realizes goal), `businessprocess flows-to businessevent` (was process triggers
+  process), `businessprocess accesses businessevent` (was contract triggers process). Fifteen
+  deleted as covered by another edge: the passive-structure accesses edges from actor,
+  collaboration, interface and contract to `businessobject` (behaviour accesses data), `businessinterface
+  flows-to businessobject`, `businessinterface triggers` function and process, `businessevent
+  triggers businessfunction` (an event triggers the process the function contains),
+  `businessfunction realizes motivation.goal`, `businessfunction serves businessrole`,
+  `businessrole performs businessfunction`, `businessrole assigned-to businessinterface`,
+  `businessrole triggers businessevent`, `businessservice realizes businessprocess` and `contract
+  serves businessrole` (each covered by its reverse or a behaviour edge). Business goes from 69 to
+  54 relationship schemas, the catalog from 1,526 to 1,511; actions recorded in
+  `applied-walk-business.json`. `dr upgrade` renames or reverses model relationships where the
+  replacement links the same two element types, and drops those of the other 16 retired types
+  (including `businessfunction serves businessrole`, whose reverse is itself retired), since a
+  migration cannot move a relationship to a different element.
+
 - **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
   maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six
   schemas deleted as duplicates of an existing edge (`applicationfunction delivers-value
