@@ -17,7 +17,9 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/applied-synonyms.json",
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-business.json",
     "cli/scripts/spec-enrich/data/applied-business-principles.json",
-    "cli/scripts/spec-enrich/data/applied-application-principles.json"
+    "cli/scripts/spec-enrich/data/applied-application-principles.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-69642a4f-7015-4a99-8abb-2542e086c534.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-8b7c9a9c-a470-4ed2-b29c-de0cbedf668d.json"
   ],
   "predicateRenames": {
     "fulfills-requirements": "fulfills",

@@ -34,14 +34,14 @@
       "number": 5,
       "name": "Application Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 66
+      "relationshipCount": 72
     },
     {
       "id": "technology",
       "number": 6,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 121
+      "relationshipCount": 123
     },
     {
       "id": "api",
@@ -95,6 +95,6 @@
   ],
   "totals": {
     "nodeTypes": 192,
-    "relationships": 1498
+    "relationships": 1506
   }
 }

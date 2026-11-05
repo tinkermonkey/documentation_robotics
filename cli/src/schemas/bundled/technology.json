@@ -1066,6 +1066,36 @@
       "strength": "medium",
       "required": false
     },
+    "technology.node.depends-on.technology.node": {
+      "id": "technology.node.depends-on.technology.node",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "A node depends on another node to run: it is started after it and fails without it, as a compose service declares depends_on another service.",
+      "evidence": [
+        "A docker-compose service with depends_on: [db], or an init container or startup probe that waits for another workload, each side modelled as a technology node; CBM DEPENDS_ON between infrastructure nodes."
+      ]
+    },
+    "technology.node.depends-on.technology.technologyservice": {
+      "id": "technology.node.depends-on.technology.technologyservice",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "A node (a workload or compose service) depends on a technology service it connects to; it cannot run correctly when that service is unavailable. This is the consumer side, distinct from technology.technologyservice depends-on technology.node, where the service depends on the node that hosts it.",
+      "evidence": [
+        "A Kubernetes Deployment or docker-compose service whose environment, config or code addresses another Service by name (DATABASE_URL=postgres://db:5432, http://payments-svc); CBM CONNECTS_TO."
+      ]
+    },
     "technology.node.realizes.technology.technologyservice": {
       "id": "technology.node.realizes.technology.technologyservice",
       "source_spec_node_id": "technology.node",

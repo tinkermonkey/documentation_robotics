@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Node depends-on Technologyservice",
+  "description": "A node (a workload or compose service) depends on a technology service it connects to; it cannot run correctly when that service is unavailable. This is the consumer side, distinct from technology.technologyservice depends-on technology.node, where the service depends on the node that hosts it.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.node.depends-on.technology.technologyservice"
+    },
+    "source_spec_node_id": {
+      "const": "technology.node"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "technology.technologyservice"
+    },
+    "destination_layer": {
+      "const": "technology"
+    },
+    "predicate": {
+      "const": "depends-on"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "A Kubernetes Deployment or docker-compose service whose environment, config or code addresses another Service by name (DATABASE_URL=postgres://db:5432, http://payments-svc); CBM CONNECTS_TO."
+  ]
+}

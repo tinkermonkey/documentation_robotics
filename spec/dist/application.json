@@ -655,6 +655,21 @@
       "required": false,
       "description": "The component is the active structure that performs the process; the process's ordered steps run inside this component."
     },
+    "application.applicationcomponent.composes.application.applicationcomponent": {
+      "id": "application.applicationcomponent.composes.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An application component is made up of sub-components that exist only as its parts, such as a package or directory-level component and the modules inside it.",
+      "evidence": [
+        "A directory or package modelled as a component (src/analyzers/, a Java package, a Python package with __init__.py) containing modules or subpackages modelled as components; CBM CONTAINS_FOLDER and CONTAINS_FILE."
+      ]
+    },
     "application.applicationcomponent.constrained-by.security.securitypolicy": {
       "id": "application.applicationcomponent.constrained-by.security.securitypolicy",
       "source_spec_node_id": "application.applicationcomponent",
@@ -668,6 +683,21 @@
       "description": "The component's permitted operations and data access are limited by the rules of the security policy, so its behaviour must stay within what the policy allows.",
       "evidence": [
         "The policy's target selectors name the component or its endpoints, or the component's middleware or policy-engine configuration loads and evaluates that policy before acting."
+      ]
+    },
+    "application.applicationcomponent.consumes.api.operation": {
+      "id": "application.applicationcomponent.consumes.api.operation",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "consumes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An application component is a client of an API operation: code inside it calls the operation, and the calling functions are below element granularity.",
+      "evidence": [
+        "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
       ]
     },
     "application.applicationcomponent.mitigates.security.threat": {
@@ -728,6 +758,21 @@
       "description": "The component contains the working code of the security control, turning the documented countermeasure into executing behaviour.",
       "evidence": [
         "The component's source contains the control logic, such as input sanitization, rate limiting, encryption or token validation, and the countermeasure record points to that module as its implementation."
+      ]
+    },
+    "application.applicationcomponent.specializes.application.applicationcomponent": {
+      "id": "application.applicationcomponent.specializes.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "specializes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An application component is a specialised kind of another component: it inherits the general component's structure and behaviour and refines part of it, and can stand wherever the general one is expected.",
+      "evidence": [
+        "A class extending another class of the same codebase where both are modelled as components (class FileStore extends BaseStore, class Owner(Person) with behaviour), recorded by CBM as an INHERITS edge."
       ]
     },
     "application.applicationcomponent.uses.application.applicationcomponent": {
@@ -847,6 +892,21 @@
         "The function's code invokes an operation on the resource that the security policy names, such as a repository call on a guarded entity, or carries the permission check or annotation that the resource definition declares."
       ]
     },
+    "application.applicationfunction.consumes.api.operation": {
+      "id": "application.applicationfunction.consumes.api.operation",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "consumes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An application function calls an API operation as a client: it consumes the operation's functionality over the network.",
+      "evidence": [
+        "fetch('/api/v1/items'), axios.post(...), a generated SDK call (ItemsService.createItem) or a gRPC or GraphQL client call inside a function, resolved by CBM to the operation's route; CBM HTTP_CALLS, GRPC_CALLS, GRAPHQL_CALLS or TRPC_CALLS."
+      ]
+    },
     "application.applicationfunction.depends-on.application.applicationfunction": {
       "id": "application.applicationfunction.depends-on.application.applicationfunction",
       "source_spec_node_id": "application.applicationfunction",
@@ -920,6 +980,21 @@
       "description": "The application function's behavior meets the stated need, so the requirement is fulfilled by what the function does.",
       "evidence": [
         "A requirements-traceability matrix, ticket link or code annotation ties the function's implementation to the requirement ID, and acceptance tests for the requirement exercise the function."
+      ]
+    },
+    "application.applicationfunction.specializes.application.applicationfunction": {
+      "id": "application.applicationfunction.specializes.application.applicationfunction",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "specializes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "An application function refines another function's behaviour for a more specific case: it overrides the general function and is used in its place for that case.",
+      "evidence": [
+        "A method marked @Override, or a subclass method with the same name and signature as its parent's, both modelled as functions; CBM OVERRIDE."
       ]
     },
     "application.applicationfunction.triggers.application.applicationevent": {
@@ -1472,6 +1547,21 @@
       "description": "The concrete data structure gives a tangible implementation of an abstract or contract-level data definition, such as a DTO class implementing a shared interface or type contract, or a generated class materializing a schema-defined message type.",
       "evidence": [
         "The concrete class or struct declares that it implements the abstract type (for example `implements`, a TypeScript `satisfies` or structural conformance check), or a code generator config such as OpenAPI, protobuf or Avro shows the class produced from the abstract schema definition."
+      ]
+    },
+    "application.dataobject.specializes.application.dataobject": {
+      "id": "application.dataobject.specializes.application.dataobject",
+      "source_spec_node_id": "application.dataobject",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "specializes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "A data object is a subtype of another data object: it carries every field of the general one and adds or narrows some, so an instance of it is also an instance of the general one.",
+      "evidence": [
+        "A TypeScript interface or type extending another (interface ImportResult extends BaseResult), or a data class deriving from another data class, both classified as application data objects; CBM INHERITS."
       ]
     }
   }

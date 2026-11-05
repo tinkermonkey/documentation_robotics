@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationcomponent consumes Operation",
+  "description": "An application component is a client of an API operation: code inside it calls the operation, and the calling functions are below element granularity.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationcomponent.consumes.api.operation"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "api.operation"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "consumes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "An API client class or module (a generated SDK service, a backend-for-frontend adapter) whose methods call the operation's route; CBM HTTP_CALLS from the component's file."
+  ]
+}
