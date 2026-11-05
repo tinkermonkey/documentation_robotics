@@ -66,7 +66,7 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 | Source Type           | Predicate   | Target Type         | Example                                                           |
 | --------------------- | ----------- | ------------------- | ----------------------------------------------------------------- |
 | Product               | composes    | BusinessService     | "E-commerce Platform" composes "Payment Service"                  |
-| BusinessCollaboration | composes    | BusinessRole        | "Sales Team" composes "Sales Representative" role                 |
+| BusinessCollaboration | uses        | BusinessRole        | "Sales Team" uses "Sales Representative" role                     |
 | BusinessProcess       | composes    | BusinessProcess     | "Order Fulfillment" composes "Pick", "Pack", "Ship" sub-processes |
 | BusinessFunction      | composes    | BusinessProcess     | "Sales Function" composes "Lead Generation Process"               |
 | Product               | aggregates  | BusinessService     | Product bundles multiple services                                 |
@@ -74,7 +74,7 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 | BusinessCollaboration | aggregates  | BusinessRole        | Collaboration includes multiple roles                             |
 | BusinessActor         | assigned-to | BusinessRole        | "John Smith" assigned to "Sales Rep"                              |
 | BusinessActor         | assigned-to | BusinessProcess     | Actor directly performs process                                   |
-| BusinessRole          | assigned-to | BusinessProcess     | Role responsible for process execution                            |
+| BusinessRole          | performs    | BusinessProcess     | Role performs the process                                         |
 | BusinessRole          | assigned-to | BusinessFunction    | Role performs function                                            |
 | BusinessCollaboration | assigned-to | BusinessInteraction | Collaboration performs interaction                                |
 | BusinessProcess       | realizes    | BusinessService     | "Order Processing" realizes "Order Management Service"            |
@@ -90,7 +90,6 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 | Source Type         | Predicate       | Target Type         | Example                                                      |
 | ------------------- | --------------- | ------------------- | ------------------------------------------------------------ |
 | BusinessEvent       | triggers        | BusinessProcess     | "Order Received" triggers "Order Fulfillment Process"        |
-| BusinessEvent       | triggers        | BusinessFunction    | "Monthly Close" triggers "Financial Reporting Function"      |
 | BusinessEvent       | triggers        | BusinessInteraction | "Customer Complaint" triggers "Issue Resolution Interaction" |
 | BusinessProcess     | triggers        | BusinessEvent       | "Payment Complete" triggers "Order Confirmed Event"          |
 | BusinessInteraction | triggers        | BusinessProcess     | "Sales Meeting" triggers "Proposal Generation Process"       |
@@ -119,7 +118,7 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 | **Layer 1 (Motivation)**  | BusinessService supports **Goal**                   | Service achieves business goals                          |
 | **Layer 1 (Motivation)**  | BusinessService governed by **Principle**           | Follows business principles                              |
 | **Layer 1 (Motivation)**  | BusinessActor **is** Stakeholder                    | Actor maps to stakeholder in motivation layer            |
-| **Layer 1 (Motivation)**  | BusinessProcess achieves **Goal**                   | Process realizes business goals                          |
+| **Layer 1 (Motivation)**  | BusinessProcess realizes **Outcome**                | Process realizes a business outcome                      |
 | **Layer 1 (Motivation)**  | Contract drives **Constraint**                      | SLA contract defines constraints                         |
 | **Layer 4 (Application)** | BusinessService realized by **ApplicationService**  | "Order Service" realized by "OrderManagementAPI"         |
 | **Layer 4 (Application)** | BusinessProcess automated by **ApplicationProcess** | Process workflow automated by application                |
