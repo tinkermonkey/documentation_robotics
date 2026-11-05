@@ -178,7 +178,8 @@ function main() {
     summaries.push(`| ${b} | ${n}${errors ? ` (+${errors} errors)` : ""}${ruled ? ` (${ruled} by rule)` : ""} | ${pct(layerAcc, n)} | ${pct(typeAcc, n)} | ${pct(typeGiven, withLayer.length)} | ${mae.toFixed(2)} | ${pct(within1, sigPairs.length)} | ${calib.ece.toFixed(3)} | ${median} ms | $${cost.toFixed(3)} | $${(cost / n).toFixed(4)} |`);
 
     sections.push(`## ${b}`, "", "### Per-layer recall", "", ...perLayer(scored), "", "### Top confusions (layer)", "", ...confusion(scored), "", "### Calibration of layer confidence", "", ...calib.table, "", "### Threshold sweep (auto-accept layer when confidence ≥ t)", "", ...thresholdSweep(asked.map((s) => ({ p: s.layerProb, ok: s.layerOk }))), "", "### Cross-cutting concerns", "", ...concernMetrics(asked), "");
-    if (ruled) sections.splice(sections.length - 1, 0, `Calibration, threshold sweep, concerns, significance and latency are over the ${asked.length} model-asked cards; ${ruled} cards were decided by a Tier-0 rule.`, "");
+    // the note follows the concerns table: a blank line first, or Markdown reads it as a table row
+    if (ruled) sections.splice(sections.length - 1, 0, "", `Calibration, threshold sweep, concerns, significance and latency are over the ${asked.length} model-asked cards; ${ruled} cards were decided by a Tier-0 rule.`, "");
 
     // A few disagreements for eyeballing
     const wrong = scored.filter((s) => !s.layerOk).slice(0, 10);

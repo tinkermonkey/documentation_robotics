@@ -1,0 +1,18 @@
+{
+  "corpus": "petclinic",
+  "root": "/Users/austinsand/workspace/documentation_robotics/eval-corpus/spring-petclinic",
+  "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-spring-petclinic",
+  "include": "src/main/**",
+  "exclude": "(^|\\/)(tests?|__tests__|fixtures?|__fixtures__|test-[^/]*|examples?|scripts|dist|node_modules|\\.venv|venv)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$|(^|\\/)test_[^/]*\\.py$|(^|\\/)conftest\\.py$",
+  "seed": 42,
+  "limit": 150,
+  "source_lines": 120,
+  "cards": 106,
+  "by_label": {
+    "Class": 21,
+    "Interface": 3,
+    "Method": 67,
+    "Route": 15
+  },
+  "generated_at": "2026-10-24T12:13:55.202Z"
+}

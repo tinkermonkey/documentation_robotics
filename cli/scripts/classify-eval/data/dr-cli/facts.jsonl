@@ -26,7 +26,7 @@
 {"card_id":"035169398221","decorators":[],"decorator_names":[],"file_importers":2,"methods":6,"usage_files":0}
 {"card_id":"1088ae763bc3","decorators":[],"decorator_names":[],"file_importers":1,"methods":0,"usage_files":0}
 {"card_id":"5820d4448764","decorators":[],"decorator_names":[],"file_importers":1,"methods":0,"usage_files":0}
-{"card_id":"a670c25df253","decorators":[],"decorator_names":[],"file_importers":95,"methods":0,"usage_files":11}
+{"card_id":"a670c25df253","decorators":[],"decorator_names":[],"file_importers":95,"methods":0,"usage_files":50}
 {"card_id":"de11efd98eb5","decorators":[],"decorator_names":[],"file_importers":3,"methods":0,"usage_files":0}
 {"card_id":"15bf51564fbc","decorators":[],"decorator_names":[],"file_importers":3,"methods":6,"usage_files":0}
 {"card_id":"dfaff49b6521","decorators":[],"decorator_names":[],"file_importers":6,"methods":0,"usage_files":0}
@@ -36,7 +36,7 @@
 {"card_id":"a96548289e1d","decorators":[],"decorator_names":[],"file_importers":2,"methods":1,"usage_files":1}
 {"card_id":"0752b2ebcdf5","decorators":[],"decorator_names":[],"file_importers":23,"methods":0,"usage_files":0}
 {"card_id":"4f9ec3e2a36e","decorators":[],"decorator_names":[],"file_importers":3,"methods":0,"usage_files":0}
-{"card_id":"c5be9589387c","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
+{"card_id":"c5be9589387c","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":1}
 {"card_id":"043cca35c5a7","decorators":[],"decorator_names":[],"file_importers":6,"methods":0,"usage_files":0}
 {"card_id":"487b18fcbc78","decorators":[],"decorator_names":[],"file_importers":1,"methods":1,"usage_files":0}
 {"card_id":"50d40e661b4b","decorators":[],"decorator_names":[],"file_importers":0,"methods":0,"usage_files":0}
@@ -119,7 +119,7 @@
 {"card_id":"ed9b2a79ab3e","decorators":[],"decorator_names":[],"file_importers":16,"methods":0,"usage_files":0}
 {"card_id":"11c328beefe9","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}
 {"card_id":"57142f78e21f","decorators":[],"decorator_names":[],"file_importers":95,"methods":1,"usage_files":0}
-{"card_id":"e3dc58616d88","decorators":[],"decorator_names":[],"file_importers":3,"methods":0,"usage_files":3}
+{"card_id":"e3dc58616d88","decorators":[],"decorator_names":[],"file_importers":3,"methods":0,"usage_files":8}
 {"card_id":"2013cad75599","decorators":[],"decorator_names":[],"file_importers":1,"methods":0,"usage_files":0}
 {"card_id":"bfc79a5bbb6d","decorators":[],"decorator_names":[],"file_importers":1,"methods":0,"usage_files":0}
 {"card_id":"bf6f6dbc7335","decorators":[],"decorator_names":[],"file_importers":2,"methods":0,"usage_files":0}

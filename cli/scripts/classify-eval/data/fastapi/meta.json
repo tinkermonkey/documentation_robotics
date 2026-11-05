@@ -16,5 +16,6 @@
     "Module": 57,
     "Route": 19
   },
-  "generated_at": "2026-10-24T12:11:37.971Z"
+  "generated_at": "2026-10-24T12:11:37.971Z",
+  "rebuilt_on": "codebase-memory-mcp 0.12.1 (2026-11-05), same symbols as cards@cbm010.jsonl (rebuild-cards.ts)"
 }

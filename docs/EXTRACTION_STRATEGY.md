@@ -511,6 +511,56 @@ Next measurements: the held-out corpus; `Module` handling (gold splits modules a
 a manifest-based card path for `technology` (Dockerfiles, compose, package manifests), where symbol
 classification still recalls nothing.
 
+### Re-measured on CBM 0.12.1 (2026-11-05)
+
+The cards were built under CBM 0.10 and the published runs used the 3 November spec, so both
+changed under the numbers above. To separate the two effects, the harness:
+
+1. Re-ran Clef with the kind rule, base and Tier 0, on the committed 0.10 cards with today's spec
+   (`cbm010-kind-*`).
+2. Rebuilt every card for the same symbols from the 0.12.1 indexes (`rebuild-cards.ts`), so the
+   card ids and gold labels stay valid, regenerated facts and edges, and ran the same two
+   configurations (`cbm012-kind-*`). dr-cli's cards were rebuilt from a checkout of `cli/` at
+   `450e650f`, the commit they were sampled from, so the code the gold labels saw did not change.
+
+Clef is deterministic, so run 1 against the published runs is the spec effect, and run 2 against
+run 1 is the CBM effect. The 0.10 files are kept as `cards@cbm010.jsonl`, `facts@cbm010.jsonl`
+and `edges@cbm010.jsonl`. Layer accuracy / end-to-end type accuracy / type given layer:
+
+| corpus    | base, 0.12.1          | + Tier 0, 0.12.1      | published + Tier 0    |
+| --------- | --------------------- | --------------------- | --------------------- |
+| dr-cli    | 81.0% / 68.3% / 84.4% | 91.3% / 78.3% / 85.8% | 88.0% / 75.0% / 85.2% |
+| fastapi   | 74.0% / 66.5% / 89.9% | 86.5% / 79.0% / 91.3% | 85.0% / 78.5% / 92.4% |
+| petclinic | 84.0% / 80.2% / 95.5% | 96.2% / 94.3% / 98.0% | 96.2% / 94.3% / 98.0% |
+
+- **CBM 0.12.1 changes nothing significant.** Paired against the same cards on 0.10, no layer or
+  type difference reaches p < 0.1. The largest is dr-cli base, layer 79.3% to 81.0% (6 lost / 11
+  gained, p = 0.33). Card content did change: source on most cards, but almost always only a
+  trailing newline; callers on 26 to 45 cards per corpus, imports on 27 to 55, base classes on 16 to
+  20; and docstrings on 115 dr-cli cards, which 0.12 now supplies.
+- **The spec change since 3 November helps where rules do not decide.** Same 0.10 cards, base
+  configuration: petclinic end-to-end type 68.9% to 78.3% (0 lost / 10 gained, p = 0.002). Nine
+  of the ten are JPA entity classes the classifier had put in data-model without a type and now
+  calls `objectschema`. This is the data-model node enrichment (#984), which landed after the
+  published runs. With Tier 0 the same cards were already decided by the entity rule, so the
+  Tier-0 numbers barely move. Elsewhere the spec effect is +1 to +2 points and not significant.
+- **Tier 0's gain holds on 0.12.1**:
+  - dr-cli: layer 81.0% to 91.3% (3 lost / 34 gained);
+  - fastapi: 74.0% to 86.5% (1 / 26);
+  - petclinic: 84.0% to 96.2% (0 / 13).
+
+  All three are p < 0.001. Leaving out the gold-revised cards: fastapi 76.0% to 85.9% (p < 0.001)
+  and petclinic 89.7% to 95.9% (p = 0.031). The in-sample caveat above still applies.
+
+- **Edges are unchanged within noise.** On `cbm012-kind-tier0`, 65 distinct relationships are
+  produced and 27 are identical to gold: precision 42%, recall 38% of 72, against 44% and 40%
+  published. The published edge graph counts were 0.10.2's (dr-cli `USAGE` 9,780), so this is the
+  first edge measurement on a 0.12 index. Between the sampled cards the edges barely changed
+  (dr-cli `USAGE` 18 to 24, fastapi `IMPORTS` 77 to 85, `SEMANTICALLY_RELATED` 17 to 1), even
+  though 0.12 halved `USAGE` graph-wide.
+
+These are the baseline for the rest of Track B.
+
 ## Where things stand (2026-11-05)
 
 - `main` at `8e2b3289`; CBM 0.12.1 installed and the analyzer on its JSON contract (#987).
@@ -582,9 +632,9 @@ Order, smallest first so the method settles before the large layers:
 
 ### Track B: the extraction cascade
 
-1. **Re-measure on 0.12.1.** Re-run classify-eval (layer, type and edge accuracy) on the current
-   indexes and main's code, as the baseline for everything below. `USAGE` changed most in 0.12
-   and the edge results date from 0.10.2.
+1. **Re-measure on 0.12.1.** Done 2026-11-05: no significant change from CBM, a significant
+   type gain on petclinic from the data-model enrichment, Tier 0's gain intact, and edges
+   unchanged within noise ("Re-measured on CBM 0.12.1" above). These runs are the baseline.
 2. **Clean-ups with no behaviour change** (inventory step 4): drop `external` routes, point
    `evidence_fields` at properties CBM sets.
 3. **Catalog additions.** Review the 11 queued CBM additions in Context Studio, apply the accepted
@@ -605,14 +655,14 @@ per call.
 
 ### Next steps, in order
 
-| #   | Step                                                                              | Track  | Needs from the maintainer                                                       |
-| --- | --------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------- |
-| 1   | Review and merge the DR-side PRs for context-studio#1397 and #1398 when they open | A      | Review                                                                          |
-| 2   | Re-measure on 0.12.1                                                              | B1     | Nothing                                                                         |
-| 3   | Application rules (A0), then product through the five steps                       | A      | Agree the rules; review the product proposals in Context Studio; approve the PR |
-| 4   | Clean-ups, then the 11 catalog additions                                          | B2, B3 | Review the 11 additions in Context Studio                                       |
-| 5   | data-model, motivation and data-store through the method; held-out corpus         | A, B5  | Rules and proposals per layer; pick the fourth codebase                         |
-| 6   | Tier 1 behind the opt-in                                                          | B6     | Confirm the opt-in shape and the Cloudflare account                             |
+| #   | Step                                                                                 | Track  | Needs from the maintainer                                                       |
+| --- | ------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------- |
+| 1   | Done: the DR-side changes for context-studio#1397 and #1398 merged as #1000 and #998 | A      | -                                                                               |
+| 2   | Done: re-measured on 0.12.1 (baseline)                                               | B1     | -                                                                               |
+| 3   | Application rules (A0), then product through the five steps                          | A      | Agree the rules; review the product proposals in Context Studio; approve the PR |
+| 4   | Clean-ups, then the 11 catalog additions                                             | B2, B3 | Review the 11 additions in Context Studio                                       |
+| 5   | data-model, motivation and data-store through the method; held-out corpus            | A, B5  | Rules and proposals per layer; pick the fourth codebase                         |
+| 6   | Tier 1 behind the opt-in                                                             | B6     | Confirm the opt-in shape and the Cloudflare account                             |
 
 The rest of track A (navigation to api) and track B (B4, B7) follow, interleaved one layer per
 cascade step. The DrBot issues (#988 to #991) are a separate track.

@@ -14,5 +14,6 @@
     "Method": 67,
     "Route": 15
   },
-  "generated_at": "2026-10-24T12:13:55.202Z"
+  "generated_at": "2026-10-24T12:13:55.202Z",
+  "rebuilt_on": "codebase-memory-mcp 0.12.1 (2026-11-05), same symbols as cards@cbm010.jsonl (rebuild-cards.ts)"
 }
