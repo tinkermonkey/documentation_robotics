@@ -43,8 +43,8 @@
  * build, bun scripts/generate-relationship-migration.ts (and --check), npm run
  * check:skill-relationships.
  *
- * The pair rule (samePairOf) copies apply-walk.ts's; once tinkermonkey/context-studio#1398 lands
- * it should use apply-reflect-plan.ts's pairOf instead.
+ * Same, reversed or different pair is lib/triples.ts's pairOf, the rule apply-walk.ts and
+ * Context Studio's delete replacements (tinkermonkey/context-studio#1398) use.
  */
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -52,6 +52,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFile
 import { flagStr, parseFlags } from "../classify-eval/lib/io.js";
 import { harnessDir } from "./lib/paths.js";
 import { specDir as defaultSpecDir } from "./lib/schemas.js";
+import { pairOf, parts as tripleParts } from "./lib/triples.js";
 
 export const FORMAT = "cs-dr-spec-changes/1";
 const CARDINALITIES = ["one-to-one", "one-to-many", "many-to-one", "many-to-many"];
@@ -105,23 +106,17 @@ export interface Plan {
   summary: string[];
 }
 
+/** A triple's parts, refusing an id that is not a well-formed triple. */
 const parts = (id: string) => {
   const p = id.split(".");
   if (p.length !== 5 || p.some((s) => !s)) throw new Error(`'${id}' is not a {source}.{predicate}.{destination} triple`);
-  return { source: `${p[0]}.${p[1]}`, predicate: p[2], destination: `${p[3]}.${p[4]}`, sourceLayer: p[0], destLayer: p[3], sourceType: p[1], destType: p[4] };
+  return tripleParts(id);
 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const boilerplate = (id: string) => {
   const t = parts(id);
   return `Defines relationship: ${t.source} ${t.predicate} ${t.destination}`;
 };
-
-/** Whether two triples link the same pair of element types, in either direction (apply-walk.ts's rule). */
-export function samePairOf(x: string, y: string): boolean {
-  const a = parts(x),
-    b = parts(y);
-  return (a.source === b.source && a.destination === b.destination) || (a.source === b.destination && a.destination === b.source);
-}
 
 /** The spec's relationship schemas by id -> file, its node type ids and its predicates. */
 export function readCatalog(spec: string): { files: Map<string, string>; nodes: Set<string>; predicates: Set<string> } {
@@ -299,27 +294,27 @@ export function planSpecChanges(doc: SpecChanges, spec: string): Plan {
       plan.summary.push(`create ${id}`);
     } else if (c.op === "delete") {
       drop(id, oldFile!);
-      const to = c.replacement_relationship_id && samePairOf(id, c.replacement_relationship_id) ? c.replacement_relationship_id : null;
-      const why = c.replacement_relationship_id && !to ? `; its relationships moved to ${c.replacement_relationship_id}, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped` : "";
+      const to = c.replacement_relationship_id && pairOf(id, c.replacement_relationship_id) !== "different" ? c.replacement_relationship_id : null;
+      const why = c.replacement_relationship_id && !to ? `; replaced by ${c.replacement_relationship_id}, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped` : "";
       plan.actions.push({ action: "delete", kind: "cs:delete", from: id, to, p: 1, claims: [], note: note(c, "delete") + why, file_removed: rel(oldFile!) });
       plan.summary.push(`delete ${id}${to ? ` (relationships move to ${to})` : ""}`);
     } else if (!renamed) {
       put(id, oldFile!, withValues(schemaOf(oldFile!), c.set ?? {}));
       plan.summary.push(`update ${id}: ${Object.keys(c.set ?? {}).join(", ") || "no spec values changed"}`);
     } else {
-      const o = parts(old);
-      const swapped = o.source === t.destination && o.destination === t.source && o.source !== o.destination;
+      const pair = pairOf(old, id);
+      const swapped = pair === "reversed";
       const schema = withValues(derived(schemaOf(oldFile!), id, swapped), c.set ?? {});
       drop(old, oldFile!);
       put(id, newFile!, schema);
       const files_ = { file_removed: rel(oldFile!), file_written: rel(newFile!) };
-      if (samePairOf(old, id)) {
+      if (pair !== "different") {
         plan.actions.push({ action: "rename", kind: swapped ? "cs:reverse" : "cs:rename", from: old, to: id, p: 1, claims: [], note: note(c, swapped ? "reverse" : "rename"), ...files_ });
       } else {
         plan.actions.push({ action: "delete", kind: "cs:retarget", from: old, to: null, p: 1, claims: [], note: `${note(c, "retarget")}; retargeted to ${id}, which a migration cannot apply mechanically, so model relationships of this triple are dropped`, file_removed: files_.file_removed });
         plan.actions.push({ action: "create", kind: "cs:retarget", from: id, to: id, p: 1, claims: [], note: `retarget of ${old} (${note(c, "retarget")})`, file_written: files_.file_written });
       }
-      plan.summary.push(`${swapped ? "reverse" : samePairOf(old, id) ? "rename" : "retarget"} ${old} -> ${id}`);
+      plan.summary.push(`${swapped ? "reverse" : pair === "same" ? "rename" : "retarget"} ${old} -> ${id}`);
     }
   }
   if (errors.length) throw new Error(`nothing written; these changes cannot be applied:\n  ${errors.join("\n  ")}`);

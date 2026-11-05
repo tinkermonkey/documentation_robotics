@@ -163,6 +163,15 @@ describe("cs-decisions-to-spec.ts", () => {
     ]);
   });
 
+  it("keeps a delete's replacement that links the reversed pair (pairOf)", () => {
+    const a = "application.applicationcomponent.serves.application.applicationinterface";
+    const b = "application.applicationinterface.serves.application.applicationcomponent";
+    writeRelationship(a);
+    writeRelationship(b);
+    const plan = planSpecChanges(doc(change("delete", a, {}, { replacement_relationship_id: b })), spec);
+    expect(plan.actions.map((x) => [x.action, x.from, x.to])).toEqual([["delete", a, b]]);
+  });
+
   it("checks every change first and writes nothing when any is invalid", () => {
     const good = "application.applicationcollaboration.aggregates.application.applicationcollaboration";
     const existing = "application.applicationcomponent.assigned-to.application.applicationinterface";
