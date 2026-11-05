@@ -122,50 +122,76 @@ IS this a coherent bundle of services with a value proposition for customers?
 
 ## Intra-Layer Relationships
 
+The business layer's modelling rules (from `spec/layers/02-business.layer.json`):
+
+- Actors fill roles. Roles and collaborations are `assigned-to` the processes, functions and interactions they perform; behaviour is never assigned to an actor directly.
+- Internal behaviour `realizes` business services. Interfaces offer services (`assigned-to`), and services `serve` actors, roles and processes.
+- Only behaviour `accesses` business objects and contracts. Actors, roles and interfaces reach information through the behaviour assigned to them.
+- Events `trigger` processes and interactions, and behaviour raises events (`triggers`). A hand-off between behaviours is `flows-to`. A function has no start, so it is reached by `flows-to`, never triggered.
+
 ### Structural Relationships
 
-| Source Type           | Predicate   | Target Type         | Example                                                    |
-| --------------------- | ----------- | ------------------- | ---------------------------------------------------------- |
-| Product               | aggregates  | BusinessService     | "Premium Membership" aggregates "Free Shipping Service"    |
-| Product               | composes    | Contract            | "Premium Membership" composes "Membership Terms"           |
-| BusinessFunction      | composes    | BusinessFunction    | "Sales" composes "Lead Management"                         |
-| BusinessRole          | composes    | BusinessRole        | "Store Manager" composes "Cashier Supervisor"              |
-| BusinessObject        | composes    | BusinessObject      | "Order" composes "Order Line"                              |
-| BusinessActor         | assigned-to | BusinessRole        | "Jane Smith" assigned to "Account Manager"                 |
-| BusinessRole          | assigned-to | BusinessFunction    | "Support Agent" assigned to "Customer Support"             |
-| BusinessRole          | assigned-to | BusinessInteraction | "Account Manager" assigned to "Contract Negotiation"       |
-| BusinessRole          | performs    | BusinessProcess     | "Order Processor" performs "Order Fulfillment"             |
-| BusinessCollaboration | uses        | BusinessRole        | "Sales Team" uses "Sales Representative"                   |
-| BusinessCollaboration | performs    | BusinessInteraction | "Sales Team" performs "Sales Meeting"                      |
-| BusinessProcess       | realizes    | BusinessService     | "Order Fulfillment" realizes "Order Management Service"    |
-| BusinessFunction      | realizes    | BusinessService     | "Customer Support" realizes "Support Service"              |
-| BusinessInteraction   | realizes    | BusinessService     | "Contract Negotiation" realizes "Contracting Service"      |
-| Representation        | realizes    | BusinessObject      | "Invoice PDF" realizes "Invoice"                           |
-| Representation        | realizes    | Contract            | "Signed MSA Document" realizes "Master Services Agreement" |
-| BusinessInterface     | provides    | BusinessService     | "Customer Portal" provides "Order Management Service"      |
-| Contract              | governs     | BusinessService     | "Premium SLA" governs "Support Service"                    |
+| Source Type           | Predicate  | Target Type      | Example                                                    |
+| --------------------- | ---------- | ---------------- | ---------------------------------------------------------- |
+| Product               | aggregates | BusinessService  | "Premium Membership" aggregates "Free Shipping Service"    |
+| Product               | composes   | Contract         | "Premium Membership" composes "Membership Terms"           |
+| BusinessFunction      | composes   | BusinessFunction | "Sales" composes "Lead Management"                         |
+| BusinessRole          | composes   | BusinessRole     | "Store Manager" composes "Cashier Supervisor"              |
+| BusinessObject        | composes   | BusinessObject   | "Order" composes "Order Line"                              |
+| BusinessCollaboration | aggregates | BusinessRole     | "Sales Team" aggregates "Sales Representative"             |
+| Representation        | realizes   | BusinessObject   | "Invoice PDF" realizes "Invoice"                           |
+| Representation        | realizes   | Contract         | "Signed MSA Document" realizes "Master Services Agreement" |
+| Contract              | governs    | BusinessService  | "Premium SLA" governs "Support Service"                    |
+
+### Assignment Relationships (who performs what)
+
+| Source Type           | Predicate   | Target Type         | Example                                                  |
+| --------------------- | ----------- | ------------------- | -------------------------------------------------------- |
+| BusinessActor         | assigned-to | BusinessRole        | "Jane Smith" assigned to "Account Manager"               |
+| BusinessRole          | assigned-to | BusinessProcess     | "Order Processor" assigned to "Order Fulfillment"        |
+| BusinessRole          | assigned-to | BusinessFunction    | "Support Agent" assigned to "Customer Support"           |
+| BusinessRole          | assigned-to | BusinessInteraction | "Account Manager" assigned to "Contract Negotiation"     |
+| BusinessCollaboration | assigned-to | BusinessInteraction | "Sales Team" assigned to "Sales Meeting"                 |
+| BusinessInterface     | assigned-to | BusinessService     | "Customer Portal" assigned to "Order Management Service" |
+
+### Service Relationships
+
+| Source Type         | Predicate | Target Type     | Example                                                 |
+| ------------------- | --------- | --------------- | ------------------------------------------------------- |
+| BusinessProcess     | realizes  | BusinessService | "Order Fulfillment" realizes "Order Management Service" |
+| BusinessFunction    | realizes  | BusinessService | "Customer Support" realizes "Support Service"           |
+| BusinessInteraction | realizes  | BusinessService | "Contract Negotiation" realizes "Contracting Service"   |
+| BusinessService     | serves    | BusinessActor   | "Order Management Service" serves "Customer"            |
+| BusinessService     | serves    | BusinessRole    | "Sales Reporting Service" serves "Regional Manager"     |
+| BusinessService     | serves    | BusinessProcess | "Credit Check Service" serves "Loan Approval"           |
+| BusinessInterface   | serves    | BusinessActor   | "Mobile App" serves "Customer"                          |
+| BusinessInterface   | serves    | BusinessRole    | "Admin Console" serves "Administrator"                  |
+| BusinessService     | delivers  | BusinessObject  | "Policy Issuance Service" delivers "Insurance Policy"   |
 
 ### Behavioral Relationships
 
-| Source Type         | Predicate | Target Type         | Example                                                |
-| ------------------- | --------- | ------------------- | ------------------------------------------------------ |
-| BusinessEvent       | triggers  | BusinessProcess     | "Order Received" triggers "Order Fulfillment"          |
-| BusinessEvent       | triggers  | BusinessInteraction | "Customer Complaint" triggers "Issue Resolution Call"  |
-| BusinessProcess     | triggers  | BusinessEvent       | "Payment Processing" triggers "Payment Confirmed"      |
-| BusinessProcess     | triggers  | BusinessFunction    | "Order Fulfillment" triggers "Invoicing"               |
-| BusinessFunction    | triggers  | BusinessEvent       | "Credit Control" triggers "Account Suspended"          |
-| BusinessProcess     | flows-to  | BusinessProcess     | "Pick Items" flows to "Pack Order"                     |
-| BusinessInteraction | flows-to  | BusinessProcess     | "Sales Meeting" flows to "Proposal Generation"         |
-| BusinessFunction    | flows-to  | BusinessProcess     | "Underwriting" flows to "Policy Issuance"              |
-| BusinessService     | serves    | BusinessActor       | "Order Management Service" serves "Customer"           |
-| BusinessInterface   | serves    | BusinessActor       | "Mobile App" serves "Customer"                         |
-| BusinessInterface   | serves    | BusinessRole        | "Admin Console" serves "Administrator"                 |
-| BusinessProcess     | accesses  | BusinessObject      | "Order Fulfillment" accesses "Order"                   |
-| BusinessFunction    | accesses  | BusinessObject      | "Billing" accesses "Invoice"                           |
-| BusinessInteraction | accesses  | BusinessObject      | "Contract Review" accesses "Quote"                     |
-| BusinessRole        | accesses  | BusinessObject      | "Claims Adjuster" accesses "Claim"                     |
-| BusinessProcess     | accesses  | Contract            | "Renewal Processing" accesses "Subscription Agreement" |
-| BusinessService     | delivers  | BusinessObject      | "Shipping Service" delivers "Shipment Confirmation"    |
+| Source Type         | Predicate | Target Type         | Example                                               |
+| ------------------- | --------- | ------------------- | ----------------------------------------------------- |
+| BusinessEvent       | triggers  | BusinessProcess     | "Order Received" triggers "Order Fulfillment"         |
+| BusinessEvent       | triggers  | BusinessInteraction | "Customer Complaint" triggers "Issue Resolution Call" |
+| BusinessProcess     | triggers  | BusinessEvent       | "Order Shipping" triggers "Order Shipped"             |
+| BusinessFunction    | triggers  | BusinessEvent       | "Financial Close" triggers "Month Closed"             |
+| BusinessInteraction | triggers  | BusinessEvent       | "Contract Negotiation" triggers "Deal Agreed"         |
+| BusinessProcess     | flows-to  | BusinessProcess     | "Pick Items" flows to "Pack Order"                    |
+| BusinessProcess     | flows-to  | BusinessFunction    | "Order Fulfillment" flows to "Invoicing"              |
+| BusinessFunction    | flows-to  | BusinessProcess     | "Underwriting" flows to "Policy Issuance"             |
+| BusinessInteraction | flows-to  | BusinessProcess     | "Sales Meeting" flows to "Proposal Generation"        |
+
+### Information Access Relationships
+
+| Source Type         | Predicate | Target Type    | Example                                                |
+| ------------------- | --------- | -------------- | ------------------------------------------------------ |
+| BusinessProcess     | accesses  | BusinessObject | "Order Fulfillment" accesses "Order"                   |
+| BusinessFunction    | accesses  | BusinessObject | "Billing" accesses "Invoice"                           |
+| BusinessInteraction | accesses  | BusinessObject | "Contract Review" accesses "Quote"                     |
+| BusinessProcess     | accesses  | Contract       | "Renewal Processing" accesses "Subscription Agreement" |
+| BusinessFunction    | accesses  | Contract       | "Contract Management" accesses "Supplier Agreement"    |
+| BusinessService     | accesses  | Contract       | "Support Service" accesses "Premium SLA"               |
 
 ---
 
@@ -470,7 +496,7 @@ Product: "E-commerce Platform"
 │   ├── realizes ← BusinessProcess: "Order Fulfillment"
 │   │   ├── triggers ← BusinessEvent: "Order Received"
 │   │   ├── accesses → BusinessObject: "Order"
-│   │   └── performs ← BusinessRole: "Order Processor"
+│   │   └── assigned-to ← BusinessRole: "Order Processor"
 │   └── realizes ← ApplicationService: "OrderManagementAPI"
 ├── aggregates → BusinessService: "Payment Service"
 │   └── realizes ← BusinessProcess: "Payment Processing"
@@ -483,7 +509,7 @@ Product: "E-commerce Platform"
 BusinessFunction: "Customer Support"
 ├── flows-to → BusinessProcess: "Ticket Resolution"
 │   ├── triggers ← BusinessEvent: "Support Request Received"
-│   ├── performs ← BusinessRole: "Support Agent"
+│   ├── assigned-to ← BusinessRole: "Support Agent"
 │   ├── accesses → BusinessObject: "Support Ticket"
 │   └── flows-to → BusinessProcess: "Follow-up Communication"
 ├── realizes → BusinessService: "Support Service"
@@ -496,9 +522,9 @@ BusinessFunction: "Customer Support"
 
 ```
 BusinessCollaboration: "Sales Team"
-├── uses → BusinessRole: "Sales Representative"
-├── uses → BusinessRole: "Sales Manager"
-└── performs → BusinessInteraction: "Sales Meeting"
+├── aggregates → BusinessRole: "Sales Representative"
+├── aggregates → BusinessRole: "Sales Manager"
+└── assigned-to → BusinessInteraction: "Sales Meeting"
     ├── accesses → BusinessObject: "Opportunity"
     ├── flows-to → BusinessProcess: "Proposal Generation"
     └── triggers → BusinessEvent: "Deal Closed"
@@ -613,7 +639,7 @@ dr relationship add <source> <target> --predicate triggers
 dr relationship add <source> <target> --predicate flows-to
 dr relationship add <source> <target> --predicate accesses
 dr relationship add <source> <target> --predicate serves
-dr relationship add <source> <target> --predicate performs
+dr relationship add <source> <target> --predicate aggregates
 ```
 
 **Cross-Layer Relationship Commands:**
