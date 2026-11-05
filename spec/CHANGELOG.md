@@ -131,6 +131,40 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   The OpenAPI `x-supports-goals` / `x-fulfills-requirements` extension attributes on API operations
   are unchanged.
 
+- **BREAKING: business layer rebuilt on stated modelling rules** (Context Studio's 22 decisions,
+  `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-business.jsonl`, then a maintainer pass,
+  `cli/scripts/spec-enrich/data/applied-business-principles.json`). The layer description now
+  states the rules, and every business relationship schema says what it means:
+  - **Assignment** is `assigned-to`, as in the application layer. Actors fill roles, and
+    roles and collaborations are assigned to the processes, functions and interactions they
+    perform; behaviour is never assigned to an actor directly. Interfaces are assigned to the
+    services they offer. `performs` and `provides` no longer appear in the layer: `businessrole
+    performs businessfunction`, `businesscollaboration performs businessinteraction` and
+    `businessinterface provides businessservice` become `assigned-to`, and `businessfunction
+    serves businessrole` becomes `businessrole assigned-to businessfunction`.
+  - **Composition**: a collaboration `aggregates` its roles (was `composes`).
+  - **Services** are realized by internal behaviour (`businessinteraction realizes
+    businessservice`, was serves; `businessservice realizes businessprocess` is reversed), and
+    serve actors, roles and processes (`businessservice serves businessrole` and `serves
+    businessprocess` added). Services carry the main link to motivation: `businessservice
+    realizes motivation.outcome` added, `businessprocess realizes motivation.goal` and
+    `businessfunction realizes motivation.goal` removed.
+  - **Access**: only behaviour accesses business objects and contracts. Removed the accesses
+    edges from actor, collaboration, interface, role and contract, `businessinterface flows-to
+    businessobject` and `contract serves businessrole`; added `businessfunction accesses
+    contract`. `businessrole assigned-to businessinterface` becomes `businessinterface serves
+    businessrole`.
+  - **Events and sequence**: events trigger processes and interactions, and behaviour raises
+    events; a hand-off between behaviours is `flows-to`. `businessprocess triggers
+    businessprocess` and `triggers businessfunction` become `flows-to`. A function has no start,
+    so `businessevent triggers businessfunction` is removed. Removed the triggers edges from
+    interface, role and contract.
+
+  Business goes from 69 to 52 relationship schemas, the catalog from 1,526 to 1,509. `dr upgrade`
+  migrates 10 of the 26 retired types to their replacement (reversing the source and target
+  where needed). It drops relationships of the other 16, which link element types the rules no
+  longer connect.
+
 - **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
   maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six
   schemas deleted as duplicates of an existing edge (`applicationfunction delivers-value

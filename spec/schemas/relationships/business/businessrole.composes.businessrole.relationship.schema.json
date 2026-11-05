@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessrole composes Businessrole",
-  "description": "Defines relationship: business.businessrole composes business.businessrole",
+  "description": "The narrower role is part of the wider one and exists only within it, so the wider role's responsibilities include the narrower role's.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

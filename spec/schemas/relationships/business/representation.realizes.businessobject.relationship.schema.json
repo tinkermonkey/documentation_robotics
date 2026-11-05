@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Representation realizes Businessobject",
-  "description": "Defines relationship: business.representation realizes business.businessobject",
+  "description": "The representation is a perceptible form of the business object, such as a printed invoice or an on-screen statement.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

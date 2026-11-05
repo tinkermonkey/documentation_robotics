@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contract governs Businessservice",
-  "description": "Defines relationship: business.contract governs business.businessservice",
+  "description": "The contract sets the obligations, rights and terms, such as service levels, prices and penalties, under which the service is delivered and used.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

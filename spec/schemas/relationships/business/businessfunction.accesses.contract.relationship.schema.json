@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessinterface flows-to Businessobject",
-  "description": "Defines relationship: business.businessinterface flows-to business.businessobject",
+  "title": "Businessfunction accesses Contract",
+  "description": "The function reads or maintains the terms of the contract as part of its ongoing behaviour, for example when contract management records or renews agreements.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessinterface.flows-to.business.businessobject"
+      "const": "business.businessfunction.accesses.business.contract"
     },
     "source_spec_node_id": {
-      "const": "business.businessinterface"
+      "const": "business.businessfunction"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessobject"
+      "const": "business.contract"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "flows-to"
+      "const": "accesses"
     },
     "cardinality": {
       "const": "many-to-many"

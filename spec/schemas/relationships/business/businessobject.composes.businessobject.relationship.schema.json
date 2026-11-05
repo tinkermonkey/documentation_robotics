@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessobject composes Businessobject",
-  "description": "Defines relationship: business.businessobject composes business.businessobject",
+  "description": "The part object exists only within the whole object, as order lines exist only within an order.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

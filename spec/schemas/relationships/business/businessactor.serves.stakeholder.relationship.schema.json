@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessactor serves Stakeholder",
-  "description": "Defines relationship: business.businessactor serves motivation.stakeholder",
+  "description": "The actor acts on behalf of the stakeholder, so the stakeholder's concerns and drivers apply to what the actor does in the organization.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

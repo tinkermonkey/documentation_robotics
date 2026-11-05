@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessfunction accesses Businessobject",
-  "description": "Defines relationship: business.businessfunction accesses business.businessobject",
+  "description": "The function creates, reads, updates or deletes the business object while carrying out its ongoing behaviour.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessrole accesses Contract",
-  "description": "Defines relationship: business.businessrole accesses business.contract",
+  "title": "Businesscollaboration assigned-to Businessinteraction",
+  "description": "The collaboration carries out the interaction jointly; no single participating role can complete it alone.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessrole.accesses.business.contract"
+      "const": "business.businesscollaboration.assigned-to.business.businessinteraction"
     },
     "source_spec_node_id": {
-      "const": "business.businessrole"
+      "const": "business.businesscollaboration"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.contract"
+      "const": "business.businessinteraction"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "accesses"
+      "const": "assigned-to"
     },
     "cardinality": {
       "const": "many-to-many"

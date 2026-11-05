@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessinterface triggers Businessfunction",
-  "description": "Defines relationship: business.businessinterface triggers business.businessfunction",
+  "title": "Businessinterface assigned-to Businessservice",
+  "description": "The interface is the channel through which the service is offered, so the service is reached at that point of access, such as a portal, counter or call centre.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessinterface.triggers.business.businessfunction"
+      "const": "business.businessinterface.assigned-to.business.businessservice"
     },
     "source_spec_node_id": {
       "const": "business.businessinterface"
@@ -18,13 +18,13 @@
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessfunction"
+      "const": "business.businessservice"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "triggers"
+      "const": "assigned-to"
     },
     "cardinality": {
       "const": "many-to-many"

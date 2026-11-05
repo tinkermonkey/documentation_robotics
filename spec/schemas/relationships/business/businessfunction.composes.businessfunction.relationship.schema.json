@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessfunction composes Businessfunction",
-  "description": "Defines relationship: business.businessfunction composes business.businessfunction",
+  "description": "The narrower function is part of the wider one and exists only within it, so the function decomposes into the competencies that make it up.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
