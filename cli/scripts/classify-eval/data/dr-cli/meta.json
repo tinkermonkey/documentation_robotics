@@ -1,7 +1,7 @@
 {
   "corpus": "dr-cli",
-  "root": "/Users/austinsand/workspace/documentation_robotics/cli",
-  "project": "Users-austinsand-workspace-documentation_robotics-cli",
+  "root": null,
+  "project": null,
   "include": "src/**",
   "exclude": "(^|\\/)(tests?|__tests__|fixtures?|__fixtures__|test-[^/]*|examples?|scripts|dist|node_modules|\\.venv|venv)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$|(^|\\/)test_[^/]*\\.py$|(^|\\/)conftest\\.py$",
   "seed": 42,
@@ -15,5 +15,7 @@
     "Method": 60,
     "Module": 60
   },
-  "generated_at": "2026-10-24T12:07:49.245Z"
+  "generated_at": "2026-10-24T12:07:49.245Z",
+  "source_commit": "450e650f",
+  "note": "Rebuilt on codebase-memory-mcp 0.12.1 (2026-11-05) from a temporary checkout of cli/ at 450e650f, the commit the cards were sampled from, so card source matches what the gold labels saw. To rebuild facts, edges or cards: git worktree add <dir> 450e650f, index <dir>/cli with codebase-memory-mcp, and set root to <dir>/cli and project to the CBM project name."
 }

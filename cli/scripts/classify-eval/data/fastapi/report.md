@@ -1,6 +1,6 @@
 # Classification eval report: fastapi
 
-Generated 2026-11-03T14:03:55.276Z. Cards: 200. Gold labels: 200.
+Generated 2026-11-05T18:19:48.409Z. Cards: 200. Gold labels: 200.
 
 ## Gold label distribution
 
@@ -26,14 +26,18 @@ Significance histogram (0..4): 64 / 51 / 46 / 35 / 4. Gold labels with a type id
 | clef@v2-kind-base             | 200              | 74.5%     | 67.0%                 | 89.9%                | 0.54    | 88.0%        | 0.200     | 962 ms         | $0.344     | $0.0017     |
 | clef@v2-kind-tier0            | 200 (52 by rule) | 85.0%     | 78.5%                 | 92.4%                | 0.46    | 91.9%        | 0.208     | 730 ms         | $0.183     | $0.0009     |
 | claude-haiku                  | 200              | 68.0%     | 59.0%                 | 86.8%                | 0.41    | 99.0%        | 0.061     | 1624 ms        | $0.082     | $0.0004     |
+| clef@cbm012-kind-tier0        | 200 (52 by rule) | 86.5%     | 79.0%                 | 91.3%                | 0.45    | 90.5%        | 0.231     | 672 ms         | $0.201     | $0.0010     |
+| clef@cbm012-kind-base         | 200              | 74.0%     | 66.5%                 | 89.9%                | 0.55    | 86.5%        | 0.197     | 1159 ms        | $0.380     | $0.0019     |
 | clef@v2-kind-core             | 200              | 74.5%     | 66.0%                 | 88.6%                | 0.54    | 88.0%        | 0.200     | 843 ms         | $0.276     | $0.0014     |
 | clef                          | 200              | 74.5%     | 64.5%                 | 86.6%                | 0.54    | 88.0%        | 0.200     | 696 ms         | $0.197     | $0.0010     |
 | clef@v2-kind-tier0-facts-core | 200 (52 by rule) | 86.0%     | 79.0%                 | 91.9%                | 0.55    | 86.5%        | 0.204     | 633 ms         | $0.154     | $0.0008     |
+| clef@cbm010-kind-tier0        | 200 (52 by rule) | 86.0%     | 79.0%                 | 91.9%                | 0.46    | 89.2%        | 0.218     | 661 ms         | $0.205     | $0.0010     |
 | clef-flash                    | 200              | 76.5%     | 57.5%                 | 75.2%                | 0.75    | 69.0%        | 0.312     | 1190 ms        | $0.072     | $0.0004     |
 | clef@enriched-v1              | 200              | 74.5%     | 64.5%                 | 86.6%                | 0.54    | 88.0%        | 0.200     | 755 ms         | $0.202     | $0.0010     |
 | claude-sonnet                 | 200              | 68.5%     | 56.5%                 | 82.5%                | 0.41    | 98.5%        | 0.076     | 1707 ms        | $1.478     | $0.0074     |
 | clef@enriched-v2-kind         | 200              | 74.5%     | 65.5%                 | 87.9%                | 0.54    | 88.0%        | 0.200     | 1326 ms        | $0.344     | $0.0017     |
 | clef@enriched-v2              | 200              | 74.5%     | 65.0%                 | 87.2%                | 0.54    | 88.0%        | 0.200     | 1344 ms        | $0.346     | $0.0017     |
+| clef@cbm010-kind-base         | 200              | 76.5%     | 69.0%                 | 90.2%                | 0.55    | 86.0%        | 0.221     | 1211 ms        | $0.381     | $0.0019     |
 | clef@v2-kind-tier0-facts      | 200 (52 by rule) | 86.0%     | 79.0%                 | 91.9%                | 0.55    | 86.5%        | 0.204     | 714 ms         | $0.183     | $0.0009     |
 
 Type accuracy is exact match on the element type id. ECE = expected calibration error of the predicted layer's confidence (lower is better). Costs use list prices; Claude costs include cache reads at 0.1x.
@@ -280,6 +284,166 @@ Calibration, threshold sweep, concerns, significance and latency are over the 14
 | Class backend.app.models.Token                                               | data-model/objectschema         | api/schema (0.50)                 | A non-table SQLModel schema defining the JSON payload returned by the login access-token route (access_token, token_type). It is a passive data shape, so it is    |
 | Function frontend.src.components.ui.tooltip.TooltipProvider                  | none/-                          | ux/librarycomponent (0.70)        | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its   |
 
+## clef@cbm012-kind-tier0
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 92.5%  | 87          |
+| ux          | 50     | 88.0%  | 49          |
+| api         | 28     | 82.1%  | 23          |
+| data-model  | 12     | 100.0% | 14          |
+| application | 10     | 90.0%  | 14          |
+| data-store  | 6      | 66.7%  | 4           |
+| security    | 6      | 50.0%  | 3           |
+| navigation  | 4      | 75.0%  | 5           |
+| technology  | 3      | 0.0%   | 0           |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 5     |
+| api → none               | 4     |
+| ux → none                | 3     |
+| security → none          | 3     |
+| ux → navigation          | 2     |
+| data-store → application | 2     |
+| technology → none        | 2     |
+| api → data-model         | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 3   | 0.26      | 0.00     | -0.26 |
+| 0.3-0.4        | 10  | 0.34      | 0.70     | 0.36  |
+| 0.4-0.5        | 22  | 0.46      | 0.55     | 0.08  |
+| 0.5-0.6        | 37  | 0.55      | 0.86     | 0.32  |
+| 0.6-0.7        | 41  | 0.65      | 0.88     | 0.23  |
+| 0.7-0.8        | 23  | 0.74      | 0.96     | 0.21  |
+| 0.8-0.9        | 12  | 0.84      | 1.00     | 0.16  |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 76.4%    | 90.3%             |
+| ≥0.60     | 51.4%    | 92.1%             |
+| ≥0.70     | 23.6%    | 97.1%             |
+| ≥0.80     | 8.1%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 17             | 1.00      | 0.59   | 0.74       |
+| authorization        | 8              | 1.00      | 0.25   | 0.40       |
+| data_persistence     | 25             | 0.77      | 0.40   | 0.53       |
+| external_integration | 20             | 0.92      | 0.55   | 0.69       |
+| observability        | 2              | n/a       | 0.00   | n/a        |
+| user_interface       | 68             | 1.00      | 0.96   | 0.98       |
+
+Calibration, threshold sweep, concerns, significance and latency are over the 148 model-asked cards; 52 cards were decided by a Tier-0 rule.
+
+### Sample layer disagreements
+
+| symbol                                                           | gold                | predicted (conf)                        | gold rationale                                                                                                                                                   |
+| ---------------------------------------------------------------- | ------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Method frontend.src.client.sdk.gen.LoginService.loginAccessToken | api/operation       | none/- (0.49)                           | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend and is use |
+| Method frontend.src.client.sdk.gen.UsersService.updateUserMe     | api/operation       | none/- (0.52)                           | Generated SDK client method wrapping the PATCH /api/v1/users/me operation. It is evidence for an API operation, but it is generated boilerplate in a client stub |
+| Function frontend.src.components.ui.tooltip.TooltipProvider      | none/-              | ux/librarycomponent (0.67)              | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its |
+| Method frontend.src.client.sdk.gen.ItemsService.createItem       | api/operation       | none/- (0.49)                           | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generated API cli |
+| Method frontend.src.client.sdk.gen.UsersService.readUsers        | api/operation       | none/- (0.57)                           | Generated client method binding the GET /api/v1/users/ operation, with a bearer security requirement. It is evidence of the 'read users' API operation consumed  |
+| Class backend.app.api.routes.private.PrivateUserCreate           | api/schema          | data-model/objectschema (0.45)          | A Pydantic request-body model defined inline in the private API routes module. It describes the input shape of the private user-creation endpoint, so it is best |
+| Module frontend.src.routes.\_layout.settings                     | ux/view             | navigation/route (0.47)                 | File-based route module that defines the routable User Settings page, composing the profile, password and delete-account tabs. It is a routable view, so ux.view |
+| Module frontend.src.hooks.useCustomToast                         | ux/actionpattern    | none/- (0.42)                           | Small React hook module that wraps the sonner toast library to show standardized success and error notifications. It is a UI feedback utility, best modelled as  |
+| Module frontend.src.hooks.useMobile                              | none/-              | application/applicationcomponent (0.44) | Generic boilerplate React hook module (shadcn-style) that detects a mobile viewport via matchMedia. It is a trivial UI utility with no callers recorded and no a |
+| Module backend.app.core.db                                       | data-store/database | application/applicationcomponent (0.31) | Module defines the application's database engine connection (SQLModel/SQLAlchemy engine from DATABASE_URL) and seeds the initial superuser. It is the physical p |
+
+## clef@cbm012-kind-base
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 67.5%  | 66          |
+| ux          | 50     | 90.0%  | 64          |
+| api         | 28     | 82.1%  | 29          |
+| data-model  | 12     | 100.0% | 14          |
+| application | 10     | 30.0%  | 8           |
+| data-store  | 6      | 66.7%  | 4           |
+| security    | 6      | 50.0%  | 3           |
+| navigation  | 4      | 75.0%  | 11          |
+| technology  | 3      | 0.0%   | 0           |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 19    |
+| none → navigation        | 6     |
+| application → api        | 6     |
+| api → none               | 4     |
+| security → none          | 3     |
+| ux → navigation          | 2     |
+| ux → none                | 2     |
+| data-store → application | 2     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap   |
+| -------------- | --- | --------- | -------- | ----- |
+| 0.2-0.3        | 4   | 0.27      | 0.25     | -0.02 |
+| 0.3-0.4        | 18  | 0.36      | 0.61     | 0.26  |
+| 0.4-0.5        | 45  | 0.45      | 0.44     | -0.00 |
+| 0.5-0.6        | 59  | 0.55      | 0.83     | 0.28  |
+| 0.6-0.7        | 61  | 0.64      | 0.89     | 0.24  |
+| 0.7-0.8        | 11  | 0.73      | 1.00     | 0.27  |
+| 0.8-0.9        | 2   | 0.82      | 1.00     | 0.18  |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 66.5%    | 87.2%             |
+| ≥0.60     | 37.0%    | 90.5%             |
+| ≥0.70     | 6.5%     | 100.0%            |
+| ≥0.80     | 1.0%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 21             | 0.92      | 0.52   | 0.67       |
+| authorization        | 9              | 1.00      | 0.33   | 0.50       |
+| data_persistence     | 30             | 0.80      | 0.40   | 0.53       |
+| external_integration | 20             | 0.92      | 0.55   | 0.69       |
+| observability        | 2              | n/a       | 0.00   | n/a        |
+| user_interface       | 68             | 0.89      | 0.96   | 0.92       |
+
+### Sample layer disagreements
+
+| symbol                                                                       | gold                            | predicted (conf)                  | gold rationale                                                                                                                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface frontend.src.routeTree.gen.RootRouteChildren                       | none/-                          | navigation/navigationgraph (0.42) | Generated TanStack Router type in routeTree.gen.ts that lists the root route's children for type checking. It is generated boilerplate and not itself a navigati |
+| Interface frontend.src.components.Admin.DeleteUser.DeleteUserProps           | none/-                          | ux/librarycomponent (0.41)        | A props type for the DeleteUser component, holding only an id and a success callback. It is a minor detail of that UI component rather than an element in its ow |
+| Function backend.app.api.routes.users.update_password_me                     | application/applicationfunction | api/operation (0.60)              | HTTP route handler for PATCH /me/password, an API operation. It verifies the current password credential and hashes the new one, which is an authentication conc |
+| Method frontend.src.client.sdk.gen.LoginService.loginAccessToken             | api/operation                   | none/- (0.49)                     | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend and is use |
+| Interface frontend.src.components.Items.ItemActionsMenu.ItemActionsMenuProps | none/-                          | ux/librarycomponent (0.46)        | A trivial props interface for the ItemActionsMenu component, with a single field holding an ItemPublic. It is component scaffolding that would be captured as at |
+| Method frontend.src.client.sdk.gen.UsersService.updateUserMe                 | api/operation                   | none/- (0.52)                     | Generated SDK client method wrapping the PATCH /api/v1/users/me operation. It is evidence for an API operation, but it is generated boilerplate in a client stub |
+| Function frontend.src.components.ui.tooltip.TooltipProvider                  | none/-                          | ux/librarycomponent (0.60)        | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its |
+| Method frontend.src.client.sdk.gen.ItemsService.createItem                   | api/operation                   | none/- (0.49)                     | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generated API cli |
+| Interface frontend.src.components.Common.Logo.LogoProps                      | none/-                          | ux/librarycomponent (0.46)        | A props type declaration for the Logo UI component. It is a typing detail of that component, not an element in its own right. Any props would be attributes of t |
+| Function backend.app.api.routes.items.update_item                            | application/applicationfunction | api/operation (0.68)              | This is the FastAPI route handler for PUT /items/{id}, so it is evidence for an API operation. It enforces an owner-or-superuser permission check inline, which  |
+
 ## clef@v2-kind-core
 
 ### Per-layer recall
@@ -519,6 +683,87 @@ Calibration, threshold sweep, concerns, significance and latency are over the 14
 | Module packages.react-email.emails.new_account                   | ux/view          | none/- (0.36)                           | React Email template module rendering the new-account welcome email with credentials and a dashboard link. It is a user-facing rendered artifact composed of UI    |
 | Module frontend.src.routes.\_layout.settings                     | ux/view          | navigation/route (0.55)                 | File-based route module that defines the routable User Settings page, composing the profile, password and delete-account tabs. It is a routable view, so ux.view   |
 | Module frontend.src.hooks.useMobile                              | none/-           | application/applicationcomponent (0.40) | Generic boilerplate React hook module (shadcn-style) that detects a mobile viewport via matchMedia. It is a trivial UI utility with no callers recorded and no a   |
+
+## clef@cbm010-kind-tier0
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 90.0%  | 84          |
+| ux          | 50     | 88.0%  | 51          |
+| api         | 28     | 82.1%  | 23          |
+| data-model  | 12     | 100.0% | 14          |
+| application | 10     | 90.0%  | 14          |
+| data-store  | 6      | 66.7%  | 4           |
+| security    | 6      | 66.7%  | 4           |
+| navigation  | 4      | 75.0%  | 5           |
+| technology  | 3      | 0.0%   | 0           |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 7     |
+| api → none               | 4     |
+| ux → none                | 3     |
+| ux → navigation          | 2     |
+| data-store → application | 2     |
+| security → none          | 2     |
+| technology → none        | 2     |
+| navigation → none        | 1     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 1   | 0.26      | 1.00     | 0.74 |
+| 0.3-0.4        | 14  | 0.34      | 0.57     | 0.23 |
+| 0.4-0.5        | 22  | 0.46      | 0.59     | 0.13 |
+| 0.5-0.6        | 36  | 0.55      | 0.81     | 0.25 |
+| 0.6-0.7        | 41  | 0.65      | 0.88     | 0.23 |
+| 0.7-0.8        | 22  | 0.74      | 0.95     | 0.21 |
+| 0.8-0.9        | 12  | 0.83      | 1.00     | 0.17 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 75.0%    | 88.3%             |
+| ≥0.60     | 50.7%    | 92.0%             |
+| ≥0.70     | 23.0%    | 97.1%             |
+| ≥0.80     | 8.1%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 17             | 1.00      | 0.59   | 0.74       |
+| authorization        | 8              | 1.00      | 0.38   | 0.55       |
+| data_persistence     | 25             | 0.82      | 0.36   | 0.50       |
+| external_integration | 20             | 0.93      | 0.65   | 0.76       |
+| observability        | 2              | n/a       | 0.00   | n/a        |
+| user_interface       | 68             | 1.00      | 0.96   | 0.98       |
+
+Calibration, threshold sweep, concerns, significance and latency are over the 148 model-asked cards; 52 cards were decided by a Tier-0 rule.
+
+### Sample layer disagreements
+
+| symbol                                                           | gold             | predicted (conf)                        | gold rationale                                                                                                                                                     |
+| ---------------------------------------------------------------- | ---------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Function frontend.src.routes.\_\_root.component                  | navigation/route | none/- (0.36)                           | The root route component in TanStack Router's \_\_root.tsx is the top-level layout that renders an Outlet for child routes, plus head content and devtools. As the |
+| Method frontend.src.client.sdk.gen.LoginService.loginAccessToken | api/operation    | none/- (0.46)                           | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend and is use   |
+| Method frontend.src.client.sdk.gen.UsersService.updateUserMe     | api/operation    | none/- (0.55)                           | Generated SDK client method wrapping the PATCH /api/v1/users/me operation. It is evidence for an API operation, but it is generated boilerplate in a client stub   |
+| Function frontend.src.components.ui.tooltip.TooltipProvider      | none/-           | ux/librarycomponent (0.66)              | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its   |
+| Method frontend.src.client.sdk.gen.ItemsService.createItem       | api/operation    | none/- (0.48)                           | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generated API cli   |
+| Method frontend.src.client.sdk.gen.UsersService.readUsers        | api/operation    | none/- (0.52)                           | Generated client method binding the GET /api/v1/users/ operation, with a bearer security requirement. It is evidence of the 'read users' API operation consumed    |
+| Class backend.app.api.routes.private.PrivateUserCreate           | api/schema       | data-model/objectschema (0.46)          | A Pydantic request-body model defined inline in the private API routes module. It describes the input shape of the private user-creation endpoint, so it is best   |
+| Module frontend.src.routes.\_layout.settings                     | ux/view          | navigation/route (0.47)                 | File-based route module that defines the routable User Settings page, composing the profile, password and delete-account tabs. It is a routable view, so ux.view   |
+| Module frontend.src.hooks.useMobile                              | none/-           | application/applicationcomponent (0.44) | Generic boilerplate React hook module (shadcn-style) that detects a mobile viewport via matchMedia. It is a trivial UI utility with no callers recorded and no a   |
+| Module frontend.src.hooks.useCustomToast                         | ux/actionpattern | none/- (0.42)                           | Small React hook module that wraps the sonner toast library to show standardized success and error notifications. It is a UI feedback utility, best modelled as    |
 
 ## clef-flash
 
@@ -913,6 +1158,85 @@ Calibration, threshold sweep, concerns, significance and latency are over the 14
 | Interface frontend.src.components.Common.Logo.LogoProps                      | none/-                          | ux/librarycomponent (0.51)        | A props type declaration for the Logo UI component. It is a typing detail of that component, not an element in its own right. Any props would be attributes of t |
 | Function backend.app.api.routes.items.update_item                            | application/applicationfunction | api/operation (0.69)              | This is the FastAPI route handler for PUT /items/{id}, so it is evidence for an API operation. It enforces an owner-or-superuser permission check inline, which  |
 | Interface frontend.src.routeTree.gen.FileRoutesByTo                          | none/-                          | navigation/navigationgraph (0.49) | Generated TanStack Router type map (routeTree.gen.ts) that keys route paths to route types for type-safe navigation. It is generated boilerplate. The routes the |
+
+## clef@cbm010-kind-base
+
+### Per-layer recall
+
+| layer       | gold n | recall | predicted n |
+| ----------- | ------ | ------ | ----------- |
+| none        | 80     | 71.3%  | 67          |
+| ux          | 50     | 90.0%  | 64          |
+| api         | 28     | 82.1%  | 29          |
+| data-model  | 12     | 100.0% | 14          |
+| application | 10     | 30.0%  | 8           |
+| data-store  | 6      | 66.7%  | 4           |
+| security    | 6      | 66.7%  | 4           |
+| navigation  | 4      | 100.0% | 9           |
+| technology  | 3      | 0.0%   | 0           |
+| testing     | 1      | 100.0% | 1           |
+
+### Top confusions (layer)
+
+| gold → predicted         | count |
+| ------------------------ | ----- |
+| none → ux                | 19    |
+| application → api        | 6     |
+| api → none               | 4     |
+| none → navigation        | 3     |
+| ux → navigation          | 2     |
+| ux → none                | 2     |
+| data-store → application | 2     |
+| security → none          | 2     |
+
+### Calibration of layer confidence
+
+| confidence bin | n   | mean conf | accuracy | gap  |
+| -------------- | --- | --------- | -------- | ---- |
+| 0.2-0.3        | 2   | 0.28      | 1.00     | 0.72 |
+| 0.3-0.4        | 23  | 0.35      | 0.57     | 0.21 |
+| 0.4-0.5        | 42  | 0.45      | 0.60     | 0.14 |
+| 0.5-0.6        | 62  | 0.55      | 0.77     | 0.22 |
+| 0.6-0.7        | 57  | 0.65      | 0.89     | 0.25 |
+| 0.7-0.8        | 12  | 0.72      | 1.00     | 0.28 |
+| 0.8-0.9        | 2   | 0.82      | 1.00     | 0.18 |
+
+### Threshold sweep (auto-accept layer when confidence ≥ t)
+
+| threshold | coverage | precision (layer) |
+| --------- | -------- | ----------------- |
+| ≥0.50     | 66.5%    | 85.0%             |
+| ≥0.60     | 35.5%    | 91.5%             |
+| ≥0.70     | 7.0%     | 100.0%            |
+| ≥0.80     | 1.0%     | 100.0%            |
+| ≥0.90     | 0.0%     | n/a               |
+| ≥0.95     | 0.0%     | n/a               |
+
+### Cross-cutting concerns
+
+| concern              | gold positives | precision | recall | F1 (p≥0.5) |
+| -------------------- | -------------- | --------- | ------ | ---------- |
+| authentication       | 21             | 0.91      | 0.48   | 0.62       |
+| authorization        | 9              | 1.00      | 0.44   | 0.62       |
+| data_persistence     | 30             | 0.85      | 0.37   | 0.51       |
+| external_integration | 20             | 0.93      | 0.65   | 0.76       |
+| observability        | 2              | n/a       | 0.00   | n/a        |
+| user_interface       | 68             | 0.87      | 0.96   | 0.91       |
+
+### Sample layer disagreements
+
+| symbol                                                                       | gold                            | predicted (conf)                  | gold rationale                                                                                                                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface frontend.src.components.Admin.DeleteUser.DeleteUserProps           | none/-                          | ux/librarycomponent (0.39)        | A props type for the DeleteUser component, holding only an id and a success callback. It is a minor detail of that UI component rather than an element in its ow |
+| Function backend.app.api.routes.users.update_password_me                     | application/applicationfunction | api/operation (0.66)              | HTTP route handler for PATCH /me/password, an API operation. It verifies the current password credential and hashes the new one, which is an authentication conc |
+| Method frontend.src.client.sdk.gen.LoginService.loginAccessToken             | api/operation                   | none/- (0.46)                     | Generated API client stub for the POST /api/v1/login/access-token OAuth2 token operation. It is evidence of an API operation consumed by the frontend and is use |
+| Interface frontend.src.components.Items.ItemActionsMenu.ItemActionsMenuProps | none/-                          | ux/librarycomponent (0.43)        | A trivial props interface for the ItemActionsMenu component, with a single field holding an ItemPublic. It is component scaffolding that would be captured as at |
+| Method frontend.src.client.sdk.gen.UsersService.updateUserMe                 | api/operation                   | none/- (0.55)                     | Generated SDK client method wrapping the PATCH /api/v1/users/me operation. It is evidence for an API operation, but it is generated boilerplate in a client stub |
+| Function frontend.src.components.ui.tooltip.TooltipProvider                  | none/-                          | ux/librarycomponent (0.51)        | Thin shadcn/ui wrapper around the Radix Tooltip Provider that only sets a default delay. It is generated-style UI boilerplate, not an architectural element. Its |
+| Interface frontend.src.components.Common.Logo.LogoProps                      | none/-                          | ux/librarycomponent (0.55)        | A props type declaration for the Logo UI component. It is a typing detail of that component, not an element in its own right. Any props would be attributes of t |
+| Method frontend.src.client.sdk.gen.ItemsService.createItem                   | api/operation                   | none/- (0.48)                     | A generated SDK client method that binds the POST /api/v1/items/ operation, with a bearer security requirement and typed request and response. Generated API cli |
+| Function backend.app.api.routes.items.update_item                            | application/applicationfunction | api/operation (0.69)              | This is the FastAPI route handler for PUT /items/{id}, so it is evidence for an API operation. It enforces an owner-or-superuser permission check inline, which  |
+| Interface frontend.src.routeTree.gen.FileRoutesByTo                          | none/-                          | navigation/navigationgraph (0.42) | Generated TanStack Router type map (routeTree.gen.ts) that keys route paths to route types for type-safe navigation. It is generated boilerplate. The routes the |
 
 ## clef@v2-kind-tier0-facts
 

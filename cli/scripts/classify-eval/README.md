@@ -10,8 +10,10 @@ current Anthropic SDK without touching the CLI's dependencies. It imports the CL
 `StdioClient` to talk to codebase-memory-mcp (CBM), and builds cards and facts with the CLI's
 card module (`cli/src/analyzers/cards/`), the code `dr analyzer classify` runs: `cards.ts` only
 chooses which symbols get a card, and source is read from the corpus by line range (`--root`).
-The committed card sets were built under CBM 0.10; before the card module, the harness could not
-read CBM 0.12's responses.
+The committed card sets were sampled under CBM 0.10 and rebuilt for the same symbols on CBM 0.12.1
+(2026-11-05) with `rebuild-cards.ts`, which keeps each card's id so the gold labels stay valid;
+the 0.10 cards, facts and edges are kept beside them as `*@cbm010.jsonl`. dr-cli's cards were
+rebuilt from a checkout of `cli/` at the commit they were sampled from (`meta.json` says which).
 
 ## Pipeline
 
@@ -41,7 +43,8 @@ Credentials come from the repo-root `.env` (gitignored):
 ## Usage
 
 ```bash
-# 1. Build cards (indexes the repo with CBM if needed)
+# 1. Build cards (indexes the repo with CBM if needed); rebuild-cards.ts redoes the same symbols
+#    after a CBM upgrade: bun rebuild-cards.ts --corpus fastapi --out cards@rebuilt.jsonl
 bun cards.ts --corpus dr-cli --root /abs/path/to/documentation_robotics/cli --include "src/**" --limit 300
 bun cards.ts --corpus fastapi --root /abs/path/to/eval-corpus/full-stack-fastapi-template --limit 200
 

@@ -1,0 +1,20 @@
+{
+  "corpus": "fastapi",
+  "root": "/Users/austinsand/workspace/documentation_robotics/eval-corpus/full-stack-fastapi-template",
+  "project": "Users-austinsand-workspace-documentation_robotics-eval-corpus-full-stack-fastapi-template",
+  "include": null,
+  "exclude": "(^|\\/)(tests?|__tests__|fixtures?|__fixtures__|test-[^/]*|examples?|scripts|dist|node_modules|\\.venv|venv)(\\/|$)|\\.(test|spec)\\.[cm]?[jt]sx?$|(^|\\/)test_[^/]*\\.py$|(^|\\/)conftest\\.py$",
+  "seed": 42,
+  "limit": 200,
+  "source_lines": 120,
+  "cards": 200,
+  "by_label": {
+    "Class": 15,
+    "Interface": 34,
+    "Function": 58,
+    "Method": 17,
+    "Module": 57,
+    "Route": 19
+  },
+  "generated_at": "2026-10-24T12:11:37.971Z"
+}
