@@ -242,11 +242,11 @@ describe("classifyTier0", () => {
     expect(by).toEqual({
       "src.main.java.owner.OwnerController": "application.applicationinterface",
       "src.main.java.owner.Owner": "data-model.objectschema",
-      "src.test.java.owner.OwnerTests": "narrow",
+      "src.test.java.owner.OwnerTests": "reject",
       "src.main.java.owner.OwnerController.showOwner": "application.applicationfunction",
       "__route__GET__/owners/{}": null,
     });
-    expect(report.summary).toMatchObject({ cards: 5, decided: 3, rejected: 0, narrowed: 1, undecided: 1, no_source: 0 });
+    expect(report.summary).toMatchObject({ cards: 5, decided: 3, rejected: 1, narrowed: 0, undecided: 1, no_source: 0 });
     expect(report.summary.by_target["application.applicationfunction"]).toBe(1);
     expect(report.summary.by_rule.tier0_route_handler).toBe(1);
     expect(report).toMatchObject({ analyzer: "cbm", project: P, mode: "tier0", rules: RULES.length });

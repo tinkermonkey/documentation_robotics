@@ -117,7 +117,32 @@ describe("cbm Tier-0 rules", () => {
   });
 
   it("let test-file rules win over framework rules", () => {
-    expect(answer({ label: "Class", name: "Fixture", file_path: "backend/tests/conftest_models.py", declaration: "class Fixture(SQLModel, table=True):" })).toBe("narrow:tier0_test_file");
+    expect(answer({ label: "Class", name: "Fixture", file_path: "backend/tests/conftest_models.py", declaration: "class Fixture(SQLModel, table=True):" })).toBe("none");
+  });
+
+  it("file test cases as test case sketches and other test code as no element", () => {
+    const sketch = "testing.testcasesketch";
+    // annotated cases, wherever they live
+    expect(answer({ label: "Method", name: "processCreationFormSuccess", decorator_names: ["Test"] })).toBe(sketch);
+    expect(answer({ label: "Method", name: "validatesOwner", decorator_names: ["ParameterizedTest"] })).toBe(sketch);
+    expect(answer({ label: "Function", name: "test_items", decorator_names: ["pytest.mark.parametrize"] })).toBe(sketch);
+    // runner-convention names in test files
+    expect(answer({ label: "Function", name: "test_create_item", file_path: "backend/tests/api/routes/test_items.py" })).toBe(sketch);
+    expect(answer({ label: "Method", name: "testPrint", file_path: "src/test/java/owner/PetTypeFormatterTests.java" })).toBe(sketch);
+    expect(answer({ label: "Function", name: "TestParse", file_path: "internal/parse/parse_test.go" })).toBe(sketch);
+    // setup, fixtures, helpers and test classes support the cases
+    expect(answer({ label: "Method", name: "setup", decorator_names: ["BeforeEach"] })).toBe("none");
+    expect(answer({ label: "Function", name: "client", file_path: "backend/tests/conftest.py", decorator_names: ["pytest.fixture"] })).toBe("none");
+    expect(answer({ label: "Class", name: "VisitControllerTests", file_path: "src/test/java/owner/VisitControllerTests.java", decorator_names: ["WebMvcTest(VisitController.class)"] })).toBe("none");
+    expect(answer({ label: "Function", name: "createTestModel", file_path: "tests/helpers/model.ts" })).toBe("none");
+    expect(answer({ label: "Function", name: "randomEmail", file_path: "frontend/tests/utils/random.ts" })).toBe("none");
+    expect(answer({ label: "Function", name: "loadFixture", file_path: "src/__fixtures__/loader.ts" })).toBe("none");
+    // in TypeScript a named testX method on a test file's class is a helper; its cases are it() callbacks
+    expect(answer({ label: "Method", name: "testCheckUpdates", file_path: "tests/unit/integrations/base-manager.test.ts" })).toBe("none");
+    // a test-like name outside a test file is ordinary code
+    expect(answer({ label: "Function", name: "testConnection", file_path: "src/core/db.ts" })).toBeNull();
+    // a spec/ source directory is not test code
+    expect(answer({ label: "Function", name: "loadSpec", file_path: "src/audit/nodes/spec/loader.ts" })).toBeNull();
   });
 
   it("narrow other interfaces but not structs, and leave other classes to the classifier", () => {

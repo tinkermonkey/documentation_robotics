@@ -25,7 +25,7 @@ the model.
 | Piece                            | Where                                                                   | State                                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Node, edge and heuristic mapping | `spec/analyzers/cbm/*.json`, compiled to `spec/dist/analyzers/cbm.json` | Made truthful (inventory step 1); `Interface` family mapped (step 2); `DEFINES_METHOD`, `IMPORTS` mapped (step 3)                              |
-| Tier-0 rule engine               | `cli/src/analyzers/tier0-rules.ts`                                      | Built, unit-tested; 17 rules as data in `extraction-heuristics.json` (inventory steps 2 and 4); measured in the strategy doc's Phase 2 results |
+| Tier-0 rule engine               | `cli/src/analyzers/tier0-rules.ts`                                      | Built, unit-tested; 19 rules as data in `extraction-heuristics.json` (inventory steps 2 and 4); measured in the strategy doc's Phase 2 results |
 | Catalog guard                    | `cli/tests/unit/analyzers/cbm-mapping-catalog.test.ts`                  | Every mapped type and every relationship-creating edge must exist in the catalog; every CBM label is mapped or listed                          |
 | Card builder                     | `cli/src/analyzers/cards/`                                              | Built (2026-11-04); the harness's `cards.ts` and `facts.ts` import it and keep only the sampling                                               |
 | Tier-0 classification command    | `dr analyzer classify --tier0-only`                                     | Built (2026-11-04): every candidate symbol, rule outcomes and facts, no network                                                                |
@@ -110,7 +110,9 @@ Rules encode framework conventions, not patterns read off one corpus, and two mo
 
 The eval gold was revised to match (`classify-eval/gold-revise.ts`, 17 labels; the earlier set is
 kept as `gold@pre-handlers.jsonl`). Test-file rules come before the framework rules, so a fixture
-that happens to be a table class stays in the testing layer. The catalog guard test fails the build
+that happens to be a table class is not filed as a data-model schema. Since the test pass
+(2026-11-05) the test rules decide rather than narrow: test cases are `testing.testcasesketch`, and
+other test code (helpers, fixtures, setup, test classes) is no element. The catalog guard test fails the build
 if a rule names a type the spec does not have.
 
 ### 3. Tier 1: decision model (`cli/src/analyzers/classifier/`)

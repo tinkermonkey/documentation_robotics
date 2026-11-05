@@ -78,6 +78,17 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Changed
 
+- **cbm analyzer: test pass.** One test-file pattern (`tests/` and `fixtures/` directories,
+  `test_*.py`, `conftest.py`, `*_test.go`, `*.test.ts`, `*.spec.ts`, `*Tests.java`) now drives both
+  the Tier-0 test rules and `test_code_exclusion`. The old exclusion pattern missed every Java test
+  file and most pytest files. The test rules decide instead of narrowing:
+  - test cases are `testing.testcasesketch` (`tier0_test_case_annotation` for `@Test` and pytest
+    marks, `tier0_test_case_name` for Python, Go, Java and Kotlin `test_*` / `testX` / `TestX`);
+  - setup, fixtures, test-context classes, helpers and test classes are no element
+    (`tier0_test_support_annotation`, `tier0_test_file`).
+  `HTTP_CALLS` creates `testing.testcasesketch tests api.operation` from a test case (production
+  callers still wait on a catalog addition), and `TESTS` only from a test case. 19 Tier-0 rules.
+
 - **cbm analyzer mapping follows codebase-memory-mcp 0.12.1.** `spec/analyzers/cbm/edge-mapping.json`
   drops `CONTAINS_PACKAGE`, `MEMBER_OF` and `RESOLVED_CALLS`, which 0.12.1 no longer has anywhere
   (45 edges: the 42 documented plus the binary-only `EXTENDS`, `GRAPHQL_CALLS` and `TRPC_CALLS`).
