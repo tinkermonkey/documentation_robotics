@@ -5,6 +5,7 @@ import { join } from "path";
 import YAML from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { upgradeModel } from "../../../src/core/model-upgrade.js";
+import { pendingCatalogMigrations } from "../../../src/core/catalog-migration.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { RELATIONSHIP_REWRITE_TABLE } from "../../../src/core/relationship-migration-table.js";
@@ -38,7 +39,7 @@ const RELATIONSHIPS = [
   { source: "product.capability.discovery", predicate: "aggregates", target: "product.capability.search", layer: "product" },
 ];
 
-async function writeModel(root: string): Promise<void> {
+async function writeModel(root: string, specVersion = "0.9.0"): Promise<void> {
   const modelDir = join(root, "documentation-robotics", "model");
   await mkdir(modelDir, { recursive: true });
   await writeFile(
@@ -46,7 +47,7 @@ async function writeModel(root: string): Promise<void> {
     YAML.stringify({
       version: "1.0.0",
       schema: "documentation-robotics-v1",
-      spec_version: "0.9.0",
+      spec_version: specVersion,
       created: "2026-01-01T00:00:00.000Z",
       updated: "2026-01-01T00:00:00.000Z",
       project: { name: "element-type-migration-test", version: "1.0.0" },
@@ -65,10 +66,10 @@ async function writeModel(root: string): Promise<void> {
   await writeFile(join(modelDir, "relationships.yaml"), `# Intra-layer relationships\n\n${YAML.stringify(RELATIONSHIPS)}`);
 }
 
-async function withModel(test: (root: string) => Promise<void>): Promise<void> {
+async function withModel(test: (root: string) => Promise<void>, specVersion = "0.9.0"): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), "dr-element-type-migration-"));
   try {
-    await writeModel(root);
+    await writeModel(root, specVersion);
     await test(root);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -197,4 +198,41 @@ describe("rename-type in the rewrite table generator", () => {
   it("refuses a rename that is not between two layer.type names", () => {
     expect(() => buildRewriteTable([record("c", "2026-01-01", [{ action: "rename-type", from: "capability", to: "product.softwarecapability" }])], loadCatalogTriples())).toThrow(/rename-type|renaming type/);
   });
+});
+
+describe("catalog migration on a model already at the current version", () => {
+  it("finds the pending changes, applies them without a version change, and is then clean", () =>
+    withModel(async (root) => {
+      const changesetId = await stage(root);
+      const pending = await pendingCatalogMigrations(await Model.load(root, { lazyLoad: false }));
+      expect(pending).toMatchObject({ elementTypes: 2, errors: [] });
+      expect(pending.relationships).toBeGreaterThan(0);
+
+      const result = await upgradeModel(root, { fromVersion: "0.10.0", toVersion: "0.10.0", catalogOnly: true });
+      expect(result.migration?.applied[0]?.changes?.details?.elementTypeChanges).toHaveLength(2);
+      expect(result.changesets.rebaselined.map((c) => c.id)).toEqual([changesetId]);
+
+      const model = await Model.load(root, { lazyLoad: false });
+      expect(model.manifest.specVersion).toBe("0.10.0");
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+      expect((await validator.validateModel(model)).errors).toEqual([]);
+      expect(await pendingCatalogMigrations(model)).toEqual({ elementTypes: 0, relationships: 0, stagedRelationships: 0, errors: [] });
+
+      // The staged changeset was renamed too and still commits
+      await new StagingAreaManager(root, model).commit(model, changesetId);
+      const after = await Model.load(root, { lazyLoad: false });
+      expect(after.layers.get("product")!.getElement("product.softwarecapability.export")?.type).toBe("softwarecapability");
+    }, "0.10.0"));
+
+  it("reports nothing pending, and changes nothing, on a model in line with the catalog", () =>
+    withModel(async (root) => {
+      await upgradeModel(root, { fromVersion: "0.10.0", toVersion: "0.10.0", catalogOnly: true });
+      const relationshipsPath = join(root, "documentation-robotics", "model", "relationships.yaml");
+      const once = await readFile(relationshipsPath, "utf-8");
+      const model = await Model.load(root, { lazyLoad: false });
+      expect(await pendingCatalogMigrations(model)).toEqual({ elementTypes: 0, relationships: 0, stagedRelationships: 0, errors: [] });
+      await upgradeModel(root, { fromVersion: "0.10.0", toVersion: "0.10.0", catalogOnly: true });
+      expect(await readFile(relationshipsPath, "utf-8")).toBe(once);
+    }, "0.10.0"));
 });

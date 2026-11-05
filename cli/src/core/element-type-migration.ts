@@ -101,10 +101,12 @@ function renamedPath(path: string, from: string, to: string): string {
  * Rename the elements of every renamed type in the loaded model, and rewrite what names them.
  *
  * @param renames - old spec node id -> new spec node id; defaults to the generated table's
+ * @param options.dryRun - report the elements that would be renamed, and change nothing
  */
 export async function migrateElementTypes(
   model: Model,
-  renames: Record<string, string> = RELATIONSHIP_REWRITE_TABLE.typeRenames ?? {}
+  renames: Record<string, string> = RELATIONSHIP_REWRITE_TABLE.typeRenames ?? {},
+  options: { dryRun?: boolean } = {}
 ): Promise<ElementTypeMigrationResult> {
   const result: ElementTypeMigrationResult = { filesModified: 0, changes: [], changesetsModified: 0, errors: [] };
   if (Object.keys(renames).length === 0) return result;
@@ -129,6 +131,10 @@ export async function migrateElementTypes(
       }
       const json = element.toJSON();
       const newPath = renamedPath(element.path, oldSpec, newSpec);
+      if (options.dryRun) {
+        result.changes.push({ from: element.path, to: newPath, fromType: oldSpec, toType: newSpec });
+        continue;
+      }
       layer.deleteElement(element.id);
       layer.addElement(
         new Element({
@@ -145,7 +151,7 @@ export async function migrateElementTypes(
       result.changes.push({ from: element.path, to: newPath, fromType: oldSpec, toType: newSpec });
     }
   }
-  if (result.changes.length === 0) return result;
+  if (result.changes.length === 0 || options.dryRun) return result;
 
   // 2. References from any element to a renamed path
   if (ids.size > 0) {

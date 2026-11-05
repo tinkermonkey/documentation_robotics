@@ -18,6 +18,8 @@ import {
   getModelSpecVersion,
 } from "../utils/spec-version.js";
 import { MigrationRegistry } from "../core/migration-registry.js";
+import { Model } from "../core/model.js";
+import { pendingCatalogMigrations } from "../core/catalog-migration.js";
 import {
   upgradeModel,
   type ChangesetRebaselineResult,
@@ -53,6 +55,8 @@ interface UpgradeAction {
   details?: string[];
   integrationName?: "claude" | "copilot";
   versionBumpOnly?: boolean;
+  /** Model already at the target version, but with catalog changes it has not received */
+  catalogOnly?: boolean;
 }
 
 /**
@@ -359,6 +363,13 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         toVersion: targetSpecVersion,
         details: migrationDetails,
       });
+    } else {
+      // Same spec version, but the relationship catalog can change between version bumps: a
+      // model stamped with the current version before a catalog change still needs it
+      const catalogAction = await buildCatalogAction(projectRoot, targetSpecVersion);
+      if (catalogAction) {
+        actions.push(catalogAction);
+      }
     }
 
     // ============================================================================
@@ -570,6 +581,36 @@ async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): P
 /**
  * Execute model migration
  */
+/**
+ * A model action when a model at the current spec version still names element types or
+ * relationship types the catalog has retired; null when it is in line with the catalog
+ */
+async function buildCatalogAction(projectRoot: string, version: string): Promise<UpgradeAction | null> {
+  let pending: Awaited<ReturnType<typeof pendingCatalogMigrations>>;
+  try {
+    pending = await pendingCatalogMigrations(await Model.load(projectRoot, { lazyLoad: false }));
+  } catch (error) {
+    console.log(ansis.yellow(`⚠ Could not check the model against the catalog: ${getErrorMessage(error)}`));
+    return null;
+  }
+  const details = [
+    ...(pending.elementTypes > 0 ? [`Rename ${pending.elementTypes} element(s) whose type was renamed`] : []),
+    ...(pending.relationships > 0 ? [`Rewrite or drop ${pending.relationships} relationship(s) of retired types`] : []),
+    ...(pending.stagedRelationships > 0 ? [`Rewrite ${pending.stagedRelationships} staged relationship change(s)`] : []),
+  ];
+  if (details.length === 0) {
+    return null;
+  }
+  return {
+    type: "model",
+    description: `Apply catalog changes to the model (spec v${version})`,
+    fromVersion: version,
+    toVersion: version,
+    details,
+    catalogOnly: true,
+  };
+}
+
 async function executeModelMigration(
   action: UpgradeAction,
   options: UpgradeOptions
@@ -607,7 +648,11 @@ async function executeModelMigration(
     }
 
     console.log(
-      ansis.dim(`Migrating model from v${action.fromVersion} to v${action.toVersion}...`)
+      ansis.dim(
+        action.catalogOnly
+          ? `Applying catalog changes to the model (v${action.toVersion})...`
+          : `Migrating model from v${action.fromVersion} to v${action.toVersion}...`
+      )
     );
 
     // Apply migrations, save the model and re-baseline staged changesets on it
@@ -615,6 +660,7 @@ async function executeModelMigration(
       fromVersion: action.fromVersion!,
       toVersion: action.toVersion,
       validate: !options.force,
+      catalogOnly: action.catalogOnly,
     });
     const applied = result.migration?.applied ?? [];
 
@@ -624,11 +670,18 @@ async function executeModelMigration(
       if (migration.changes?.filesModified) {
         console.log(ansis.dim(`    Files modified: ${migration.changes.filesModified}`));
       }
+      printElementTypeChanges(migration.changes?.details?.elementTypeChanges);
       printRelationshipChanges(migration.changes?.details?.relationshipChanges);
       printStagedRelationshipChanges(migration.changes?.details?.stagedRelationshipChanges);
     }
 
-    console.log(ansis.green(`✓ Model migrated to v${action.toVersion}`));
+    console.log(
+      ansis.green(
+        action.catalogOnly
+          ? `✓ Model in line with the v${action.toVersion} catalog`
+          : `✓ Model migrated to v${action.toVersion}`
+      )
+    );
     printChangesetRebaseline(result.changesets);
 
     if (operationSpan) {
@@ -654,6 +707,23 @@ async function executeModelMigration(
     throw error;
   } finally {
     endSpan(operationSpan);
+  }
+}
+
+/**
+ * Report elements whose type a catalog migration renamed
+ */
+function printElementTypeChanges(changes: unknown): void {
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return;
+  }
+  const byType = new Map<string, number>();
+  for (const c of changes as Array<{ fromType: string; toType: string }>) {
+    const key = `${c.fromType} → ${c.toType}`;
+    byType.set(key, (byType.get(key) ?? 0) + 1);
+  }
+  for (const [key, n] of byType) {
+    console.log(ansis.dim(`    Renamed ${n} element(s): ${key}`));
   }
 }
 
