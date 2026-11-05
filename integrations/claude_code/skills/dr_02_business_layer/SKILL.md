@@ -127,7 +127,6 @@ IS this a coherent bundle of services with a value proposition for customers?
 | Source Type           | Predicate   | Target Type         | Example                                                           |
 | --------------------- | ----------- | ------------------- | ----------------------------------------------------------------- |
 | Product               | composes    | BusinessService     | "E-commerce Platform" composes "Payment Service"                  |
-| BusinessCollaboration | uses        | BusinessRole        | "Sales Team" uses "Sales Representative" role                     |
 | BusinessProcess       | composes    | BusinessProcess     | "Order Fulfillment" composes "Pick", "Pack", "Ship" sub-processes |
 | BusinessFunction      | composes    | BusinessProcess     | "Sales Function" composes "Lead Generation Process"               |
 | Product               | aggregates  | BusinessService     | Product bundles multiple services                                 |
@@ -135,7 +134,7 @@ IS this a coherent bundle of services with a value proposition for customers?
 | BusinessCollaboration | aggregates  | BusinessRole        | Collaboration includes multiple roles                             |
 | BusinessActor         | assigned-to | BusinessRole        | "John Smith" assigned to "Sales Rep"                              |
 | BusinessActor         | assigned-to | BusinessProcess     | Actor directly performs process                                   |
-| BusinessRole          | performs    | BusinessProcess     | Role performs the process                                         |
+| BusinessRole          | assigned-to | BusinessProcess     | Role responsible for process execution                            |
 | BusinessRole          | assigned-to | BusinessFunction    | Role performs function                                            |
 | BusinessCollaboration | assigned-to | BusinessInteraction | Collaboration performs interaction                                |
 | BusinessProcess       | realizes    | BusinessService     | "Order Processing" realizes "Order Management Service"            |

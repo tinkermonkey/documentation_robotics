@@ -1,0 +1,137 @@
+{
+  "backend": "maintainer",
+  "record": "business-principles",
+  "applied_at": "2026-11-05T13:43:31.947Z",
+  "basis": "spec/layers/02-business.layer.json description: the business layer's modelling rules, applied after walk-business",
+  "counts": {
+    "rename": 6,
+    "delete": 4,
+    "create": 2
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "business.businessrole.performs.business.businessprocess",
+      "to": "business.businessrole.assigned-to.business.businessprocess",
+      "p": 1,
+      "claims": [],
+      "note": "assignment uses assigned-to, the spec's ArchiMate Assignment predicate in every other layer; performs and provides were synonyms in this layer",
+      "file_written": "spec/schemas/relationships/business/businessrole.assigned-to.businessprocess.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/business/businessrole.performs.businessprocess.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "business.businesscollaboration.performs.business.businessinteraction",
+      "to": "business.businesscollaboration.assigned-to.business.businessinteraction",
+      "p": 1,
+      "claims": [],
+      "note": "assignment uses assigned-to, the spec's ArchiMate Assignment predicate in every other layer; performs and provides were synonyms in this layer",
+      "file_written": "spec/schemas/relationships/business/businesscollaboration.assigned-to.businessinteraction.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/business/businesscollaboration.performs.businessinteraction.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "business.businessinterface.provides.business.businessservice",
+      "to": "business.businessinterface.assigned-to.business.businessservice",
+      "p": 1,
+      "claims": [],
+      "note": "assignment uses assigned-to, the spec's ArchiMate Assignment predicate in every other layer; performs and provides were synonyms in this layer (an interface is assigned to the service it offers, as application interface assigned-to application service)",
+      "file_written": "spec/schemas/relationships/business/businessinterface.assigned-to.businessservice.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/business/businessinterface.provides.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "business.businesscollaboration.uses.business.businessrole",
+      "to": "business.businesscollaboration.aggregates.business.businessrole",
+      "p": 1,
+      "claims": [],
+      "note": "a collaboration aggregates its roles (ArchiMate Aggregation; application collaboration aggregates application component); uses is a Serving dependency",
+      "file_written": "spec/schemas/relationships/business/businesscollaboration.aggregates.businessrole.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/business/businesscollaboration.uses.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "business.businessprocess.triggers.business.businessprocess",
+      "to": "business.businessprocess.flows-to.business.businessprocess",
+      "p": 1,
+      "claims": [],
+      "note": "triggers always involves a business event; sequence between behaviours is flows-to; the schema was retired by the walk, and its relationships now move to flows-to on the same pair instead of being dropped"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "business.businessprocess.triggers.business.businessfunction",
+      "to": "business.businessprocess.flows-to.business.businessfunction",
+      "p": 1,
+      "claims": [],
+      "note": "triggers always involves a business event; sequence between behaviours is flows-to; a function is ongoing and has no start to trigger",
+      "file_written": "spec/schemas/relationships/business/businessprocess.flows-to.businessfunction.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/business/businessprocess.triggers.businessfunction.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "business.businessprocess.accesses.business.businessevent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "accesses runs from behaviour to passive structure, and an event is behaviour; created by the walk's retarget of contract triggers process, so no released model has it",
+      "file_removed": "spec/schemas/relationships/business/businessprocess.accesses.businessevent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "business.businessprocess.flows-to.business.businessevent",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "triggers always involves a business event; sequence between behaviours is flows-to: a process raising an event is process triggers event, which exists; created by the walk's retarget of process triggers process, so no released model has it",
+      "file_removed": "spec/schemas/relationships/business/businessprocess.flows-to.businessevent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "business.businessrole.accesses.business.businessobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only behaviour accesses passive structure; active structure reaches business objects and contracts through the behaviour assigned to it",
+      "file_removed": "spec/schemas/relationships/business/businessrole.accesses.businessobject.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "business.businessrole.accesses.business.contract",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "only behaviour accesses passive structure; active structure reaches business objects and contracts through the behaviour assigned to it; contract serves businessrole, which the walk moved here, is dropped with it",
+      "file_removed": "spec/schemas/relationships/business/businessrole.accesses.contract.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "business.businessservice.serves.business.businessrole",
+      "to": "business.businessservice.serves.business.businessrole",
+      "p": 1,
+      "claims": [],
+      "note": "services serve their consumers: actors, roles and the processes that use them (ArchiMate Serving)",
+      "file_written": "spec/schemas/relationships/business/businessservice.serves.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "business.businessservice.serves.business.businessprocess",
+      "to": "business.businessservice.serves.business.businessprocess",
+      "p": 1,
+      "claims": [],
+      "note": "services serve their consumers: actors, roles and the processes that use them (ArchiMate Serving)",
+      "file_written": "spec/schemas/relationships/business/businessservice.serves.businessprocess.relationship.schema.json"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessinteraction triggers Businessevent",
-  "description": "Defines relationship: business.businessinteraction triggers business.businessevent",
+  "description": "The interaction raises the event when its joint behaviour reaches a named state change, such as a deal being agreed.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

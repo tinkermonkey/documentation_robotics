@@ -15,7 +15,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-tier1.json",
     "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-application.json",
     "cli/scripts/spec-enrich/data/applied-synonyms.json",
-    "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-business.json"
+    "cli/scripts/spec-enrich/data/triage/reflect/clef/applied-walk-business.json",
+    "cli/scripts/spec-enrich/data/applied-business-principles.json"
   ],
   "predicateRenames": {
     "fulfills-requirements": "fulfills",
@@ -318,10 +319,25 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "business.businesscollaboration.composes.business.businessrole": {
-      "to": "business.businesscollaboration.uses.business.businessrole",
+      "to": "business.businesscollaboration.aggregates.business.businessrole",
       "swap": false,
       "records": [
-        "walk-business"
+        "walk-business",
+        "business-principles"
+      ]
+    },
+    "business.businesscollaboration.performs.business.businessinteraction": {
+      "to": "business.businesscollaboration.assigned-to.business.businessinteraction",
+      "swap": false,
+      "records": [
+        "business-principles"
+      ]
+    },
+    "business.businesscollaboration.uses.business.businessrole": {
+      "to": "business.businesscollaboration.aggregates.business.businessrole",
+      "swap": false,
+      "records": [
+        "business-principles"
       ]
     },
     "business.businessevent.triggers.business.businessfunction": {
@@ -367,6 +383,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-business"
       ]
     },
+    "business.businessinterface.provides.business.businessservice": {
+      "to": "business.businessinterface.assigned-to.business.businessservice",
+      "swap": false,
+      "records": [
+        "business-principles"
+      ]
+    },
     "business.businessinterface.triggers.business.businessfunction": {
       "to": null,
       "swap": false,
@@ -379,6 +402,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": false,
       "records": [
         "walk-business"
+      ]
+    },
+    "business.businessprocess.accesses.business.businessevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "business-principles"
       ]
     },
     "business.businessprocess.aggregates.application.applicationprocess": {
@@ -395,6 +425,13 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "tier1"
       ]
     },
+    "business.businessprocess.flows-to.business.businessevent": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "business-principles"
+      ]
+    },
     "business.businessprocess.realizes.motivation.goal": {
       "to": null,
       "swap": false,
@@ -402,11 +439,32 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-business"
       ]
     },
+    "business.businessprocess.triggers.business.businessfunction": {
+      "to": "business.businessprocess.flows-to.business.businessfunction",
+      "swap": false,
+      "records": [
+        "business-principles"
+      ]
+    },
     "business.businessprocess.triggers.business.businessprocess": {
+      "to": "business.businessprocess.flows-to.business.businessprocess",
+      "swap": false,
+      "records": [
+        "business-principles"
+      ]
+    },
+    "business.businessrole.accesses.business.businessobject": {
       "to": null,
       "swap": false,
       "records": [
-        "walk-business"
+        "business-principles"
+      ]
+    },
+    "business.businessrole.accesses.business.contract": {
+      "to": null,
+      "swap": false,
+      "records": [
+        "business-principles"
       ]
     },
     "business.businessrole.assigned-to.business.businessinterface": {
@@ -416,18 +474,18 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
         "walk-business"
       ]
     },
-    "business.businessrole.assigned-to.business.businessprocess": {
-      "to": "business.businessrole.performs.business.businessprocess",
-      "swap": false,
-      "records": [
-        "walk-business"
-      ]
-    },
     "business.businessrole.performs.business.businessfunction": {
       "to": "business.businessrole.assigned-to.business.businessfunction",
       "swap": false,
       "records": [
         "walk-business"
+      ]
+    },
+    "business.businessrole.performs.business.businessprocess": {
+      "to": "business.businessrole.assigned-to.business.businessprocess",
+      "swap": false,
+      "records": [
+        "business-principles"
       ]
     },
     "business.businessrole.serves.business.businessactor": {
@@ -459,10 +517,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "business.contract.serves.business.businessrole": {
-      "to": "business.businessrole.accesses.business.contract",
+      "to": null,
       "swap": true,
       "records": [
-        "walk-business"
+        "walk-business",
+        "business-principles"
       ]
     },
     "business.contract.triggers.business.businessprocess": {

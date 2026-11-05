@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessprocess ConstrainedBy Separationofduty",
-  "description": "Defines relationship: business.businessprocess constrained-by security.separationofduty",
+  "description": "The separation-of-duty rule limits which roles may perform the process's steps, so that no one role carries a sensitive sequence end to end.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

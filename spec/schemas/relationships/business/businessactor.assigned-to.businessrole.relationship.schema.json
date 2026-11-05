@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessactor Assigned To Businessrole",
-  "description": "Defines relationship: business.businessactor assigned-to business.businessrole",
+  "description": "The actor fills the role and takes on its responsibilities; this is how a person, team or organization comes to perform business behaviour, since behaviour is assigned to roles rather than to actors directly.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

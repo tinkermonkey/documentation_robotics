@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessinteraction accesses Businessobject",
-  "description": "Defines relationship: business.businessinteraction accesses business.businessobject",
+  "description": "The interaction's participants jointly create, read, update or delete the business object, as when a negotiation produces agreed terms.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

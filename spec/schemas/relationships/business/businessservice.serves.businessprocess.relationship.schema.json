@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businesscollaboration uses Businessrole",
-  "description": "Defines relationship: business.businesscollaboration uses business.businessrole",
+  "title": "Businessservice serves Businessprocess",
+  "description": "One or more steps of the process use the service to get the result the sequence needs.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businesscollaboration.uses.business.businessrole"
+      "const": "business.businessservice.serves.business.businessprocess"
     },
     "source_spec_node_id": {
-      "const": "business.businesscollaboration"
+      "const": "business.businessservice"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessrole"
+      "const": "business.businessprocess"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "uses"
+      "const": "serves"
     },
     "cardinality": {
       "const": "many-to-many"

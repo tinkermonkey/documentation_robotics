@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Businessprocess accesses Businessevent",
-  "description": "Defines relationship: business.businessprocess accesses business.businessevent",
+  "title": "Businessinterface assigned-to Businessservice",
+  "description": "The interface is the channel through which the service is offered, so the service is reached at that point of access, such as a portal, counter or call centre.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,22 +9,22 @@
   ],
   "properties": {
     "id": {
-      "const": "business.businessprocess.accesses.business.businessevent"
+      "const": "business.businessinterface.assigned-to.business.businessservice"
     },
     "source_spec_node_id": {
-      "const": "business.businessprocess"
+      "const": "business.businessinterface"
     },
     "source_layer": {
       "const": "business"
     },
     "destination_spec_node_id": {
-      "const": "business.businessevent"
+      "const": "business.businessservice"
     },
     "destination_layer": {
       "const": "business"
     },
     "predicate": {
-      "const": "accesses"
+      "const": "assigned-to"
     },
     "cardinality": {
       "const": "many-to-many"

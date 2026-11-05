@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Businessinteraction flows-to Businessinteraction",
-  "description": "Defines relationship: business.businessinteraction flows-to business.businessinteraction",
+  "description": "The result of the upstream interaction passes to the downstream interaction, which continues the joint work.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"

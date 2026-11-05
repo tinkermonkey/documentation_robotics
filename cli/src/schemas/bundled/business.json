@@ -4,7 +4,7 @@
     "id": "business",
     "number": 2,
     "name": "Business Layer",
-    "description": "Describes what the organization does independently of the software that supports it: business actors and roles, collaborations and interfaces, processes, functions, interactions and events, business services and business objects (ArchiMate 3.2 business layer). Elements here are realized by application services and consume no implementation detail.",
+    "description": "Describes what the organization does independently of the software that supports it: business actors and roles, collaborations and interfaces, processes, functions, interactions and events, business services and business objects (ArchiMate 3.2 business layer). Elements here are realized by application services and consume no implementation detail. Modelling rules: actors fill roles, and roles and collaborations are assigned to the processes, functions and interactions they perform (assigned-to); behaviour is never assigned to an actor directly. Internal behaviour realizes business services, which interfaces offer (assigned-to) and which serve actors, roles and processes. Only behaviour accesses business objects and contracts; actors, roles and interfaces reach information through the behaviour assigned to them. Events trigger processes and interactions, and behaviour raises events (triggers); a hand-off between behaviours is flows-to, and a function, having no start, is reached by flows rather than triggered. Business services carry the main link to motivation: they realize goals and outcomes, satisfy requirements and deliver value, and processes may also realize outcomes and satisfy requirements.",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -74,7 +74,7 @@
     "businesscollaboration": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessCollaboration",
-      "description": "An active structure element that is a temporary or permanent grouping of two or more BusinessRoles (or BusinessActors) jointly assigned to collective behavior that none of them performs alone. It has no identity apart from its participants: removing participants below two dissolves it. Use BusinessRole instead when the element is a single set of responsibilities assignable to one actor, even if many actors may fill it. Use BusinessActor instead when the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines. Use BusinessInteraction instead when you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it. Use Contract instead when you are modelling the recorded agreement binding the parties rather than the parties acting together.",
+      "description": "An active structure element that is a temporary or permanent grouping of two or more BusinessRoles (which BusinessActors fill) jointly assigned to collective behavior that none of them performs alone. It has no identity apart from its participants: removing participants below two dissolves it. Use BusinessRole instead when the element is a single set of responsibilities assignable to one actor, even if many actors may fill it. Use BusinessActor instead when the grouping is a standing organizational unit (department, team, partner company) with its own identity, independent of which roles it combines. Use BusinessInteraction instead when you are modelling the joint behavior itself (e.g. 'negotiate terms') rather than the group of participants that performs it. Use Contract instead when you are modelling the recorded agreement binding the parties rather than the parties acting together.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -122,7 +122,7 @@
     "businessevent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessEvent",
-      "description": "A behavior element that denotes an instantaneous, named occurrence of a business state change (e.g., order placed, contract signed, month-end reached) with no duration and no performer of its own. It exists only to trigger, or to be the outcome of, a BusinessProcess, BusinessFunction or BusinessInteraction. Use BusinessProcess instead when the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time. Use BusinessObject instead when the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced). Use BusinessInteraction instead when the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior.",
+      "description": "A behavior element that denotes an instantaneous, named occurrence of a business state change (e.g., order placed, contract signed, month-end reached) with no duration and no performer of its own. It exists only to trigger a BusinessProcess or BusinessInteraction, or to be raised by a BusinessProcess, BusinessFunction or BusinessInteraction; it is never accessed like information, and a hand-off between behaviours that involves no named occurrence is a flow, not an event. Use BusinessProcess instead when the element has duration, ordered steps, or a performing actor or role, rather than marking a single point in time. Use BusinessObject instead when the thing being modelled is the information record or message payload that carries the facts (e.g., the Order document), not the occurrence itself (OrderPlaced). Use BusinessInteraction instead when the element is collective behavior jointly carried out by several roles in a collaboration, not the moment that starts or ends that behavior.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -175,7 +175,7 @@
     "businessfunction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessFunction",
-      "description": "A business behavior element that groups ongoing internal behavior by the competency, skill, knowledge or resource it requires (e.g. Accounting, Claims Handling, Procurement), performed by a BusinessRole or BusinessActor, with no defined start, end or ordered sequence of steps. Use BusinessProcess instead when the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence. Use BusinessService instead when the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor. Use BusinessRole instead when the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting').",
+      "description": "A business behavior element that groups ongoing internal behavior by the competency, skill, knowledge or resource it requires (e.g. Accounting, Claims Handling, Procurement), performed by the BusinessRole assigned to it, with no defined start, end or ordered sequence of steps, so it is not triggered by an event; work reaches it through flows from processes and other functions. Use BusinessProcess instead when the behavior is an ordered sequence of steps with a trigger and a defined end result (e.g. 'Handle Insurance Claim from submission to payout') rather than a standing area of competence. Use BusinessService instead when the element describes externally visible behavior from the consumer's perspective (what is offered), rather than the internal grouping of work that realizes it. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles in a BusinessCollaboration rather than by a single role or actor. Use BusinessRole instead when the element names who holds responsibility (e.g. 'Claims Handler', 'Finance Department') rather than the behavior they perform (e.g. 'Claims Handling', 'Financial Accounting').",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -359,7 +359,7 @@
     "businessprocess": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BusinessProcess",
-      "description": "A business behavior element, performed by a BusinessRole or BusinessActor, that consists of an ordered sequence of business activities with a defined start (a BusinessEvent or internal initiation) and a defined end state yielding a specific result, such as a delivered BusinessObject or a fulfilled request, for a customer or stakeholder. Use BusinessFunction instead when the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor. Use BusinessService instead when you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done). Use BusinessEvent instead when the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes.",
+      "description": "A business behavior element, performed by the BusinessRole assigned to it (BusinessActors take part by filling that role), that consists of an ordered sequence of business activities with a defined start (a BusinessEvent or internal initiation) and a defined end state yielding a specific result, such as a delivered BusinessObject or a fulfilled request, for a customer or stakeholder. Use BusinessFunction instead when the behavior is a stable grouping of work by competency, skill or resource (e.g. 'Accounts Payable') with no inherent start trigger, step order or end result. Use BusinessInteraction instead when the behavior can only be performed jointly by two or more roles acting as a BusinessCollaboration rather than by a single role or actor. Use BusinessService instead when you are describing the externally visible value offered to a consumer (what is provided), not the internal sequence of steps that delivers it (how it is done). Use BusinessEvent instead when the element is an instantaneous state change (e.g. 'Order Placed') that starts or ends a process, not the activity that runs between such changes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -647,7 +647,8 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The actor fills the role and takes on its responsibilities; this is how a person, team or organization comes to perform business behaviour, since behaviour is assigned to roles rather than to actors directly."
     },
     "business.businessactor.serves.motivation.stakeholder": {
       "id": "business.businessactor.serves.motivation.stakeholder",
@@ -658,29 +659,32 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The actor acts on behalf of the stakeholder, so the stakeholder's concerns and drivers apply to what the actor does in the organization."
     },
-    "business.businesscollaboration.performs.business.businessinteraction": {
-      "id": "business.businesscollaboration.performs.business.businessinteraction",
-      "source_spec_node_id": "business.businesscollaboration",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessinteraction",
-      "destination_layer": "business",
-      "predicate": "performs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "business.businesscollaboration.uses.business.businessrole": {
-      "id": "business.businesscollaboration.uses.business.businessrole",
+    "business.businesscollaboration.aggregates.business.businessrole": {
+      "id": "business.businesscollaboration.aggregates.business.businessrole",
       "source_spec_node_id": "business.businesscollaboration",
       "source_layer": "business",
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
-      "predicate": "uses",
+      "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The role is a participant in the collaboration; the role exists on its own and can take part in several collaborations, and the collaboration has no identity apart from the roles it groups."
+    },
+    "business.businesscollaboration.assigned-to.business.businessinteraction": {
+      "id": "business.businesscollaboration.assigned-to.business.businessinteraction",
+      "source_spec_node_id": "business.businesscollaboration",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessinteraction",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The collaboration carries out the interaction jointly; no single participating role can complete it alone."
     },
     "business.businessevent.triggers.business.businessinteraction": {
       "id": "business.businessevent.triggers.business.businessinteraction",
@@ -691,7 +695,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The occurrence of the event starts a run of the interaction among the collaboration's participants."
     },
     "business.businessevent.triggers.business.businessprocess": {
       "id": "business.businessevent.triggers.business.businessprocess",
@@ -702,7 +707,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The occurrence of the event is the start trigger that launches a run of the process's ordered steps; use it for the event a process waits for, not for a hand-off between processes, which is flows-to."
     },
     "business.businessfunction.accesses.business.businessobject": {
       "id": "business.businessfunction.accesses.business.businessobject",
@@ -713,7 +719,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function creates, reads, updates or deletes the business object while carrying out its ongoing behaviour."
     },
     "business.businessfunction.accesses.business.contract": {
       "id": "business.businessfunction.accesses.business.contract",
@@ -724,7 +731,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function reads or maintains the terms of the contract as part of its ongoing behaviour, for example when contract management records or renews agreements."
     },
     "business.businessfunction.composes.business.businessfunction": {
       "id": "business.businessfunction.composes.business.businessfunction",
@@ -735,7 +743,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The narrower function is part of the wider one and exists only within it, so the function decomposes into the competencies that make it up."
     },
     "business.businessfunction.flows-to.business.businessfunction": {
       "id": "business.businessfunction.flows-to.business.businessfunction",
@@ -746,7 +755,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Work or information produced by the upstream function passes to the downstream function, which continues with it."
     },
     "business.businessfunction.flows-to.business.businessprocess": {
       "id": "business.businessfunction.flows-to.business.businessprocess",
@@ -757,7 +767,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Work or information produced by the function is handed to the process, which uses it in its ordered steps."
     },
     "business.businessfunction.realizes.business.businessservice": {
       "id": "business.businessfunction.realizes.business.businessservice",
@@ -768,7 +779,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function's ongoing behaviour is what makes the service available to its consumers."
     },
     "business.businessfunction.triggers.business.businessevent": {
       "id": "business.businessfunction.triggers.business.businessevent",
@@ -779,7 +791,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The function raises the event when it reaches a business state change worth naming, such as a monthly close being completed."
     },
     "business.businessinteraction.accesses.business.businessobject": {
       "id": "business.businessinteraction.accesses.business.businessobject",
@@ -790,7 +803,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction's participants jointly create, read, update or delete the business object, as when a negotiation produces agreed terms."
     },
     "business.businessinteraction.flows-to.business.businessinteraction": {
       "id": "business.businessinteraction.flows-to.business.businessinteraction",
@@ -801,7 +815,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The result of the upstream interaction passes to the downstream interaction, which continues the joint work."
     },
     "business.businessinteraction.flows-to.business.businessprocess": {
       "id": "business.businessinteraction.flows-to.business.businessprocess",
@@ -812,7 +827,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The result of the interaction is handed to the process, which carries it forward with a single performing role."
     },
     "business.businessinteraction.realizes.business.businessservice": {
       "id": "business.businessinteraction.realizes.business.businessservice",
@@ -823,7 +839,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction's joint behaviour is what makes the service available, so the service exists only because the participants work together."
     },
     "business.businessinteraction.triggers.business.businessevent": {
       "id": "business.businessinteraction.triggers.business.businessevent",
@@ -834,18 +851,20 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interaction raises the event when its joint behaviour reaches a named state change, such as a deal being agreed."
     },
-    "business.businessinterface.provides.business.businessservice": {
-      "id": "business.businessinterface.provides.business.businessservice",
+    "business.businessinterface.assigned-to.business.businessservice": {
+      "id": "business.businessinterface.assigned-to.business.businessservice",
       "source_spec_node_id": "business.businessinterface",
       "source_layer": "business",
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
-      "predicate": "provides",
+      "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The interface is the channel through which the service is offered, so the service is reached at that point of access, such as a portal, counter or call centre."
     },
     "business.businessinterface.serves.business.businessactor": {
       "id": "business.businessinterface.serves.business.businessactor",
@@ -856,7 +875,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The actor uses the interface as its point of access to the organization's services."
     },
     "business.businessinterface.serves.business.businessrole": {
       "id": "business.businessinterface.serves.business.businessrole",
@@ -867,7 +887,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Whoever fills the role uses the interface as its point of access to the organization's services."
     },
     "business.businessobject.composes.business.businessobject": {
       "id": "business.businessobject.composes.business.businessobject",
@@ -878,7 +899,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The part object exists only within the whole object, as order lines exist only within an order."
     },
     "business.businessobject.references.application.dataobject": {
       "id": "business.businessobject.references.application.dataobject",
@@ -889,18 +911,8 @@
       "predicate": "references",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "business.businessprocess.accesses.business.businessevent": {
-      "id": "business.businessprocess.accesses.business.businessevent",
-      "source_spec_node_id": "business.businessprocess",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessevent",
-      "destination_layer": "business",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The data object records the business object's information in an application, so the business concept can be traced to the data that holds it."
     },
     "business.businessprocess.accesses.business.businessobject": {
       "id": "business.businessprocess.accesses.business.businessobject",
@@ -911,7 +923,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One or more steps of the process create, read, update or delete the business object."
     },
     "business.businessprocess.accesses.business.contract": {
       "id": "business.businessprocess.accesses.business.contract",
@@ -922,7 +935,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "One or more steps of the process read or change the contract, for example checking an entitlement or recording a signature."
     },
     "business.businessprocess.constrained-by.security.securityconstraints": {
       "id": "business.businessprocess.constrained-by.security.securityconstraints",
@@ -933,7 +947,8 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process must run within the security constraints, which limit who can perform its steps and how."
     },
     "business.businessprocess.constrained-by.security.separationofduty": {
       "id": "business.businessprocess.constrained-by.security.separationofduty",
@@ -944,18 +959,20 @@
       "predicate": "constrained-by",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The separation-of-duty rule limits which roles may perform the process's steps, so that no one role carries a sensitive sequence end to end."
     },
-    "business.businessprocess.flows-to.business.businessevent": {
-      "id": "business.businessprocess.flows-to.business.businessevent",
+    "business.businessprocess.flows-to.business.businessfunction": {
+      "id": "business.businessprocess.flows-to.business.businessfunction",
       "source_spec_node_id": "business.businessprocess",
       "source_layer": "business",
-      "destination_spec_node_id": "business.businessevent",
+      "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Work or information produced by the process is handed to the function, which continues with it as part of its ongoing behaviour."
     },
     "business.businessprocess.flows-to.business.businessprocess": {
       "id": "business.businessprocess.flows-to.business.businessprocess",
@@ -966,7 +983,8 @@
       "predicate": "flows-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "When the upstream process completes or reaches a hand-off point, its work or result passes to the downstream process, which continues the end-to-end sequence; use it for the sequence between processes, and triggers only for an event."
     },
     "business.businessprocess.realizes.business.businessservice": {
       "id": "business.businessprocess.realizes.business.businessservice",
@@ -977,7 +995,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process's ordered steps are what makes the service available to its consumers."
     },
     "business.businessprocess.realizes.motivation.outcome": {
       "id": "business.businessprocess.realizes.motivation.outcome",
@@ -988,7 +1007,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Completing the process produces the outcome, the end result the organization wants."
     },
     "business.businessprocess.satisfies.motivation.requirement": {
       "id": "business.businessprocess.satisfies.motivation.requirement",
@@ -999,7 +1019,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process is how the organization meets the requirement."
     },
     "business.businessprocess.triggers.business.businessevent": {
       "id": "business.businessprocess.triggers.business.businessevent",
@@ -1010,40 +1031,8 @@
       "predicate": "triggers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "business.businessprocess.triggers.business.businessfunction": {
-      "id": "business.businessprocess.triggers.business.businessfunction",
-      "source_spec_node_id": "business.businessprocess",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessfunction",
-      "destination_layer": "business",
-      "predicate": "triggers",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "business.businessrole.accesses.business.businessobject": {
-      "id": "business.businessrole.accesses.business.businessobject",
-      "source_spec_node_id": "business.businessrole",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessobject",
-      "destination_layer": "business",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
-    },
-    "business.businessrole.accesses.business.contract": {
-      "id": "business.businessrole.accesses.business.contract",
-      "source_spec_node_id": "business.businessrole",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.contract",
-      "destination_layer": "business",
-      "predicate": "accesses",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The process raises the event, typically when it ends or passes a milestone, such as an order being shipped."
     },
     "business.businessrole.assigned-to.business.businessfunction": {
       "id": "business.businessrole.assigned-to.business.businessfunction",
@@ -1054,7 +1043,8 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Whoever fills the role carries out the function's ongoing behaviour."
     },
     "business.businessrole.assigned-to.business.businessinteraction": {
       "id": "business.businessrole.assigned-to.business.businessinteraction",
@@ -1065,7 +1055,20 @@
       "predicate": "assigned-to",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The role is one of the participants that carry out the interaction jointly."
+    },
+    "business.businessrole.assigned-to.business.businessprocess": {
+      "id": "business.businessrole.assigned-to.business.businessprocess",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Whoever fills the role performs the process and is responsible for its result."
     },
     "business.businessrole.composes.business.businessrole": {
       "id": "business.businessrole.composes.business.businessrole",
@@ -1076,18 +1079,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
-    },
-    "business.businessrole.performs.business.businessprocess": {
-      "id": "business.businessrole.performs.business.businessprocess",
-      "source_spec_node_id": "business.businessrole",
-      "source_layer": "business",
-      "destination_spec_node_id": "business.businessprocess",
-      "destination_layer": "business",
-      "predicate": "performs",
-      "cardinality": "many-to-many",
-      "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The narrower role is part of the wider one and exists only within it, so the wider role's responsibilities include the narrower role's."
     },
     "business.businessrole.serves.motivation.stakeholder": {
       "id": "business.businessrole.serves.motivation.stakeholder",
@@ -1098,7 +1091,8 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The role acts on behalf of the stakeholder, so the stakeholder's concerns and drivers apply to whoever fills the role."
     },
     "business.businessservice.accesses.business.contract": {
       "id": "business.businessservice.accesses.business.contract",
@@ -1109,7 +1103,8 @@
       "predicate": "accesses",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Delivering the service reads the contract's terms, for example checking a consumer's entitlement or service level."
     },
     "business.businessservice.delivers-value.motivation.value": {
       "id": "business.businessservice.delivers-value.motivation.value",
@@ -1120,7 +1115,8 @@
       "predicate": "delivers-value",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Consumers of the service gain the value; the value is why the service is offered."
     },
     "business.businessservice.delivers.business.businessobject": {
       "id": "business.businessservice.delivers.business.businessobject",
@@ -1131,7 +1127,8 @@
       "predicate": "delivers",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service hands the business object to its consumer as its result, as a policy issuance service delivers a policy."
     },
     "business.businessservice.realizes.motivation.goal": {
       "id": "business.businessservice.realizes.motivation.goal",
@@ -1142,7 +1139,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Offering the service achieves the goal; this is the business layer's main link to the organization's goals."
     },
     "business.businessservice.realizes.motivation.outcome": {
       "id": "business.businessservice.realizes.motivation.outcome",
@@ -1153,7 +1151,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "Offering the service produces the outcome its consumers or the organization want."
     },
     "business.businessservice.satisfies.motivation.requirement": {
       "id": "business.businessservice.satisfies.motivation.requirement",
@@ -1164,7 +1163,8 @@
       "predicate": "satisfies",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service is how the organization meets the requirement."
     },
     "business.businessservice.serves.business.businessactor": {
       "id": "business.businessservice.serves.business.businessactor",
@@ -1175,7 +1175,32 @@
       "predicate": "serves",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The actor uses the service; the actor is a consumer, such as a customer or supplier, of what the service offers."
+    },
+    "business.businessservice.serves.business.businessprocess": {
+      "id": "business.businessservice.serves.business.businessprocess",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "One or more steps of the process use the service to get the result the sequence needs."
+    },
+    "business.businessservice.serves.business.businessrole": {
+      "id": "business.businessservice.serves.business.businessrole",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "Whoever fills the role uses the service as a consumer of what it offers."
     },
     "business.contract.governs.business.businessservice": {
       "id": "business.contract.governs.business.businessservice",
@@ -1186,7 +1211,8 @@
       "predicate": "governs",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The contract sets the obligations, rights and terms, such as service levels, prices and penalties, under which the service is delivered and used."
     },
     "business.product.aggregates.business.businessservice": {
       "id": "business.product.aggregates.business.businessservice",
@@ -1197,7 +1223,8 @@
       "predicate": "aggregates",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The service is one of the offerings bundled into the product; it exists on its own and can be part of several products."
     },
     "business.product.composes.business.contract": {
       "id": "business.product.composes.business.contract",
@@ -1208,7 +1235,8 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The contract states the terms of the product and exists only as part of it."
     },
     "business.representation.realizes.business.businessobject": {
       "id": "business.representation.realizes.business.businessobject",
@@ -1219,7 +1247,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The representation is a perceptible form of the business object, such as a printed invoice or an on-screen statement."
     },
     "business.representation.realizes.business.contract": {
       "id": "business.representation.realizes.business.contract",
@@ -1230,7 +1259,8 @@
       "predicate": "realizes",
       "cardinality": "many-to-many",
       "strength": "medium",
-      "required": false
+      "required": false,
+      "description": "The representation is a perceptible form of the contract, such as the signed document or its PDF."
     }
   }
 }
