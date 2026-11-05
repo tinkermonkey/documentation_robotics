@@ -68,6 +68,16 @@ describe("delete replacements", () => {
     expect(rename.replacement).toBeNull();
   });
 
+  it("a walk delete whose replacement is one of its own adds comes after that create", () => {
+    const [create, del] = normalize(operationsFromDecision(walk({ replacement: ASSIGNED_TO_FUNCTION, add: [ASSIGNED_TO_FUNCTION] }), op({}), new Map()), new Map());
+    expect(create.op).toBe("create");
+    expect(create.fields.relationship_id).toBe(ASSIGNED_TO_FUNCTION);
+    expect(create.ref).toBe(`c${create.seq}`);
+    expect(del.op).toBe("delete");
+    expect(del.seq).toBeGreaterThan(create.seq);
+    expect(del.replacement).toBe(ASSIGNED_TO_FUNCTION);
+  });
+
   it("an update onto a triple an earlier operation produces becomes a delete naming it (reversed here)", () => {
     const base = { predicate: "assigned-to", source_spec_node_id: "business.businessrole", destination_spec_node_id: "business.businessinterface" };
     const first = op({ op: "update", target_id: "business.businessinterface.uses.business.businessrole", fields: { predicate: "serves" }, base: { predicate: "uses", source_spec_node_id: "business.businessinterface", destination_spec_node_id: "business.businessrole" } });

@@ -227,8 +227,9 @@ export function operationFor(row: PlannedChange, seq: number, catalog: Map<strin
 
 /**
  * The operations a decided walk row implies, all pending with the decision in dr.walk_decision:
- * a delete (plus its also_delete twins), an update for rename / reverse / retarget, a create for
- * each added counterpart, and the plan's own operation for a keep (which a reviewer rejects).
+ * a create for each added counterpart (first), then a delete (plus its also_delete twins) or an
+ * update for rename / reverse / retarget, and the plan's own operation for a keep (which a
+ * reviewer rejects).
  */
 export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: Map<string, RelationshipSchema>): Operation[] {
   // dr.triple stays the plan row's own triple on every operation of the row (the importer groups
@@ -237,6 +238,12 @@ export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: M
   if (w.decision === "keep") return [mark(planOp)];
   const out: Operation[] = [];
   const common = { kind: "property" as const, evidence: planOp.evidence, probability: planOp.probability, scope: null, status: "pending" as const, dr: planOp.dr };
+  // Adds come first: a delete whose replacement is one of them then names an earlier create,
+  // which Context Studio resolves to that create's "$ref" (a ref must point backwards).
+  for (const extra of w.add ?? []) {
+    const t = triple(extra);
+    out.push(mark({ seq: 0, op: "create", target_id: null, ref: "c", fields: { relationship_id: extra, predicate: t.predicate, source_spec_node_id: t.source, destination_spec_node_id: t.destination, title: `${t.source} ${t.predicate} ${t.destination}` }, replacement: null, base: {}, rationale: `Added as counterpart of ${w.replacement}: ${w.rationale}`, ...common }, "add"));
+  }
   if (w.decision === "delete") {
     const dr = { ...planOp.dr, replacement: w.replacement ? [w.replacement] : planOp.dr.replacement };
     out.push(mark({ seq: 0, op: "delete", target_id: w.triple, ref: null, fields: {}, replacement: w.replacement, base: planOp.base, rationale: w.rationale, ...common, dr }));
@@ -246,10 +253,6 @@ export function operationsFromDecision(w: WalkRow, planOp: Operation, catalog: M
   }
   for (const extra of w.also_delete ?? []) {
     out.push(mark({ seq: 0, op: "delete", target_id: extra, ref: null, fields: {}, replacement: null, base: currentFields(extra, catalog), rationale: `Also removed with ${w.triple}: ${w.rationale}`, ...common }, "also_delete"));
-  }
-  for (const extra of w.add ?? []) {
-    const t = triple(extra);
-    out.push(mark({ seq: 0, op: "create", target_id: null, ref: "c", fields: { relationship_id: extra, predicate: t.predicate, source_spec_node_id: t.source, destination_spec_node_id: t.destination, title: `${t.source} ${t.predicate} ${t.destination}` }, replacement: null, base: {}, rationale: `Added as counterpart of ${w.replacement}: ${w.rationale}`, ...common }, "add"));
   }
   return out;
 }
