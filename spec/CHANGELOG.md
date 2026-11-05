@@ -151,9 +151,11 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   serves businessrole` (each covered by its reverse or a behaviour edge). Business goes from 69 to
   54 relationship schemas, the catalog from 1,526 to 1,511; actions recorded in
   `applied-walk-business.json`. `dr upgrade` renames or reverses model relationships where the
-  replacement links the same two element types, and drops those of the other 16 retired types
-  (including `businessfunction serves businessrole`, whose reverse is itself retired), since a
-  migration cannot move a relationship to a different element.
+  replacement links the same two element types, and drops those of the other 14 retired types,
+  since a migration cannot move a relationship to a different element. `businessrole performs
+  businessfunction` and `businessfunction serves businessrole` both become `businessrole
+  assigned-to businessfunction` (the maintainer's change to the decision, which named `businessrole
+  assigned-to businessprocess`, a different element), so role-to-function links are kept.
 
 - **BREAKING: application-layer walk of the remaining reflection rows (18 rows adjudicated by the
   maintainer, `cli/scripts/spec-enrich/data/triage/reflect/clef/walk-application.jsonl`).** Six

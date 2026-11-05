@@ -339,7 +339,7 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "business.businessfunction.serves.business.businessrole": {
-      "to": null,
+      "to": "business.businessrole.assigned-to.business.businessfunction",
       "swap": true,
       "records": [
         "walk-business",
@@ -424,7 +424,7 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "business.businessrole.performs.business.businessfunction": {
-      "to": null,
+      "to": "business.businessrole.assigned-to.business.businessfunction",
       "swap": false,
       "records": [
         "walk-business"

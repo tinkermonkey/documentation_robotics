@@ -208,11 +208,11 @@
       "action": "delete",
       "kind": "walk:compound",
       "from": "business.businessrole.performs.business.businessfunction",
-      "to": null,
+      "to": "business.businessrole.assigned-to.business.businessfunction",
       "p": 1,
       "claims": [],
       "file_removed": "/Users/austinsand/workspace/documentation_robotics/.claude/worktrees/business-decisions/spec/schemas/relationships/business/businessrole.performs.businessfunction.relationship.schema.json",
-      "note": "walk row 17 (delete): Remove business.businessrole.performs.business.businessfunction: business.businessrole.assigned-to.business.businessprocess already exists and expresses it. Pla; covered by business.businessrole.assigned-to.business.businessprocess, a different element pair, which a migration cannot apply mechanically, so model relationships of this triple are dropped"
+      "note": "walk row 17 (delete): Remove business.businessrole.performs.business.businessfunction: covered by business.businessrole.assigned-to.business.businessfunction; replacement changed from business.businessrole.assigned-to.business.businessprocess by the maintainer (2026-11-05): that links a different element type, while business.businessrole.assigned-to.business.businessfunction links the same pair, so existing role-to-function relationships are kept"
     },
     {
       "action": "delete",
