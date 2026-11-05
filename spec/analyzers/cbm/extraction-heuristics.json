@@ -174,32 +174,64 @@
       }
     },
     {
-      "name": "tier0_test_annotation",
-      "description": "Test annotations narrow to the testing layer",
-      "rule": "A test, test fixture or test configuration belongs to the testing layer",
+      "name": "tier0_test_case_annotation",
+      "description": "A test-case annotation marks a test case",
+      "applies_to": ["testing.testcasesketch"],
+      "rule": "A method or function annotated as a test (JUnit @Test, @ParameterizedTest, @RepeatedTest, @TestFactory, @TestTemplate; a pytest mark) is one implemented test case, which the testing layer models as a test case sketch linked to it through source",
+      "parameters": {
+        "tier0": {
+          "labels": ["Method", "Function"],
+          "when": {
+            "decorator": "^(Test|ParameterizedTest|RepeatedTest|TestFactory|TestTemplate|pytest\\.mark\\..+)$"
+          },
+          "decide": "testing.testcasesketch",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_test_support_annotation",
+      "description": "Test setup, fixtures and test configuration are not elements",
+      "rule": "Setup and teardown methods (@BeforeEach, @AfterEach, @BeforeAll, @AfterAll), pytest fixtures and test-context annotations on classes (@SpringBootTest, @WebMvcTest, @DataJpaTest, @ExtendWith, @TestConfiguration) support test cases; the testing layer has no element for them",
       "parameters": {
         "tier0": {
           "labels": ["Class", "Method", "Function"],
           "when": {
-            "decorator": "^(Test|ParameterizedTest|DataJpaTest|WebMvcTest|SpringBootTest|pytest\\.fixture|pytest\\.mark\\..+)$"
+            "decorator": "^(BeforeEach|AfterEach|BeforeAll|AfterAll|pytest\\.fixture|SpringBootTest|WebMvcTest|DataJpaTest|ExtendWith|TestConfiguration)$"
           },
-          "narrow": ["testing.*"],
+          "decide": "none",
+          "confidence": "high"
+        }
+      }
+    },
+    {
+      "name": "tier0_test_case_name",
+      "description": "A test-named function in a test file is a test case",
+      "applies_to": ["testing.testcasesketch"],
+      "rule": "A function or method in a Python, Go, Java or Kotlin test file whose name follows that runner's convention (pytest and unittest test_*, JUnit 3 testX, Go TestX) is one implemented test case. JavaScript and TypeScript are left out: their cases are anonymous it() and test() callbacks, and a named testX method there is a helper.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Function", "Method"],
+          "when": {
+            "file": "^(?=.*\\.(py|go|java|kt)$)(?=.*((^|/)(tests?|__tests__|__fixtures__|fixtures?)/|(^|/)test_[^/]*\\.py$|(^|/)conftest\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$))",
+            "name": "^(test_|test[A-Z0-9]|Test[A-Z0-9_])"
+          },
+          "decide": "testing.testcasesketch",
           "confidence": "medium"
         }
       }
     },
     {
       "name": "tier0_test_file",
-      "description": "Symbols in test files belong to the testing layer",
-      "applies_to": ["testing.testcasesketch", "testing.testcoveragetarget"],
-      "rule": "A function, method or class in a test file (test_*.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java, tests/ directories) is a test case sketch or coverage target; the separate test pass classifies it (inventory step 7)",
+      "description": "Other symbols in test files are test support, not elements",
+      "rule": "A helper, fixture, setup method or test class in a test file (tests/ and fixtures/ directories, test_*.py, conftest.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java) supports the test cases. The testing layer has no element for it, and the production code under test belongs to the layer it implements. Test cases themselves are caught by the two rules before this one; anonymous it() and test() callbacks never become cards.",
       "parameters": {
         "tier0": {
           "labels": ["Function", "Method", "Class"],
           "when": {
-            "file": "((^|/)(tests?|__tests__)/|(^|/)test_[^/]*\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
+            "file": "((^|/)(tests?|__tests__|__fixtures__|fixtures?)/|(^|/)test_[^/]*\\.py$|(^|/)conftest\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
           },
-          "narrow": ["testing.testcasesketch", "testing.testcoveragetarget"],
+          "decide": "none",
           "confidence": "medium"
         }
       }

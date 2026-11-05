@@ -133,9 +133,10 @@ describe("MappingLoader", () => {
       const httpCallsMapping = loader.getEdgeMapping("HTTP_CALLS");
       expect(httpCallsMapping).toBeDefined();
       expect(httpCallsMapping?.cbm_edge).toBe("HTTP_CALLS");
-      // traversal only until the catalog has a consumer-calls-operation triple
-      expect(httpCallsMapping?.dr_relationship).toBeNull();
-      expect(httpCallsMapping?.usage).toBe("traversal_only");
+      // a test case tests the operation it calls; production callers wait on a catalog addition
+      expect(httpCallsMapping?.dr_relationship).toBe("tests");
+      expect(httpCallsMapping?.usage).toBe("verification_and_mapping");
+      expect(httpCallsMapping?.conditions).toMatchObject({ from_types: ["testing.testcasesketch"], to_types: ["api.operation"] });
     });
 
     it("should return undefined for unknown edge types", () => {
@@ -168,7 +169,7 @@ describe("MappingLoader", () => {
 
     it("should have correct confidence levels", () => {
       const httpCallsMapping = loader.getEdgeMapping("HTTP_CALLS");
-      expect(httpCallsMapping?.confidence).toBe("high");
+      expect(httpCallsMapping?.confidence).toBe("medium");
 
       const callsMapping = loader.getEdgeMapping("CALLS");
       expect(callsMapping?.confidence).toBe("medium");

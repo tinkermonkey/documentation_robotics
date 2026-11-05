@@ -111,16 +111,11 @@ export class CbmAnalyzer implements AnalyzerBackend {
   private warnedHeuristics = new Set<string>();
 
   /**
-   * Default regex patterns for test code detection
+   * Test code detection when the mapping has no test_code_exclusion rule: the same test-file
+   * pattern as the mapping's rule and its tier0_test_file rule.
    */
   private static readonly DEFAULT_TEST_PATTERNS = [
-    /\.test\./,
-    /\.spec\./,
-    /\/tests?\//,
-    /\/__tests__\//,
-    /\/test-/,
-    /\/fixtures?\//,
-    /\/__fixtures__\//,
+    /((^|\/)(tests?|__tests__|__fixtures__|fixtures?)\/|(^|\/)test_[^/]*\.py$|(^|\/)conftest\.py$|_test\.(go|py)$|\.(test|spec)\.[cm]?[jt]sx?$|Tests?\.(java|kt)$)/,
   ];
 
   constructor(mapper: MappingLoader) {

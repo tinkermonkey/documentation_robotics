@@ -305,14 +305,15 @@
       "dr_scope": "cross-layer",
       "direction": "forward",
       "dr_pattern": "testing.testcasesketch → application.applicationfunction",
-      "implementation_note": "Requires the separate test pass (inventory step 7): test code is excluded from the main candidates by filtering_rules, so test functions are classified on their own as testing.testcasesketch.",
+      "implementation_note": "From a test case (a test function Tier 0 classified as testing.testcasesketch) to the production symbol it exercises, when that symbol is an accepted element; calls into builtins, helpers and unclassified symbols create nothing.",
       "conditions": {
         "predicates": [
           {
             "predicate": "tests",
             "invert": false
           }
-        ]
+        ],
+        "from_types": ["testing.testcasesketch"]
       }
     },
     {
@@ -469,14 +470,25 @@
     },
     {
       "cbm_edge": "HTTP_CALLS",
-      "dr_relationship": null,
-      "confidence": "high",
-      "description": "Outbound HTTP call from code to an API route",
-      "usage": "traversal_only",
+      "dr_relationship": "tests",
+      "confidence": "medium",
+      "description": "Outbound HTTP call to an API route. From a test case it is the test exercising that operation",
+      "usage": "verification_and_mapping",
       "dr_scope": "cross-layer",
       "direction": "caller_to_callee",
       "confidence_from_property": "confidence",
-      "implementation_note": "Blocked on a catalog addition: no relationship from an application type to api.operation expresses a consumer calling an operation. proposed to Context Studio's review queue as a catalog addition (docs/analyzers/CBM_MAPPING_INVENTORY.md, addition 7); map once accepted. On CBM 0.12.1 almost every observed caller is test code (CBM sets is_test on 53 of 55 fastapi callers and 81 of 86 dr-cli callers), and testing.testcasesketch.tests.api.operation is in the catalog, so the test pass (inventory step 7) can map test callers with no catalog addition."
+      "implementation_note": "Creates a relationship only from a test case (a symbol Tier 0 classified as testing.testcasesketch) to an operation: on CBM 0.12.1 almost every observed caller is test code (53 of 55 on fastapi, 81 of 86 on dr-cli). A production caller (application code consuming an operation) still creates none: that triple waits on catalog addition 7 (docs/analyzers/CBM_MAPPING_INVENTORY.md), queued in Context Studio.",
+      "dr_pattern": "testing.testcasesketch → api.operation",
+      "conditions": {
+        "from_types": ["testing.testcasesketch"],
+        "to_types": ["api.operation"],
+        "predicates": [
+          {
+            "predicate": "tests",
+            "invert": false
+          }
+        ]
+      }
     },
     {
       "cbm_edge": "GRPC_CALLS",
