@@ -1,6 +1,6 @@
 # Extraction and Spec Refinement Strategy (October 2026)
 
-Status: **active plan**. Set on 2026-10-24 after a month-long pause. This document is
+Status: **active plan**. Set on 2026-10-24 after a month-long pause; the current plan is "Plan from 2026-11-05" below. This document is
 the reference for _why_ the eval harness, the spec enrichment pass, and the
 decision-model cascade exist, and in what order they are meant to land. Update it when
 a phase completes or the plan changes.
@@ -511,15 +511,121 @@ Next measurements: the held-out corpus; `Module` handling (gold splits modules a
 a manifest-based card path for `technology` (Dockerfiles, compose, package manifests), where symbol
 classification still recalls nothing.
 
+## Where things stand (2026-11-05)
+
+- `main` at `8e2b3289`; CBM 0.12.1 installed and the analyzer on its JSON contract (#987).
+- **Spec.** Node definitions are enriched in all 13 layers (#981, #984). The relationship catalog
+  has 1,510 types, with a `dr upgrade` migration for every rename and removal (155 rules). Two
+  layers are finished: application (walked, every relationship described) and business (#993: Context
+  Studio's decisions, then a maintainer pass against modelling rules stated in its layer
+  description, every relationship described). The other 11 layers have 390 proposals waiting in
+  Context Studio's review queue. Only 132 of the 1,510 relationship types say what they mean; the
+  rest are "Defines relationship: X". All 13 layer skills match the catalog, checked by
+  `npm run check:skill-relationships` (#994).
+- **Extraction.** `dr analyzer classify --tier0-only` runs the card builder and 19 Tier-0 rules
+  in the CLI (#992), and test code is settled by the test pass (#997). The CBM mapping inventory is
+  re-taken for 0.12.1 (#996): steps 1 to 7 are in the mapping, infrastructure is now observable,
+  and 11 catalog additions are still unreviewed in Context Studio. Tiers 1 and 2, changeset
+  output and the `/dr-map` switch are not built.
+- **In flight elsewhere.** Context Studio's Gate B fixes: a delete operation that names its
+  replacement (context-studio#1398) and a DR-side writer that applies accepted decisions to
+  `spec/schemas/relationships` (context-studio#1397), in their own worktrees, no PRs yet.
+
+## Plan from 2026-11-05
+
+Two tracks that meet at the classifier. The spec track settles the catalog layer by layer; the
+extraction track builds the cascade on it. The classifier's questions quote the spec's definitions,
+so each settled layer also improves classification, and the Phase 1 deliverable (re-running
+classify-eval once the catalog settles) waits for the spec track.
+
+### Track A: one method per layer
+
+Business showed what works. Each remaining layer goes through the same five steps, one PR per
+layer:
+
+1. **State the rules.** Add the layer's modelling rules to its `spec/layers/NN-<layer>.layer.json`
+   description: which types play which role (for an ArchiMate layer, active structure, behaviour
+   and passive structure), which predicate expresses each kind of link, and what is deliberately
+   not modelled. The rules come from the layer's standard and the design charter, and are agreed
+   before step 3.
+2. **Import the decisions.** The layer's proposals are reviewed in Context Studio and imported
+   (`proposal-import.ts`, or the decisions writer from context-studio#1397 once it lands). Deletes
+   whose replacement links a different pair are recorded as drops.
+3. **Check them against the rules.** A maintainer pass, recorded as
+   `cli/scripts/spec-enrich/data/applied-<layer>-principles.json` after the walk record: renames
+   that bring the layer onto one predicate per meaning, removals of what the rules exclude, and
+   additions the rules require. This is where business found synonyms, a category error and a rule
+   applied unevenly.
+4. **Describe every relationship type** in the layer in the application layer's style: one
+   sentence on what the relationship means and when to use it rather than a sibling. Node
+   descriptions that contradict the rules are corrected in the same pass.
+5. **Ship it.** Rebuild the spec and CLI, regenerate the migration table, check every retired
+   type migrates or drops by a rule, run `npm run check:skill-relationships` and fix skill rows,
+   add the changelog entry.
+
+Order, smallest first so the method settles before the large layers:
+
+| Order | Layer       | Proposals | Relationship types | Note                                                             |
+| ----- | ----------- | --------- | ------------------ | ---------------------------------------------------------------- |
+| 0     | application | walked    | 78                 | Only step 1 (rules) and a check against them; descriptions exist |
+| 1     | product     | 8         | 26                 |                                                                  |
+| 2     | data-model  | 15        | 74                 |                                                                  |
+| 3     | motivation  | 24        | 72                 | ArchiMate; traceability targets for every other layer            |
+| 4     | data-store  | 24        | 100                |                                                                  |
+| 5     | navigation  | 24        | 116                |                                                                  |
+| 6     | technology  | 28        | 121                | ArchiMate; the infrastructure mapping (B4) needs it settled      |
+| 7     | apm         | 39        | 137                |                                                                  |
+| 8     | testing     | 53        | 198                |                                                                  |
+| 9     | security    | 54        | 172                |                                                                  |
+| 10    | ux          | 58        | 181                |                                                                  |
+| 11    | api         | 63        | 183                | Context Studio's Gate B fixture                                  |
+
+### Track B: the extraction cascade
+
+1. **Re-measure on 0.12.1.** Re-run classify-eval (layer, type and edge accuracy) on the current
+   indexes and main's code, as the baseline for everything below. `USAGE` changed most in 0.12
+   and the edge results date from 0.10.2.
+2. **Clean-ups with no behaviour change** (inventory step 4): drop `external` routes, point
+   `evidence_fields` at properties CBM sets.
+3. **Catalog additions.** Review the 11 queued CBM additions in Context Studio, apply the accepted
+   ones (`catalog-additions.ts --apply`), then map `INHERITS`, `OVERRIDE`, `EMITS`, `LISTENS_ON`,
+   `CONNECTS_TO` and compose `DEPENDS_ON`.
+4. **Infrastructure** (inventory step 9): `Table`, `Image`, `Resource` by kind and `Process`, with
+   their edges; gold labels for the new nodes first. After technology (A6) is settled.
+5. **Held-out corpus.** The Tier-0 rules were written after reading the three corpora's gold, so
+   their numbers are in-sample. Add a fourth codebase, labelled but not read while writing rules,
+   and measure Tier 0 on it before Tier 1 builds on Tier 0's coverage.
+6. **Tier 1: Clef behind the per-project opt-in** (cascade build step 3).
+7. **Changeset staging and edges** (build step 4), **Tier 2 and the `/dr-map` switch** (step 5),
+   **cache and drift for `dr farm sync` and `dr verify`** (step 6).
+
+Known gap: JavaScript and TypeScript test cases are anonymous `it()` callbacks and never become
+cards, so TS projects get no testing elements until CBM names them or the card builder makes a card
+per call.
+
+### Next steps, in order
+
+| #   | Step                                                                              | Track  | Needs from the maintainer                                                       |
+| --- | --------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------- |
+| 1   | Review and merge the DR-side PRs for context-studio#1397 and #1398 when they open | A      | Review                                                                          |
+| 2   | Re-measure on 0.12.1                                                              | B1     | Nothing                                                                         |
+| 3   | Application rules (A0), then product through the five steps                       | A      | Agree the rules; review the product proposals in Context Studio; approve the PR |
+| 4   | Clean-ups, then the 11 catalog additions                                          | B2, B3 | Review the 11 additions in Context Studio                                       |
+| 5   | data-model, motivation and data-store through the method; held-out corpus         | A, B5  | Rules and proposals per layer; pick the fourth codebase                         |
+| 6   | Tier 1 behind the opt-in                                                          | B6     | Confirm the opt-in shape and the Cloudflare account                             |
+
+The rest of track A (navigation to api) and track B (B4, B7) follow, interleaved one layer per
+cascade step. The DrBot issues (#988 to #991) are a separate track.
+
 ## Sequencing
 
-| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status                   |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                                                                                                                                                                                                                                                                                                                                                                         | done 2026-10-25          |
-| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node enrichment applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged, reflected and planned; relationship catalog cleaned (`implements`, `supports-goals`, `fulfills-requirements` retired; tier 1 and the application walk applied; 1,611 to 1,526 schemas) with the `dr upgrade` model migration; the other eleven layers' walks pending (spreadsheet now, Context Studio's review queue next, Gate B on api). See "Phase 1 status". | in progress (2026-10-28) |
-| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`. Mapping inventory (CBM labels and edges against the current mappings, candidates checked against the catalog, widening order): [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md) (2026-10-28). Production design: [analyzers/CASCADE_DESIGN.md](analyzers/CASCADE_DESIGN.md). Inventory steps 1 to 7 applied, Tier 0 and the edge lookup measured, eleven catalog additions in Context Studio's queue; no CLI command yet (see "Phase 2 results").                                                                                                                                       | in progress (2026-10-29) |
-| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | planned                  |
-| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | after phase 1            |
+| Phase | Deliverable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status                                                                                                                                           |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0     | **Eval harness.** Three corpora (this repo's `cli/`, the FastAPI full-stack template, Spring PetClinic). Claude via the Batch API produced gold labels for 606 symbol cards. `cli/scripts/classify-eval/` builds cards from CBM, labels them, runs classify backends (Clef, Clef-flash, Claude), and reports accuracy and calibration. Results: "Phase 0 results" above.                                                                                                                                                                                                                                                                                                                                                                         | done 2026-10-25                                                                                                                                  |
+| 1     | **Spec enrichment pass** (Direction A, stages 1-3). Pipeline built; proposals generated for all 192 node types and 1,611 relationships; node enrichment applied to the application, api and ux layers (58 of 192 types; type-given-layer with kind narrowing on dr-cli 68.5% to 83.2%, fastapi 88.2% to 89.5%, petclinic 90.2% to 88.0%); 1,462 maintainer-note claims triaged, reflected and planned; relationship catalog cleaned (`implements`, `supports-goals`, `fulfills-requirements` retired; tier 1 and the application walk applied; 1,611 to 1,526 schemas) with the `dr upgrade` model migration; the other eleven layers' walks pending (spreadsheet now, Context Studio's review queue next, Gate B on api). See "Phase 1 status". | in progress: application and business done, 11 layers left (2026-11-05; see "Plan from 2026-11-05")                                              |
+| 2     | **Cascade wiring.** Widen `spec/analyzers/cbm` to the rest of CBM's vocabulary; wire the tiers into `/dr-map` and `dr analyzer`. Mapping inventory (CBM labels and edges against the current mappings, candidates checked against the catalog, widening order): [analyzers/CBM_MAPPING_INVENTORY.md](analyzers/CBM_MAPPING_INVENTORY.md) (2026-10-28). Production design: [analyzers/CASCADE_DESIGN.md](analyzers/CASCADE_DESIGN.md). Inventory steps 1 to 7 applied, Tier 0 and the edge lookup measured, eleven catalog additions in Context Studio's queue; no CLI command yet (see "Phase 2 results").                                                                                                                                       | in progress: `dr analyzer classify --tier0-only` and the test pass built, CBM 0.12.1 inventory re-taken (2026-11-05; see "Plan from 2026-11-05") |
+| 3     | **Fine-tuning** Clef on accumulated approved changesets.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | planned                                                                                                                                          |
+| -     | Gap/overlap sweep and the classifiability loop (Direction A, stages 4-5).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | after phase 1                                                                                                                                    |
 
 Preconditions, both met on 2026-10-28: PR #961 (the analyzer honours the configured codebase
 root; farm-mode use of the pipeline) is merged, and #963 (`dr delete` leaves dangling
