@@ -34,7 +34,7 @@
     "lua",
     "scala"
   ],
-  "known_minimum_version": null,
+  "known_minimum_version": "0.12.0",
   "project_identification": {
     "strategy": "absolute_path",
     "description": "DR CLI passes the project root as an absolute path via findProjectRoot(). The analyzer uses this path to establish a stable project identity for consistent indexing and caching across sessions."

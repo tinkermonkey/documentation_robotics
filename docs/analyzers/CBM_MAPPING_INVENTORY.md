@@ -1,4 +1,4 @@
-# CBM mapping inventory (2026-10-28)
+# CBM mapping inventory (2026-10-28, updated for CBM 0.12.1 on 2026-11-05)
 
 Phase 2 of [EXTRACTION_STRATEGY.md](../EXTRACTION_STRATEGY.md) widens `spec/analyzers/cbm` to the rest of codebase-memory-mcp's (CBM) vocabulary. This document is the starting inventory: every CBM node label and edge type, what `spec/analyzers/cbm/*.json` says about it today, and, for the unmapped ones, the candidate Documentation Robotics (DR) type or predicate checked against the relationship catalog in `spec/dist/*.json`. It changes nothing; it is the list the mapping work is scoped from.
 
@@ -28,7 +28,97 @@ realizes (as the `HANDLES` row says), not a second operation, and an ORM table c
 object schema whatever the framework, with its table a derived data-store collection. Edge
 mappings now also carry enforced end-type restrictions (`conditions.from_types` / `to_types`).
 
-## Sources
+## CBM 0.12.1 update (2026-11-05)
+
+The analyzer moved to codebase-memory-mcp 0.12.1 on 2026-11-03 (`dr analyzer` speaks its JSON contract since PR 987). This section re-takes the inventory against 0.12.1. The sections after it are the 0.10.2 baseline from 2026-10-28; their counts are 0.10.2's, and the mapping changes they proposed are recorded under "Progress" above.
+
+### Sources
+
+| Source                                                                                                                                                          | What it gave                                                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `codebase-memory-mcp 0.12.1`, `cli get_graph_schema` with `diagnostics: "full"` on the three eval-corpus indexes (re-indexed with 0.12.1; dr-cli on 2026-11-04) | Labels, edge types, counts, and every queryable property per label and edge.                                            |
+| `query_graph` on the same indexes                                                                                                                               | The checks below: `is_test` coverage, `Route` properties, `HTTP_CALLS` callers, `RAISES` targets, infrastructure nodes. |
+| Upstream README at tag `v0.12.1`, "Graph Data Model" and "Edge types (selected)"                                                                                | The documented vocabulary: 28 node labels and 42 edge types.                                                            |
+| The installed 0.12.1 binary's string table                                                                                                                      | Literals the engine uses but does not document.                                                                         |
+
+### Vocabulary
+
+- **Labels: unchanged.** 0.12.1 documents the same 28 labels as 0.10.2, and the mapping accounts for all of them (10 mapped, 18 in `unmapped_labels`).
+- **Edges: three dropped.** The 42 documented edges are unchanged. `CONTAINS_PACKAGE`, `MEMBER_OF` and `RESOLVED_CALLS`, which the 0.10.2 binary and graph UI carried, appear nowhere in 0.12.1 (README, binary, graphs). They are removed from `edge-mapping.json`, which now lists 45 edges: the 42 documented plus `EXTENDS`, `GRAPHQL_CALLS` and `TRPC_CALLS`, still in the binary only.
+- **Undocumented, not observed.** The binary has a document-link pipeline that names a `SUPERSEDES` link kind (`supersedes`, `supersedes_prose`) and diagram parsing (`Diagram`, `DiagramElement`, `DIAGRAM_ARROW`, with Mermaid, PlantUML, draw.io, Excalidraw, Graphviz and D2 link kinds). No corpus produced any of them and the README does not mention them, so they are not mapped. If CBM documents them, diagram arrows between named elements would be evidence for relationships, and `SUPERSEDES` would fit decision records. `CROSS_BUILD` in the same table is a Dockerfile grammar token, not an edge.
+- **ADRs are not graph nodes.** `manage_adr` stores architectural decision records beside the graph (`get_graph_schema` reports `adr_present`), not as labels. None of the corpora has one. A decision record would be source text for motivation elements (principle, constraint, assessment), not an element type of its own.
+
+### Counts that changed
+
+Rows where a label or edge appeared, vanished, or moved by more than half (and by more than 10), dr-cli / fastapi / petclinic. The fastapi and petclinic clones have not changed since before the 0.10.2 inventory, so their differences are CBM's; 0.12 also indexes more files (fastapi `File` 190 → 209). dr-cli's own code grew as well (`File` 631 → 1,074), so its rises are partly new code.
+
+| Label or edge          | 0.10.2           | 0.12.1           |                                   |
+| ---------------------- | ---------------- | ---------------- | --------------------------------- |
+| `CALL_REFERENCE`       | 11 / 0 / 0       | 13 / 7 / 0       | new in fastapi                    |
+| `CONFIGURES`           | 684 / 5 / 40     | 115 / 36 / 18    | changed                           |
+| `CONNECTS_TO`          | 0 / 0 / 0        | 0 / 3 / 0        | new in fastapi                    |
+| `CONTAINS_FILE`        | 631 / 190 / 106  | 1074 / 209 / 108 | changed                           |
+| `DEPENDS_ON`           | 0 / 0 / 0        | 0 / 12 / 1       | new in fastapi, petclinic         |
+| `DEPLOYS`              | 0 / 0 / 0        | 0 / 0 / 2        | new in petclinic                  |
+| `EnvVar`               | 41 / 4 / 0       | 42 / 33 / 14     | new in petclinic                  |
+| `File`                 | 631 / 190 / 106  | 1074 / 209 / 108 | changed                           |
+| `Function`             | 743 / 454 / 0    | 1120 / 468 / 11  | new in petclinic                  |
+| `HTTP_CALLS`           | 54 / 0 / 0       | 86 / 55 / 0      | new in fastapi                    |
+| `INFRA_MAPS`           | 0 / 0 / 0        | 0 / 0 / 2        | new in petclinic                  |
+| `Image`                | 0 / 0 / 0        | 0 / 9 / 4        | new in fastapi, petclinic         |
+| `MENTIONS`             | 0 / 0 / 0        | 64 / 32 / 18     | new in dr-cli, fastapi, petclinic |
+| `Module`               | 629 / 180 / 56   | 1072 / 199 / 58  | changed                           |
+| `Process`              | 0 / 0 / 0        | 10 / 1 / 0       | new in dr-cli, fastapi            |
+| `RAISES`               | 75 / 0 / 0       | 160 / 0 / 0      | changed                           |
+| `REFERENCES_FILE`      | 0 / 0 / 0        | 67 / 36 / 2      | new in dr-cli, fastapi, petclinic |
+| `Resource`             | 0 / 0 / 2        | 0 / 14 / 7       | new in fastapi                    |
+| `Route`                | 48 / 19 / 20     | 73 / 34 / 20     | changed                           |
+| `SEMANTICALLY_RELATED` | 139 / 409 / 199  | 58 / 170 / 129   | changed                           |
+| `SPAWNS`               | 0 / 0 / 0        | 61 / 3 / 2       | new in dr-cli, fastapi, petclinic |
+| `Table`                | 0 / 0 / 0        | 0 / 0 / 21       | new in petclinic                  |
+| `USAGE`                | 9780 / 869 / 762 | 4644 / 827 / 714 | changed                           |
+
+What the changes mean for the mapping:
+
+- **Infrastructure is now observed.** fastapi produces compose `Resource`s (`Service/db`, `Service/backend`, ... once per compose file), `Image`s (`postgres`, `traefik`, `ghcr.io/astral-sh/uv`, ...), `DEPENDS_ON` and `CONNECTS_TO`. petclinic produces Kubernetes `Resource`s (`Deployment/petclinic`, `Service/petclinic`, `Secret/demo-db`), `DEPLOYS` and `INFRA_MAPS`, and 21 `Table`s from its three `schema.sql` variants. Step 9 below said it needed "a corpus that produces these nodes"; two of the three now do.
+- **`SPAWNS` and `Process` are now observed.** dr-cli launches `git`, `node`, `bun`, `npm`, `gh`, `claude`, `copilot` and others (61 edges, 10 `Process` nodes, plus `<dynamic>`). These are the external programs `technology.systemsoftware` describes.
+- **`USAGE` is narrower.** 0.12 separates proven callable references (`CALL_REFERENCE`) from identifier use, and `USAGE` halved on dr-cli even as the code grew. It is the edge behind the data-access mapping (step 5), so the edge results in [CASCADE_DESIGN.md](CASCADE_DESIGN.md), measured on 0.10.2, need re-measuring.
+- **`CONFIGURES` is narrower** (dr-cli 684 → 115): 0.12 links a config key only to code inside the config file's own component. It is traversal-only, so nothing in the mapping changes.
+- **`MENTIONS` and `REFERENCES_FILE` are new in practice** (doc comments and docs linking to code and files). Both are traversal-only; they could later supply element descriptions.
+
+### Properties the mapping reads
+
+`get_graph_schema` with `diagnostics: "full"` lists the properties CBM actually sets. The mapping's `evidence_fields` name several it never sets:
+
+| Label          | Named in `evidence_fields`, not set by CBM 0.12.1                             | Nearest property CBM does set                                                    |
+| -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `Function`     | `fan_in`, `fan_out`, `argument_types`                                         | in/out degree (`search_graph` columns `in`, `out`); `param_types`, `param_names` |
+| `Method`       | `visibility`, `is_static`, `is_abstract`, `overrides`                         | `parent_class`, `signature`; `OVERRIDE` edges                                    |
+| `Class`        | `abstract`, `interfaces`, `parent_class`, `methods_count`, `properties_count` | `base_classes`; `IMPLEMENTS` and `DEFINES_METHOD` edges                          |
+| `Interface`    | `decorators`                                                                  | `base_classes`                                                                   |
+| `Type`, `Enum` | `base_classes`, `decorators`                                                  | `docstring` only                                                                 |
+
+None of the Tier-0 rules reads these fields (a rule matches on the label, name, file path, declaration line and decorator names), so nothing is misclassified today; the fields are simply always empty. Properties 0.12.1 sets that the mapping does not use yet: `is_test` (every symbol), `docstring` (most labels), `importance` and `cognitive` (functions and methods), `param_types` / `return_type`, `Route.external` / `host` / `source`, `Resource.kind` / `group` / `ecosystem` / `labels`, `Image.registry` / `repository`, `Process.program`, `Channel.transport`, `EnvVar.scope` / `source`.
+
+### Findings
+
+1. **`is_test` is a better test filter than the filename regex.** `extraction-heuristics.json`'s `test_code_exclusion` pattern, `^.*(\.test\.|_test\.|spec\.|__tests__)`, matches none of petclinic's 20 test files (`src/test/java/**/*Tests.java`) and 6 of fastapi's 22 (it misses `tests/test_*.py`). CBM's `is_test` (a string, `"true"`) flags all of them. On dr-cli it flags 297 modules, where the regex catches 250 (it misses helpers such as `tests/helpers/*.ts`): 293 test files, `test_runner.ts`, and 3 false positives in `src/audit/*/spec/`. It also flags fastapi's `packages/react-email/emails/test_email.tsx`, an email template. No module in a test directory or with a test file name goes unflagged in any of the three corpora, so "`is_test`, except under a `spec/` source directory" catches every test file here, with that one false positive. This is the "Java `test_code_exclusion`" item; the change is to the analyzer's filtering rule and `isTestCode()`.
+2. **`HTTP_CALLS` comes from tests.** CBM marks 53 of fastapi's 55 callers and 81 of dr-cli's 86 as test code. The catalog already has `testing.testcasesketch tests api.operation`, so the test pass (step 7) can map these with no catalog addition. Catalog addition 7 (application code consuming an operation) is still the route for production callers, which are rare here (dr-cli's `src/core/model.ts`, 4).
+3. **Routes still need the filter.** 65 of dr-cli's 73 `Route` nodes are `ANY` "routes" built from file paths and model paths (`/project/src/service.ts`, `/documentation-robotics/model`), as on 0.10.2, so `isLikelyHttpRoute` stays. New: `external: "true"` marks routes on other hosts (a GitHub release download, `localhost:8000` health checks), which are not this system's operations, and `source: "decorator"` marks petclinic's 15 annotation-declared routes. Excluding `external` routes is a one-line rule.
+4. **`RAISES` is mostly noise.** 77 of dr-cli's 160 point at a rethrown `error` variable; the rest at error classes (`CLIError` 68, `ModelNotFoundError` 7). Keep it traversal-only. Error classes are evidence at most.
+5. **The 11 CBM catalog additions are still pending.** All eleven triples in `cli/scripts/spec-enrich/data/catalog-additions-cbm.json` (proposals `69642a4f` application and `8b7c9a9c` technology in Context Studio) are absent from the catalog. They block `INHERITS`, `OVERRIDE`, `EMITS`, `RAISES`, interface-level `LISTENS_ON`, production `HTTP_CALLS`, and compose `DEPENDS_ON` / `CONNECTS_TO`.
+
+### What is left of the widening order
+
+Steps 1 to 7 are in the mapping (see "Progress" at the top). What remains, re-ordered for 0.12.1:
+
+1. **Test pass** (finishes step 7): switch test detection to `is_test` as in finding 1, classify test functions as `testing.testcasesketch`, and map `TESTS`, `TESTS_FILE` and test-side `HTTP_CALLS` to `tests`. No spec change.
+2. **Infrastructure** (step 9), now observable on fastapi and petclinic: `Table` → `data-store.collection` (high), `Image` → `technology.artifact`, `Resource` by `kind` (`Deployment` and compose `Service` → `technology.node`, Kubernetes `Service` → `technology.technologyservice`, `Secret` → `security.secureresource`), `Process` → `technology.systemsoftware`; then `INFRA_MAPS`, `DEPLOYS`, `SPAWNS` and artifact `DEPENDS_ON`, whose triples exist. Compose files repeat each service once per file (`compose.yml`, `compose.override.yml`, `compose.deploy.yml`), so resources need merging by name. Needs gold labels for the new nodes before it can be scored.
+3. **Catalog additions** (step 8): review the 11 queued triples in Context Studio, then map `INHERITS`, `OVERRIDE`, `EMITS`, `LISTENS_ON`, `CONNECTS_TO` and compose `DEPENDS_ON`.
+4. **Clean-ups with no behaviour change:** drop `external` routes; point `evidence_fields` at the properties CBM sets (table above); consider `importance` for the significance gate that step 6's `CALLS` mapping needs.
+5. **Re-measure** the edge results on 0.12.1, since `USAGE` changed most.
+
+## Sources (0.10.2 baseline)
 
 | Source                                                                                                          | What it gave                                                                                                                                                                                                                                                                |
 | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
