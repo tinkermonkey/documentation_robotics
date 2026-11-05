@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationevent triggers Applicationfunction",
+  "description": "The application function is a handler that runs when the application event arrives, such as a message listener or an event subscriber callback; unlike a business function, an application function can be started by an event.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationevent.triggers.application.applicationfunction"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationevent"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "triggers"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

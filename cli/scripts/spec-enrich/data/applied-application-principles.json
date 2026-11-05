@@ -1,0 +1,217 @@
+{
+  "backend": "maintainer",
+  "record": "application-principles",
+  "applied_at": "2026-11-05T19:41:08.409Z",
+  "basis": "spec/layers/05-application.layer.json description: the application layer's modelling rules (maintainer decisions 2026-11-05)",
+  "counts": {
+    "rename": 8,
+    "delete": 10,
+    "create": 2
+  },
+  "actions": [
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "application.applicationinteraction.depends-on.application.dataobject",
+      "to": "application.applicationinteraction.accesses.application.dataobject",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: behaviour reading or writing a data object is accesses",
+      "file_written": "spec/schemas/relationships/application/applicationinteraction.accesses.dataobject.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/application/applicationinteraction.depends-on.dataobject.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "application.applicationcollaboration.depends-on.application.applicationinterface",
+      "to": "application.applicationcollaboration.provides.application.applicationinterface",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: provides already says a collaboration offers an interface",
+      "file_removed": "spec/schemas/relationships/application/applicationcollaboration.depends-on.applicationinterface.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "principles",
+      "from": "application.applicationservice.realizes.motivation.requirement",
+      "to": "application.applicationservice.satisfies.motivation.requirement",
+      "p": 1,
+      "claims": [],
+      "note": "one meaning, one predicate: a requirement is satisfied (as business service satisfies requirement), not realized",
+      "file_written": "spec/schemas/relationships/application/applicationservice.satisfies.requirement.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/application/applicationservice.realizes.requirement.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationinteraction.depends-on.application.applicationservice",
+      "to": "application.applicationservice.serves.application.applicationinteraction",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: a service serves the behaviour that uses it, so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/application/applicationservice.serves.applicationinteraction.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/application/applicationinteraction.depends-on.applicationservice.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationfunction.depends-on.application.applicationevent",
+      "to": "application.applicationevent.triggers.application.applicationfunction",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: an application function can be an event handler, which the event triggers, so the relationship is reversed",
+      "file_written": "spec/schemas/relationships/application/applicationevent.triggers.applicationfunction.relationship.schema.json",
+      "file_removed": "spec/schemas/relationships/application/applicationfunction.depends-on.applicationevent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationinteraction.depends-on.application.applicationcollaboration",
+      "to": "application.applicationcollaboration.assigned-to.application.applicationinteraction",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: the collaboration is assigned to the interaction it performs",
+      "file_removed": "spec/schemas/relationships/application/applicationinteraction.depends-on.applicationcollaboration.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationinteraction.depends-on.application.applicationevent",
+      "to": "application.applicationevent.triggers.application.applicationinteraction",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: the event triggers the interaction",
+      "file_removed": "spec/schemas/relationships/application/applicationinteraction.depends-on.applicationevent.relationship.schema.json"
+    },
+    {
+      "action": "rename",
+      "kind": "reverse",
+      "from": "application.applicationinterface.depends-on.application.applicationcomponent",
+      "to": "application.applicationcomponent.provides.application.applicationinterface",
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: the component provides the interface",
+      "file_removed": "spec/schemas/relationships/application/applicationinterface.depends-on.applicationcomponent.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationprocess.depends-on.application.applicationinterface",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "depends-on means one element needs another to work and is never used where another predicate says it: a process uses the service an interface offers (application service serves application process), a different element",
+      "file_removed": "spec/schemas/relationships/application/applicationprocess.depends-on.applicationinterface.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcollaboration.depends-on.application.dataobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "interfaces and collaborations do not access data objects; behaviour, and components, do",
+      "file_removed": "spec/schemas/relationships/application/applicationcollaboration.depends-on.dataobject.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationinterface.depends-on.application.dataobject",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "interfaces and collaborations do not access data objects; behaviour, and components, do",
+      "file_removed": "spec/schemas/relationships/application/applicationinterface.depends-on.dataobject.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.realizes.business.businessservice",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a component may realize an application service directly, as a shortcut through the behaviour assigned to it; links to other layers go through that service or behaviour (application service realizes business service)",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.realizes.businessservice.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.realizes.product.feature",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a component may realize an application service directly, as a shortcut through the behaviour assigned to it; links to other layers go through that service or behaviour (application service realizes product feature)",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.realizes.feature.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.realizes.product.capability",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a component may realize an application service directly, as a shortcut through the behaviour assigned to it; links to other layers go through that service or behaviour (application service realizes product capability)",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.realizes.capability.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.serves.business.businessrole",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "a component may realize an application service directly, as a shortcut through the behaviour assigned to it; links to other layers go through that service or behaviour (application interface serves business role)",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.serves.businessrole.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.realizes.motivation.goal",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "application services, and the behaviour that realizes them, carry the link to motivation; a principle is realized by requirements, not by code (application service realizes goal)",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.realizes.goal.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.realizes.motivation.principle",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "application services, and the behaviour that realizes them, carry the link to motivation; a principle is realized by requirements, not by code",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.realizes.principle.relationship.schema.json"
+    },
+    {
+      "action": "delete",
+      "kind": "principles",
+      "from": "application.applicationcomponent.satisfies.motivation.requirement",
+      "to": null,
+      "p": 1,
+      "claims": [],
+      "note": "application services, and the behaviour that realizes them, carry the link to motivation; a principle is realized by requirements, not by code (application service and function satisfy requirement)",
+      "file_removed": "spec/schemas/relationships/application/applicationcomponent.satisfies.requirement.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "application.applicationfunction.triggers.application.applicationevent",
+      "to": "application.applicationfunction.triggers.application.applicationevent",
+      "p": 1,
+      "claims": [],
+      "note": "behaviour raises events, as in the business layer; also the queued CBM catalog addition for EMITS",
+      "file_written": "spec/schemas/relationships/application/applicationfunction.triggers.applicationevent.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "principles",
+      "from": "application.applicationinteraction.triggers.application.applicationevent",
+      "to": "application.applicationinteraction.triggers.application.applicationevent",
+      "p": 1,
+      "claims": [],
+      "note": "behaviour raises events, as in the business layer",
+      "file_written": "spec/schemas/relationships/application/applicationinteraction.triggers.applicationevent.relationship.schema.json"
+    }
+  ]
+}

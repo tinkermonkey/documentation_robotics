@@ -158,26 +158,26 @@ Note that the ArchiMate influence predicate is spelled `influence` (not `influen
 
 ### Incoming References (Other Layers → Motivation)
 
-| Source Type                        | Predicate      | Target Type | Example                                                            |
-| ---------------------------------- | -------------- | ----------- | ------------------------------------------------------------------ |
-| `business.businessservice`         | realizes       | Goal        | "Online Ordering" realizes "Grow Digital Revenue"                  |
-| `business.businessservice`         | delivers-value | Value       | "Same-Day Delivery" delivers value "Customer Convenience"          |
-| `business.businessprocess`         | satisfies      | Requirement | "Refund Processing" satisfies "Refunds Issued Within 5 Days"       |
-| `business.businessactor`           | serves         | Stakeholder | "Customer" actor serves "Customers" stakeholder                    |
-| `product.capability`               | supports       | Goal        | "Self-Service Returns" supports "Reduce Support Costs"             |
-| `product.feature`                  | satisfies      | Requirement | "Two-Factor Login" satisfies "Enforce MFA for Admins"              |
-| `product.persona`                  | realizes       | Stakeholder | "Busy Parent Persona" realizes "Retail Customers"                  |
-| `product.userworkflow`             | delivers       | Outcome     | "Checkout Flow" delivers "Cart Abandonment Reduced 15%"            |
-| `security.securitypolicy`          | realizes       | Principle   | "Encryption Policy" realizes "Security by Design"                  |
-| `security.countermeasure`          | satisfies      | Requirement | "Rate Limiting" satisfies "Prevent Credential Stuffing"            |
-| `application.applicationservice`   | realizes       | Goal        | "Recommendation Service" realizes "Increase Average Order Value"   |
-| `application.applicationcomponent` | satisfies      | Requirement | "Audit Logger" satisfies "Log All Admin Actions"                   |
-| `technology.systemsoftware`        | satisfies      | Constraint  | "PostgreSQL 15" satisfies "Approved Open-Source Databases Only"    |
-| `api.operation`                    | satisfies      | Requirement | "POST /orders" satisfies "Orders Accepted via Public API"          |
-| `data-store.retentionpolicy`       | satisfies      | Constraint  | "Purge PII After 30 Days" satisfies "GDPR Data Minimization"       |
-| `apm.metricinstrument`             | maps-to        | Outcome     | "checkout.duration" metric maps to "Checkout Under 2s Outcome"     |
-| `testing.testcoveragemodel`        | fulfills       | Requirement | "Checkout Coverage Model" fulfills "Checkout must complete in <2s" |
-| `ux.view`                          | realizes       | Goal        | "Order Tracking Page" realizes "Reduce Where-Is-My-Order Calls"    |
+| Source Type                       | Predicate      | Target Type | Example                                                            |
+| --------------------------------- | -------------- | ----------- | ------------------------------------------------------------------ |
+| `business.businessservice`        | realizes       | Goal        | "Online Ordering" realizes "Grow Digital Revenue"                  |
+| `business.businessservice`        | delivers-value | Value       | "Same-Day Delivery" delivers value "Customer Convenience"          |
+| `business.businessprocess`        | satisfies      | Requirement | "Refund Processing" satisfies "Refunds Issued Within 5 Days"       |
+| `business.businessactor`          | serves         | Stakeholder | "Customer" actor serves "Customers" stakeholder                    |
+| `product.capability`              | supports       | Goal        | "Self-Service Returns" supports "Reduce Support Costs"             |
+| `product.feature`                 | satisfies      | Requirement | "Two-Factor Login" satisfies "Enforce MFA for Admins"              |
+| `product.persona`                 | realizes       | Stakeholder | "Busy Parent Persona" realizes "Retail Customers"                  |
+| `product.userworkflow`            | delivers       | Outcome     | "Checkout Flow" delivers "Cart Abandonment Reduced 15%"            |
+| `security.securitypolicy`         | realizes       | Principle   | "Encryption Policy" realizes "Security by Design"                  |
+| `security.countermeasure`         | satisfies      | Requirement | "Rate Limiting" satisfies "Prevent Credential Stuffing"            |
+| `application.applicationservice`  | realizes       | Goal        | "Recommendation Service" realizes "Increase Average Order Value"   |
+| `application.applicationfunction` | satisfies      | Requirement | "Audit Logging" satisfies "Log All Admin Actions"                  |
+| `technology.systemsoftware`       | satisfies      | Constraint  | "PostgreSQL 15" satisfies "Approved Open-Source Databases Only"    |
+| `api.operation`                   | satisfies      | Requirement | "POST /orders" satisfies "Orders Accepted via Public API"          |
+| `data-store.retentionpolicy`      | satisfies      | Constraint  | "Purge PII After 30 Days" satisfies "GDPR Data Minimization"       |
+| `apm.metricinstrument`            | maps-to        | Outcome     | "checkout.duration" metric maps to "Checkout Under 2s Outcome"     |
+| `testing.testcoveragemodel`       | fulfills       | Requirement | "Checkout Coverage Model" fulfills "Checkout must complete in <2s" |
+| `ux.view`                         | realizes       | Goal        | "Order Tracking Page" realizes "Reduce Where-Is-My-Order Calls"    |
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Applicationcomponent accesses Dataobject",
-  "description": "The component creates, reads, updates or deletes instances of the data structure while performing its behaviour, so the data object is part of the state it handles.",
+  "description": "The component creates, reads, updates or deletes instances of the data structure while performing its behaviour, so the data object is part of the state it handles. Unlike in the business layer, active structure may access data here, because a component is code that holds and passes data; interfaces and collaborations do not.",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
